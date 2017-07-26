@@ -1,0 +1,34 @@
+version: 0.1
+            
+phases:
+
+  install: 
+    commands:
+      - go get -u github.com/golang/lint/golint
+
+  pre_build: 
+    commands:
+
+      # Ensure code passes all lint tests
+      - golint -set_exit_status
+
+      # Run all tests included with our application
+      - go test
+
+  build:
+    commands:
+
+      # Build our application
+      - mkdir windows
+      - mkdir linux
+      - mkdir osx  
+      - GOOS=linux go build -o linux/sam
+      - GOOS=darwin go build -o osx/sam
+      - GOOS=windows go build -o windows/sam.exe
+
+
+artifacts:
+  files:
+    - linux/sam
+    - osx/sam 
+    - windows/sam.exe 

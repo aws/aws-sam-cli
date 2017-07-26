@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Alexa Skill https://developer.amazon.com/alexa-skills-kit
+Resources:
+  AlexaSkillFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://<bucket>/alexa_skill.zip
+      Handler: index.handler
+      Runtime: !Ref InlineParameter
+      Environment: 
+        Variables:
+          BASE_64_SIMPLE: !Base64 "123456"
+          # TODO More Base64
+          # TODO Conditionals
+          # TODO FindInMap
+          GET_ATT: 
+            "Fn::GetAtt": [ "SomeResource", "AndParameter" ]
+          # TODO ImportValue
+          # TODO Join
+          # TODO Select
+          # TODO Split
+          SUB_SIMPLE: !Sub "Building with ${AWS::Region} parameters and ${SomeCustom} ones"
+          SUB_FULL: 
+            "Fn::Sub":
+              - "Some full text with ${AWS::Region} parameters and ${CustomParams}"
+              - { "CustomParams": "${SomeOtherResource}" }
+
+
