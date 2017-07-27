@@ -19,8 +19,12 @@ phases:
       # Ensure code passes all lint tests
       - golint -set_exit_status
 
+      - - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
+
       # Run all tests included with our application
-      - go test
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && find .
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && go test .
+      - go test .
 
   build:
     commands:
