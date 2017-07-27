@@ -25,16 +25,15 @@ phases:
   build:
     commands:
 
-      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
-
       # Build our application
       - mkdir -p "${CODEBUILD_SRC_DIR}/windows"
       - mkdir -p "${CODEBUILD_SRC_DIR}/linux"
       - mkdir -p "${CODEBUILD_SRC_DIR}/osx"  
-      - GOOS=linux go build -o "${CODEBUILD_SRC_DIR}/linux/sam"
-      - GOOS=darwin go build -o "${CODEBUILD_SRC_DIR}/osx/sam"
-      - GOOS=windows go build -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && GOOS=linux go build -o "${CODEBUILD_SRC_DIR}/linux/sam"
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && GOOS=darwin go build -o "${CODEBUILD_SRC_DIR}/osx/sam"
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && GOOS=windows go build -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
 
+      # Create a VERSION file with details on the git hash etc
       - echo "Git commit ${CODEBUILD_RESOLVED_SOURCE_VERSION}" > "${CODEBUILD_SRC_DIR}/VERSION"
       - echo "Built by AWS CodeBuild $(date)" >> "${CODEBUILD_SRC_DIR}/VERSION"
 
