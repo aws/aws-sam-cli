@@ -29,6 +29,7 @@ phases:
       - mkdir -p "${CODEBUILD_SRC_DIR}/windows"
       - mkdir -p "${CODEBUILD_SRC_DIR}/linux"
       - mkdir -p "${CODEBUILD_SRC_DIR}/osx"  
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && find .
       - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && GOOS=linux go build -o "${CODEBUILD_SRC_DIR}/linux/sam"
       - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && GOOS=darwin go build -o "${CODEBUILD_SRC_DIR}/osx/sam"
       - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli" && GOOS=windows go build -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
