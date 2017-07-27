@@ -20,6 +20,8 @@ type Event struct {
 	StageVariables    map[string]string `json:"stageVariables"`
 	Path              string            `json:"path"`
 }
+
+// RequestContext represents the context object that gets passed to an AWS Lambda function
 type RequestContext struct {
 	ResourceID   string          `json:"resourceId"`
 	APIID        string          `json:"apiId"`
@@ -30,6 +32,7 @@ type RequestContext struct {
 	Identity     ContextIdentity `json:"identity"`
 }
 
+// ContextIdentity represents the identity section of the context object that gets passed to an AWS Lambda function
 type ContextIdentity struct {
 	APIKey                        string `json:"apiKey"`
 	UserARN                       string `json:"userArn"`
