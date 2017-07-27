@@ -5,7 +5,6 @@ phases:
   install: 
     commands:
 
-      - export COMMIT_HASH=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
       - export GOPATH="${CODEBUILD_SRC_DIR}"
       - mkdir -p "${GOPATH}/src/github.com/awslabs"
       - ln -s "${CODEBUILD_SRC_DIR}" "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
