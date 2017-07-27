@@ -4,11 +4,18 @@ phases:
 
   install: 
     commands:
-      - env
+
+      - export COMMIT_HASH=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+      - export GOPATH="${CODEBUILD_SRC_DIR}"
+      - mkdir -p "${GOPATH}/src/github.com/awslabs"
+      - ln -s "${CODEBUILD_SRC_DIR}" "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
       - go get -u github.com/golang/lint/golint
 
   pre_build: 
     commands:
+
+      # Display some debug info
+      - echo "GOPATH is ${GOPATH}"
 
       # Ensure code passes all lint tests
       - golint -set_exit_status
@@ -19,17 +26,22 @@ phases:
   build:
     commands:
 
-      # Build our application
-      - mkdir windows
-      - mkdir linux
-      - mkdir osx  
-      - GOOS=linux go build -o linux/sam
-      - GOOS=darwin go build -o osx/sam
-      - GOOS=windows go build -o windows/sam.exe
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
 
+      # Build our application
+      - mkdir -p "${CODEBUILD_SRC_DIR}/windows"
+      - mkdir -p "${CODEBUILD_SRC_DIR}/linux"
+      - mkdir -p "${CODEBUILD_SRC_DIR}/osx"  
+      - GOOS=linux go build -o "${CODEBUILD_SRC_DIR}/linux/sam"
+      - GOOS=darwin go build -o "${CODEBUILD_SRC_DIR}/osx/sam"
+      - GOOS=windows go build -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
+
+      - echo "Git commit ${CODEBUILD_RESOLVED_SOURCE_VERSION}" > "${CODEBUILD_SRC_DIR}/VERSION"
+      - echo "Built by AWS CodeBuild $(date)" >> "${CODEBUILD_SRC_DIR}/VERSION"
 
 artifacts:
   files:
+    - VERSION
     - linux/sam
     - osx/sam 
     - windows/sam.exe 
