@@ -6,6 +6,8 @@ phases:
     commands:
 
       - export GOPATH="${CODEBUILD_SRC_DIR}"
+      - mkdir -p "${GOPATH}/bin"
+      - export PATH=$GOPATH/bin:$PATH 
       - mkdir -p "${GOPATH}/src/github.com/awslabs"
       - ln -s "${CODEBUILD_SRC_DIR}" "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
       - go get -u github.com/golang/lint/golint
