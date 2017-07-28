@@ -6,6 +6,7 @@ phases:
     commands:
 
       - export GOPATH="${CODEBUILD_SRC_DIR}"
+      - export VERSION=$(cat main.go | sed -n 's/^const Version = "\(.*\)"/\1/p')
       - mkdir -p "${GOPATH}/bin"
       - export PATH=$GOPATH/bin:$PATH 
       - mkdir -p "${GOPATH}/src/github.com/awslabs"
@@ -38,11 +39,17 @@ phases:
       - GOOS=linux go build -o "${CODEBUILD_SRC_DIR}/linux/sam"
       - GOOS=darwin go build -o "${CODEBUILD_SRC_DIR}/osx/sam"
       - GOOS=windows go build -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
+      - cd "${CODEBUILD_SRC_DIR}"
 
       # Create a VERSION file with details on the git hash etc
-      - echo "Git commit ${CODEBUILD_RESOLVED_SOURCE_VERSION}" > "${CODEBUILD_SRC_DIR}/VERSION"
-      - echo "Built by AWS CodeBuild $(date)" >> "${CODEBUILD_SRC_DIR}/VERSION"
+      - echo "Version: $VERSION" > "${CODEBUILD_SRC_DIR}/VERSION"
+      - echo "GitHash: ${CODEBUILD_RESOLVED_SOURCE_VERSION}" >> "${CODEBUILD_SRC_DIR}/VERSION"
+      - echo "BuiltBy: AWS CodeBuild" >> "${CODEBUILD_SRC_DIR}/VERSION"
+      - echo "BuiltAt: $(date -u '+%FT%T+00:00')" >> "${CODEBUILD_SRC_DIR}/VERSION"
 
+      # Create CHECKSUMS file with sha256 hashes for each file
+      - shasum -a256 VERSION osx/sam linux/sam windows/sam.exe > CHECKSUMS
+    
   post_build:
     commands:
     
@@ -51,12 +58,15 @@ phases:
       - aws s3 cp "${CODEBUILD_SRC_DIR}/osx/sam" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/osx/sam
       - aws s3 cp "${CODEBUILD_SRC_DIR}/windows/sam.exe" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/windows/sam.exe
       - aws s3 cp "${CODEBUILD_SRC_DIR}/VERSION" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/VERSION
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/CHECKSUMS" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/CHECKSUMS
+
 
       # Repoint the latest/ directory to this build
       - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/linux/sam s3://aws-sam-cli/releases/latest/linux/sam
       - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/osx/sam s3://aws-sam-cli/releases/latest/osx/sam
       - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/windows/sam.exe s3://aws-sam-cli/releases/latest/windows/sam.exe
       - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/VERSION s3://aws-sam-cli/releases/latest/VERSION
+      - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/CHECKSUMS s3://aws-sam-cli/releases/latest/CHECKSUMS
 
 artifacts:
   files:
