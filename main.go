@@ -15,8 +15,8 @@ func main() {
 
 	fmt.Fprintf(os.Stderr, "\nAWS SAM CLI (version %s)\n\n", Version)
 
-	v, _ := checkVersion()
-	if !v.IsUpToDate {
+	v, err := checkVersion()
+	if err == nil && !v.IsUpToDate {
 		fmt.Fprintf(os.Stderr, "A newer version of the AWS SAM CLI is available!\n")
 		fmt.Fprintf(os.Stderr, "Your version:   %s\n", Version)
 		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.LatestVersion.Version)
