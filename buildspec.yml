@@ -42,10 +42,10 @@ phases:
       - cd "${CODEBUILD_SRC_DIR}"
 
       # Create a VERSION file with details on the git hash etc
-      - echo "Version{{':'}} $VERSION" > "${CODEBUILD_SRC_DIR}/VERSION"
-      - echo "GitHash{{':'}} ${CODEBUILD_RESOLVED_SOURCE_VERSION}" >> "${CODEBUILD_SRC_DIR}/VERSION"
-      - echo "BuiltBy{{':'}} AWS CodeBuild" >> "${CODEBUILD_SRC_DIR}/VERSION"
-      - echo "BuiltAt{{':'}} $(date -u '+%FT%T+00:00')" >> "${CODEBUILD_SRC_DIR}/VERSION"
+      - "echo \"Version: $VERSION\" > \"${CODEBUILD_SRC_DIR}/VERSION\""
+      - "echo \"GitHash: ${CODEBUILD_RESOLVED_SOURCE_VERSION}\" >> \"${CODEBUILD_SRC_DIR}/VERSION\""
+      - "echo \"BuiltBy: AWS CodeBuild\" >> \"${CODEBUILD_SRC_DIR}/VERSION\""
+      - "echo \"BuiltAt: $(date -u '+%FT%T+00:00')\" >> \"${CODEBUILD_SRC_DIR}/VERSION\""
 
       # Create CHECKSUMS file with sha256 hashes for each file
       - shasum -a256 VERSION osx/sam linux/sam windows/sam.exe > CHECKSUMS
