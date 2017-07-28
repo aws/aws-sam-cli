@@ -37,7 +37,7 @@ func checkVersion() (*checkVersionResult, error) {
 	svc := s3.New(sess)
 
 	obj, err := svc.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String("aws-sam-clii"),
+		Bucket: aws.String("aws-sam-cli"),
 		Key:    aws.String("releases/latest/VERSION"),
 	})
 
@@ -57,7 +57,7 @@ func checkVersion() (*checkVersionResult, error) {
 
 	return &checkVersionResult{
 		LatestVersion: vm,
-		IsUpToDate:    Version == vm.Version,
+		IsUpToDate:    Version == "SNAPSHOT" || Version == vm.Version,
 	}, nil
 
 }
