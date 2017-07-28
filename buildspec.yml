@@ -6,7 +6,7 @@ phases:
     commands:
 
       - export GOPATH="${CODEBUILD_SRC_DIR}"
-      - export VERSION=$(cat main.go | sed -n 's/^const Version = "\(.*\)"/\1/p')
+      - export VERSION="$(date +%Y%m%d).$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | awk '{print substr($0,0,7)}')"
       - mkdir -p "${GOPATH}/bin"
       - export PATH=$GOPATH/bin:$PATH 
       - mkdir -p "${GOPATH}/src/github.com/awslabs"
@@ -36,9 +36,9 @@ phases:
       
       # Build AWS SAM CLI
       - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
-      - GOOS=linux go build -o "${CODEBUILD_SRC_DIR}/linux/sam"
-      - GOOS=darwin go build -o "${CODEBUILD_SRC_DIR}/osx/sam"
-      - GOOS=windows go build -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
+      - GOOS=linux go build -ldflags "-X main.Version=${VERSION}" -o "${CODEBUILD_SRC_DIR}/linux/sam"
+      - GOOS=darwin go build -ldflags "-X main.Version=${VERSION}" -o "${CODEBUILD_SRC_DIR}/osx/sam"
+      - GOOS=windows go build -ldflags "-X main.Version=${VERSION}" -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
       - cd "${CODEBUILD_SRC_DIR}"
 
       # Create a VERSION file with details on the git hash etc

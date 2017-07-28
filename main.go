@@ -8,7 +8,8 @@ import (
 )
 
 // Version describes the current application version
-const Version = "0.2.0"
+// This is replaced automatically by AWS CodeBuild
+var Version = "SNAPSHOT"
 
 func main() {
 
