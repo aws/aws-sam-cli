@@ -54,19 +54,19 @@ phases:
     commands:
     
       # Release the binaries to the public S3 bucket
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/linux/sam" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/linux/sam
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/osx/sam" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/osx/sam
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/windows/sam.exe" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/windows/sam.exe
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/VERSION" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/VERSION
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/CHECKSUMS" s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/CHECKSUMS
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/linux/sam" s3://aws-sam-cli/releases/${VERSION}/linux/sam
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/osx/sam" s3://aws-sam-cli/releases/${VERSION}/osx/sam
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/windows/sam.exe" s3://aws-sam-cli/releases/${VERSION}/windows/sam.exe
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/VERSION" s3://aws-sam-cli/releases/${VERSION}/VERSION
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/CHECKSUMS" s3://aws-sam-cli/releases/${VERSION}/CHECKSUMS
 
 
       # Repoint the latest/ directory to this build
-      - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/linux/sam s3://aws-sam-cli/releases/latest/linux/sam
-      - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/osx/sam s3://aws-sam-cli/releases/latest/osx/sam
-      - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/windows/sam.exe s3://aws-sam-cli/releases/latest/windows/sam.exe
-      - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/VERSION s3://aws-sam-cli/releases/latest/VERSION
-      - aws s3 cp s3://aws-sam-cli/releases/${CODEBUILD_RESOLVED_SOURCE_VERSION}/CHECKSUMS s3://aws-sam-cli/releases/latest/CHECKSUMS
+      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/linux/sam s3://aws-sam-cli/releases/latest/linux/sam
+      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/osx/sam s3://aws-sam-cli/releases/latest/osx/sam
+      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/windows/sam.exe s3://aws-sam-cli/releases/latest/windows/sam.exe
+      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/VERSION s3://aws-sam-cli/releases/latest/VERSION
+      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/CHECKSUMS s3://aws-sam-cli/releases/latest/CHECKSUMS
 
 artifacts:
   files:
