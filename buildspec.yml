@@ -60,7 +60,6 @@ phases:
       - aws s3 cp "${CODEBUILD_SRC_DIR}/VERSION" s3://aws-sam-cli/releases/${VERSION}/VERSION
       - aws s3 cp "${CODEBUILD_SRC_DIR}/CHECKSUMS" s3://aws-sam-cli/releases/${VERSION}/CHECKSUMS
 
-
       # Repoint the latest/ directory to this build
       - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/linux/sam s3://aws-sam-cli/releases/latest/linux/sam
       - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/osx/sam s3://aws-sam-cli/releases/latest/osx/sam
