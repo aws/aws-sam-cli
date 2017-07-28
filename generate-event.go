@@ -10,12 +10,12 @@ import (
 )
 
 var events = map[string]string{
-	"S3":       s3,
-	"SNS":      sns,
-	"Kinesis":  kinesis,
-	"DynamoDB": dynamodb,
-	"Api":      api,
-	"Schedule": schedule,
+	"S3":       s3Event,
+	"SNS":      snsEvent,
+	"Kinesis":  kinesisEvent,
+	"DynamoDB": dynamodbEvent,
+	"Api":      apiEvent,
+	"Schedule": scheduleEvent,
 }
 
 func generate(eventType string, c *cli.Context) {
@@ -112,7 +112,7 @@ func generate(eventType string, c *cli.Context) {
 
 }
 
-var s3 = `{
+var s3Event = `{
   "Records": [
     {
       "eventVersion": "2.0",
@@ -151,7 +151,7 @@ var s3 = `{
   ]
 }`
 
-var sns = `{
+var snsEvent = `{
   "Records": [
     {
       "EventVersion": "1.0",
@@ -183,7 +183,7 @@ var sns = `{
   ]
 }`
 
-var kinesis = `{
+var kinesisEvent = `{
   "Records": [
     {
       "eventID": "shardId-000000000000:{{.Sequence}}",
@@ -204,7 +204,7 @@ var kinesis = `{
   ]
 }
 `
-var dynamodb = `{
+var dynamodbEvent = `{
   "Records": [
     {
       "eventID": "1",
@@ -295,7 +295,7 @@ var dynamodb = `{
   ]
 }`
 
-var api = `{
+var apiEvent = `{
   "body": "{{.Body}}",
   "resource": "{{.Resource}}",
   "requestContext": {
@@ -353,7 +353,7 @@ var api = `{
   "path": "{{.Path}}"
 }`
 
-var schedule = `{
+var scheduleEvent = `{
   "account": "123456789012",
   "region": "{{.Region}}",
   "detail": {},

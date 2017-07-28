@@ -1,15 +1,32 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/codegangsta/cli"
 )
 
 // Version describes the current application version
-const Version = "0.2.1"
+const Version = "0.2.0"
 
 func main() {
+
+	log.Printf("Checking for AWS SAM CLI updates...")
+	v, err := checkVersion()
+	if err != nil {
+		log.Printf("Warning: Checking for newer versions of SAM CLI failed\n")
+	}
+
+	if v.IsUpToDate {
+		built := v.LatestVersion.BuiltAt.Format("2006-01-02")
+		log.Printf("You are running the latest version of AWS SAM CLI (v%s, built %s by %s)\n", Version, built, v.LatestVersion.BuiltBy)
+	} else {
+		log.Printf("Warning: A newer version of SAM CLI is available!\n")
+		log.Printf("Your version:   %s\n", Version)
+		log.Printf("Latest version: %s\n", v.LatestVersion.Version)
+		log.Printf("See https://github.com/awslabs/aws-sam-cli for upgrade instructions\n")
+	}
 
 	app := cli.NewApp()
 
