@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
+	"github.com/fatih/color"
 )
 
 // Version describes the current application version
@@ -13,13 +14,14 @@ var Version = "SNAPSHOT"
 
 func main() {
 
+	color.Unset()
 	fmt.Fprintf(os.Stderr, "\nAWS SAM CLI (version %s)\n\n", Version)
 
 	v, err := checkVersion()
 	if err == nil && !v.IsUpToDate {
 		fmt.Fprintf(os.Stderr, "A newer version of the AWS SAM CLI is available!\n")
 		fmt.Fprintf(os.Stderr, "Your version:   %s\n", Version)
-		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.LatestVersion.Version)
+		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.Version)
 		fmt.Fprintf(os.Stderr, "See https://github.com/awslabs/aws-sam-cli for upgrade instructions\n\n")
 	}
 

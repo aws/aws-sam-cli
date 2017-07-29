@@ -16,9 +16,6 @@ phases:
   pre_build: 
     commands:
 
-      # Display some debug info
-      - echo "GOPATH is ${GOPATH}"
-
       # Ensure code passes all lint tests
       - golint -set_exit_status
 

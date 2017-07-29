@@ -147,4 +147,7 @@ func invoke(c *cli.Context) {
 
 	wg.Wait()
 
+	fmt.Fprintf(stderr, "\n")
+	runt.CleanUp()
+
 }

@@ -2,24 +2,21 @@ package main
 
 import (
 	"io/ioutil"
+	"net/http"
 	"time"
 
 	"gopkg.in/yaml.v2"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 // checkVersionResult contains information on the current version of AWS SAM CLI, and
 // whether there are any newer versions available to upgrade to.
 type checkVersionResult struct {
-	IsUpToDate    bool
-	LatestVersion *versionManifest
+	IsUpToDate bool
+	*versionManifest
 }
 
 // versionManifest mirrors the VERSION file generated for SAM CLI
-// as part of the build process
+// as part of the build process.
 type versionManifest struct {
 	Version string    `yaml:"Version"`
 	GitHash string    `yaml:"GitHash"`
@@ -31,21 +28,21 @@ type versionManifest struct {
 func checkVersion() (*checkVersionResult, error) {
 
 	// Get the latest version details from S3
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String("eu-west-1"),
-	}))
-	svc := s3.New(sess)
+	var client = &http.Client{
+		Timeout: time.Second * 10,
+	}
 
-	obj, err := svc.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String("aws-sam-cli"),
-		Key:    aws.String("releases/latest/VERSION"),
-	})
+	url := "https://aws-sam-cli.s3-eu-west-1.amazonaws.com/releases/latest/VERSION"
+	response, err := client.Get(url)
+	if err != nil {
+		return &checkVersionResult{}, err
+	}
 
 	if err != nil {
 		return &checkVersionResult{}, err
 	}
 
-	data, err := ioutil.ReadAll(obj.Body)
+	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return &checkVersionResult{}, err
 	}
@@ -56,8 +53,8 @@ func checkVersion() (*checkVersionResult, error) {
 	}
 
 	return &checkVersionResult{
-		LatestVersion: vm,
-		IsUpToDate:    Version == "SNAPSHOT" || Version == vm.Version,
+		versionManifest: vm,
+		IsUpToDate:      Version == "SNAPSHOT" || Version == vm.Version,
 	}, nil
 
 }

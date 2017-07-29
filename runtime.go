@@ -24,7 +24,9 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
+	"github.com/fatih/color"
 	"github.com/imdario/mergo"
+	"github.com/mattn/go-colorable"
 	"github.com/pkg/errors"
 )
 
@@ -97,14 +99,16 @@ func NewRuntime(function resources.AWSServerlessFunction, envVarsOverrides map[s
 		return nil, err
 	}
 
-	if len(images) < 1 {
+	log.Printf("Fetching %s image for %s runtime...\n", r.Image, function.Runtime())
+	progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
+	if len(images) < 0 && err != nil {
+		log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
+		return nil, err
+	}
 
-		log.Printf("Fetching %s image for %s runtime...\n", r.Image, function.Runtime())
-		progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
-		if err != nil {
-			log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
-			return nil, err
-		}
+	if err != nil {
+		log.Printf("Could not fetch %s Docker image: %s\n", r.Image, err)
+	} else {
 
 		// Use Docker's standard progressbar to show image pull progress.
 		// It does however have a nasty bug (actually, in the Gotty library it uses)
@@ -119,8 +123,14 @@ func NewRuntime(function resources.AWSServerlessFunction, envVarsOverrides map[s
 
 		origTerm := os.Getenv("TERM")
 		os.Setenv("TERM", "eifjccgifcdekgnbtlvrgrinjjvfjggrcudfrriivjht")
-		jsonmessage.DisplayJSONMessagesStream(progress, os.Stdout, os.Stdout.Fd(), term.IsTerminal(os.Stdout.Fd()), nil)
-		os.Setenv("TERM", origTerm)
+		defer os.Setenv("TERM", origTerm)
+
+		// Show the Docker pull messages in green
+		color.Output = colorable.NewColorableStderr()
+		color.Set(color.FgGreen)
+		defer color.Unset()
+
+		jsonmessage.DisplayJSONMessagesStream(progress, os.Stderr, os.Stderr.Fd(), term.IsTerminal(os.Stderr.Fd()), nil)
 
 	}
 
@@ -400,6 +410,8 @@ func demuxDockerStream(input io.Reader) (io.ReadCloser, io.ReadCloser, error) {
 		if err != nil {
 			log.Printf("Error reading I/O from runtime container: %s\n", err)
 		}
+
+		stdoutwriter.Write([]byte("\n"))
 
 		stdoutwriter.Close()
 		stderrwriter.Close()
