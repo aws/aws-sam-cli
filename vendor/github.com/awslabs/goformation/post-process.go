@@ -184,7 +184,7 @@ func resolveValue(input string, resources map[string]Resource) string {
 		parsedInput := strings.Split(input, `.`)
 		matchingResource, resourceExists := resources[parsedInput[0]]
 		if !resourceExists {
-			return "abc"
+			return ""
 		}
 
 		var returnParam string
