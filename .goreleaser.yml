@@ -21,20 +21,20 @@ release:
     # Setting to true will also prevent brew from being published
     draft: false
  
-# Homebrew release
-brew:
- 
-    # Repository to push the tap to.
-    folder: Formula
-    github:
-        owner: sanathkr
-        name: aws-sam-cli-tap
- 
-    homepage: "https://github.com/awslabs/aws-sam-cli"
-    description: "Develop and test your serverless applications locally without uploading to AWS Lambda" 
-    test: |
-        output = shell_output(bin/"sam --version")
-        assert_match "sam version #{version}", output
- 
-    install: |
-        bin.install "aws-sam-cli"
+# homebrew release
+#brew:
+# 
+#    # repository to push the tap to.
+#    folder: formula
+#    github:
+#        owner: awslabs
+#        name: aws-sam-cli
+# 
+#    homepage: "https://github.com/awslabs/aws-sam-cli"
+#    description: "develop and test your serverless applications locally without uploading to aws lambda" 
+#    test: |
+#        output = shell_output(bin/"sam --version")
+#        assert_match "sam version #{version}", output
+# 
+#    install: |
+#        bin.install "aws-sam-cli"
