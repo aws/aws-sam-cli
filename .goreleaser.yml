@@ -1,0 +1,40 @@
+# Build customization
+project_name: sam
+builds:
+  - 
+    binary: sam
+    goos:
+      - windows
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - 386
+ 
+# Publish to Github Releases 
+release:
+    github:
+        owner: awslabs
+        name: aws-sam-cli
+ 
+    # Don't auto-publish the release. Admin has to manually publish at right time
+    # Setting to true will also prevent brew from being published
+    draft: false
+ 
+# Homebrew release
+brew:
+ 
+    # Repository to push the tap to.
+    folder: Formula
+    github:
+        owner: sanathkr
+        name: aws-sam-cli-tap
+ 
+    homepage: "https://github.com/awslabs/aws-sam-cli"
+    description: "Develop and test your serverless applications locally without uploading to AWS Lambda" 
+    test: |
+        output = shell_output(bin/"sam --version")
+        assert_match "sam version #{version}", output
+ 
+    install: |
+        bin.install "aws-sam-cli"

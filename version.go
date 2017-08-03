@@ -1,60 +1,41 @@
 package main
 
 import (
-	"io/ioutil"
-	"net/http"
-	"time"
+	"context"
+	"log"
 
-	"gopkg.in/yaml.v2"
+	"github.com/google/go-github/github"
 )
 
 // checkVersionResult contains information on the current version of AWS SAM CLI, and
 // whether there are any newer versions available to upgrade to.
 type checkVersionResult struct {
-	IsUpToDate bool
-	*versionManifest
-}
-
-// versionManifest mirrors the VERSION file generated for SAM CLI
-// as part of the build process.
-type versionManifest struct {
-	Version string    `yaml:"Version"`
-	GitHash string    `yaml:"GitHash"`
-	BuiltBy string    `yaml:"BuiltBy"`
-	BuiltAt time.Time `yaml:"BuiltAt"`
+	IsUpToDate    bool
+	LatestVersion string
 }
 
 // checkVersion checks whether the current version of AWS SAM CLI is the latest
 func checkVersion() (*checkVersionResult, error) {
 
-	// Get the latest version details from S3
-	var client = &http.Client{
-		Timeout: time.Second * 10,
-	}
+	const RepoOwner = "awslabs"
+	const RepoName = "aws-sam-cli"
 
-	url := "https://aws-sam-cli.s3-eu-west-1.amazonaws.com/releases/latest/VERSION"
-	response, err := client.Get(url)
+	// Get the latest version details from Github release
+	gh := github.NewClient(nil)
+	releases, _, err := gh.Repositories.ListReleases(context.Background(), RepoOwner, RepoName, nil)
 	if err != nil {
 		return &checkVersionResult{}, err
 	}
 
-	if err != nil {
-		return &checkVersionResult{}, err
-	}
-
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return &checkVersionResult{}, err
-	}
-
-	vm := &versionManifest{}
-	if err := yaml.Unmarshal(data, vm); err != nil {
-		return &checkVersionResult{}, err
-	}
+	// Grab the latest release - without the first 'v' character from the tag
+	// ie. v0.0.1 -> 0.0.1
+	latest := releases[0]
+	latestVersion := (*latest.TagName)[1:]
+	log.Print(latestVersion)
 
 	return &checkVersionResult{
-		versionManifest: vm,
-		IsUpToDate:      Version == "SNAPSHOT" || Version == vm.Version,
+		LatestVersion: latestVersion,
+		IsUpToDate:    BuildVersion == latestVersion,
 	}, nil
 
 }
