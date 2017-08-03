@@ -8,27 +8,27 @@ import (
 	"github.com/fatih/color"
 )
 
-// Version describes the current application version
-// This is replaced automatically by AWS CodeBuild
-var Version = "SNAPSHOT"
+// Build* variables are replaced automatically by Release process
+var BuildVersion = "SNAPSHOT"
+var BuildDate string = "NA"
 
 func main() {
 
 	color.Unset()
-	fmt.Fprintf(os.Stderr, "\nAWS SAM CLI (version %s)\n\n", Version)
+	fmt.Fprintf(os.Stderr, "\nAWS SAM CLI (version %s)\n\n", BuildVersion)
 
 	v, err := checkVersion()
 	if err == nil && !v.IsUpToDate {
 		fmt.Fprintf(os.Stderr, "A newer version of the AWS SAM CLI is available!\n")
-		fmt.Fprintf(os.Stderr, "Your version:   %s\n", Version)
-		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.Version)
+		fmt.Fprintf(os.Stderr, "Your version:   %s\n", BuildVersion)
+		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.LatestVersion)
 		fmt.Fprintf(os.Stderr, "See https://github.com/awslabs/aws-sam-cli for upgrade instructions\n\n")
 	}
 
 	app := cli.NewApp()
 
 	app.Name = "sam"
-	app.Version = Version
+	app.Version = BuildVersion
 	app.Usage = "AWS Serverless Application Model (SAM) CLI.\n\nThe AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application. \n\nYou can find more in-depth guide about the SAM specification here:\nhttps://github.com/awslabs/serverless-application-model."
 	app.EnableBashCompletion = true // \m/
 
