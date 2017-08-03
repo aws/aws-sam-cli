@@ -8,7 +8,7 @@ import (
 )
 
 // ErrUnableToReadResourceLineNumbers Occurs when the scaffolder can't extract line numbers from resources.
-var ErrUnableToReadResourceLineNumbers = errors.New("Unable to read resources lines")
+var ErrUnableToReadResourceLineNumbers = errors.New("Failed to read the resources line numbers. This usually means that the template contains invalid indentation. Please check it and try again")
 
 // TODO Document
 func scaffold(input Template) (Template, []error) {
