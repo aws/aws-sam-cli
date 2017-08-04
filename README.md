@@ -8,18 +8,22 @@
 
 # Table of content
 
-* [Main features]
-* [Installation]
-    - [OSX]
-    - [Other]
-* [Usage]
-    - [Generate sample event source payloads]
-    - [Run API Gateway locally]
-    - [Validate SAM templates]
-* [Getting started]
-* [Project Status]
-* [Contributing]
-* [Examples]
+- [SAM CLI](#sam-cli)
+- [Main features](#main-features)
+- [Installation](#installation)
+  - [OSX](#osx)
+  - [Windows and Linux](#windows-and-linux)
+  - [Other](#other)
+- [Usage](#usage)
+  - [Invoke functions locally](#invoke-functions-locally)
+  - [Generate sample event source payloads](#generate-sample-event-source-payloads)
+  - [Run API Gateway locally](#run-api-gateway-locally)
+  - [Validate SAM templates](#validate-sam-templates)
+- [Getting started](#getting-started)
+- [Project Status](#project-status)
+- [Contributing](#contributing)
+- [Examples](#examples)
+
 
 ## Main features
 
@@ -218,17 +222,6 @@ You can find sample functions code and a SAM template used in this README under 
 
 <!-- Links -->
 [SAM]: https://github.com/awslabs/serverless-application-model
-[Main features]: #Main-features
-[Installation]: #Installation
-[OSX]: #OSX
-[Other]: #Other
-[Usage]: #Usage
-[Generate sample event source payloads]: #Generate-sample-event-source-payloads
-[Run API Gateway locally]: #Run-API-Gateway-locally
-[Validate SAM templates]: #Validate-SAM-templates
-[Getting started]: #Getting-started
-[Project Status]: #Project-Status
-[Contributing]: #Contributing
 [HOWTO]: HOWTO.md
 [S3-payload]: https://docs.aws.amazon.com/
 [Kinesis-payload]: https://docs.aws.amazon.com/
