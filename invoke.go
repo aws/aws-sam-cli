@@ -75,7 +75,6 @@ func invoke(c *cli.Context) {
 
 	log.Printf("Connected to Docker %s", dockerVersion)
 
-	// FIXME: Move all the argument parsing into a shared file - invoke and start commands have duplicate code
 	envVarsFile := c.String("env-vars")
 	envVarsOverrides := map[string]map[string]string{}
 	if len(envVarsFile) > 0 {

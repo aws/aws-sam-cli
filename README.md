@@ -38,12 +38,7 @@
 
 The easiest way to install **`sam`** on OSX is to use [Homebrew](https://brew.sh/).
 
-Make sure you're on the Amazon network, then run the following:
-
-> **FIXME - Internal reference**
-
 ```bash
-brew tap amazon/amazon ssh://git.amazon.com/pkg/HomebrewAmazon
 brew install aws-sam-cli --HEAD
 sam --version
 ```
@@ -126,8 +121,6 @@ sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <fu
 
 ### Run API Gateway locally
 
-> **FIXME - SAM Snapshot version takes longer than previously, maybe need to re-run ttystudio to record this**
-
 ![SAM CLI Start API](media/sam-start-api.png)
 
 
@@ -183,8 +176,6 @@ SampleAPI:
 
 ### Validate SAM templates
 
-> **FIXME - SAM Snapshot version takes longer than previously, didn't record a GIF here**
-
 Validate your templates with `$ sam validate`.
 
 **Syntax**
@@ -197,7 +188,7 @@ sam validate -t other_template.yaml
 
 ## Getting started
 
-* Check out [HOWTO] section for more details
+* Check out ![HOWTO Guide](HOWTO) section for more details
 
 ## Project Status
   
@@ -223,14 +214,6 @@ You can find sample functions code and a SAM template used in this README under 
 <!-- Links -->
 [SAM]: https://github.com/awslabs/serverless-application-model
 [HOWTO]: HOWTO.md
-[S3-payload]: https://docs.aws.amazon.com/
-[Kinesis-payload]: https://docs.aws.amazon.com/
-[DynamoDB-payload]: https://docs.aws.amazon.com/
-[CWE-payload]: https://docs.aws.amazon.com/
-[Cloudtrail-payload]: https://docs.aws.amazon.com/
-[API-payload]: https://docs.aws.amazon.com/
-[SAM-demo-templates]: https://drive.corp.amazon.com/documents/pmaddox@/Shared/sam-demo-template-1.0.0.zip
 [Releases]: https://github.com/awslabs/aws-sam-cli/releases
 [Samples]: https://github.com/awslabs/aws-sam-cli/tree/master/samples
-[Examples]: #Sample-functions-and-SAM-template
 
