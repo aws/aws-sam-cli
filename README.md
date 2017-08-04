@@ -1,10 +1,12 @@
-<a href="https://github.com/awslabs/aws-sam-cli">
+<div style="text-align: center">
+  <a href="https://github.com/awslabs/aws-sam-cli" style="text-align: center">
     <img src="media/sam-banner.png" alt="SAM Extended logo" title="SAM" align="center" />
-</a>
+  </a>
+</div>
 
 # SAM CLI
 
- **`sam`** is the AWS CLI tool for managing Serverless applications written with the open source [AWS Serverless Application Model (AWS SAM)][SAM]. SAM CLI can be used for invoking functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads from known event sources.
+ **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM CLI can be used for testing functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
 
 # Table of content
 
@@ -45,11 +47,9 @@ sam --version
 
 ### Windows and Linux
 
-You can find latest releases under [Releases] in this repo. In case you cannot find the version or architecture you're looking for you can refer to [Other] section for build details.
+You can find latest releases under [Releases] in this repo. In case you cannot find the version or architecture you're looking for you can refer to [Build From Source] section for build details.
 
-### Other
-
-**`sam`** will run on Windows and Linux, but you'll need to build it from scratch.
+### Build From Source
 
 First, install Go (v1.8+) on your machine: [https://golang.org/doc/install](https://golang.org/doc/install), then run the following:
 
