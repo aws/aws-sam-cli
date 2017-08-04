@@ -1,8 +1,8 @@
-<div style="text-align: center">
-  <a href="https://github.com/awslabs/aws-sam-cli" style="text-align: center">
+<p align="center">
+  <a href="https://github.com/awslabs/aws-sam-cli" align="center">
     <img src="media/sam-banner.png" alt="SAM Extended logo" title="SAM" align="center" />
   </a>
-</div>
+</p>
 
 # SAM CLI
 
