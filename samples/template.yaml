@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A hello world application.
+
+Resources:
+
+  Customers:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: customers.handler
+      Runtime: nodejs6.10
+      Events:
+        ListCustomers:
+          Type: Api
+          Properties:
+            Path: /customers
+            Method: get
+        Customer:
+          Type: Api
+          Properties:
+            Path: /customers/{customer}
+            Method: any
+
+  Products:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: products.handler
+      Runtime: nodejs4.3
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /products
+            Method: get
+
+  Ratings:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: ratings.handler
+      Runtime: python3.6
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /ratings
+            Method: get
+
