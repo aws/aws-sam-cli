@@ -15,7 +15,6 @@ var BuildDate string = "NA"
 func main() {
 
 	color.Unset()
-	fmt.Fprintf(os.Stderr, "\nAWS SAM CLI (version %s)\n\n", BuildVersion)
 
 	v, err := checkVersion()
 	if err == nil && !v.IsUpToDate {

@@ -71,7 +71,7 @@ var runtimes = map[string]string{
 // NewRuntime instantiates a Lambda runtime container
 func NewRuntime(basedir string, function resources.AWSServerlessFunction, envVarsOverrides map[string]string) (Invoker, error) {
 
-	// Determin which docker image to use for the provided runtime
+	// Determine which docker image to use for the provided runtime
 	image, found := runtimes[function.Runtime()]
 	if !found {
 		return nil, ErrRuntimeNotSupported
@@ -126,13 +126,9 @@ func NewRuntime(basedir string, function resources.AWSServerlessFunction, envVar
 	} else {
 
 		// Use Docker's standard progressbar to show image pull progress.
-		// It does however have a nasty bug (actually, in the Gotty library it uses)
-		// which means it panics on some TERM configurations. There's a pull request to
-		// fix it, but the Gotty library hasn't been updated in 5yrs and it hasn't been merged.
-
-		// To get around this, we'll do the same as Docker does, and temporarily set
-		// the TERM to a non-existant terminal, to force Gotty to use &noTermInfo
-
+		// However there is a bug that we are working around. We'll do the same
+		// as Docker does, and temporarily set the TERM to a non-existant
+		// terminal
 		// More info here:
 		// https://github.com/Nvveen/Gotty/pull/1
 
@@ -256,7 +252,6 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 	}
 
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-	// TODO: Remove this default timeout once the SAM parser allows defaults to be specified
 	timeout := time.Duration(3) * time.Second
 	if r.Function.Timeout() > 0 {
 		timeout = time.Duration(r.Function.Timeout()) * time.Second

@@ -50,7 +50,6 @@ func start(c *cli.Context) {
 
 	log.Printf("Connected to Docker %s", dockerVersion)
 
-	// FIXME: Move all the argument parsing into a shared file - invoke and start commands have duplicate code
 	envVarsFile := c.String("env-vars")
 	envVarsOverrides := map[string]map[string]string{}
 	if len(envVarsFile) > 0 {
@@ -75,7 +74,6 @@ func start(c *cli.Context) {
 	}
 
 	log.Printf("Successfully parsed %s (version %s)", c.String("template"), template.Version())
-	//TODO: refactor this log.Printf("Found %d AWS::Serverless::Functions", len(template.Functions()))
 
 	// Create a new HTTP router to mount the functions on
 	router := mux.NewRouter()
@@ -95,7 +93,6 @@ func start(c *cli.Context) {
 
 				endpoint := endpoints[x].(resources.AWSServerlessFunctionEndpoint)
 
-				// FIXME: Must support referencing EnvVars map using both FunctionName and LogicalId
 				// Find the env-vars map for the function
 				funcEnvVarsOverrides := envVarsOverrides[function.FunctionName()]
 
