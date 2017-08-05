@@ -67,6 +67,7 @@ phases:
 artifacts:
   files:
     - VERSION
+    - CHECKSUMS
     - linux/sam
     - osx/sam 
     - windows/sam.exe 
