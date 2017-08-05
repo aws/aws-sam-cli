@@ -8,9 +8,11 @@ import (
 	"github.com/fatih/color"
 )
 
-// Build* variables are replaced automatically by Release process
+// BuildVersion is replaced automatically by the build process
 var BuildVersion = "SNAPSHOT"
-var BuildDate string = "NA"
+
+// BuildDate is replaced automatically by the build process
+var BuildDate = "NA"
 
 func main() {
 
