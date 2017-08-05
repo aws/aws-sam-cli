@@ -109,8 +109,11 @@ func start(c *cli.Context) {
 				// Find the env-vars map for the function
 				funcEnvVarsOverrides := envVarsOverrides[function.FunctionName()]
 
-				basedir := filepath.Dir(c.String("template"))
-				runt, err := NewRuntime(basedir, function, funcEnvVarsOverrides)
+				runt, err := NewRuntime(NewRuntimeOpt{
+					Function:         function,
+					EnvVarsOverrides: funcEnvVarsOverrides,
+					Basedir:          filepath.Dir(c.String("template")),
+				})
 				if err != nil {
 					if err == ErrRuntimeNotSupported {
 						log.Printf("Ignoring %s due to unsupported runtime (%s)\n", function.Handler(), function.Runtime())

@@ -25,10 +25,13 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/docker/pkg/term"
+	"github.com/docker/go-connections/nat"
 	"github.com/fatih/color"
 	"github.com/imdario/mergo"
 	"github.com/mattn/go-colorable"
 	"github.com/pkg/errors"
+	"os/signal"
+	"syscall"
 )
 
 // Invoker is a simple interface to help with testing runtimes
@@ -45,6 +48,7 @@ type Runtime struct {
 	Cwd             string
 	Function        resources.AWSServerlessFunction
 	EnvVarOverrides map[string]string
+	DebugPort       string
 	Context         context.Context
 	Client          *client.Client
 	TimeoutTimer    *time.Timer
@@ -59,20 +63,43 @@ var (
 	ErrRuntimeNotSupported = errors.New("unsupported runtime")
 )
 
-var runtimes = map[string]string{
-	"nodejs":     "lambci/lambda:nodejs",
-	"nodejs4.3":  "lambci/lambda:nodejs4.3",
-	"nodejs6.10": "lambci/lambda:nodejs6.10",
-	"python2.7":  "lambci/lambda:python2.7",
-	"python3.6":  "lambci/lambda:python3.6",
-	"java8":      "lambci/lambda:java8",
+var runtimeName = struct {
+	nodejs    string
+	nodejs43  string
+	nodejs610 string
+	python27  string
+	python36  string
+	java8     string
+}{
+	nodejs:    "nodejs",
+	nodejs43:  "nodejs4.3",
+	nodejs610: "nodejs6.10",
+	python27:  "python2.7",
+	python36:  "python3.6",
+	java8:     "java8",
+}
+
+var runtimeImageFor = map[string]string{
+	runtimeName.nodejs:    "lambci/lambda:nodejs",
+	runtimeName.nodejs43:  "lambci/lambda:nodejs4.3",
+	runtimeName.nodejs610: "lambci/lambda:nodejs6.10",
+	runtimeName.python27:  "lambci/lambda:python2.7",
+	runtimeName.python36:  "lambci/lambda:python3.6",
+	runtimeName.java8:     "lambci/lambda:java8",
+}
+
+// NewRuntimeOpt contains parameters that are passed to the NewRuntime method
+type NewRuntimeOpt struct {
+	Function         resources.AWSServerlessFunction
+	EnvVarsOverrides map[string]string
+	Basedir          string
+	DebugPort        string
 }
 
 // NewRuntime instantiates a Lambda runtime container
-func NewRuntime(basedir string, function resources.AWSServerlessFunction, envVarsOverrides map[string]string) (Invoker, error) {
-
+func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 	// Determine which docker image to use for the provided runtime
-	image, found := runtimes[function.Runtime()]
+	image, found := runtimeImageFor[opt.Function.Runtime()]
 	if !found {
 		return nil, ErrRuntimeNotSupported
 	}
@@ -82,17 +109,18 @@ func NewRuntime(basedir string, function resources.AWSServerlessFunction, envVar
 		return nil, err
 	}
 
-	cwd, err := getWorkingDir(basedir, function.CodeURI().String())
+	cwd, err := getWorkingDir(opt.Basedir, opt.Function.CodeURI().String())
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Runtime{
-		Name:            function.Runtime(),
+		Name:            opt.Function.Runtime(),
 		Cwd:             cwd,
 		Image:           image,
-		Function:        function,
-		EnvVarOverrides: envVarsOverrides,
+		Function:        opt.Function,
+		EnvVarOverrides: opt.EnvVarsOverrides,
+		DebugPort:       opt.DebugPort,
 		Context:         context.Background(),
 		Client:          cli,
 	}
@@ -107,7 +135,7 @@ func NewRuntime(basedir string, function resources.AWSServerlessFunction, envVar
 		return nil, err
 	}
 
-	log.Printf("Fetching %s image for %s runtime...\n", r.Image, function.Runtime())
+	log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime())
 	progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
 	if len(images) < 0 && err != nil {
 		log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
@@ -176,6 +204,7 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 		Binds: []string{
 			fmt.Sprintf("%s:/var/task:ro", r.Cwd),
 		},
+		PortBindings: r.getDebugPortBindings(),
 	}
 	if err := overrideHostConfig(host); err != nil {
 		log.Print(err)
@@ -184,9 +213,9 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 	return host, nil
 }
 
-// Invoke runs a Lambda function within the runtime with the provided event payload
-// and returns a pair of io.Readers for it's stdout (callback results) and
-//  stderr (runtime logs).
+// Invoke runs a Lambda function within the runtime with the provided event
+// payload and returns a pair of io.Readers for it's stdout (callback results)
+// and stderr (runtime logs).
 func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 
 	log.Printf("Invoking %s (%s)\n", r.Function.Handler(), r.Name)
@@ -195,10 +224,12 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 
 	// Define the container options
 	config := &container.Config{
-		WorkingDir: "/var/task",
-		Image:      r.Image,
-		Tty:        false,
-		Cmd:        []string{r.Function.Handler(), event},
+		WorkingDir:   "/var/task",
+		Image:        r.Image,
+		Tty:          false,
+		ExposedPorts: r.getDebugExposedPorts(),
+		Entrypoint:   r.getDebugEntrypoint(),
+		Cmd:          []string{r.Function.Handler(), event},
 		Env: func() []string {
 			result := []string{}
 			for k, v := range env {
@@ -244,6 +275,17 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 		return nil, nil, err
 	}
 
+	if len(r.DebugPort) == 0 {
+		r.setupTimeoutTimer(stdout, stderr)
+	} else {
+		r.setupInterruptHandler(stdout, stderr)
+	}
+
+	return stdout, stderr, nil
+
+}
+
+func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser) {
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
 	timeout := time.Duration(3) * time.Second
 	if r.Function.Timeout() > 0 {
@@ -257,13 +299,21 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 		stdout.Close()
 		r.CleanUp()
 	}()
+}
 
-	return stdout, stderr, nil
-
+func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser) {
+	iChan := make(chan os.Signal, 2)
+	signal.Notify(iChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-iChan
+		log.Printf("Execution of function %q was interrupted", r.Function.Handler())
+		stderr.Close()
+		stdout.Close()
+		r.CleanUp()
+	}()
 }
 
 func getSessionOrDefaultCreds() map[string]string {
-
 	region := "us-east-1"
 	key := "defaultkey"
 	secret := "defaultsecret"
@@ -289,7 +339,6 @@ func getSessionOrDefaultCreds() map[string]string {
 }
 
 func getOsEnviron() map[string]string {
-
 	result := map[string]string{}
 	for _, value := range os.Environ() {
 		keyVal := strings.Split(value, "=")
@@ -297,6 +346,80 @@ func getOsEnviron() map[string]string {
 	}
 
 	return result
+}
+
+func (r *Runtime) getDebugPortBindings() nat.PortMap {
+	if len(r.DebugPort) == 0 {
+		return nil
+	}
+	return nat.PortMap{
+		nat.Port(r.DebugPort): []nat.PortBinding{{HostPort: r.DebugPort}},
+	}
+}
+
+func (r *Runtime) getDebugExposedPorts() nat.PortSet {
+	if len(r.DebugPort) == 0 {
+		return nil
+	}
+	return nat.PortSet{nat.Port(r.DebugPort): {}}
+}
+
+func (r *Runtime) getDebugEntrypoint() (overrides []string) {
+	if len(r.DebugPort) == 0 {
+		return
+	}
+	switch r.Name {
+	// configs from: https://github.com/lambci/docker-lambda
+	// to which we add the extra debug mode options
+	case runtimeName.java8:
+		overrides = []string{
+			"/usr/bin/java",
+			"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + r.DebugPort,
+			"-XX:MaxHeapSize=1336935k",
+			"-XX:MaxMetaspaceSize=157286k",
+			"-XX:ReservedCodeCacheSize=78643k",
+			"-XX:+UseSerialGC",
+			//"-Xshare:on", doesn't work in conjunction with the debug options
+			"-XX:-TieredCompilation",
+			"-jar",
+			"/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
+		}
+	case runtimeName.nodejs:
+		overrides = []string{
+			"/usr/bin/node",
+			"--debug-brk=" + r.DebugPort,
+			"--nolazy",
+			"--max-old-space-size=1229",
+			"--max-new-space-size=153",
+			"--max-executable-size=153",
+			"--expose-gc",
+			"/var/runtime/node_modules/awslambda/bin/awslambda",
+		}
+	case runtimeName.nodejs43:
+		overrides = []string{
+			"/usr/local/lib64/node-v4.3.x/bin/node",
+			"--debug-brk=" + r.DebugPort,
+			"--nolazy",
+			"--max-old-space-size=1229",
+			"--max-semi-space-size=76",
+			"--max-executable-size=153",
+			"--expose-gc",
+			"/var/runtime/node_modules/awslambda/index.js",
+		}
+	case runtimeName.nodejs610:
+		overrides = []string{
+			"/var/lang/bin/node",
+			"--debug-brk=" + r.DebugPort,
+			"--nolazy",
+			"--max-old-space-size=1229",
+			"--max-semi-space-size=76",
+			"--max-executable-size=153",
+			"--expose-gc",
+			"/var/runtime/node_modules/awslambda/index.js",
+		}
+		// TODO: also add debug mode for Python runtimes
+	}
+	return
 }
 
 /**
@@ -386,7 +509,9 @@ func toStringMaybe(value interface{}) (string, bool) {
 
 // CleanUp removes the Docker container used by this runtime
 func (r *Runtime) CleanUp() {
-	r.TimeoutTimer.Stop()
+	if r.TimeoutTimer != nil {
+		r.TimeoutTimer.Stop()
+	}
 	r.Client.ContainerKill(r.Context, r.ID, "SIGKILL")
 	r.Client.ContainerRemove(r.Context, r.ID, types.ContainerRemoveOptions{})
 }
@@ -434,7 +559,7 @@ func getDockerVersion() (string, error) {
 
 func getWorkingDir(basedir string, codeuri string) (string, error) {
 
-	// Determin which directory to mount into the runtime container.
+	// Determine which directory to mount into the runtime container.
 	// If no CodeUri is specified for this function, then use the same
 	// directory as the SAM template (basedir), otherwise mount the
 	// directory specified in the CodeUri property.
