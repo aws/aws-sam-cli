@@ -113,6 +113,7 @@ func start(c *cli.Context) {
 					Function:         function,
 					EnvVarsOverrides: funcEnvVarsOverrides,
 					Basedir:          filepath.Dir(c.String("template")),
+					DebugPort:        c.String("debug-port"),
 				})
 				if err != nil {
 					if err == ErrRuntimeNotSupported {

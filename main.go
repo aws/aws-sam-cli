@@ -67,6 +67,12 @@ func main() {
 							Name:  "env-vars, n",
 							Usage: "Optional. JSON file containing values for Lambda function's environment variables. ",
 						},
+						cli.StringFlag{
+							Name:   "debug-port, d",
+							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. "+
+								"At this moment, this only works for java8 and nodejs* runtimes.",
+							EnvVar: "SAM_DEBUG_PORT",
+						},
 					},
 				},
 				cli.Command{

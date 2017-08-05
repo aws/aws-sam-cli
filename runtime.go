@@ -310,6 +310,7 @@ func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser) {
 		stderr.Close()
 		stdout.Close()
 		r.CleanUp()
+		os.Exit(0)
 	}()
 }
 
