@@ -10,7 +10,7 @@ import (
 type AWSServerlessFunction interface {
 	Handler() string
 	Runtime() string
-	CodeURI() AWSCommonS3Location
+	CodeURI() AWSCommonStringOrS3Location
 	FunctionName() string
 	Description() string
 	MemorySize() int
@@ -21,7 +21,7 @@ type AWSServerlessFunction interface {
 	Endpoints() ([]AWSServerlessFunctionEndpoint, error)
 }
 
-// Endpoint provides information on where a Serverless function
+// AWSServerlessFunctionEndpoint provides information on where a Serverless function
 // should be mounted on an API (for example, the HTTP method and path)
 type AWSServerlessFunctionEndpoint interface {
 	Path() string
@@ -93,7 +93,7 @@ func awsServerlessFunctionResourceType() string {
 type functionTemplate struct {
 	FHandler      string                                      `yaml:"Handler"`
 	FRuntime      string                                      `yaml:"Runtime"`
-	FCodeURI      *s3Location                                 `yaml:"CodeUri"`
+	FCodeURI      *stringOrS3Location                         `yaml:"CodeUri"`
 	FFunctionName string                                      `yaml:"FunctionName"`
 	FDescription  string                                      `yaml:"Description"`
 	FMemorySize   int                                         `yaml:"MemorySize"`
@@ -155,7 +155,7 @@ func (f *functionTemplate) Scaffold(input Resource, propName string) (Resource, 
 		}
 	}
 
-	f.FCodeURI = &s3Location{}
+	f.FCodeURI = &stringOrS3Location{}
 	f.FCodeURI.Scaffold(input, "CodeUri")
 	f.FEventSources = scaffoldEventSourceMap(resourceProperties["Events"])
 
@@ -182,7 +182,7 @@ func (f *functionTemplate) Runtime() string {
 	return f.FRuntime
 }
 
-func (f *functionTemplate) CodeURI() AWSCommonS3Location {
+func (f *functionTemplate) CodeURI() AWSCommonStringOrS3Location {
 	return f.FCodeURI
 }
 
@@ -275,8 +275,20 @@ func functionDefinition() (Resource, error) {
 			"CodeUri": map[string]interface{}{
 				"Types":    []string{"Resource", "string"},
 				"Required": false,
-				"Resource": map[string]map[string]interface{}{},
-				// TODO CodeURI validation NOT implemented
+				"Resource": map[string]map[string]interface{}{
+					"Bucket": map[string]interface{}{
+						"Types":    "string",
+						"Required": true,
+					},
+					"Key": map[string]interface{}{
+						"Types":    "string",
+						"Required": true,
+					},
+					"Version": map[string]interface{}{
+						"Types":    "int",
+						"Required": false,
+					},
+				},
 			},
 			"FunctionName": map[string]interface{}{
 				"Types": "string",

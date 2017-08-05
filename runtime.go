@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -41,6 +42,7 @@ type Runtime struct {
 	ID              string
 	Name            string
 	Image           string
+	Cwd             string
 	Function        resources.AWSServerlessFunction
 	EnvVarOverrides map[string]string
 	Context         context.Context
@@ -67,7 +69,7 @@ var runtimes = map[string]string{
 }
 
 // NewRuntime instantiates a Lambda runtime container
-func NewRuntime(function resources.AWSServerlessFunction, envVarsOverrides map[string]string) (Invoker, error) {
+func NewRuntime(basedir string, function resources.AWSServerlessFunction, envVarsOverrides map[string]string) (Invoker, error) {
 
 	// Determin which docker image to use for the provided runtime
 	image, found := runtimes[function.Runtime()]
@@ -80,8 +82,21 @@ func NewRuntime(function resources.AWSServerlessFunction, envVarsOverrides map[s
 		return nil, err
 	}
 
+	// Determin which directory to mount into the runtime container.
+	// If no CodeUri is specified for this function, then use the same
+	// directory as the SAM template (basedir), otherwise mount the
+	// directory specified in the CodeUri property.
+	dir := filepath.Join(basedir, function.CodeURI().String())
+
+	// ...but only if it actually exists
+	if _, err := os.Stat(dir); err != nil {
+		// It doesn't, so just use the directory of the SAM template
+		dir = basedir
+	}
+
 	r := &Runtime{
 		Name:            function.Runtime(),
+		Cwd:             dir,
 		Image:           image,
 		Function:        function,
 		EnvVarOverrides: envVarsOverrides,
@@ -165,16 +180,12 @@ func overrideHostConfig(cfg *container.HostConfig) error {
 }
 
 func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create container host config")
-	}
 	host := &container.HostConfig{
 		Resources: container.Resources{
 			Memory: int64(r.Function.MemorySize() * 1024 * 1024),
 		},
 		Binds: []string{
-			fmt.Sprintf("%s:/var/task:ro", pwd),
+			fmt.Sprintf("%s:/var/task:ro", r.Cwd),
 		},
 	}
 	if err := overrideHostConfig(host); err != nil {

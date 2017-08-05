@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path/filepath"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -98,7 +99,8 @@ func start(c *cli.Context) {
 				// Find the env-vars map for the function
 				funcEnvVarsOverrides := envVarsOverrides[function.FunctionName()]
 
-				runt, err := NewRuntime(function, funcEnvVarsOverrides)
+				basedir := filepath.Dir(c.String("template"))
+				runt, err := NewRuntime(basedir, function, funcEnvVarsOverrides)
 				if err != nil {
 					if err == ErrRuntimeNotSupported {
 						log.Printf("Ignoring %s due to unsupported runtime (%s)\n", function.Handler(), function.Runtime())

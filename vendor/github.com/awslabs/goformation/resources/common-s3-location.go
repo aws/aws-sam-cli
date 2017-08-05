@@ -2,8 +2,6 @@ package resources
 
 import (
 	"net/url"
-
-	"github.com/awslabs/goformation/util"
 )
 
 // TODO Document
@@ -32,6 +30,7 @@ func (s3 *s3Location) Version() int {
 }
 
 func (s3 *s3Location) Scaffold(input Resource, propName string) (Resource, error) {
+
 	propertyValue := input.Properties()[propName].Value()
 
 	switch raw := propertyValue.(type) {
@@ -44,33 +43,27 @@ func (s3 *s3Location) Scaffold(input Resource, propName string) (Resource, error
 			return nil, err
 		}
 
-		*s3 = s3Location{
-			bucket: u.Host,
-			key:    u.Path,
-		}
+		s3.bucket = u.Host
+		s3.key = u.Path
 
-	case map[interface{}]interface{}:
+	case map[string]Property:
 
-		location := &s3Location{}
-
-		for key, value := range raw {
-			switch key {
+		for name, property := range raw {
+			switch name {
 			case "Bucket":
-				if v, ok := value.(string); ok {
-					location.bucket = util.ParsePrimitive(v).(string)
+				if bucket, ok := property.Value().(string); ok {
+					s3.bucket = bucket
 				}
 			case "Key":
-				if v, ok := value.(string); ok {
-					location.key = util.ParsePrimitive(v).(string)
+				if key, ok := property.Value().(string); ok {
+					s3.key = key
 				}
 			case "Version":
-				if v, ok := value.(int); ok {
-					location.version = util.ParsePrimitive(v).(int)
+				if version, ok := property.Value().(int); ok {
+					s3.version = version
 				}
 			}
 		}
-
-		s3 = location
 
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"io/ioutil"
 
@@ -103,7 +104,8 @@ func invoke(c *cli.Context) {
 		funcEnvVarsOverrides = map[string]string{}
 	}
 
-	runt, err := NewRuntime(function, funcEnvVarsOverrides)
+	basedir := filepath.Dir(c.String("template"))
+	runt, err := NewRuntime(basedir, function, funcEnvVarsOverrides)
 	if err != nil {
 		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime(), err)
 	}

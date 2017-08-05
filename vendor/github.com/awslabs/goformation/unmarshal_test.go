@@ -84,6 +84,40 @@ var _ = Describe("Sam", func() {
 
 		})
 
+		Context("with a Serverless template containing different CodeUri formats", func() {
+
+			template, _, err := goformation.Open("test-resources/aws-common-string-or-s3-location.yaml")
+			It("should successfully parse the template", func() {
+				Expect(err).To(BeNil())
+				Expect(template).ShouldNot(BeNil())
+			})
+
+			functions := template.GetResourcesByType("AWS::Serverless::Function")
+
+			It("should have exactly three functions", func() {
+				Expect(functions).To(HaveLen(3))
+				Expect(functions).To(HaveKey("CodeUriWithS3LocationSpecifiedAsString"))
+				Expect(functions).To(HaveKey("CodeUriWithS3LocationSpecifiedAsObject"))
+				Expect(functions).To(HaveKey("CodeUriWithString"))
+			})
+
+			f1 := functions["CodeUriWithS3LocationSpecifiedAsString"].(AWSServerlessFunction)
+			It("should parse a CodeUri property with an S3 location specified as a string", func() {
+				Expect(f1.CodeURI().String()).To(Equal("s3://testbucket/testkey.zip"))
+			})
+
+			f2 := functions["CodeUriWithS3LocationSpecifiedAsObject"].(AWSServerlessFunction)
+			It("should parse a CodeUri property with an S3 location specified as an object", func() {
+				Expect(f2.CodeURI().String()).To(Equal("s3://testbucket/testkey.zip#5"))
+			})
+
+			f3 := functions["CodeUriWithString"].(AWSServerlessFunction)
+			It("should parse a CodeUri property with a string", func() {
+				Expect(f3.CodeURI().String()).To(Equal("./testfolder"))
+			})
+
+		})
+
 		Context("with the official AWS SAM example templates", func() {
 
 			inputs := []string{
