@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"path/filepath"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/awslabs/goformation"
@@ -16,6 +16,13 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/gorilla/mux"
 )
+
+type mount struct {
+	Handler  string
+	Runtime  string
+	Endpoint string
+	Methods  []string
+}
 
 func start(c *cli.Context) {
 
@@ -79,6 +86,11 @@ func start(c *cli.Context) {
 	router := mux.NewRouter()
 
 	functions := template.GetResourcesByType("AWS::Serverless::Function")
+
+	// Keep track of successfully mounted functions, used for error reporting
+	mounts := []mount{}
+	endpointCount := 0
+
 	for _, resource := range functions {
 
 		if function, ok := resource.(resources.AWSServerlessFunction); ok {
@@ -92,6 +104,7 @@ func start(c *cli.Context) {
 			for x := range endpoints {
 
 				endpoint := endpoints[x].(resources.AWSServerlessFunctionEndpoint)
+				endpointCount++
 
 				// Find the env-vars map for the function
 				funcEnvVarsOverrides := envVarsOverrides[function.FunctionName()]
@@ -108,7 +121,13 @@ func start(c *cli.Context) {
 					}
 				}
 
-				log.Printf("Mounting %s (%s) at %s %s\n", function.Handler(), function.Runtime(), endpoint.Path(), endpoint.Methods())
+				// Keep track of this successful mount, for displaying to the user
+				mounts = append(mounts, mount{
+					Handler:  function.Handler(),
+					Runtime:  function.Runtime(),
+					Endpoint: endpoint.Path(),
+					Methods:  endpoint.Methods(),
+				})
 
 				router.HandleFunc(endpoint.Path(), func(w http.ResponseWriter, r *http.Request) {
 
@@ -204,8 +223,29 @@ func start(c *cli.Context) {
 		}
 	}
 
+	if len(mounts) < 1 {
+
+		if len(functions) < 1 {
+			fmt.Fprintf(stderr, "ERROR: No Serverless functions were found in your SAM template.\n")
+			os.Exit(1)
+		}
+
+		if endpointCount < 1 {
+			fmt.Fprintf(stderr, "ERROR: None of the Serverless functions in your SAM template have valid API event sources.\n")
+			os.Exit(1)
+		}
+
+		fmt.Fprintf(stderr, "ERROR: None of the Serverless functions in your SAM template were able to be mounted. See above for errors.\n")
+		os.Exit(1)
+
+	}
+
 	fmt.Fprintf(stderr, "\n")
-	fmt.Fprintf(stderr, "Listening on http://%s:%s\n", c.String("host"), c.String("port"))
+	for _, mount := range mounts {
+		msg := fmt.Sprintf("Mounting %s (%s) at http://%s:%s%s %s", mount.Handler, mount.Runtime, c.String("host"), c.String("port"), mount.Endpoint, mount.Methods)
+		fmt.Fprintf(os.Stderr, "%s\n", msg)
+	}
+
 	fmt.Fprintf(stderr, "\n")
 	fmt.Fprintf(stderr, "You can now browse to the above endpoints to invoke your functions.\n")
 	fmt.Fprintf(stderr, "You do not need to restart/reload sam-local while working on your functions,\n")
