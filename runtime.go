@@ -449,7 +449,7 @@ func getWorkingDir(basedir string, codeuri string) (string, error) {
 	if _, err := os.Stat(dir); err != nil {
 		// It doesn't, so just use the directory of the SAM template
 		// which might have been passed as a relative directory
-		dir = basedir
+		dir = abs
 	}
 
 	return dir, nil
