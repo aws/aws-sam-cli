@@ -82,21 +82,14 @@ func NewRuntime(basedir string, function resources.AWSServerlessFunction, envVar
 		return nil, err
 	}
 
-	// Determin which directory to mount into the runtime container.
-	// If no CodeUri is specified for this function, then use the same
-	// directory as the SAM template (basedir), otherwise mount the
-	// directory specified in the CodeUri property.
-	dir := filepath.Join(basedir, function.CodeURI().String())
-
-	// ...but only if it actually exists
-	if _, err := os.Stat(dir); err != nil {
-		// It doesn't, so just use the directory of the SAM template
-		dir = basedir
+	cwd, err := getWorkingDir(basedir, function.CodeURI().String())
+	if err != nil {
+		return nil, err
 	}
 
 	r := &Runtime{
 		Name:            function.Runtime(),
-		Cwd:             dir,
+		Cwd:             cwd,
 		Image:           image,
 		Function:        function,
 		EnvVarOverrides: envVarsOverrides,
@@ -299,7 +292,6 @@ func getOsEnviron() map[string]string {
 
 	result := map[string]string{}
 	for _, value := range os.Environ() {
-
 		keyVal := strings.Split(value, "=")
 		result[keyVal[0]] = keyVal[1]
 	}
@@ -437,5 +429,29 @@ func getDockerVersion() (string, error) {
 
 	response, err := cli.Ping(context.Background())
 	return response.APIVersion, err
+
+}
+
+func getWorkingDir(basedir string, codeuri string) (string, error) {
+
+	// Determin which directory to mount into the runtime container.
+	// If no CodeUri is specified for this function, then use the same
+	// directory as the SAM template (basedir), otherwise mount the
+	// directory specified in the CodeUri property.
+	abs, err := filepath.Abs(basedir)
+	if err != nil {
+		return "", err
+	}
+
+	dir := filepath.Join(abs, codeuri)
+
+	// ...but only if it actually exists
+	if _, err := os.Stat(dir); err != nil {
+		// It doesn't, so just use the directory of the SAM template
+		// which might have been passed as a relative directory
+		dir = basedir
+	}
+
+	return dir, nil
 
 }
