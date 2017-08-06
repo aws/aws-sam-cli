@@ -248,7 +248,7 @@ func start(c *cli.Context) {
 
 	fmt.Fprintf(stderr, "\n")
 	fmt.Fprintf(stderr, "You can now browse to the above endpoints to invoke your functions.\n")
-	fmt.Fprintf(stderr, "You do not need to restart/reload sam-local while working on your functions,\n")
+	fmt.Fprintf(stderr, "You do not need to restart/reload SAM CLI while working on your functions,\n")
 	fmt.Fprintf(stderr, "changes will be reflected instantly/automatically. You only need to restart\n")
 	fmt.Fprintf(stderr, "SAM CLI if you update your AWS SAM template.\n")
 	fmt.Fprintf(stderr, "\n")
