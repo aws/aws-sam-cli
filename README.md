@@ -176,12 +176,20 @@ At the moment, this is only available for `java`, `nodejs4.3` and `nodejs.6.10` 
 ### Validate SAM templates
 
 Validate your templates with `$ sam validate`.
+This command will validate your template against the official [AWS Serverless Application Model specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md).
+As with most SAM CLI commands, it will look for a `template.yaml` file in your current working directory by default. You can specify a different template file/location with the `-t` or `--template` option.
 
 **Syntax**
 
 ```bash
-sam validate
-sam validate -t other_template.yaml
+$ sam validate
+ERROR: Resource "HelloWorld", property "Runtime": Invalid value node. Valid values are "nodejs", "nodejs4.3", "nodejs6.10", "java8", "python2.7", "python3.6", "dotnetcore1.0", "nodejs4.3-edge" (line: 11; col: 6)
+
+# Let's fix that error...
+$ sed -i 's/node/nodejs6.10/g' template.yaml
+
+$ sam validate
+Valid!
 ```
 
 
