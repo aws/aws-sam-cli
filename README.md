@@ -163,9 +163,9 @@ Ratings:
 
 ### Debugging Applications
 
-Both `sam local invoke` and `sam local start-api` support remote debugging of your functions.
+Both `sam local invoke` and `sam local start-api` support local debugging of your functions.
 
-To run SAM CLI with remote debugging support enabled, just specify `--debug-port` or `-d` on the command line. 
+To run SAM CLI with debugging support enabled, just specify `--debug-port` or `-d` on the command line. 
 
 ```bash
 # Invoke a function locally in debug mode on port 5858 
@@ -181,7 +181,7 @@ Here is an example showing how to debug a NodeJS function with Microsoft Visual 
 
 ![SAM CLI debugging example](media/sam-debug.gif)
 
-In order to setup Visual Studio Code for remote debugging with AWS SAM CLI, use the following launch configuration:
+In order to setup Visual Studio Code for debugging with AWS SAM CLI, use the following launch configuration:
 
 ```
 {
@@ -200,7 +200,7 @@ In order to setup Visual Studio Code for remote debugging with AWS SAM CLI, use 
 }
 ``` 
 
-> Notice: At the moment, remote debugging is only available for `java`, `nodejs4.3` and `nodejs.6.10` runtimes.
+> Notice: At the moment, debugging is only available for `java`, `nodejs4.3` and `nodejs.6.10` runtimes.
 
 ### Validate SAM templates
 
@@ -250,7 +250,7 @@ See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/usergui
   - [x] `python3.6`
   - [ ] `dotnetcore1.0`
 * [x] AWS credential support 
-* [x] Remote debugging
+* [x] Debugging support
 * [ ] Inline Swagger support within SAM templates
 
 ## Contributing
