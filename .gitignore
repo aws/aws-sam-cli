@@ -2,4 +2,4 @@ dist/
 .idea/
 .vscode/
 .cache/
-./aws-sam-cli
+./aws-sam-local
