@@ -47,11 +47,13 @@ func invoke(c *cli.Context) {
 
 	name := c.Args().First()
 
-	// Find the specified function in the SAM template
+	// Find the specified function in the SAM template. Either check for a function whose
+	// logical ID matches the first CLI argument, or if they only have a single function
+	// defined, and don't specify a name, then just use that function.
 	var function resources.AWSServerlessFunction
 	functions := template.GetResourcesByType("AWS::Serverless::Function")
 	for resourceName, resource := range functions {
-		if resourceName == name {
+		if resourceName == name || (len(functions) == 1 && name == "") {
 			if f, ok := resource.(resources.AWSServerlessFunction); ok {
 				function = f
 			}
