@@ -8,11 +8,7 @@ import (
 	"github.com/fatih/color"
 )
 
-// BuildVersion is replaced automatically by the build process
-var BuildVersion = "SNAPSHOT"
-
-// BuildDate is replaced automatically by the build process
-var BuildDate = "NA"
+var version = "snapshot"
 
 func main() {
 
@@ -21,7 +17,7 @@ func main() {
 	v, err := checkVersion()
 	if err == nil && !v.IsUpToDate {
 		fmt.Fprintf(os.Stderr, "A newer version of the AWS SAM CLI is available!\n")
-		fmt.Fprintf(os.Stderr, "Your version:   %s\n", BuildVersion)
+		fmt.Fprintf(os.Stderr, "Your version:   %s\n", version)
 		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.LatestVersion)
 		fmt.Fprintf(os.Stderr, "See https://github.com/awslabs/aws-sam-cli for upgrade instructions\n\n")
 	}
@@ -29,7 +25,7 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "sam"
-	app.Version = BuildVersion
+	app.Version = version
 	app.Usage = "AWS Serverless Application Model (SAM) CLI.\n\nThe AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application. \n\nYou can find more in-depth guide about the SAM specification here:\nhttps://github.com/awslabs/serverless-application-model."
 	app.EnableBashCompletion = true // \m/
 
@@ -68,8 +64,8 @@ func main() {
 							Usage: "Optional. JSON file containing values for Lambda function's environment variables. ",
 						},
 						cli.StringFlag{
-							Name:   "debug-port, d",
-							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. "+
+							Name: "debug-port, d",
+							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. " +
 								"At this moment, this only works for java8 and nodejs* runtimes.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
@@ -102,8 +98,8 @@ func main() {
 							Usage: "JSON file containing event data passed to the Lambda function during invoke",
 						},
 						cli.StringFlag{
-							Name:   "debug-port, d",
-							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. "+
+							Name: "debug-port, d",
+							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. " +
 								"At this moment, this only works for java8 and nodejs* runtimes.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},

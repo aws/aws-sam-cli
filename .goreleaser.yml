@@ -11,6 +11,12 @@ builds:
       - amd64
       - 386
  
+archive:
+  format: tar.gz
+  files:
+    - LICENSE
+    - NOTICE
+
 # Publish to Github Releases 
 release:
     github:
@@ -38,3 +44,13 @@ release:
 # 
 #    install: |
 #        bin.install "aws-sam-cli"
+
+fpm: 
+  vendor: Amazon Web Services
+  homepage: https://github.com/awslabs/aws-sam-cli
+  maintainer: aws-sam-cli@amazon.com
+  description: AWS SAM CLI is a handy CLI tool for developing, testing and deploying Servferless applications.
+  license: Apache 2.0
+  formats:
+    - deb
+    - rpm

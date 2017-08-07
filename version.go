@@ -35,7 +35,7 @@ func checkVersion() (*checkVersionResult, error) {
 
 	return &checkVersionResult{
 		LatestVersion: latestVersion,
-		IsUpToDate:    BuildVersion == latestVersion,
+		IsUpToDate:    version == latestVersion,
 	}, nil
 
 }
