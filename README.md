@@ -132,7 +132,7 @@ sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <fu
 
 ### Run API Gateway locally
 
-![SAM CLI Start API](media/sam-start-api.png)
+![SAM CLI Start API](media/sam-start-api.gif)
 
 
 Spawn a local API Gateway to test HTTP request/response functionality. Features hot-reloading to allow you to quickly develop, and iterate over your functions.
