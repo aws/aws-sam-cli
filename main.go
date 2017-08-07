@@ -19,7 +19,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "A newer version of the AWS SAM CLI is available!\n")
 		fmt.Fprintf(os.Stderr, "Your version:   %s\n", version)
 		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.LatestVersion)
-		fmt.Fprintf(os.Stderr, "See https://github.com/awslabs/aws-sam-cli for upgrade instructions\n\n")
+		fmt.Fprintf(os.Stderr, "See https://github.com/awslabs/aws-sam-local for upgrade instructions\n\n")
 	}
 
 	app := cli.NewApp()

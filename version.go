@@ -18,7 +18,7 @@ type checkVersionResult struct {
 func checkVersion() (*checkVersionResult, error) {
 
 	const RepoOwner = "awslabs"
-	const RepoName = "aws-sam-cli"
+	const RepoName = "aws-sam-local"
 
 	// Get the latest version details from Github release
 	gh := github.NewClient(nil)

@@ -171,7 +171,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 }
 
 func overrideHostConfig(cfg *container.HostConfig) error {
-	const dotfile = ".config/aws-sam-cli/container-config.json"
+	const dotfile = ".config/aws-sam-local/container-config.json"
 	const eMsg = "unable to use container host config override file from '$HOME/%s'"
 
 	homeDir := os.Getenv("HOME")

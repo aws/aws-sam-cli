@@ -9,7 +9,7 @@ phases:
       - mkdir -p "${GOPATH}/bin"
       - export PATH=$GOPATH/bin:$PATH 
       - mkdir -p "${GOPATH}/src/github.com/awslabs"
-      - ln -s "${CODEBUILD_SRC_DIR}" "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
+      - ln -s "${CODEBUILD_SRC_DIR}" "${GOPATH}/src/github.com/awslabs/aws-sam-local"
       - go get -u github.com/golang/lint/golint
 
       - github.com/goreleaser/goreleaser
@@ -23,7 +23,7 @@ phases:
       - golint -set_exit_status
 
       # Run all tests included with our application
-      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-local"
       - go test .
 
   build:
@@ -35,7 +35,7 @@ phases:
       - mkdir -p "${CODEBUILD_SRC_DIR}/osx"  
       
       # Build AWS SAM CLI
-      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
+      - cd "${GOPATH}/src/github.com/awslabs/aws-sam-local"
       - GOOS=linux go build -ldflags "-X main.Version=${VERSION}" -o "${CODEBUILD_SRC_DIR}/linux/sam"
       - GOOS=darwin go build -ldflags "-X main.Version=${VERSION}" -o "${CODEBUILD_SRC_DIR}/osx/sam"
       - GOOS=windows go build -ldflags "-X main.Version=${VERSION}" -o "${CODEBUILD_SRC_DIR}/windows/sam.exe"
@@ -58,18 +58,18 @@ phases:
       - goreleaser
 
       # Release the binaries to the public S3 bucket
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/linux/sam" s3://aws-sam-cli/releases/${VERSION}/linux/sam
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/osx/sam" s3://aws-sam-cli/releases/${VERSION}/osx/sam
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/windows/sam.exe" s3://aws-sam-cli/releases/${VERSION}/windows/sam.exe
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/VERSION" s3://aws-sam-cli/releases/${VERSION}/VERSION
-      - aws s3 cp "${CODEBUILD_SRC_DIR}/CHECKSUMS" s3://aws-sam-cli/releases/${VERSION}/CHECKSUMS
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/linux/sam" s3://aws-sam-local/releases/${VERSION}/linux/sam
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/osx/sam" s3://aws-sam-local/releases/${VERSION}/osx/sam
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/windows/sam.exe" s3://aws-sam-local/releases/${VERSION}/windows/sam.exe
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/VERSION" s3://aws-sam-local/releases/${VERSION}/VERSION
+      - aws s3 cp "${CODEBUILD_SRC_DIR}/CHECKSUMS" s3://aws-sam-local/releases/${VERSION}/CHECKSUMS
 
       # Repoint the latest/ directory to this build
-      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/linux/sam s3://aws-sam-cli/releases/latest/linux/sam
-      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/osx/sam s3://aws-sam-cli/releases/latest/osx/sam
-      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/windows/sam.exe s3://aws-sam-cli/releases/latest/windows/sam.exe
-      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/VERSION s3://aws-sam-cli/releases/latest/VERSION
-      - aws s3 cp s3://aws-sam-cli/releases/${VERSION}/CHECKSUMS s3://aws-sam-cli/releases/latest/CHECKSUMS
+      - aws s3 cp s3://aws-sam-local/releases/${VERSION}/linux/sam s3://aws-sam-local/releases/latest/linux/sam
+      - aws s3 cp s3://aws-sam-local/releases/${VERSION}/osx/sam s3://aws-sam-local/releases/latest/osx/sam
+      - aws s3 cp s3://aws-sam-local/releases/${VERSION}/windows/sam.exe s3://aws-sam-local/releases/latest/windows/sam.exe
+      - aws s3 cp s3://aws-sam-local/releases/${VERSION}/VERSION s3://aws-sam-local/releases/latest/VERSION
+      - aws s3 cp s3://aws-sam-local/releases/${VERSION}/CHECKSUMS s3://aws-sam-local/releases/latest/CHECKSUMS
 
 artifacts:
   files:
