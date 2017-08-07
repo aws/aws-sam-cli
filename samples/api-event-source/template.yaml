@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: |
+  An example RESTful service
+
+Resources:
+  ExampleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs6.10
+      Handler: index.handler
+      Events:
+        ListCustomers:
+          Type: Api
+          Properties:
+            Path: /
+            Method: any
