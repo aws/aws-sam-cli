@@ -76,8 +76,9 @@ You can find sample SAM templates either under **`samples`** located in this rep
 You can invoke your function locally by passing its **SAM logical ID** and an event file. Alternatively, `sam local invoke` accepts stdin as an event too.
 
 ```yaml
-Ratings:  # <-- Logical ID
-  Type: 'AWS::Serverless::Function'
+Resources: 
+  Ratings:  # <-- Logical ID
+    Type: 'AWS::Serverless::Function'
   ...
 ```
 
