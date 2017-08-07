@@ -1,14 +1,14 @@
 <p align="center">
-  <a href="https://github.com/awslabs/aws-sam-cli" align="center">
+  <a href="https://github.com/awslabs/aws-sam-local" align="center">
     <img src="media/sam-banner.png" alt="SAM Extended logo" title="SAM" align="center" />
   </a>
 </p>
 
-# SAM CLI
+# SAM Local
 
- **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM CLI can be used for testing functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
+ **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM Local can be used to test functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
 
-- [SAM CLI](#sam-cli)
+- [SAM Local](#sam-cli)
     - [Main features](#main-features)
     - [Installation](#installation)
         - [Prerequisites](#prerequisites)
@@ -39,20 +39,20 @@
 
 ### Prerequisites
 
-Running Serverless projects and functions locally with SAM CLI requires Docker to be installed and running. SAM CLI will use the `DOCKER_HOST` environment variable to contact the docker daemon.
+Running Serverless projects and functions locally with SAM Local requires Docker to be installed and running. SAM Local will use the `DOCKER_HOST` environment variable to contact the docker daemon.
 
  - OSX: [Docker for Mac](http://docs.docker.com/docker-for-mac/install/)
  - Windows: [Docker Toolbox](https://download.docker.com/win/stable/DockerToolbox.exe)
  - Linux: Check your distro’s package manager (e.g. yum install docker)
 
-Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM CLI will do it automatically as required. 
+Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required. 
 
 ### OSX
 
 The easiest way to install **`sam`** on OSX is to use [Homebrew](https://brew.sh/).
 
 ```bash
-brew install aws-sam-cli
+brew install aws-sam-local
 sam --version
 ```
 
@@ -65,13 +65,13 @@ You can find latest releases under [Releases] in this repo. In case you cannot f
 First, install Go (v1.8+) on your machine: [https://golang.org/doc/install](https://golang.org/doc/install), then run the following:
 
 ```bash
-$ go install github.com/awslabs/aws-sam-cli 
+$ go install github.com/awslabs/aws-sam-local 
 ```
 
-This will install **`sam`** to your `$GOPATH/bin` folder. Make sure this directory is in your `$PATH` (or %%PATH%% on Windows) and you should then be able to use the SAM CLI. Please note that due to the package name, the binary will be installed as `aws-sam-cli` rather than `sam`.
+This will install **`sam`** to your `$GOPATH/bin` folder. Make sure this directory is in your `$PATH` (or %%PATH%% on Windows) and you should then be able to use the SAM Local. Please note that due to the package name, the binary will be installed as `aws-sam-local` rather than `sam`.
 
 ```bash
-aws-sam-cli --help
+aws-sam-local --help
 ```
 
 ## Usage
@@ -82,7 +82,7 @@ You can find sample SAM templates either under **`samples`** located in this rep
 
 ### Invoke functions locally
 
-![SAM CLI Invoke Sample](media/sam-invoke.gif)
+![SAM Local Invoke Sample](media/sam-invoke.gif)
 
 You can invoke your function locally by passing its **SAM logical ID** and an event file. Alternatively, `sam local invoke` accepts stdin as an event too.
 
@@ -135,7 +135,7 @@ For more options, see `sam local generate-event --help`.
 
 `sam local start-api` spawns a local API Gateway to test HTTP request/response functionality. Features hot-reloading to allow you to quickly develop, and iterate over your functions.
 
-![SAM CLI Start API](media/sam-start-api.gif)
+![SAM Local Start API](media/sam-start-api.gif)
 
 **Syntax**
 
@@ -165,7 +165,7 @@ Ratings:
 
 Both `sam local invoke` and `sam local start-api` support local debugging of your functions.
 
-To run SAM CLI with debugging support enabled, just specify `--debug-port` or `-d` on the command line. 
+To run SAM Local with debugging support enabled, just specify `--debug-port` or `-d` on the command line. 
 
 ```bash
 # Invoke a function locally in debug mode on port 5858 
@@ -179,16 +179,16 @@ Note: If using `sam local start-api`, the local API Gateway will expose all of y
 
 Here is an example showing how to debug a NodeJS function with Microsoft Visual Studio Code:
 
-![SAM CLI debugging example](media/sam-debug.gif)
+![SAM Local debugging example](media/sam-debug.gif)
 
-In order to setup Visual Studio Code for debugging with AWS SAM CLI, use the following launch configuration:
+In order to setup Visual Studio Code for debugging with AWS SAM Local, use the following launch configuration:
 
 ```
 {
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach to SAM CLI",
+            "name": "Attach to SAM Local",
             "type": "node",
             "request": "attach",
             "address": "localhost",
@@ -206,7 +206,7 @@ In order to setup Visual Studio Code for debugging with AWS SAM CLI, use the fol
 
 Validate your templates with `$ sam validate`.
 This command will validate your template against the official [AWS Serverless Application Model specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md).
-As with most SAM CLI commands, it will look for a `template.yaml` file in your current working directory by default. You can specify a different template file/location with the `-t` or `--template` option.
+As with most SAM Local commands, it will look for a `template.yaml` file in your current working directory by default. You can specify a different template file/location with the `-t` or `--template` option.
 
 **Syntax**
 
@@ -229,9 +229,9 @@ Valid!
 
 ### IAM Credentials
 
-SAM CLI will invoke functions with your locally configured IAM credentials.
+SAM Local will invoke functions with your locally configured IAM credentials.
 
-As with the AWS CLI and SDKs, SAM CLI will look for credentials in the following order:
+As with the AWS CLI and SDKs, SAM Local will look for credentials in the following order:
 
 1. Environment Variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`).
 2. The AWS credentials file (located at `~/.aws/credentials` on Linux, macOS, or Unix, or at `C:\Users\USERNAME \.aws\credentials` on Windows).
@@ -255,7 +255,7 @@ See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/usergui
 
 ## Contributing
 
-> **FIXME - To be written**
+Contributions and feedback are welcome! Proposals and pull requests will be considered and responded to. For more information, see the [CONTRIBUTING](CONTRIBUTING.md) file.
 
 ## Examples
 
@@ -264,6 +264,6 @@ You can find sample functions code and a SAM template used in this README under 
 <!-- Links -->
 [SAM]: https://github.com/awslabs/serverless-application-model
 [HOWTO]: HOWTO.md
-[Releases]: https://github.com/awslabs/aws-sam-cli/releases
-[Samples]: https://github.com/awslabs/aws-sam-cli/tree/master/samples
+[Releases]: https://github.com/awslabs/aws-sam-local/releases
+[Samples]: https://github.com/awslabs/aws-sam-local/tree/master/samples
 

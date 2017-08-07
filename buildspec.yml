@@ -4,7 +4,6 @@ phases:
 
   install: 
     commands:
-
       - export GOPATH="${CODEBUILD_SRC_DIR}"
       - export VERSION="$(date +%Y%m%d).$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | awk '{print substr($0,0,7)}')"
       - mkdir -p "${GOPATH}/bin"
@@ -12,6 +11,10 @@ phases:
       - mkdir -p "${GOPATH}/src/github.com/awslabs"
       - ln -s "${CODEBUILD_SRC_DIR}" "${GOPATH}/src/github.com/awslabs/aws-sam-cli"
       - go get -u github.com/golang/lint/golint
+
+      - github.com/goreleaser/goreleaser
+      - apt-get install rpm ruby ruby-dev rubygems build-essential
+      - gem install --no-ri --no-rdoc fpm
 
   pre_build: 
     commands:
@@ -50,6 +53,10 @@ phases:
   post_build:
     commands:
     
+      # Release to GitHub
+      - "export GITHUB_TOKEN=$(aws ssm get-parameters --with-decryption --names '/github.com/token' | jq -r '.Parameters[].Value')"
+      - goreleaser
+
       # Release the binaries to the public S3 bucket
       - aws s3 cp "${CODEBUILD_SRC_DIR}/linux/sam" s3://aws-sam-cli/releases/${VERSION}/linux/sam
       - aws s3 cp "${CODEBUILD_SRC_DIR}/osx/sam" s3://aws-sam-cli/releases/${VERSION}/osx/sam
