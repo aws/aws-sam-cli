@@ -99,24 +99,22 @@ sam local invoke --help
 You can invoke your function locally in debug mode by providing a debug port. **`sam`** will start the function in a suspended state and expose the provided port on localhost. You can then connect to it using a remote debugger.
 
 ```bash
-# Invoking function in debug mode on port 5005
-sam local invoke "Ratings" -e event.json -d 5005
+# Invoking function in debug mode on port 5858
+sam local invoke "Ratings" -e event.json -d 5858
 ```
 
-At the moment, this is only available for java and nodejs runtimes.
+At the moment, this is only available for `java`, `nodejs4.3` and `nodejs.6.10` runtimes.
 
 ### Generate sample event source payloads
 
-![SAM CLI Generate Event Sample](media/sam-generate-event.gif)
+To make local development and testing of Lambda functions easier, you can generate mock/sample event payloads for the following services:
 
-You can generate sample payloads coming from the following services:
-
-* [S3][S3-payload]
-* [Kinesis][Kinesis-payload]
-* [DynamoDB][DynamoDB-payload]
-* [Cloudwatch Scheduled Event][CWE-payload]
-* [Cloudtrail][Cloudtrail-payload]
-* [API Gateway][API-payload]
+* S3
+* Kinesis
+* DynamoDB
+* Cloudwatch Scheduled Event
+* Cloudtrail
+* API Gateway
 
 **Syntax**
 
@@ -124,7 +122,7 @@ You can generate sample payloads coming from the following services:
 sam local generate-event <service>
 ```
 
-Also, you can invoke an individual lambda function locally from a sample payload - Here's an example using S3:
+Also, you can invoke an individual lambda function locally from a sample event payload - Here's an example using S3:
 
 ```bash
 sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <function logical id>
@@ -143,9 +141,9 @@ Spawn a local API Gateway to test HTTP request/response functionality. Features 
 sam local start-api
 ```
 
-**`sam`** will automatically find your API definition by parsing the SAM template - Below are supported methods for auto discovery
+**`sam`** will automatically find any functions within your SAM template that have `Api` event sources defined, and mount them at the defined HTTP paths.
 
-> Implicit API definition via Serverless::Function resource
+In the example below, the `Ratings` function would mount `ratings.py:handler()` at `/ratings` for `GET` requests.
 
 ```yaml
 Ratings:
@@ -161,41 +159,18 @@ Ratings:
           Method: get
 ```
 
-> Explicit API definition via Serverless::Api resource
-
-```yaml
-# Inline swagger
-SampleAPI:
-  Type: AWS::Serverless::Api
-  Properties:
-    DefinitionBody:
-        paths:
-          "/proxy_me":
-            post:
-              responses:
-                "200":
-        ...
-
-# Swagger file
-SampleAPI:
-  Type: AWS::Serverless::Api
-  Properties:
-    DefinitionBody: ./api/swagger.yaml
-    ...
-```
-
 **Debug mode**
 
 You can spawn a local API Gateway in debug mode by providing a debug port. As soon as you invoke a function by sending a request to the local API Gateway, **`sam`** will start the function in a suspended state and expose the provided port on localhost. You can then connect to it using a remote debugger.
 
 ```bash
-# Invoking function in debug mode on port 5005
-sam local start-api -d 5005
+# Invoking function in debug mode on port 5858
+sam local start-api -d 5858
 ```
 
 Note: The local API Gateway will expose all of your lambda functions but, since you can specify a single debug port, you can only debug one function at a time.
 
-At the moment, this is only available for java and nodejs runtimes.
+At the moment, this is only available for `java`, `nodejs4.3` and `nodejs.6.10` runtimes.
 
 ### Validate SAM templates
 
@@ -223,7 +198,7 @@ sam validate -t other_template.yaml
   - [x] `python2.7`
   - [x] `python3.6`
   - [ ] `dotnetcore1.0`
-* [x] AWS credential support
+* [x] AWS credential support 
 * [ ] Inline Swagger support within SAM templates
 
 ## Contributing
