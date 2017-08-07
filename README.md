@@ -94,6 +94,17 @@ echo '{"message": "Hey, are you there?" }' | sam local invoke "Ratings"
 sam local invoke --help
 ```
 
+**Debug mode**
+
+You can invoke your function locally in debug mode by providing a debug port. **`sam`** will start the function in a suspended state and expose the provided port on localhost. You can then connect to it using a remote debugger.
+
+```bash
+# Invoking function in debug mode on port 5005
+sam local invoke "Ratings" -e event.json -d 5005
+```
+
+At the moment, this is only available for java and nodejs runtimes.
+
 ### Generate sample event source payloads
 
 ![SAM CLI Generate Event Sample](media/sam-generate-event.gif)
@@ -173,6 +184,18 @@ SampleAPI:
     ...
 ```
 
+**Debug mode**
+
+You can spawn a local API Gateway in debug mode by providing a debug port. As soon as you invoke a function by sending a request to the local API Gateway, **`sam`** will start the function in a suspended state and expose the provided port on localhost. You can then connect to it using a remote debugger.
+
+```bash
+# Invoking function in debug mode on port 5005
+sam local start-api -d 5005
+```
+
+Note: The local API Gateway will expose all of your lambda functions but, since you can specify a single debug port, you can only debug one function at a time.
+
+At the moment, this is only available for java and nodejs runtimes.
 
 ### Validate SAM templates
 

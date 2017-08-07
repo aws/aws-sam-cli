@@ -114,8 +114,12 @@ func invoke(c *cli.Context) {
 		funcEnvVarsOverrides = map[string]string{}
 	}
 
-	basedir := filepath.Dir(c.String("template"))
-	runt, err := NewRuntime(basedir, function, funcEnvVarsOverrides)
+	runt, err := NewRuntime(NewRuntimeOpt{
+		Function:         function,
+		EnvVarsOverrides: funcEnvVarsOverrides,
+		Basedir:          filepath.Dir(c.String("template")),
+		DebugPort:        c.String("debug-port"),
+	})
 	if err != nil {
 		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime(), err)
 	}
@@ -161,5 +165,4 @@ func invoke(c *cli.Context) {
 
 	fmt.Fprintf(stderr, "\n")
 	runt.CleanUp()
-
 }

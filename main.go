@@ -67,13 +67,20 @@ func main() {
 							Name:  "env-vars, n",
 							Usage: "Optional. JSON file containing values for Lambda function's environment variables. ",
 						},
+						cli.StringFlag{
+							Name:   "debug-port, d",
+							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. "+
+								"At this moment, this only works for java8 and nodejs* runtimes.",
+							EnvVar: "SAM_DEBUG_PORT",
+						},
 					},
 				},
 				cli.Command{
 					Name:   "invoke",
 					Action: invoke,
 					Usage: "Invokes a local Lambda function once and quits after invocation completes. \n\n" +
-						"Useful for developing serverless functions that handle asyncronous events (such as S3/Kinesis etc), or if you want to compose a script of test cases. Event body can be passed in either by stdin (default), or by using the --event parameter. Runtime output (logs etc) will be outputted to stderr, and the Lambda function result will be outputted to stdout.\n",
+						"Useful for developing serverless functions that handle asynchronous events (such as S3/Kinesis etc), or if you want to compose a script of test cases. " +
+						"Event body can be passed in either by stdin (default), or by using the --event parameter. Runtime output (logs etc) will be outputted to stderr, and the Lambda function result will be outputted to stdout.\n",
 					ArgsUsage: "<function-identifier>",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -93,6 +100,12 @@ func main() {
 						cli.StringFlag{
 							Name:  "event, e",
 							Usage: "JSON file containing event data passed to the Lambda function during invoke",
+						},
+						cli.StringFlag{
+							Name:   "debug-port, d",
+							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. "+
+								"At this moment, this only works for java8 and nodejs* runtimes.",
+							EnvVar: "SAM_DEBUG_PORT",
 						},
 					},
 				},
