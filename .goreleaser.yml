@@ -10,6 +10,9 @@ builds:
     goarch:
       - amd64
       - 386
+
+    hooks:
+      post: ./distribution/npm/npm-release.sh
  
 archive:
   format: tar.gz
@@ -47,9 +50,9 @@ release:
 
 fpm: 
   vendor: Amazon Web Services
-  homepage: https://github.com/awslabs/aws-sam-cli
+  homepage: https://github.com/awslabs/aws-sam-local
   maintainer: aws-sam-cli@amazon.com
-  description: AWS SAM CLI is a handy CLI tool for developing, testing and deploying Servferless applications.
+  description: AWS SAM Local CLI is a handy CLI tool for developing, testing and deploying Servferless applications.
   license: Apache 2.0
   formats:
     - deb
