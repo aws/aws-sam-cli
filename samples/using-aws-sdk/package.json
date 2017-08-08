@@ -1,0 +1,15 @@
+{
+  "name": "using-aws-sdk",
+  "version": "1.0.0",
+  "description": "An example Serverless project that uses the AWS SDK to list S3 buckets",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.94.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Paul Maddox <pmaddox@amazon.com>",
+  "license": "Apache-2.0"
+}
