@@ -328,8 +328,8 @@ func getSessionOrDefaultCreds() map[string]string {
 	}
 
 	// Obtain AWS credentials and pass them through to the container runtime via env variables
-	if sess, err := session.NewSession(); err != nil {
-		if creds, err := sess.Config.Credentials.Get(); err != nil {
+	if sess, err := session.NewSession(); err == nil {
+		if creds, err := sess.Config.Credentials.Get(); err == nil {
 			result["region"] = *sess.Config.Region
 			result["key"] = creds.AccessKeyID
 			result["secret"] = creds.SecretAccessKey
