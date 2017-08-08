@@ -1,9 +1,10 @@
 # Set NPM_TOKEN environment variable to the User's token before running the script
 #
-# USAGE: ./npm-release.sh <version of release>
-# Example: ./npm-release.sh 0.0.1
+# USAGE: ./npm-release.sh
+# Picks up the version from latest tag
 
-VERSION=$1
+VERSION=`git describe --abbrev=0 --tags`
+VERSION="${VERSION:1:${#VERSION}}" # Remove starting 'v' v0.0.1 => 0.0.1
 PACKAGE=./package.json
 BACKUP=./package.json.bck
 
