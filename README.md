@@ -47,18 +47,22 @@ Running Serverless projects and functions locally with SAM Local requires Docker
 
 Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required. 
 
-### OSX
+### Windows, Linux, OSX with NPM [Recommended]
 
-The easiest way to install **`sam`** on OSX is to use [Homebrew](https://brew.sh/).
+The easiest way to install **`sam`** is to use [NPM](npmjs.com).
 
 ```bash
-brew install aws-sam-local
+npm install aws-sam-local
+```
+
+Verify the installation worked:
+```bash
 sam --version
 ```
 
-### Windows and Linux
+### Binary release
 
-You can find latest releases under [Releases] in this repo. In case you cannot find the version or architecture you're looking for you can refer to [Build From Source] section for build details.
+We also release the CLI as binaries that you can download and instantly use. You can find them under [Releases] in this repo. In case you cannot find the version or architecture you're looking for you can refer to [Build From Source](#build-from-source) section for build details.
 
 ### Build From Source
 
