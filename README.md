@@ -8,7 +8,7 @@
 
  **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM Local can be used to test functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
 
-- [SAM Local](#sam-cli)
+- [SAM Local](#sam-local)
     - [Main features](#main-features)
     - [Installation](#installation)
         - [Prerequisites](#prerequisites)
@@ -20,12 +20,14 @@
         - [Generate sample event source payloads](#generate-sample-event-source-payloads)
         - [Run API Gateway locally](#run-api-gateway-locally)
         - [Debugging Applications](#debugging-applications)
+            - [Debugging Python functions](#debugging-python-functions)
         - [Validate SAM templates](#validate-sam-templates)
     - [Getting started](#getting-started)
     - [Advanced](#advanced)
         - [IAM Credentials](#iam-credentials)
     - [Project Status](#project-status)
     - [Contributing](#contributing)
+    - [A special thank you](#a-special-thank-you)
     - [Examples](#examples)
   
 ## Main features
@@ -200,7 +202,9 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
 }
 ``` 
 
-> Notice: At the moment, debugging is only available for `java`, `nodejs4.3` and `nodejs.6.10` runtimes.
+#### Debugging Python functions
+
+Unlike Node.JS and Java, Python requires you to enable remote debugging in your Lambda function code. If you enable debugging with `--debug-port` or `-d` for a function that uses one of the Python runtimes, SAM Local will just map through that port from your host machine through to the Lambda runtime container. You will need to enable remote debugging in your function code. To do this, use a python package such as [remote-pdb](https://pypi.python.org/pypi/remote-pdb). When configuring the host the debugger listens on in your code, make sure to use `0.0.0.0` not `127.0.0.1` to allow Docker to map through the port to your host machine. 
 
 ### Validate SAM templates
 
@@ -245,7 +249,7 @@ See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/usergui
   - [x] `nodejs`
   - [x] `nodejs4.3`
   - [x] `nodejs6.10`
-  - [ ] `java8`
+  - [x] `java8`
   - [x] `python2.7`
   - [x] `python3.6`
   - [ ] `dotnetcore1.0`
@@ -256,6 +260,10 @@ See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/usergui
 ## Contributing
 
 Contributions and feedback are welcome! Proposals and pull requests will be considered and responded to. For more information, see the [CONTRIBUTING](CONTRIBUTING.md) file.
+
+## A special thank you
+
+SAM Local uses the open source [docker-lambda](https://github.com/lambci/docker-lambda) Docker images created by [@mhart](https://github.com/mhart). 
 
 ## Examples
 
