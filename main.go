@@ -221,7 +221,7 @@ func main() {
 								cli.StringFlag{
 									Name:  "body, b",
 									Usage: "HTTP body",
-									Value: `{ "test\": \"body\"}`,
+									Value: `{ \"test\": \"body\"}`,
 								},
 								cli.StringFlag{
 									Name:  "resource, r",
