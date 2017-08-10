@@ -321,8 +321,7 @@ func fnSub(value interface{}, resources map[string]Resource, inlineParameters ma
 		if !keyResolved {
 			value = resolveValue(parameterName, resources)
 			if value == "" {
-				util.LogError(-1, "PostProcessing", "The value %s does not resolve.", parameterName)
-				return ""
+				util.LogWarning(-1, "PostProcessing", "The value %s does not resolve.", parameterName)
 			}
 		}
 

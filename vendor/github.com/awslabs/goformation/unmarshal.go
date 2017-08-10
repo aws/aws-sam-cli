@@ -278,7 +278,32 @@ func processIntrinsicFunctions(input []byte) (source []byte, error error) {
 		return nil, error
 	} else if hasInlineFn {
 		regex := regexp.MustCompile(inlineFnRegex)
-		source = regex.ReplaceAll(input, []byte(` [ "Fn::$1",$2 ]`))
+		tmpSource := regex.ReplaceAllString(string(input), ` [ "Fn::$1",T3mpqu0T35Start $2 T3mPQu0T35End ]`)
+		quotesWithQuotesMsgStartRegex := regexp.MustCompile(`T3mpqu0T35Start \"`)
+		quotesWithQuotesMsgEndRegex := regexp.MustCompile(`\" T3mPQu0T35End`)
+		quotesWithArrayMsgStartRegex := regexp.MustCompile(`T3mpqu0T35Start \[`)
+		quotesWithArrayMsgEndRegex := regexp.MustCompile(`\] T3mPQu0T35End`)
+		quotesWithoutQuotesMsgStartRegex := regexp.MustCompile(`T3mpqu0T35Start `)
+		quotesWithoutQuotesMsgEndRegex := regexp.MustCompile(` T3mPQu0T35End`)
+		fakeQuoteRegex := regexp.MustCompile(`F4k3Qu0T3`)
+
+		// Replace with quotes first
+		tmpSource = quotesWithQuotesMsgStartRegex.ReplaceAllString(tmpSource, "F4k3Qu0T3")
+		tmpSource = quotesWithQuotesMsgEndRegex.ReplaceAllString(tmpSource, "F4k3Qu0T3")
+
+		// Now replace instances with an array
+		tmpSource = quotesWithArrayMsgStartRegex.ReplaceAllString(tmpSource, "[")
+		tmpSource = quotesWithArrayMsgEndRegex.ReplaceAllString(tmpSource, "]")
+
+		// And now without quotes
+		tmpSource = quotesWithoutQuotesMsgStartRegex.ReplaceAllString(tmpSource, "F4k3Qu0T3")
+		tmpSource = quotesWithoutQuotesMsgEndRegex.ReplaceAllString(tmpSource, "F4k3Qu0T3")
+
+		// Replace fake quotes
+		tmpSource = fakeQuoteRegex.ReplaceAllString(tmpSource, "\"")
+
+		// Assign back to real source
+		source = []byte(tmpSource)
 	} else {
 		okRegular = false
 	}
