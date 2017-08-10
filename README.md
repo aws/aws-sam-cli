@@ -8,7 +8,7 @@
 
  **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM Local can be used to test functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
 
-- [SAM Local](#sam-local)
+- [SAM Local (Beta)](#sam-local-beta)
     - [Main features](#main-features)
     - [Installation](#installation)
         - [Prerequisites](#prerequisites)
@@ -22,9 +22,16 @@
         - [Debugging Applications](#debugging-applications)
             - [Debugging Python functions](#debugging-python-functions)
         - [Validate SAM templates](#validate-sam-templates)
+        - [Package and Deploy to Lambda](#package-and-deploy-to-lambda)
     - [Getting started](#getting-started)
     - [Advanced](#advanced)
         - [IAM Credentials](#iam-credentials)
+        - [Lambda Environment Variables](#lambda-environment-variables)
+            - [Environment Variable file](#environment-variable-file)
+            - [Shell environment](#shell-environment)
+            - [Combination of Shell and Environment Variable file](#combination-of-shell-and-environment-variable-file)
+        - [Identifying local execution from Lambda function code](#identifying-local-execution-from-lambda-function-code)
+        - [Local Logging](#local-logging)
     - [Project Status](#project-status)
     - [Contributing](#contributing)
     - [A special thank you](#a-special-thank-you)
