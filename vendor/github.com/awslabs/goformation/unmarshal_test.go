@@ -129,11 +129,12 @@ var _ = Describe("Sam", func() {
 			functions := template.GetResourcesByType("AWS::Serverless::Function")
 
 			It("should have exactly one function", func() {
-				Expect(functions).To(HaveLen(4))
+				Expect(functions).To(HaveLen(5))
 				Expect(functions).To(HaveKey("EnvironmentVariableTestFunction"))
 				Expect(functions).To(HaveKey("IntrinsicEnvironmentVariableTestFunction"))
 				Expect(functions).To(HaveKey("NoValueEnvironmentVariableTestFunction"))
 				Expect(functions).To(HaveKey("SubEnvironmentVariableTestFunction"))
+				Expect(functions).To(HaveKey("NonExistSubEnvironmentVariableTestFunction"))
 			})
 
 			f1 := functions["EnvironmentVariableTestFunction"].(AWSServerlessFunction)
@@ -165,6 +166,14 @@ var _ = Describe("Sam", func() {
 				It("should have an environment variable named SUB_ENV_VAR", func() {
 					Expect(f4.EnvironmentVariables()).To(HaveLen(1))
 					Expect(f4.EnvironmentVariables()).To(HaveKeyWithValue("SUB_ENV_VAR", "Hello"))
+				})
+			})
+
+			f5 := functions["NonExistSubEnvironmentVariableTestFunction"].(AWSServerlessFunction)
+			Context("with a !Sub variable value that contains a non-existant reference", func() {
+				It("should have an environment variable named SUB_REF_ENV_VAR", func() {
+					Expect(f5.EnvironmentVariables()).To(HaveLen(1))
+					Expect(f5.EnvironmentVariables()).To(HaveKeyWithValue("SUB_REF_ENV_VAR", "Hello-"))
 				})
 			})
 

@@ -35,8 +35,9 @@ func scaffold(input Template) (Template, []error) {
 	util.LogDebug(-1, "Scaffolding", "Line numbers correctly.")
 	resourcesLinesRaw, resourcesLinesOk := mappedLineNumbers["Resources"]
 	if !resourcesLinesOk {
-		util.LogError(-1, "Scaffolding", ErrNoResourcesSectionDefined.Error())
-		error = append(error, ErrNoResourceDefinitionFound)
+		err := errors.New("Template does not contain a Resources section (line: 0; col: 0)")
+		util.LogError(-1, "Scaffolding", err.Error())
+		error = append(error, err)
 		return nil, error
 	}
 

@@ -62,6 +62,22 @@ Resources:
             Path: /
             Method: get
 
+  NonExistSubEnvironmentVariableTestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: sub
+      Runtime: nodejs6.10
+      Handler: filename.method
+      Environment:
+        Variables:
+          SUB_REF_ENV_VAR: !Sub Hello-${ThisReferenceDoesntExist}
+      Events:
+        GetRequest:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+
   IntrinsicEnvironmentVariableTestFunction:
     Type: AWS::Serverless::Function
     Properties:

@@ -1,18 +1,11 @@
 package goformation
 
 import (
-	"errors"
 	"regexp"
 
 	. "github.com/awslabs/goformation/resources"
 	"github.com/awslabs/goformation/util"
 	"gopkg.in/yaml.v2"
-)
-
-var (
-	// ErrNoResourceDefinitionFound Raised if found a resource without a template.
-	// This exception don't propagate.
-	ErrNoResourceDefinitionFound = errors.New("There is no definition for this resource type")
 )
 
 func unmarshal(input []byte) (Template, error) {
