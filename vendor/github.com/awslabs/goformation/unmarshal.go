@@ -110,6 +110,9 @@ func getResourceAddr(input Resource) Resource {
 func (t *unmarshalledTemplate) Resources() map[string]Resource {
 	ret := make(map[string]Resource)
 	for key, value := range t._resources {
+		if value == nil {
+			value = &unmarshalledResource{}
+		}
 		ret[key] = getResourceAddr(value)
 	}
 	return ret
@@ -183,6 +186,7 @@ func (r *unmarshalledResource) UnmarshalYAML(unmarshal func(interface{}) error) 
 
 	var aux map[string]interface{}
 	if err = unmarshal(&aux); err != nil {
+
 		return err
 	}
 

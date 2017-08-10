@@ -2,6 +2,7 @@ package goformation
 
 import (
 	"errors"
+	"fmt"
 
 	. "github.com/awslabs/goformation/resources"
 	"github.com/awslabs/goformation/util"
@@ -118,8 +119,9 @@ func scaffoldResource(name string, resourceTemplate Resource, lines map[string]i
 
 	typeLinesRaw, typeLinesRawOk := lines["Type"]
 	if !typeLinesRawOk {
-		util.LogError(-1, "Scaffolding", "Line information for resource's `Type` is missing")
-		return nil, []error{ErrUnableToReadResourceLineNumbers}
+		msg := fmt.Sprintf("Resource %s has no Type set (line: %d; col: %d)", name, rootResourceLines.Line(), rootResourceLines.Level())
+		util.LogError(rootResourceLines.Line(), "Scaffolding", msg)
+		return nil, []error{errors.New(msg)}
 	}
 	typeLinesRoot := typeLinesRaw.(map[string]interface{})
 	typeLines := typeLinesRoot["ROOT"].(LineDictionary)
