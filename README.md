@@ -229,6 +229,20 @@ $ sam validate
 Valid!
 ```
 
+### Package and Deploy to Lambda
+Once you have developed and tested your Serverless application locally, you can deploy to Lambda using `sam package` and `sam deploy` command. `package` command will zip your code artifacts, upload to S3 and produce a SAM file that is ready to be deployed to Lambda using AWS CloudFormation. `deploy` command will deploy the packaged SAM template to CloudFormation. Both `sam package` and `sam deploy` are identical to their AWS CLI equivalents commands [`aws cloudformation package`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html) and [`aws cloudformation deploy`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html) respectively. Please consult the AWS CLI command documentation for usage.
+
+Example:
+
+```bash
+# Package SAM template
+$ sam package --template-file sam.yaml --s3-bucket mybucket --output-template-file packaged.yaml
+
+# Deploy packaged SAM template
+$ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities CAPABILITY_IAM
+```
+
+
 ## Getting started
 
 * Check out ![HOWTO Guide](HOWTO.md) section for more details
@@ -246,6 +260,87 @@ As with the AWS CLI and SDKs, SAM Local will look for credentials in the followi
 3. Instance profile credentials (if running on Amazon EC2 with an assigned instance role).
 
 See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#config-settings-and-precedence) for more details.
+
+### Lambda Environment Variables
+If your Lambda function uses environment variables, you can you can provide values for them will passed to the Docker container. Here is how you would do it:
+
+For example, consider the SAM template snippet:
+
+```yaml
+
+Resources:
+  MyFunction1:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs4.3
+      Environment:
+        Variables:
+          TABLE_NAME: prodtable
+          BUCKET_NAME: prodbucket
+
+  MyFunction2:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.handler
+      Runtime: nodejs4.3
+      Environment:
+        Variables:
+          STAGE: prod
+          TABLE_NAME: prodtable
+
+
+
+```
+
+#### Environment Variable file
+Use `--env-vars` argument of `invoke` or `start-api` commands to provide a JSON file that contains values for environment variables defined in your function. The file should be structured as follows:
+
+```json
+{
+  "MyFunction1": {
+    "TABLE_NAME": "localtable",
+    "BUCKET_NAME": "testBucket"
+  },
+  "MyFunction2": {
+    "TABLE_NAME": "localtable",
+    "STAGE": "dev"
+  },
+}
+
+```
+
+```bash
+$ sam local start-api --env-vars env.json
+```
+
+#### Shell environment 
+Variables defined in your Shell's environment will be passed to the Docker container, if they map to a Variable in your Lambda function. Shell variables are globally applicable to functions ie. If two functions have a variable called `TABLE_NAME`, then the value for `TABLE_NAME` provided through Shell's environment will be availabe to both functions. 
+
+Following command will make value of `mytable` available to both `MyFunction1` and `MyFunction2`
+
+```bash
+$ TABLE_NAME=mytable sam local start-api
+```
+
+#### Combination of Shell and Environment Variable file
+For greater control, you can use a combination shell variables and external environment variable file. If a variable is defined in both places, the one from the file will override the shell. Here is the order of priority, highest to lowest. Higher priority ones will override the lower.
+
+1. Environment Variable file
+1. Shell's environment
+1. Hard-coded values from the template
+
+### Identifying local execution from Lambda function code
+When your Lambda function is invoked using SAM Local, it sets an environment variable `AWS_SAM_LOCAL=true` in the Docker container. Your Lambda function can use this property to enable or disable functionality that would not make sense in local development. For example: Disable emitting metrics to CloudWatch (or) Enable verbose logging etc.
+
+### Local Logging
+Both `invoke` and `start-api` command allow you to pipe logs from the function's invocation into a file. This will be useful if you are running automated tests against SAM Local and want to capture logs for analysis. 
+
+Example:
+```bash
+$ sam local invoke --log-file ./output.log
+```
+
 
 ## Project Status
   

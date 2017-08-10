@@ -56,7 +56,7 @@ func main() {
 							EnvVar: "SAM_TEMPLATE_FILE",
 						},
 						cli.StringFlag{
-							Name:  "log, l",
+							Name:  "log-file, l",
 							Usage: "Optional logfile to send runtime logs to",
 						},
 						cli.StringFlag{
@@ -75,8 +75,7 @@ func main() {
 						},
 						cli.StringFlag{
 							Name: "debug-port, d",
-							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. " +
-								"At this moment, this only works for java8 and nodejs* runtimes.",
+							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
 					},
@@ -109,8 +108,7 @@ func main() {
 						},
 						cli.StringFlag{
 							Name: "debug-port, d",
-							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost. " +
-								"At this moment, this only works for java8 and nodejs* runtimes.",
+							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
 					},
