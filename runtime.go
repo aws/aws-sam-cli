@@ -16,6 +16,9 @@ import (
 	"fmt"
 	"path"
 
+	"os/signal"
+	"syscall"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/awslabs/goformation/resources"
 	"github.com/docker/docker/api/types"
@@ -30,8 +33,6 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/mattn/go-colorable"
 	"github.com/pkg/errors"
-	"os/signal"
-	"syscall"
 )
 
 // Invoker is a simple interface to help with testing runtimes
@@ -452,6 +453,7 @@ func getEnvironmentVariables(function resources.AWSServerlessFunction, overrides
 
 	// Variables available in Lambda execution environment for all functions (AWS_* variables)
 	env := map[string]string{
+		"AWS_SAM_LOCAL":                   "true",
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
