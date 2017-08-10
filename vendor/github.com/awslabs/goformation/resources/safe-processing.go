@@ -1,7 +1,6 @@
 package resources
 
 import (
-	"log"
 	"strconv"
 	"strings"
 )
@@ -65,23 +64,11 @@ func safeProcessStringMap(prop Property) map[string]string {
 				pKeyParsed = pKeyStr
 			}
 
+			pValueParsed = ""
 			if pValueString, pValueStringOk := pValue.(string); pValueStringOk {
 				pValueParsed = pValueString
 			} else {
-				pValueParsed = ""
-				log.Printf("Casting a non-string value - safe-processing.go:59")
-				// TODO Fix this
-				if pvaluemap, pvaluemapok := pValue.(map[interface{}]interface{}); pvaluemapok {
-					for kkey, kvalue := range pvaluemap {
-						log.Printf("KEy: %s", kkey)
-						log.Printf("Value: %v", kvalue)
-					}
-				} else if pvaluearr, pvaluearrok := pValue.([]interface{}); pvaluearrok {
-					for kkey, kvalue := range pvaluearr {
-						log.Printf("KEy: %s", kkey)
-						log.Printf("Value: %v", kvalue)
-					}
-				}
+				pValueParsed, _ = toStringMaybe(pValue)
 			}
 
 			ret[pKeyParsed] = pValueParsed
@@ -130,4 +117,21 @@ func safeCastToString(prop Property) string {
 	}
 
 	return ""
+}
+
+// Converts the input to string if it is a primitive type, Otherwise returns nil
+func toStringMaybe(value interface{}) (string, bool) {
+
+	switch value.(type) {
+	case string:
+		return value.(string), true
+	case int:
+		return strconv.Itoa(value.(int)), true
+	case float32, float64:
+		return strconv.FormatFloat(value.(float64), 'f', -1, 64), true
+	case bool:
+		return strconv.FormatBool(value.(bool)), true
+	default:
+		return "", false
+	}
 }
