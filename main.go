@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/codegangsta/cli"
 	"github.com/fatih/color"
@@ -50,7 +51,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:   "template, t",
-							Value:  "template.yaml",
+							Value:  "template.[yaml|yml]",
 							Usage:  "AWS SAM template file",
 							EnvVar: "SAM_TEMPLATE_FILE",
 						},
@@ -90,7 +91,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:   "template, t",
-							Value:  "template.yaml",
+							Value:  "template.[yaml|yml]",
 							Usage:  "AWS SAM template file",
 							EnvVar: "SAM_TEMPLATE_FILE",
 						},
@@ -264,7 +265,7 @@ func main() {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:   "template, t",
-					Value:  "template.yaml",
+					Value:  "template.[yaml|yml]",
 					Usage:  "AWS SAM template file",
 					EnvVar: "SAM_TEMPLATE_FILE",
 				},
@@ -301,5 +302,34 @@ func main() {
 	}
 
 	app.Run(os.Args)
+
+}
+
+// getTemplateFilename allows SAM Local to default to either template.yaml
+// or template.yml for the --template/-t parameter. This is helpful, as there
+// isn't a hard definition for the filename suffix and usage tends to be mixed
+func getTemplateFilename(filename string) string {
+
+	if filename != "template.[yaml|yml]" {
+		return filename
+	}
+
+	// See whether to use template.yaml or template.yml
+
+	// First shoot for .yaml
+	fp, err := filepath.Abs("template.yaml")
+	if err != nil {
+		// Can't work out the absolute path, so just use whatever was passed in
+		return filename
+	}
+
+	fi, err := os.Stat(fp)
+	if err == nil {
+		// There is a template.yaml, so use it
+		return fi.Name()
+	}
+
+	// We couldn't find a template.yaml, so fallback to template.yml
+	return "template.yml"
 
 }

@@ -35,7 +35,8 @@ func invoke(c *cli.Context) {
 		}
 	}
 
-	template, _, errs := goformation.Open(c.String("template"))
+	filename := getTemplateFilename(c.String("template"))
+	template, _, errs := goformation.Open(filename)
 	if len(errs) > 0 {
 		for _, err := range errs {
 			log.Printf("%s\n", err)
@@ -43,7 +44,7 @@ func invoke(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	log.Printf("Successfully parsed %s (version %s)\n", c.String("template"), template.Version())
+	log.Printf("Successfully parsed %s (version %s)\n", filename, template.Version())
 
 	name := c.Args().First()
 
@@ -119,7 +120,7 @@ func invoke(c *cli.Context) {
 	runt, err := NewRuntime(NewRuntimeOpt{
 		Function:         function,
 		EnvVarsOverrides: funcEnvVarsOverrides,
-		Basedir:          filepath.Dir(c.String("template")),
+		Basedir:          filepath.Dir(filename),
 		DebugPort:        c.String("debug-port"),
 	})
 	if err != nil {

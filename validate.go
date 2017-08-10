@@ -10,7 +10,7 @@ import (
 
 func validate(c *cli.Context) {
 
-	_, _, errs := goformation.Open(c.String("template"))
+	_, _, errs := goformation.Open(getTemplateFilename(c.String("template")))
 
 	if len(errs) > 0 {
 		for _, err := range errs {

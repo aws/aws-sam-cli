@@ -39,7 +39,8 @@ func start(c *cli.Context) {
 		}
 	}
 
-	template, _, errs := goformation.Open(c.String("template"))
+	filename := getTemplateFilename(c.String("template"))
+	template, _, errs := goformation.Open(filename)
 	if len(errs) > 0 {
 		for _, err := range errs {
 			log.Printf("%s\n", err)
@@ -80,7 +81,7 @@ func start(c *cli.Context) {
 		}
 	}
 
-	log.Printf("Successfully parsed %s (version %s)", c.String("template"), template.Version())
+	log.Printf("Successfully parsed %s (version %s)", filename, template.Version())
 
 	// Create a new HTTP router to mount the functions on
 	router := mux.NewRouter()
@@ -112,7 +113,7 @@ func start(c *cli.Context) {
 				runt, err := NewRuntime(NewRuntimeOpt{
 					Function:         function,
 					EnvVarsOverrides: funcEnvVarsOverrides,
-					Basedir:          filepath.Dir(c.String("template")),
+					Basedir:          filepath.Dir(filename),
 					DebugPort:        c.String("debug-port"),
 				})
 				if err != nil {
