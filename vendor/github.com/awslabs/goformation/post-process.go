@@ -561,6 +561,12 @@ func recursiveObjectLookup(key string, value interface{}, realValue *processedPr
 }
 
 func detectIntrinsicFunctionsInObject(key string, value interface{}, realValue *processedProperty, resources map[string]Resource) {
+
+	// This method tries to resolve correct value for an intrinsic function and
+	// return to the caller. This is very limited in functionality, and does not
+	// fail gracefully. Commenting until we can get a more thorough solution
+
+	/*
 	keymatch, error := regexp.Match(fnRegex, []byte(key))
 	if error != nil {
 		util.LogError(-1, "PostProcessing", "%s", error)
@@ -629,4 +635,5 @@ func detectIntrinsicFunctionsInObject(key string, value interface{}, realValue *
 	} else {
 		recursiveObjectLookup(key, value, realValue, resources)
 	}
+	*/
 }
