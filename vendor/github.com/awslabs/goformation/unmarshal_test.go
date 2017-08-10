@@ -118,6 +118,58 @@ var _ = Describe("Sam", func() {
 
 		})
 
+		Context("with a Serverless template containing function environment variables", func() {
+
+			template, _, err := goformation.Open("test-resources/function-environment-variables.yaml")
+			It("should successfully parse the template", func() {
+				Expect(err).To(BeNil())
+				Expect(template).ShouldNot(BeNil())
+			})
+
+			functions := template.GetResourcesByType("AWS::Serverless::Function")
+
+			It("should have exactly one function", func() {
+				Expect(functions).To(HaveLen(4))
+				Expect(functions).To(HaveKey("EnvironmentVariableTestFunction"))
+				Expect(functions).To(HaveKey("IntrinsicEnvironmentVariableTestFunction"))
+				Expect(functions).To(HaveKey("NoValueEnvironmentVariableTestFunction"))
+				Expect(functions).To(HaveKey("SubEnvironmentVariableTestFunction"))
+			})
+
+			f1 := functions["EnvironmentVariableTestFunction"].(AWSServerlessFunction)
+			Context("with a simple string based variable", func() {
+				It("should have an environment variable named STRING_ENV_VAR", func() {
+					Expect(f1.EnvironmentVariables()).To(HaveLen(1))
+					Expect(f1.EnvironmentVariables()).To(HaveKeyWithValue("STRING_ENV_VAR", "test123"))
+				})
+			})
+
+			f2 := functions["NoValueEnvironmentVariableTestFunction"].(AWSServerlessFunction)
+			Context("with an empty variable value", func() {
+				It("should have an environment variable named EMPTY_ENV_VAR", func() {
+					Expect(f2.EnvironmentVariables()).To(HaveLen(1))
+					Expect(f2.EnvironmentVariables()).To(HaveKeyWithValue("EMPTY_ENV_VAR", ""))
+				})
+			})
+
+			f3 := functions["IntrinsicEnvironmentVariableTestFunction"].(AWSServerlessFunction)
+			Context("with a !Ref lookup variable", func() {
+				It("should have an environment variable named REF_ENV_VAR", func() {
+					Expect(f3.EnvironmentVariables()).To(HaveLen(1))
+					Expect(f3.EnvironmentVariables()).To(HaveKeyWithValue("REF_ENV_VAR", ""))
+				})
+			})
+
+			f4 := functions["SubEnvironmentVariableTestFunction"].(AWSServerlessFunction)
+			Context("with a !Sub variable value", func() {
+				It("should have an environment variable named SUB_ENV_VAR", func() {
+					Expect(f4.EnvironmentVariables()).To(HaveLen(1))
+					Expect(f4.EnvironmentVariables()).To(HaveKeyWithValue("SUB_ENV_VAR", "Hello"))
+				})
+			})
+
+		})
+
 		Context("with the official AWS SAM example templates", func() {
 
 			inputs := []string{

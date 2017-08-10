@@ -205,8 +205,6 @@ func (r *resource) Scaffold(name string, data Resource, lines map[string]interfa
 	dataProperties := data.Properties()
 	if dataProperties == nil || len(dataProperties) == 0 {
 		util.LogError(propLinesRoot.Line(), "Resources", "Properties are not set for resource %s", name)
-		error = append(error, errors.Wrapf(ErrScaffoldUndefinedProperties, `Resource "%s" has undefined properties (line: %d; col: %d)`, name, propLinesRoot.Line(), propLinesRoot.Level()))
-		return nil, error
 	}
 
 	// Iterate over definition's properties

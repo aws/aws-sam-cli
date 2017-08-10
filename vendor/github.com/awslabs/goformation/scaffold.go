@@ -7,8 +7,10 @@ import (
 	"github.com/awslabs/goformation/util"
 )
 
-// ErrUnableToReadResourceLineNumbers Occurs when the scaffolder can't extract line numbers from resources.
-var ErrUnableToReadResourceLineNumbers = errors.New("Failed to read the resources line numbers. This usually means that the template contains invalid indentation. Please check it and try again")
+var (
+	ErrUnableToReadResourceLineNumbers = errors.New("Failed to read the resources line numbers. This usually means that the template contains invalid indentation. Please check it and try again")
+	ErrNoResourcesSectionDefined       = errors.New("The template does not contain a 'Resources' section")
+)
 
 // TODO Document
 func scaffold(input Template) (Template, []error) {
@@ -32,8 +34,8 @@ func scaffold(input Template) (Template, []error) {
 	util.LogDebug(-1, "Scaffolding", "Line numbers correctly.")
 	resourcesLinesRaw, resourcesLinesOk := mappedLineNumbers["Resources"]
 	if !resourcesLinesOk {
-		util.LogError(-1, "Scaffolding", "Unable to read the resources line numbers")
-		error = append(error, ErrUnableToReadResourceLineNumbers)
+		util.LogError(-1, "Scaffolding", ErrNoResourcesSectionDefined.Error())
+		error = append(error, ErrNoResourceDefinitionFound)
 		return nil, error
 	}
 
@@ -56,7 +58,6 @@ func scaffold(input Template) (Template, []error) {
 		parsedResource, error := scaffoldResource(name, resourceTemplate, linesForResource)
 		if len(error) > 0 {
 			util.LogError(-1, "Scaffolding", "Error scaffolding resource %s", name)
-
 			return nil, error
 		}
 
@@ -124,11 +125,13 @@ func scaffoldResource(name string, resourceTemplate Resource, lines map[string]i
 	typeLines := typeLinesRoot["ROOT"].(LineDictionary)
 
 	propertiesLinesRaw, propertiesLinesRawOk := lines["Properties"]
+	propertiesLinesRoot := map[string]interface{}{}
 	if !propertiesLinesRawOk {
-		util.LogError(-1, "Scaffolding", "Line information for resource's `Type` is missing")
-		return nil, []error{ErrUnableToReadResourceLineNumbers}
+		// The resource is missing a Properties section, but that's ok.
+		propertiesLinesRoot = map[string]interface{}{}
+	} else {
+		propertiesLinesRoot = propertiesLinesRaw.(map[string]interface{})
 	}
-	propertiesLinesRoot := propertiesLinesRaw.(map[string]interface{})
 
 	util.LogDebug(rootResourceLines.Line(), "Scaffolding", "Resource %s (line %d) has type %s", name, rootResourceLines.Line(), resourceType)
 	factory := GetResourceFactory()
