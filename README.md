@@ -253,7 +253,7 @@ See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/usergui
   - [x] `nodejs`
   - [x] `nodejs4.3`
   - [x] `nodejs6.10`
-  - [x] `java8`
+  - [ ] `java8`
   - [x] `python2.7`
   - [x] `python3.6`
   - [ ] `dotnetcore1.0`
