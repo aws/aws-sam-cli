@@ -289,6 +289,8 @@ func doScaffold(value interface{}, prop *property, resource Resource, lines map[
 		}
 
 		realValue = parsedValue
+	case "infn":
+		realValue = value
 	case "string":
 		fallthrough
 	case "int":
@@ -524,7 +526,7 @@ func valueTypeIsValid(types *[]string, value interface{}) (bool, string) {
 			}
 
 			if regularIntrinsicFnRegex.MatchString(ccKey) {
-				return true, "string"
+				return true, "infn"
 			}
 		}
 	} else if valueArray, valueArrayOk := value.([]interface{}); valueArrayOk {

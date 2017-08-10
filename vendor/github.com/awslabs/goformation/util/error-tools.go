@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"regexp"
@@ -39,9 +41,21 @@ func GetUnmarshallingErrorMessage(error error) string {
 
 	parsedErrorMessage := yamlErrorRegex.FindStringSubmatch(errorMessage)
 
-	lineNumber := parsedErrorMessage[1]
+	lineNumber := 0
+	lineNumber, err := strconv.Atoi(parsedErrorMessage[1])
+	if err != nil {
+		lineNumber = 0
+	}
+
 	innerErrorMessage := parsedErrorMessage[2]
-	finalErrorMessage := `ERROR: ` + innerErrorMessage + ` (line: ` + lineNumber + `; col: 0)`
+
+	// Let's have a nicer error message
+	if innerErrorMessage == " did not find expected key" {
+		lineNumber++
+		innerErrorMessage = "Invalid indentation in template"
+	}
+
+	finalErrorMessage := fmt.Sprintf("ERROR: %s (line: %d; col: 0)", innerErrorMessage, lineNumber)
 	return finalErrorMessage
 }
 

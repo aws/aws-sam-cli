@@ -76,7 +76,8 @@ func processedFromScaffolded(input Template) *processedTemplate {
 			}
 
 			procResource._properties[p] = &processedProperty{
-				_value: prop.Original(),
+				_original: prop.Original(),
+				_value:    nil,
 			}
 		}
 
@@ -173,6 +174,7 @@ func resolveValue(input string, resources map[string]Resource) string {
 	var globalValueRegex = `AWS::`
 	globalMatch, error := regexp.Match(globalValueRegex, []byte(input))
 	if error != nil {
+
 	} else if globalMatch {
 		output, outputSet := globalValues[input]
 		if !outputSet {
@@ -502,21 +504,21 @@ func lookupObject(source map[string]Property, resources map[string]Resource) map
 	resultProperties := make(map[string]Property)
 	for key, prop := range source {
 		util.LogDebug(-1, "PostProcessing", "Looking through key %s", key)
-		value := prop.Value()
-		var realValue = &processedProperty{
-			_original: value,
-			_value:    value,
-		}
+		value := prop.Original()
 
-		recursiveObjectLookup(key, value, realValue, resources)
-		detectIntrinsicFunctionsInObject(key, value, realValue, resources)
+		realValue := recursiveObjectLookup(key, value, resources)
 		resultProperties[key] = realValue
 	}
 
 	return resultProperties
 }
 
-func recursiveObjectLookup(key string, value interface{}, realValue *processedProperty, resources map[string]Resource) {
+func recursiveObjectLookup(key string, value interface{}, resources map[string]Resource) *processedProperty {
+	realValue := &processedProperty{
+		_original: value,
+		_value:    value,
+	}
+
 	// Is it a map?
 	if obj, isObj := value.(map[string]Property); isObj {
 		util.LogDebug(-1, "PostProcessing", "Complex object found. Iterating...")
@@ -538,9 +540,23 @@ func recursiveObjectLookup(key string, value interface{}, realValue *processedPr
 					objProps[keyObj.(string)] = valueProp
 				}
 			} else {
-				detectIntrinsicFunctionsInObject(keyObj.(string), valueObj, realValue, resources)
+				resolvedValue := detectIntrinsicFunctionsInObject(keyObj.(string), valueObj, resources)
+				var valueToAssign interface{}
+				if resolvedValue == nil {
+					// Nothing to do if value is null, resolution haven't been made
+					valueToAssign = value
+				} else if resolvedValueProp, resolvedValuePropOk := resolvedValue.(*processedProperty); resolvedValuePropOk {
+					// Returned value is a property, so get the value.
+					valueToAssign = resolvedValueProp._value
+				} else {
+					valueToAssign = resolvedValue
+				}
+
+				obj[keyObj] = valueToAssign
 			}
 		}
+
+		realValue._value = obj
 
 		if len(objProps) > 0 {
 			returnValue := lookupObject(objProps, resources)
@@ -553,20 +569,17 @@ func recursiveObjectLookup(key string, value interface{}, realValue *processedPr
 	// Look for functions in the value
 	if valueArray, isArray := value.([]interface{}); isArray {
 		util.LogDebug(-1, "PostProcessing", "Array found, iterating")
-		value = lookupArray(valueArray, resources)
-		if valueStr, valueStrOk := value.(string); valueStrOk {
+		resolvedValue := lookupArray(valueArray, resources)
+		if valueStr, valueStrOk := resolvedValue.(string); valueStrOk {
 			realValue._value = valueStr
 		}
 	}
+
+	return realValue
 }
 
-func detectIntrinsicFunctionsInObject(key string, value interface{}, realValue *processedProperty, resources map[string]Resource) {
+func detectIntrinsicFunctionsInObject(key string, value interface{}, resources map[string]Resource) interface{} {
 
-	// This method tries to resolve correct value for an intrinsic function and
-	// return to the caller. This is very limited in functionality, and does not
-	// fail gracefully. Commenting until we can get a more thorough solution
-
-	/*
 	keymatch, error := regexp.Match(fnRegex, []byte(key))
 	if error != nil {
 		util.LogError(-1, "PostProcessing", "%s", error)
@@ -583,13 +596,13 @@ func detectIntrinsicFunctionsInObject(key string, value interface{}, realValue *
 		case "Fn::Split":
 			util.LogWarning(-1, "PostProcessing", "Intrinsic function %s ", key)
 		case "Fn::ImportValue":
-			realValue._value = ""
+			return ""
 		case "Fn::Join":
 			valueArray, arrayOk := value.([]interface{})
 			if !arrayOk {
 				util.LogError(-1, "PostProcessing", "Fn::Join function received wrong input `%s`", value)
 			} else {
-				realValue._value = fnJoin(valueArray, resources)
+				return fnJoin(valueArray, resources)
 			}
 		case "Fn::GetAtt":
 			valueArray, arrayOk := value.([]interface{})
@@ -607,7 +620,7 @@ func detectIntrinsicFunctionsInObject(key string, value interface{}, realValue *
 						util.LogError(-1, "PostProcessing", "Attributes for Fn::GetAtt must be Strings.")
 					} else {
 						compiledValue := valueResource + `.` + valueAttribute
-						realValue._value = fnGetAtt(compiledValue, resources)
+						return fnGetAtt(compiledValue, resources)
 					}
 				}
 			}
@@ -619,21 +632,27 @@ func detectIntrinsicFunctionsInObject(key string, value interface{}, realValue *
 				if !valueStringOk {
 					util.LogError(-1, "PostProcessing", "Fn::Sub needs either an array or a String.")
 				} else {
-					realValue._value = fnSub(valueString, resources, nil)
+					return fnSub(valueString, resources, nil)
 				}
 			} else {
-				realValue._value = complexFnSub(valueArray, resources)
+				return complexFnSub(valueArray, resources)
 			}
 		case "Ref":
 			valueString, valueStringOk := value.(string)
 			if !valueStringOk {
 				util.LogError(-1, "PostProcessing", "Ref function requires a string.")
 			} else {
-				realValue._value = resolveValue(valueString, resources)
+				return resolveValue(valueString, resources)
 			}
 		}
 	} else {
-		recursiveObjectLookup(key, value, realValue, resources)
+		// innerValue := &processedProperty{
+		// 	_original: value,
+		// 	_value:    nil,
+		// }
+		innerValue := recursiveObjectLookup(key, value, resources)
+		return innerValue
 	}
-	*/
+
+	return nil
 }

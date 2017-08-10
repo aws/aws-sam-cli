@@ -30,6 +30,8 @@ func safeProcessString(prop Property) string {
 	value := prop.Value()
 	if value == nil {
 		return ""
+	} else if _, valueString := value.(string); !valueString {
+		return ""
 	}
 
 	return value.(string)

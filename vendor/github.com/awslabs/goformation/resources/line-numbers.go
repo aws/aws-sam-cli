@@ -178,10 +178,6 @@ func ProcessLineNumbers(input []byte) LineDictionary {
 			}
 		}
 
-		if dictionary._line > 1100 {
-			log.Printf("Stop here")
-		}
-
 		// Append the element to the parent.
 		currentParent.SetChildren(append(currentParent.Children(), dictionary))
 		dictionary._parent = currentParent
