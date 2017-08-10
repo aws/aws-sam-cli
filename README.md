@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# SAM Local
+# SAM Local (Beta)
 
  **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM Local can be used to test functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
 
@@ -231,7 +231,7 @@ Valid!
 
 ## Getting started
 
-* Check out ![HOWTO Guide](HOWTO) section for more details
+* Check out ![HOWTO Guide](HOWTO.md) section for more details
 
 ## Advanced
 
