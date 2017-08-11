@@ -376,7 +376,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 	case runtimeName.java8:
 		overrides = []string{
 			"/usr/bin/java",
-			"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=" + r.DebugPort,
+			"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=" + r.DebugPort,
 			"-XX:MaxHeapSize=1336935k",
 			"-XX:MaxMetaspaceSize=157286k",
 			"-XX:ReservedCodeCacheSize=78643k",

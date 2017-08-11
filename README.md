@@ -355,7 +355,7 @@ $ sam local invoke --log-file ./output.log
   - [x] `nodejs`
   - [x] `nodejs4.3`
   - [x] `nodejs6.10`
-  - [ ] `java8`
+  - [x] `java8`
   - [x] `python2.7`
   - [x] `python3.6`
   - [ ] `dotnetcore1.0`
