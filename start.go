@@ -14,6 +14,7 @@ import (
 	"github.com/awslabs/goformation"
 	"github.com/awslabs/goformation/resources"
 	"github.com/codegangsta/cli"
+	"github.com/fatih/color"
 	"github.com/gorilla/mux"
 )
 
@@ -92,7 +93,7 @@ func start(c *cli.Context) {
 	mounts := []mount{}
 	endpointCount := 0
 
-	for _, resource := range functions {
+	for name, resource := range functions {
 
 		if function, ok := resource.(resources.AWSServerlessFunction); ok {
 
@@ -186,26 +187,28 @@ func start(c *cli.Context) {
 						}{}
 
 						if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == 0 && len(proxy.Headers) == 0 && proxy.Body == "") {
-							// This is not a proxy function, so just write the full output to the http response
-							w.Write(result)
-						} else {
-
-							// Set any HTTP headers requested by the proxy function
-							if len(proxy.Headers) > 0 {
-								for key, value := range proxy.Headers {
-									w.Header().Set(key, value)
-								}
-							}
-
-							// This is a proxy function, so set the http status code and return the body
-							if proxy.StatusCode != 0 {
-								w.WriteHeader(proxy.StatusCode)
-							}
-
-							w.Write([]byte(proxy.Body))
-
+							// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
+							// Return HTTP 501 (Internal Server Error) to match Lambda behaviour
+							fmt.Fprintf(os.Stderr, color.RedString("ERROR: Function %s returned an invalid response (must include one of: body, headers or statusCode in the response object)\n"), name)
+							w.WriteHeader(http.StatusInternalServerError)
+							w.Write([]byte(`{ "message": "Internal server error" }`))
+							wg.Done()
+							return
 						}
 
+						// Set any HTTP headers requested by the proxy function
+						if len(proxy.Headers) > 0 {
+							for key, value := range proxy.Headers {
+								w.Header().Set(key, value)
+							}
+						}
+
+						// This is a proxy function, so set the http status code and return the body
+						if proxy.StatusCode != 0 {
+							w.WriteHeader(proxy.StatusCode)
+						}
+
+						w.Write([]byte(proxy.Body))
 						wg.Done()
 
 					}()

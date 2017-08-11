@@ -32,7 +32,6 @@
             - [Combination of Shell and Environment Variable file](#combination-of-shell-and-environment-variable-file)
         - [Identifying local execution from Lambda function code](#identifying-local-execution-from-lambda-function-code)
         - [Local Logging](#local-logging)
-        - [Lambda Proxy Integration](#lambda-proxy-integration)
     - [Project Status](#project-status)
     - [Contributing](#contributing)
     - [A special thank you](#a-special-thank-you)
@@ -173,6 +172,29 @@ Ratings:
         Properties:
           Path: /ratings
           Method: get
+```
+
+By default, SAM uses [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) and expects the response from your Lambda function to include one or more of the following: `statusCode`, `headers` and/or `body`.
+
+For example:
+
+```javascript
+// Example of a Proxy Integration response
+exports.handler = (event, context, callback) => {
+    callback(null, {
+        statusCode: 200,
+        headers: { "x-custom-header" : "my custom header value" },
+        body: "hello world"
+    });
+}
+```
+
+For examples in other AWS Lambda languages, see [this page](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html).
+
+If your function does not return a valid [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) response then you will get a HTTP 500 (Internal Server Error) when accessing your function. SAM Local will also print the following error log message to help you diagnose the problem:
+
+```
+ERROR: Function ExampleFunction returned an invalid response (must include one of: body, headers or statusCode in the response object)
 ```
 
 ### Debugging Applications
@@ -348,34 +370,6 @@ Example:
 ```bash
 $ sam local invoke --log-file ./output.log
 ```
-
-### Lambda Proxy Integration
-
-When configuring Amazon API Gateway and AWS Lambda in AWS, you have the option to enable [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) within API Gateway. [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) allows an easy way to control HTTP response code and headers from your Lambda function response.
-
-For example:
-
-```javascript
-// Example of a non-Proxy Integration response
-exports.handler = (event, context, callback) => {
-    callback(null, "hello world");
-}
-```
-
-```javascript
-// Example of a Proxy Integration response
-exports.handler = (event, context, callback) => {
-    callback(null, {
-        statusCode: 200,
-        headers: { "x-custom-header" : "my custom header value" },
-        body: "hello world"
-    });
-}
-```
-
-Configuring whether [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) is enabled on a per-function basis within SAM Local's API Gateway simulator is not possible.
-
-In order to support both function response types, SAM Local will inspect the function response, and act accordingly. If the response is an object, containing `statusCode`, `body`, and/or `headers`, then it will set the headers, and return the body with the status code provided. If no `statusCode` and `body` are set, then SAM Local will treat the function as a non-Proxy Integration and just return the function response as the HTTP body.
 
 ## Project Status
   
