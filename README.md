@@ -32,6 +32,7 @@
             - [Combination of Shell and Environment Variable file](#combination-of-shell-and-environment-variable-file)
         - [Identifying local execution from Lambda function code](#identifying-local-execution-from-lambda-function-code)
         - [Local Logging](#local-logging)
+        - [Lambda Proxy Integration](#lambda-proxy-integration)
     - [Project Status](#project-status)
     - [Contributing](#contributing)
     - [A special thank you](#a-special-thank-you)
@@ -78,7 +79,7 @@ We also release the CLI as binaries that you can download and instantly use. You
 First, install Go (v1.8+) on your machine: [https://golang.org/doc/install](https://golang.org/doc/install), then run the following:
 
 ```bash
-$ go install github.com/awslabs/aws-sam-local 
+$ go get github.com/awslabs/aws-sam-local 
 ```
 
 This will install **`sam`** to your `$GOPATH/bin` folder. Make sure this directory is in your `$PATH` (or %%PATH%% on Windows) and you should then be able to use the SAM Local. Please note that due to the package name, the binary will be installed as `aws-sam-local` rather than `sam`.
@@ -348,6 +349,33 @@ Example:
 $ sam local invoke --log-file ./output.log
 ```
 
+### Lambda Proxy Integration
+
+When configuring Amazon API Gateway and AWS Lambda in AWS, you have the option to enable [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) within API Gateway. [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) allows an easy way to control HTTP response code and headers from your Lambda function response.
+
+For example:
+
+```javascript
+// Example of a non-Proxy Integration response
+exports.handler = (event, context, callback) => {
+    callback(null, "hello world");
+}
+```
+
+```javascript
+// Example of a Proxy Integration response
+exports.handler = (event, context, callback) => {
+    callback(null, {
+        statusCode: 200,
+        headers: { "x-custom-header" : "my custom header value" },
+        body: "hello world"
+    });
+}
+```
+
+Configuring whether [Proxy Integration](http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html) is enabled on a per-function basis within SAM Local's API Gateway simulator is not possible.
+
+In order to support both function response types, SAM Local will inspect the function response, and act accordingly. If the response is an object, containing `statusCode`, `body`, and/or `headers`, then it will set the headers, and return the body with the status code provided. If no `statusCode` and `body` are set, then SAM Local will treat the function as a non-Proxy Integration and just return the function response as the HTTP body.
 
 ## Project Status
   
