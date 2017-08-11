@@ -1,0 +1,5 @@
+dist/
+.idea/
+.vscode/
+.cache/
+./aws-sam-local

@@ -1,0 +1,28 @@
+{
+  "name": "aws-sam-local",
+  "version": "__VERSION__",
+  "description": "Built binaries for AWS SAM Local CLI - https://github.com/awslabs/aws-sam-local",
+  "main": "index.js",
+  "dependencies": {
+    "go-npm": "^0.1.8"
+  },
+  "scripts": {
+    "postinstall": "go-npm install",
+    "preuninstall": "go-npm uninstall"
+  },
+  "goBinary": {
+      "name": "sam",
+      "path": "./bin",
+      "url": "https://github.com/awslabs/aws-sam-local/releases/download/v{{version}}/sam_{{version}}_{{platform}}_{{arch}}.tar.gz"
+  },
+  "preferGlobal": "true",
+  "license": "Apache-2.0",
+  "repository" : {
+      "type" : "git",
+      "url" : "https://github.com/awslabs/aws-sam-local.git"
+  },
+  "bugs": {
+    "url": "https://github.com/awslabs/aws-sam-local/issues"
+  },
+  "homepage": "https://github.com/awslabs/aws-sam-local#readme"
+}

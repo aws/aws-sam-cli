@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: |
+  An example Serverless project that uses the AWS SDK to list S3 buckets
+
+Resources:
+  # Place your project resources here (AWS Lambda functions, API Gateway) etc
+
+  ExampleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs6.10
+      Handler: index.handler     
