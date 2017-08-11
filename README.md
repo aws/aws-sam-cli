@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/awslabs/aws-sam-local" align="center">
-    <img src="media/sam-banner.png" alt="SAM Extended logo" title="SAM" align="center" />
+    <img src="media/sam-local-banner.png" alt="SAM Extended logo" title="SAM" align="center" />
   </a>
 </p>
 
