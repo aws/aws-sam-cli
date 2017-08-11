@@ -8,12 +8,16 @@ VERSION="${VERSION:1:${#VERSION}}" # Remove starting 'v' v0.0.1 => 0.0.1
 PACKAGE=./package.json
 BACKUP=./package.json.bck
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $DIR
+PKG_ROOT=`pwd`
+NPM_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $NPM_DIR
+
+# Add Readme to NPM package to show in NPM Package's webpage
+cp $PKG_ROOT/README.md $NPM_DIR
 
 # 1. Replace __VERSION__ from package.json with version tag passed as first argument
 cp $PACKAGE $BACKUP
-sed -i -e "s/__VERSION__/$VERSION/g" $PACKAGE
+sed -i '' -e "s/__VERSION__/$VERSION/g" $PACKAGE
 
 # Make sure the replace actually happened
 grep __VERSION__ $PACKAGE
@@ -35,5 +39,6 @@ fi
 
 # Restore package.json file
 mv $BACKUP $PACKAGE
+rm $NPM_DIR/README.md
 echo "Successfully published NPM for version $VERSION"
 exit 0
