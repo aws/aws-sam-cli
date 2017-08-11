@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -34,7 +33,7 @@ func checkVersion() (*checkVersionResult, error) {
 	// Get the latest version details from Github release
 	gh := github.NewClient(client)
 	releases, _, err := gh.Repositories.ListReleases(context.Background(), RepoOwner, RepoName, nil)
-	if err != nil {
+	if err != nil || len(releases) == 0 {
 		return &checkVersionResult{}, err
 	}
 
@@ -42,7 +41,6 @@ func checkVersion() (*checkVersionResult, error) {
 	// ie. v0.0.1 -> 0.0.1
 	latest := releases[0]
 	latestVersion := (*latest.TagName)[1:]
-	log.Print(latestVersion)
 
 	return &checkVersionResult{
 		LatestVersion: latestVersion,
