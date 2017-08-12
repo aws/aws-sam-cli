@@ -1,4 +1,8 @@
-# ![Logo](media/sam-local-banner.png)
+<p align="center">
+  <a href="https://github.com/awslabs/aws-sam-local" align="center">
+    <img src="media/sam-local-banner.png" alt="SAM Local" title="SAM" align="center" />
+  </a>
+</p>
 
 # SAM Local (Beta)
 
