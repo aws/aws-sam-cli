@@ -9,7 +9,7 @@ import (
 	"github.com/fatih/color"
 )
 
-var version = "snapshot"
+var version = "0.1.0"
 
 func main() {
 
