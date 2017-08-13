@@ -197,5 +197,24 @@ var _ = Describe("sam", func() {
 
 		})
 
+
+		Context("with non-resource sections in CloudFormation template", func() {
+
+			inputs := []string{
+				"test/templates/output_section.yaml",
+			}
+
+			for _, filename := range inputs {
+				Context("including "+filename, func() {
+					template, _, err := goformation.Open(filename)
+					It("should successfully validate the SAM template", func() {
+						Expect(err).To(BeNil())
+						Expect(template).ShouldNot(BeNil())
+					})
+				})
+			}
+
+		})
+
 	})
 })
