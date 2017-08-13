@@ -193,10 +193,10 @@
 			"revisionTime": "2017-07-27T22:25:20Z"
 		},
 		{
-			"checksumSHA1": "aUFIq9ox4/EzdRM7HTFXHTYU/5I=",
+			"checksumSHA1": "gOVYnq9xL1IsjuWkKPz73EJzFk4=",
 			"path": "github.com/awslabs/goformation",
-			"revision": "1dae6647ec1c8a79e8529d257c11953607bba524",
-			"revisionTime": "2017-08-13T16:29:21Z"
+			"revision": "58609f21dfe3998bd435d35652b629f749607d30",
+			"revisionTime": "2017-08-13T17:56:29Z"
 		},
 		{
 			"checksumSHA1": "H5Ps9SpE0mLJ8JaLQPKcj4wRScY=",
@@ -883,5 +883,5 @@
 			"revisionTime": "2017-02-08T14:18:51Z"
 		}
 	],
-	"rootPath": "github.com/paulmaddox/aws-sam-local"
+	"rootPath": "github.com/awslabs/aws-sam-local"
 }
