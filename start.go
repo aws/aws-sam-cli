@@ -80,6 +80,7 @@ func start(c *cli.Context) {
 			fmt.Printf("Environment variable values must be a valid JSON\n%s\n", err)
 			os.Exit(1)
 		}
+
 	}
 
 	log.Printf("Successfully parsed %s (version %s)", filename, template.Version())
@@ -109,7 +110,7 @@ func start(c *cli.Context) {
 				endpointCount++
 
 				// Find the env-vars map for the function
-				funcEnvVarsOverrides := envVarsOverrides[function.FunctionName()]
+				funcEnvVarsOverrides := envVarsOverrides[name]
 
 				runt, err := NewRuntime(NewRuntimeOpt{
 					Function:         function,
