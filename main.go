@@ -9,18 +9,24 @@ import (
 	"github.com/fatih/color"
 )
 
-var version = "snapshot"
+const LOCAL_BUILD_VERSION = "snapshot"
+// `version` property will be replaced by the build upon release
+var version = LOCAL_BUILD_VERSION
 
 func main() {
 
 	color.Unset()
 
-	v, err := checkVersion()
-	if err == nil && !v.IsUpToDate {
-		fmt.Fprintf(os.Stderr, "A newer version of the AWS SAM CLI is available!\n")
-		fmt.Fprintf(os.Stderr, "Your version:   %s\n", version)
-		fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.LatestVersion)
-		fmt.Fprintf(os.Stderr, "See https://github.com/awslabs/aws-sam-local for upgrade instructions\n\n")
+	if version != LOCAL_BUILD_VERSION {
+		// Enable version checking only on public releases
+
+		v, err := checkVersion()
+		if err == nil && !v.IsUpToDate {
+			fmt.Fprintf(os.Stderr, "A newer version of the AWS SAM CLI is available!\n")
+			fmt.Fprintf(os.Stderr, "Your version:   %s\n", version)
+			fmt.Fprintf(os.Stderr, "Latest version: %s\n", v.LatestVersion)
+			fmt.Fprintf(os.Stderr, "See https://github.com/awslabs/aws-sam-local for upgrade instructions\n\n")
+		}
 	}
 
 	app := cli.NewApp()
