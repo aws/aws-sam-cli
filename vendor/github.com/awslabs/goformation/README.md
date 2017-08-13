@@ -1,68 +1,108 @@
-# GoFormation
+# AWS GoFormation (Alpha)
 
-GoFormation is a CloudFormation template parser, written in Golang. By using CloudFormation you can interprete your templates, and use its contents in local development phases, or anywhere you can imagine. 
+GoFormation is a CloudFormation parser written in Golang. By using GoFormation in your project, you can parse CloudFormation templates and use their information in your app.
+
+- [GoFormation (Alpha)](#aws-goformation-alpha)
+	- [Installation](#installation)
+	- [Usage](#usage)
+		- [Opening the template file](#opening-the-template-file)
+		- [Parsing template contents](#parsing-template-contents)
+		- [Using the parsed template](#using-the-parsed-template)
+		- [Resources](#resources)
+			- [Template-centric interfaces](#template-centric-interfaces)
+				- [Template](#template)
+				- [Resource](#resource)
+				- [Property](#property)
+			- [Resource-centric interfaces](#resource-centric-interfaces)
+				- [AWSServerlessFunction](#awsserverlessfunction)
 
 ## Installation
-`TODO`
+
+The easiest way to get GoFormation is through `go get`:
+
+```
+go get github.com/awslabs/aws-goformation
+```
+
+This will get you a fresh copy of AWS GoFormation directly from the repository, into your `$GOPATH`.
 
 ## Usage
-For using GoFormation standalone, the easiest way is through the cli:
+
+For using GoFormation you just need to reference in your Go app, whenever you want to use it:
+
+### Opening the template file
+
+If you want GoFormation to manage the opening of the file before the parsing, the way to proceed is `goformation.Open("template-file.yaml")`:
+
 ```
-goformation parse --template MY_TEMPLATE_FILE.yaml
+// my_file.go
+package main
 
--- (OUTPUT) --
-GoFormation parsing template file MY_TEMPLATE_FILE.yaml
-Template parsed successfully
-Your template contains the following:
-* MY_TEMPLATE_FILE.yaml 
-* * 19 Parameters (0 Used) // TBD
-* * 18 Resources (12 Parsed)
-* * 6 Outputs (0 Generated) // TBD
-```
-
-In this example you can see how GoFormation went through your resources analyzing them, and generated a text output for you. While this serves no extra purpose, it allows you to validate the syntax and correctness of your template.
-
-### GoFormation library
-Probably the most useful way to leverage GoFormation, is by including it as a module in your application. By including GoFormation, you will have out-of-the-box CloudFormation parsing capabilities, that you can easily extend with your custom code.
-
-If you want to install GoFormation in your project, follow this steps.
-
-#### Install GoFormation in your Go environment
-```
-go get github.com/awslabs/goformation
-```
-
-This will get you a fresh copy of GoFormation, ready to include in your app.
-
-#### Import GoFormation in your project
-Include this as an import in your Go file:
-```
-// my_app.go
 import "github.com/awslabs/goformation"
+
+func main() {
+	template, errors, logs := goformation.Open("my-template.yaml")
+	// Do something with your template parsed.
+}
 ```
 
-#### Parse a template from file
+### Parsing template contents
+
+If you rather use directly the contents of a template, then you should use `goformation.Parse("template-contents")`:
+
 ```
-// my_app.go
-...
-template, logs, error := goformation.Open("MY_TEMPLATE.yaml")
-// Process template
+// my_file.go
+package main
+
+import "github.com/awslabs/goformation"
+
+func main() {
+	var textTemplate []byte = ... // Get your template's contents somewhere
+	template, errors, logs := goformation.Parse(textTemplate)
+	// Do something with your template parsed.
+}
 ```
 
-#### Parse template contents
+### Using the parsed template
+
+Once your template is parsed, you can easily get the resources parsed, to do any action with them - _NOTE: Currently, AWS GoFormation only supports `AWS::Serverless::Function` resources._ -:
+
 ```
-// my_app.go
-...
-my_template = []byte // Should be read before
-template, logs, error := goformation.Parse(my_template)
-// Process template
+// my_file.go
+package main
+
+import (
+	"github.com/awslabs/goformation",
+	. "github.com/awslabs/goformation/resources"
+)
+
+func main() {
+	template, errors, logs := goformation.Open("my-template.yaml")
+	// Verify there's no errors on parsing
+
+	resources := template.Resources() // Get All resources
+	functions := template.GetResourcesByType("AWS::Serverless::Function") // Get only Serverless Functions
+
+	// Iterate over the parsed functions
+	for fnName, fnData := range functions {	
+		fnParsed := fnData.(AWSServerlessFunction)
+
+		// Get function data
+		fnRuntime := fnParsed.Runtime()
+		log.Printf("Runtime: %s", fnRuntime) // Outputs the function's runtime
+	}
+}
 ```
 
-### Resources package
-Along with the parsing capabilities, GoFormation publishes a set of interfaces that you can leverage for reading your template’s information. All these interfaces are found at “github.com/awslabs/goformation/resources”. 
+### Resources
 
-#### Template
-A `Template` is the Golang representation of a CloudFormation template. It contains the following structure:
+The inner package `resource` contains exported interfaces that are useful for working with GoFormation-parsed templates:
+
+#### Template-centric interfaces
+
+These interfaces give you means to access your template's information, and reflects the same structure that you can see on your JSON/YAML template. Once the template is parsed, these interfaces would also return computed outputs, by linking resources via Intrinsic Functions:
+
+##### Template
 
 ```
 type Template interface {
@@ -76,27 +116,7 @@ type Template interface {
 }
 ```
 
-#### Parameter
-A `Parameter` represents an input for the stack, specified in the template. Parameters have this signature:
-
-```
-type Parameter interface {
-	AllowedPattern() string
-	AllowedValues() []string
-	ConstraintDescription() string
-	Default() string
-	Description() string
-	MaxLength() string
-	MaxValue() string
-	MinLength() string
-	MinValue() string
-	NoEcho() string
-	Type() string
-}
-```
-
-#### Resource
-A `Resource` contains the information about a template’s resource.
+##### Resource
 
 ```
 type Resource interface {
@@ -106,44 +126,30 @@ type Resource interface {
 }
 ```
 
-#### Property
-A `Property` is a property configuration for a resource. It has this structure.
+##### Property
 
-```
 type Property interface {
 	Value() interface{}
 	Original() interface{}
 	HasFn() bool
 }
-```
 
-#### Output
-An output is value that gets exported from the template’s interpretation. It obeys to this signature:
+#### Resource-centric interfaces
 
-```
-type Output interface {
-	Description() string
-	Value() string
-	Export() ExportParam
-}
-```
+While the template-specific interfaces give you enough capabilities for accessing all of your template's information, the way it does is somewhat generic, and sometimes you'd rather do some actions with certain specific kinds of resources. The resource-centric interfaces give you access to the resource's capabilities directly.
 
-#### ExportParam
-`ExportParam` is the ultimate export information for a template’s output. It contains only the method `Name()`, that returns a `string` with the name of the attribute.
+Once your template is parsed, you can access any resource type with the function `template.GetResourcesByType("AWS::Resource::Name")`. During [post processing](#post-processing), every interpretable resource is casted to be compliant to its own interface. A simple type assertion would hence give you the capabilities described here:
 
-#### Resource-specific interfaces
-Along with the aforementioned template-centric interfaces, GoFormation also exports other interfaces that represent specific resources within your template, in a more resource-centric way. This allows you to use the resources from your templates easier.
+##### AWSServerlessFunction
 
-Currently, GoFormation only supports resources of type `AWS::Serverless::Function`, as it was built to enable the parsing capabilities to [SAM CLI](https://github.com/awslabs/aws-sam-cli). We are working to include all CloudFormation resources now. 
-
-##### AWS::Serverless::Function
-This Resource type represents a Lambda Function, defined through [SAM](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md). Once the template is parsed and all the values are set, GoFormation outputs this interface for all functions found:
+`AWSServerlessFunction` is the resource that defines a `AWS::Serverless::Function` resources. Once you make the type assertion, you can leverage all of its parameters:
 
 ```
+// Interface definition
 type AWSServerlessFunction interface {
 	Handler() string
 	Runtime() string
-	CodeURI() AWSCommonS3Location
+	CodeURI() AWSCommonStringOrS3Location
 	FunctionName() string
 	Description() string
 	MemorySize() int
@@ -155,34 +161,15 @@ type AWSServerlessFunction interface {
 }
 ```
 
-`TODO` Inner resources
+_EXAMPLE:_
 
-### Intrinsic Function support
+```
+...
+// Use an AWSServerlessFunction
+functions := template.GetResourcesByType("AWS::Serverless::Function")
+for _, fn := range functions {
+	function := fn.(AWSServerlessFunction)
+}
+...
 
-GoFormation includes Intrinsic Function support, for the following intrinsic functions:
-
-- [ ] Fn::Base64.
-- [ ] Condition Functions.
-- [ ] Fn::FindInMap.
-- [x] Fn::GetAtt.
-- [ ] Fn::GetAZs.
-- [x] Fn::ImportValue.
-- [x] Fn::Join.
-- [ ] Fn::Select.
-- [ ] Fn::Split.
-- [x] Fn::Sub.
-- [x] Ref.
-
-If an intrinsic function represents an output for a resource not supported by GoFormation, such intrinsic function will be resolved as an empty string. Non-supported intrinsic functions also evaluate as empty strings. 
-
-## Error specification
-
-`TODO`
-
-## Log Information
-
-`TODO`
-
-## Contribute
-
-`TODO`
+```
