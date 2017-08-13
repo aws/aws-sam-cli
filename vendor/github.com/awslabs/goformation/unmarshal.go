@@ -271,7 +271,7 @@ func processIntrinsicFunctions(input []byte) (source []byte, error error) {
 	// var stringTpl string = string(input)
 	// // Find inline Intrinsic Functions:
 	// XXX This does not accept double-quoted stuff inside intrinsic functions - special look at Fn::Sub...
-	var inlineFnRegex = `[\n\t\s]*!(Base64|FindInMap|GetAtt|GetAZs|ImportValue|Join|Select|Split|Sub|Ref) ([\'\"]?([a-zA-Z0-9_\.:\-$\{\}\/])+[\'\"]?|\[?((?:::|[a-zA-Z0-9_\.\-$\{\}\/\[\],\'\" !])+)\]?)`
+	var inlineFnRegex = `[\n\t\s]*!(Base64|FindInMap|GetAtt|GetAZs|ImportValue|Join|Select|Split|Sub|Ref) ([\'\"]?([a-zA-Z0-9_\.:\-$\{\}\/])+[\'\"]?|\[?((?:::|[a-zA-Z0-9_:\.\-$\{\}\/\[\],\'\" !])+)\]?)`
 	hasInlineFn, error := regexp.Match(inlineFnRegex, input)
 	if error != nil {
 		util.LogError(-1, "Unmarshalling", "%s", error.Error())
