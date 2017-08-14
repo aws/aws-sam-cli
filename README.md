@@ -275,7 +275,7 @@ $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities
 
 ## Getting started
 
-* Check out ![HOWTO Guide](HOWTO.md) section for more details
+* Check out [HOWTO Guide](HOWTO.md) section for more details
 
 ## Advanced
 
