@@ -20,8 +20,7 @@ an issue to discuss it.
 Any contributions should pass all tests, including those not run by our
 current CI system.
 
-You may run all test by either running the `make test` target (requires `go`,
-and `go cover` to be installed).
+You may run all tests by running `go test` (requires `go` to be installed).
 
 ## Licensing
 
