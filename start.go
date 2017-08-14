@@ -184,7 +184,7 @@ func start(c *cli.Context) {
 						proxy := &struct {
 							StatusCode int               `json:"statusCode"`
 							Headers    map[string]string `json:"headers"`
-							Body       string            `json:"body"`
+							Body       json.Number       `json:"body"`
 						}{}
 
 						if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == 0 && len(proxy.Headers) == 0 && proxy.Body == "") {
