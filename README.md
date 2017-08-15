@@ -54,7 +54,10 @@ Running Serverless projects and functions locally with SAM Local requires Docker
  - Windows: [Docker Toolbox](https://download.docker.com/win/stable/DockerToolbox.exe)
  - Linux: Check your distro’s package manager (e.g. yum install docker)
 
-Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required. 
+For OSX and Windows users: SAM local requires that the project directory (or any parent directory) is listed in Docker file sharing options.
+
+Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required.
+
 
 ### Windows, Linux, OSX with NPM [Recommended]
 
