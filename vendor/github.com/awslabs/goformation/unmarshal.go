@@ -13,24 +13,6 @@ func unmarshal(input []byte) (Template, error) {
 
 	var source = input
 	var error error
-
-	util.LogDebug(-1, "Unmarshalling", "Processing intrinsic functions")
-	for error == nil {
-		var tmpSource []byte
-		tmpSource, error = processIntrinsicFunctions(source)
-		if error == nil {
-			source = tmpSource
-		}
-	}
-
-	// If the error is ErrNoIntrinsicFunctionFound then it just means there are no more functions to process.
-	if error != ErrNoIntrinsicFunctionFound {
-		util.LogError(-1, "Unmarshalling", "An error occurred when processing the intrinsic functions")
-		util.LogError(-1, "Unmarshalling", "%s", error.Error())
-		return nil, error
-	}
-
-	error = nil
 	template := &unmarshalledTemplate{}
 
 	if err := yaml.Unmarshal(source, template); err != nil {
