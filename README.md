@@ -50,7 +50,7 @@
 
 Running Serverless projects and functions locally with SAM Local requires Docker to be installed and running. SAM Local will use the `DOCKER_HOST` environment variable to contact the docker daemon.
 
- - OSX: [Docker for Mac](http://docs.docker.com/docker-for-mac/install/)
+ - OSX: [Docker for Mac](https://store.docker.com/editions/community/docker-ce-desktop-mac)
  - Windows: [Docker Toolbox](https://download.docker.com/win/stable/DockerToolbox.exe)
  - Linux: Check your distro’s package manager (e.g. yum install docker)
 
