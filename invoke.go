@@ -117,10 +117,15 @@ func invoke(c *cli.Context) {
 		funcEnvVarsOverrides = map[string]string{}
 	}
 
+        baseDir := c.String("volume-basedir")
+        if baseDir == "" {
+            baseDir = filepath.Dir(filename)
+        }
+
 	runt, err := NewRuntime(NewRuntimeOpt{
 		Function:         function,
 		EnvVarsOverrides: funcEnvVarsOverrides,
-		Basedir:          filepath.Dir(filename),
+		Basedir:          baseDir,
 		DebugPort:        c.String("debug-port"),
 	})
 	if err != nil {

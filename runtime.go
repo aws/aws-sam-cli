@@ -573,13 +573,6 @@ func getWorkingDir(basedir string, codeuri string) (string, error) {
 
 	dir := filepath.Join(abs, codeuri)
 
-	// ...but only if it actually exists
-	if _, err := os.Stat(dir); err != nil {
-		// It doesn't, so just use the directory of the SAM template
-		// which might have been passed as a relative directory
-		dir = basedir
-	}
-
 	return dir, nil
 
 }

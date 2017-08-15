@@ -84,6 +84,10 @@ func main() {
 							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
+                                                cli.StringFlag{
+                                                        Name: "volume-basedir, v",
+                                                        Usage: "Optional. Docker Volume Host Path",
+                                                },
 					},
 				},
 				cli.Command{
@@ -117,6 +121,10 @@ func main() {
 							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
+                                                cli.StringFlag{
+                                                        Name: "volume-basedir, v",
+                                                        Usage: "Optional. Docker Volume Host Path",
+                                                },
 					},
 				},
 				cli.Command{

@@ -83,6 +83,11 @@ func start(c *cli.Context) {
 
 	}
 
+        baseDir := c.String("volume-basedir")
+        if baseDir == "" {
+            baseDir = filepath.Dir(filename)
+        }
+
 	log.Printf("Successfully parsed %s (version %s)", filename, template.Version())
 
 	// Create a new HTTP router to mount the functions on
@@ -115,7 +120,7 @@ func start(c *cli.Context) {
 				runt, err := NewRuntime(NewRuntimeOpt{
 					Function:         function,
 					EnvVarsOverrides: funcEnvVarsOverrides,
-					Basedir:          filepath.Dir(filename),
+					Basedir:          baseDir,
 					DebugPort:        c.String("debug-port"),
 				})
 				if err != nil {
