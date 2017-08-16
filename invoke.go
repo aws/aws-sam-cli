@@ -117,7 +117,7 @@ func invoke(c *cli.Context) {
 		funcEnvVarsOverrides = map[string]string{}
 	}
 
-        baseDir := c.String("volume-basedir")
+        baseDir := c.String("docker-volume-basedir")
         if baseDir == "" {
             baseDir = filepath.Dir(filename)
         }

@@ -85,8 +85,9 @@ func main() {
 							EnvVar: "SAM_DEBUG_PORT",
 						},
                                                 cli.StringFlag{
-                                                        Name: "volume-basedir, v",
+                                                        Name: "docker-volume-basedir, v",
                                                         Usage: "Optional. Docker Volume Host Path",
+                                                        EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
                                                 },
 					},
 				},
@@ -122,8 +123,9 @@ func main() {
 							EnvVar: "SAM_DEBUG_PORT",
 						},
                                                 cli.StringFlag{
-                                                        Name: "volume-basedir, v",
+                                                        Name: "docker-volume-basedir, v",
                                                         Usage: "Optional. Docker Volume Host Path",
+                                                        EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
                                                 },
 					},
 				},
