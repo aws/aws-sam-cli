@@ -83,10 +83,10 @@ func start(c *cli.Context) {
 
 	}
 
-        baseDir := c.String("docker-volume-basedir")
-        if baseDir == "" {
-            baseDir = filepath.Dir(filename)
-        }
+	baseDir := c.String("docker-volume-basedir")
+	if baseDir == "" {
+		baseDir = filepath.Dir(filename)
+	}
 
 	log.Printf("Successfully parsed %s (version %s)", filename, template.Version())
 

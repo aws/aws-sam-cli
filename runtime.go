@@ -573,8 +573,8 @@ func getWorkingDir(basedir string, codeuri string) (string, error) {
 
 	dir := filepath.Join(abs, codeuri)
 
-        // Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
-        dir = filepath.ToSlash(dir)
+	// Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
+	dir = filepath.ToSlash(dir)
 
 	return dir, nil
 
