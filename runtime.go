@@ -331,7 +331,10 @@ func getSessionOrDefaultCreds() map[string]string {
 	// Obtain AWS credentials and pass them through to the container runtime via env variables
 	if sess, err := session.NewSession(); err == nil {
 		if creds, err := sess.Config.Credentials.Get(); err == nil {
-			result["region"] = *sess.Config.Region
+			if *sess.Config.Region != "" {
+				result["region"] = *sess.Config.Region
+			}
+
 			result["key"] = creds.AccessKeyID
 			result["secret"] = creds.SecretAccessKey
 			result["sessiontoken"] = creds.SessionToken
@@ -454,6 +457,7 @@ func getEnvironmentVariables(function resources.AWSServerlessFunction, overrides
 	// Variables available in Lambda execution environment for all functions (AWS_* variables)
 	env := map[string]string{
 		"AWS_SAM_LOCAL":                   "true",
+		"AWS_REGION": 					   creds["region"],
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
