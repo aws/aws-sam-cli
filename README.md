@@ -32,6 +32,7 @@
             - [Combination of Shell and Environment Variable file](#combination-of-shell-and-environment-variable-file)
         - [Identifying local execution from Lambda function code](#identifying-local-execution-from-lambda-function-code)
         - [Local Logging](#local-logging)
+        - [Remote Docker](#remote-docker)
     - [Project Status](#project-status)
     - [Contributing](#contributing)
     - [A special thank you](#a-special-thank-you)
@@ -370,6 +371,22 @@ Example:
 ```bash
 $ sam local invoke --log-file ./output.log
 ```
+
+
+### Remote Docker
+Sam Local loads the function code using Docker Volume. As a result, The project directory must be pre-mounted on the remote host where the Docker is running.
+
+If mounted, you can use the remote docker normally using `--docker-volume-basedir` or environment variable `SAM_DOCKER_VOLUME_BASEDIR`.
+
+Example - Docker Toolbox (Windows):
+
+When you install and run Docker Toolbox, the Linux VM with Docker is automatically installed in the virtual box.
+
+The /c/ path for this Linux VM is automatically shared with C:\ on the host machine.
+```powershell
+sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Ratings"
+```
+
 
 ## Project Status
   
