@@ -374,7 +374,7 @@ $ sam local invoke --log-file ./output.log
 
 
 ### Remote Docker
-Sam Local loads the function code using Docker Volume. As a result, The project directory must be pre-mounted on the remote host where the Docker is running.
+Sam Local loads function code by mounting filesystem to a Docker Volume. As a result, The project directory must be pre-mounted on the remote host where the Docker is running.
 
 If mounted, you can use the remote docker normally using `--docker-volume-basedir` or environment variable `SAM_DOCKER_VOLUME_BASEDIR`.
 
