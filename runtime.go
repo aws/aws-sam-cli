@@ -91,10 +91,11 @@ var runtimeImageFor = map[string]string{
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
 type NewRuntimeOpt struct {
-	Function         resources.AWSServerlessFunction
-	EnvVarsOverrides map[string]string
-	Basedir          string
-	DebugPort        string
+	Function             resources.AWSServerlessFunction
+	EnvVarsOverrides     map[string]string
+	Basedir              string
+	CheckWorkingDirExist bool
+	DebugPort            string
 }
 
 // NewRuntime instantiates a Lambda runtime container
@@ -110,7 +111,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	cwd, err := getWorkingDir(opt.Basedir, opt.Function.CodeURI().String())
+	cwd, err := getWorkingDir(opt.Basedir, opt.Function.CodeURI().String(), opt.CheckWorkingDirExist)
 	if err != nil {
 		return nil, err
 	}
@@ -560,7 +561,7 @@ func getDockerVersion() (string, error) {
 
 }
 
-func getWorkingDir(basedir string, codeuri string) (string, error) {
+func getWorkingDir(basedir string, codeuri string, checkWorkingDirExist bool) (string, error) {
 
 	// Determine which directory to mount into the runtime container.
 	// If no CodeUri is specified for this function, then use the same
@@ -572,6 +573,17 @@ func getWorkingDir(basedir string, codeuri string) (string, error) {
 	}
 
 	dir := filepath.Join(abs, codeuri)
+
+	if checkWorkingDirExist {
+
+		// ...but only if it actually exists
+		if _, err := os.Stat(dir); err != nil {
+			// It doesn't, so just use the directory of the SAM template
+			// which might have been passed as a relative directory
+			dir = basedir
+		}
+
+	}
 
 	// Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
 	dir = filepath.ToSlash(dir)

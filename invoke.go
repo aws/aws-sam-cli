@@ -118,15 +118,18 @@ func invoke(c *cli.Context) {
 	}
 
 	baseDir := c.String("docker-volume-basedir")
+	checkWorkingDirExist := false
 	if baseDir == "" {
 		baseDir = filepath.Dir(filename)
+		checkWorkingDirExist = true
 	}
 
 	runt, err := NewRuntime(NewRuntimeOpt{
-		Function:         function,
-		EnvVarsOverrides: funcEnvVarsOverrides,
-		Basedir:          baseDir,
-		DebugPort:        c.String("debug-port"),
+		Function:             function,
+		EnvVarsOverrides:     funcEnvVarsOverrides,
+		Basedir:              baseDir,
+		CheckWorkingDirExist: checkWorkingDirExist,
+		DebugPort:            c.String("debug-port"),
 	})
 	if err != nil {
 		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime(), err)
