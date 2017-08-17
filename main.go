@@ -84,6 +84,12 @@ func main() {
 							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
+						cli.StringFlag{
+							Name: "docker-volume-basedir, v",
+							Usage: "Optional. Specifies the location basedir where the SAM file exists. If the Docker is running on a remote machine, " +
+								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
+							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
+						},
 					},
 				},
 				cli.Command{
@@ -116,6 +122,12 @@ func main() {
 							Name: "debug-port, d",
 							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
+						},
+						cli.StringFlag{
+							Name: "docker-volume-basedir, v",
+							Usage: "Optional. Specifies the location basedir where the SAM file exists. If the Docker is running on a remote machine, " +
+								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
+							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
 						},
 					},
 				},
