@@ -7,7 +7,7 @@
     "go-npm": "^0.1.8"
   },
   "scripts": {
-    "postinstall": "go-npm install",
+    "postinstall": "go-npm install && ln -s ../aws-sam-local/node_modules/.bin/sam ../.bin/sam",
     "preuninstall": "go-npm uninstall"
   },
   "goBinary": {
