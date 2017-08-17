@@ -58,23 +58,38 @@ exports.handler = (event, context, callback) => {
         case "GET":
             
             if(id) {
-                callback(null, { body: "This is a READ operation on product ID " + id});
+                callback(null, { 
+                   statusCode: 200,
+                   body: "This is a READ operation on product ID " + id
+                });
                 return;  
             } 
             
-            callback(null, { body: "This is a LIST operation, return all products"});
+            callback(null, { 
+               statusCode: 200,
+               body: "This is a LIST operation, return all products"
+            });
             break;
             
         case "POST":
-            callback(null, { body: "This is a CREATE operation"});
+            callback(null, { 
+               statusCode: 200,
+               body: "This is a CREATE operation"
+            });
             break;
 
         case "PUT": 
-            callback(null, { body: "This is a UPDATE operation on product ID " + id});
+            callback(null, { 
+               statusCode: 200,
+               body: "This is a UPDATE operation on product ID " + id
+            });
             break;
              
         case "DELETE": 
-            callback(null, { body: "This is a DELETE operation on product ID " + id});
+            callback(null, { 
+               statusCode: 200,
+               body: "This is a DELETE operation on product ID " + id
+            });
             break;
 
         default:
