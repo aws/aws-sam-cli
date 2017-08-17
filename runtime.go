@@ -458,7 +458,7 @@ func getEnvironmentVariables(function resources.AWSServerlessFunction, overrides
 	// Variables available in Lambda execution environment for all functions (AWS_* variables)
 	env := map[string]string{
 		"AWS_SAM_LOCAL":                   "true",
-		"AWS_REGION": 					   creds["region"],
+		"AWS_REGION":                      creds["region"],
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
