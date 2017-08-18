@@ -458,7 +458,7 @@ func getEnvironmentVariables(function resources.AWSServerlessFunction, overrides
 	// Variables available in Lambda execution environment for all functions (AWS_* variables)
 	env := map[string]string{
 		"AWS_SAM_LOCAL":                   "true",
-		"AWS_REGION": 					   creds["region"],
+		"AWS_REGION":                      creds["region"],
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
@@ -584,7 +584,7 @@ func getWorkingDir(basedir string, codeuri string, checkWorkingDirExist bool) (s
 		if _, err := os.Stat(dir); err != nil {
 			// It doesn't, so just use the directory of the SAM template
 			// which might have been passed as a relative directory
-			dir = basedir
+			dir = abs
 		}
 
 	}
