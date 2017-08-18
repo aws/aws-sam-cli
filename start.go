@@ -170,6 +170,7 @@ func start(c *cli.Context) {
 
 					stdoutTxt, stderrTxt, err := runt.Invoke(eventJSON)
 					if err != nil {
+						log.Printf("ERROR: %s\n", err)
 						w.WriteHeader(http.StatusInternalServerError)
 						w.Write([]byte(`{ "message": "Internal server error" }`))
 						return
