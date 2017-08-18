@@ -1,0 +1,94 @@
+package cloudformation
+
+import (
+	"encoding/json"
+	{{ if (or .Property.Types .Property.ItemTypes)}}
+	"github.com/mitchellh/mapstructure"
+	{{end}}
+)
+
+// {{.Name}} is a helper struct that can hold either a {{.TypesJoined}} value 
+type {{.Name}} struct {
+
+	{{range $type := $.Property.PrimitiveTypes}}
+	{{$type}} *{{convertToGoType $type}}{{end}}
+
+	{{range $type := $.Property.PrimitiveItemTypes}}
+	{{$type}}Array *[]{{convertToGoType $type}}{{end}}
+
+	{{range $type := $.Property.Types}}
+	{{$type}} *{{$.Basename}}_{{$type}}{{end}}
+
+	{{range $type := $.Property.ItemTypes}}
+	{{$type}}Array *[]{{$.Basename}}_{{$type}}{{end}}
+}
+
+func (r {{.Name}}) value() interface{} {
+
+	{{range $type := $.Property.PrimitiveTypes}}
+		if r.{{$type}} != nil {
+			return r.{{$type}}
+		} 
+	{{end}}
+
+	{{range $type := $.Property.PrimitiveItemTypes}}
+		if r.{{$type}} != nil {
+			return r.{{$type}}
+		} 
+	{{end}}
+
+	{{range $type := $.Property.Types}}
+		if r.{{$type}} != nil {
+			return r.{{$type}}
+		} 
+	{{end}}
+
+	{{range $type := $.Property.ItemTypes}}
+		if r.{{$type}} != nil {
+			return r.{{$type}}
+		} 
+	{{end}}
+
+	return nil
+
+}
+
+func (r *{{.Name}}) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.value())
+}
+
+// Hook into the marshaller  
+func (r *{{.Name}}) UnmarshalJSON(b []byte) error {
+	
+	// Unmarshal into interface{} to check it's type
+	var typecheck interface{}
+	if err := json.Unmarshal(b, &typecheck); err != nil {
+		return err
+	}
+
+	switch val := typecheck.(type) {
+
+		{{range $type := $.Property.PrimitiveTypes}}
+			case {{convertToGoType $type}}: 
+			r.{{$type}} = &val
+		{{end}}
+
+		{{range $type := $.Property.PrimitiveItemTypes}}
+			case []{{convertToGoType $type}}:
+			r.{{$type}}Array = &val
+		{{end}}
+
+		case map[string]interface{}:
+		{{range $type := $.Property.Types}}
+			mapstructure.Decode(val, &r.{{$type}})
+		{{end}}
+
+		case []interface{}:
+		{{range $type := $.Property.ItemTypes}}
+			mapstructure.Decode(val, &r.{{$type}}Array)
+		{{end}}
+
+	}
+		
+	return nil	
+}

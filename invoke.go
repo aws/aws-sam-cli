@@ -14,7 +14,6 @@ import (
 	"encoding/json"
 
 	"github.com/awslabs/goformation"
-	"github.com/awslabs/goformation/resources"
 	"github.com/codegangsta/cli"
 )
 
@@ -36,48 +35,40 @@ func invoke(c *cli.Context) {
 	}
 
 	filename := getTemplateFilename(c.String("template"))
-	template, _, errs := goformation.Open(filename)
-	if len(errs) > 0 {
-		for _, err := range errs {
-			log.Printf("%s\n", err)
-		}
-		os.Exit(1)
+	template, err := goformation.Open(filename)
+	if err != nil {
+		log.Fatalf("Failed to parse template: %s\n", err)
 	}
 
-	log.Printf("Successfully parsed %s (version %s)\n", filename, template.Version())
+	log.Printf("Successfully parsed %s\n", filename)
 
 	name := c.Args().First()
 
 	// Find the specified function in the SAM template. Either check for a function whose
 	// logical ID matches the first CLI argument, or if they only have a single function
 	// defined, and don't specify a name, then just use that function.
-	var function resources.AWSServerlessFunction
-	functions := template.GetResourcesByType("AWS::Serverless::Function")
-	for resourceName, resource := range functions {
-		if resourceName == name || (len(functions) == 1 && name == "") {
-			if f, ok := resource.(resources.AWSServerlessFunction); ok {
+	functions := template.GetAllAWSServerlessFunctionResources()
+	function, found := functions[name]
+	if !found {
+		if len(functions) == 1 && name == "" {
+			for _, f := range functions {
 				function = f
 			}
-		}
-	}
-
-	if function == nil {
-
-		if name == "" {
-			fmt.Fprintf(os.Stderr, "ERROR: You must provide a function identifier (function's Logical ID in the SAM template) as the first argument.\n")
 		} else {
-			fmt.Fprintf(os.Stderr, "ERROR: Could not find a AWS::Serverless::Function with logical ID '%s'\n", name)
-		}
-
-		// If have functions defined in the template, be helpful and suggest them
-		if len(functions) > 0 {
-			fmt.Fprintf(os.Stderr, "Possible options in your template:\n")
-			for resourceName := range functions {
-				fmt.Fprintf(os.Stderr, " * %s\n", resourceName)
+			if name == "" {
+				fmt.Fprintf(os.Stderr, "ERROR: You must provide a function identifier (function's Logical ID in the SAM template) as the first argument.\n")
+			} else {
+				fmt.Fprintf(os.Stderr, "ERROR: Could not find a AWS::Serverless::Function with logical ID '%s'\n", name)
 			}
+			// If have functions defined in the template, be helpful and suggest them
+			if len(functions) > 0 {
+				fmt.Fprintf(os.Stderr, "Possible options in your template:\n")
+				for resourceName := range functions {
+					fmt.Fprintf(os.Stderr, " * %s\n", resourceName)
+				}
+			}
+			os.Exit(1)
 		}
-		os.Exit(1)
-
 	}
 
 	// Check connectivity to docker
@@ -124,7 +115,7 @@ func invoke(c *cli.Context) {
 		DebugPort:        c.String("debug-port"),
 	})
 	if err != nil {
-		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime(), err)
+		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime, err)
 	}
 
 	eventFile := c.String("event")

@@ -20,7 +20,7 @@ import (
 	"syscall"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/awslabs/goformation/resources"
+	"github.com/awslabs/goformation/cloudformation"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -47,7 +47,7 @@ type Runtime struct {
 	Name            string
 	Image           string
 	Cwd             string
-	Function        resources.AWSServerlessFunction
+	Function        cloudformation.AWSServerlessFunction
 	EnvVarOverrides map[string]string
 	DebugPort       string
 	Context         context.Context
@@ -91,7 +91,7 @@ var runtimeImageFor = map[string]string{
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
 type NewRuntimeOpt struct {
-	Function         resources.AWSServerlessFunction
+	Function         cloudformation.AWSServerlessFunction
 	EnvVarsOverrides map[string]string
 	Basedir          string
 	DebugPort        string
@@ -100,7 +100,7 @@ type NewRuntimeOpt struct {
 // NewRuntime instantiates a Lambda runtime container
 func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 	// Determine which docker image to use for the provided runtime
-	image, found := runtimeImageFor[opt.Function.Runtime()]
+	image, found := runtimeImageFor[opt.Function.Runtime]
 	if !found {
 		return nil, ErrRuntimeNotSupported
 	}
@@ -110,13 +110,18 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	cwd, err := getWorkingDir(opt.Basedir, opt.Function.CodeURI().String())
+	codeuri := ""
+	if opt.Function.CodeUri != nil && opt.Function.CodeUri.String != nil {
+		codeuri = *opt.Function.CodeUri.String
+	}
+
+	cwd, err := getWorkingDir(opt.Basedir, codeuri)
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Runtime{
-		Name:            opt.Function.Runtime(),
+		Name:            opt.Function.Runtime,
 		Cwd:             cwd,
 		Image:           image,
 		Function:        opt.Function,
@@ -136,7 +141,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime())
+	log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime)
 	progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
 	if len(images) < 0 && err != nil {
 		log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
@@ -200,7 +205,7 @@ func overrideHostConfig(cfg *container.HostConfig) error {
 func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 	host := &container.HostConfig{
 		Resources: container.Resources{
-			Memory: int64(r.Function.MemorySize() * 1024 * 1024),
+			Memory: int64(r.Function.MemorySize * 1024 * 1024),
 		},
 		Binds: []string{
 			fmt.Sprintf("%s:/var/task:ro", r.Cwd),
@@ -219,7 +224,7 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 // and stderr (runtime logs).
 func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 
-	log.Printf("Invoking %s (%s)\n", r.Function.Handler(), r.Name)
+	log.Printf("Invoking %s (%s)\n", r.Function.Handler, r.Name)
 
 	env := getEnvironmentVariables(r.Function, r.EnvVarOverrides)
 
@@ -230,7 +235,7 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 		Tty:          false,
 		ExposedPorts: r.getDebugExposedPorts(),
 		Entrypoint:   r.getDebugEntrypoint(),
-		Cmd:          []string{r.Function.Handler(), event},
+		Cmd:          []string{r.Function.Handler, event},
 		Env: func() []string {
 			result := []string{}
 			for k, v := range env {
@@ -289,13 +294,13 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser) {
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
 	timeout := time.Duration(3) * time.Second
-	if r.Function.Timeout() > 0 {
-		timeout = time.Duration(r.Function.Timeout()) * time.Second
+	if r.Function.Timeout > 0 {
+		timeout = time.Duration(r.Function.Timeout) * time.Second
 	}
 	r.TimeoutTimer = time.NewTimer(timeout)
 	go func() {
 		<-r.TimeoutTimer.C
-		log.Printf("Function %s timed out after %d seconds", r.Function.Handler(), timeout/time.Second)
+		log.Printf("Function %s timed out after %d seconds", r.Function.Handler, timeout/time.Second)
 		stderr.Close()
 		stdout.Close()
 		r.CleanUp()
@@ -307,7 +312,7 @@ func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser) {
 	signal.Notify(iChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-iChan
-		log.Printf("Execution of function %q was interrupted", r.Function.Handler())
+		log.Printf("Execution of function %q was interrupted", r.Function.Handler)
 		stderr.Close()
 		stdout.Close()
 		r.CleanUp()
@@ -450,21 +455,21 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 
  This priority also applies to AWS_* system variables
 */
-func getEnvironmentVariables(function resources.AWSServerlessFunction, overrides map[string]string) map[string]string {
+func getEnvironmentVariables(function cloudformation.AWSServerlessFunction, overrides map[string]string) map[string]string {
 
 	creds := getSessionOrDefaultCreds()
 
 	// Variables available in Lambda execution environment for all functions (AWS_* variables)
 	env := map[string]string{
 		"AWS_SAM_LOCAL":                   "true",
-		"AWS_REGION": 					   creds["region"],
+		"AWS_REGION":                      creds["region"],
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
 		"AWS_SESSION_TOKEN":               creds["sessiontoken"],
-		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(int(function.MemorySize())),
-		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(int(function.Timeout())),
-		"AWS_LAMBDA_FUNCTION_HANDLER":     function.Handler(),
+		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(int(function.MemorySize)),
+		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(int(function.Timeout)),
+		"AWS_LAMBDA_FUNCTION_HANDLER":     function.Handler,
 		// "AWS_ACCOUNT_ID=",
 		// "AWS_LAMBDA_EVENT_BODY=",
 		// "AWS_REGION=",
@@ -474,27 +479,30 @@ func getEnvironmentVariables(function resources.AWSServerlessFunction, overrides
 
 	// Get all env vars from SAM file. Use values if it was hard-coded
 	osEnviron := getOsEnviron()
-	for name, value := range function.EnvironmentVariables() {
-		// hard-coded values, lowest priority
-		if stringedValue, ok := toStringMaybe(value); ok {
-			// Get only hard-coded values from the template
-			env[name] = stringedValue
-		}
+	if function.Environment != nil {
+		for name, value := range function.Environment.Variables {
+			// hard-coded values, lowest priority
+			if stringedValue, ok := toStringMaybe(value); ok {
+				// Get only hard-coded values from the template
+				env[name] = stringedValue
+			}
 
-		// Shell's environment, second priority
-		if value, ok := osEnviron[name]; ok {
-			env[name] = value
-		}
-
-		// EnvVars overrides provided by customer, highest priority
-		if len(overrides) > 0 {
-			if value, ok := overrides[name]; ok {
+			// Shell's environment, second priority
+			if value, ok := osEnviron[name]; ok {
 				env[name] = value
+			}
+
+			// EnvVars overrides provided by customer, highest priority
+			if len(overrides) > 0 {
+				if value, ok := overrides[name]; ok {
+					env[name] = value
+				}
 			}
 		}
 	}
 
 	return env
+
 }
 
 // Converts the input to string if it is a primitive type, Otherwise returns nil
