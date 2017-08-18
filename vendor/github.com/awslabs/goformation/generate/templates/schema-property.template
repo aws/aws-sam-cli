@@ -1,0 +1,49 @@
+"{{.Name}}": {
+
+    {{if .Property.IsCustomType}}
+        "$ref": "#/definitions/{{.Parent}}.{{.Property.Type}}"
+    {{end}}
+
+    {{if .Property.IsPrimitive}}
+        "type": "{{.Property.GetJSONPrimitiveType}}"
+    {{end}}
+
+    {{if .Property.IsMap}}
+        "type": "object",
+        {{if .Property.IsMapOfPrimitives}}
+        "patternProperties": {
+            "^[a-zA-Z0-9]+$": {
+                "type": "{{.Property.GetJSONPrimitiveType}}"
+            }
+        }
+        {{else}}
+        "patternProperties": {
+            "^[a-zA-Z0-9]+$": {
+                {{ if eq .Property.ItemType "Tag" }}
+                    "$ref": "#/definitions/Tag" 
+                {{else}}
+                    "$ref": "#/definitions/{{.Parent}}.{{.Property.ItemType}}" 
+                {{end}}
+            }
+        }
+        {{end}}
+    {{end}}
+
+    {{if .Property.IsList}}
+        "type": "array",
+        {{if .Property.IsListOfPrimitives}}
+        "items": {
+            "type": "{{.Property.GetJSONPrimitiveType}}"
+        }
+        {{else}}
+        "items": { 
+            {{ if eq .Property.ItemType "Tag" }}
+                "$ref": "#/definitions/Tag" 
+             {{else}}
+                "$ref": "#/definitions/{{.Parent}}.{{.Property.ItemType}}"  
+            {{end}}
+        }
+        {{end}}
+    {{end}}
+
+}
