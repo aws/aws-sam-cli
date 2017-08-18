@@ -6,6 +6,8 @@
 
 # SAM Local (Beta)
 
+[![Build Status](https://travis-ci.org/awslabs/aws-sam-local.svg?branch=master)](https://travis-ci.org/awslabs/aws-sam-local)
+
  **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM Local can be used to test functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
 
 - [SAM Local (Beta)](#sam-local-beta)
