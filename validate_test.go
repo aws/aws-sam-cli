@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/awslabs/goformation"
-	"github.com/davecgh/go-spew/spew"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -190,8 +189,7 @@ var _ = Describe("sam", func() {
 				Expect(f.MemorySize).To(Equal(128))
 				Expect(f.Timeout).To(Equal(30))
 				Expect(f.Role).To(Equal("aws::arn::123456789012::some/role"))
-				spew.Dump(f.Policies)
-				Expect(f.Policies.StringArray).To(ContainElement("AmazonDynamoDBFullAccess"))
+				Expect(f.Policies.StringArray).To(PointTo(ContainElement("AmazonDynamoDBFullAccess")))
 				Expect(f.Environment).ToNot(BeNil())
 				Expect(f.Environment.Variables).To(HaveKeyWithValue("NAME", "VALUE"))
 
