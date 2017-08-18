@@ -258,6 +258,18 @@ func start(c *cli.Context) {
 	}
 
 	fmt.Fprintf(stderr, "\n")
+
+	// Mount static files
+	if c.String("static-dir") != "" {
+		public, err := getWorkingDir(baseDir, c.String("static-dir"), checkWorkingDirExist)
+		if err != nil {
+			log.Printf("WARNING: Could not mount static files: %s\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", public)
+			router.PathPrefix("/").Handler(http.FileServer(http.Dir(public)))
+		}
+	}
+
 	for _, mount := range mounts {
 		msg := fmt.Sprintf("Mounting %s (%s) at http://%s:%s%s %s", mount.Handler, mount.Runtime, c.String("host"), c.String("port"), mount.Endpoint, mount.Methods)
 		fmt.Fprintf(os.Stderr, "%s\n", msg)

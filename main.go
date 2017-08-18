@@ -67,7 +67,7 @@ func main() {
 							Usage: "Optional logfile to send runtime logs to",
 						},
 						cli.StringFlag{
-							Name:  "public-dir",
+							Name:  "static-dir, s",
 							Usage: "Any static assets (e.g. CSS/Javascript/HTML) files located in this directory will be presented at /",
 							Value: "public",
 						},

@@ -33,6 +33,7 @@
             - [Shell environment](#shell-environment)
             - [Combination of Shell and Environment Variable file](#combination-of-shell-and-environment-variable-file)
         - [Identifying local execution from Lambda function code](#identifying-local-execution-from-lambda-function-code)
+        - [Static Assets](#static-assets)
         - [Local Logging](#local-logging)
         - [Remote Docker](#remote-docker)
     - [Project Status](#project-status)
@@ -368,6 +369,9 @@ For greater control, you can use a combination shell variables and external envi
 
 ### Identifying local execution from Lambda function code
 When your Lambda function is invoked using SAM Local, it sets an environment variable `AWS_SAM_LOCAL=true` in the Docker container. Your Lambda function can use this property to enable or disable functionality that would not make sense in local development. For example: Disable emitting metrics to CloudWatch (or) Enable verbose logging etc.
+
+### Static Assets
+Often, it's useful to serve up static assets (e.g CSS/HTML/Javascript etc) when developing a Serverless application. On AWS, this would normally be done with CloudFront/S3. SAM Local by default looks for a `./public/` directory in your SAM project directory and will serve up all files from it at the root of the HTTP server when using `sam local start-api`. You can override the default static asset directory by using the `-s` or `--static-dir` command line flag. You can also disable this behaviour completely by setting `--static-dir ""`. 
 
 ### Local Logging
 Both `invoke` and `start-api` command allow you to pipe logs from the function's invocation into a file. This will be useful if you are running automated tests against SAM Local and want to capture logs for analysis. 
