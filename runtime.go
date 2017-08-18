@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"io"
 	"log"
 	"os"
@@ -47,6 +48,7 @@ type Runtime struct {
 	Name            string
 	Image           string
 	Cwd             string
+	DecompressedCwd string
 	Function        resources.AWSServerlessFunction
 	EnvVarOverrides map[string]string
 	DebugPort       string
@@ -199,15 +201,25 @@ func overrideHostConfig(cfg *container.HostConfig) error {
 }
 
 func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
+
+	// Check if there is a decompressed archive directory we should
+	// be using instead of the normal working directory (e.g. if a
+	// ZIP/JAR archive was specified as the CodeUri)
+	mount := r.Cwd
+	if r.DecompressedCwd != "" {
+		mount = r.DecompressedCwd
+	}
+
 	host := &container.HostConfig{
 		Resources: container.Resources{
 			Memory: int64(r.Function.MemorySize() * 1024 * 1024),
 		},
 		Binds: []string{
-			fmt.Sprintf("%s:/var/task:ro", r.Cwd),
+			fmt.Sprintf("%s:/var/task:ro", mount),
 		},
 		PortBindings: r.getDebugPortBindings(),
 	}
+
 	if err := overrideHostConfig(host); err != nil {
 		log.Print(err)
 	}
@@ -221,6 +233,18 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 
 	log.Printf("Invoking %s (%s)\n", r.Function.Handler(), r.Name)
+
+	// If the CodeUri has been specified as a .jar or .zip file, unzip it on the fly
+	if strings.HasSuffix(r.Cwd, ".jar") || strings.HasSuffix(r.Cwd, ".zip") {
+		log.Printf("Decompressing %s into runtime container...\n", filepath.Base(r.Cwd))
+		decompressedDir, err := decompressArchive(r.Cwd)
+		if err != nil {
+			log.Printf("ERROR: Failed to decompress archive: %s\n", err)
+			return nil, nil, fmt.Errorf("failed to decompress archive: %s", err)
+		}
+		r.DecompressedCwd = decompressedDir
+
+	}
 
 	env := getEnvironmentVariables(r.Function, r.EnvVarOverrides)
 
@@ -517,11 +541,21 @@ func toStringMaybe(value interface{}) (string, bool) {
 
 // CleanUp removes the Docker container used by this runtime
 func (r *Runtime) CleanUp() {
+
+	// Stop the Lambda timeout timer
 	if r.TimeoutTimer != nil {
 		r.TimeoutTimer.Stop()
 	}
+
+	// Remove the container
 	r.Client.ContainerKill(r.Context, r.ID, "SIGKILL")
 	r.Client.ContainerRemove(r.Context, r.ID, types.ContainerRemoveOptions{})
+
+	// Remove any decompressed archive if there was one (e.g. ZIP/JAR)
+	if r.DecompressedCwd != "" {
+		os.RemoveAll(r.DecompressedCwd)
+	}
+
 }
 
 // demuxDockerStream takes a Docker attach stream, and parses out stdout/stderr
@@ -591,7 +625,79 @@ func getWorkingDir(basedir string, codeuri string, checkWorkingDirExist bool) (s
 
 	// Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
 	dir = filepath.ToSlash(dir)
-
 	return dir, nil
+
+}
+
+// decompressArchive unzips a ZIP archive to a temporary directory and returns
+// the temporary directory name, or an error
+func decompressArchive(src string) (string, error) {
+
+	// Create a temporary directory just for this decompression (dirname: OS tmp directory + unix timestamp))
+	tmpdir := os.TempDir()
+
+	// By default on OSX, os.TempDir() returns a directory in /var/folders/.
+	// This sits outside the default Docker Shared Files directories, however
+	// /var/folders is just a symlink to /private/var/folders/, so use that instead
+	if strings.HasPrefix(tmpdir, "/var/folders") {
+		tmpdir = "/private" + tmpdir
+	}
+
+	dest := filepath.Join(tmpdir, "aws-sam-local-"+strconv.FormatInt(time.Now().UnixNano(), 10))
+
+	var filenames []string
+
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return dest, err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+
+		rc, err := f.Open()
+		if err != nil {
+			return dest, err
+		}
+		defer rc.Close()
+
+		// Store filename/path for returning and using later on
+		fpath := filepath.Join(dest, f.Name)
+		filenames = append(filenames, fpath)
+
+		if f.FileInfo().IsDir() {
+
+			// Make Folder
+			os.MkdirAll(fpath, os.ModePerm)
+
+		} else {
+
+			// Make File
+			var fdir string
+			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
+				fdir = fpath[:lastIndex]
+			}
+
+			err = os.MkdirAll(fdir, os.ModePerm)
+			if err != nil {
+				log.Fatal(err)
+				return dest, err
+			}
+			f, err := os.OpenFile(
+				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return dest, err
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, rc)
+			if err != nil {
+				return dest, err
+			}
+
+		}
+	}
+
+	return dest, nil
 
 }
