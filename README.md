@@ -27,6 +27,7 @@
         - [Package and Deploy to Lambda](#package-and-deploy-to-lambda)
     - [Getting started](#getting-started)
     - [Advanced](#advanced)
+        - [Compiled Languages (Java)](#compiled-languages-java)
         - [IAM Credentials](#iam-credentials)
         - [Lambda Environment Variables](#lambda-environment-variables)
             - [Environment Variable file](#environment-variable-file)
@@ -284,6 +285,40 @@ $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities
 * Check out [HOWTO Guide](HOWTO.md) section for more details
 
 ## Advanced
+
+### Compiled Languages (Java)
+
+To use SAM Local with compiled languages, such as Java that require a packaged artifact (e.g. a JAR, or ZIP), you can specify the location of the artifact with the `AWS::Serverless::Function` `CodeUri` property in your SAM template.
+
+For example:
+
+```
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  ExampleJavaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.example.HelloWorldHandler
+      CodeUri: ./target/HelloWorld-1.0.jar
+      Runtime: java8
+```
+
+You should then build your JAR file using your normal build process. Please note that JAR files used with AWS Lambda should be a shaded JAR file (or uber jar) containing all of the function dependencies.
+
+```
+// Build the JAR file
+$ mvn package shade:shade
+
+// Invoke with SAM Local
+$ echo '{ "some": "input" }' | sam local invoke
+
+// Or start local API Gateway simulator
+$ sam local start-api
+```
+
+You can find a full Java example in the [samples/java](samples/java) folder
 
 ### IAM Credentials
 
