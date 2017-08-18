@@ -9,26 +9,26 @@ import (
 // the response that should be placed in it's place. An intrinsic handler function
 // is passed the name of the intrinsic function (e.g. Fn::Join), and the object
 // to apply it to (as an interface{}), and should return the resolved object (as an interface{}).
-type IntrinsicHandler func(string, interface{}) interface{}
+type IntrinsicHandler func(string, interface{}, interface{}) interface{}
 
 // IntrinsicFunctionHandlers is a map of all the possible AWS CloudFormation intrinsic
 // functions, and a handler function that is invoked to resolve.
 var defaultIntrinsicHandlers = map[string]IntrinsicHandler{
-	"Fn::Base64":      nonResolvingHandler,
+	"Fn::Base64":      FnBase64,
 	"Fn::And":         nonResolvingHandler,
 	"Fn::Equals":      nonResolvingHandler,
 	"Fn::If":          nonResolvingHandler,
 	"Fn::Not":         nonResolvingHandler,
 	"Fn::Or":          nonResolvingHandler,
-	"Fn::FindInMap":   nonResolvingHandler,
+	"Fn::FindInMap":   FnFindInMap,
 	"Fn::GetAtt":      nonResolvingHandler,
 	"Fn::GetAZs":      nonResolvingHandler,
 	"Fn::ImportValue": nonResolvingHandler,
-	"Fn::Join":        nonResolvingHandler,
-	"Fn::Select":      nonResolvingHandler,
-	"Fn::Split":       nonResolvingHandler,
-	"Fn::Sub":         nonResolvingHandler,
-	"Ref":             nonResolvingHandler,
+	"Fn::Join":        FnJoin,
+	"Fn::Select":      FnSelect,
+	"Fn::Split":       FnSplit,
+	"Fn::Sub":         FnSub,
+	"Ref":             Ref,
 }
 
 // ProcessorOptions allows customisation of the intrinsic function processor behaviour.
@@ -39,9 +39,8 @@ type ProcessorOptions struct {
 
 // nonResolvingHandler is a simple example of an intrinsic function handler function
 // that refuses to resolve any intrinsic functions, and just returns a basic string.
-func nonResolvingHandler(name string, input interface{}) interface{} {
-	result := fmt.Sprintf("%s intrinsic function is unsupported", name)
-	return result
+func nonResolvingHandler(name string, input interface{}, template interface{}) interface{} {
+	return nil
 }
 
 // Process recursively searches through a byte array for all AWS CloudFormation
@@ -56,7 +55,7 @@ func Process(input []byte, options *ProcessorOptions) ([]byte, error) {
 	}
 
 	// Process all of the intrinsic functions
-	processed := search(unmarshalled, options)
+	processed := search(unmarshalled, unmarshalled, options)
 
 	// And return the result back as a []byte of JSON
 	result, err := json.MarshalIndent(processed, "", "  ")
@@ -72,7 +71,7 @@ func Process(input []byte, options *ProcessorOptions) ([]byte, error) {
 // an intrinsic function. If it finds one, it calls the provided handler function, passing
 // it the type of intrinsic function (e.g. 'Fn::Join'), and the contents. The intrinsic
 // handler is expected to return the value that is supposed to be there.
-func search(input interface{}, options *ProcessorOptions) interface{} {
+func search(input interface{}, template interface{}, options *ProcessorOptions) interface{} {
 
 	switch value := input.(type) {
 
@@ -89,11 +88,11 @@ func search(input interface{}, options *ProcessorOptions) interface{} {
 			if h, ok := handler(key, options); ok {
 				// This is an intrinsic function, so replace the intrinsic function object
 				// with the result of calling the intrinsic function handler for this type
-				return h(key, search(val, options))
+				return h(key, search(val, template, options), template)
 			}
 
 			// This is not an intrinsic function, recurse through it normally
-			processed[key] = search(val, options)
+			processed[key] = search(val, template, options)
 
 		}
 		return processed
@@ -103,7 +102,7 @@ func search(input interface{}, options *ProcessorOptions) interface{} {
 		// We found an array in the JSON - recurse through it's elements looking for intrinsic functions
 		processed := []interface{}{}
 		for _, val := range value {
-			processed = append(processed, search(val, options))
+			processed = append(processed, search(val, template, options))
 		}
 		return processed
 
