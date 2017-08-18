@@ -27,6 +27,7 @@ func Open(filename string) (*cloudformation.Template, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid YAML template: %s", err)
 		}
+
 	}
 
 	return Parse(data)

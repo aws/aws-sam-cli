@@ -2,6 +2,8 @@ package cloudformation
 
 import (
 	"encoding/json"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 // AWSServerlessFunction_StringOrListOfString is a helper struct that can hold either a String or String value
@@ -49,6 +51,8 @@ func (r *AWSServerlessFunction_StringOrListOfString) UnmarshalJSON(b []byte) err
 	case map[string]interface{}:
 
 	case []interface{}:
+
+		mapstructure.Decode(val, &r.StringArray)
 
 	}
 

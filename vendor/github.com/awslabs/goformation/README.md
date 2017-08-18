@@ -8,8 +8,12 @@
         - [Marhsalling CloudFormation/SAM described with Go structs, into YAML/JSON](#marhsalling-cloudformationsam-described-with-go-structs-into-yamljson)
         - [Unmarhalling CloudFormation YAML/JSON into Go structs](#unmarhalling-cloudformation-yamljson-into-go-structs)
     - [Updating CloudFormation / SAM Resources in GoFormation](#updating-cloudformation-sam-resources-in-goformation)
+    - [Advanced](#advanced)
+        - [AWS CloudFormation Intrinsic Functions](#aws-cloudformation-intrinsic-functions)
+            - [Resolving References (Ref)](#resolving-references-ref)
+            - [Warning: YAML short form intrinsic functions (e.g. !Sub)](#warning-yaml-short-form-intrinsic-functions-eg-sub)
     - [Contributing](#contributing)
-  
+
 ## Main features
 
 * Describe CloudFormation / SAM templates as Go structs, and then turn it into JSON/YAML
@@ -172,6 +176,44 @@ Generated JSON Schema: schema/cloudformation.schema.json
 ```
 
 Our aim is to automatically update GoFormation whenever the AWS CloudFormation Resource Specification changes, via an automated pull request to this repository. This is not currently in place. 
+
+## Advanced
+
+### AWS CloudFormation Intrinsic Functions
+
+The following [AWS CloudFormation Intrinsic Functions](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html) are supported in GoFormation:
+
+- [x] [Fn::Base64](intrinsics/fnbase64.go)
+- [x] [Fn::FindInMap](intrinsics/fnfindinmap.go)
+- [x] [Fn::Join](intrinsics/fnjoin.go)
+- [x] [Fn::Select](intrinsics/fnselect.go)
+- [x] [Fn::Split](intrinsics/fnsplit.go)
+- [x] [Fn::Sub](intrinsics/fnsub.go)
+- [x] [Ref](intrinsics/ref.go) 
+- [ ] Fn::And      
+- [ ] Fn::Equals  
+- [ ] Fn::If     
+- [ ] Fn::Not      
+- [ ] Fn::Or       
+- [ ] Fn::GetAtt   
+- [ ] Fn::GetAZs   
+- [ ] Fn::ImportValue
+
+Any unsupported intrinsic functions will return `nil`.
+
+#### Resolving References (Ref)
+
+The intrinsic 'Ref' function as implemented will resolve all of the [pseudo parameters](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html) such as `AWS::AccountId` with their default value as listed on [the bottom of this page](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html).
+
+If a reference is not a pseudo parameter, Goformation will try to resolve it within the AWS CloudFormation template. **Currently, this implementation only searches for `Parameters` with a name that matches the ref, and returns the `Default` if it has one.**
+
+#### Warning: YAML short form intrinsic functions (e.g. !Sub)
+
+While this library supports both JSON and YAML AWS CloudFormation templates, it cannot handle short form intrinsic functions in YAML templates (e.g. `!Sub`). 
+
+We will be adding support soon, however we need to patch Go's YAML library as it doesn't currently support tags.
+
+If you use a short form intrinsic function today, you'll either get the unresolved value (if the recieving field is a string field), or the template will fail to parse (if it's recieving field is a non-string field).
 
 ## Contributing
 

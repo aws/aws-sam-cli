@@ -66,6 +66,8 @@ func (r *AWSServerlessFunction_StringOrIAMPolicyDocumentOrListOfStringOrListOfIA
 
 	case []interface{}:
 
+		mapstructure.Decode(val, &r.StringArray)
+
 		mapstructure.Decode(val, &r.IAMPolicyDocumentArray)
 
 	}

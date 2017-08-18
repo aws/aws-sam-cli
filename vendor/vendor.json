@@ -193,10 +193,28 @@
 			"revisionTime": "2017-07-27T22:25:20Z"
 		},
 		{
-			"checksumSHA1": "gOVYnq9xL1IsjuWkKPz73EJzFk4=",
+			"checksumSHA1": "2vaHXuF3L301LiLOTEV+MLPq8mo=",
 			"path": "github.com/awslabs/goformation",
-			"revision": "58609f21dfe3998bd435d35652b629f749607d30",
-			"revisionTime": "2017-08-13T17:56:29Z"
+			"revision": "1f0c85f6b6249421c70256f8f926a66f4f6eedf7",
+			"revisionTime": "2017-08-18T06:00:01Z",
+			"version": "0.1.0",
+			"versionExact": "0.1.0"
+		},
+		{
+			"checksumSHA1": "84Sc96KLcHAY+AGSJJMAvfvtYMQ=",
+			"path": "github.com/awslabs/goformation/cloudformation",
+			"revision": "1f0c85f6b6249421c70256f8f926a66f4f6eedf7",
+			"revisionTime": "2017-08-18T06:00:01Z",
+			"version": "0.1.0",
+			"versionExact": "0.1.0"
+		},
+		{
+			"checksumSHA1": "pDA4QhrheacBgpf+zJTO2oK9MgU=",
+			"path": "github.com/awslabs/goformation/intrinsics",
+			"revision": "1f0c85f6b6249421c70256f8f926a66f4f6eedf7",
+			"revisionTime": "2017-08-18T06:00:01Z",
+			"version": "0.1.0",
+			"versionExact": "0.1.0"
 		},
 		{
 			"checksumSHA1": "H5Ps9SpE0mLJ8JaLQPKcj4wRScY=",
@@ -415,6 +433,12 @@
 			"revisionTime": "2017-05-23T20:24:04Z"
 		},
 		{
+			"checksumSHA1": "ImX1uv6O09ggFeBPUJJ2nu7MPSA=",
+			"path": "github.com/ghodss/yaml",
+			"revision": "0ca9ea5df5451ffdf184b4428c902747c2c11cd7",
+			"revisionTime": "2017-03-27T23:54:44Z"
+		},
+		{
 			"checksumSHA1": "Ecn0UexWoWRG6Di0wdWvIfms/jc=",
 			"path": "github.com/go-ini/ini",
 			"revision": "3d73f4b845efdf9989fffd4b4e562727744a34ba",
@@ -473,6 +497,12 @@
 			"path": "github.com/mattn/go-isatty",
 			"revision": "fc9e8d8ef48496124e79ae0df75490096eccf6fe",
 			"revisionTime": "2017-03-22T23:44:13Z"
+		},
+		{
+			"checksumSHA1": "EHjhpHipgm+XGccrRAms9AW3Ewk=",
+			"path": "github.com/mitchellh/mapstructure",
+			"revision": "d0303fe809921458f417bcf828397a65db30a7e4",
+			"revisionTime": "2017-05-23T03:00:23Z"
 		},
 		{
 			"checksumSHA1": "I/ZY7LHsGvuDx4ApgLzWpW0sz8s=",
@@ -883,5 +913,5 @@
 			"revisionTime": "2017-02-08T14:18:51Z"
 		}
 	],
-	"rootPath": "github.com/awslabs/aws-sam-local"
+	"rootPath": "github.com/paulmaddox/aws-sam-local"
 }
