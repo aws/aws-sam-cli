@@ -109,7 +109,7 @@ var _ = Describe("sam", func() {
 			It("overides template with environment variables", func() {
 				for _, function := range functions {
 					variables := getEnvironmentVariables(function, map[string]string{})
-					Expect(variables["TABLE_NAME"]).To(Equal("Table"))
+					Expect(variables["TABLE_NAME"]).To(Equal(""))
 
 					os.Setenv("TABLE_NAME", "ENV_TABLE")
 					variables = getEnvironmentVariables(function, map[string]string{})

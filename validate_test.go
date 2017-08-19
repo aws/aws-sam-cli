@@ -137,7 +137,7 @@ var _ = Describe("sam", func() {
 					Expect(f3.Environment).ToNot(BeNil())
 					Expect(f3.Environment.Variables).ToNot(BeNil())
 					Expect(f3.Environment.Variables).To(HaveLen(1))
-					Expect(f3.Environment.Variables).To(HaveKeyWithValue("REF_ENV_VAR", "ExampleParameter"))
+					Expect(f3.Environment.Variables).To(HaveKeyWithValue("REF_ENV_VAR", "SomeValue"))
 				})
 			})
 
@@ -157,7 +157,7 @@ var _ = Describe("sam", func() {
 					Expect(f5.Environment).ToNot(BeNil())
 					Expect(f5.Environment.Variables).ToNot(BeNil())
 					Expect(f5.Environment.Variables).To(HaveLen(1))
-					Expect(f5.Environment.Variables).To(HaveKeyWithValue("SUB_REF_ENV_VAR", "Hello-${ThisReferenceDoesntExist}"))
+					Expect(f5.Environment.Variables).To(HaveKeyWithValue("SUB_REF_ENV_VAR", "Hello-"))
 				})
 			})
 

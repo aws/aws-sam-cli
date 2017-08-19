@@ -53,6 +53,6 @@ func Ref(name string, input interface{}, template interface{}) interface{} {
 
 	}
 
-	return input
+	return nil
 
 }

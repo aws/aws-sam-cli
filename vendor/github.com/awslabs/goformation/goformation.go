@@ -2,13 +2,11 @@ package goformation
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"strings"
 
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/awslabs/goformation/intrinsics"
-	"github.com/ghodss/yaml"
 )
 
 //go:generate generate/generate.sh
@@ -23,28 +21,42 @@ func Open(filename string) (*cloudformation.Template, error) {
 	}
 
 	if strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") {
-		data, err = yaml.YAMLToJSON(data)
-		if err != nil {
-			return nil, fmt.Errorf("invalid YAML template: %s", err)
-		}
-
+		return ParseYAML(data)
 	}
 
-	return Parse(data)
+	return ParseJSON(data)
 
 }
 
-// Parse an AWS CloudFormation template (expects a []byte of valid JSON)
-func Parse(data []byte) (*cloudformation.Template, error) {
-
+// ParseYAML an AWS CloudFormation template (expects a []byte of valid YAML)
+func ParseYAML(data []byte) (*cloudformation.Template, error) {
 	// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
-	intrinsified, err := intrinsics.Process(data, nil)
+	intrinsified, err := intrinsics.ProcessYAML(data, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	return unmarshal(intrinsified)
+
+}
+
+// ParseJSON an AWS CloudFormation template (expects a []byte of valid JSON)
+func ParseJSON(data []byte) (*cloudformation.Template, error) {
+
+	// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
+	intrinsified, err := intrinsics.ProcessJSON(data, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshal(intrinsified)
+
+}
+
+func unmarshal(data []byte) (*cloudformation.Template, error) {
+
 	template := &cloudformation.Template{}
-	if err := json.Unmarshal(intrinsified, template); err != nil {
+	if err := json.Unmarshal(data, template); err != nil {
 		return nil, err
 	}
 

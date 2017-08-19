@@ -3,6 +3,8 @@ package intrinsics
 import (
 	"encoding/json"
 	"fmt"
+
+	yamlwrapper "github.com/ghodss/yaml"
 )
 
 // IntrinsicHandler is a function that applies an intrinsic function and returns
@@ -43,10 +45,27 @@ func nonResolvingHandler(name string, input interface{}, template interface{}) i
 	return nil
 }
 
-// Process recursively searches through a byte array for all AWS CloudFormation
-// intrinsic functions, resolves them, and then returns the resulting
-// interface{} object.
-func Process(input []byte, options *ProcessorOptions) ([]byte, error) {
+// ProcessYAML recursively searches through a byte array of JSON data for all
+// AWS CloudFormation intrinsic functions, resolves them, and then returns
+// the resulting  interface{} object.
+func ProcessYAML(input []byte, options *ProcessorOptions) ([]byte, error) {
+
+	// Convert short form intrinsic functions (e.g. !Sub) to long form
+	registerTagMarshallers()
+
+	data, err := yamlwrapper.YAMLToJSON(input)
+	if err != nil {
+		return nil, fmt.Errorf("invalid YAML template: %s", err)
+	}
+
+	return ProcessJSON(data, options)
+
+}
+
+// ProcessJSON recursively searches through a byte array of JSON data for all
+// AWS CloudFormation intrinsic functions, resolves them, and then returns
+// the resulting  interface{} object.
+func ProcessJSON(input []byte, options *ProcessorOptions) ([]byte, error) {
 
 	// First, unmarshal the JSON to a generic interface{} type
 	var unmarshalled interface{}
