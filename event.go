@@ -15,7 +15,7 @@ type Event struct {
 	Resource          string            `json:"resource"`
 	RequestContext    RequestContext    `json:"requestContext"`
 	QueryStringParams map[string]string `json:"queryStringParameters"`
-	Headers           map[string]string `json:"Headers"`
+	Headers           map[string]string `json:"headers"`
 	PathParameters    map[string]string `json:"pathParameters"`
 	StageVariables    map[string]string `json:"stageVariables"`
 	Path              string            `json:"path"`
