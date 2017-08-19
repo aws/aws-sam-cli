@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -185,6 +186,14 @@ func start(c *cli.Context) {
 							w.Write([]byte(`{ "message": "Internal server error" }`))
 							wg.Done()
 							return
+						}
+
+						// We only want the last line of stdout, because it's possible that
+						// the function may have written directly to stdout using
+						// System.out.println or similar, before docker-lambda output the result
+						lastNewlineIx := bytes.LastIndexByte(bytes.TrimRight(result, "\n"), '\n')
+						if lastNewlineIx > 0 {
+							result = result[lastNewlineIx:]
 						}
 
 						// At this point, we need to see whether the response is in the format
