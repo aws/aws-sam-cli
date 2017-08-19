@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/awslabs/goformation"
-	"github.com/awslabs/goformation/resources"
+	"github.com/awslabs/goformation/cloudformation"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -82,16 +82,15 @@ var _ = Describe("sam", func() {
 
 		Context("environment variables", func() {
 
-			var functions map[string]resources.Resource
+			var functions map[string]cloudformation.AWSServerlessFunction
 			BeforeEach(func() {
-				template, _, _ := goformation.Open("test/templates/sam-official-samples/iot_backend/template.yaml")
-				functions = template.GetResourcesByType("AWS::Serverless::Function")
+				template, _ := goformation.Open("test/templates/sam-official-samples/iot_backend/template.yaml")
+				functions = template.GetAllAWSServerlessFunctionResources()
 			})
 
 			It("return defaults with those defined in the template", func() {
 
-				for _, resource := range functions {
-					function := resource.(resources.AWSServerlessFunction)
+				for _, function := range functions {
 					variables := getEnvironmentVariables(function, map[string]string{})
 					Expect(variables).To(HaveLen(10))
 					Expect(variables).To(HaveKey("AWS_SAM_LOCAL"))
@@ -108,10 +107,9 @@ var _ = Describe("sam", func() {
 			})
 
 			It("overides template with environment variables", func() {
-				for _, resource := range functions {
-					function := resource.(resources.AWSServerlessFunction)
+				for _, function := range functions {
 					variables := getEnvironmentVariables(function, map[string]string{})
-					Expect(variables["TABLE_NAME"]).To(Equal(""))
+					Expect(variables["TABLE_NAME"]).To(Equal("Table"))
 
 					os.Setenv("TABLE_NAME", "ENV_TABLE")
 					variables = getEnvironmentVariables(function, map[string]string{})
@@ -126,8 +124,7 @@ var _ = Describe("sam", func() {
 					"TABLE_NAME": "OVERRIDE_TABLE",
 				}
 
-				for _, resource := range functions {
-					function := resource.(resources.AWSServerlessFunction)
+				for _, function := range functions {
 					variables := getEnvironmentVariables(function, overrides)
 					Expect(variables["TABLE_NAME"]).To(Equal("OVERRIDE_TABLE"))
 				}

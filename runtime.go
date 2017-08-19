@@ -93,11 +93,11 @@ var runtimeImageFor = map[string]string{
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
 type NewRuntimeOpt struct {
-	Function         cloudformation.AWSServerlessFunction
-	EnvVarsOverrides map[string]string
-	Basedir          string
+	Function             cloudformation.AWSServerlessFunction
+	EnvVarsOverrides     map[string]string
+	Basedir              string
 	CheckWorkingDirExist bool
-	DebugPort        string
+	DebugPort            string
 }
 
 // NewRuntime instantiates a Lambda runtime container
@@ -118,7 +118,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		codeuri = *opt.Function.CodeUri.String
 	}
 
-	cwd, err := getWorkingDir(opt.Basedir, codeuri, , opt.CheckWorkingDirExist)
+	cwd, err := getWorkingDir(opt.Basedir, codeuri, opt.CheckWorkingDirExist)
 	if err != nil {
 		return nil, err
 	}
