@@ -1,79 +1,65 @@
 package goformation
 
 import (
-	"io"
+	"encoding/json"
 	"io/ioutil"
-	"os"
-	"path/filepath"
+	"strings"
 
-	. "github.com/awslabs/goformation/resources"
-	"github.com/awslabs/goformation/util"
-	"github.com/pkg/errors"
+	"github.com/awslabs/goformation/cloudformation"
+	"github.com/awslabs/goformation/intrinsics"
 )
 
-// Open opens a file given and parses it, returning the result
-// In the return objects there's also the logs
-func Open(filename string) (Template, map[string][]string, []error) {
-	util.LogInfo(-1, "GoFormation", "Opening file %s", filename)
+//go:generate generate/generate.sh
 
-	fp, err := filepath.Abs(filename)
+// Open and parse a AWS CloudFormation template from file.
+// Works with either JSON or YAML formatted templates.
+func Open(filename string) (*cloudformation.Template, error) {
+
+	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, nil, []error{util.ErrFailedToReadTemplate}
+		return nil, err
 	}
 
-	f, err := os.Open(fp)
-	if err != nil {
-		return nil, nil, []error{util.ErrFailedToReadTemplate}
+	if strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") {
+		return ParseYAML(data)
 	}
 
-	return read(f)
+	return ParseJSON(data)
 
 }
 
-func read(input io.Reader) (Template, map[string][]string, []error) {
-	// Read data
-	data, err := ioutil.ReadAll(input)
+// ParseYAML an AWS CloudFormation template (expects a []byte of valid YAML)
+func ParseYAML(data []byte) (*cloudformation.Template, error) {
+	// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
+	intrinsified, err := intrinsics.ProcessYAML(data, nil)
 	if err != nil {
-		return nil, nil, []error{util.ErrFailedToReadTemplate}
+		return nil, err
 	}
 
-	return Parse(data)
+	return unmarshal(intrinsified)
+
 }
 
-// Parse receives the contents of a template and parses it.
-// After parsing, it returns you the parsed template, and the log for the operation.
-func Parse(input []byte) (Template, map[string][]string, []error) {
-	util.LogInfo(-1, "GoFormation", "Parsing process started")
+// ParseJSON an AWS CloudFormation template (expects a []byte of valid JSON)
+func ParseJSON(data []byte) (*cloudformation.Template, error) {
 
-	util.LogInfo(-1, "GoFormation", "Unmarshalling template")
-	unmarshalledTemplate, unmarshallingError := unmarshal(input)
-	if unmarshallingError != nil {
-		util.LogError(-1, "GoFormation", "Failed to unmarshal the template")
-		errorMessage := util.GetUnmarshallingErrorMessage(unmarshallingError)
-		return nil, util.GetLogs(), []error{errors.New(errorMessage)}
-	}
-	util.LogInfo(-1, "GoFormation", "Template unmarshalled successfully")
-
-	util.LogInfo(-1, "GoFormation", "Scaffolding the template")
-	scaffoldedTemplate, scaffoldingErrors := scaffold(unmarshalledTemplate)
-	if scaffoldingErrors != nil && len(scaffoldingErrors) > 0 {
-
-		parsedScaffoldingErrors := make([]error, len(scaffoldingErrors))
-		for i, scaffoldingError := range scaffoldingErrors {
-			errorMessage := util.GetFinalErrorMessage(scaffoldingError)
-			parsedError := errors.New(errorMessage)
-			parsedScaffoldingErrors[i] = parsedError
-		}
-
-		util.LogError(-1, "GoFormation", "Failed to scaffold the template due to an error")
-		return nil, util.GetLogs(), parsedScaffoldingErrors
+	// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
+	intrinsified, err := intrinsics.ProcessJSON(data, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	processedTemplate, postProcessingError := postProcess(scaffoldedTemplate)
-	if postProcessingError != nil {
-		util.LogError(-1, "GoFormation", "Failed to process template")
-		return nil, util.GetLogs(), []error{postProcessingError}
+	return unmarshal(intrinsified)
+
+}
+
+func unmarshal(data []byte) (*cloudformation.Template, error) {
+
+	template := &cloudformation.Template{}
+	if err := json.Unmarshal(data, template); err != nil {
+		return nil, err
 	}
 
-	return processedTemplate, util.GetLogs(), nil
+	return template, nil
+
 }

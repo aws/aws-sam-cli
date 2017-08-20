@@ -10,12 +10,10 @@ import (
 
 func validate(c *cli.Context) {
 
-	_, _, errs := goformation.Open(getTemplateFilename(c.String("template")))
+	_, err := goformation.Open(getTemplateFilename(c.String("template")))
 
-	if len(errs) > 0 {
-		for _, err := range errs {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-		}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 

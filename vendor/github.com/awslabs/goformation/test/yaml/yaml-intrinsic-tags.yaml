@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM template for testing intrinsic functions with YAML tags
+Parameters:
+  TimeoutParam:
+    Type: Number
+    Default: 10
+Resources:
+  IntrinsicFunctionTest:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: !Sub "${ParamNotExists}4.3"
+      Timeout: !Ref TimeoutParam

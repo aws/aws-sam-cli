@@ -9,10 +9,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/awslabs/goformation"
-	"github.com/awslabs/goformation/resources"
+	"github.com/awslabs/goformation/cloudformation"
+
 	"github.com/codegangsta/cli"
 	"github.com/fatih/color"
 	"github.com/gorilla/mux"
@@ -41,12 +43,9 @@ func start(c *cli.Context) {
 	}
 
 	filename := getTemplateFilename(c.String("template"))
-	template, _, errs := goformation.Open(filename)
-	if len(errs) > 0 {
-		for _, err := range errs {
-			log.Printf("%s\n", err)
-		}
-		os.Exit(1)
+	template, err := goformation.Open(filename)
+	if err != nil {
+		log.Fatalf("Failed to parse template: %s\n", err)
 	}
 
 	// Check connectivity to docker
@@ -90,153 +89,153 @@ func start(c *cli.Context) {
 		checkWorkingDirExist = true
 	}
 
-	log.Printf("Successfully parsed %s (version %s)", filename, template.Version())
+	log.Printf("Successfully parsed %s", filename)
 
 	// Create a new HTTP router to mount the functions on
 	router := mux.NewRouter()
 
-	functions := template.GetResourcesByType("AWS::Serverless::Function")
+	functions := template.GetAllAWSServerlessFunctionResources()
 
 	// Keep track of successfully mounted functions, used for error reporting
 	mounts := []mount{}
 	endpointCount := 0
 
-	for name, resource := range functions {
+	for name, function := range functions {
 
-		if function, ok := resource.(resources.AWSServerlessFunction); ok {
+		var events []cloudformation.AWSServerlessFunction_ApiEvent
+		for _, event := range function.Events {
+			if event.Type == "Api" {
+				if event.Properties.ApiEvent != nil {
+					events = append(events, *event.Properties.ApiEvent)
+				}
+			}
+		}
 
-			endpoints, err := function.Endpoints()
+		for _, event := range events {
+
+			endpointCount++
+
+			// Find the env-vars map for the function
+			funcEnvVarsOverrides := envVarsOverrides[name]
+
+			runt, err := NewRuntime(NewRuntimeOpt{
+				Function:             function,
+				EnvVarsOverrides:     funcEnvVarsOverrides,
+				Basedir:              filepath.Dir(filename),
+				CheckWorkingDirExist: checkWorkingDirExist,
+				DebugPort:            c.String("debug-port"),
+			})
 			if err != nil {
-				log.Printf("Error while parsing API endpoints for %s: %s\n", function.Handler(), err)
-				continue
+				if err == ErrRuntimeNotSupported {
+					log.Printf("Ignoring %s due to unsupported runtime (%s)\n", function.Handler, function.Runtime)
+					continue
+				} else {
+					log.Printf("Ignoring %s due to %s runtime init error: %s\n", function.Handler, function.Runtime, err)
+					continue
+				}
 			}
 
-			for x := range endpoints {
+			// Work out which HTTP methods to respond to
+			methods := getHTTPMethods(event.Method)
 
-				endpoint := endpoints[x].(resources.AWSServerlessFunctionEndpoint)
-				endpointCount++
+			// Keep track of this successful mount, for displaying to the user
+			mounts = append(mounts, mount{
+				Handler:  function.Handler,
+				Runtime:  function.Runtime,
+				Endpoint: event.Path,
+				Methods:  methods,
+			})
 
-				// Find the env-vars map for the function
-				funcEnvVarsOverrides := envVarsOverrides[name]
+			router.HandleFunc(event.Path, func(w http.ResponseWriter, r *http.Request) {
 
-				runt, err := NewRuntime(NewRuntimeOpt{
-					Function:             function,
-					EnvVarsOverrides:     funcEnvVarsOverrides,
-					Basedir:              baseDir,
-					CheckWorkingDirExist: checkWorkingDirExist,
-					DebugPort:            c.String("debug-port"),
-				})
+				var wg sync.WaitGroup
+
+				w.Header().Set("Content-Type", "application/json")
+
+				event, err := NewEvent(r)
 				if err != nil {
-					if err == ErrRuntimeNotSupported {
-						log.Printf("Ignoring %s due to unsupported runtime (%s)\n", function.Handler(), function.Runtime())
-						continue
-					} else {
-						log.Printf("Ignoring %s due to %s runtime init error: %s\n", function.Handler(), function.Runtime(), err)
-						continue
-					}
+					msg := fmt.Sprintf("Error invoking %s runtime: %s", function.Runtime, err)
+					log.Println(msg)
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(`{ "message": "Internal server error" }`))
+					return
 				}
 
-				// Keep track of this successful mount, for displaying to the user
-				mounts = append(mounts, mount{
-					Handler:  function.Handler(),
-					Runtime:  function.Runtime(),
-					Endpoint: endpoint.Path(),
-					Methods:  endpoint.Methods(),
-				})
+				eventJSON, err := event.JSON()
+				if err != nil {
+					msg := fmt.Sprintf("Error invoking %s runtime: %s", function.Runtime, err)
+					log.Println(msg)
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(`{ "message": "Internal server error" }`))
+					return
+				}
 
-				router.HandleFunc(endpoint.Path(), func(w http.ResponseWriter, r *http.Request) {
+				stdoutTxt, stderrTxt, err := runt.Invoke(eventJSON)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(`{ "message": "Internal server error" }`))
+					return
+				}
 
-					var wg sync.WaitGroup
+				wg.Add(1)
+				go func() {
 
-					w.Header().Set("Content-Type", "application/json")
-
-					event, err := NewEvent(r)
+					result, err := ioutil.ReadAll(stdoutTxt)
 					if err != nil {
-						msg := fmt.Sprintf("Error invoking %s runtime: %s", function.Runtime(), err)
-						log.Println(msg)
 						w.WriteHeader(http.StatusInternalServerError)
 						w.Write([]byte(`{ "message": "Internal server error" }`))
-						return
-					}
-
-					eventJSON, err := event.JSON()
-					if err != nil {
-						msg := fmt.Sprintf("Error invoking %s runtime: %s", function.Runtime(), err)
-						log.Println(msg)
-						w.WriteHeader(http.StatusInternalServerError)
-						w.Write([]byte(`{ "message": "Internal server error" }`))
-						return
-					}
-
-					stdoutTxt, stderrTxt, err := runt.Invoke(eventJSON)
-					if err != nil {
-						log.Printf("ERROR: %s\n", err)
-						w.WriteHeader(http.StatusInternalServerError)
-						w.Write([]byte(`{ "message": "Internal server error" }`))
-						return
-					}
-
-					wg.Add(1)
-					go func() {
-
-						result, err := ioutil.ReadAll(stdoutTxt)
-						if err != nil {
-							w.WriteHeader(http.StatusInternalServerError)
-							w.Write([]byte(`{ "message": "Internal server error" }`))
-							wg.Done()
-							return
-						}
-
-						// At this point, we need to see whether the response is in the format
-						// of a Lambda proxy response (inc statusCode / body), and if so, handle it
-						// otherwise just copy the whole output back to the http.ResponseWriter
-						proxy := &struct {
-							StatusCode int               `json:"statusCode"`
-							Headers    map[string]string `json:"headers"`
-							Body       json.Number       `json:"body"`
-						}{}
-
-						if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == 0 && len(proxy.Headers) == 0 && proxy.Body == "") {
-							// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
-							// Return HTTP 501 (Internal Server Error) to match Lambda behaviour
-							fmt.Fprintf(os.Stderr, color.RedString("ERROR: Function %s returned an invalid response (must include one of: body, headers or statusCode in the response object)\n"), name)
-							w.WriteHeader(http.StatusInternalServerError)
-							w.Write([]byte(`{ "message": "Internal server error" }`))
-							wg.Done()
-							return
-						}
-
-						// Set any HTTP headers requested by the proxy function
-						if len(proxy.Headers) > 0 {
-							for key, value := range proxy.Headers {
-								w.Header().Set(key, value)
-							}
-						}
-
-						// This is a proxy function, so set the http status code and return the body
-						if proxy.StatusCode != 0 {
-							w.WriteHeader(proxy.StatusCode)
-						}
-
-						w.Write([]byte(proxy.Body))
 						wg.Done()
+						return
+					}
 
-					}()
+					// At this point, we need to see whether the response is in the format
+					// of a Lambda proxy response (inc statusCode / body), and if so, handle it
+					// otherwise just copy the whole output back to the http.ResponseWriter
+					proxy := &struct {
+						StatusCode int               `json:"statusCode"`
+						Headers    map[string]string `json:"headers"`
+						Body       json.Number       `json:"body"`
+					}{}
 
-					wg.Add(1)
-					go func() {
-						// Finally, copy the container stderr (runtime logs) to the console stderr
-						io.Copy(stderr, stderrTxt)
+					if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == 0 && len(proxy.Headers) == 0 && proxy.Body == "") {
+						// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
+						// Return HTTP 501 (Internal Server Error) to match Lambda behaviour
+						fmt.Fprintf(os.Stderr, color.RedString("ERROR: Function %s returned an invalid response (must include one of: body, headers or statusCode in the response object)\n"), name)
+						w.WriteHeader(http.StatusInternalServerError)
+						w.Write([]byte(`{ "message": "Internal server error" }`))
 						wg.Done()
-					}()
+						return
+					}
 
-					wg.Wait()
+					// Set any HTTP headers requested by the proxy function
+					if len(proxy.Headers) > 0 {
+						for key, value := range proxy.Headers {
+							w.Header().Set(key, value)
+						}
+					}
 
-					runt.CleanUp()
+					// This is a proxy function, so set the http status code and return the body
+					if proxy.StatusCode != 0 {
+						w.WriteHeader(proxy.StatusCode)
+					}
 
-				}).Methods(endpoint.Methods()...)
+					w.Write([]byte(proxy.Body))
+					wg.Done()
 
-			}
+				}()
+
+				wg.Add(1)
+				go func() {
+					// Finally, copy the container stderr (runtime logs) to the console stderr
+					io.Copy(stderr, stderrTxt)
+					wg.Done()
+				}()
+
+				wg.Wait()
+
+				runt.CleanUp()
+
+			}).Methods(methods...)
 
 		}
 	}
@@ -285,4 +284,14 @@ func start(c *cli.Context) {
 
 	log.Fatal(http.ListenAndServe(c.String("host")+":"+c.String("port"), router))
 
+}
+
+// getHttpMethods returns the HTTP method(s) supported by an API event source
+func getHTTPMethods(input string) []string {
+	switch input {
+	case "any":
+		return []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT"}
+	default:
+		return []string{strings.ToUpper(input)}
+	}
 }

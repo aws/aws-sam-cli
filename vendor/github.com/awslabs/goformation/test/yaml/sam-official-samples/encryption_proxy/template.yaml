@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: |
+      This SAM example creates the following resources:
+      
+        Encryption Proxy: Comprised of Encryption and Decryption Lambda functions + IAM Roles
+        KMS Key: KMS Key and encrypt/decrypt permission for each IAM Role separately
+      
+      Last Modified: 22nd November 2016 Author: Heitor Lessa <lessa@amazon.com>
+Outputs: 
+  DecryptFunction: 
+    Description: "Decryption Lambda Function ARN"
+    Value: DecryptionFunction.Arn
+  DecryptURL: 
+    Description: "Decrypt endpoint URL for Stage environment"
+    Value: "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/decrypt"
+  EncryptFunction: 
+    Description: "Encryption Lambda Function ARN"
+    Value: EncryptionFunction.Arn
+  EncryptURL: 
+    Description: "Encrypt endpoint URL for Stage environment"
+    Value: "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/encrypt"
+Resources: 
+  EncryptionDecryptionKey: 
+    Properties: 
+      Description: "Encryption and Decryption key for Lambda"
+      KeyPolicy: 
+        Id: LambdaEncDec
+        Statement: 
+          - 
+            Action: 
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Effect: Allow
+            Principal: 
+              AWS: "AWS::AccountId"
+            Resource: "*"
+            Sid: "Allow administration of the key"
+          - 
+            Action: 
+              - "kms:Encrypt"
+            Effect: Allow
+            Principal: 
+              AWS: EncryptionServiceIAMRole.Arn
+            Resource: "*"
+            Sid: "Allow Encryption Service to use this key"
+          - 
+            Action: 
+              - "kms:Decrypt"
+            Effect: Allow
+            Principal: 
+              AWS: DecryptionServiceIAMRole.Arn
+            Resource: "*"
+            Sid: "Allow Decryption Service to use this key"
+        Version: "2012-10-17"
+    Type: "AWS::KMS::Key"
+  EncryptionServiceIAMRole: 
+    DecryptionFunction: 
+      Properties: 
+        CodeUri: "s3://<bucket>/encryption_proxy.zip"
+        Events: 
+          decryptAction: 
+            Properties: 
+              Method: post
+              Path: /decrypt
+            Type: Api
+        Handler: decryption.post
+        Role: DecryptionServiceIAMRole.Arn
+        Runtime: python2.7
+      Type: "AWS::Serverless::Function"
+    DecryptionServiceIAMRole: 
+      Properties: 
+        AssumeRolePolicyDocument: 
+          Statement: 
+            - 
+              Action: 
+                - "sts:AssumeRole"
+              Effect: Allow
+              Principal: 
+                Service: 
+                  - lambda.amazonaws.com
+              Sid: AllowLambdaServiceToAssumeRole
+          Version: "2012-10-17"
+        ManagedPolicyArns: 
+          - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        Path: /
+      Type: "AWS::IAM::Role"
+    EncryptionFunction: 
+      Properties: 
+        CodeUri: "s3://<bucket>/encryption_proxy.zip"
+        Environment: 
+          Variables: 
+            keyId: EncryptionDecryptionKey
+        Events: 
+          encryptAction: 
+            Properties: 
+              Method: post
+              Path: /encrypt
+            Type: Api
+        Handler: encryption.post
+        Role: EncryptionServiceIAMRole.Arn
+        Runtime: python2.7
+      Type: "AWS::Serverless::Function"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Statement: 
+          - 
+            Action: 
+              - "sts:AssumeRole"
+            Effect: Allow
+            Principal: 
+              Service: 
+                - lambda.amazonaws.com
+            Sid: AllowLambdaServiceToAssumeRole
+        Version: "2012-10-17"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Path: /
+    Type: "AWS::IAM::Role"
+Transform: "AWS::Serverless-2016-10-31"

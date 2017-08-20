@@ -1,0 +1,9 @@
+"{{.Name}}": {
+    "type": "object",
+    {{if .Resource.Required}}"required": [{{.Resource.Required}}],{{end}}
+    "properties": {
+        {{$length := len .Resource.Properties}}{{$pc := counter $length}}{{range $name, $property := .Resource.Properties}}
+        {{$property.Schema $name $.Name}}{{if call $pc}},{{end}}
+        {{end}}
+    }
+}
