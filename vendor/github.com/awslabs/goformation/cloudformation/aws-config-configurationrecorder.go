@@ -61,7 +61,12 @@ func (r *AWSConfigConfigurationRecorder) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSConfigConfigurationRecorder(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSConfigConfigurationRecorder(*res.Properties)
+	}
+
 	return nil
 }
 

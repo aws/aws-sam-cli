@@ -151,7 +151,12 @@ func (r *AWSElastiCacheCacheCluster) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSElastiCacheCacheCluster(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSElastiCacheCacheCluster(*res.Properties)
+	}
+
 	return nil
 }
 

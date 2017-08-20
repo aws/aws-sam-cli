@@ -81,7 +81,12 @@ func (r *AWSAutoScalingScheduledAction) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSAutoScalingScheduledAction(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSAutoScalingScheduledAction(*res.Properties)
+	}
+
 	return nil
 }
 

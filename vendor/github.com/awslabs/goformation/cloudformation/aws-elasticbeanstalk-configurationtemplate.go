@@ -76,7 +76,12 @@ func (r *AWSElasticBeanstalkConfigurationTemplate) UnmarshalJSON(b []byte) error
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSElasticBeanstalkConfigurationTemplate(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSElasticBeanstalkConfigurationTemplate(*res.Properties)
+	}
+
 	return nil
 }
 

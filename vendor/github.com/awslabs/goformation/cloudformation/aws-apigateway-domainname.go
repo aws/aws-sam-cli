@@ -56,7 +56,12 @@ func (r *AWSApiGatewayDomainName) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSApiGatewayDomainName(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSApiGatewayDomainName(*res.Properties)
+	}
+
 	return nil
 }
 

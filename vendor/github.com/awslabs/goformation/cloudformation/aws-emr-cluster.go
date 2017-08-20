@@ -121,7 +121,12 @@ func (r *AWSEMRCluster) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSEMRCluster(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSEMRCluster(*res.Properties)
+	}
+
 	return nil
 }
 

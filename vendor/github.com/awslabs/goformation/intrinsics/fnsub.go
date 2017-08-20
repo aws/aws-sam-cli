@@ -35,10 +35,19 @@ func FnSub(name string, input interface{}, template interface{}) interface{} {
 
 	case string:
 		// Look up references for each of the variables
-		regex := regexp.MustCompile(`\$\{([0-9A-Za-z]+)\}`)
+		regex := regexp.MustCompile(`\$\{([\.0-9A-Za-z]+)\}`)
 		variables := regex.FindAllStringSubmatch(val, -1)
 		for _, variable := range variables {
-			resolved := Ref("Ref", variable[1], template)
+
+			var resolved interface{}
+			if strings.Contains(variable[1], ".") {
+				// If the variable name has a . in it, use Fn::GetAtt to resolve it
+				resolved = FnGetAtt("Fn::GetAtt", strings.Split(variable[1], "."), template)
+			} else {
+				// The variable name doesn't have a . in it, so use Ref
+				resolved = Ref("Ref", variable[1], template)
+			}
+
 			if resolved != nil {
 				if replacement, ok := resolved.(string); ok {
 					val = strings.Replace(val, variable[0], replacement, -1)
@@ -47,6 +56,7 @@ func FnSub(name string, input interface{}, template interface{}) interface{} {
 				// The reference couldn't be resolved, so just strip the variable
 				val = strings.Replace(val, variable[0], "", -1)
 			}
+
 		}
 		return val
 	}

@@ -3,7 +3,7 @@ package intrinsics
 import (
 	"reflect"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "github.com/sanathkr/go-yaml"
 )
 
 var allTags = []string{"Ref", "GetAtt", "Base64", "FindInMap", "GetAZs",

@@ -71,7 +71,12 @@ func (r *AWSEC2VPNConnection) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSEC2VPNConnection(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSEC2VPNConnection(*res.Properties)
+	}
+
 	return nil
 }
 

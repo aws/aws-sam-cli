@@ -71,7 +71,12 @@ func (r *AWSEC2VPCPeeringConnection) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSEC2VPCPeeringConnection(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSEC2VPCPeeringConnection(*res.Properties)
+	}
+
 	return nil
 }
 

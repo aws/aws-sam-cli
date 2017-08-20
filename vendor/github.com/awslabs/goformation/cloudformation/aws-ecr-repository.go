@@ -56,7 +56,12 @@ func (r *AWSECRRepository) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSECRRepository(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSECRRepository(*res.Properties)
+	}
+
 	return nil
 }
 

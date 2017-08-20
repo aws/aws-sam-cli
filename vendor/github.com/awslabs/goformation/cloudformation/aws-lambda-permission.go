@@ -71,7 +71,12 @@ func (r *AWSLambdaPermission) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSLambdaPermission(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSLambdaPermission(*res.Properties)
+	}
+
 	return nil
 }
 

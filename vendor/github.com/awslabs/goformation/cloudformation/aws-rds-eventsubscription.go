@@ -71,7 +71,12 @@ func (r *AWSRDSEventSubscription) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSRDSEventSubscription(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSRDSEventSubscription(*res.Properties)
+	}
+
 	return nil
 }
 

@@ -66,7 +66,12 @@ func (r *AWSEC2TrunkInterfaceAssociation) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSEC2TrunkInterfaceAssociation(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSEC2TrunkInterfaceAssociation(*res.Properties)
+	}
+
 	return nil
 }
 

@@ -56,7 +56,12 @@ func (r *AWSWAFRegionalWebACLAssociation) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSWAFRegionalWebACLAssociation(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSWAFRegionalWebACLAssociation(*res.Properties)
+	}
+
 	return nil
 }
 

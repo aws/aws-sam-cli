@@ -120,7 +120,6 @@ func (p *parser) parse() *node {
 	default:
 		panic("attempted to parse unknown event: " + strconv.Itoa(int(p.event.typ)))
 	}
-	panic("unreachable")
 }
 
 func (p *parser) node(kind int) *node {
@@ -163,6 +162,7 @@ func (p *parser) scalar() *node {
 
 func (p *parser) sequence() *node {
 	n := p.node(sequenceNode)
+	n.tag = string(p.event.tag)
 	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_SEQUENCE_END_EVENT {
@@ -174,6 +174,7 @@ func (p *parser) sequence() *node {
 
 func (p *parser) mapping() *node {
 	n := p.node(mappingNode)
+	n.tag = string(p.event.tag)
 	p.anchor(n, p.event.anchor)
 	p.skip()
 	for p.event.typ != yaml_MAPPING_END_EVENT {
@@ -191,19 +192,31 @@ type decoder struct {
 	aliases map[string]bool
 	mapType reflect.Type
 	terrors []string
+	strict  bool
 }
 
 var (
-	mapItemType    = reflect.TypeOf(MapItem{})
-	durationType   = reflect.TypeOf(time.Duration(0))
-	defaultMapType = reflect.TypeOf(map[interface{}]interface{}{})
-	ifaceType      = defaultMapType.Elem()
+	mapItemType     = reflect.TypeOf(MapItem{})
+	durationType    = reflect.TypeOf(time.Duration(0))
+	defaultMapType  = reflect.TypeOf(map[interface{}]interface{}{})
+	ifaceType       = defaultMapType.Elem()
+	tagUnmarshalers = map[string]TagUnmarshaler{}
 )
 
-func newDecoder() *decoder {
-	d := &decoder{mapType: defaultMapType}
+func newDecoder(strict bool) *decoder {
+	d := &decoder{mapType: defaultMapType, strict: strict}
 	d.aliases = make(map[string]bool)
 	return d
+}
+
+func registerCustomTagUnmarshaler(tag string, unmarshaler TagUnmarshaler) {
+	tagUnmarshalers[tag] = unmarshaler
+}
+
+func unregisterCustomTagUnmarshaler(tag string) {
+	if _, ok := tagUnmarshalers[tag]; ok {
+		delete(tagUnmarshalers, tag)
+	}
 }
 
 func (d *decoder) terror(n *node, tag string, out reflect.Value) {
@@ -295,6 +308,17 @@ func (d *decoder) unmarshal(n *node, out reflect.Value) (good bool) {
 	default:
 		panic("internal error: unknown node kind: " + strconv.Itoa(n.kind))
 	}
+
+	// If the node has a tag, and a custom tag unmarshaler is registered,
+	// then call it to unmarshal rest of the tree
+	if good && len(n.tag) > 0 {
+		if unmarshaller, found := tagUnmarshalers[n.tag]; found {
+			tagSuffix := n.tag[1:]  // Remove starting ! from tag
+			newOutput := unmarshaller.UnmarshalYAMLTag(tagSuffix, out)
+			out.Set(newOutput)
+		}
+	}
+
 	return good
 }
 
@@ -640,6 +664,8 @@ func (d *decoder) mappingStruct(n *node, out reflect.Value) (good bool) {
 			value := reflect.New(elemType).Elem()
 			d.unmarshal(n.children[i+1], value)
 			inlineMap.SetMapIndex(name, value)
+		} else if d.strict {
+			d.terrors = append(d.terrors, fmt.Sprintf("line %d: field %s not found in struct %s", n.line+1, name.String(), out.Type()))
 		}
 	}
 	return true

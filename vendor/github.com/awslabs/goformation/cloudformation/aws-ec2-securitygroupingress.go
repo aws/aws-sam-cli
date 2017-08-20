@@ -96,7 +96,12 @@ func (r *AWSEC2SecurityGroupIngress) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSEC2SecurityGroupIngress(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSEC2SecurityGroupIngress(*res.Properties)
+	}
+
 	return nil
 }
 

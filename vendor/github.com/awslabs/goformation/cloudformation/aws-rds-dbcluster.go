@@ -136,7 +136,12 @@ func (r *AWSRDSDBCluster) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSRDSDBCluster(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSRDSDBCluster(*res.Properties)
+	}
+
 	return nil
 }
 

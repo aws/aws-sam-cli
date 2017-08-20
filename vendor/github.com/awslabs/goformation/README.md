@@ -1,6 +1,6 @@
 # AWS GoFormation
 
-[![Build Status](https://travis-ci.org/awslabs/goformation.svg?branch=0.1.0)](https://travis-ci.org/awslabs/goformation) [![GoDoc Reference](https://godoc.org/gopkg.in/awslabs/goformation.v1?status.svg)](http://godoc.org/gopkg.in/awslabs/goformation.v1)
+[![Build Status](https://travis-ci.org/awslabs/goformation.svg?branch=0.1.0)](https://travis-ci.org/awslabs/goformation) [![GoDoc Reference](https://godoc.org/gopkg.in/awslabs/goformation.v1?status.svg)](http://godoc.org/github.com/awslabs/goformation) ![Apache-2.0](https://img.shields.io/badge/Licence-Apache%202.0-blue.svg) 
 
 `GoFormation` is a Go library for working with AWS CloudFormation / AWS Serverless Application Model (SAM) templates. 
 - [AWS GoFormation](#aws-goformation)
@@ -18,8 +18,10 @@
 
 ## Main features
 
-* Describe CloudFormation / SAM templates as Go structs, and then turn it into JSON/YAML
-* Parse JSON/YAML CloudFormation / SAM templates and turn them into Go structs
+ * Describe AWS CloudFormation and AWS SAM templates as Go objects (structs), and then turn it into JSON/YAML.
+ * Parse JSON/YAML AWS CloudFormation and AWS SAM templates and turn them into Go structs.
+ * Strongly typed Go structs generated for every AWS CloudFormation and AWS SAM resource.
+ * Automatically generated, from the published AWS CloudFormation Resource Specification.
 
 ## Installation
 
@@ -207,7 +209,7 @@ Any unsupported intrinsic functions will return `nil`.
 
 The intrinsic 'Ref' function as implemented will resolve all of the [pseudo parameters](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html) such as `AWS::AccountId` with their default value as listed on [the bottom of this page](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-ref.html).
 
-If a reference is not a pseudo parameter, Goformation will try to resolve it within the AWS CloudFormation template. **Currently, this implementation only searches for `Parameters` with a name that matches the ref, and returns the `Default` if it has one.**
+If a reference is not a pseudo parameter, GoFormation will try to resolve it within the AWS CloudFormation template. **Currently, this implementation only searches for `Parameters` with a name that matches the ref, and returns the `Default` if it has one.**
 
 #### Warning: YAML short form intrinsic functions (e.g. !Sub)
 

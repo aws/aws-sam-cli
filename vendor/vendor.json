@@ -193,28 +193,22 @@
 			"revisionTime": "2017-07-27T22:25:20Z"
 		},
 		{
-			"checksumSHA1": "2vaHXuF3L301LiLOTEV+MLPq8mo=",
+			"checksumSHA1": "bOZtsU1bihF4vynhWDi6rkyqGgM=",
 			"path": "github.com/awslabs/goformation",
-			"revision": "1f0c85f6b6249421c70256f8f926a66f4f6eedf7",
-			"revisionTime": "2017-08-18T06:00:01Z",
-			"version": "0.1.0",
-			"versionExact": "0.1.0"
+			"revision": "eaec3eb37e5331891ca29d59c1e1874dd76d664f",
+			"revisionTime": "2017-08-20T05:17:55Z"
 		},
 		{
-			"checksumSHA1": "84Sc96KLcHAY+AGSJJMAvfvtYMQ=",
+			"checksumSHA1": "LENmwc8XhXSZuUds9UHn4WXMMP8=",
 			"path": "github.com/awslabs/goformation/cloudformation",
-			"revision": "1f0c85f6b6249421c70256f8f926a66f4f6eedf7",
-			"revisionTime": "2017-08-18T06:00:01Z",
-			"version": "0.1.0",
-			"versionExact": "0.1.0"
+			"revision": "eaec3eb37e5331891ca29d59c1e1874dd76d664f",
+			"revisionTime": "2017-08-20T05:17:55Z"
 		},
 		{
-			"checksumSHA1": "pDA4QhrheacBgpf+zJTO2oK9MgU=",
+			"checksumSHA1": "JMk/CwpWE8FgZA1M2A9GpCY86rA=",
 			"path": "github.com/awslabs/goformation/intrinsics",
-			"revision": "1f0c85f6b6249421c70256f8f926a66f4f6eedf7",
-			"revisionTime": "2017-08-18T06:00:01Z",
-			"version": "0.1.0",
-			"versionExact": "0.1.0"
+			"revision": "eaec3eb37e5331891ca29d59c1e1874dd76d664f",
+			"revisionTime": "2017-08-20T05:17:55Z"
 		},
 		{
 			"checksumSHA1": "H5Ps9SpE0mLJ8JaLQPKcj4wRScY=",
@@ -625,6 +619,18 @@
 			"revisionTime": "2017-07-16T19:34:46Z"
 		},
 		{
+			"checksumSHA1": "9j8rnQfgHY4XKWbzLHd4uAKigfw=",
+			"path": "github.com/onsi/gomega/gstruct",
+			"revision": "c893efa28eb45626cdaa76c9f653b62488858837",
+			"revisionTime": "2017-07-16T19:34:46Z"
+		},
+		{
+			"checksumSHA1": "MQoYQDe07/b1OU5DtsL9Mr0BWi4=",
+			"path": "github.com/onsi/gomega/gstruct/errors",
+			"revision": "c893efa28eb45626cdaa76c9f653b62488858837",
+			"revisionTime": "2017-07-16T19:34:46Z"
+		},
+		{
 			"checksumSHA1": "H4RBR9kcEWh2lECAzBaOTSvgUuA=",
 			"path": "github.com/onsi/gomega/internal/assertion",
 			"revision": "c893efa28eb45626cdaa76c9f653b62488858837",
@@ -695,6 +701,20 @@
 			"path": "github.com/pkg/errors",
 			"revision": "ff09b135c25aae272398c51a07235b90a75aa4f0",
 			"revisionTime": "2017-03-16T20:15:38Z"
+		},
+		{
+			"checksumSHA1": "SjPjmaPGaIWKtmvyv6cJ7Fdzy50=",
+			"path": "github.com/sanathkr/go-yaml",
+			"revision": "ed9d249f429b3f5a69f80a7abef6bfce81fef894",
+			"revisionTime": "2017-08-19T19:51:28Z",
+			"version": "v2",
+			"versionExact": "v2"
+		},
+		{
+			"checksumSHA1": "owQ87BVbqaio1VTCXy6hnD68Cxo=",
+			"path": "github.com/sanathkr/yaml",
+			"revision": "0056894fa522748ca336761ffeeeb6bbae654d07",
+			"revisionTime": "2017-08-19T20:10:35Z"
 		},
 		{
 			"checksumSHA1": "Dkx1milUI4gWoZOu5MCSAJG8uPc=",
@@ -905,12 +925,6 @@
 			"path": "google.golang.org/appengine/internal/remote_api",
 			"revision": "c5a90ac045b779001847fec87403f5cba090deae",
 			"revisionTime": "2017-08-01T18:31:37Z"
-		},
-		{
-			"checksumSHA1": "0KwOlQV1dNUh9X8t+5s7nX5bqfk=",
-			"path": "gopkg.in/yaml.v2",
-			"revision": "a3f3340b5840cee44f372bddb5880fcbc419b46a",
-			"revisionTime": "2017-02-08T14:18:51Z"
 		}
 	],
 	"rootPath": "github.com/paulmaddox/aws-sam-local"

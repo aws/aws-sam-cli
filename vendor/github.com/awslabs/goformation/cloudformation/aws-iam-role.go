@@ -71,7 +71,12 @@ func (r *AWSIAMRole) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSIAMRole(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSIAMRole(*res.Properties)
+	}
+
 	return nil
 }
 

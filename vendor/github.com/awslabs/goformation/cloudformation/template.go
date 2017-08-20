@@ -3,7 +3,7 @@ package cloudformation
 import (
 	"encoding/json"
 
-	"github.com/ghodss/yaml"
+	"github.com/sanathkr/yaml"
 )
 
 // Template represents an AWS CloudFormation template

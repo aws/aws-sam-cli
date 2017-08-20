@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	yamlwrapper "github.com/ghodss/yaml"
+	yamlwrapper "github.com/sanathkr/yaml"
 )
 
 // IntrinsicHandler is a function that applies an intrinsic function and returns

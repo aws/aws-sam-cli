@@ -56,7 +56,12 @@ func (r *AWSLogsLogGroup) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSLogsLogGroup(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSLogsLogGroup(*res.Properties)
+	}
+
 	return nil
 }
 

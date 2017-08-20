@@ -56,7 +56,12 @@ func (r *AWSKinesisAnalyticsApplicationReferenceDataSource) UnmarshalJSON(b []by
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSKinesisAnalyticsApplicationReferenceDataSource(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSKinesisAnalyticsApplicationReferenceDataSource(*res.Properties)
+	}
+
 	return nil
 }
 

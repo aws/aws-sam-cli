@@ -76,7 +76,12 @@ func (r *AWSWorkSpacesWorkspace) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSWorkSpacesWorkspace(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSWorkSpacesWorkspace(*res.Properties)
+	}
+
 	return nil
 }
 

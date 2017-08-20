@@ -61,7 +61,12 @@ func (r *AWSLambdaVersion) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSLambdaVersion(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSLambdaVersion(*res.Properties)
+	}
+
 	return nil
 }
 

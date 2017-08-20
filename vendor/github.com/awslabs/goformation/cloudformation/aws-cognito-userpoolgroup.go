@@ -71,7 +71,12 @@ func (r *AWSCognitoUserPoolGroup) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSCognitoUserPoolGroup(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSCognitoUserPoolGroup(*res.Properties)
+	}
+
 	return nil
 }
 

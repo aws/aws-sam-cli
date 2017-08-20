@@ -32,6 +32,15 @@ type Unmarshaler interface {
 	UnmarshalYAML(unmarshal func(interface{}) error) error
 }
 
+type TagUnmarshallerDecoder struct {
+	d *decoder
+}
+
+// The Tag Unmarshaler interface
+type TagUnmarshaler interface {
+	UnmarshalYAMLTag(tag string, out reflect.Value) reflect.Value
+}
+
 // The Marshaler interface may be implemented by types to customize their
 // behavior when being marshaled into a YAML document. The returned value
 // is marshaled in place of the original value implementing Marshaler.
@@ -77,8 +86,19 @@ type Marshaler interface {
 // supported tag options.
 //
 func Unmarshal(in []byte, out interface{}) (err error) {
+	return unmarshal(in, out, false)
+}
+
+// UnmarshalStrict is like Unmarshal except that any fields that are found
+// in the data that do not have corresponding struct members will result in
+// an error.
+func UnmarshalStrict(in []byte, out interface{}) (err error) {
+	return unmarshal(in, out, true)
+}
+
+func unmarshal(in []byte, out interface{}, strict bool) (err error) {
 	defer handleErr(&err)
-	d := newDecoder()
+	d := newDecoder(strict)
 	p := newParser(in)
 	defer p.destroy()
 	node := p.parse()
@@ -143,6 +163,14 @@ func Marshal(in interface{}) (out []byte, err error) {
 	e.finish()
 	out = e.out
 	return
+}
+
+func RegisterTagUnmarshaler(tag string, unmarshaler TagUnmarshaler) {
+	registerCustomTagUnmarshaler(tag, unmarshaler)
+}
+
+func UnRegisterTagUnmarshaler(tag string) {
+	unregisterCustomTagUnmarshaler(tag)
 }
 
 func handleErr(err *error) {

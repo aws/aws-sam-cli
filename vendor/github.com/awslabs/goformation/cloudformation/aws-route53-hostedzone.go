@@ -66,7 +66,12 @@ func (r *AWSRoute53HostedZone) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSRoute53HostedZone(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSRoute53HostedZone(*res.Properties)
+	}
+
 	return nil
 }
 

@@ -51,7 +51,12 @@ func (r *AWSApiGatewayClientCertificate) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSApiGatewayClientCertificate(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSApiGatewayClientCertificate(*res.Properties)
+	}
+
 	return nil
 }
 

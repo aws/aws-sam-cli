@@ -71,7 +71,12 @@ func (r *AWSKMSKey) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSKMSKey(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSKMSKey(*res.Properties)
+	}
+
 	return nil
 }
 

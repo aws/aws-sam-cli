@@ -126,7 +126,12 @@ func (r *AWSServerlessFunction) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSServerlessFunction(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSServerlessFunction(*res.Properties)
+	}
+
 	return nil
 }
 

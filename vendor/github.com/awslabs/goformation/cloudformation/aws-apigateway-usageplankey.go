@@ -61,7 +61,12 @@ func (r *AWSApiGatewayUsagePlanKey) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSApiGatewayUsagePlanKey(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSApiGatewayUsagePlanKey(*res.Properties)
+	}
+
 	return nil
 }
 

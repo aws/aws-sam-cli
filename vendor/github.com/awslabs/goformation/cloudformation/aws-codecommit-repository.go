@@ -61,7 +61,12 @@ func (r *AWSCodeCommitRepository) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSCodeCommitRepository(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSCodeCommitRepository(*res.Properties)
+	}
+
 	return nil
 }
 

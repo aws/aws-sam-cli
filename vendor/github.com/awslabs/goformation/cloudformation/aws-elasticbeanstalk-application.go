@@ -56,7 +56,12 @@ func (r *AWSElasticBeanstalkApplication) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSElasticBeanstalkApplication(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSElasticBeanstalkApplication(*res.Properties)
+	}
+
 	return nil
 }
 

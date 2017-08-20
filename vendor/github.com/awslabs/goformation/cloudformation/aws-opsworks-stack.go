@@ -166,7 +166,12 @@ func (r *AWSOpsWorksStack) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSOpsWorksStack(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSOpsWorksStack(*res.Properties)
+	}
+
 	return nil
 }
 

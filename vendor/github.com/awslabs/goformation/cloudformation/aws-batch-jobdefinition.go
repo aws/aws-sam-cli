@@ -71,7 +71,12 @@ func (r *AWSBatchJobDefinition) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSBatchJobDefinition(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSBatchJobDefinition(*res.Properties)
+	}
+
 	return nil
 }
 

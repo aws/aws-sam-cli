@@ -56,7 +56,12 @@ func (r *AWSWAFSizeConstraintSet) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSWAFSizeConstraintSet(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSWAFSizeConstraintSet(*res.Properties)
+	}
+
 	return nil
 }
 

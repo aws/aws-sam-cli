@@ -66,7 +66,12 @@ func (r *AWSDMSReplicationSubnetGroup) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSDMSReplicationSubnetGroup(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSDMSReplicationSubnetGroup(*res.Properties)
+	}
+
 	return nil
 }
 

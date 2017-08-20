@@ -66,7 +66,12 @@ func (r *AWSCertificateManagerCertificate) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSCertificateManagerCertificate(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSCertificateManagerCertificate(*res.Properties)
+	}
+
 	return nil
 }
 

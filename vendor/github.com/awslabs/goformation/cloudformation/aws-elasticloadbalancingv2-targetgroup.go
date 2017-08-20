@@ -121,7 +121,12 @@ func (r *AWSElasticLoadBalancingV2TargetGroup) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSElasticLoadBalancingV2TargetGroup(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSElasticLoadBalancingV2TargetGroup(*res.Properties)
+	}
+
 	return nil
 }
 

@@ -66,7 +66,12 @@ func (r *AWSIAMGroup) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSIAMGroup(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSIAMGroup(*res.Properties)
+	}
+
 	return nil
 }
 

@@ -66,7 +66,12 @@ func (r *AWSKinesisStream) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSKinesisStream(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSKinesisStream(*res.Properties)
+	}
+
 	return nil
 }
 

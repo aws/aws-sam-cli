@@ -71,7 +71,12 @@ func (r *AWSEC2VPC) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSEC2VPC(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSEC2VPC(*res.Properties)
+	}
+
 	return nil
 }
 

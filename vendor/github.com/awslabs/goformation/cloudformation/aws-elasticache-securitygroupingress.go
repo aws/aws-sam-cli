@@ -61,7 +61,12 @@ func (r *AWSElastiCacheSecurityGroupIngress) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSElastiCacheSecurityGroupIngress(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSElastiCacheSecurityGroupIngress(*res.Properties)
+	}
+
 	return nil
 }
 

@@ -61,7 +61,12 @@ func (r *AWSCloudFormationWaitCondition) UnmarshalJSON(b []byte) error {
 		fmt.Printf("ERROR: %s\n", err)
 		return err
 	}
-	*r = AWSCloudFormationWaitCondition(*res.Properties)
+
+	// If the resource has no Properties set, it could be nil
+	if res.Properties != nil {
+		*r = AWSCloudFormationWaitCondition(*res.Properties)
+	}
+
 	return nil
 }
 
