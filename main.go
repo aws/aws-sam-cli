@@ -10,6 +10,7 @@ import (
 )
 
 const LOCAL_BUILD_VERSION = "snapshot"
+
 // `version` property will be replaced by the build upon release
 var version = LOCAL_BUILD_VERSION
 
@@ -66,6 +67,11 @@ func main() {
 							Usage: "Optional logfile to send runtime logs to",
 						},
 						cli.StringFlag{
+							Name:  "static-dir, s",
+							Usage: "Any static assets (e.g. CSS/Javascript/HTML) files located in this directory will be presented at /",
+							Value: "public",
+						},
+						cli.StringFlag{
 							Name:  "port, p",
 							Value: "3000",
 							Usage: "Local port number to listen on",
@@ -80,8 +86,8 @@ func main() {
 							Usage: "Optional. JSON file containing values for Lambda function's environment variables. ",
 						},
 						cli.StringFlag{
-							Name: "debug-port, d",
-							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
+							Name:   "debug-port, d",
+							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
 						cli.StringFlag{
@@ -119,8 +125,8 @@ func main() {
 							Usage: "JSON file containing event data passed to the Lambda function during invoke",
 						},
 						cli.StringFlag{
-							Name: "debug-port, d",
-							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
+							Name:   "debug-port, d",
+							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
 						},
 						cli.StringFlag{
