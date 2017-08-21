@@ -3,10 +3,13 @@ package main
 import (
 	"archive/zip"
 	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"golang.org/x/net/context"
@@ -20,7 +23,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -39,22 +41,25 @@ import (
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
 	Invoke(string) (io.Reader, io.Reader, error)
+	InvokeHTTP() func(http.ResponseWriter, *http.Request)
 	CleanUp()
 }
 
 // Runtime contains a reference to a single container for a specific runtime. It is used to invoke functions multiple times against a single container.
 type Runtime struct {
+	LogicalID       string
 	ID              string
 	Name            string
 	Image           string
 	Cwd             string
 	DecompressedCwd string
 	Function        cloudformation.AWSServerlessFunction
-	EnvVarOverrides map[string]string
+	EnvOverrideFile string
 	DebugPort       string
 	Context         context.Context
 	Client          *client.Client
 	TimeoutTimer    *time.Timer
+	Logger          io.Writer
 }
 
 var (
@@ -93,11 +98,13 @@ var runtimeImageFor = map[string]string{
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
 type NewRuntimeOpt struct {
+	LogicalID            string
 	Function             cloudformation.AWSServerlessFunction
-	EnvVarsOverrides     map[string]string
+	EnvOverrideFile      string
 	Basedir              string
 	CheckWorkingDirExist bool
 	DebugPort            string
+	Logger               io.Writer
 }
 
 // NewRuntime instantiates a Lambda runtime container
@@ -124,14 +131,16 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 	}
 
 	r := &Runtime{
+		LogicalID:       opt.LogicalID,
 		Name:            opt.Function.Runtime,
 		Cwd:             cwd,
 		Image:           image,
 		Function:        opt.Function,
-		EnvVarOverrides: opt.EnvVarsOverrides,
+		EnvOverrideFile: opt.EnvOverrideFile,
 		DebugPort:       opt.DebugPort,
 		Context:         context.Background(),
 		Client:          cli,
+		Logger:          opt.Logger,
 	}
 
 	// Check if we have the required Docker image for this runtime
@@ -251,8 +260,6 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 
 	}
 
-	env := getEnvironmentVariables(r.Function, r.EnvVarOverrides)
-
 	// Define the container options
 	config := &container.Config{
 		WorkingDir:   "/var/task",
@@ -263,7 +270,7 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 		Cmd:          []string{r.Function.Handler, event},
 		Env: func() []string {
 			result := []string{}
-			for k, v := range env {
+			for k, v := range getEnvironmentVariables(r.LogicalID, &r.Function, r.EnvOverrideFile) {
 				result = append(result, k+"="+v)
 			}
 			return result
@@ -345,44 +352,6 @@ func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser) {
 	}()
 }
 
-func getSessionOrDefaultCreds() map[string]string {
-	region := "us-east-1"
-	key := "defaultkey"
-	secret := "defaultsecret"
-	sessiontoken := "sessiontoken"
-
-	result := map[string]string{
-		"region":  region,
-		"key":     key,
-		"secret":  secret,
-		"session": sessiontoken,
-	}
-
-	// Obtain AWS credentials and pass them through to the container runtime via env variables
-	if sess, err := session.NewSession(); err == nil {
-		if creds, err := sess.Config.Credentials.Get(); err == nil {
-			if *sess.Config.Region != "" {
-				result["region"] = *sess.Config.Region
-			}
-
-			result["key"] = creds.AccessKeyID
-			result["secret"] = creds.SecretAccessKey
-			result["sessiontoken"] = creds.SessionToken
-		}
-	}
-	return result
-}
-
-func getOsEnviron() map[string]string {
-	result := map[string]string{}
-	for _, value := range os.Environ() {
-		keyVal := strings.Split(value, "=")
-		result[keyVal[0]] = keyVal[1]
-	}
-
-	return result
-}
-
 func (r *Runtime) getDebugPortBindings() nat.PortMap {
 	if len(r.DebugPort) == 0 {
 		return nil
@@ -457,96 +426,6 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 	return
 }
 
-/**
- The Environment Variable Saga..
-
- There are two types of environment variables
- 	- Lambda runtime variables starting with "AWS_" and passed to every function
- 	- Custom environment variables defined in SAM template for each function
-
- Custom environment variables defined in the SAM template can contain hard-coded
- values or fetch from a stack parameter or use Intrinsics to generate a value at
- at stack creation time like ARNs. It can get complicated to support all cases
-
- Instead we will parse only hard-coded values from the template. For the rest,
- users can supply values through the Shell's environment or the env-var override
- CLI argument. If a value is provided through more than one method, the method
- with higher priority will win.
-
- Priority (Highest to lowest)
-	Env-Var CLI argument
-	Shell's Environment
-	Hard-coded values from template
-
- This priority also applies to AWS_* system variables
-*/
-func getEnvironmentVariables(function cloudformation.AWSServerlessFunction, overrides map[string]string) map[string]string {
-
-	creds := getSessionOrDefaultCreds()
-
-	// Variables available in Lambda execution environment for all functions (AWS_* variables)
-	env := map[string]string{
-		"AWS_SAM_LOCAL":                   "true",
-		"AWS_REGION":                      creds["region"],
-		"AWS_DEFAULT_REGION":              creds["region"],
-		"AWS_ACCESS_KEY_ID":               creds["key"],
-		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
-		"AWS_SESSION_TOKEN":               creds["sessiontoken"],
-		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(int(function.MemorySize)),
-		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(int(function.Timeout)),
-		"AWS_LAMBDA_FUNCTION_HANDLER":     function.Handler,
-		// "AWS_ACCOUNT_ID=",
-		// "AWS_LAMBDA_EVENT_BODY=",
-		// "AWS_REGION=",
-		// "AWS_LAMBDA_FUNCTION_NAME=",
-		// "AWS_LAMBDA_FUNCTION_VERSION=",
-	}
-
-	// Get all env vars from SAM file. Use values if it was hard-coded
-	osEnviron := getOsEnviron()
-	if function.Environment != nil {
-		for name, value := range function.Environment.Variables {
-			// hard-coded values, lowest priority
-			if stringedValue, ok := toStringMaybe(value); ok {
-				// Get only hard-coded values from the template
-				env[name] = stringedValue
-			}
-
-			// Shell's environment, second priority
-			if value, ok := osEnviron[name]; ok {
-				env[name] = value
-			}
-
-			// EnvVars overrides provided by customer, highest priority
-			if len(overrides) > 0 {
-				if value, ok := overrides[name]; ok {
-					env[name] = value
-				}
-			}
-		}
-	}
-
-	return env
-
-}
-
-// Converts the input to string if it is a primitive type, Otherwise returns nil
-func toStringMaybe(value interface{}) (string, bool) {
-
-	switch value.(type) {
-	case string:
-		return value.(string), true
-	case int:
-		return strconv.Itoa(value.(int)), true
-	case float32, float64:
-		return strconv.FormatFloat(value.(float64), 'f', -1, 64), true
-	case bool:
-		return strconv.FormatBool(value.(bool)), true
-	default:
-		return "", false
-	}
-}
-
 // CleanUp removes the Docker container used by this runtime
 func (r *Runtime) CleanUp() {
 
@@ -562,6 +441,100 @@ func (r *Runtime) CleanUp() {
 	// Remove any decompressed archive if there was one (e.g. ZIP/JAR)
 	if r.DecompressedCwd != "" {
 		os.RemoveAll(r.DecompressedCwd)
+	}
+
+}
+
+// InvokeHTTP invokes a Lambda function, and implements the Go http.HandlerFunc interface
+// so it can be connected straight into most HTTP packages/frameworks etc.
+func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
+
+	return func(w http.ResponseWriter, req *http.Request) {
+		var wg sync.WaitGroup
+		w.Header().Set("Content-Type", "application/json")
+
+		event, err := NewEvent(req)
+		if err != nil {
+			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
+			log.Println(msg)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+			return
+		}
+
+		eventJSON, err := event.JSON()
+		if err != nil {
+			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
+			log.Println(msg)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+			return
+		}
+
+		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+			return
+		}
+
+		wg.Add(1)
+		go func() {
+
+			result, err := ioutil.ReadAll(stdoutTxt)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(`{ "message": "Internal server error" }`))
+				wg.Done()
+				return
+			}
+
+			// At this point, we need to see whether the response is in the format
+			// of a Lambda proxy response (inc statusCode / body), and if so, handle it
+			// otherwise just copy the whole output back to the http.ResponseWriter
+			proxy := &struct {
+				StatusCode int               `json:"statusCode"`
+				Headers    map[string]string `json:"headers"`
+				Body       json.Number       `json:"body"`
+			}{}
+
+			if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == 0 && len(proxy.Headers) == 0 && proxy.Body == "") {
+				// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
+				// Return HTTP 501 (Internal Server Error) to match Lambda behaviour
+				fmt.Fprintf(os.Stderr, color.RedString("ERROR: Function returned an invalid response (must include one of: body, headers or statusCode in the response object)\n"))
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(`{ "message": "Internal server error" }`))
+				wg.Done()
+				return
+			}
+
+			// Set any HTTP headers requested by the proxy function
+			if len(proxy.Headers) > 0 {
+				for key, value := range proxy.Headers {
+					w.Header().Set(key, value)
+				}
+			}
+
+			// This is a proxy function, so set the http status code and return the body
+			if proxy.StatusCode != 0 {
+				w.WriteHeader(proxy.StatusCode)
+			}
+
+			w.Write([]byte(proxy.Body))
+			wg.Done()
+
+		}()
+
+		wg.Add(1)
+		go func() {
+			// Finally, copy the container stderr (runtime logs) to the console stderr
+			io.Copy(r.Logger, stderrTxt)
+			wg.Done()
+		}()
+
+		wg.Wait()
+
+		r.CleanUp()
 	}
 
 }

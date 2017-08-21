@@ -11,8 +11,6 @@ import (
 	"io"
 	"sync"
 
-	"encoding/json"
-
 	"github.com/awslabs/goformation"
 	"github.com/codegangsta/cli"
 )
@@ -81,33 +79,6 @@ func invoke(c *cli.Context) {
 
 	log.Printf("Connected to Docker %s", dockerVersion)
 
-	envVarsFile := c.String("env-vars")
-	envVarsOverrides := map[string]map[string]string{}
-	if len(envVarsFile) > 0 {
-
-		f, err := os.Open(c.String("env-vars"))
-		if err != nil {
-			log.Fatalf("Failed to open environment variables values file\n%s\n", err)
-		}
-
-		data, err := ioutil.ReadAll(f)
-		if err != nil {
-			log.Fatalf("Unable to read the environment variable values file\n%s\n", err)
-		}
-
-		// This is a JSON of structure {FunctionName: {key:value}, FunctionName: {key:value}}
-		if err = json.Unmarshal(data, &envVarsOverrides); err != nil {
-			log.Fatalf("Environment variable values must be a valid JSON\n%s\n", err)
-		}
-
-	}
-
-	// Find the env-vars map for the function
-	funcEnvVarsOverrides := envVarsOverrides[name]
-	if funcEnvVarsOverrides == nil {
-		funcEnvVarsOverrides = map[string]string{}
-	}
-
 	baseDir := c.String("docker-volume-basedir")
 	checkWorkingDirExist := false
 	if baseDir == "" {
@@ -116,8 +87,10 @@ func invoke(c *cli.Context) {
 	}
 
 	runt, err := NewRuntime(NewRuntimeOpt{
+		LogicalID:            name,
 		Function:             function,
-		EnvVarsOverrides:     funcEnvVarsOverrides,
+		Logger:               stderr,
+		EnvOverrideFile:      c.String("env-vars"),
 		Basedir:              baseDir,
 		CheckWorkingDirExist: checkWorkingDirExist,
 		DebugPort:            c.String("debug-port"),
