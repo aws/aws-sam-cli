@@ -663,46 +663,53 @@ func decompressArchive(src string) (string, error) {
 
 	for _, f := range r.File {
 
-		rc, err := f.Open()
+		err := func() error {
+			rc, err := f.Open()
+			if err != nil {
+				return err
+			}
+			defer rc.Close()
+
+			// Store filename/path for returning and using later on
+			fpath := filepath.Join(dest, f.Name)
+			filenames = append(filenames, fpath)
+
+			if f.FileInfo().IsDir() {
+
+				// Make Folder
+				os.MkdirAll(fpath, os.ModePerm)
+
+			} else {
+
+				// Make File
+				var fdir string
+				if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
+					fdir = fpath[:lastIndex]
+				}
+
+				err = os.MkdirAll(fdir, os.ModePerm)
+				if err != nil {
+					return err
+				}
+				f, err := os.OpenFile(
+					fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+
+				_, err = io.Copy(f, rc)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}()
+
 		if err != nil {
+			log.Fatal(err)
 			return dest, err
-		}
-		defer rc.Close()
-
-		// Store filename/path for returning and using later on
-		fpath := filepath.Join(dest, f.Name)
-		filenames = append(filenames, fpath)
-
-		if f.FileInfo().IsDir() {
-
-			// Make Folder
-			os.MkdirAll(fpath, os.ModePerm)
-
-		} else {
-
-			// Make File
-			var fdir string
-			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
-				fdir = fpath[:lastIndex]
-			}
-
-			err = os.MkdirAll(fdir, os.ModePerm)
-			if err != nil {
-				log.Fatal(err)
-				return dest, err
-			}
-			f, err := os.OpenFile(
-				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-			if err != nil {
-				return dest, err
-			}
-			defer f.Close()
-
-			_, err = io.Copy(f, rc)
-			if err != nil {
-				return dest, err
-			}
-
 		}
 	}
 
