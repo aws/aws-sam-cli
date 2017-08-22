@@ -43,17 +43,20 @@ func start(c *cli.Context) {
 	}
 	log.Printf("Connected to Docker %s", dockerVersion)
 
+	// Get the working directory for the project based on
+	// the template directory. Also, give an opportunity for
+	// this to be overriden by the --docker-volume-basedir flag.
+	cwd := filepath.Dir(filename)
+	if c.String("docker-volume-basedir") != "" {
+		cwd = c.String("docker-volume-basedir")
+	}
+
 	// Create a new router
 	mux := router.NewServerlessRouter()
 
 	functions := template.GetAllAWSServerlessFunctionResources()
 
 	for name, function := range functions {
-
-		cwd := filepath.Dir(filename)
-		if c.String("docker-volume-basedir") != "" {
-			cwd = c.String("docker-volume-basedir")
-		}
 
 		// Initiate a new Lambda runtime
 		runt, err := NewRuntime(NewRuntimeOpt{
@@ -104,7 +107,7 @@ func start(c *cli.Context) {
 
 	// Mount static files
 	if c.String("static-dir") != "" {
-		static := filepath.Join(getWorkingDir(filename), c.String("static-dir"))
+		static := filepath.Join(cwd, c.String("static-dir"))
 		fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", static)
 		mux.AddStaticDir(static)
 	}
