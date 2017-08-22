@@ -58,6 +58,11 @@ func start(c *cli.Context) {
 
 	for name, function := range functions {
 
+		cwd := filepath.Dir(filename)
+		if c.String("docker-volume-basedir") != "" {
+			cwd = c.String("docker-volume-basedir")
+		}
+
 		// Initiate a new Lambda runtime
 		runt, err := NewRuntime(NewRuntimeOpt{
 			Cwd:             cwd,

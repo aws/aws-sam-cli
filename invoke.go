@@ -93,6 +93,7 @@ func invoke(c *cli.Context) {
 		DebugPort:       c.String("debug-port"),
 		SkipPullImage:   c.Bool("skip-pull-image"),
 	})
+
 	if err != nil {
 		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime, err)
 	}
