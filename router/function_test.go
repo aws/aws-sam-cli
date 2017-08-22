@@ -133,4 +133,23 @@ var _ = Describe("Function", func() {
 
 	})
 
+	Context("with a GoFormation AWS::Serverless::Function that has no 'Api' event sources", func() {
+
+		r := router.NewServerlessRouter()
+
+		function := &cloudformation.AWSServerlessFunction{
+			Runtime: "nodejs6.10",
+		}
+
+		err := r.AddFunction(function, func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(200)
+			w.Write([]byte("ok"))
+		})
+
+		It("should throw a ErrNoEventsFound error", func() {
+			Expect(err).To(MatchError(router.ErrNoEventsFound))
+		})
+
+	})
+
 })
