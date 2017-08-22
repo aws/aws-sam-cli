@@ -79,21 +79,18 @@ func invoke(c *cli.Context) {
 
 	log.Printf("Connected to Docker %s", dockerVersion)
 
-	baseDir := c.String("docker-volume-basedir")
-	checkWorkingDirExist := false
-	if baseDir == "" {
-		baseDir = filepath.Dir(filename)
-		checkWorkingDirExist = true
+	cwd := filepath.Dir(filename)
+	if c.String("docker-volume-basedir") != "" {
+		cwd = c.String("docker-volume-basedir")
 	}
 
 	runt, err := NewRuntime(NewRuntimeOpt{
-		LogicalID:            name,
-		Function:             function,
-		Logger:               stderr,
-		EnvOverrideFile:      c.String("env-vars"),
-		Basedir:              baseDir,
-		CheckWorkingDirExist: checkWorkingDirExist,
-		DebugPort:            c.String("debug-port"),
+		Cwd:             cwd,
+		LogicalID:       name,
+		Function:        function,
+		Logger:          stderr,
+		EnvOverrideFile: c.String("env-vars"),
+		DebugPort:       c.String("debug-port"),
 	})
 	if err != nil {
 		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime, err)

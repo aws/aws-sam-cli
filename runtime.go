@@ -98,13 +98,12 @@ var runtimeImageFor = map[string]string{
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
 type NewRuntimeOpt struct {
-	LogicalID            string
-	Function             cloudformation.AWSServerlessFunction
-	EnvOverrideFile      string
-	Basedir              string
-	CheckWorkingDirExist bool
-	DebugPort            string
-	Logger               io.Writer
+	Cwd             string
+	LogicalID       string
+	Function        cloudformation.AWSServerlessFunction
+	EnvOverrideFile string
+	DebugPort       string
+	Logger          io.Writer
 }
 
 // NewRuntime instantiates a Lambda runtime container
@@ -120,20 +119,10 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	codeuri := ""
-	if opt.Function.CodeUri != nil && opt.Function.CodeUri.String != nil {
-		codeuri = *opt.Function.CodeUri.String
-	}
-
-	cwd, err := getWorkingDir(opt.Basedir, codeuri, opt.CheckWorkingDirExist)
-	if err != nil {
-		return nil, err
-	}
-
 	r := &Runtime{
 		LogicalID:       opt.LogicalID,
 		Name:            opt.Function.Runtime,
-		Cwd:             cwd,
+		Cwd:             getWorkingDir(opt.Cwd),
 		Image:           image,
 		Function:        opt.Function,
 		EnvOverrideFile: opt.EnvOverrideFile,
@@ -189,6 +178,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 }
 
 func overrideHostConfig(cfg *container.HostConfig) error {
+
 	const dotfile = ".config/aws-sam-local/container-config.json"
 	const eMsg = "unable to use container host config override file from '$HOME/%s'"
 
@@ -249,15 +239,20 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 	log.Printf("Invoking %s (%s)\n", r.Function.Handler, r.Name)
 
 	// If the CodeUri has been specified as a .jar or .zip file, unzip it on the fly
-	if strings.HasSuffix(r.Cwd, ".jar") || strings.HasSuffix(r.Cwd, ".zip") {
-		log.Printf("Decompressing %s into runtime container...\n", filepath.Base(r.Cwd))
-		decompressedDir, err := decompressArchive(r.Cwd)
-		if err != nil {
-			log.Printf("ERROR: Failed to decompress archive: %s\n", err)
-			return nil, nil, fmt.Errorf("failed to decompress archive: %s", err)
+	if r.Function.CodeUri != nil && r.Function.CodeUri.String != nil {
+		codeuri := *r.Function.CodeUri.String
+		if strings.HasSuffix(codeuri, ".jar") || strings.HasSuffix(codeuri, ".zip") {
+			archive := filepath.Join(r.Cwd, codeuri)
+			if _, err := os.Stat(archive); err == nil {
+				log.Printf("Decompressing %s\n", archive)
+				decompressedDir, err := decompressArchive(archive)
+				if err != nil {
+					log.Printf("ERROR: Failed to decompress archive: %s\n", err)
+					return nil, nil, fmt.Errorf("failed to decompress archive: %s", err)
+				}
+				r.DecompressedCwd = decompressedDir
+			}
 		}
-		r.DecompressedCwd = decompressedDir
-
 	}
 
 	// Define the container options
@@ -473,6 +468,8 @@ func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
 
 		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON)
 		if err != nil {
+			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
+			log.Println(msg)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(`{ "message": "Internal server error" }`))
 			return
@@ -483,6 +480,8 @@ func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
 
 			result, err := ioutil.ReadAll(stdoutTxt)
 			if err != nil {
+				msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
+				log.Println(msg)
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(`{ "message": "Internal server error" }`))
 				wg.Done()
@@ -501,7 +500,7 @@ func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
 			if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == 0 && len(proxy.Headers) == 0 && proxy.Body == "") {
 				// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
 				// Return HTTP 501 (Internal Server Error) to match Lambda behaviour
-				fmt.Fprintf(os.Stderr, color.RedString("ERROR: Function returned an invalid response (must include one of: body, headers or statusCode in the response object)\n"))
+				log.Printf(color.RedString("Function returned an invalid response (must include one of: body, headers or statusCode in the response object)\n"))
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(`{ "message": "Internal server error" }`))
 				wg.Done()
@@ -580,33 +579,23 @@ func getDockerVersion() (string, error) {
 
 }
 
-func getWorkingDir(basedir string, codeuri string, checkWorkingDirExist bool) (string, error) {
+func getWorkingDir(dir string) string {
 
-	// Determine which directory to mount into the runtime container.
-	// If no CodeUri is specified for this function, then use the same
-	// directory as the SAM template (basedir), otherwise mount the
-	// directory specified in the CodeUri property.
-	abs, err := filepath.Abs(basedir)
-	if err != nil {
-		return "", err
-	}
-
-	dir := filepath.Join(abs, codeuri)
-
-	if checkWorkingDirExist {
-
-		// ...but only if it actually exists
-		if _, err := os.Stat(dir); err != nil {
-			// It doesn't, so just use the directory of the SAM template
-			// which might have been passed as a relative directory
-			dir = abs
+	// If the template filepath isn't set, just use the cwd
+	if dir == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			// A directory wasn't specified on the command line
+			// and we can't determin the current working directory.
+			log.Print("Could not determin find working directory for template")
+			return ""
 		}
-
+		dir = cwd
 	}
 
 	// Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
-	dir = filepath.ToSlash(dir)
-	return dir, nil
+	// Hence the use of filepath.ToSlash for return values.
+	return filepath.ToSlash(dir)
 
 }
 

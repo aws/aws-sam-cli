@@ -43,14 +43,6 @@ func start(c *cli.Context) {
 	}
 	log.Printf("Connected to Docker %s", dockerVersion)
 
-	// ...
-	baseDir := c.String("docker-volume-basedir")
-	checkWorkingDirExist := false
-	if baseDir == "" {
-		baseDir = filepath.Dir(filename)
-		checkWorkingDirExist = true
-	}
-
 	// Create a new router
 	mux := router.NewServerlessRouter()
 
@@ -58,15 +50,19 @@ func start(c *cli.Context) {
 
 	for name, function := range functions {
 
+		cwd := filepath.Dir(filename)
+		if c.String("docker-volume-basedir") != "" {
+			cwd = c.String("docker-volume-basedir")
+		}
+
 		// Initiate a new Lambda runtime
 		runt, err := NewRuntime(NewRuntimeOpt{
-			LogicalID:            name,
-			Function:             function,
-			Logger:               stderr,
-			EnvOverrideFile:      c.String("env-vars"),
-			Basedir:              baseDir,
-			CheckWorkingDirExist: checkWorkingDirExist,
-			DebugPort:            c.String("debug-port"),
+			Cwd:             cwd,
+			LogicalID:       name,
+			Function:        function,
+			Logger:          stderr,
+			EnvOverrideFile: c.String("env-vars"),
+			DebugPort:       c.String("debug-port"),
 		})
 
 		// Check there wasn't a problem initiating the Lambda runtime
@@ -101,20 +97,16 @@ func start(c *cli.Context) {
 
 	fmt.Fprintf(stderr, "\n")
 
-	// Mount static files
-	if c.String("static-dir") != "" {
-		static, err := getWorkingDir(baseDir, c.String("static-dir"), checkWorkingDirExist)
-		if err != nil {
-			log.Printf("WARNING: Could not mount static files: %s\n", err)
-		} else {
-			fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", static)
-			mux.AddStaticDir(static, "/")
-		}
-	}
-
 	for _, mount := range mux.Mounts() {
 		msg := fmt.Sprintf("Mounting %s (%s) at http://%s:%s%s %s", mount.Function.Handler, mount.Function.Runtime, c.String("host"), c.String("port"), mount.Path, mount.Methods())
 		fmt.Fprintf(os.Stderr, "%s\n", msg)
+	}
+
+	// Mount static files
+	if c.String("static-dir") != "" {
+		static := filepath.Join(getWorkingDir(filename), c.String("static-dir"))
+		fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", static)
+		mux.AddStaticDir(static)
 	}
 
 	fmt.Fprintf(stderr, "\n")

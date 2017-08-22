@@ -42,23 +42,25 @@ func getEnvironmentVariables(logicalID string, function *cloudformation.AWSServe
 	osenv := getEnvFromOS()
 	overrides := getEnvOverrides(logicalID, overrideFile)
 
-	for name, value := range function.Environment.Variables {
+	if function.Environment != nil {
+		for name, value := range function.Environment.Variables {
 
-		// hard-coded values, lowest priority
-		if stringedValue, ok := toStringMaybe(value); ok {
-			// Get only hard-coded values from the template
-			env[name] = stringedValue
-		}
+			// hard-coded values, lowest priority
+			if stringedValue, ok := toStringMaybe(value); ok {
+				// Get only hard-coded values from the template
+				env[name] = stringedValue
+			}
 
-		// Shell's environment, second priority
-		if value, ok := osenv[name]; ok {
-			env[name] = value
-		}
-
-		// EnvVars overrides provided by customer, highest priority
-		if len(overrides) > 0 {
-			if value, ok := overrides[name]; ok {
+			// Shell's environment, second priority
+			if value, ok := osenv[name]; ok {
 				env[name] = value
+			}
+
+			// EnvVars overrides provided by customer, highest priority
+			if len(overrides) > 0 {
+				if value, ok := overrides[name]; ok {
+					env[name] = value
+				}
 			}
 		}
 	}

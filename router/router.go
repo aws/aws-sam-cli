@@ -65,8 +65,8 @@ func (r *ServerlessRouter) AddAPI(a *cloudformation.AWSServerlessApi) error {
 }
 
 // AddStaticDir mounts a static directory provided, at the mount point also provided
-func (r *ServerlessRouter) AddStaticDir(dirname string, mountpoint string) {
-	r.mux.PathPrefix(mountpoint).Handler(http.FileServer(http.Dir(dirname)))
+func (r *ServerlessRouter) AddStaticDir(dirname string) {
+	r.mux.NotFoundHandler = http.FileServer(http.Dir(dirname))
 }
 
 // Router returns the Go http.Handler for the router, to be passed to http.ListenAndServe()
