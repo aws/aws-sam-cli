@@ -582,7 +582,7 @@ func getDockerVersion() (string, error) {
 func getWorkingDir(dir string) string {
 
 	// If the template filepath isn't set, just use the cwd
-	if dir == "" {
+	if dir == "" || dir == "." {
 		cwd, err := os.Getwd()
 		if err != nil {
 			// A directory wasn't specified on the command line
