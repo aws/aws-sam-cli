@@ -23,6 +23,7 @@ var _ = Describe("sam", func() {
 			inputs := [][]string{
 				// input path, output path
 				[]string{"", cwd},
+				[]string{".", cwd},
 				[]string{"/test/directory", "/test/directory"},
 				[]string{"test/directory", "test/directory"},
 			}
