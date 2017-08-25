@@ -117,13 +117,13 @@ func start(c *cli.Context) {
 
 			// Find the env-vars map for the function
 			funcEnvVarsOverrides := envVarsOverrides[name]
-
 			runt, err := NewRuntime(NewRuntimeOpt{
 				Function:             function,
 				EnvVarsOverrides:     funcEnvVarsOverrides,
 				Basedir:              filepath.Dir(filename),
 				CheckWorkingDirExist: checkWorkingDirExist,
 				DebugPort:            c.String("debug-port"),
+				SkipPullImage:        c.Bool("skip-pull-image"),
 			})
 			if err != nil {
 				if err == ErrRuntimeNotSupported {
