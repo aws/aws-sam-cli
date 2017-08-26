@@ -104,6 +104,7 @@ type NewRuntimeOpt struct {
 	EnvOverrideFile string
 	DebugPort       string
 	Logger          io.Writer
+	SkipPullImage   bool
 }
 
 // NewRuntime instantiates a Lambda runtime container
@@ -142,35 +143,51 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime)
-	progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
-	if len(images) < 0 && err != nil {
-		log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
-		return nil, err
+	// By default, pull images unless we are told not to
+	pullImage := true
+
+	if opt.SkipPullImage {
+		log.Printf("Requested to skip pulling images ...\n")
+		pullImage = false
 	}
 
-	if err != nil {
-		log.Printf("Could not fetch %s Docker image: %s\n", r.Image, err)
-	} else {
+	// However, if we don't have the image we will need it...
+	if len(images) == 0 {
+		log.Printf("Runtime image missing, will pull....\n")
+		pullImage = true
+	}
 
-		// Use Docker's standard progressbar to show image pull progress.
-		// However there is a bug that we are working around. We'll do the same
-		// as Docker does, and temporarily set the TERM to a non-existant
-		// terminal
-		// More info here:
-		// https://github.com/Nvveen/Gotty/pull/1
+	if pullImage {
+		log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime)
+		progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
+		if len(images) < 0 && err != nil {
+			log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
+			return nil, err
+		}
 
-		origTerm := os.Getenv("TERM")
-		os.Setenv("TERM", "eifjccgifcdekgnbtlvrgrinjjvfjggrcudfrriivjht")
-		defer os.Setenv("TERM", origTerm)
+		if err != nil {
+			log.Printf("Could not fetch %s Docker image: %s\n", r.Image, err)
+		} else {
 
-		// Show the Docker pull messages in green
-		color.Output = colorable.NewColorableStderr()
-		color.Set(color.FgGreen)
-		defer color.Unset()
+			// Use Docker's standard progressbar to show image pull progress.
+			// However there is a bug that we are working around. We'll do the same
+			// as Docker does, and temporarily set the TERM to a non-existant
+			// terminal
+			// More info here:
+			// https://github.com/Nvveen/Gotty/pull/1
 
-		jsonmessage.DisplayJSONMessagesStream(progress, os.Stderr, os.Stderr.Fd(), term.IsTerminal(os.Stderr.Fd()), nil)
+			origTerm := os.Getenv("TERM")
+			os.Setenv("TERM", "eifjccgifcdekgnbtlvrgrinjjvfjggrcudfrriivjht")
+			defer os.Setenv("TERM", origTerm)
 
+			// Show the Docker pull messages in green
+			color.Output = colorable.NewColorableStderr()
+			color.Set(color.FgGreen)
+			defer color.Unset()
+
+			jsonmessage.DisplayJSONMessagesStream(progress, os.Stderr, os.Stderr.Fd(), term.IsTerminal(os.Stderr.Fd()), nil)
+
+		}
 	}
 
 	return r, nil

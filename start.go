@@ -66,6 +66,7 @@ func start(c *cli.Context) {
 			Logger:          stderr,
 			EnvOverrideFile: c.String("env-vars"),
 			DebugPort:       c.String("debug-port"),
+			SkipPullImage:   c.Bool("skip-pull-image"),
 		})
 
 		// Check there wasn't a problem initiating the Lambda runtime
