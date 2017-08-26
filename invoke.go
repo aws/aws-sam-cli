@@ -121,6 +121,7 @@ func invoke(c *cli.Context) {
 		Basedir:              baseDir,
 		CheckWorkingDirExist: checkWorkingDirExist,
 		DebugPort:            c.String("debug-port"),
+		SkipPullImage:        c.Bool("skip-pull-image"),
 	})
 	if err != nil {
 		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime, err)
