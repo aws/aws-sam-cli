@@ -96,13 +96,12 @@ func main() {
 								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
 							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
 						},
-						cli.BoolFlag {
-							Name: "skip-pull-image, p",
-							Usage: "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
+						cli.BoolFlag{
+							Name:   "skip-pull-image",
+							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
 						},
-	
-				},
+					},
 				},
 				cli.Command{
 					Name:   "invoke",
@@ -141,12 +140,11 @@ func main() {
 								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
 							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
 						},
-						cli.BoolFlag {
-							Name: "skip-pull-image, p",
-							Usage: "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
+						cli.BoolFlag{
+							Name:   "skip-pull-image",
+							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
 						},
-	
 					},
 				},
 				cli.Command{
