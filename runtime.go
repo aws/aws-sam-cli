@@ -186,7 +186,6 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 			defer color.Unset()
 
 			jsonmessage.DisplayJSONMessagesStream(progress, os.Stderr, os.Stderr.Fd(), term.IsTerminal(os.Stderr.Fd()), nil)
-
 		}
 	}
 
