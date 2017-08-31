@@ -240,18 +240,27 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 
 	// If the CodeUri has been specified as a .jar or .zip file, unzip it on the fly
 	if r.Function.CodeUri != nil && r.Function.CodeUri.String != nil {
-		codeuri := *r.Function.CodeUri.String
-		if strings.HasSuffix(codeuri, ".jar") || strings.HasSuffix(codeuri, ".zip") {
-			archive := filepath.Join(r.Cwd, codeuri)
-			if _, err := os.Stat(archive); err == nil {
-				log.Printf("Decompressing %s\n", archive)
-				decompressedDir, err := decompressArchive(archive)
+		codeuri := filepath.Join(r.Cwd, *r.Function.CodeUri.String)
+
+		// Check if the CodeUri exists on the local filesystem
+		if _, err := os.Stat(codeuri); err == nil {
+			// It does exist - maybe it's a ZIP/JAR that we need to decompress on the fly
+			if strings.HasSuffix(codeuri, ".jar") || strings.HasSuffix(codeuri, ".zip") {
+				log.Printf("Decompressing %s\n", codeuri)
+				decompressedDir, err := decompressArchive(codeuri)
 				if err != nil {
 					log.Printf("ERROR: Failed to decompress archive: %s\n", err)
 					return nil, nil, fmt.Errorf("failed to decompress archive: %s", err)
 				}
 				r.DecompressedCwd = decompressedDir
+			} else {
+				// We have a CodeUri that exists locally, but isn't a ZIP/JAR.
+				// Just append it to the working directory
+				r.Cwd = codeuri
 			}
+		} else {
+			// The CodeUri specified doesn't exist locally. It could be
+			// an S3 location (s3://.....), so just ignore it.
 		}
 	}
 
