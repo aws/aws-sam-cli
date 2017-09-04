@@ -299,6 +299,13 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 
 	r.ID = resp.ID
 
+	if os.Getenv("AWS_SAM_DOCKER_NETWORK") != "" {
+		if err := r.Client.NetworkConnect(r.Context, os.Getenv("AWS_SAM_DOCKER_NETWORK"), resp.ID, nil); err != nil {
+			return nil, nil, err
+		}
+		log.Printf("Connecting container %s to network %s", resp.ID, os.Getenv("AWS_SAM_DOCKER_NETWORK"))
+	}
+
 	// Invoke the container
 	if err := r.Client.ContainerStart(r.Context, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return nil, nil, err
