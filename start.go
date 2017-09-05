@@ -120,7 +120,7 @@ func start(c *cli.Context) {
 			runt, err := NewRuntime(NewRuntimeOpt{
 				Function:             function,
 				EnvVarsOverrides:     funcEnvVarsOverrides,
-				Basedir:              filepath.Dir(filename),
+				Basedir:              baseDir,
 				CheckWorkingDirExist: checkWorkingDirExist,
 				DebugPort:            c.String("debug-port"),
 				SkipPullImage:        c.Bool("skip-pull-image"),
