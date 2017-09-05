@@ -124,6 +124,7 @@ func start(c *cli.Context) {
 				CheckWorkingDirExist: checkWorkingDirExist,
 				DebugPort:            c.String("debug-port"),
 				SkipPullImage:        c.Bool("skip-pull-image"),
+				DockerNetwork:        c.String("docker-network"),
 			})
 			if err != nil {
 				if err == ErrRuntimeNotSupported {
