@@ -96,6 +96,13 @@ func main() {
 								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
 							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
 						},
+						cli.StringFlag{
+							Name: "docker-network",
+							Usage: "Optional. Specifies the name or id of an existing docker network to lambda docker " +
+								"containers should connect to, along with the default bridge network. If not specified, " +
+								"the lambdadocker containers will only connect to the default bridge docker network.",
+							EnvVar: "SAM_DOCKER_NETWORK",
+						},
 						cli.BoolFlag{
 							Name:   "skip-pull-image",
 							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
@@ -139,6 +146,13 @@ func main() {
 							Usage: "Optional. Specifies the location basedir where the SAM file exists. If the Docker is running on a remote machine, " +
 								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
 							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
+						},
+						cli.StringFlag{
+							Name: "docker-network",
+							Usage: "Optional. Specifies the name or id of an existing docker network to lambda docker " +
+								"containers should connect to, along with the default bridge network. If not specified, " +
+								"the lambdadocker containers will only connect to the default bridge docker network.",
+							EnvVar: "SAM_DOCKER_NETWORK",
 						},
 						cli.BoolFlag{
 							Name:   "skip-pull-image",

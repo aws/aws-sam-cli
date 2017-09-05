@@ -248,7 +248,20 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
 
 #### Debugging Python functions
 
-Unlike Node.JS and Java, Python requires you to enable remote debugging in your Lambda function code. If you enable debugging with `--debug-port` or `-d` for a function that uses one of the Python runtimes, SAM Local will just map through that port from your host machine through to the Lambda runtime container. You will need to enable remote debugging in your function code. To do this, use a python package such as [remote-pdb](https://pypi.python.org/pypi/remote-pdb). When configuring the host the debugger listens on in your code, make sure to use `0.0.0.0` not `127.0.0.1` to allow Docker to map through the port to your host machine. 
+Unlike Node.JS and Java, Python requires you to enable remote debugging in your Lambda function code. If you enable debugging with `--debug-port` or `-d` for a function that uses one of the Python runtimes, SAM Local will just map through that port from your host machine through to the Lambda runtime container. You will need to enable remote debugging in your function code. To do this, use a python package such as [remote-pdb](https://pypi.python.org/pypi/remote-pdb). When configuring the host the debugger listens on in your code, make sure to use `0.0.0.0` not `127.0.0.1` to allow Docker to map through the port to your host machine.
+
+### Connecting to docker network
+Both `sam local invoke` and `sam local start-api` support connecting the create lambda docker containers to an existing docker network.
+
+To connect the containers to an existing docker network, you can use the `--docker-network` command-line argument or the `SAM_DOCKER_NETWORK` environment variable along with the name or id of the docker network you wish to connect to.
+
+```bash
+# Invoke a function locally and connect to a docker network
+$ sam local invoke --docker-network my-custom-network <function logical id>
+
+# Start local API Gateway and connect all containers to a docker network
+$ sam local start-api --docker-network b91847306671 -d 5858
+```
 
 ### Validate SAM templates
 

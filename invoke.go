@@ -122,6 +122,7 @@ func invoke(c *cli.Context) {
 		CheckWorkingDirExist: checkWorkingDirExist,
 		DebugPort:            c.String("debug-port"),
 		SkipPullImage:        c.Bool("skip-pull-image"),
+		DockerNetwork:        c.String("docker-network"),
 	})
 	if err != nil {
 		log.Fatalf("Could not initiate %s runtime: %s\n", function.Runtime, err)
