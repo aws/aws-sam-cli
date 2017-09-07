@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Example Lambda
+Resources:
+  EnvDownHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      # as soon as we rely on third-party depedencies (pip packages to `virtualenv`), we are
+      # forced to create a zip-file, containing all relevant data
+      CodeUri: bundle.zip
+      Handler: example.schedule.lambda_sandbox_down_handler
+      Runtime: python3.6
+      Environment:
+        Variables:
+          AWS_ENVIRONMENT: sandbox
