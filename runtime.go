@@ -148,21 +148,21 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	// By default, pull images unless we are told not to 
-	pullImage := true 
-	
-	if (opt.SkipPullImage) {
+	// By default, pull images unless we are told not to
+	pullImage := true
+
+	if opt.SkipPullImage {
 		log.Printf("Requested to skip pulling images ...\n")
 		pullImage = false
 	}
 
 	// However, if we don't have the image we will need it...
-	if (len(images) == 0) {
+	if len(images) == 0 {
 		log.Printf("Runtime image missing, will pull....\n")
 		pullImage = true
 	}
 
-	if (pullImage) {	
+	if pullImage {
 		log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime)
 		progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
 		if len(images) < 0 && err != nil {
@@ -376,13 +376,11 @@ func getSessionOrDefaultCreds() map[string]string {
 	region := "us-east-1"
 	key := "defaultkey"
 	secret := "defaultsecret"
-	sessiontoken := "sessiontoken"
 
 	result := map[string]string{
-		"region":  region,
-		"key":     key,
-		"secret":  secret,
-		"session": sessiontoken,
+		"region": region,
+		"key":    key,
+		"secret": secret,
 	}
 
 	// Obtain AWS credentials and pass them through to the container runtime via env variables
@@ -394,9 +392,14 @@ func getSessionOrDefaultCreds() map[string]string {
 
 			result["key"] = creds.AccessKeyID
 			result["secret"] = creds.SecretAccessKey
-			result["sessiontoken"] = creds.SessionToken
+			if creds.SessionToken != "" {
+				result["sessiontoken"] = creds.SessionToken
+			} else {
+				delete(result, "sessiontoken")
+			}
 		}
 	}
+
 	return result
 }
 
@@ -518,7 +521,6 @@ func getEnvironmentVariables(function cloudformation.AWSServerlessFunction, over
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
-		"AWS_SESSION_TOKEN":               creds["sessiontoken"],
 		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(int(function.MemorySize)),
 		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(int(function.Timeout)),
 		"AWS_LAMBDA_FUNCTION_HANDLER":     function.Handler,
@@ -527,6 +529,10 @@ func getEnvironmentVariables(function cloudformation.AWSServerlessFunction, over
 		// "AWS_REGION=",
 		// "AWS_LAMBDA_FUNCTION_NAME=",
 		// "AWS_LAMBDA_FUNCTION_VERSION=",
+	}
+
+	if token, ok := creds["sessiontoken"]; ok && token != "" {
+		env["AWS_SESSION_TOKEN"] = token
 	}
 
 	// Get all env vars from SAM file. Use values if it was hard-coded
