@@ -14,8 +14,8 @@ setup(
     name='example.cloudschedule',
     version=VERSION,
     description="",
-    author="FRIDAY",
-    author_email='andreas.balke@friday.de',
+    author="zerotired",
+    author_email='andi@doppelpop.de',
     url='',
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     # http://pythonhosted.org/distribute/setuptools.html#namespace-packages
