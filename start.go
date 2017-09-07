@@ -101,7 +101,6 @@ func start(c *cli.Context) {
 	endpointCount := 0
 
 	for name, function := range functions {
-
 		var events []cloudformation.AWSServerlessFunction_ApiEvent
 		for _, event := range function.Events {
 			if event.Type == "Api" {
@@ -193,16 +192,16 @@ func start(c *cli.Context) {
 					// of a Lambda proxy response (inc statusCode / body), and if so, handle it
 					// otherwise just copy the whole output back to the http.ResponseWriter
 					proxy := &struct {
-						StatusCode int               `json:"statusCode"`
+						StatusCode json.Number       `json:"statusCode"`
 						Headers    map[string]string `json:"headers"`
-						Body       string            `json:"body"`
+						Body       json.Number       `json:"body"`
 					}{}
 
-					if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == 0 && len(proxy.Headers) == 0 && proxy.Body == "") {
+					if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == "" && len(proxy.Headers) == 0 && proxy.Body == "") {
 						// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
-						// Return HTTP 501 (Internal Server Error) to match Lambda behaviour
-						fmt.Fprintf(os.Stderr, color.RedString("ERROR: Function %s returned an invalid response (must include one of: body, headers or statusCode in the response object)\n"), name)
-						w.WriteHeader(http.StatusInternalServerError)
+						// Return HTTP 502 (Bad Gateway) to match API Gateway behaviour: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-simple-proxy-for-lambda-output-format
+						fmt.Fprintf(os.Stderr, color.RedString("ERROR: Function %s returned an invalid response (must include one of: body, headers or statusCode in the response object): %s\n"), name, err)
+						w.WriteHeader(http.StatusBadGateway)
 						w.Write([]byte(`{ "message": "Internal server error" }`))
 						wg.Done()
 						return
@@ -216,11 +215,14 @@ func start(c *cli.Context) {
 					}
 
 					// This is a proxy function, so set the http status code and return the body
-					if proxy.StatusCode != 0 {
-						w.WriteHeader(proxy.StatusCode)
+					if statusCode, err := proxy.StatusCode.Int64(); err != nil {
+						w.WriteHeader(200)
+					} else {
+						w.WriteHeader(int(statusCode))
 					}
 
 					w.Write([]byte(proxy.Body))
+
 					wg.Done()
 
 				}()
