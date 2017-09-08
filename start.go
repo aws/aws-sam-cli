@@ -216,7 +216,7 @@ func start(c *cli.Context) {
 
 					// This is a proxy function, so set the http status code and return the body
 					if statusCode, err := proxy.StatusCode.Int64(); err != nil {
-						w.WriteHeader(200)
+						w.WriteHeader(http.StatusBadGateway)
 					} else {
 						w.WriteHeader(int(statusCode))
 					}
