@@ -927,5 +927,5 @@
 			"revisionTime": "2017-08-01T18:31:37Z"
 		}
 	],
-	"rootPath": "github.com/paulmaddox/aws-sam-local"
+	"rootPath": "github.com/awslabs/aws-sam-local"
 }
