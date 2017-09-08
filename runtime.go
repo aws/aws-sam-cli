@@ -394,8 +394,6 @@ func getSessionOrDefaultCreds() map[string]string {
 			result["secret"] = creds.SecretAccessKey
 			if creds.SessionToken != "" {
 				result["sessiontoken"] = creds.SessionToken
-			} else {
-				delete(result, "sessiontoken")
 			}
 		}
 	}
