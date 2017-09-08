@@ -60,6 +60,7 @@ type Runtime struct {
 	Client          *client.Client
 	TimeoutTimer    *time.Timer
 	Logger          io.Writer
+	DockerNetwork   string
 }
 
 var (
@@ -105,6 +106,7 @@ type NewRuntimeOpt struct {
 	DebugPort       string
 	Logger          io.Writer
 	SkipPullImage   bool
+	DockerNetwork        string
 }
 
 // NewRuntime instantiates a Lambda runtime container
@@ -131,6 +133,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		Context:         context.Background(),
 		Client:          cli,
 		Logger:          opt.Logger,
+		DockerNetwork:   opt.DockerNetwork,
 	}
 
 	// Check if we have the required Docker image for this runtime
@@ -308,6 +311,13 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 	}
 
 	r.ID = resp.ID
+
+	if r.DockerNetwork != "" {
+		if err := r.Client.NetworkConnect(r.Context, r.DockerNetwork, resp.ID, nil); err != nil {
+			return nil, nil, err
+		}
+		log.Printf("Connecting container %s to network %s", resp.ID, r.DockerNetwork)
+	}
 
 	// Invoke the container
 	if err := r.Client.ContainerStart(r.Context, resp.ID, types.ContainerStartOptions{}); err != nil {

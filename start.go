@@ -72,6 +72,7 @@ func start(c *cli.Context) {
 			EnvOverrideFile: c.String("env-vars"),
 			DebugPort:       c.String("debug-port"),
 			SkipPullImage:   c.Bool("skip-pull-image"),
+      DockerNetwork:        c.String("docker-network"),
 		})
 
 		// Check there wasn't a problem initiating the Lambda runtime

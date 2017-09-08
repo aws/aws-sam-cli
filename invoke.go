@@ -92,6 +92,7 @@ func invoke(c *cli.Context) {
 		EnvOverrideFile: c.String("env-vars"),
 		DebugPort:       c.String("debug-port"),
 		SkipPullImage:   c.Bool("skip-pull-image"),
+		DockerNetwork:        c.String("docker-network"),
 	})
 
 	if err != nil {
