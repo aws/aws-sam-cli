@@ -22,7 +22,7 @@ Resources:
         GetEvent:
           Type: Api
           Properties:
-            Path: /
+            Path: /java
             Method: get
 
   PostHelloWorld:
