@@ -106,7 +106,7 @@ type NewRuntimeOpt struct {
 	DebugPort       string
 	Logger          io.Writer
 	SkipPullImage   bool
-	DockerNetwork        string
+	DockerNetwork   string
 }
 
 // NewRuntime instantiates a Lambda runtime container

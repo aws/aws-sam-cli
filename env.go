@@ -74,13 +74,12 @@ func getEnvDefaults(function *cloudformation.AWSServerlessFunction) map[string]s
 	creds := getSessionOrDefaultCreds()
 
 	// Variables available in Lambda execution environment for all functions (AWS_* variables)
-	return map[string]string{
+	env := map[string]string{
 		"AWS_SAM_LOCAL":                   "true",
 		"AWS_REGION":                      creds["region"],
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
-		"AWS_SESSION_TOKEN":               creds["sessiontoken"],
 		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(int(function.MemorySize)),
 		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(int(function.Timeout)),
 		"AWS_LAMBDA_FUNCTION_HANDLER":     function.Handler,
@@ -90,6 +89,12 @@ func getEnvDefaults(function *cloudformation.AWSServerlessFunction) map[string]s
 		// "AWS_LAMBDA_FUNCTION_NAME=",
 		// "AWS_LAMBDA_FUNCTION_VERSION=",
 	}
+
+	if token, ok := creds["sessiontoken"]; ok && token != "" {
+		env["AWS_SESSION_TOKEN"] = token
+	}
+
+	return env
 
 }
 
@@ -123,13 +128,11 @@ func getSessionOrDefaultCreds() map[string]string {
 	region := "us-east-1"
 	key := "defaultkey"
 	secret := "defaultsecret"
-	sessiontoken := "sessiontoken"
 
 	result := map[string]string{
-		"region":  region,
-		"key":     key,
-		"secret":  secret,
-		"session": sessiontoken,
+		"region": region,
+		"key":    key,
+		"secret": secret,
 	}
 
 	// Obtain AWS credentials and pass them through to the container runtime via env variables
@@ -141,9 +144,12 @@ func getSessionOrDefaultCreds() map[string]string {
 
 			result["key"] = creds.AccessKeyID
 			result["secret"] = creds.SecretAccessKey
-			result["sessiontoken"] = creds.SessionToken
+			if creds.SessionToken != "" {
+				result["sessiontoken"] = creds.SessionToken
+			}
 		}
 	}
+
 	return result
 }
 
