@@ -14,8 +14,3 @@ type AWSElasticLoadBalancingV2TargetGroup_Matcher struct {
 func (r *AWSElasticLoadBalancingV2TargetGroup_Matcher) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancingV2::TargetGroup.Matcher"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingV2TargetGroup_Matcher) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

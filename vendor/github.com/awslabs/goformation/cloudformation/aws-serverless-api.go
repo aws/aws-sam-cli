@@ -51,11 +51,6 @@ func (r *AWSServerlessApi) AWSCloudFormationType() string {
 	return "AWS::Serverless::Api"
 }
 
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessApi) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}
-
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
 // an AWS CloudFormation JSON resource's 'Properties' field and adds a 'Type'.
 func (r *AWSServerlessApi) MarshalJSON() ([]byte, error) {

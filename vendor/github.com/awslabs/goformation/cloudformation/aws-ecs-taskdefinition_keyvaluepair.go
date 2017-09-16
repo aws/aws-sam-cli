@@ -19,8 +19,3 @@ type AWSECSTaskDefinition_KeyValuePair struct {
 func (r *AWSECSTaskDefinition_KeyValuePair) AWSCloudFormationType() string {
 	return "AWS::ECS::TaskDefinition.KeyValuePair"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSTaskDefinition_KeyValuePair) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

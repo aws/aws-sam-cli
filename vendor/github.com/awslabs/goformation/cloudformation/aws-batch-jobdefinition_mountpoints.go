@@ -24,8 +24,3 @@ type AWSBatchJobDefinition_MountPoints struct {
 func (r *AWSBatchJobDefinition_MountPoints) AWSCloudFormationType() string {
 	return "AWS::Batch::JobDefinition.MountPoints"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSBatchJobDefinition_MountPoints) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

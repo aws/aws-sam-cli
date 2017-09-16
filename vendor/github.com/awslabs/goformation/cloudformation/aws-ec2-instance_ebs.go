@@ -39,8 +39,3 @@ type AWSEC2Instance_Ebs struct {
 func (r *AWSEC2Instance_Ebs) AWSCloudFormationType() string {
 	return "AWS::EC2::Instance.Ebs"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2Instance_Ebs) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

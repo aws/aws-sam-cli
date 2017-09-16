@@ -34,8 +34,3 @@ type AWSElasticLoadBalancingLoadBalancer_Policies struct {
 func (r *AWSElasticLoadBalancingLoadBalancer_Policies) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancing::LoadBalancer.Policies"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingLoadBalancer_Policies) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

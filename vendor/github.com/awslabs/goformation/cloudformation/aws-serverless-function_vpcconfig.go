@@ -19,8 +19,3 @@ type AWSServerlessFunction_VpcConfig struct {
 func (r *AWSServerlessFunction_VpcConfig) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.VpcConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_VpcConfig) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

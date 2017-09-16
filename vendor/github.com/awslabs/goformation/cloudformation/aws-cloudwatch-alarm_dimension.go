@@ -19,8 +19,3 @@ type AWSCloudWatchAlarm_Dimension struct {
 func (r *AWSCloudWatchAlarm_Dimension) AWSCloudFormationType() string {
 	return "AWS::CloudWatch::Alarm.Dimension"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudWatchAlarm_Dimension) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

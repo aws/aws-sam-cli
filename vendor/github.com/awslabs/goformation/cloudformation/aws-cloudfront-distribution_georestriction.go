@@ -19,8 +19,3 @@ type AWSCloudFrontDistribution_GeoRestriction struct {
 func (r *AWSCloudFrontDistribution_GeoRestriction) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.GeoRestriction"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_GeoRestriction) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -19,8 +19,3 @@ type AWSLambdaFunction_VpcConfig struct {
 func (r *AWSLambdaFunction_VpcConfig) AWSCloudFormationType() string {
 	return "AWS::Lambda::Function.VpcConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSLambdaFunction_VpcConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

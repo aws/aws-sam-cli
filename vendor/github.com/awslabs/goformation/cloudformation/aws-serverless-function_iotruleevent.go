@@ -19,8 +19,3 @@ type AWSServerlessFunction_IoTRuleEvent struct {
 func (r *AWSServerlessFunction_IoTRuleEvent) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.IoTRuleEvent"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_IoTRuleEvent) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

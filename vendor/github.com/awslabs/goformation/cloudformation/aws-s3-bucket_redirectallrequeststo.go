@@ -19,8 +19,3 @@ type AWSS3Bucket_RedirectAllRequestsTo struct {
 func (r *AWSS3Bucket_RedirectAllRequestsTo) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.RedirectAllRequestsTo"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_RedirectAllRequestsTo) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

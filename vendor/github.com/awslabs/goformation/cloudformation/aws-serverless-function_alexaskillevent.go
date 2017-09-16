@@ -14,8 +14,3 @@ type AWSServerlessFunction_AlexaSkillEvent struct {
 func (r *AWSServerlessFunction_AlexaSkillEvent) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.AlexaSkillEvent"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_AlexaSkillEvent) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

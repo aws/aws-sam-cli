@@ -34,8 +34,3 @@ type AWSRDSOptionGroup_OptionConfiguration struct {
 func (r *AWSRDSOptionGroup_OptionConfiguration) AWSCloudFormationType() string {
 	return "AWS::RDS::OptionGroup.OptionConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRDSOptionGroup_OptionConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

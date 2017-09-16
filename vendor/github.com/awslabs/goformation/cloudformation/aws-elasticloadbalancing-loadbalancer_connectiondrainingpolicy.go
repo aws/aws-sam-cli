@@ -19,8 +19,3 @@ type AWSElasticLoadBalancingLoadBalancer_ConnectionDrainingPolicy struct {
 func (r *AWSElasticLoadBalancingLoadBalancer_ConnectionDrainingPolicy) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancing::LoadBalancer.ConnectionDrainingPolicy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingLoadBalancer_ConnectionDrainingPolicy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

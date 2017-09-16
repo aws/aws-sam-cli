@@ -24,8 +24,3 @@ type AWSWAFRule_Predicate struct {
 func (r *AWSWAFRule_Predicate) AWSCloudFormationType() string {
 	return "AWS::WAF::Rule.Predicate"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRule_Predicate) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

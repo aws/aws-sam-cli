@@ -19,8 +19,3 @@ type AWSS3Bucket_FilterRule struct {
 func (r *AWSS3Bucket_FilterRule) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.FilterRule"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_FilterRule) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

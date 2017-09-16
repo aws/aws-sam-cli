@@ -14,8 +14,3 @@ type AWSEMRInstanceGroupConfig_ScalingTrigger struct {
 func (r *AWSEMRInstanceGroupConfig_ScalingTrigger) AWSCloudFormationType() string {
 	return "AWS::EMR::InstanceGroupConfig.ScalingTrigger"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRInstanceGroupConfig_ScalingTrigger) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

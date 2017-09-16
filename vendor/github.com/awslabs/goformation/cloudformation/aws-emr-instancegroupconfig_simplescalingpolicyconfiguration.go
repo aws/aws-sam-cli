@@ -24,8 +24,3 @@ type AWSEMRInstanceGroupConfig_SimpleScalingPolicyConfiguration struct {
 func (r *AWSEMRInstanceGroupConfig_SimpleScalingPolicyConfiguration) AWSCloudFormationType() string {
 	return "AWS::EMR::InstanceGroupConfig.SimpleScalingPolicyConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRInstanceGroupConfig_SimpleScalingPolicyConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

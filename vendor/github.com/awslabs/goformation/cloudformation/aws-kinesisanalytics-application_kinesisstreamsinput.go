@@ -19,8 +19,3 @@ type AWSKinesisAnalyticsApplication_KinesisStreamsInput struct {
 func (r *AWSKinesisAnalyticsApplication_KinesisStreamsInput) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::Application.KinesisStreamsInput"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplication_KinesisStreamsInput) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -14,8 +14,3 @@ type AWSCloudFrontDistribution_S3OriginConfig struct {
 func (r *AWSCloudFrontDistribution_S3OriginConfig) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.S3OriginConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_S3OriginConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

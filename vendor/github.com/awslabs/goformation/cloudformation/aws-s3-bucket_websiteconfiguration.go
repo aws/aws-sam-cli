@@ -29,8 +29,3 @@ type AWSS3Bucket_WebsiteConfiguration struct {
 func (r *AWSS3Bucket_WebsiteConfiguration) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.WebsiteConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_WebsiteConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

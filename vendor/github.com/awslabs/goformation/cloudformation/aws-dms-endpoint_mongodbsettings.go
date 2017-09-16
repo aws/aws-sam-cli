@@ -64,8 +64,3 @@ type AWSDMSEndpoint_MongoDbSettings struct {
 func (r *AWSDMSEndpoint_MongoDbSettings) AWSCloudFormationType() string {
 	return "AWS::DMS::Endpoint.MongoDbSettings"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDMSEndpoint_MongoDbSettings) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

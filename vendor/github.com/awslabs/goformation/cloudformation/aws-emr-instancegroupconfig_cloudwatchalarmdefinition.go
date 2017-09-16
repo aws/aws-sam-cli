@@ -54,8 +54,3 @@ type AWSEMRInstanceGroupConfig_CloudWatchAlarmDefinition struct {
 func (r *AWSEMRInstanceGroupConfig_CloudWatchAlarmDefinition) AWSCloudFormationType() string {
 	return "AWS::EMR::InstanceGroupConfig.CloudWatchAlarmDefinition"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRInstanceGroupConfig_CloudWatchAlarmDefinition) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

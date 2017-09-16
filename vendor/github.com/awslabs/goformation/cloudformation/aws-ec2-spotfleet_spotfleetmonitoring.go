@@ -14,8 +14,3 @@ type AWSEC2SpotFleet_SpotFleetMonitoring struct {
 func (r *AWSEC2SpotFleet_SpotFleetMonitoring) AWSCloudFormationType() string {
 	return "AWS::EC2::SpotFleet.SpotFleetMonitoring"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SpotFleet_SpotFleetMonitoring) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

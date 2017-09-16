@@ -49,8 +49,3 @@ type AWSEC2SecurityGroup_Ingress struct {
 func (r *AWSEC2SecurityGroup_Ingress) AWSCloudFormationType() string {
 	return "AWS::EC2::SecurityGroup.Ingress"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SecurityGroup_Ingress) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

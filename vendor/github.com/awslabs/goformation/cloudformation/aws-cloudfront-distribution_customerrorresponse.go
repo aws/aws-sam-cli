@@ -29,8 +29,3 @@ type AWSCloudFrontDistribution_CustomErrorResponse struct {
 func (r *AWSCloudFrontDistribution_CustomErrorResponse) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.CustomErrorResponse"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_CustomErrorResponse) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

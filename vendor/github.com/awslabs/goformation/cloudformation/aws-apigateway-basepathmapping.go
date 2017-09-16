@@ -16,7 +16,7 @@ type AWSApiGatewayBasePathMapping struct {
 	BasePath string `json:"BasePath,omitempty"`
 
 	// DomainName AWS CloudFormation Property
-	// Required: false
+	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-basepathmapping.html#cfn-apigateway-basepathmapping-domainname
 	DomainName string `json:"DomainName,omitempty"`
 
@@ -34,11 +34,6 @@ type AWSApiGatewayBasePathMapping struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSApiGatewayBasePathMapping) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::BasePathMapping"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayBasePathMapping) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

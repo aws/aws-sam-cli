@@ -24,8 +24,3 @@ type AWSCognitoUserPool_InviteMessageTemplate struct {
 func (r *AWSCognitoUserPool_InviteMessageTemplate) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.InviteMessageTemplate"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_InviteMessageTemplate) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

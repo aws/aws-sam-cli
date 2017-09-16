@@ -14,8 +14,3 @@ type AWSServerlessFunction_S3NotificationFilter struct {
 func (r *AWSServerlessFunction_S3NotificationFilter) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.S3NotificationFilter"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_S3NotificationFilter) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

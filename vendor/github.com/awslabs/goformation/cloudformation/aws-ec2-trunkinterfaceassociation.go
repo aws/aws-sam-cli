@@ -36,11 +36,6 @@ func (r *AWSEC2TrunkInterfaceAssociation) AWSCloudFormationType() string {
 	return "AWS::EC2::TrunkInterfaceAssociation"
 }
 
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2TrunkInterfaceAssociation) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}
-
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
 // an AWS CloudFormation JSON resource's 'Properties' field and adds a 'Type'.
 func (r *AWSEC2TrunkInterfaceAssociation) MarshalJSON() ([]byte, error) {

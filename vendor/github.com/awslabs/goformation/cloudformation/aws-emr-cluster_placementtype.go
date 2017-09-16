@@ -14,8 +14,3 @@ type AWSEMRCluster_PlacementType struct {
 func (r *AWSEMRCluster_PlacementType) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.PlacementType"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_PlacementType) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

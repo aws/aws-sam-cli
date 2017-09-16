@@ -19,8 +19,3 @@ type AWSIAMUser_LoginProfile struct {
 func (r *AWSIAMUser_LoginProfile) AWSCloudFormationType() string {
 	return "AWS::IAM::User.LoginProfile"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSIAMUser_LoginProfile) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

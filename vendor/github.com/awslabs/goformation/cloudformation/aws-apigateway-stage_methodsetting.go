@@ -59,8 +59,3 @@ type AWSApiGatewayStage_MethodSetting struct {
 func (r *AWSApiGatewayStage_MethodSetting) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::Stage.MethodSetting"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayStage_MethodSetting) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

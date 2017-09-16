@@ -39,8 +39,3 @@ type AWSElasticsearchDomain_ElasticsearchClusterConfig struct {
 func (r *AWSElasticsearchDomain_ElasticsearchClusterConfig) AWSCloudFormationType() string {
 	return "AWS::Elasticsearch::Domain.ElasticsearchClusterConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticsearchDomain_ElasticsearchClusterConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

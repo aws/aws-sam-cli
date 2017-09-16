@@ -29,8 +29,3 @@ type AWSRDSDBSecurityGroup_Ingress struct {
 func (r *AWSRDSDBSecurityGroup_Ingress) AWSCloudFormationType() string {
 	return "AWS::RDS::DBSecurityGroup.Ingress"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRDSDBSecurityGroup_Ingress) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

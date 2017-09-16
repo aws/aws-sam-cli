@@ -19,8 +19,3 @@ type AWSRoute53HealthCheck_HealthCheckTag struct {
 func (r *AWSRoute53HealthCheck_HealthCheckTag) AWSCloudFormationType() string {
 	return "AWS::Route53::HealthCheck.HealthCheckTag"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRoute53HealthCheck_HealthCheckTag) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

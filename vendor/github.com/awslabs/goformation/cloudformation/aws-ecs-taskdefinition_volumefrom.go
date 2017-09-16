@@ -19,8 +19,3 @@ type AWSECSTaskDefinition_VolumeFrom struct {
 func (r *AWSECSTaskDefinition_VolumeFrom) AWSCloudFormationType() string {
 	return "AWS::ECS::TaskDefinition.VolumeFrom"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSTaskDefinition_VolumeFrom) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

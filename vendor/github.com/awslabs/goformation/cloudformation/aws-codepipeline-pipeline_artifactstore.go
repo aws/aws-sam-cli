@@ -24,8 +24,3 @@ type AWSCodePipelinePipeline_ArtifactStore struct {
 func (r *AWSCodePipelinePipeline_ArtifactStore) AWSCloudFormationType() string {
 	return "AWS::CodePipeline::Pipeline.ArtifactStore"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodePipelinePipeline_ArtifactStore) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

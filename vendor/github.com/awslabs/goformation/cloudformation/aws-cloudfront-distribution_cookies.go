@@ -19,8 +19,3 @@ type AWSCloudFrontDistribution_Cookies struct {
 func (r *AWSCloudFrontDistribution_Cookies) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.Cookies"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_Cookies) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

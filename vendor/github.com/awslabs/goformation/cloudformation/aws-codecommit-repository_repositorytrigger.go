@@ -34,8 +34,3 @@ type AWSCodeCommitRepository_RepositoryTrigger struct {
 func (r *AWSCodeCommitRepository_RepositoryTrigger) AWSCloudFormationType() string {
 	return "AWS::CodeCommit::Repository.RepositoryTrigger"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeCommitRepository_RepositoryTrigger) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -24,8 +24,3 @@ type AWSServerlessFunction_S3Event struct {
 func (r *AWSServerlessFunction_S3Event) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.S3Event"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_S3Event) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}
