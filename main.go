@@ -108,6 +108,10 @@ func main() {
 							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
 						},
+						cli.StringFlag{
+							Name: "profile",
+							Usage: "Optional. Specify which AWS credentials profile to use.",
+						},
 					},
 				},
 				cli.Command{
@@ -158,6 +162,10 @@ func main() {
 							Name:   "skip-pull-image",
 							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
+						},
+						cli.StringFlag{
+							Name: "profile",
+							Usage: "Optional. Specify which AWS credentials profile to use.",
 						},
 					},
 				},
