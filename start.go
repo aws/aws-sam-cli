@@ -91,7 +91,7 @@ func start(c *cli.Context) {
 		}
 
 		// Add this AWS::Serverless::Function to the HTTP router
-		if err := mux.AddFunction(&function, runt.InvokeHTTP()); err != nil {
+		if err := mux.AddFunction(&function, runt.InvokeHTTP(c.String("profile"))); err != nil {
 			if err == router.ErrNoEventsFound {
 				log.Printf("Ignoring %s (%s) as no API event sources are defined", name, function.Handler)
 			}
