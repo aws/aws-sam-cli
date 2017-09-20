@@ -46,11 +46,6 @@ func (r *AWSDirectoryServiceMicrosoftAD) AWSCloudFormationType() string {
 	return "AWS::DirectoryService::MicrosoftAD"
 }
 
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDirectoryServiceMicrosoftAD) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}
-
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
 // an AWS CloudFormation JSON resource's 'Properties' field and adds a 'Type'.
 func (r *AWSDirectoryServiceMicrosoftAD) MarshalJSON() ([]byte, error) {

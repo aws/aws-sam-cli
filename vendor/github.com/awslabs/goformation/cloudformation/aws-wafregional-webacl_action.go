@@ -14,8 +14,3 @@ type AWSWAFRegionalWebACL_Action struct {
 func (r *AWSWAFRegionalWebACL_Action) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::WebACL.Action"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalWebACL_Action) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

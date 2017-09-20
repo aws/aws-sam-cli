@@ -24,8 +24,3 @@ type AWSServerlessFunction_KinesisEvent struct {
 func (r *AWSServerlessFunction_KinesisEvent) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.KinesisEvent"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_KinesisEvent) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

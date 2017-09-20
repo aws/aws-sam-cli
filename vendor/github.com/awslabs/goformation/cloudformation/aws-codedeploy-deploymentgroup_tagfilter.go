@@ -24,8 +24,3 @@ type AWSCodeDeployDeploymentGroup_TagFilter struct {
 func (r *AWSCodeDeployDeploymentGroup_TagFilter) AWSCloudFormationType() string {
 	return "AWS::CodeDeploy::DeploymentGroup.TagFilter"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeDeployDeploymentGroup_TagFilter) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

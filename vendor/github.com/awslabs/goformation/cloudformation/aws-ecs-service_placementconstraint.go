@@ -19,8 +19,3 @@ type AWSECSService_PlacementConstraint struct {
 func (r *AWSECSService_PlacementConstraint) AWSCloudFormationType() string {
 	return "AWS::ECS::Service.PlacementConstraint"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSService_PlacementConstraint) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

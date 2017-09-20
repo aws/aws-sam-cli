@@ -19,8 +19,3 @@ type AWSKinesisAnalyticsApplicationOutput_KinesisFirehoseOutput struct {
 func (r *AWSKinesisAnalyticsApplicationOutput_KinesisFirehoseOutput) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::ApplicationOutput.KinesisFirehoseOutput"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplicationOutput_KinesisFirehoseOutput) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

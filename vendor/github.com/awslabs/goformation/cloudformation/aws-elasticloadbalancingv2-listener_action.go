@@ -19,8 +19,3 @@ type AWSElasticLoadBalancingV2Listener_Action struct {
 func (r *AWSElasticLoadBalancingV2Listener_Action) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancingV2::Listener.Action"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingV2Listener_Action) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

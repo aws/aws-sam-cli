@@ -24,8 +24,3 @@ type AWSCognitoIdentityPoolRoleAttachment_RoleMapping struct {
 func (r *AWSCognitoIdentityPoolRoleAttachment_RoleMapping) AWSCloudFormationType() string {
 	return "AWS::Cognito::IdentityPoolRoleAttachment.RoleMapping"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoIdentityPoolRoleAttachment_RoleMapping) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -14,8 +14,3 @@ type AWSLambdaFunction_Environment struct {
 func (r *AWSLambdaFunction_Environment) AWSCloudFormationType() string {
 	return "AWS::Lambda::Function.Environment"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSLambdaFunction_Environment) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

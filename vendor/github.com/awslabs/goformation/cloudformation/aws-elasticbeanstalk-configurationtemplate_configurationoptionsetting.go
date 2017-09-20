@@ -24,8 +24,3 @@ type AWSElasticBeanstalkConfigurationTemplate_ConfigurationOptionSetting struct 
 func (r *AWSElasticBeanstalkConfigurationTemplate_ConfigurationOptionSetting) AWSCloudFormationType() string {
 	return "AWS::ElasticBeanstalk::ConfigurationTemplate.ConfigurationOptionSetting"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticBeanstalkConfigurationTemplate_ConfigurationOptionSetting) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

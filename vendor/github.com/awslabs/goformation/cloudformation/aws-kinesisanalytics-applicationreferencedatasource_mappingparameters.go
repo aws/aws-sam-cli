@@ -19,8 +19,3 @@ type AWSKinesisAnalyticsApplicationReferenceDataSource_MappingParameters struct 
 func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_MappingParameters) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::ApplicationReferenceDataSource.MappingParameters"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_MappingParameters) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

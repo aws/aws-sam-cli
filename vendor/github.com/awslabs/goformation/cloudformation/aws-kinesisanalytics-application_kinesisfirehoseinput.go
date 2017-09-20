@@ -19,8 +19,3 @@ type AWSKinesisAnalyticsApplication_KinesisFirehoseInput struct {
 func (r *AWSKinesisAnalyticsApplication_KinesisFirehoseInput) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::Application.KinesisFirehoseInput"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplication_KinesisFirehoseInput) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -29,8 +29,3 @@ type AWSElastiCacheReplicationGroup_NodeGroupConfiguration struct {
 func (r *AWSElastiCacheReplicationGroup_NodeGroupConfiguration) AWSCloudFormationType() string {
 	return "AWS::ElastiCache::ReplicationGroup.NodeGroupConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElastiCacheReplicationGroup_NodeGroupConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

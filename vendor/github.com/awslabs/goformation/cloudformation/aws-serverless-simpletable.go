@@ -26,11 +26,6 @@ func (r *AWSServerlessSimpleTable) AWSCloudFormationType() string {
 	return "AWS::Serverless::SimpleTable"
 }
 
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessSimpleTable) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}
-
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
 // an AWS CloudFormation JSON resource's 'Properties' field and adds a 'Type'.
 func (r *AWSServerlessSimpleTable) MarshalJSON() ([]byte, error) {

@@ -19,8 +19,3 @@ type AWSEFSFileSystem_ElasticFileSystemTag struct {
 func (r *AWSEFSFileSystem_ElasticFileSystemTag) AWSCloudFormationType() string {
 	return "AWS::EFS::FileSystem.ElasticFileSystemTag"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEFSFileSystem_ElasticFileSystemTag) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

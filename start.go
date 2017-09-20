@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/awslabs/goformation/intrinsics"
+
 	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation"
 	"github.com/codegangsta/cli"
@@ -29,7 +31,9 @@ func start(c *cli.Context) {
 	}
 
 	filename := getTemplateFilename(c.String("template"))
-	template, err := goformation.Open(filename)
+	template, err := goformation.OpenWithOptions(filename, &intrinsics.ProcessorOptions{
+		ParameterOverrides: parseParameters(c.String("parameter-values")),
+	})
 	if err != nil {
 		log.Fatalf("Failed to parse template: %s\n", err)
 	}

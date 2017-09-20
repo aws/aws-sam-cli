@@ -19,8 +19,3 @@ type AWSOpsWorksStack_ChefConfiguration struct {
 func (r *AWSOpsWorksStack_ChefConfiguration) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Stack.ChefConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksStack_ChefConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

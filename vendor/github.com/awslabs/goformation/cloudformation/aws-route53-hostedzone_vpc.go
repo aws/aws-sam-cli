@@ -19,8 +19,3 @@ type AWSRoute53HostedZone_VPC struct {
 func (r *AWSRoute53HostedZone_VPC) AWSCloudFormationType() string {
 	return "AWS::Route53::HostedZone.VPC"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRoute53HostedZone_VPC) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

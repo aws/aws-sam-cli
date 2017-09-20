@@ -24,8 +24,3 @@ type AWSConfigConfigurationRecorder_RecordingGroup struct {
 func (r *AWSConfigConfigurationRecorder_RecordingGroup) AWSCloudFormationType() string {
 	return "AWS::Config::ConfigurationRecorder.RecordingGroup"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSConfigConfigurationRecorder_RecordingGroup) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

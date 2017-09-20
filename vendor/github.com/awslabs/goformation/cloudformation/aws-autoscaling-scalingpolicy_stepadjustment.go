@@ -24,8 +24,3 @@ type AWSAutoScalingScalingPolicy_StepAdjustment struct {
 func (r *AWSAutoScalingScalingPolicy_StepAdjustment) AWSCloudFormationType() string {
 	return "AWS::AutoScaling::ScalingPolicy.StepAdjustment"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSAutoScalingScalingPolicy_StepAdjustment) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

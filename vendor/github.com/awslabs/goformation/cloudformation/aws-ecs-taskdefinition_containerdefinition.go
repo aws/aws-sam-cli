@@ -139,8 +139,3 @@ type AWSECSTaskDefinition_ContainerDefinition struct {
 func (r *AWSECSTaskDefinition_ContainerDefinition) AWSCloudFormationType() string {
 	return "AWS::ECS::TaskDefinition.ContainerDefinition"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSTaskDefinition_ContainerDefinition) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -14,8 +14,3 @@ type AWSLambdaFunction_DeadLetterConfig struct {
 func (r *AWSLambdaFunction_DeadLetterConfig) AWSCloudFormationType() string {
 	return "AWS::Lambda::Function.DeadLetterConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSLambdaFunction_DeadLetterConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

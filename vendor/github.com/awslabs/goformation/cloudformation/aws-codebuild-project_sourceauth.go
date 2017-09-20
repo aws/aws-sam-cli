@@ -19,8 +19,3 @@ type AWSCodeBuildProject_SourceAuth struct {
 func (r *AWSCodeBuildProject_SourceAuth) AWSCloudFormationType() string {
 	return "AWS::CodeBuild::Project.SourceAuth"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeBuildProject_SourceAuth) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

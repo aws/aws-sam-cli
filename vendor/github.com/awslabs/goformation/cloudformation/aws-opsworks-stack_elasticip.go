@@ -19,8 +19,3 @@ type AWSOpsWorksStack_ElasticIp struct {
 func (r *AWSOpsWorksStack_ElasticIp) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Stack.ElasticIp"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksStack_ElasticIp) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

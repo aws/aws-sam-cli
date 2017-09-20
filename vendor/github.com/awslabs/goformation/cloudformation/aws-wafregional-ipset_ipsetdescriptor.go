@@ -19,8 +19,3 @@ type AWSWAFRegionalIPSet_IPSetDescriptor struct {
 func (r *AWSWAFRegionalIPSet_IPSetDescriptor) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::IPSet.IPSetDescriptor"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalIPSet_IPSetDescriptor) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

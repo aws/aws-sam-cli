@@ -29,8 +29,3 @@ type AWSConfigConfigRule_Scope struct {
 func (r *AWSConfigConfigRule_Scope) AWSCloudFormationType() string {
 	return "AWS::Config::ConfigRule.Scope"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSConfigConfigRule_Scope) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

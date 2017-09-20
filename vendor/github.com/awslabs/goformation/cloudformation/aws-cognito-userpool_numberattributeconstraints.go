@@ -19,8 +19,3 @@ type AWSCognitoUserPool_NumberAttributeConstraints struct {
 func (r *AWSCognitoUserPool_NumberAttributeConstraints) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.NumberAttributeConstraints"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_NumberAttributeConstraints) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

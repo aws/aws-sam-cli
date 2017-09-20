@@ -29,8 +29,3 @@ type AWSElasticsearchDomain_EBSOptions struct {
 func (r *AWSElasticsearchDomain_EBSOptions) AWSCloudFormationType() string {
 	return "AWS::Elasticsearch::Domain.EBSOptions"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticsearchDomain_EBSOptions) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

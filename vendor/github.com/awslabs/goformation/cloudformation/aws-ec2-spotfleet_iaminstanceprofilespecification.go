@@ -14,8 +14,3 @@ type AWSEC2SpotFleet_IamInstanceProfileSpecification struct {
 func (r *AWSEC2SpotFleet_IamInstanceProfileSpecification) AWSCloudFormationType() string {
 	return "AWS::EC2::SpotFleet.IamInstanceProfileSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SpotFleet_IamInstanceProfileSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -14,8 +14,3 @@ type AWSRoute53HostedZone_HostedZoneConfig struct {
 func (r *AWSRoute53HostedZone_HostedZoneConfig) AWSCloudFormationType() string {
 	return "AWS::Route53::HostedZone.HostedZoneConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRoute53HostedZone_HostedZoneConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

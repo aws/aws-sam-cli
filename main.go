@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/fatih/color"
@@ -61,6 +63,11 @@ func main() {
 							Value:  "template.[yaml|yml]",
 							Usage:  "AWS SAM template file",
 							EnvVar: "SAM_TEMPLATE_FILE",
+						},
+						cli.StringFlag{
+							Name:   "parameter-values",
+							Usage:  "Optional. A string that contains CloudFormation parameter overrides encoded as key-value pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'. In case of parsing errors all values are ignored",
+							EnvVar: "SAM_TEMPLATE_PARAM_ARG",
 						},
 						cli.StringFlag{
 							Name:  "log-file, l",
@@ -127,6 +134,11 @@ func main() {
 							Value:  "template.[yaml|yml]",
 							Usage:  "AWS SAM template file",
 							EnvVar: "SAM_TEMPLATE_FILE",
+						},
+						cli.StringFlag{
+							Name:   "parameter-values",
+							Usage:  "Optional. A string that contains CloudFormation parameter overrides encoded as key-value pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'. In case of parsing errors all values are ignored",
+							EnvVar: "SAM_TEMPLATE_PARAM_ARG",
 						},
 						cli.StringFlag{
 							Name:  "log-file, l",
@@ -357,6 +369,24 @@ func main() {
 
 	app.Run(os.Args)
 
+}
+
+// regexp that parses Cloudformation paramter key-value pair: https://regex101.com/r/hruxlg/3
+var paramRe = regexp.MustCompile(`(?:ParameterKey)=("(?:\\.|[^"\\]+)*"|(?:\\.|[^, "\\]+)*),(?:ParameterValue)=("(?:\\.|[^"\\]+)*"|(?:\\.|[^ ,"\\]+)*)`)
+
+// parseParameters parses the Cloudformation parameters like string and converts
+// it into a map of key-value pairs.
+func parseParameters(arg string) (overrides map[string]interface{}) {
+	overrides = make(map[string]interface{})
+
+	unquote := func(orig string) string {
+		return strings.Replace(strings.TrimSuffix(strings.TrimPrefix(orig, `"`), `"`), `\ `, ` `, -1)
+	}
+
+	for _, match := range paramRe.FindAllStringSubmatch(arg, -1) {
+		overrides[unquote(match[1])] = unquote(match[2])
+	}
+	return
 }
 
 // getTemplateFilename allows SAM Local to default to either template.yaml

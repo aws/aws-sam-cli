@@ -24,8 +24,3 @@ type AWSRoute53RecordSet_AliasTarget struct {
 func (r *AWSRoute53RecordSet_AliasTarget) AWSCloudFormationType() string {
 	return "AWS::Route53::RecordSet.AliasTarget"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRoute53RecordSet_AliasTarget) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

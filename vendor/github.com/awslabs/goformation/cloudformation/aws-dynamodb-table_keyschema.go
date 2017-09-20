@@ -19,8 +19,3 @@ type AWSDynamoDBTable_KeySchema struct {
 func (r *AWSDynamoDBTable_KeySchema) AWSCloudFormationType() string {
 	return "AWS::DynamoDB::Table.KeySchema"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDynamoDBTable_KeySchema) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

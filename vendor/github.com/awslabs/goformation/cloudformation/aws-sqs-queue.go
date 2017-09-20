@@ -25,6 +25,16 @@ type AWSSQSQueue struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html#aws-sqs-queue-fifoqueue
 	FifoQueue bool `json:"FifoQueue,omitempty"`
 
+	// KmsDataKeyReusePeriodSeconds AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html#aws-sqs-queue-kmsdatakeyreuseperiodseconds
+	KmsDataKeyReusePeriodSeconds int `json:"KmsDataKeyReusePeriodSeconds,omitempty"`
+
+	// KmsMasterKeyId AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html#aws-sqs-queue-kmsmasterkeyid
+	KmsMasterKeyId string `json:"KmsMasterKeyId,omitempty"`
+
 	// MaximumMessageSize AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html#aws-sqs-queue-maxmesgsize
@@ -59,11 +69,6 @@ type AWSSQSQueue struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSSQSQueue) AWSCloudFormationType() string {
 	return "AWS::SQS::Queue"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSSQSQueue) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

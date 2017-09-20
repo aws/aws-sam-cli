@@ -19,8 +19,3 @@ type AWSWAFSizeConstraintSet_FieldToMatch struct {
 func (r *AWSWAFSizeConstraintSet_FieldToMatch) AWSCloudFormationType() string {
 	return "AWS::WAF::SizeConstraintSet.FieldToMatch"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFSizeConstraintSet_FieldToMatch) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

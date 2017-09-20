@@ -34,8 +34,3 @@ type AWSCloudFrontDistribution_ViewerCertificate struct {
 func (r *AWSCloudFrontDistribution_ViewerCertificate) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.ViewerCertificate"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_ViewerCertificate) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -19,8 +19,3 @@ type AWSEMRCluster_AutoScalingPolicy struct {
 func (r *AWSEMRCluster_AutoScalingPolicy) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.AutoScalingPolicy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_AutoScalingPolicy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

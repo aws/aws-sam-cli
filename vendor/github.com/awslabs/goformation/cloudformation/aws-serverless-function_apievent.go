@@ -24,8 +24,3 @@ type AWSServerlessFunction_ApiEvent struct {
 func (r *AWSServerlessFunction_ApiEvent) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.ApiEvent"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_ApiEvent) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

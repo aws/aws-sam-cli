@@ -29,8 +29,3 @@ type AWSLambdaFunction_Code struct {
 func (r *AWSLambdaFunction_Code) AWSCloudFormationType() string {
 	return "AWS::Lambda::Function.Code"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSLambdaFunction_Code) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

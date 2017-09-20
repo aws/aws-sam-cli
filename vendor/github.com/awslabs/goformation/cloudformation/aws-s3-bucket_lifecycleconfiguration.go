@@ -14,8 +14,3 @@ type AWSS3Bucket_LifecycleConfiguration struct {
 func (r *AWSS3Bucket_LifecycleConfiguration) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.LifecycleConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_LifecycleConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

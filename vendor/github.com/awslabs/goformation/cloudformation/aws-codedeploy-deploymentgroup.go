@@ -20,6 +20,11 @@ type AWSCodeDeployDeploymentGroup struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-codedeploy-deploymentgroup.html#cfn-codedeploy-deploymentgroup-applicationname
 	ApplicationName string `json:"ApplicationName,omitempty"`
 
+	// AutoRollbackConfiguration AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-codedeploy-deploymentgroup.html#cfn-codedeploy-deploymentgroup-autorollbackconfiguration
+	AutoRollbackConfiguration *AWSCodeDeployDeploymentGroup_AutoRollbackConfiguration `json:"AutoRollbackConfiguration,omitempty"`
+
 	// AutoScalingGroups AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-codedeploy-deploymentgroup.html#cfn-codedeploy-deploymentgroup-autoscalinggroups
@@ -40,10 +45,20 @@ type AWSCodeDeployDeploymentGroup struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-codedeploy-deploymentgroup.html#cfn-codedeploy-deploymentgroup-deploymentgroupname
 	DeploymentGroupName string `json:"DeploymentGroupName,omitempty"`
 
+	// DeploymentStyle AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-codedeploy-deploymentgroup.html#cfn-codedeploy-deploymentgroup-deploymentstyle
+	DeploymentStyle *AWSCodeDeployDeploymentGroup_DeploymentStyle `json:"DeploymentStyle,omitempty"`
+
 	// Ec2TagFilters AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-codedeploy-deploymentgroup.html#cfn-codedeploy-deploymentgroup-ec2tagfilters
 	Ec2TagFilters []AWSCodeDeployDeploymentGroup_EC2TagFilter `json:"Ec2TagFilters,omitempty"`
+
+	// LoadBalancerInfo AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-codedeploy-deploymentgroup.html#cfn-codedeploy-deploymentgroup-loadbalancerinfo
+	LoadBalancerInfo *AWSCodeDeployDeploymentGroup_LoadBalancerInfo `json:"LoadBalancerInfo,omitempty"`
 
 	// OnPremisesInstanceTagFilters AWS CloudFormation Property
 	// Required: false
@@ -64,11 +79,6 @@ type AWSCodeDeployDeploymentGroup struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSCodeDeployDeploymentGroup) AWSCloudFormationType() string {
 	return "AWS::CodeDeploy::DeploymentGroup"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeDeployDeploymentGroup) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

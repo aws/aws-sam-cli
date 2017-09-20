@@ -51,12 +51,12 @@ type AWSApiGatewayMethod struct {
 	RequestParameters map[string]bool `json:"RequestParameters,omitempty"`
 
 	// ResourceId AWS CloudFormation Property
-	// Required: false
+	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-resourceid
 	ResourceId string `json:"ResourceId,omitempty"`
 
 	// RestApiId AWS CloudFormation Property
-	// Required: false
+	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-restapiid
 	RestApiId string `json:"RestApiId,omitempty"`
 }
@@ -64,11 +64,6 @@ type AWSApiGatewayMethod struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSApiGatewayMethod) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::Method"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayMethod) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

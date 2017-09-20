@@ -14,8 +14,3 @@ type AWSConfigDeliveryChannel_ConfigSnapshotDeliveryProperties struct {
 func (r *AWSConfigDeliveryChannel_ConfigSnapshotDeliveryProperties) AWSCloudFormationType() string {
 	return "AWS::Config::DeliveryChannel.ConfigSnapshotDeliveryProperties"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSConfigDeliveryChannel_ConfigSnapshotDeliveryProperties) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -24,8 +24,3 @@ type AWSDynamoDBTable_LocalSecondaryIndex struct {
 func (r *AWSDynamoDBTable_LocalSecondaryIndex) AWSCloudFormationType() string {
 	return "AWS::DynamoDB::Table.LocalSecondaryIndex"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDynamoDBTable_LocalSecondaryIndex) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

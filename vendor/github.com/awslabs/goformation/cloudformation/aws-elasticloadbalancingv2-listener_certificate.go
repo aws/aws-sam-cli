@@ -14,8 +14,3 @@ type AWSElasticLoadBalancingV2Listener_Certificate struct {
 func (r *AWSElasticLoadBalancingV2Listener_Certificate) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancingV2::Listener.Certificate"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingV2Listener_Certificate) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

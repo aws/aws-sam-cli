@@ -44,8 +44,3 @@ type AWSOpsWorksInstance_TimeBasedAutoScaling struct {
 func (r *AWSOpsWorksInstance_TimeBasedAutoScaling) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Instance.TimeBasedAutoScaling"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksInstance_TimeBasedAutoScaling) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

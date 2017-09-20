@@ -19,8 +19,3 @@ type AWSCognitoIdentityPool_PushSync struct {
 func (r *AWSCognitoIdentityPool_PushSync) AWSCloudFormationType() string {
 	return "AWS::Cognito::IdentityPool.PushSync"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoIdentityPool_PushSync) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -69,8 +69,3 @@ type AWSEC2Instance_NetworkInterface struct {
 func (r *AWSEC2Instance_NetworkInterface) AWSCloudFormationType() string {
 	return "AWS::EC2::Instance.NetworkInterface"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2Instance_NetworkInterface) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

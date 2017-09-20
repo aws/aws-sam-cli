@@ -24,8 +24,3 @@ type AWSGameLiftAlias_RoutingStrategy struct {
 func (r *AWSGameLiftAlias_RoutingStrategy) AWSCloudFormationType() string {
 	return "AWS::GameLift::Alias.RoutingStrategy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSGameLiftAlias_RoutingStrategy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -24,8 +24,3 @@ type AWSEMRInstanceGroupConfig_VolumeSpecification struct {
 func (r *AWSEMRInstanceGroupConfig_VolumeSpecification) AWSCloudFormationType() string {
 	return "AWS::EMR::InstanceGroupConfig.VolumeSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRInstanceGroupConfig_VolumeSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}
