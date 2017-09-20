@@ -29,8 +29,3 @@ type AWSKinesisAnalyticsApplicationOutput_Output struct {
 func (r *AWSKinesisAnalyticsApplicationOutput_Output) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::ApplicationOutput.Output"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplicationOutput_Output) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

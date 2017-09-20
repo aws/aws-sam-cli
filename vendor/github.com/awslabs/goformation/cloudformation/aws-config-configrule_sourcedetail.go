@@ -24,8 +24,3 @@ type AWSConfigConfigRule_SourceDetail struct {
 func (r *AWSConfigConfigRule_SourceDetail) AWSCloudFormationType() string {
 	return "AWS::Config::ConfigRule.SourceDetail"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSConfigConfigRule_SourceDetail) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

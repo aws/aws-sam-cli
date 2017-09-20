@@ -24,8 +24,3 @@ type AWSEMRCluster_Configuration struct {
 func (r *AWSEMRCluster_Configuration) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.Configuration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_Configuration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

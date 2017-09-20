@@ -34,8 +34,3 @@ type AWSApplicationAutoScalingScalingPolicy_CustomizedMetricSpecification struct
 func (r *AWSApplicationAutoScalingScalingPolicy_CustomizedMetricSpecification) AWSCloudFormationType() string {
 	return "AWS::ApplicationAutoScaling::ScalingPolicy.CustomizedMetricSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApplicationAutoScalingScalingPolicy_CustomizedMetricSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

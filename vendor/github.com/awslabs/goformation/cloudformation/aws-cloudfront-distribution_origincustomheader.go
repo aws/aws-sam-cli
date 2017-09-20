@@ -19,8 +19,3 @@ type AWSCloudFrontDistribution_OriginCustomHeader struct {
 func (r *AWSCloudFrontDistribution_OriginCustomHeader) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.OriginCustomHeader"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_OriginCustomHeader) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

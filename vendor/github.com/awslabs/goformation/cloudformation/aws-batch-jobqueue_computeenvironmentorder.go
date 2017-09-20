@@ -19,8 +19,3 @@ type AWSBatchJobQueue_ComputeEnvironmentOrder struct {
 func (r *AWSBatchJobQueue_ComputeEnvironmentOrder) AWSCloudFormationType() string {
 	return "AWS::Batch::JobQueue.ComputeEnvironmentOrder"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSBatchJobQueue_ComputeEnvironmentOrder) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

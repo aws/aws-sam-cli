@@ -14,8 +14,3 @@ type AWSCloudFrontDistribution_Restrictions struct {
 func (r *AWSCloudFrontDistribution_Restrictions) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.Restrictions"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_Restrictions) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

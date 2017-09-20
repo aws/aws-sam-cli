@@ -19,8 +19,3 @@ type AWSSSMAssociation_Target struct {
 func (r *AWSSSMAssociation_Target) AWSCloudFormationType() string {
 	return "AWS::SSM::Association.Target"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSSSMAssociation_Target) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -34,8 +34,3 @@ type AWSElasticLoadBalancingLoadBalancer_HealthCheck struct {
 func (r *AWSElasticLoadBalancingLoadBalancer_HealthCheck) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancing::LoadBalancer.HealthCheck"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingLoadBalancer_HealthCheck) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

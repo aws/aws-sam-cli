@@ -19,8 +19,3 @@ type AWSElasticBeanstalkApplicationVersion_SourceBundle struct {
 func (r *AWSElasticBeanstalkApplicationVersion_SourceBundle) AWSCloudFormationType() string {
 	return "AWS::ElasticBeanstalk::ApplicationVersion.SourceBundle"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticBeanstalkApplicationVersion_SourceBundle) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -14,8 +14,3 @@ type AWSKinesisAnalyticsApplicationReferenceDataSource_JSONMappingParameters str
 func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_JSONMappingParameters) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::ApplicationReferenceDataSource.JSONMappingParameters"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_JSONMappingParameters) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

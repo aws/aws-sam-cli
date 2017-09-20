@@ -29,8 +29,3 @@ type AWSElasticLoadBalancingLoadBalancer_AccessLoggingPolicy struct {
 func (r *AWSElasticLoadBalancingLoadBalancer_AccessLoggingPolicy) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancing::LoadBalancer.AccessLoggingPolicy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingLoadBalancer_AccessLoggingPolicy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

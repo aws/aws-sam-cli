@@ -39,8 +39,3 @@ type AWSCodeBuildProject_Artifacts struct {
 func (r *AWSCodeBuildProject_Artifacts) AWSCloudFormationType() string {
 	return "AWS::CodeBuild::Project.Artifacts"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeBuildProject_Artifacts) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

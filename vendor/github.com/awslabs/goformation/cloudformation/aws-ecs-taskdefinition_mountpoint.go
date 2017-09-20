@@ -24,8 +24,3 @@ type AWSECSTaskDefinition_MountPoint struct {
 func (r *AWSECSTaskDefinition_MountPoint) AWSCloudFormationType() string {
 	return "AWS::ECS::TaskDefinition.MountPoint"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSTaskDefinition_MountPoint) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

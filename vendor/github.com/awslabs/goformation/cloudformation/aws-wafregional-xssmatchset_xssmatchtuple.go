@@ -19,8 +19,3 @@ type AWSWAFRegionalXssMatchSet_XssMatchTuple struct {
 func (r *AWSWAFRegionalXssMatchSet_XssMatchTuple) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::XssMatchSet.XssMatchTuple"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalXssMatchSet_XssMatchTuple) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

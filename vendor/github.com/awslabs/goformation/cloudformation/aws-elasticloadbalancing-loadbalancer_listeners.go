@@ -39,8 +39,3 @@ type AWSElasticLoadBalancingLoadBalancer_Listeners struct {
 func (r *AWSElasticLoadBalancingLoadBalancer_Listeners) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancing::LoadBalancer.Listeners"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingLoadBalancer_Listeners) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

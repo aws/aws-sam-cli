@@ -24,8 +24,3 @@ type AWSLogsMetricFilter_MetricTransformation struct {
 func (r *AWSLogsMetricFilter_MetricTransformation) AWSCloudFormationType() string {
 	return "AWS::Logs::MetricFilter.MetricTransformation"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSLogsMetricFilter_MetricTransformation) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

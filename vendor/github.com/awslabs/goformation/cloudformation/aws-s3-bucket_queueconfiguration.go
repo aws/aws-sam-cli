@@ -24,8 +24,3 @@ type AWSS3Bucket_QueueConfiguration struct {
 func (r *AWSS3Bucket_QueueConfiguration) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.QueueConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_QueueConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

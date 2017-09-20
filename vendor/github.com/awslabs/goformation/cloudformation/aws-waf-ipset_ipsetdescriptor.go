@@ -19,8 +19,3 @@ type AWSWAFIPSet_IPSetDescriptor struct {
 func (r *AWSWAFIPSet_IPSetDescriptor) AWSCloudFormationType() string {
 	return "AWS::WAF::IPSet.IPSetDescriptor"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFIPSet_IPSetDescriptor) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

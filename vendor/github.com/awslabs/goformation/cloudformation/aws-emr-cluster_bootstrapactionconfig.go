@@ -19,8 +19,3 @@ type AWSEMRCluster_BootstrapActionConfig struct {
 func (r *AWSEMRCluster_BootstrapActionConfig) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.BootstrapActionConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_BootstrapActionConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

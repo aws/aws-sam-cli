@@ -19,8 +19,3 @@ type AWSServerlessSimpleTable_PrimaryKey struct {
 func (r *AWSServerlessSimpleTable_PrimaryKey) AWSCloudFormationType() string {
 	return "AWS::Serverless::SimpleTable.PrimaryKey"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessSimpleTable_PrimaryKey) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

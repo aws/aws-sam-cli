@@ -79,8 +79,3 @@ type AWSRoute53RecordSetGroup_RecordSet struct {
 func (r *AWSRoute53RecordSetGroup_RecordSet) AWSCloudFormationType() string {
 	return "AWS::Route53::RecordSetGroup.RecordSet"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRoute53RecordSetGroup_RecordSet) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

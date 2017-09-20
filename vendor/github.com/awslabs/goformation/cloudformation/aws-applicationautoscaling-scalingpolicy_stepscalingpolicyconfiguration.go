@@ -34,8 +34,3 @@ type AWSApplicationAutoScalingScalingPolicy_StepScalingPolicyConfiguration struc
 func (r *AWSApplicationAutoScalingScalingPolicy_StepScalingPolicyConfiguration) AWSCloudFormationType() string {
 	return "AWS::ApplicationAutoScaling::ScalingPolicy.StepScalingPolicyConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApplicationAutoScalingScalingPolicy_StepScalingPolicyConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

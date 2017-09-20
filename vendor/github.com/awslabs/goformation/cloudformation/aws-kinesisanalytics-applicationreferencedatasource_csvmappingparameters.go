@@ -19,8 +19,3 @@ type AWSKinesisAnalyticsApplicationReferenceDataSource_CSVMappingParameters stru
 func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_CSVMappingParameters) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::ApplicationReferenceDataSource.CSVMappingParameters"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_CSVMappingParameters) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

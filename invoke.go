@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/awslabs/goformation"
+	"github.com/awslabs/goformation/intrinsics"
 	"github.com/codegangsta/cli"
 )
 
@@ -33,7 +34,9 @@ func invoke(c *cli.Context) {
 	}
 
 	filename := getTemplateFilename(c.String("template"))
-	template, err := goformation.Open(filename)
+	template, err := goformation.OpenWithOptions(filename, &intrinsics.ProcessorOptions{
+		ParameterOverrides: parseParameters(c.String("parameter-values")),
+	})
 	if err != nil {
 		log.Fatalf("Failed to parse template: %s\n", err)
 	}

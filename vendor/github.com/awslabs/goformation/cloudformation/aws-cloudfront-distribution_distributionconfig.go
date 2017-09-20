@@ -79,8 +79,3 @@ type AWSCloudFrontDistribution_DistributionConfig struct {
 func (r *AWSCloudFrontDistribution_DistributionConfig) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.DistributionConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_DistributionConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

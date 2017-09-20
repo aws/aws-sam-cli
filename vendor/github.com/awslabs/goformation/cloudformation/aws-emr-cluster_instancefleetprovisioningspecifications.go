@@ -14,8 +14,3 @@ type AWSEMRCluster_InstanceFleetProvisioningSpecifications struct {
 func (r *AWSEMRCluster_InstanceFleetProvisioningSpecifications) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.InstanceFleetProvisioningSpecifications"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_InstanceFleetProvisioningSpecifications) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

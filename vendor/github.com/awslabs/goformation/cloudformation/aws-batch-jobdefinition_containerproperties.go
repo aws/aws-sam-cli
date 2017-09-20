@@ -69,8 +69,3 @@ type AWSBatchJobDefinition_ContainerProperties struct {
 func (r *AWSBatchJobDefinition_ContainerProperties) AWSCloudFormationType() string {
 	return "AWS::Batch::JobDefinition.ContainerProperties"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSBatchJobDefinition_ContainerProperties) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

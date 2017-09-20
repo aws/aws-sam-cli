@@ -29,8 +29,3 @@ type AWSCodePipelinePipeline_ActionTypeId struct {
 func (r *AWSCodePipelinePipeline_ActionTypeId) AWSCloudFormationType() string {
 	return "AWS::CodePipeline::Pipeline.ActionTypeId"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodePipelinePipeline_ActionTypeId) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

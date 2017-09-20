@@ -19,8 +19,3 @@ type AWSEMRInstanceGroupConfig_EbsConfiguration struct {
 func (r *AWSEMRInstanceGroupConfig_EbsConfiguration) AWSCloudFormationType() string {
 	return "AWS::EMR::InstanceGroupConfig.EbsConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRInstanceGroupConfig_EbsConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

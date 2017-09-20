@@ -19,8 +19,3 @@ type AWSCodePipelineCustomActionType_ArtifactDetails struct {
 func (r *AWSCodePipelineCustomActionType_ArtifactDetails) AWSCloudFormationType() string {
 	return "AWS::CodePipeline::CustomActionType.ArtifactDetails"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodePipelineCustomActionType_ArtifactDetails) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

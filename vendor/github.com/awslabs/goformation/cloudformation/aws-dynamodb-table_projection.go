@@ -19,8 +19,3 @@ type AWSDynamoDBTable_Projection struct {
 func (r *AWSDynamoDBTable_Projection) AWSCloudFormationType() string {
 	return "AWS::DynamoDB::Table.Projection"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDynamoDBTable_Projection) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

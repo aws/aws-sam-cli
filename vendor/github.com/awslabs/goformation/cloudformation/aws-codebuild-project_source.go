@@ -29,8 +29,3 @@ type AWSCodeBuildProject_Source struct {
 func (r *AWSCodeBuildProject_Source) AWSCloudFormationType() string {
 	return "AWS::CodeBuild::Project.Source"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeBuildProject_Source) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

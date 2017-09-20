@@ -19,8 +19,3 @@ type AWSEC2Instance_SsmAssociation struct {
 func (r *AWSEC2Instance_SsmAssociation) AWSCloudFormationType() string {
 	return "AWS::EC2::Instance.SsmAssociation"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2Instance_SsmAssociation) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

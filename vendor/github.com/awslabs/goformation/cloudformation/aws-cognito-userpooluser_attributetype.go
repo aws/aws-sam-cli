@@ -19,8 +19,3 @@ type AWSCognitoUserPoolUser_AttributeType struct {
 func (r *AWSCognitoUserPoolUser_AttributeType) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPoolUser.AttributeType"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPoolUser_AttributeType) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

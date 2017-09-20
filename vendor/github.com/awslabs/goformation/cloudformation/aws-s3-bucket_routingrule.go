@@ -19,8 +19,3 @@ type AWSS3Bucket_RoutingRule struct {
 func (r *AWSS3Bucket_RoutingRule) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.RoutingRule"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_RoutingRule) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -64,8 +64,3 @@ type AWSEC2SpotFleet_InstanceNetworkInterfaceSpecification struct {
 func (r *AWSEC2SpotFleet_InstanceNetworkInterfaceSpecification) AWSCloudFormationType() string {
 	return "AWS::EC2::SpotFleet.InstanceNetworkInterfaceSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SpotFleet_InstanceNetworkInterfaceSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -21,7 +21,7 @@ type AWSECSService struct {
 	DeploymentConfiguration *AWSECSService_DeploymentConfiguration `json:"DeploymentConfiguration,omitempty"`
 
 	// DesiredCount AWS CloudFormation Property
-	// Required: false
+	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-service.html#cfn-ecs-service-desiredcount
 	DesiredCount int `json:"DesiredCount,omitempty"`
 
@@ -59,11 +59,6 @@ type AWSECSService struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSECSService) AWSCloudFormationType() string {
 	return "AWS::ECS::Service"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSService) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

@@ -14,8 +14,3 @@ type AWSServerlessFunction_IAMPolicyDocument struct {
 func (r *AWSServerlessFunction_IAMPolicyDocument) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.IAMPolicyDocument"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_IAMPolicyDocument) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}
