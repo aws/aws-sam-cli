@@ -1,0 +1,11 @@
+{
+  "records": [
+    {
+      "recordId": "49546986683135544286507457936321625675700192471156785154",
+      "data": "NjQuMjQyLjg4LjEwIC0gLSBbMDcvTWFyLzIwMDQ6MTY6MTA6MDIgLTA4MDBdICJHRVQgL21haWxtYW4vbGlzdGluZm8vaHNkaXZpc2lvbiBIVFRQLzEuMSIgMjAwIDYyOTE=",
+      "approximateArrivalTimestamp": "2012-04-23T18:25:43.511Z"
+    }
+  ],
+  "region": "us-east-1",
+  "invocationId": "invocationIdExample"
+}

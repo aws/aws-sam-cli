@@ -1,0 +1,12 @@
+{
+  "configRuleId": "config-rule-0123456",
+  "version": "1.0",
+  "configRuleName": "periodic-config-rule",
+  "configRuleArn": "arn:aws:config:us-east-1:012345678912:config-rule/config-rule-0123456",
+  "invokingEvent": "{\"awsAccountId\":\"012345678912\",\"notificationCreationTime\":\"1970-01-01T00:00:00.0Z\",\"messageType\":\"ScheduledNotification\",\"recordVersion\":\"1.0\"}",
+  "resultToken": "myResultToken",
+  "eventLeftScope": false,
+  "ruleParameters": "{\"myParameterKey\":\"myParameterValue\"}",
+  "executionRoleArn": "arn:aws:iam::012345678912:role/config-role",
+  "accountId": "012345678912"
+}

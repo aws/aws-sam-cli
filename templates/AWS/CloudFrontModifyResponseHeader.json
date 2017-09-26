@@ -1,0 +1,35 @@
+{
+  "Records": [
+    {
+      "cf": {
+        "config": {
+          "distributionId": "EXAMPLE"
+        },
+        "response": {
+          "status": "200",
+          "headers": {
+            "last-modified": [
+              {
+                "value": "2016-11-25",
+                "key": "Last-Modified"
+              }
+            ],
+            "vary": [
+              {
+                "value": "*",
+                "key": "Vary"
+              }
+            ],
+            "x-amz-meta-last-modified": [
+              {
+                "value": "2016-01-01",
+                "key": "X-Amz-Meta-Last-Modified"
+              }
+            ]
+          },
+          "statusDescription": "OK"
+        }
+      }
+    }
+  ]
+}

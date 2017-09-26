@@ -1,0 +1,12 @@
+{
+  "records": [
+    {
+      "recordId": "49546986683135544286507457936321625675700192471156785154",
+      "data": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IDEyMy4=",
+      "approximateArrivalTimestamp": "2012-04-23T18:25:43.511Z"
+    }
+  ],
+  "region": "us-east-1",
+  "deliveryStreamArn": "arn:aws:kinesis:EXAMPLE",
+  "invocationId": "invocationIdExample"
+}
