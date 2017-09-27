@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"io"
 	"io/ioutil"
 	"log"
@@ -511,59 +512,15 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 		}
 
 		wg.Add(1)
+		var output []byte
 		go func() {
-
-			result, err := ioutil.ReadAll(stdoutTxt)
-			if err != nil {
-				msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
-				log.Println(msg)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{ "message": "Internal server error" }`))
-				wg.Done()
-				return
-			}
-
-			// At this point, we need to see whether the response is in the format
-			// of a Lambda proxy response (inc statusCode / body), and if so, handle it
-			// otherwise just copy the whole output back to the http.ResponseWriter
-			proxy := &struct {
-				StatusCode json.Number       `json:"statusCode"`
-				Headers    map[string]string `json:"headers"`
-				Body       json.Number       `json:"body"`
-			}{}
-
-			if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == "" && len(proxy.Headers) == 0 && proxy.Body == "") {
-				// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
-				// Return HTTP 502 (Bad Gateway) to match API Gateway behaviour: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-simple-proxy-for-lambda-output-format
-				log.Printf(color.RedString("Function returned an invalid response (must include one of: body, headers or statusCode in the response object): %s\n"), err)
-				w.WriteHeader(http.StatusBadGateway)
-				w.Write([]byte(`{ "message": "Internal server error" }`))
-				wg.Done()
-				return
-			}
-
-			// Set any HTTP headers requested by the proxy function
-			if len(proxy.Headers) > 0 {
-				for key, value := range proxy.Headers {
-					w.Header().Set(key, value)
-				}
-			}
-
-			// This is a proxy function, so set the http status code and return the body
-			if statusCode, err := proxy.StatusCode.Int64(); err != nil {
-				w.WriteHeader(http.StatusBadGateway)
-			} else {
-				w.WriteHeader(int(statusCode))
-			}
-
-			w.Write([]byte(proxy.Body))
-			wg.Done()
-
+			output = parseOutput(w, stdoutTxt, r.Function.Runtime, &wg)
 		}()
 
 		wg.Add(1)
 		go func() {
-			// Finally, copy the container stderr (runtime logs) to the console stderr
+			// Finally, copy the container stdout and stderr (runtime logs) to the console stderr
+			r.Logger.Write(output)
 			io.Copy(r.Logger, stderrTxt)
 			wg.Done()
 		}()
@@ -573,6 +530,66 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 		r.CleanUp()
 	}
 
+}
+
+// parseOutput decodes the proxy response from the output of the function and returns
+// the rest
+func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg *sync.WaitGroup) (output []byte) {
+	defer wg.Done()
+
+	result, err := ioutil.ReadAll(stdoutTxt)
+	if err != nil {
+		msg := fmt.Sprintf("Error invoking %s runtime: %s", runtime, err)
+		log.Println(msg)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{ "message": "Internal server error" }`))
+		return
+	}
+
+	// At this point, we need to see whether the response is in the format
+	// of a Lambda proxy response (inc statusCode / body), and if so, handle it
+	// otherwise just copy the whole output back to the http.ResponseWriter
+	proxy := &struct {
+		StatusCode json.Number       `json:"statusCode"`
+		Headers    map[string]string `json:"headers"`
+		Body       json.Number       `json:"body"`
+	}{}
+
+	// We only want the last line of stdout, because it's possible that
+	// the function may have written directly to stdout using
+	// System.out.println or similar, before docker-lambda output the result
+	lastNewlineIx := bytes.LastIndexByte(bytes.TrimRight(result, "\n"), '\n')
+	if lastNewlineIx > 0 {
+		output = result[:lastNewlineIx]
+		result = result[lastNewlineIx:]
+	}
+
+	if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == "" && len(proxy.Headers) == 0 && proxy.Body == "") {
+		// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
+		// Return HTTP 502 (Bad Gateway) to match API Gateway behaviour: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-simple-proxy-for-lambda-output-format
+		log.Printf(color.RedString("Function returned an invalid response (must include one of: body, headers or statusCode in the response object): %s\n"), err)
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte(`{ "message": "Internal server error" }`))
+		return
+	}
+
+	// Set any HTTP headers requested by the proxy function
+	if len(proxy.Headers) > 0 {
+		for key, value := range proxy.Headers {
+			w.Header().Set(key, value)
+		}
+	}
+
+	// This is a proxy function, so set the http status code and return the body
+	if statusCode, err := proxy.StatusCode.Int64(); err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+	} else {
+		w.WriteHeader(int(statusCode))
+	}
+
+	w.Write([]byte(proxy.Body))
+
+	return
 }
 
 // demuxDockerStream takes a Docker attach stream, and parses out stdout/stderr
@@ -624,7 +641,7 @@ func getWorkingDir(dir string) string {
 		if err != nil {
 			// A directory wasn't specified on the command line
 			// and we can't determin the current working directory.
-			log.Print("Could not determin find working directory for template")
+			log.Printf("Could not find working directory for template: %s\n", err)
 			return ""
 		}
 		dir = cwd
