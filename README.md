@@ -139,6 +139,13 @@ To make local development and testing of Lambda functions easier, you can genera
 * Cloudwatch Scheduled Event
 * Cloudtrail
 * API Gateway
+* CloudFormation
+* SES
+* CloudWatch Logs
+* Cognito Sync Trigger
+* Lex
+
+A comprehensive list of sample event payloads is available under [sample-events]. Note that not all events in [sample-events] are currently available for mock payload generation via `generate-event`.
 
 **Syntax**
 
@@ -463,7 +470,7 @@ sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Rating
 
 ## Examples
 
-You can find sample functions code and a SAM template used in this README under the [samples] folder within this repo. Sample event sources can be found under the [sample-events] folder.
+You can find sample functions code and a SAM template used in this README under the [samples] folder within this repo.
 
 ## Contributing
 
