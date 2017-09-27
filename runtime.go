@@ -40,8 +40,8 @@ import (
 
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
-	Invoke(string) (io.Reader, io.Reader, error)
-	InvokeHTTP() func(http.ResponseWriter, *http.Request)
+	Invoke(string, string) (io.Reader, io.Reader, error)
+	InvokeHTTP(string) func(http.ResponseWriter, *http.Request)
 	CleanUp()
 }
 
@@ -253,7 +253,7 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 // Invoke runs a Lambda function within the runtime with the provided event
 // payload and returns a pair of io.Readers for it's stdout (callback results)
 // and stderr (runtime logs).
-func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
+func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, error) {
 
 	log.Printf("Invoking %s (%s)\n", r.Function.Handler, r.Name)
 
@@ -293,7 +293,7 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 		Cmd:          []string{r.Function.Handler, event},
 		Env: func() []string {
 			result := []string{}
-			for k, v := range getEnvironmentVariables(r.LogicalID, &r.Function, r.EnvOverrideFile) {
+			for k, v := range getEnvironmentVariables(r.LogicalID, &r.Function, r.EnvOverrideFile, profile) {
 				result = append(result, k+"="+v)
 			}
 			return result
@@ -477,7 +477,7 @@ func (r *Runtime) CleanUp() {
 
 // InvokeHTTP invokes a Lambda function, and implements the Go http.HandlerFunc interface
 // so it can be connected straight into most HTTP packages/frameworks etc.
-func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
+func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Request) {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		var wg sync.WaitGroup
@@ -501,7 +501,7 @@ func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON)
+		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON, profile)
 		if err != nil {
 			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
 			log.Println(msg)

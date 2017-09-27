@@ -121,7 +121,7 @@ func invoke(c *cli.Context) {
 		event = string(pb)
 	}
 
-	stdoutTxt, stderrTxt, err := runt.Invoke(event)
+	stdoutTxt, stderrTxt, err := runt.Invoke(event, c.String("profile"))
 	if err != nil {
 		log.Fatalf("Could not invoke function: %s\n", err)
 	}
