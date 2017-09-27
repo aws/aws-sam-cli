@@ -461,6 +461,10 @@ sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Rating
 * [x] Debugging support
 * [ ] Inline Swagger support within SAM templates
 
+## Examples
+
+You can find sample functions code and a SAM template used in this README under the [samples] folder within this repo. Sample event sources can be found under the [sample-events] folder.
+
 ## Contributing
 
 Contributions and feedback are welcome! Proposals and pull requests will be considered and responded to. For more information, see the [CONTRIBUTING](CONTRIBUTING.md) file.
@@ -469,13 +473,10 @@ Contributions and feedback are welcome! Proposals and pull requests will be cons
 
 SAM Local uses the open source [docker-lambda](https://github.com/lambci/docker-lambda) Docker images created by [@mhart](https://github.com/mhart). 
 
-## Examples
-
-You can find sample functions code and a SAM template used in this README under the [samples] folder within this repo.
-
 <!-- Links -->
 [SAM]: https://github.com/awslabs/serverless-application-model
 [HOWTO]: HOWTO.md
 [Releases]: https://github.com/awslabs/aws-sam-local/releases
 [Samples]: https://github.com/awslabs/aws-sam-local/tree/master/samples
+[sample-events]: https://github.com/awslabs/aws-sam-local/tree/master/sample-events
 
