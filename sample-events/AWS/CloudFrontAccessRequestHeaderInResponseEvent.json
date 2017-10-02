@@ -1,0 +1,42 @@
+{
+  "Records": [
+    {
+      "cf": {
+        "request": {
+          "headers": {
+            "host": [
+              {
+                "value": "d123.cf.net",
+                "key": "Host"
+              }
+            ],
+            "user-name": [
+              {
+                "value": "CloudFront",
+                "key": "User-Name"
+              }
+            ]
+          },
+          "clientIp": "2001:cdba::3257:9652",
+          "uri": "/experiment-pixel.jpg",
+          "method": "GET"
+        },
+        "config": {
+          "distributionId": "EXAMPLE"
+        },
+        "response": {
+          "status": "200",
+          "headers": {
+            "x-cache": [
+              {
+                "value": "XXX from CloudFront",
+                "key": "X-Cache"
+              }
+            ]
+          },
+          "statusDescription": "OK"
+        }
+      }
+    }
+  ]
+}

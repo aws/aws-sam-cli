@@ -1,0 +1,15 @@
+{
+  "header": {
+    "payloadVersion": "2",
+    "namespace": "Alexa.ConnectedHome.Control",
+    "name": "TurnOffRequest",
+    "messageId": "E2D17F2F-EBD0-4B1F-BB1E-8CEE81ADCBBC"
+  },
+  "payload": {
+    "appliance": {
+      "additionalApplianceDetails": {},
+      "applianceId": "unique-id-for-non-dimmable-bulb-specific-to-user1"
+    },
+    "accessToken": "1"
+  }
+}

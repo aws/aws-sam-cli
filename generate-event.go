@@ -10,12 +10,17 @@ import (
 )
 
 var events = map[string]string{
-	"S3":       s3Event,
-	"SNS":      snsEvent,
-	"Kinesis":  kinesisEvent,
-	"DynamoDB": dynamodbEvent,
-	"Api":      apiEvent,
-	"Schedule": scheduleEvent,
+	"S3":                   s3Event,
+	"SNS":                  snsEvent,
+	"Kinesis":              kinesisEvent,
+	"DynamoDB":             dynamodbEvent,
+	"Api":                  apiEvent,
+	"Schedule":             scheduleEvent,
+	"CloudFormation":       cloudFormationEvent,
+	"SES":                  sesEvent,
+	"CloudWatchLogs":       cloudWatchLogsEvent,
+	"CognitoSyncTrigger":   cognitoSyncTriggerEvent,
+	"Lex":                  lexEvent,
 }
 
 func generate(eventType string, c *cli.Context) {
@@ -34,7 +39,6 @@ func generate(eventType string, c *cli.Context) {
 
 	switch eventType {
 	case "S3":
-
 		t.Execute(os.Stdout, struct {
 			Region string
 			Bucket string
@@ -47,7 +51,6 @@ func generate(eventType string, c *cli.Context) {
 		os.Exit(0)
 
 	case "SNS":
-
 		t.Execute(os.Stdout, struct {
 			Message string
 			Subject string
@@ -60,7 +63,6 @@ func generate(eventType string, c *cli.Context) {
 		os.Exit(0)
 
 	case "Kinesis":
-
 		t.Execute(os.Stdout, struct {
 			Region    string
 			Partition string
@@ -83,7 +85,6 @@ func generate(eventType string, c *cli.Context) {
 		os.Exit(0)
 
 	case "Api":
-
 		t.Execute(os.Stdout, struct {
 			Method   string
 			Body     string
@@ -105,6 +106,33 @@ func generate(eventType string, c *cli.Context) {
 		})
 		os.Exit(0)
 
+	case "CloudFormation":
+		fmt.Println(sample)
+		os.Exit(0)
+
+	case "SES":
+		fmt.Println(sample)
+		os.Exit(0)
+
+	case "CloudWatchLogs":
+		t.Execute(os.Stdout, struct {
+			Data string
+		}{
+			Data: base64.StdEncoding.EncodeToString([]byte(c.String("data"))),
+		})
+		os.Exit(0)
+
+	case "CognitoSyncTrigger":
+		t.Execute(os.Stdout, struct {
+			Region string
+		}{
+			Region: c.String("region"),
+		})
+		os.Exit(0)
+
+	case "Lex":
+		fmt.Println(sample)
+		os.Exit(0)
 	}
 
 	fmt.Printf("Error - event type %s not implemented\n", eventType)
@@ -364,4 +392,172 @@ var scheduleEvent = `{
   "resources": [
     "arn:aws:events:us-east-1:123456789012:rule/my-schedule"
   ]
+}`
+
+var cloudFormationEvent = `{
+	"StackId": stackidarn,
+	"ResponseURL": "http://pre-signed-S3-url-for-response",
+	"ResourceProperties": {
+		"StackName": "stack-name",
+		"List": [
+			"1",
+			"2",
+			"3"
+		]
+	},
+	"RequestType": "Create",
+	"ResourceType": "Custom::TestResource",
+	"RequestId": "unique id for this create request",
+	"LogicalResourceId": "MyTestResource"
+}`
+
+var sesEvent = `
+     "Records": [
+     {
+       "eventVersion": "1.0",
+       "ses": {
+       "mail": {
+       "commonHeaders": {
+       "from": [
+       "Jane Doe <janedoe@example.com>"
+       ],
+       "to": [
+       "johndoe@example.com"
+       ],
+      "returnPath": "janedoe@example.com",
+      "messageId": "<0123456789example.com>",
+      "date": "Wed, 7 Oct 2015 12:34:56 -0700",
+      "subject": "Test Subject"
+      },
+      "source": "janedoe@example.com",
+      "timestamp": "1970-01-01T00:00:00.000Z",
+      "destination": [
+      "johndoe@example.com"
+       ],
+       "headers": [
+       {
+        "name": "Return-Path",
+        "value": "<janedoe@example.com>"
+       },
+       {
+         "name": "Received",
+         "value": "from mailer.example.com (mailer.example.com [203.0.113.1]) by inbound-smtp.us-west-2.amazonaws.com with SMTP id o3vrnil0e2ic28trm7dfhrc2v0cnbeccl4nbp0g1x for johndoe@example.com; Wed, 07 Oct 2015 12:34:56 +0000 (UTC)"
+       },
+       {
+        "name": "DKIM-Signature",
+        "value": "v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=example; h=mime-version:from:date:message-id:subject:to:content-type; bh=jX3F0bCAI7sIbkHyy3mLYO28ieDQz2R0P8HwQkklFj4x=; b=sQwJ+LMe9RjkesGu+vqU56asvMhrLRRYrWCbVt6WJulueecwfEwRf9JVWgkBTKiL6m2hr70xDbPWDhtLdLO+jB3hzjVnXwK3pYIOHw3vxG6NtJ6o61XSUwjEsp9tdyxQjZf2HNYee873832l3K1EeSXKzxYk9Pwqcpi3dMC74ct9GukjIevf1H46hm1L2d9VYTL0LGZGHOAyMnHmEGB8ZExWbI+k6khpurTQQ4sp4PZPRlgHtnj3Zzv7nmpTo7dtPG5z5S9J+L+Ba7dixT0jn3HuhaJ9b+VThboo4YfsX9PMNhWWxGjVksSFOcGluPO7QutCPyoY4gbxtwkN9W69HA=="
+       },
+       {
+        "name": "MIME-Version",
+        "value": "1.0"
+       },
+       {
+        "name": "From",
+        "value": "Jane Doe <janedoe@example.com>"
+       },
+       {
+         "name": "Date",
+         "value": "Wed, 7 Oct 2015 12:34:56 -0700"
+       },
+       {
+         "name": "Message-ID",
+         "value": "<0123456789example.com>"
+      },
+      {
+         "name": "Subject",
+         "value": "Test Subject"
+      },
+      {
+        "name": "To",
+        value": "johndoe@example.com"
+      },
+      {
+        "name": "Content-Type",
+        "value": "text/plain; charset=UTF-8"
+      }
+      ],
+        "headersTruncated": false,
+        "messageId": "o3vrnil0e2ic28trm7dfhrc2v0clambda4nbp0g1x"
+      },
+        "receipt": {
+        "recipients": [
+        "johndoe@example.com"
+        ],
+       "timestamp": "1970-01-01T00:00:00.000Z",
+       "spamVerdict": {
+       "status": "PASS"
+      },
+      "dkimVerdict": {
+      "status": "PASS"
+      },
+      "processingTimeMillis": 574,
+      "action": {
+      "type": "Lambda",
+      "invocationType": "Event",
+      "functionArn": functionarn
+      },
+      "spfVerdict": {
+      "status": "PASS"
+      },
+      "virusVerdict": {
+      "status": "PASS"
+      }
+      }
+      },
+      "eventSource": "aws:ses"
+      }
+      ]
+      }]}`
+
+var cloudWatchLogsEvent = `{
+ 	"awslogs": {
+ 		"data": "{{.Data}}"
+ 	}
+ }`
+
+var cognitoSyncTriggerEvent = `{
+  "datasetName": "datasetName",
+  "eventType": "SyncTrigger",
+  "region": "{{.Region}}",
+  "identityId": "identityId",
+  "datasetRecords": {
+    "SampleKey2": {
+      "newValue": "newValue2",
+      "oldValue": "oldValue2",
+      "op": "replace"
+    },
+    "SampleKey1": {
+      "newValue": "newValue1",
+      "oldValue": "oldValue1",
+      "op": "replace"
+    }
+  },
+  "identityPoolId": "identityPoolId",
+  "version": 2
+}`
+
+var lexEvent = `{
+  "messageVersion": "1.0",
+  "invocationSource": "FulfillmentCodeHook or DialogCodeHook",
+  "userId": "user-id specified in the POST request to Amazon Lex.",
+  "sessionAttributes": {
+     "key1": "value1",
+     "key2": "value2",
+  },
+  "bot": {
+    "name": "bot-name",
+    "alias": "bot-alias",
+    "version": "bot-version"
+  },
+  "outputDialogMode": "Text or Voice, based on ContentType request header in runtime API request",
+  "currentIntent": {
+    "name": "intent-name",
+    "slots": {
+      "slot-name": "value",
+      "slot-name": "value",
+      "slot-name": "value"
+    },
+    "confirmationStatus": "None, Confirmed, or Denied
+      (intent confirmation, if configured)"
+  }
 }`

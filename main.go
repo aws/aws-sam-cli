@@ -44,7 +44,8 @@ func main() {
 
      AWS Serverless Application Model (SAM) CLI
 
-     The AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application. You can find more in-depth guide about the SAM specification here:\nhttps://github.com/awslabs/serverless-application-model.
+     The AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application. You can find more in-depth guide about the SAM specification here:
+	 https://github.com/awslabs/serverless-application-model.
 	`
 	app.EnableBashCompletion = true // \m/
 
@@ -317,6 +318,55 @@ func main() {
 							},
 							Action: func(c *cli.Context) {
 								generate("Schedule", c)
+							},
+						},
+						cli.Command{
+							Name: "cloudformation",
+							Usage: "Generates a sample Amazon CloudFormation event",
+							Action: func(c *cli.Context) {
+								generate("CloudFormation", c)
+							},
+						},
+						cli.Command{
+							Name: "ses",
+							Usage: "Generates a sample SES event",
+							Action: func(c *cli.Context) {
+								generate("SES", c)
+							},
+						},
+						cli.Command{
+							Name: "cloudwatchlogs",
+							Usage: "Generates a sample Amazon CloudWatch Logs event",
+							Flags: []cli.Flag {
+								cli.StringFlag{
+									Name:  "data, d",
+									Usage: "The CloudWatch Log message payload. There is no need to base64 this - sam will do this for you",
+									Value: "Hello, this is a test 123.",
+								},
+							},
+							Action: func(c *cli.Context) {
+								generate("CloudWatchLogs", c)
+							},
+						},
+						cli.Command{
+							Name: "cognitosynctrigger",
+							Usage: "Generates a sample Amazon Cognito Sync Trigger event",
+							Flags: []cli.Flag{
+								cli.StringFlag{
+									Name: "region, r",
+									Usage: "The region the event should come from",
+									Value: "us-east-1",
+								},
+							},
+							Action: func(c *cli.Context) {
+								generate("CognitoSyncTrigger", c)
+							},
+						},
+						cli.Command{
+							Name: "lex",
+							Usage: "Generates a sample Amazon Lex event",
+							Action: func(c *cli.Context) {
+								generate("Lex", c)
 							},
 						},
 					},

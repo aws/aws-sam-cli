@@ -1,0 +1,22 @@
+{
+  "currentIntent": {
+    "slots": {
+      "RoomType": "queen",
+      "CheckInDate": "2030-11-08",
+      "Nights": 4,
+      "Location": "Chicago"
+    },
+    "name": "BookHotel",
+    "confirmationStatus": "None"
+  },
+  "bot": {
+    "alias": "$LATEST",
+    "version": "$LATEST",
+    "name": "BookTrip"
+  },
+  "userId": "John",
+  "invocationSource": "DialogCodeHook",
+  "outputDialogMode": "Text",
+  "messageVersion": "1.0",
+  "sessionAttributes": {}
+}
