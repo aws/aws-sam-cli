@@ -48,6 +48,15 @@ var _ = Describe("Function", func() {
 						},
 					},
 				},
+				"CatchAll": cloudformation.AWSServerlessFunction_EventSource{
+					Type: "Api",
+					Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
+							Path:   "/foo/{catch+}",
+							Method: "get",
+						},
+					},
+				},
 			},
 		}
 
@@ -62,30 +71,42 @@ var _ = Describe("Function", func() {
 
 		mounts := r.Mounts()
 		It("should find three API event sources", func() {
-			Expect(mounts).To(HaveLen(3))
+			Expect(mounts).To(HaveLen(4))
 		})
 
 		It("should have the correct values for an event with GET http method", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":   Equal("GetRequests"),
-				"Path":   Equal("/get"),
-				"Method": Equal("get"),
+				"Name":      Equal("GetRequests"),
+				"Path":      Equal("/get"),
+				"Method":    Equal("get"),
+				"UsePrefix": Equal(false),
 			}))))
 		})
 
 		It("should have the correct values for an event with POST http method", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":   Equal("PostRequests"),
-				"Path":   Equal("/post"),
-				"Method": Equal("post"),
+				"Name":      Equal("PostRequests"),
+				"Path":      Equal("/post"),
+				"Method":    Equal("post"),
+				"UsePrefix": Equal(false),
 			}))))
 		})
 
 		It("should have the correct values for an event with ANY http method", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":   Equal("AnyRequests"),
-				"Path":   Equal("/any"),
-				"Method": Equal("any"),
+				"Name":      Equal("AnyRequests"),
+				"Path":      Equal("/any"),
+				"Method":    Equal("any"),
+				"UsePrefix": Equal(false),
+			}))))
+		})
+
+		It("should have the correct values for an event with catchAll path", func() {
+			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":      Equal("CatchAll"),
+				"Path":      Equal("/foo/{catch+}"),
+				"Method":    Equal("get"),
+				"UsePrefix": Equal(true),
 			}))))
 		})
 

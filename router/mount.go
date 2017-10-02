@@ -8,11 +8,12 @@ import (
 // ServerlessRouterMount represents a single mount point on the API
 // Such as '/path', the HTTP method, and the function to resolve it
 type ServerlessRouterMount struct {
-	Name     string
-	Function *AWSServerlessFunction
-	Handler  http.HandlerFunc
-	Path     string
-	Method   string
+	Name      string
+	Function  *AWSServerlessFunction
+	Handler   http.HandlerFunc
+	Path      string
+	Method    string
+	UsePrefix bool
 }
 
 // Methods gets an array of HTTP methods from a AWS::Serverless::Function

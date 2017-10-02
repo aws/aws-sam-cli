@@ -55,7 +55,6 @@ var _ = Describe("sam", func() {
 			var out []byte
 			var r *fakeResponse
 
-			// cases: error on output, non-json, empty output, missing bodym headers or status,
 			inputs := []struct {
 				name     string
 				output   io.Reader

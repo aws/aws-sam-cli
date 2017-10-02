@@ -78,7 +78,7 @@ func (r *ServerlessRouter) Router() http.Handler {
 	// Mount all of the things!
 	for _, mount := range r.Mounts() {
 		route := r.mux.NewRoute().Handler(mount.Handler).Methods(mount.Methods()...)
-		if r.usePrefix {
+		if r.usePrefix || mount.UsePrefix {
 			route.PathPrefix(mount.Path)
 		} else {
 			route.Path(mount.Path)
