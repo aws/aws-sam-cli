@@ -9,14 +9,12 @@
       "s3": {
         "configurationId": "testConfigRule",
         "object": {
-          "eTag": "0123456789abcdef0123456789abcdef",
           "sequencer": "0A1B2C3D4E5F678901",
-          "key": "HappyFace.jpg",
-          "size": 1024
+          "key": "{{.key}}"
         },
         "bucket": {
-          "arn": "arn:aws:s3:::mybucket",
-          "name": "sourcebucket",
+          "arn": "arn:aws:s3:::{{.bucket}}",
+          "name": "{{.bucket}}",
           "ownerIdentity": {
             "principalId": "EXAMPLE"
           }
@@ -27,8 +25,8 @@
         "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH",
         "x-amz-request-id": "EXAMPLE123456789"
       },
-      "awsRegion": "us-east-1",
-      "eventName": "ObjectCreated:Put",
+      "awsRegion": "{{.region}}",
+      "eventName": "ObjectRemoved:Delete",
       "userIdentity": {
         "principalId": "EXAMPLE"
       },

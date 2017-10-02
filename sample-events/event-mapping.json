@@ -1,0 +1,365 @@
+{
+  "Commands": [
+    {
+      "name": "AlexaEndSession",
+      "command": "end-session",
+      "description": "Alexa End Session",
+      "flags": []
+    },
+    {
+      "name": "AlexaIntent-Answer",
+      "command": "answer",
+      "description": "Alexa Intent - Answer",
+      "flags": []
+    },
+    {
+      "name": "AlexaIntent-GetNewFact",
+      "command": "get-new-fact",
+      "description": "Alexa Intent - Get New Fact",
+      "flags": []
+    },
+    {
+      "name": "AlexaIntent-MyColorIs",
+      "command": "my-color-is",
+      "description": "Alexa Intent - My Color Is",
+      "flags": []
+    },
+    {
+      "name": "AlexaIntent-Recipe",
+      "command": "recipe",
+      "description": "Alexa Intent - Recipe",
+      "flags": []
+    },
+    {
+      "name": "AlexaSmartHome-Control",
+      "command": "control",
+      "description": "Alexa Smart Home - Control",
+      "flags": []
+    },
+    {
+      "name": "AlexaSmartHome-Discovery",
+      "command": "discovery",
+      "description": "Alexa Smart Home - Discovery",
+      "flags": []
+    },
+    {
+      "name": "AlexaSmartHome-TurnOff",
+      "command": "turn-off",
+      "description": "Alexa Smart Home - Turn Off",
+      "flags": []
+    },
+    {
+      "name": "AlexaSmartHome-TurnOn",
+      "command": "turn-on",
+      "description": "Alexa Smart Home - Turn On",
+      "flags": []
+    },
+    {
+      "name": "AlexaStartSession",
+      "command": "start-session",
+      "description": "Alexa Start Session",
+      "flags": []
+    },
+    {
+      "name": "ApiGatewayAuthorizer",
+      "command": "api-authorizer",
+      "description": "API Gateway Authorizer",
+      "flags": []
+    },
+    {
+      "name": "ApiGatewayAwsProxy",
+      "command": "api-aws-proxy",
+      "description": "API Gateway AWS Proxy",
+      "flags": [
+        {
+          "name": "method, m",
+          "usage": "HTTP method",
+          "value": "POST"
+        },
+        {
+          "name": "body, b",
+          "usage": "HTTP body",
+          "value": "{ \"test\": \"body\"}"
+        },
+        {
+          "name": "resource, r",
+          "usage": "API Gateway resource name",
+          "value": "/{proxy+}"
+        },
+        {
+          "name": "path, [",
+          "usage": "HTTP path",
+          "value": "/examplepath"
+        }
+      ]
+    },
+    {
+      "name": "AwsBatchGetJobRequest",
+      "command": "batch-get-request",
+      "description": "AWS Batch Get Job Request",
+      "flags": []
+    },
+    {
+      "name": "AwsBatchSubmitJobRequest",
+      "command": "batch-submit-request",
+      "description": "AWS Batch Submit Job Request",
+      "flags": []
+    },
+    {
+      "name": "AwsConfigChangeTriggeredRule",
+      "command": "config-triggered-rule",
+      "description": "AWS Config Change Triggered Rule",
+      "flags": []
+    },
+    {
+      "name": "AwsConfigChangeTriggeredRuleOversized",
+      "command": "config-triggered-rule-oversized",
+      "description": "AWS Config Change Triggered Rule Oversized",
+      "flags": []
+    },
+    {
+      "name": "AwsConfigPeriodicRule",
+      "command": "periodic-rule",
+      "description": "AWS Config Periodic Rule",
+      "flags": []
+    },
+    {
+      "name": "CloudFormationCreateRequest",
+      "command": "create",
+      "description": "CloudFormation Create Request",
+      "flags": []
+    },
+    {
+      "name": "CloudFrontAbTest",
+      "command": "ab-test",
+      "description": "CloudFront AB Test",
+      "flags": []
+    },
+    {
+      "name": "CloudFrontAccessRequestHeaderInResponseEvent",
+      "command": "access-request-header",
+      "description": "CloudFront Access Request Header In Response",
+      "flags": []
+    },
+    {
+      "name": "CloudFrontHttpRedirect",
+      "command": "http-redirect",
+      "description": "CloudFront HTTP Redirect",
+      "flags": []
+    },
+    {
+      "name": "CloudFrontModifyResponseHeader",
+      "command": "modify-response-header",
+      "description": "CloudFront Modify Response Header",
+      "flags": []
+    },
+    {
+      "name": "CloudFrontResponseGeneration",
+      "command": "response-generation",
+      "description": "CloudFront Response Generation",
+      "flags": []
+    },
+    {
+      "name": "CloudFrontSimpleRemoteCall",
+      "command": "simple-remote-call",
+      "description": "CloudFront Simple Remote Call",
+      "flags": []
+    },
+    {
+      "name": "CloudWatchLogs",
+      "command": "cloudwatch-logs",
+      "description": "CloudWatch Logs",
+      "flags": []
+    },
+    {
+      "name": "CodeCommit",
+      "command": "code-commit",
+      "description": "CodeCommit",
+      "flags": []
+    },
+    {
+      "name": "CognitoSyncTrigger",
+      "command": "sync-trigger",
+      "description": "Cognito Sync Trigger",
+      "flags": []
+    },
+    {
+      "name": "DynamoDbUpdate",
+      "command": "update",
+      "description": "DynamoDB Update",
+      "flags": [
+        {
+          "name": "region, r",
+          "usage": "The region the event should come from",
+          "value": "us-east-1"
+        }
+      ]
+    },
+    {
+      "name": "Kinesis",
+      "command": "kinesis",
+      "description": "Kinesis",
+      "flags": [
+        {
+          "name": "region, r",
+          "usage": "The region the event should come from",
+          "value": "us-east-1"
+        },
+        {
+          "name": "sequence, s",
+          "usage": "The Kinesis sequence number",
+          "value": "49545115243490985018280067714973144582180062593244200961"
+        },
+        {
+          "name": "data, d",
+          "usage": "he Kinesis message payload. There is no need to base64 this - sam will do this for you",
+          "value": "Hello, this is a test 123."
+        }
+      ]
+    },
+    {
+      "name": "KinesisFirehose",
+      "command": "firehose",
+      "description": "Kinesis Firehose",
+      "flags": []
+    },
+    {
+      "name": "KinesisFirehoseApacheLog",
+      "command": "firehose-apache-log",
+      "description": "Kinesis Firehose Apache Log",
+      "flags": []
+    },
+    {
+      "name": "KinesisFirehoseStreamAsSource",
+      "command": "firehose-stream-as-source",
+      "description": "Kinesis Firehose Stream As Source",
+      "flags": []
+    },
+    {
+      "name": "KinesisFirehoseSyslog",
+      "command": "firehose-syslog",
+      "description": "Kinesis Firehose Syslog",
+      "flags": []
+    },
+    {
+      "name": "RekognitionS3Request",
+      "command": "s3-request",
+      "description": "Rekognition S3 Request",
+      "flags": []
+    },
+    {
+      "name": "S3Delete",
+      "command": "delete",
+      "description": "S3 Delete",
+      "flags": [
+        {
+          "name": "region, r",
+          "usage": "The region the event should come from",
+          "value": "us-east-1"
+        },
+        {
+          "name": "bucket, b",
+          "usage": "The S3 bucket the event should reference",
+          "value": "example-bucket"
+        },
+        {
+          "name": "key, k",
+          "usage": "The S3 key the event should reference",
+          "value": "test/key"
+        }
+      ]
+    },
+    {
+      "name": "S3Put",
+      "command": "put",
+      "description": "S3 Put",
+      "flags": [
+        {
+          "name": "region, r",
+          "usage": "The region the event should come from",
+          "value": "us-east-1"
+        },
+        {
+          "name": "bucket, b",
+          "usage": "The S3 bucket the event should reference",
+          "value": "example-bucket"
+        },
+        {
+          "name": "key, k",
+          "usage": "The S3 key the event should reference",
+          "value": "test/key"
+        }
+      ]
+    },
+    {
+      "name": "ScheduledEvent",
+      "command": "scheduled-event",
+      "description": "CloudWatch Scheduled Event",
+      "flags": [
+        {
+          "name": "region, r",
+          "usage": "The region the event should come from",
+          "value": "us-east-1"
+        }
+      ]
+    },
+    {
+      "name": "SesEmailReceiving",
+      "command": "email-receiving",
+      "description": "SES Email Receiving",
+      "flags": []
+    },
+    {
+      "name": "Sns",
+      "command": "sns",
+      "description": "SNS",
+      "flags": [
+        {
+          "name": "message, m",
+          "usage": "The SNS message body",
+          "value": "example message"
+        },
+        {
+          "name": "topic, t",
+          "usage": "The SNS topic",
+          "value": "arn:aws:sns:us-east-1:111122223333:ExampleTopic"
+        },
+        {
+          "name": "subject, s",
+          "usage": "The SNS subject",
+          "value": "example subject"
+        }
+      ]
+    },
+    {
+      "name": "StepFunctionsError",
+      "command": "error",
+      "description": "Step Function Error",
+      "flags": []
+    },
+    {
+      "name": "Lex-MakeAppointment",
+      "command": "make-appointment",
+      "description": "Lex - Make Appointment",
+      "flags": []
+    },
+    {
+      "name": "Lex-OrderFlower",
+      "command": "order-flower",
+      "description": "Lex - Order Flower",
+      "flags": []
+    },
+    {
+      "name": "LexBookTrip-BookCar",
+      "command": "book-car",
+      "description": "Lex Book Trip - Book Car",
+      "flags": []
+    },
+    {
+      "name": "LexBookTrip-BookHotel",
+      "command": "book-hotel",
+      "description": "Lex Book Trip - Book Hotel",
+      "flags": []
+    }
+  ]
+}

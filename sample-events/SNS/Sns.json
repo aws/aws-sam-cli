@@ -10,7 +10,7 @@
         "Signature": "EXAMPLE",
         "SigningCertUrl": "EXAMPLE",
         "MessageId": "95df01b4-ee98-5cb9-9903-4c221d41eb5e",
-        "Message": "Hello from SNS!",
+        "Message": "{{.message}}",
         "MessageAttributes": {
           "Test": {
             "Type": "String",
@@ -23,8 +23,8 @@
         },
         "Type": "Notification",
         "UnsubscribeUrl": "EXAMPLE",
-        "TopicArn": "arn:aws:sns:EXAMPLE",
-        "Subject": "TestInvoke"
+        "TopicArn": "{{.topic}}",
+        "Subject": "{{.subject}}"
       }
     }
   ]

@@ -1,11 +1,11 @@
 {
-  "body": "{\"test\":\"body\"}",
-  "resource": "/{proxy+}",
+  "body": "{{.body}}",
+  "resource": "{{.resource}}",
   "requestContext": {
     "resourceId": "123456",
     "apiId": "1234567890",
-    "resourcePath": "/{proxy+}",
-    "httpMethod": "POST",
+    "resourcePath": "{{.resource}}",
+    "httpMethod": "{{.method}}",
     "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
     "accountId": "123456789012",
     "identity": {
@@ -47,11 +47,11 @@
     "Accept-Encoding": "gzip, deflate, sdch"
   },
   "pathParameters": {
-    "proxy": "path/to/resource"
+    "proxy": "{{.path}}"
   },
-  "httpMethod": "POST",
+  "httpMethod": "{{.method}}",
   "stageVariables": {
     "baz": "qux"
   },
-  "path": "/path/to/resource"
+  "path": "{{.path}}"
 }
