@@ -20,7 +20,7 @@ import (
     installed by running
         'go get -u github.com/jteeuwen/go-bindata/...'
  */
-// ***DO NOT EDIT THE FOLLOWING COMMENT***
+// ***DO NOT EDIT THE FOLLOWING COMMENT - it is required for 'go generate' to work***
 //go:generate go-bindata -o generated-event-binary.go sample-events/...
 
 var nameToCommandMap map[string]string = make(map[string]string)

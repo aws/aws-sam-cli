@@ -87,7 +87,7 @@
           "value": "/{proxy+}"
         },
         {
-          "name": "path, [",
+          "name": "path, p",
           "usage": "HTTP path",
           "value": "/examplepath"
         }

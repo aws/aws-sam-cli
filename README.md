@@ -131,35 +131,29 @@ $ sam local invoke --help
 
 ### Generate sample event source payloads
 
-To make local development and testing of Lambda functions easier, you can generate mock/sample event payloads for the following services:
+To make local development and testing of Lambda functions easier, you can generate mock/sample event payloads for common AWS services such as:
 
-* S3
-* Kinesis
-* DynamoDB
-* Cloudwatch Scheduled Event
-* Cloudtrail
 * API Gateway
-* CloudFormation
+* Alexa
+* CloudFront
+* DynamoDB
+* Kinesis
+* S3
 * SES
-* CloudWatch Logs
-* Cognito Sync Trigger
-* Lex
-
-A comprehensive list of sample event payloads is available under [sample-events]. Note that not all events in [sample-events] are currently available for mock payload generation via `generate-event`.
 
 **Syntax**
 
 ```bash
-sam local generate-event <service>
+sam local generate-event <service> <event>
 ```
 
 Also, you can invoke an individual lambda function locally from a sample event payload - Here's an example using S3:
 
 ```bash
-sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <function logical id>
+sam local generate-event s3 delete --bucket <bucket> --key <key> | sam local invoke <function logical id>
 ```
 
-For more options, see `sam local generate-event --help`.
+For more options, as well as a full list of events available for generation, see `sam local generate-event --help`.
 
 ### Run API Gateway locally
 
