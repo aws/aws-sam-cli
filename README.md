@@ -66,7 +66,7 @@ Verify that docker is working, and that you can run docker commands from the CLI
 
 ### Windows, Linux, macOS with NPM [Recommended]
 
-The easiest way to install **`sam`** is to use [NPM](npmjs.com).
+The easiest way to install **`sam`** is to use [NPM](https://www.npmjs.com).
 
 ```bash
 npm install -g aws-sam-local
