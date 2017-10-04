@@ -660,7 +660,7 @@ func decompressArchive(src string) (string, error) {
 	// Create a temporary directory just for this decompression (dirname: OS tmp directory + unix timestamp))
 	tmpdir := os.TempDir()
 
-	// By default on OSX, os.TempDir() returns a directory in /var/folders/.
+	// By default on macOS, os.TempDir() returns a directory in /var/folders/.
 	// This sits outside the default Docker Shared Files directories, however
 	// /var/folders is just a symlink to /private/var/folders/, so use that instead
 	if strings.HasPrefix(tmpdir, "/var/folders") {
