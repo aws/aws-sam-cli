@@ -14,7 +14,7 @@
     - [Main features](#main-features)
     - [Installation](#installation)
         - [Prerequisites](#prerequisites)
-        - [Windows, Linux, OSX with NPM [Recommended]](#windows-linux-osx-with-npm-recommended)
+        - [Windows, Linux, macOS with NPM [Recommended]](#windows-linux-macos-with-npm-recommended)
         - [Binary release](#binary-release)
         - [Build From Source](#build-from-source)
     - [Usage](#usage)
@@ -55,16 +55,16 @@
 
 Running Serverless projects and functions locally with SAM Local requires Docker to be installed and running. SAM Local will use the `DOCKER_HOST` environment variable to contact the docker daemon.
 
- - OSX: [Docker for Mac](https://store.docker.com/editions/community/docker-ce-desktop-mac)
+ - macOS: [Docker for Mac](https://store.docker.com/editions/community/docker-ce-desktop-mac)
  - Windows: [Docker Toolbox](https://download.docker.com/win/stable/DockerToolbox.exe)
  - Linux: Check your distro’s package manager (e.g. yum install docker)
 
-For OSX and Windows users: SAM local requires that the project directory (or any parent directory) is listed in Docker file sharing options.
+For macOS and Windows users: SAM local requires that the project directory (or any parent directory) is listed in Docker file sharing options.
 
 Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required.
 
 
-### Windows, Linux, OSX with NPM [Recommended]
+### Windows, Linux, macOS with NPM [Recommended]
 
 The easiest way to install **`sam`** is to use [NPM](https://www.npmjs.com).
 
