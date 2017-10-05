@@ -14,5 +14,8 @@ Resources:
         S3CreateObject:
           Type: S3
           Properties:
-            Bucket: my-photo-bucket
+            Bucket: !Ref MyPhotoBucket
             Events: s3:ObjectCreated:*
+
+  MyPhotoBucket:
+    Type: AWS::S3::Bucket
