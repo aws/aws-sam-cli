@@ -10,41 +10,41 @@ import (
 
 // Event represents an event passed to an AWS Lambda function by the runtime
 type Event struct {
-	HTTPMethod        string            `json:"httpMethod"`
-	Body              string            `json:"body"`
-	Resource          string            `json:"resource"`
-	RequestContext    RequestContext    `json:"requestContext"`
-	QueryStringParams map[string]string `json:"queryStringParameters"`
-	Headers           map[string]string `json:"headers"`
-	PathParameters    map[string]string `json:"pathParameters"`
-	StageVariables    map[string]string `json:"stageVariables"`
-	Path              string            `json:"path"`
+	HTTPMethod        string            `json:"httpMethod,omitempty"`
+	Body              string            `json:"body,omitempty"`
+	Resource          string            `json:"resource,omitempty"`
+	RequestContext    RequestContext    `json:"requestContext,omitempty"`
+	QueryStringParams map[string]string `json:"queryStringParameters,omitempty"`
+	Headers           map[string]string `json:"headers,omitempty"`
+	PathParameters    map[string]string `json:"pathParameters,omitempty"`
+	StageVariables    map[string]string `json:"stageVariables,omitempty"`
+	Path              string            `json:"path,omitempty"`
 }
 
 // RequestContext represents the context object that gets passed to an AWS Lambda function
 type RequestContext struct {
-	ResourceID   string          `json:"resourceId"`
-	APIID        string          `json:"apiId"`
-	ResourcePath string          `json:"resourcePath"`
-	HTTPMethod   string          `json:"httpMethod"`
-	RequestID    string          `json:"requestId"`
-	AccountsID   string          `json:"accountId"`
-	Identity     ContextIdentity `json:"identity"`
+	ResourceID   string          `json:"resourceId,omitempty"`
+	APIID        string          `json:"apiId,omitempty"`
+	ResourcePath string          `json:"resourcePath,omitempty"`
+	HTTPMethod   string          `json:"httpMethod,omitempty"`
+	RequestID    string          `json:"requestId,omitempty"`
+	AccountsID   string          `json:"accountId,omitempty"`
+	Identity     ContextIdentity `json:"identity,omitempty"`
 }
 
 // ContextIdentity represents the identity section of the context object that gets passed to an AWS Lambda function
 type ContextIdentity struct {
-	APIKey                        string `json:"apiKey"`
-	UserARN                       string `json:"userArn"`
-	CognitoAuthenticationType     string `json:"cognitoAuthenticationType"`
-	Caller                        string `json:"caller"`
-	UserAgent                     string `json:"userAgent"`
-	User                          string `json:"user"`
-	CognitoIdentityPoolID         string `json:"cognitoIdentityPoolId"`
-	CognitoIdentityID             string `json:"cognitoIdentityId"`
-	CognitoAuthenticationProvider string `json:"cognitoAuthenticationProvider"`
-	SourceIP                      string `json:"sourceIp"`
-	AccountID                     string `json:"accountId"`
+	APIKey                        string `json:"apiKey,omitempty"`
+	UserARN                       string `json:"userArn,omitempty"`
+	CognitoAuthenticationType     string `json:"cognitoAuthenticationType,omitempty"`
+	Caller                        string `json:"caller,omitempty"`
+	UserAgent                     string `json:"userAgent,omitempty"`
+	User                          string `json:"user,omitempty"`
+	CognitoIdentityPoolID         string `json:"cognitoIdentityPoolId,omitempty"`
+	CognitoIdentityID             string `json:"cognitoIdentityId,omitempty"`
+	CognitoAuthenticationProvider string `json:"cognitoAuthenticationProvider,omitempty"`
+	SourceIP                      string `json:"sourceIp,omitempty"`
+	AccountID                     string `json:"accountId,omitempty"`
 }
 
 // NewEvent initalises and populates a new ApiEvent with
@@ -82,6 +82,7 @@ func NewEvent(req *http.Request) (*Event, error) {
 
 	event.RequestContext.Identity.SourceIP = req.RemoteAddr
 	event.RequestContext.ResourcePath = req.URL.Path
+	event.RequestContext.HTTPMethod = req.Method
 
 	return event, nil
 

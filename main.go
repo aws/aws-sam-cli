@@ -116,8 +116,13 @@ func main() {
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
 						},
 						cli.StringFlag{
-							Name: "profile",
+							Name:  "profile",
 							Usage: "Optional. Specify which AWS credentials profile to use.",
+						},
+						cli.BoolFlag{
+							Name:   "prefix-routing",
+							Usage:  "Optional. Specify whether SAM routing is based on prefix or exact matching (e.g. given a function mounted at '/' with prefix routing calls to '/beers' will be routed the function).",
+							EnvVar: "SAM_PREFIX_ROUTING",
 						},
 					},
 				},
@@ -176,7 +181,7 @@ func main() {
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
 						},
 						cli.StringFlag{
-							Name: "profile",
+							Name:  "profile",
 							Usage: "Optional. Specify which AWS credentials profile to use.",
 						},
 					},

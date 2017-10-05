@@ -15,15 +15,18 @@ var ErrNoEventsFound = errors.New("no events with type 'Api' were found")
 // ServerlessRouter takes AWS::Serverless::Function and AWS::Serverless::API objects
 // and creates a Go http.Handler with the correct paths/methods mounted
 type ServerlessRouter struct {
-	mux    *mux.Router
-	mounts []*ServerlessRouterMount
+	mux       *mux.Router
+	mounts    []*ServerlessRouterMount
+	usePrefix bool
 }
 
-// NewServerlessRouter creates a new instance of ServerlessRouter
-func NewServerlessRouter() *ServerlessRouter {
+// NewServerlessRouter creates a new instance of ServerlessRouter.
+// If usePrefix is true then route matching is done using prefix instead of exact match
+func NewServerlessRouter(usePrefix bool) *ServerlessRouter {
 	return &ServerlessRouter{
-		mux:    mux.NewRouter(),
-		mounts: []*ServerlessRouterMount{},
+		mux:       mux.NewRouter(),
+		mounts:    []*ServerlessRouterMount{},
+		usePrefix: usePrefix,
 	}
 }
 
@@ -74,7 +77,12 @@ func (r *ServerlessRouter) Router() http.Handler {
 
 	// Mount all of the things!
 	for _, mount := range r.Mounts() {
-		r.mux.Handle(mount.Path, mount.Handler).Methods(mount.Methods()...)
+		route := r.mux.NewRoute().Handler(mount.Handler).Methods(mount.Methods()...)
+		if r.usePrefix || mount.UsePrefix {
+			route.PathPrefix(mount.Path)
+		} else {
+			route.Path(mount.Path)
+		}
 	}
 
 	return r.mux

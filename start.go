@@ -56,7 +56,7 @@ func start(c *cli.Context) {
 	}
 
 	// Create a new router
-	mux := router.NewServerlessRouter()
+	mux := router.NewServerlessRouter(c.Bool("prefix-routing"))
 
 	functions := template.GetAllAWSServerlessFunctionResources()
 
@@ -119,8 +119,11 @@ func start(c *cli.Context) {
 	// Mount static files
 	if c.String("static-dir") != "" {
 		static := filepath.Join(cwd, c.String("static-dir"))
-		fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", static)
-		mux.AddStaticDir(static)
+
+		if _, err := os.Stat(static); err == nil {
+			fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", static)
+			mux.AddStaticDir(static)
+		}
 	}
 
 	fmt.Fprintf(stderr, "\n")
