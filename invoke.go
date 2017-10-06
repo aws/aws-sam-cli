@@ -49,6 +49,9 @@ func invoke(c *cli.Context) {
 	// logical ID matches the first CLI argument, or if they only have a single function
 	// defined, and don't specify a name, then just use that function.
 	functions := template.GetAllAWSServerlessFunctionResources()
+
+	addCloudformationLambdaFunctions(template, functions)
+
 	function, found := functions[name]
 	if !found {
 		if len(functions) == 1 && name == "" {
