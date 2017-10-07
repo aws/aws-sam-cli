@@ -2,7 +2,7 @@ AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Description: |
-  An example RESTful service
+  An example RESTful service.
 
 Resources:
   ExampleFunction:
@@ -10,9 +10,18 @@ Resources:
     Properties:
       Runtime: nodejs6.10
       Handler: index.handler
+      CodeUri: .
       Events:
-        ListCustomers:
+        TestEndpoints:
           Type: Api
           Properties:
             Path: /
             Method: any
+  LambdaInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !GetAtt
+        - ExampleFunction
+        - Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: apigateway.amazonaws.com
