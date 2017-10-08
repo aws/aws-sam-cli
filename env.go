@@ -139,7 +139,10 @@ func getSessionOrDefaultCreds(profile string) map[string]string {
 	opts.Profile = profile
 	// Obtain AWS credentials and pass them through to the container runtime via env variables
 	if sess, err := session.NewSessionWithOptions(opts); err == nil {
-		if creds, err := sess.Config.Credentials.Get(); err == nil {
+		creds, err := sess.Config.Credentials.Get()
+		if err != nil {
+			log.Printf("WARNING: No AWS credentials found. Missing credentials may lead to slow startup times as detailed in https://github.com/awslabs/aws-sam-local/issues/134")
+		} else {
 			if *sess.Config.Region != "" {
 				result["region"] = *sess.Config.Region
 			}
