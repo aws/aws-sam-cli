@@ -70,6 +70,11 @@ func NewEvent(req *http.Request) (*Event, error) {
 		}
 	}
 
+	pathParams := mux.Vars(req)
+	if len(pathParams) == 0 {
+		pathParams = nil
+	}
+
 	event := &Event{
 		HTTPMethod:        req.Method,
 		Body:              string(body),
@@ -77,7 +82,7 @@ func NewEvent(req *http.Request) (*Event, error) {
 		QueryStringParams: query,
 		Path:              req.URL.Path,
 		Resource:          req.URL.Path,
-		PathParameters:    mux.Vars(req),
+		PathParameters:    pathParams,
 	}
 
 	event.RequestContext.Identity.SourceIP = req.RemoteAddr
