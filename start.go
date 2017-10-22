@@ -54,6 +54,13 @@ func start(c *cli.Context) {
 	// Create a new router
 	mux := router.NewServerlessRouter()
 
+	templateApis := template.GetAllAWSServerlessApiResources()
+
+	for name, api := range templateApis {
+		log.Printf("Adding new API: %s", name)
+		mux.AddAPI(&api)
+	}
+
 	functions := template.GetAllAWSServerlessFunctionResources()
 
 	for name, function := range functions {
