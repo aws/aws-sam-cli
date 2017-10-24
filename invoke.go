@@ -21,7 +21,7 @@ func invoke(c *cli.Context) {
 	// Setup the logger
 	stdout := io.Writer(os.Stdout)
 	stderr := io.Writer(os.Stderr)
-	logarg := c.String("log")
+	logarg := c.String("log-file") // matches the definition in main.go
 
 	if len(logarg) > 0 {
 		if logFile, err := os.Create(logarg); err == nil {
