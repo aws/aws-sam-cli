@@ -19,7 +19,7 @@ func start(c *cli.Context) {
 
 	// Setup the logger
 	stderr := io.Writer(os.Stderr)
-	logarg := c.String("log")
+	logarg := c.String("log-file")
 
 	if len(logarg) > 0 {
 		if logFile, err := os.Create(logarg); err == nil {
