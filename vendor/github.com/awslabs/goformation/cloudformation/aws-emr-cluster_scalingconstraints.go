@@ -19,8 +19,3 @@ type AWSEMRCluster_ScalingConstraints struct {
 func (r *AWSEMRCluster_ScalingConstraints) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.ScalingConstraints"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_ScalingConstraints) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

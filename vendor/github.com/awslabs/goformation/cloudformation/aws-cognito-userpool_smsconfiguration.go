@@ -19,8 +19,3 @@ type AWSCognitoUserPool_SmsConfiguration struct {
 func (r *AWSCognitoUserPool_SmsConfiguration) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.SmsConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_SmsConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

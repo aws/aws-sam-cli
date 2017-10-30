@@ -19,8 +19,3 @@ type AWSSNSTopic_Subscription struct {
 func (r *AWSSNSTopic_Subscription) AWSCloudFormationType() string {
 	return "AWS::SNS::Topic.Subscription"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSSNSTopic_Subscription) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

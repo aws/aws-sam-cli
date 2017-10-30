@@ -14,8 +14,3 @@ type AWSElasticsearchDomain_SnapshotOptions struct {
 func (r *AWSElasticsearchDomain_SnapshotOptions) AWSCloudFormationType() string {
 	return "AWS::Elasticsearch::Domain.SnapshotOptions"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticsearchDomain_SnapshotOptions) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

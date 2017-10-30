@@ -19,8 +19,3 @@ type AWSServerlessFunction_DeadLetterQueue struct {
 func (r *AWSServerlessFunction_DeadLetterQueue) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.DeadLetterQueue"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_DeadLetterQueue) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

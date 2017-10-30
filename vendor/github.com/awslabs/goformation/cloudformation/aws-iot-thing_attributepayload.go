@@ -14,8 +14,3 @@ type AWSIoTThing_AttributePayload struct {
 func (r *AWSIoTThing_AttributePayload) AWSCloudFormationType() string {
 	return "AWS::IoT::Thing.AttributePayload"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSIoTThing_AttributePayload) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -24,8 +24,3 @@ type AWSCognitoUserPool_AdminCreateUserConfig struct {
 func (r *AWSCognitoUserPool_AdminCreateUserConfig) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.AdminCreateUserConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_AdminCreateUserConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

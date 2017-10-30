@@ -19,8 +19,3 @@ type AWSAutoScalingAutoScalingGroup_NotificationConfiguration struct {
 func (r *AWSAutoScalingAutoScalingGroup_NotificationConfiguration) AWSCloudFormationType() string {
 	return "AWS::AutoScaling::AutoScalingGroup.NotificationConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSAutoScalingAutoScalingGroup_NotificationConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

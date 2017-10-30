@@ -19,8 +19,3 @@ type AWSKinesisAnalyticsApplicationReferenceDataSource_RecordFormat struct {
 func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_RecordFormat) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::ApplicationReferenceDataSource.RecordFormat"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplicationReferenceDataSource_RecordFormat) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

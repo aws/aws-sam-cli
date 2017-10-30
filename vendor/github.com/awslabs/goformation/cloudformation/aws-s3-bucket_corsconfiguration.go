@@ -14,8 +14,3 @@ type AWSS3Bucket_CorsConfiguration struct {
 func (r *AWSS3Bucket_CorsConfiguration) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.CorsConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_CorsConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

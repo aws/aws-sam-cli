@@ -19,8 +19,3 @@ type AWSEMRCluster_EbsBlockDeviceConfig struct {
 func (r *AWSEMRCluster_EbsBlockDeviceConfig) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.EbsBlockDeviceConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_EbsBlockDeviceConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

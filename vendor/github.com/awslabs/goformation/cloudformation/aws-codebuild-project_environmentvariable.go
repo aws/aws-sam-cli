@@ -19,8 +19,3 @@ type AWSCodeBuildProject_EnvironmentVariable struct {
 func (r *AWSCodeBuildProject_EnvironmentVariable) AWSCloudFormationType() string {
 	return "AWS::CodeBuild::Project.EnvironmentVariable"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeBuildProject_EnvironmentVariable) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

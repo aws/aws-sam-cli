@@ -19,8 +19,3 @@ type AWSOpsWorksStack_StackConfigurationManager struct {
 func (r *AWSOpsWorksStack_StackConfigurationManager) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Stack.StackConfigurationManager"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksStack_StackConfigurationManager) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

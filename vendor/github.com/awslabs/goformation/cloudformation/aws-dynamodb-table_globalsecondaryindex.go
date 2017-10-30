@@ -29,8 +29,3 @@ type AWSDynamoDBTable_GlobalSecondaryIndex struct {
 func (r *AWSDynamoDBTable_GlobalSecondaryIndex) AWSCloudFormationType() string {
 	return "AWS::DynamoDB::Table.GlobalSecondaryIndex"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDynamoDBTable_GlobalSecondaryIndex) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

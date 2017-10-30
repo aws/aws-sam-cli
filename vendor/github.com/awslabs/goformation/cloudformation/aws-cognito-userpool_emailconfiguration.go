@@ -19,8 +19,3 @@ type AWSCognitoUserPool_EmailConfiguration struct {
 func (r *AWSCognitoUserPool_EmailConfiguration) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.EmailConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_EmailConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -29,8 +29,3 @@ type AWSEMRStep_HadoopJarStepConfig struct {
 func (r *AWSEMRStep_HadoopJarStepConfig) AWSCloudFormationType() string {
 	return "AWS::EMR::Step.HadoopJarStepConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRStep_HadoopJarStepConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

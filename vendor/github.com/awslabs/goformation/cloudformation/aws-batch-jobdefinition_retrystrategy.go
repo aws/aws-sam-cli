@@ -14,8 +14,3 @@ type AWSBatchJobDefinition_RetryStrategy struct {
 func (r *AWSBatchJobDefinition_RetryStrategy) AWSCloudFormationType() string {
 	return "AWS::Batch::JobDefinition.RetryStrategy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSBatchJobDefinition_RetryStrategy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

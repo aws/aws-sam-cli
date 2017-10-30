@@ -24,8 +24,3 @@ type AWSOpsWorksApp_EnvironmentVariable struct {
 func (r *AWSOpsWorksApp_EnvironmentVariable) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::App.EnvironmentVariable"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksApp_EnvironmentVariable) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

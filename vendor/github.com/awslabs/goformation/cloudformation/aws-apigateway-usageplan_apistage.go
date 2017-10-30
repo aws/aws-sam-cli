@@ -19,8 +19,3 @@ type AWSApiGatewayUsagePlan_ApiStage struct {
 func (r *AWSApiGatewayUsagePlan_ApiStage) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::UsagePlan.ApiStage"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayUsagePlan_ApiStage) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

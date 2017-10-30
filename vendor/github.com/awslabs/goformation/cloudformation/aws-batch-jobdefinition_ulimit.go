@@ -24,8 +24,3 @@ type AWSBatchJobDefinition_Ulimit struct {
 func (r *AWSBatchJobDefinition_Ulimit) AWSCloudFormationType() string {
 	return "AWS::Batch::JobDefinition.Ulimit"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSBatchJobDefinition_Ulimit) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

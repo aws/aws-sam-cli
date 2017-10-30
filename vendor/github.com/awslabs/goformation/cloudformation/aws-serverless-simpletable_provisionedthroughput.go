@@ -19,8 +19,3 @@ type AWSServerlessSimpleTable_ProvisionedThroughput struct {
 func (r *AWSServerlessSimpleTable_ProvisionedThroughput) AWSCloudFormationType() string {
 	return "AWS::Serverless::SimpleTable.ProvisionedThroughput"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessSimpleTable_ProvisionedThroughput) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

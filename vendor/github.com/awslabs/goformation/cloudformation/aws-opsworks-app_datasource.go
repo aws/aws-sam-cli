@@ -24,8 +24,3 @@ type AWSOpsWorksApp_DataSource struct {
 func (r *AWSOpsWorksApp_DataSource) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::App.DataSource"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksApp_DataSource) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

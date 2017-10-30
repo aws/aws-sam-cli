@@ -70,6 +70,11 @@ type AWSElasticLoadBalancingV2TargetGroup struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-targetgroupattributes
 	TargetGroupAttributes []AWSElasticLoadBalancingV2TargetGroup_TargetGroupAttribute `json:"TargetGroupAttributes,omitempty"`
 
+	// TargetType AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-targettype
+	TargetType string `json:"TargetType,omitempty"`
+
 	// Targets AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-elasticloadbalancingv2-targetgroup.html#cfn-elasticloadbalancingv2-targetgroup-targets
@@ -89,11 +94,6 @@ type AWSElasticLoadBalancingV2TargetGroup struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSElasticLoadBalancingV2TargetGroup) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancingV2::TargetGroup"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingV2TargetGroup) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

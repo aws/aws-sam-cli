@@ -19,8 +19,3 @@ type AWSDirectoryServiceSimpleAD_VpcSettings struct {
 func (r *AWSDirectoryServiceSimpleAD_VpcSettings) AWSCloudFormationType() string {
 	return "AWS::DirectoryService::SimpleAD.VpcSettings"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDirectoryServiceSimpleAD_VpcSettings) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

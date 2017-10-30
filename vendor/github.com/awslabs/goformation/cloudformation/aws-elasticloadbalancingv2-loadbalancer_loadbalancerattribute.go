@@ -19,8 +19,3 @@ type AWSElasticLoadBalancingV2LoadBalancer_LoadBalancerAttribute struct {
 func (r *AWSElasticLoadBalancingV2LoadBalancer_LoadBalancerAttribute) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancingV2::LoadBalancer.LoadBalancerAttribute"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingV2LoadBalancer_LoadBalancerAttribute) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -33,6 +33,7 @@ func pkg() {
 	go io.Copy(os.Stderr, stderr)
 	go io.Copy(os.Stdout, stdout)
 
-	cmd.Wait()
-
+	if err := cmd.Wait(); err != nil {
+		os.Exit(1)
+	}
 }

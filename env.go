@@ -36,9 +36,9 @@ import (
  This priority also applies to AWS_* system variables
 */
 
-func getEnvironmentVariables(logicalID string, function *cloudformation.AWSServerlessFunction, overrideFile string) map[string]string {
+func getEnvironmentVariables(logicalID string, function *cloudformation.AWSServerlessFunction, overrideFile string, profile string) map[string]string {
 
-	env := getEnvDefaults(function)
+	env := getEnvDefaults(function, profile)
 	osenv := getEnvFromOS()
 	overrides := getEnvOverrides(logicalID, overrideFile)
 
@@ -69,9 +69,9 @@ func getEnvironmentVariables(logicalID string, function *cloudformation.AWSServe
 
 }
 
-func getEnvDefaults(function *cloudformation.AWSServerlessFunction) map[string]string {
+func getEnvDefaults(function *cloudformation.AWSServerlessFunction, profile string) map[string]string {
 
-	creds := getSessionOrDefaultCreds()
+	creds := getSessionOrDefaultCreds(profile)
 
 	// Variables available in Lambda execution environment for all functions (AWS_* variables)
 	env := map[string]string{
@@ -123,7 +123,7 @@ func getEnvOverrides(logicalID string, filename string) map[string]string {
 
 }
 
-func getSessionOrDefaultCreds() map[string]string {
+func getSessionOrDefaultCreds(profile string) map[string]string {
 
 	region := "us-east-1"
 	key := "defaultkey"
@@ -135,9 +135,14 @@ func getSessionOrDefaultCreds() map[string]string {
 		"secret": secret,
 	}
 
+	opts := session.Options{}
+	opts.Profile = profile
 	// Obtain AWS credentials and pass them through to the container runtime via env variables
-	if sess, err := session.NewSession(); err == nil {
-		if creds, err := sess.Config.Credentials.Get(); err == nil {
+	if sess, err := session.NewSessionWithOptions(opts); err == nil {
+		creds, err := sess.Config.Credentials.Get()
+		if err != nil {
+			log.Printf("WARNING: No AWS credentials found. Missing credentials may lead to slow startup times as detailed in https://github.com/awslabs/aws-sam-local/issues/134")
+		} else {
 			if *sess.Config.Region != "" {
 				result["region"] = *sess.Config.Region
 			}

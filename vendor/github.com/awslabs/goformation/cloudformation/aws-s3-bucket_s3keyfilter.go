@@ -14,8 +14,3 @@ type AWSS3Bucket_S3KeyFilter struct {
 func (r *AWSS3Bucket_S3KeyFilter) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.S3KeyFilter"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_S3KeyFilter) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

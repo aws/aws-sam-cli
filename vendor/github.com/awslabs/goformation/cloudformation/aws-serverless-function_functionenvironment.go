@@ -14,8 +14,3 @@ type AWSServerlessFunction_FunctionEnvironment struct {
 func (r *AWSServerlessFunction_FunctionEnvironment) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.FunctionEnvironment"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_FunctionEnvironment) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

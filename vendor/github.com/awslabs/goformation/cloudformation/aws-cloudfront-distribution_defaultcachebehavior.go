@@ -64,8 +64,3 @@ type AWSCloudFrontDistribution_DefaultCacheBehavior struct {
 func (r *AWSCloudFrontDistribution_DefaultCacheBehavior) AWSCloudFormationType() string {
 	return "AWS::CloudFront::Distribution.DefaultCacheBehavior"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCloudFrontDistribution_DefaultCacheBehavior) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

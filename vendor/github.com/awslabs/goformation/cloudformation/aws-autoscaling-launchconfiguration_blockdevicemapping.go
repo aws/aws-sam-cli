@@ -29,8 +29,3 @@ type AWSAutoScalingLaunchConfiguration_BlockDeviceMapping struct {
 func (r *AWSAutoScalingLaunchConfiguration_BlockDeviceMapping) AWSCloudFormationType() string {
 	return "AWS::AutoScaling::LaunchConfiguration.BlockDeviceMapping"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSAutoScalingLaunchConfiguration_BlockDeviceMapping) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

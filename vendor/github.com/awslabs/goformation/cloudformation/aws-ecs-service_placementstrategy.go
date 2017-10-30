@@ -19,8 +19,3 @@ type AWSECSService_PlacementStrategy struct {
 func (r *AWSECSService_PlacementStrategy) AWSCloudFormationType() string {
 	return "AWS::ECS::Service.PlacementStrategy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSService_PlacementStrategy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

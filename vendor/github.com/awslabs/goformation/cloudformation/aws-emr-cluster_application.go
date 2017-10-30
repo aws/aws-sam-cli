@@ -29,8 +29,3 @@ type AWSEMRCluster_Application struct {
 func (r *AWSEMRCluster_Application) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.Application"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_Application) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -19,8 +19,3 @@ type AWSWAFRegionalSizeConstraintSet_FieldToMatch struct {
 func (r *AWSWAFRegionalSizeConstraintSet_FieldToMatch) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::SizeConstraintSet.FieldToMatch"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalSizeConstraintSet_FieldToMatch) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

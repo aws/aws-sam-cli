@@ -19,8 +19,3 @@ type AWSWAFSqlInjectionMatchSet_SqlInjectionMatchTuple struct {
 func (r *AWSWAFSqlInjectionMatchSet_SqlInjectionMatchTuple) AWSCloudFormationType() string {
 	return "AWS::WAF::SqlInjectionMatchSet.SqlInjectionMatchTuple"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFSqlInjectionMatchSet_SqlInjectionMatchTuple) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

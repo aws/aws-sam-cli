@@ -39,8 +39,3 @@ type AWSOpsWorksLayer_AutoScalingThresholds struct {
 func (r *AWSOpsWorksLayer_AutoScalingThresholds) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Layer.AutoScalingThresholds"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksLayer_AutoScalingThresholds) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

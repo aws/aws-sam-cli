@@ -14,8 +14,3 @@ type AWSDynamoDBTable_StreamSpecification struct {
 func (r *AWSDynamoDBTable_StreamSpecification) AWSCloudFormationType() string {
 	return "AWS::DynamoDB::Table.StreamSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDynamoDBTable_StreamSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

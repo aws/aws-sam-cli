@@ -24,8 +24,3 @@ type AWSServerlessApi_S3Location struct {
 func (r *AWSServerlessApi_S3Location) AWSCloudFormationType() string {
 	return "AWS::Serverless::Api.S3Location"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessApi_S3Location) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
-}

@@ -101,11 +101,6 @@ func (r *AWSAutoScalingAutoScalingGroup) AWSCloudFormationType() string {
 	return "AWS::AutoScaling::AutoScalingGroup"
 }
 
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSAutoScalingAutoScalingGroup) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}
-
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
 // an AWS CloudFormation JSON resource's 'Properties' field and adds a 'Type'.
 func (r *AWSAutoScalingAutoScalingGroup) MarshalJSON() ([]byte, error) {

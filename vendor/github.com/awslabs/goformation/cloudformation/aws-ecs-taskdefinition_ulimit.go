@@ -24,8 +24,3 @@ type AWSECSTaskDefinition_Ulimit struct {
 func (r *AWSECSTaskDefinition_Ulimit) AWSCloudFormationType() string {
 	return "AWS::ECS::TaskDefinition.Ulimit"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSTaskDefinition_Ulimit) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

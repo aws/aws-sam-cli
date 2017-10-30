@@ -19,8 +19,3 @@ type AWSEMRInstanceGroupConfig_MetricDimension struct {
 func (r *AWSEMRInstanceGroupConfig_MetricDimension) AWSCloudFormationType() string {
 	return "AWS::EMR::InstanceGroupConfig.MetricDimension"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRInstanceGroupConfig_MetricDimension) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}
