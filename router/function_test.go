@@ -23,7 +23,7 @@ var _ = Describe("Function", func() {
 			Events: map[string]cloudformation.AWSServerlessFunction_EventSource{
 				"GetRequests": cloudformation.AWSServerlessFunction_EventSource{
 					Type: "Api",
-					Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+					Properties: &cloudformation.AWSServerlessFunction_Properties{
 						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 							Path:   "/get",
 							Method: "get",
@@ -32,7 +32,7 @@ var _ = Describe("Function", func() {
 				},
 				"PostRequests": cloudformation.AWSServerlessFunction_EventSource{
 					Type: "Api",
-					Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+					Properties: &cloudformation.AWSServerlessFunction_Properties{
 						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 							Path:   "/post",
 							Method: "post",
@@ -41,7 +41,7 @@ var _ = Describe("Function", func() {
 				},
 				"AnyRequests": cloudformation.AWSServerlessFunction_EventSource{
 					Type: "Api",
-					Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+					Properties: &cloudformation.AWSServerlessFunction_Properties{
 						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 							Path:   "/any",
 							Method: "any",
@@ -50,7 +50,7 @@ var _ = Describe("Function", func() {
 				},
 				"CatchAll": cloudformation.AWSServerlessFunction_EventSource{
 					Type: "Api",
-					Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+					Properties: &cloudformation.AWSServerlessFunction_Properties{
 						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 							Path:   "/foo/{catch+}",
 							Method: "get",
@@ -163,7 +163,7 @@ var _ = Describe("Function", func() {
 			Events: map[string]cloudformation.AWSServerlessFunction_EventSource{
 				"AnyRequests": cloudformation.AWSServerlessFunction_EventSource{
 					Type: "Api",
-					Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+					Properties: &cloudformation.AWSServerlessFunction_Properties{
 						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 							Path:   "/any",
 							Method: "any",

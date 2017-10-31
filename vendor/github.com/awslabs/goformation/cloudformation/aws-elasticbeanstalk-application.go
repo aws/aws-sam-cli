@@ -19,6 +19,11 @@ type AWSElasticBeanstalkApplication struct {
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-beanstalk.html#cfn-elasticbeanstalk-application-description
 	Description string `json:"Description,omitempty"`
+
+	// ResourceLifecycleConfig AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-beanstalk.html#cfn-elasticbeanstalk-application-resourcelifecycleconfig
+	ResourceLifecycleConfig *AWSElasticBeanstalkApplication_ApplicationResourceLifecycleConfig `json:"ResourceLifecycleConfig,omitempty"`
 }
 
 // AWSCloudFormationType returns the AWS CloudFormation resource type

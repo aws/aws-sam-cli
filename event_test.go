@@ -25,7 +25,7 @@ var _ = Describe("Event", func() {
 				Events: map[string]cloudformation.AWSServerlessFunction_EventSource{
 					"GetRequest": cloudformation.AWSServerlessFunction_EventSource{
 						Type: "Api",
-						Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+						Properties: &cloudformation.AWSServerlessFunction_Properties{
 							ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 								Path:   "/get",
 								Method: "get",
@@ -34,7 +34,7 @@ var _ = Describe("Event", func() {
 					},
 					"GetRequestsWithParams": cloudformation.AWSServerlessFunction_EventSource{
 						Type: "Api",
-						Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+						Properties: &cloudformation.AWSServerlessFunction_Properties{
 							ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 								Path:   "/get/{parameter}",
 								Method: "get",
@@ -79,7 +79,7 @@ var _ = Describe("Event", func() {
 				Events: map[string]cloudformation.AWSServerlessFunction_EventSource{
 					"GetRequest": cloudformation.AWSServerlessFunction_EventSource{
 						Type: "Api",
-						Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+						Properties: &cloudformation.AWSServerlessFunction_Properties{
 							ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
 								Path:   "/get",
 								Method: "get",
