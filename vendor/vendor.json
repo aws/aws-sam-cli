@@ -205,6 +205,12 @@
 			"revisionTime": "2017-10-30T16:55:53Z"
 		},
 		{
+			"checksumSHA1": "slR18YNNZfQSO487H8XPh14I3FY=",
+			"path": "github.com/awslabs/goformation/intrinsics",
+			"revision": "9ad3ba31f9330acddc72b6ee6cea26d55c93689f",
+			"revisionTime": "2017-10-30T20:04:01Z"
+		},
+		{
 			"checksumSHA1": "GfZvfJZHPiNFI2KTFF9HfNNAMuA=",
 			"path": "github.com/codegangsta/cli",
 			"revision": "8ba6f23b6e36d03666a14bd9421f5e3efcb59aca",
