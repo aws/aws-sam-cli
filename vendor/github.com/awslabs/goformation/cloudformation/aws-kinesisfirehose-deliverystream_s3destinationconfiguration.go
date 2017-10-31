@@ -30,7 +30,7 @@ type AWSKinesisFirehoseDeliveryStream_S3DestinationConfiguration struct {
 	EncryptionConfiguration *AWSKinesisFirehoseDeliveryStream_EncryptionConfiguration `json:"EncryptionConfiguration,omitempty"`
 
 	// Prefix AWS CloudFormation Property
-	// Required: true
+	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-kinesisfirehose-deliverystream-s3destinationconfiguration.html#cfn-kinesisfirehose-deliverystream-s3destinationconfiguration-prefix
 	Prefix string `json:"Prefix,omitempty"`
 

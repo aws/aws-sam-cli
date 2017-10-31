@@ -20,6 +20,11 @@ type AWSEC2Route struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html#cfn-ec2-route-destinationipv6cidrblock
 	DestinationIpv6CidrBlock string `json:"DestinationIpv6CidrBlock,omitempty"`
 
+	// EgressOnlyInternetGatewayId AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html#cfn-ec2-route-egressonlyinternetgatewayid
+	EgressOnlyInternetGatewayId string `json:"EgressOnlyInternetGatewayId,omitempty"`
+
 	// GatewayId AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html#cfn-ec2-route-gatewayid

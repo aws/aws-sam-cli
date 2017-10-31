@@ -40,6 +40,11 @@ type AWSApiGatewayMethod struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-methodresponses
 	MethodResponses []AWSApiGatewayMethod_MethodResponse `json:"MethodResponses,omitempty"`
 
+	// OperationName AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-operationname
+	OperationName string `json:"OperationName,omitempty"`
+
 	// RequestModels AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-requestmodels
@@ -49,6 +54,11 @@ type AWSApiGatewayMethod struct {
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-requestparameters
 	RequestParameters map[string]bool `json:"RequestParameters,omitempty"`
+
+	// RequestValidatorId AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-requestvalidatorid
+	RequestValidatorId string `json:"RequestValidatorId,omitempty"`
 
 	// ResourceId AWS CloudFormation Property
 	// Required: true
