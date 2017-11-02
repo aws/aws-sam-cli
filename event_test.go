@@ -57,6 +57,20 @@ var _ = Describe("Event", func() {
 					r.Router().ServeHTTP(rec, req)
 				})
 			})
+			
+			Context("and path parameters on the request", func() {
+				req, _ := http.NewRequest("GET", "/get/1", new(bytes.Buffer))
+
+				It("returns stage property with value \"prod\"", func() {
+					r.AddFunction(function, func(w http.ResponseWriter, r *http.Request) {
+						e, _ := NewEvent(r)
+						Expect(e.RequestContext.Stage).To(BeIdenticalTo("prod"))
+					})
+
+					rec := httptest.NewRecorder()
+					r.Router().ServeHTTP(rec, req)
+				})
+			})
 
 			Context("and no path parameters on the request", func() {
 				req, _ := http.NewRequest("GET", "/get", new(bytes.Buffer))
