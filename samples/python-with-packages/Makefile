@@ -3,8 +3,10 @@ PY_VERSION := 3.6
 
 export PYTHONUNBUFFERED := 1
 
-export AWS_PROFILE := sandbox
-STACK_NAME := stack-cloudschedule
+AWS_PROFILE ?= sandbox
+BUCKET ?= <<bucket>>
+S3_PREFIX ?= sources
+STACK_NAME ?= stack-cloudschedule
 
 BASE := $(shell /bin/pwd)
 VENV_DIR := $(BASE)/.venv
@@ -20,10 +22,13 @@ ZIP_FILE := $(BASE)/bundle.zip
 
 build:
 	$(VIRTUALENV) "$(VENV_DIR)"
+	mkdir -p "$(VENV_DIR)/lib64/python$(PY_VERSION)/site-packages"
+	touch "$(VENV_DIR)/lib64/python$(PY_VERSION)/site-packages/file"
 	"$(VENV_DIR)/bin/pip$(PY_VERSION)" \
 		--isolated \
 		--disable-pip-version-check \
-		install -Ur requirements.txt
+		install --no-binary :all: -Ur requirements.txt
+	find "$(VENV_DIR)" -name "*.pyc" -exec rm -f {} \;
 
 bundle.local:
 	zip -r -9 "$(ZIP_FILE)" example
@@ -38,8 +43,8 @@ bundle:
 package:
 	sam package \
 		--template-file template.yml \
-		--s3-bucket fridev-lambda \
-		--s3-prefix sources \
+		--s3-bucket $(BUCKET) \
+		--s3-prefix $(S3_PREFIX) \
 		--output-template-file packaged.yml
 
 deploy:
