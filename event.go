@@ -29,6 +29,7 @@ type RequestContext struct {
 	HTTPMethod   string          `json:"httpMethod,omitempty"`
 	RequestID    string          `json:"requestId,omitempty"`
 	AccountsID   string          `json:"accountId,omitempty"`
+	Stage        string          `json:"stage,omitempty"`
 	Identity     ContextIdentity `json:"identity,omitempty"`
 }
 
@@ -88,6 +89,7 @@ func NewEvent(req *http.Request) (*Event, error) {
 	event.RequestContext.Identity.SourceIP = req.RemoteAddr
 	event.RequestContext.ResourcePath = req.URL.Path
 	event.RequestContext.HTTPMethod = req.Method
+	event.RequestContext.Stage = "prod"
 
 	return event, nil
 
