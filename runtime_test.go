@@ -16,6 +16,16 @@ var _ = Describe("sam", func() {
 
 	Describe("runtime", func() {
 
+		Context("mount directory", func() {
+			Context("with a windows style path", func() {
+				input := `C:/Users/username/path`
+				It("should replace it with the docker-toolbox format", func() {
+					result := convertWindowsPath(input)
+					Expect(result).To(Equal("/c/Users/username/path"))
+				})
+			})
+		})
+
 		Context("working directory", func() {
 
 			cwd, err := os.Getwd()
