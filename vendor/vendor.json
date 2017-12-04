@@ -195,32 +195,20 @@
 		{
 			"checksumSHA1": "q/q192th5k+4sIf7foPHDZ9mCCI=",
 			"path": "github.com/awslabs/goformation",
-			"revision": "1545ea7d9aad8477f120b7f8adf6d37c132ec3ce",
-			"revisionTime": "2017-09-15T12:58:13Z"
+			"revision": "e44e1f30ab5d1d3c0c34780bf07de71c8a0a2924",
+			"revisionTime": "2017-10-30T16:55:53Z"
 		},
 		{
-			"checksumSHA1": "n91LVkNazQPGvTOt8akVM4flKKk=",
+			"checksumSHA1": "PPE0ACgxF7gN5tM6qv1Ray7wDks=",
 			"path": "github.com/awslabs/goformation/cloudformation",
-			"revision": "1545ea7d9aad8477f120b7f8adf6d37c132ec3ce",
-			"revisionTime": "2017-09-15T12:58:13Z"
+			"revision": "e44e1f30ab5d1d3c0c34780bf07de71c8a0a2924",
+			"revisionTime": "2017-10-30T16:55:53Z"
 		},
 		{
 			"checksumSHA1": "slR18YNNZfQSO487H8XPh14I3FY=",
 			"path": "github.com/awslabs/goformation/intrinsics",
-			"revision": "1545ea7d9aad8477f120b7f8adf6d37c132ec3ce",
-			"revisionTime": "2017-09-15T12:58:13Z"
-		},
-		{
-			"checksumSHA1": "H5Ps9SpE0mLJ8JaLQPKcj4wRScY=",
-			"path": "github.com/awslabs/goformation/resources",
-			"revision": "1dae6647ec1c8a79e8529d257c11953607bba524",
-			"revisionTime": "2017-08-13T16:29:21Z"
-		},
-		{
-			"checksumSHA1": "UTZf9RQcb63/IT9KCwwDvt43oAs=",
-			"path": "github.com/awslabs/goformation/util",
-			"revision": "1dae6647ec1c8a79e8529d257c11953607bba524",
-			"revisionTime": "2017-08-13T16:29:21Z"
+			"revision": "9ad3ba31f9330acddc72b6ee6cea26d55c93689f",
+			"revisionTime": "2017-10-30T20:04:01Z"
 		},
 		{
 			"checksumSHA1": "GfZvfJZHPiNFI2KTFF9HfNNAMuA=",

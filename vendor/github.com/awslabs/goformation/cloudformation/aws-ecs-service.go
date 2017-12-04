@@ -21,7 +21,7 @@ type AWSECSService struct {
 	DeploymentConfiguration *AWSECSService_DeploymentConfiguration `json:"DeploymentConfiguration,omitempty"`
 
 	// DesiredCount AWS CloudFormation Property
-	// Required: true
+	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-service.html#cfn-ecs-service-desiredcount
 	DesiredCount int `json:"DesiredCount,omitempty"`
 

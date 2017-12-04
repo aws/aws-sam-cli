@@ -15,6 +15,11 @@ type AWSKinesisFirehoseDeliveryStream struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesisfirehose-deliverystream.html#cfn-kinesisfirehose-deliverystream-deliverystreamname
 	DeliveryStreamName string `json:"DeliveryStreamName,omitempty"`
 
+	// DeliveryStreamType AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesisfirehose-deliverystream.html#cfn-kinesisfirehose-deliverystream-deliverystreamtype
+	DeliveryStreamType string `json:"DeliveryStreamType,omitempty"`
+
 	// ElasticsearchDestinationConfiguration AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesisfirehose-deliverystream.html#cfn-kinesisfirehose-deliverystream-elasticsearchdestinationconfiguration
@@ -24,6 +29,11 @@ type AWSKinesisFirehoseDeliveryStream struct {
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesisfirehose-deliverystream.html#cfn-kinesisfirehose-deliverystream-extendeds3destinationconfiguration
 	ExtendedS3DestinationConfiguration *AWSKinesisFirehoseDeliveryStream_ExtendedS3DestinationConfiguration `json:"ExtendedS3DestinationConfiguration,omitempty"`
+
+	// KinesisStreamSourceConfiguration AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-kinesisfirehose-deliverystream.html#cfn-kinesisfirehose-deliverystream-kinesisstreamsourceconfiguration
+	KinesisStreamSourceConfiguration *AWSKinesisFirehoseDeliveryStream_KinesisStreamSourceConfiguration `json:"KinesisStreamSourceConfiguration,omitempty"`
 
 	// RedshiftDestinationConfiguration AWS CloudFormation Property
 	// Required: false

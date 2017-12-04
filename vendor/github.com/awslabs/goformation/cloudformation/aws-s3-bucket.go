@@ -20,6 +20,11 @@ type AWSS3Bucket struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-accesscontrol
 	AccessControl string `json:"AccessControl,omitempty"`
 
+	// AnalyticsConfigurations AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-analyticsconfigurations
+	AnalyticsConfigurations []AWSS3Bucket_AnalyticsConfiguration `json:"AnalyticsConfigurations,omitempty"`
+
 	// BucketName AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-name
@@ -29,6 +34,11 @@ type AWSS3Bucket struct {
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-crossoriginconfig
 	CorsConfiguration *AWSS3Bucket_CorsConfiguration `json:"CorsConfiguration,omitempty"`
+
+	// InventoryConfigurations AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-inventoryconfigurations
+	InventoryConfigurations []AWSS3Bucket_InventoryConfiguration `json:"InventoryConfigurations,omitempty"`
 
 	// LifecycleConfiguration AWS CloudFormation Property
 	// Required: false
