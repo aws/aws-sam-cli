@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -234,6 +235,10 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 		mount = r.DecompressedCwd
 	}
 
+	// If the path is a Windows style one, convert it to the format that Docker Toolbox requires.
+	mount = convertWindowsPath(mount)
+
+	log.Printf("Mounting %s as /var/task:ro inside runtime container\n", mount)
 	host := &container.HostConfig{
 		Resources: container.Resources{
 			Memory: int64(r.Function.MemorySize * 1024 * 1024),
@@ -730,5 +735,26 @@ func decompressArchive(src string) (string, error) {
 	}
 
 	return dest, nil
+
+}
+
+func convertWindowsPath(input string) string {
+
+	rg := regexp.MustCompile(`^([A-Za-z]+):`)
+	drive := rg.FindAllStringSubmatch(input, 1)
+	if drive != nil {
+
+		// The path starts with a drive letter.
+		// Docker toolbox mounts C:\ as /c/ so we need to extract, convert to lowercase
+		// and replace into the correct format
+		letter := drive[0][1]
+
+		input = rg.ReplaceAllString(input, "/"+strings.ToLower(letter))
+
+	}
+
+	// Convert all OS seperators to '/'
+	input = filepath.ToSlash(input)
+	return input
 
 }

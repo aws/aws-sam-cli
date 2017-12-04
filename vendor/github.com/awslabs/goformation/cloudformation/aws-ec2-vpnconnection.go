@@ -34,6 +34,11 @@ type AWSEC2VPNConnection struct {
 	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpn-connection.html#cfn-ec2-vpnconnection-vpngatewayid
 	VpnGatewayId string `json:"VpnGatewayId,omitempty"`
+
+	// VpnTunnelOptionsSpecifications AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpn-connection.html#cfn-ec2-vpnconnection-vpntunneloptionsspecifications
+	VpnTunnelOptionsSpecifications []AWSEC2VPNConnection_VpnTunnelOptionsSpecification `json:"VpnTunnelOptionsSpecifications,omitempty"`
 }
 
 // AWSCloudFormationType returns the AWS CloudFormation resource type
