@@ -250,6 +250,8 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
 
 Unlike Node.JS and Java, Python requires you to enable remote debugging in your Lambda function code. If you enable debugging with `--debug-port` or `-d` for a function that uses one of the Python runtimes, SAM Local will just map through that port from your host machine through to the Lambda runtime container. You will need to enable remote debugging in your function code. To do this, use a python package such as [remote-pdb](https://pypi.python.org/pypi/remote-pdb). When configuring the host the debugger listens on in your code, make sure to use `0.0.0.0` not `127.0.0.1` to allow Docker to map through the port to your host machine.
 
+> Please note, due to a [open bug](https://github.com/Microsoft/vscode-python/issues/71) with Visual Studio Code, you may get a `Debug adapter process has terminated unexpectedly` error when attempting to debug Python applications with this IDE. Please track the [GitHub issue](https://github.com/Microsoft/vscode-python/issues/71) for updates.
+
 ### Connecting to docker network
 Both `sam local invoke` and `sam local start-api` support connecting the create lambda docker containers to an existing docker network.
 
