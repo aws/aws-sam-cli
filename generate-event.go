@@ -125,12 +125,12 @@ var s3Event = `{
         "object": {
           "eTag": "0123456789abcdef0123456789abcdef",
           "sequencer": "0A1B2C3D4E5F678901",
-          "key": "{{.Key}}",
+          "key": "{{js .Key}}",
           "size": 1024
         },
         "bucket": {
-          "arn": "arn:aws:s3:::{{.Bucket}}",
-          "name": "{{.Bucket}}",
+          "arn": "arn:aws:s3:::{{js .Bucket}}",
+          "name": "{{js .Bucket}}",
           "ownerIdentity": {
             "principalId": "EXAMPLE"
           }
@@ -141,7 +141,7 @@ var s3Event = `{
         "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH",
         "x-amz-request-id": "EXAMPLE123456789"
       },
-      "awsRegion": "{{.Region}}",
+      "awsRegion": "{{js .Region}}",
       "eventName": "ObjectCreated:Put",
       "userIdentity": {
         "principalId": "EXAMPLE"
@@ -163,7 +163,7 @@ var snsEvent = `{
         "Signature": "EXAMPLE",
         "SigningCertUrl": "EXAMPLE",
         "MessageId": "95df01b4-ee98-5cb9-9903-4c221d41eb5e",
-        "Message": "{{.Message}}",
+        "Message": "{{js .Message}}",
         "MessageAttributes": {
           "Test": {
             "Type": "String",
@@ -176,8 +176,8 @@ var snsEvent = `{
         },
         "Type": "Notification",
         "UnsubscribeUrl": "EXAMPLE",
-        "TopicArn": "{{.Topic}}",
-        "Subject": "{{.Subject}}"
+        "TopicArn": "{{js .Topic}}",
+        "Subject": "{{js .Subject}}"
       }
     }
   ]
@@ -186,20 +186,20 @@ var snsEvent = `{
 var kinesisEvent = `{
   "Records": [
     {
-      "eventID": "shardId-000000000000:{{.Sequence}}",
+      "eventID": "shardId-000000000000:{{js .Sequence}}",
       "eventVersion": "1.0",
       "kinesis": {
         "approximateArrivalTimestamp": 1428537600,
-        "partitionKey": "{{.Partition}}",
-        "data": "{{.Data}}",
+        "partitionKey": "{{js .Partition}}",
+        "data": "{{js .Data}}",
         "kinesisSchemaVersion": "1.0",
-        "sequenceNumber": "{{.Sequence}}"
+        "sequenceNumber": "{{js .Sequence}}"
       },
       "invokeIdentityArn": "arn:aws:iam::EXAMPLE",
       "eventName": "aws:kinesis:record",
       "eventSourceARN": "arn:aws:kinesis:EXAMPLE",
       "eventSource": "aws:kinesis",
-      "awsRegion": "{{.Region}}"
+      "awsRegion": "{{js .Region}}"
     }
   ]
 }
@@ -227,9 +227,9 @@ var dynamodbEvent = `{
         "SequenceNumber": "111",
         "SizeBytes": 26
       },
-      "awsRegion": "{{.Region}}",
+      "awsRegion": "{{js .Region}}",
       "eventName": "INSERT",
-      "eventSourceARN": "arn:aws:dynamodb:{{.Region}}:account-id:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
+      "eventSourceARN": "arn:aws:dynamodb:{{js .Region}}:account-id:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
       "eventSource": "aws:dynamodb"
     },
     {
@@ -261,9 +261,9 @@ var dynamodbEvent = `{
         },
         "StreamViewType": "NEW_AND_OLD_IMAGES"
       },
-      "awsRegion": "{{.Region}}",
+      "awsRegion": "{{js .Region}}",
       "eventName": "MODIFY",
-      "eventSourceARN": "arn:aws:dynamodb:{{.Region}}:account-id:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
+      "eventSourceARN": "arn:aws:dynamodb:{{js .Region}}:account-id:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
       "eventSource": "aws:dynamodb"
     },
     {
@@ -287,22 +287,22 @@ var dynamodbEvent = `{
         },
         "StreamViewType": "NEW_AND_OLD_IMAGES"
       },
-      "awsRegion": "{{.Region}}",
+      "awsRegion": "{{js .Region}}",
       "eventName": "REMOVE",
-      "eventSourceARN": "arn:aws:dynamodb:{{.Region}}:account-id:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
+      "eventSourceARN": "arn:aws:dynamodb:{{js .Region}}:account-id:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
       "eventSource": "aws:dynamodb"
     }
   ]
 }`
 
 var apiEvent = `{
-  "body": "{{.Body}}",
-  "resource": "{{.Resource}}",
+  "body": "{{js .Body}}",
+  "resource": "{{js .Resource}}",
   "requestContext": {
     "resourceId": "123456",
     "apiId": "1234567890",
-    "resourcePath": "{{.Resource}}",
-    "httpMethod": "{{.Method}}",
+    "resourcePath": "{{js .Resource}}",
+    "httpMethod": "{{js .Method}}",
     "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
     "accountId": "123456789012",
     "identity": {
@@ -344,18 +344,18 @@ var apiEvent = `{
     "Accept-Encoding": "gzip, deflate, sdch"
   },
   "pathParameters": {
-    "proxy": "{{.Path}}"
+    "proxy": "{{js .Path}}"
   },
-  "httpMethod": "{{.Method}}",
+  "httpMethod": "{{js .Method}}",
   "stageVariables": {
     "baz": "qux"
   },
-  "path": "{{.Path}}"
+  "path": "{{js .Path}}"
 }`
 
 var scheduleEvent = `{
   "account": "123456789012",
-  "region": "{{.Region}}",
+  "region": "{{js .Region}}",
   "detail": {},
   "detail-type": "Scheduled Event",
   "source": "aws.events",
