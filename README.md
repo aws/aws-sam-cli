@@ -278,7 +278,7 @@ $ sam validate
 Valid!
 ```
 
-Note: More in-depth functionality is currently disabled.
+Note: More in-depth functionality is currently disabled. An alternative validation route is to validate your JSON against schema for [the whole CloudFormation and SAM specification.](https://github.com/awslabs/goformation/blob/master/schema/sam.schema.json)
 
 ### Package and Deploy to Lambda
 Once you have developed and tested your Serverless application locally, you can deploy to Lambda using `sam package` and `sam deploy` command. `package` command will zip your code artifacts, upload to S3 and produce a SAM file that is ready to be deployed to Lambda using AWS CloudFormation. `deploy` command will deploy the packaged SAM template to CloudFormation. Both `sam package` and `sam deploy` are identical to their AWS CLI equivalents commands [`aws cloudformation package`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html) and [`aws cloudformation deploy`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html) respectively. Please consult the AWS CLI command documentation for usage.
