@@ -46,19 +46,35 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 	}
 
 	mounts := []*ServerlessRouterMount{}
+
 	log.Printf("Reading paths from Swagger")
 
 	for path, pathItem := range swagger.Paths.Paths {
+		// temporary tracking of mounted methods for the current path. Used to
+		// mount all non-existing methods for the any extension. This is because
+		// the err from JSONLookup did not work as expected
+		mappedMethods := map[string]bool{}
 
 		for _, method := range HttpMethods {
-			if operationIface, err := pathItem.JSONLookup(method); err == nil {
-				operation := operationIface.(spec.Operation)
+
+			if operationIface, err := pathItem.JSONLookup(strings.ToLower(method)); err == nil {
+				operation := spec.Operation{}
+
+				operationJson, err := json.Marshal(operationIface)
+				if err != nil {
+					return nil, fmt.Errorf("Could not parse %s operation: %s", method, err.Error())
+				}
+				operation.UnmarshalJSON(operationJson)
+				if operation.Extensions[apiGatewayIntegrationExtension] == nil {
+					continue
+				}
 
 				integration, _ := operation.Extensions[apiGatewayIntegrationExtension]
 				mounts = append(mounts, api.createMount(
 					path,
 					strings.ToLower(method),
 					api.parseIntegrationSettings(integration)))
+				mappedMethods[method] = true
 			}
 		}
 
@@ -78,7 +94,7 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 			}
 
 			for _, method := range HttpMethods {
-				if _, err := pathItem.JSONLookup(method); err != nil {
+				if _, ok := mappedMethods[method]; !ok {
 					mounts = append(mounts, api.createMount(
 						path,
 						strings.ToLower(method),

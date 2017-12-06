@@ -71,6 +71,9 @@ var _ = Describe("Api", func() {
 				if mount.Method == "post" && mount.Path == "/pets/{proxy+}" {
 					Expect(mount.IntegrationArn.Arn).Should(ContainSubstring("AnyMethod"))
 				}
+				if mount.Method == "delete" && mount.Path == "/pets/{proxy+}" {
+					Expect(mount.IntegrationArn.Arn).Should(ContainSubstring("Calc"))
+				}
 			}
 		})
 
