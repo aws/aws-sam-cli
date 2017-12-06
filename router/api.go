@@ -8,7 +8,16 @@ import (
 
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/go-openapi/spec"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
+
+const apiGatewayIntegrationExtension = "x-amazon-apigateway-integration"
+const apiGatewayAnyMethodExtension = "x-amazon-apigateway-any-method"
+
+type ApiGatewayAnyMethod struct {
+	IntegrationSettings interface{} `json:"x-amazon-apigateway-integration"`
+}
 
 // AWSServerlessApi wraps GoFormation's AWS::Serverless::Api definition
 // and adds some convenience methods for extracting the ServerlessRouterMount's
@@ -39,53 +48,108 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 	for path, pathItem := range swagger.Paths.Paths {
 
 		if pathItem.Get != nil {
-			mounts = append(mounts, api.createMount(path, "get", pathItem.Get))
+			integration, _ := pathItem.Get.Extensions[apiGatewayIntegrationExtension]
+			mounts = append(mounts, api.createMount(path, "get", api.parseIntegrationSettings(integration)))
 		}
 		if pathItem.Post != nil {
-			mounts = append(mounts, api.createMount(path, "post", pathItem.Post))
+			integration, _ := pathItem.Post.Extensions[apiGatewayIntegrationExtension]
+			mounts = append(mounts, api.createMount(path, "post", api.parseIntegrationSettings(integration)))
 		}
 		if pathItem.Put != nil {
-			mounts = append(mounts, api.createMount(path, "put", pathItem.Put))
+			integration, _ := pathItem.Put.Extensions[apiGatewayIntegrationExtension]
+			mounts = append(mounts, api.createMount(path, "put", api.parseIntegrationSettings(integration)))
 		}
 		if pathItem.Patch != nil {
-			mounts = append(mounts, api.createMount(path, "patch", pathItem.Patch))
+			integration, _ := pathItem.Patch.Extensions[apiGatewayIntegrationExtension]
+			mounts = append(mounts, api.createMount(path, "patch", api.parseIntegrationSettings(integration)))
 		}
 		if pathItem.Delete != nil {
-			mounts = append(mounts, api.createMount(path, "delete", pathItem.Delete))
+			integration, _ := pathItem.Delete.Extensions[apiGatewayIntegrationExtension]
+			mounts = append(mounts, api.createMount(path, "delete", api.parseIntegrationSettings(integration)))
+		}
+		if pathItem.Head != nil {
+			integration, _ := pathItem.Delete.Extensions[apiGatewayIntegrationExtension]
+			mounts = append(mounts, api.createMount(path, "head", api.parseIntegrationSettings(integration)))
 		}
 		if pathItem.Options != nil {
-			mounts = append(mounts, api.createMount(path, "options", pathItem.Options))
+			integration, _ := pathItem.Options.Extensions[apiGatewayIntegrationExtension]
+			mounts = append(mounts, api.createMount(path, "options", api.parseIntegrationSettings(integration)))
+		}
+
+		// support for any method extension
+		anyMethod, available := pathItem.Extensions[apiGatewayAnyMethodExtension]
+		if available {
+			// any method to json then unmarshal to temporary object
+			anyMethodJson, err := json.Marshal(anyMethod)
+			if err != nil {
+				return nil, fmt.Errorf("Could not marshal any method object to json")
+			}
+
+			anyMethodObject := ApiGatewayAnyMethod{}
+			err = json.Unmarshal(anyMethodJson, &anyMethodObject)
+
+			if err != nil {
+				return nil, fmt.Errorf("Could not unmarshal any method josn to object model")
+			}
+
+			// we only add the ANY mounts for methods that are not already explicitly defined.
+			// Explicitly defined methods override the ANY
+			if pathItem.Get == nil {
+				mounts = append(mounts, api.createMount(path, "get", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			}
+			if pathItem.Post == nil {
+				mounts = append(mounts, api.createMount(path, "post", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			}
+			if pathItem.Put == nil {
+				mounts = append(mounts, api.createMount(path, "put", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			}
+			if pathItem.Patch == nil {
+				mounts = append(mounts, api.createMount(path, "patch", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			}
+			if pathItem.Delete == nil {
+				mounts = append(mounts, api.createMount(path, "delete", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			}
+			if pathItem.Head == nil {
+				mounts = append(mounts, api.createMount(path, "head", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			}
+			if pathItem.Options == nil {
+				mounts = append(mounts, api.createMount(path, "options", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			}
 		}
 	}
 
 	return mounts, nil
 }
 
-func (api *AWSServerlessApi) createMount(path string, verb string, method *spec.Operation) *(ServerlessRouterMount) {
+// parses a byte[] for the API Gateway inetegration extension from a method and return
+// the object representation
+func (api *AWSServerlessApi) parseIntegrationSettings(integrationData interface{}) *ApiGatewayIntegration {
+	integrationJson, err := json.Marshal(integrationData);
+	if err != nil {
+		log.Printf("Could not parse integration data to json")
+		return nil
+	}
+
+	integration := ApiGatewayIntegration{}
+	err = json.Unmarshal(integrationJson, &integration)
+
+	if err != nil {
+		log.Printf("Could not unmarshal integration data to ApiGatewayIntegration model")
+		return nil
+	}
+
+	return &integration
+}
+
+func (api *AWSServerlessApi) createMount(path string, verb string, integration *ApiGatewayIntegration) *(ServerlessRouterMount) {
 	newMount := &ServerlessRouterMount{
 		Name: path,
 		Path: path,
 		Method: verb,
 	}
 
-	integrationData, available := method.Extensions["x-amazon-apigateway-integration"]
-	if !available {
-		log.Printf("No integration defined")
-		return newMount
-	}
-	integrationJson, err := json.Marshal(integrationData);
-	if err != nil {
-		log.Printf("Could not parse integration data to json")
-		return newMount
-	}
-
-	integration := ApiGatewayIntegration{}
-	err = json.Unmarshal(integrationJson, &integration)
-
-	// I'm not going to treat this as a fatal error. We can still pick up from the list of functions
-	// integration data may not be defined up at all.
-	if err != nil {
-		log.Printf("Could not Unmarshal integration: %s", err.Error())
+	if integration == nil {
+		log.Printf("No integration defined for method")
 		return newMount
 	}
 
@@ -146,8 +210,29 @@ func (api *AWSServerlessApi) getSwaggerFromURI(uri string) ([]byte, error) {
 	return data, nil
 }
 
-func (api *AWSServerlessApi) getSwaggerFromS3Location(cloudformation.AWSServerlessApi_S3Location) ([]byte, error) {
-	return nil, nil
+func (api *AWSServerlessApi) getSwaggerFromS3Location(loc cloudformation.AWSServerlessApi_S3Location) ([]byte, error) {
+	sess := session.Must(session.NewSession())
+	client := s3.New(sess)
+
+	objectVersion := string(loc.Version)
+	s3Input := s3.GetObjectInput{
+		Bucket: &loc.Bucket,
+		Key: &loc.Key,
+		VersionId: &objectVersion,
+	}
+
+	object, err := client.GetObject(&s3Input)
+
+	if err != nil {
+		return nil, fmt.Errorf("Error while fetching Swagger template from S3: %s\n%s", loc.Bucket + loc.Key, err.Error())
+	}
+
+	body, err := ioutil.ReadAll(object.Body)
+
+	if err != nil {
+		return nil, fmt.Errorf("Cannot read s3 Swagger boject body: %s", err.Error())
+	}
+	return body, nil
 }
 
 func (api *AWSServerlessApi) getSwaggerFromString(input string) ([]byte, error) {

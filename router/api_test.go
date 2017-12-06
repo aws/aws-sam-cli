@@ -57,5 +57,22 @@ var _ = Describe("Api", func() {
 			}
 		})
 
+		It("Loads the proxy template", func() {
+			apiResource := getApiResourceFromTemplate("../test/templates/open-api/pet-store-proxy.json")
+
+			mounts, err := apiResource.Mounts()
+
+			Expect(err).Should(BeNil())
+			Expect(mounts).ShouldNot(BeNil())
+			// we expect 9 here because the any method should generate all 7
+			Expect(len(mounts)).To(BeIdenticalTo(9))
+
+			for _, mount := range mounts {
+				if mount.Method == "post" && mount.Path == "/pets/{proxy+}" {
+					Expect(mount.IntegrationArn.Arn).Should(ContainSubstring("AnyMethod"))
+				}
+			}
+		})
+
 	})
 })

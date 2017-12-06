@@ -48,6 +48,15 @@ var _ = Describe("Function", func() {
 						},
 					},
 				},
+				"ProxyResource": cloudformation.AWSServerlessFunction_EventSource{
+					Type: "Api",
+					Properties: &cloudformation.AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent{
+						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
+							Path:   "/proxy/{proxy+}",
+							Method: "any",
+						},
+					},
+				},
 			},
 		}
 
@@ -62,7 +71,7 @@ var _ = Describe("Function", func() {
 
 		mounts := r.Mounts()
 		It("should find three API event sources", func() {
-			Expect(mounts).To(HaveLen(3))
+			Expect(mounts).To(HaveLen(4))
 		})
 
 		It("should have the correct values for an event with GET http method", func() {
@@ -120,7 +129,21 @@ var _ = Describe("Function", func() {
 			Expect(rr.Code).To(Equal(http.StatusNotFound))
 		})
 
-		methods := []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT"}
+		It("should respond to GET requests on any path in catch-all resource", func() {
+			req, _ := http.NewRequest("GET", "/proxy/hello/world", nil)
+			rr := httptest.NewRecorder()
+			r.Router().ServeHTTP(rr, req)
+			Expect(rr.Code).To(Equal(http.StatusOK))
+		})
+
+		It("should not respond to base proxy path, only sub-resources", func() {
+			req, _ := http.NewRequest("GET", "/proxy/", nil)
+			rr := httptest.NewRecorder()
+			r.Router().ServeHTTP(rr, req)
+			Expect(rr.Code).To(Equal(http.StatusNotFound))
+		})
+
+		methods := []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"}
 		for _, method := range methods {
 			It("should respond to HTTP requests on "+method+" /any", func() {
 				req, _ := http.NewRequest(method, "/any", nil)

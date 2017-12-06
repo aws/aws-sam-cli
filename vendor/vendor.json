@@ -193,10 +193,22 @@
 			"revisionTime": "2017-07-27T22:25:20Z"
 		},
 		{
+			"checksumSHA1": "ODo+ko8D6unAxZuN1jGzMcN4QCc=",
+			"path": "github.com/aws/aws-sdk-go/private/protocol/restxml",
+			"revision": "9aa9c61f7edcc096340c81a61f357139e499c8fe",
+			"revisionTime": "2017-12-05T23:09:30Z"
+		},
+		{
 			"checksumSHA1": "0qYPUga28aQVkxZgBR3Z86AbGUQ=",
 			"path": "github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil",
 			"revision": "df374c20d53ed082b8cf0d0da52b1a181abf387b",
 			"revisionTime": "2017-07-27T22:25:20Z"
+		},
+		{
+			"checksumSHA1": "TFFdPTzKEzgc1jNP27gJmEU/cOk=",
+			"path": "github.com/aws/aws-sdk-go/service/s3",
+			"revision": "9aa9c61f7edcc096340c81a61f357139e499c8fe",
+			"revisionTime": "2017-12-05T23:09:30Z"
 		},
 		{
 			"checksumSHA1": "VH5y62f+SDyEIqnTibiPtQ687i8=",
