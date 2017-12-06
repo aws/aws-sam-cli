@@ -24,8 +24,3 @@ type AWSElasticBeanstalkEnvironment_Tier struct {
 func (r *AWSElasticBeanstalkEnvironment_Tier) AWSCloudFormationType() string {
 	return "AWS::ElasticBeanstalk::Environment.Tier"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticBeanstalkEnvironment_Tier) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

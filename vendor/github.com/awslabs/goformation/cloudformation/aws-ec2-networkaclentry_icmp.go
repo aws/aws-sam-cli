@@ -19,8 +19,3 @@ type AWSEC2NetworkAclEntry_Icmp struct {
 func (r *AWSEC2NetworkAclEntry_Icmp) AWSCloudFormationType() string {
 	return "AWS::EC2::NetworkAclEntry.Icmp"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2NetworkAclEntry_Icmp) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

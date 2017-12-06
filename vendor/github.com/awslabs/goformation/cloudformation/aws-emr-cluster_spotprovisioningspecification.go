@@ -24,8 +24,3 @@ type AWSEMRCluster_SpotProvisioningSpecification struct {
 func (r *AWSEMRCluster_SpotProvisioningSpecification) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.SpotProvisioningSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_SpotProvisioningSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

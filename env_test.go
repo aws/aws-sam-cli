@@ -23,7 +23,7 @@ var _ = Describe("Environment Variables", func() {
 		It("return defaults with those defined in the template", func() {
 
 			for name, function := range functions {
-				variables := getEnvironmentVariables(name, &function, "")
+				variables := getEnvironmentVariables(name, &function, "", "")
 				Expect(variables).To(HaveLen(9))
 				Expect(variables).To(HaveKey("AWS_SAM_LOCAL"))
 				Expect(variables).To(HaveKey("AWS_REGION"))
@@ -46,7 +46,7 @@ var _ = Describe("Environment Variables", func() {
 				os.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
 				os.Unsetenv("AWS_SESSION_TOKEN")
 
-				variables := getEnvironmentVariables(name, &function, "")
+				variables := getEnvironmentVariables(name, &function, "", "")
 				Expect(variables).To(HaveLen(9))
 				Expect(variables).To(HaveKey("AWS_SAM_LOCAL"))
 				Expect(variables).To(HaveKey("AWS_REGION"))
@@ -72,7 +72,7 @@ var _ = Describe("Environment Variables", func() {
 				os.Setenv("AWS_SECRET_ACCESS_KEY", "secret")
 				os.Setenv("AWS_SESSION_TOKEN", "token")
 
-				variables := getEnvironmentVariables(name, &function, "")
+				variables := getEnvironmentVariables(name, &function, "", "")
 				Expect(variables).To(HaveLen(10))
 				Expect(variables).To(HaveKey("AWS_SAM_LOCAL"))
 				Expect(variables).To(HaveKey("AWS_REGION"))
@@ -96,11 +96,11 @@ var _ = Describe("Environment Variables", func() {
 
 		It("overides template with environment variables", func() {
 			for name, function := range functions {
-				variables := getEnvironmentVariables(name, &function, "")
+				variables := getEnvironmentVariables(name, &function, "", "")
 				Expect(variables["TABLE_NAME"]).To(Equal(""))
 
 				os.Setenv("TABLE_NAME", "ENV_TABLE")
-				variables = getEnvironmentVariables(name, &function, "")
+				variables = getEnvironmentVariables(name, &function, "", "")
 				Expect(variables["TABLE_NAME"]).To(Equal("ENV_TABLE"))
 				os.Unsetenv("TABLE_NAME")
 			}
@@ -108,7 +108,7 @@ var _ = Describe("Environment Variables", func() {
 
 		It("overrides template and environment with customer overrides", func() {
 			for name, function := range functions {
-				variables := getEnvironmentVariables(name, &function, "test/environment-overrides.json")
+				variables := getEnvironmentVariables(name, &function, "test/environment-overrides.json", "")
 				Expect(variables["TABLE_NAME"]).To(Equal("OVERRIDE_TABLE"))
 			}
 			os.Unsetenv("TABLE_NAME")

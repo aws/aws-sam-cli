@@ -19,8 +19,3 @@ type AWSEC2Instance_Volume struct {
 func (r *AWSEC2Instance_Volume) AWSCloudFormationType() string {
 	return "AWS::EC2::Instance.Volume"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2Instance_Volume) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

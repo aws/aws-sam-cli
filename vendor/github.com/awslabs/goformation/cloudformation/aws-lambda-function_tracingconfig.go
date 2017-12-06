@@ -14,8 +14,3 @@ type AWSLambdaFunction_TracingConfig struct {
 func (r *AWSLambdaFunction_TracingConfig) AWSCloudFormationType() string {
 	return "AWS::Lambda::Function.TracingConfig"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSLambdaFunction_TracingConfig) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

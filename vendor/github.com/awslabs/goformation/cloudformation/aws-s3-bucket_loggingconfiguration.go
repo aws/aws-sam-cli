@@ -19,8 +19,3 @@ type AWSS3Bucket_LoggingConfiguration struct {
 func (r *AWSS3Bucket_LoggingConfiguration) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.LoggingConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_LoggingConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

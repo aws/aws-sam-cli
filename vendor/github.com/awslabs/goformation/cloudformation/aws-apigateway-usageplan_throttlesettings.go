@@ -19,8 +19,3 @@ type AWSApiGatewayUsagePlan_ThrottleSettings struct {
 func (r *AWSApiGatewayUsagePlan_ThrottleSettings) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::UsagePlan.ThrottleSettings"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayUsagePlan_ThrottleSettings) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -29,8 +29,3 @@ type AWSOpsWorksInstance_BlockDeviceMapping struct {
 func (r *AWSOpsWorksInstance_BlockDeviceMapping) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Instance.BlockDeviceMapping"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksInstance_BlockDeviceMapping) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

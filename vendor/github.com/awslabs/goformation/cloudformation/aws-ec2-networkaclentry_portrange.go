@@ -19,8 +19,3 @@ type AWSEC2NetworkAclEntry_PortRange struct {
 func (r *AWSEC2NetworkAclEntry_PortRange) AWSCloudFormationType() string {
 	return "AWS::EC2::NetworkAclEntry.PortRange"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2NetworkAclEntry_PortRange) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

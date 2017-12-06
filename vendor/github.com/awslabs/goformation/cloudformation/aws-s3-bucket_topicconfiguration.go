@@ -24,8 +24,3 @@ type AWSS3Bucket_TopicConfiguration struct {
 func (r *AWSS3Bucket_TopicConfiguration) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.TopicConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_TopicConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

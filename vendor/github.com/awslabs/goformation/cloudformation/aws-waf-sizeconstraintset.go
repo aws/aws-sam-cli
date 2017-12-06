@@ -26,11 +26,6 @@ func (r *AWSWAFSizeConstraintSet) AWSCloudFormationType() string {
 	return "AWS::WAF::SizeConstraintSet"
 }
 
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFSizeConstraintSet) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}
-
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
 // an AWS CloudFormation JSON resource's 'Properties' field and adds a 'Type'.
 func (r *AWSWAFSizeConstraintSet) MarshalJSON() ([]byte, error) {

@@ -34,8 +34,3 @@ type AWSOpsWorksLayer_Recipes struct {
 func (r *AWSOpsWorksLayer_Recipes) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Layer.Recipes"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksLayer_Recipes) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

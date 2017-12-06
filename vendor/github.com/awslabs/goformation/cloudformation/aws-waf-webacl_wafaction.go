@@ -14,8 +14,3 @@ type AWSWAFWebACL_WafAction struct {
 func (r *AWSWAFWebACL_WafAction) AWSCloudFormationType() string {
 	return "AWS::WAF::WebACL.WafAction"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFWebACL_WafAction) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

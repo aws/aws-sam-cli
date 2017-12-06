@@ -24,8 +24,3 @@ type AWSCodeDeployDeploymentGroup_RevisionLocation struct {
 func (r *AWSCodeDeployDeploymentGroup_RevisionLocation) AWSCloudFormationType() string {
 	return "AWS::CodeDeploy::DeploymentGroup.RevisionLocation"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeDeployDeploymentGroup_RevisionLocation) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

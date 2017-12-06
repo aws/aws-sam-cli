@@ -19,8 +19,3 @@ type AWSCognitoUserPool_DeviceConfiguration struct {
 func (r *AWSCognitoUserPool_DeviceConfiguration) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.DeviceConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_DeviceConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

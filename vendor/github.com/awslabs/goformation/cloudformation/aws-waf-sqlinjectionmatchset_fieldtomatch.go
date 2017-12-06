@@ -19,8 +19,3 @@ type AWSWAFSqlInjectionMatchSet_FieldToMatch struct {
 func (r *AWSWAFSqlInjectionMatchSet_FieldToMatch) AWSCloudFormationType() string {
 	return "AWS::WAF::SqlInjectionMatchSet.FieldToMatch"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFSqlInjectionMatchSet_FieldToMatch) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

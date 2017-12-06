@@ -19,8 +19,3 @@ type AWSECSTaskDefinition_HostEntry struct {
 func (r *AWSECSTaskDefinition_HostEntry) AWSCloudFormationType() string {
 	return "AWS::ECS::TaskDefinition.HostEntry"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSTaskDefinition_HostEntry) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

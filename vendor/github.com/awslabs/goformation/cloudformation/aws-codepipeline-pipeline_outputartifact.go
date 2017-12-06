@@ -14,8 +14,3 @@ type AWSCodePipelinePipeline_OutputArtifact struct {
 func (r *AWSCodePipelinePipeline_OutputArtifact) AWSCloudFormationType() string {
 	return "AWS::CodePipeline::Pipeline.OutputArtifact"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodePipelinePipeline_OutputArtifact) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

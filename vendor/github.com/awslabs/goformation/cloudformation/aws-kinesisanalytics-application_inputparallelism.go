@@ -14,8 +14,3 @@ type AWSKinesisAnalyticsApplication_InputParallelism struct {
 func (r *AWSKinesisAnalyticsApplication_InputParallelism) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::Application.InputParallelism"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplication_InputParallelism) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

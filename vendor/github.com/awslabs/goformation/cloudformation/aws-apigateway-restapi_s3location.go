@@ -29,8 +29,3 @@ type AWSApiGatewayRestApi_S3Location struct {
 func (r *AWSApiGatewayRestApi_S3Location) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::RestApi.S3Location"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayRestApi_S3Location) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

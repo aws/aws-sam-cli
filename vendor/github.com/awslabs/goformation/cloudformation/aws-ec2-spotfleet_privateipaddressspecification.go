@@ -19,8 +19,3 @@ type AWSEC2SpotFleet_PrivateIpAddressSpecification struct {
 func (r *AWSEC2SpotFleet_PrivateIpAddressSpecification) AWSCloudFormationType() string {
 	return "AWS::EC2::SpotFleet.PrivateIpAddressSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SpotFleet_PrivateIpAddressSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -24,8 +24,3 @@ type AWSCognitoIdentityPool_CognitoIdentityProvider struct {
 func (r *AWSCognitoIdentityPool_CognitoIdentityProvider) AWSCloudFormationType() string {
 	return "AWS::Cognito::IdentityPool.CognitoIdentityProvider"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoIdentityPool_CognitoIdentityProvider) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

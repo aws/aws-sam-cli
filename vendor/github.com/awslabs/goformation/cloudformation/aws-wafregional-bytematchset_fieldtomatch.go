@@ -19,8 +19,3 @@ type AWSWAFRegionalByteMatchSet_FieldToMatch struct {
 func (r *AWSWAFRegionalByteMatchSet_FieldToMatch) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::ByteMatchSet.FieldToMatch"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalByteMatchSet_FieldToMatch) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

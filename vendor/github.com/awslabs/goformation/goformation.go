@@ -14,6 +14,13 @@ import (
 // Open and parse a AWS CloudFormation template from file.
 // Works with either JSON or YAML formatted templates.
 func Open(filename string) (*cloudformation.Template, error) {
+	return OpenWithOptions(filename, nil)
+}
+
+// OpenWithOptions opens and parse a AWS CloudFormation template from file.
+// Works with either JSON or YAML formatted templates.
+// Parsing can be tweaked via the specified options.
+func OpenWithOptions(filename string, options *intrinsics.ProcessorOptions) (*cloudformation.Template, error) {
 
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -21,17 +28,23 @@ func Open(filename string) (*cloudformation.Template, error) {
 	}
 
 	if strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") {
-		return ParseYAML(data)
+		return ParseYAMLWithOptions(data, options)
 	}
 
-	return ParseJSON(data)
+	return ParseJSONWithOptions(data, options)
 
 }
 
 // ParseYAML an AWS CloudFormation template (expects a []byte of valid YAML)
 func ParseYAML(data []byte) (*cloudformation.Template, error) {
+	return ParseYAMLWithOptions(data, nil)
+}
+
+// ParseYAMLWithOptions an AWS CloudFormation template (expects a []byte of valid YAML)
+// Parsing can be tweaked via the specified options.
+func ParseYAMLWithOptions(data []byte, options *intrinsics.ProcessorOptions) (*cloudformation.Template, error) {
 	// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
-	intrinsified, err := intrinsics.ProcessYAML(data, nil)
+	intrinsified, err := intrinsics.ProcessYAML(data, options)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +55,15 @@ func ParseYAML(data []byte) (*cloudformation.Template, error) {
 
 // ParseJSON an AWS CloudFormation template (expects a []byte of valid JSON)
 func ParseJSON(data []byte) (*cloudformation.Template, error) {
+	return ParseJSONWithOptions(data, nil)
+}
+
+// ParseJSONWithOptions an AWS CloudFormation template (expects a []byte of valid JSON)
+// Parsing can be tweaked via the specified options.
+func ParseJSONWithOptions(data []byte, options *intrinsics.ProcessorOptions) (*cloudformation.Template, error) {
 
 	// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
-	intrinsified, err := intrinsics.ProcessJSON(data, nil)
+	intrinsified, err := intrinsics.ProcessJSON(data, options)
 	if err != nil {
 		return nil, err
 	}

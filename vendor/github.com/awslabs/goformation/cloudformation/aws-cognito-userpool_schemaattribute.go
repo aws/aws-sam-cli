@@ -44,8 +44,3 @@ type AWSCognitoUserPool_SchemaAttribute struct {
 func (r *AWSCognitoUserPool_SchemaAttribute) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.SchemaAttribute"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_SchemaAttribute) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

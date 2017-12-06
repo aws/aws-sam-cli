@@ -14,8 +14,3 @@ type AWSKinesisAnalyticsApplicationOutput_DestinationSchema struct {
 func (r *AWSKinesisAnalyticsApplicationOutput_DestinationSchema) AWSCloudFormationType() string {
 	return "AWS::KinesisAnalytics::ApplicationOutput.DestinationSchema"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSKinesisAnalyticsApplicationOutput_DestinationSchema) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

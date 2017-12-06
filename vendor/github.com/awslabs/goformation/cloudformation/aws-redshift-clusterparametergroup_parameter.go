@@ -19,8 +19,3 @@ type AWSRedshiftClusterParameterGroup_Parameter struct {
 func (r *AWSRedshiftClusterParameterGroup_Parameter) AWSCloudFormationType() string {
 	return "AWS::Redshift::ClusterParameterGroup.Parameter"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRedshiftClusterParameterGroup_Parameter) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

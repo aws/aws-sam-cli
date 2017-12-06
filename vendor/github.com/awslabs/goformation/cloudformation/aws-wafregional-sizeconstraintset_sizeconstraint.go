@@ -29,8 +29,3 @@ type AWSWAFRegionalSizeConstraintSet_SizeConstraint struct {
 func (r *AWSWAFRegionalSizeConstraintSet_SizeConstraint) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::SizeConstraintSet.SizeConstraint"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalSizeConstraintSet_SizeConstraint) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

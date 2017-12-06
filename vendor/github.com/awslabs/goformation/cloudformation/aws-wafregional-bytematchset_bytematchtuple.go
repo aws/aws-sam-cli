@@ -34,8 +34,3 @@ type AWSWAFRegionalByteMatchSet_ByteMatchTuple struct {
 func (r *AWSWAFRegionalByteMatchSet_ByteMatchTuple) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::ByteMatchSet.ByteMatchTuple"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalByteMatchSet_ByteMatchTuple) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

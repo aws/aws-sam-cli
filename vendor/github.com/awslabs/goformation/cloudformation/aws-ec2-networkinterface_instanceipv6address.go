@@ -14,8 +14,3 @@ type AWSEC2NetworkInterface_InstanceIpv6Address struct {
 func (r *AWSEC2NetworkInterface_InstanceIpv6Address) AWSCloudFormationType() string {
 	return "AWS::EC2::NetworkInterface.InstanceIpv6Address"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2NetworkInterface_InstanceIpv6Address) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

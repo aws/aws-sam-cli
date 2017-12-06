@@ -15,6 +15,11 @@ type AWSEC2VPCCidrBlock struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpccidrblock.html#cfn-ec2-vpccidrblock-amazonprovidedipv6cidrblock
 	AmazonProvidedIpv6CidrBlock bool `json:"AmazonProvidedIpv6CidrBlock,omitempty"`
 
+	// CidrBlock AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpccidrblock.html#cfn-ec2-vpccidrblock-cidrblock
+	CidrBlock string `json:"CidrBlock,omitempty"`
+
 	// VpcId AWS CloudFormation Property
 	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpccidrblock.html#cfn-ec2-vpccidrblock-vpcid
@@ -24,11 +29,6 @@ type AWSEC2VPCCidrBlock struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSEC2VPCCidrBlock) AWSCloudFormationType() string {
 	return "AWS::EC2::VPCCidrBlock"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2VPCCidrBlock) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

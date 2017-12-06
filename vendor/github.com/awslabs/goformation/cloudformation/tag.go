@@ -19,8 +19,3 @@ type Tag struct {
 func (r *Tag) AWSCloudFormationType() string {
 	return "Tag"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *Tag) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

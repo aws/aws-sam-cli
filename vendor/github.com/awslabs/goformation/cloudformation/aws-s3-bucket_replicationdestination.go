@@ -19,8 +19,3 @@ type AWSS3Bucket_ReplicationDestination struct {
 func (r *AWSS3Bucket_ReplicationDestination) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.ReplicationDestination"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_ReplicationDestination) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

@@ -19,8 +19,3 @@ type AWSCodePipelinePipeline_EncryptionKey struct {
 func (r *AWSCodePipelinePipeline_EncryptionKey) AWSCloudFormationType() string {
 	return "AWS::CodePipeline::Pipeline.EncryptionKey"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodePipelinePipeline_EncryptionKey) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

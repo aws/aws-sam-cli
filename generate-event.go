@@ -346,7 +346,7 @@ var apiEvent = `{
   "pathParameters": {
     "proxy": "{{.Path}}"
   },
-  "httpMethod": "POST",
+  "httpMethod": "{{.Method}}",
   "stageVariables": {
     "baz": "qux"
   },
