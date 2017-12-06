@@ -14,6 +14,11 @@ type AWSEC2SecurityGroup_Ingress struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group-rule.html#cfn-ec2-security-group-rule-cidripv6
 	CidrIpv6 string `json:"CidrIpv6,omitempty"`
 
+	// Description AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group-rule.html#cfn-ec2-security-group-rule-description
+	Description string `json:"Description,omitempty"`
+
 	// FromPort AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group-rule.html#cfn-ec2-security-group-rule-fromport
@@ -48,9 +53,4 @@ type AWSEC2SecurityGroup_Ingress struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSEC2SecurityGroup_Ingress) AWSCloudFormationType() string {
 	return "AWS::EC2::SecurityGroup.Ingress"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SecurityGroup_Ingress) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }

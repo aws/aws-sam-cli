@@ -7,7 +7,7 @@ type AWSServerlessFunction_EventSource struct {
 	// Properties AWS CloudFormation Property
 	// Required: true
 	// See: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#event-source-types
-	Properties *AWSServerlessFunction_S3EventOrSNSEventOrKinesisEventOrDynamoDBEventOrApiEventOrScheduleEventOrCloudWatchEventEventOrIoTRuleEventOrAlexaSkillEvent `json:"Properties,omitempty"`
+	Properties *AWSServerlessFunction_Properties `json:"Properties,omitempty"`
 
 	// Type AWS CloudFormation Property
 	// Required: true
@@ -18,9 +18,4 @@ type AWSServerlessFunction_EventSource struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSServerlessFunction_EventSource) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.EventSource"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_EventSource) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
 }

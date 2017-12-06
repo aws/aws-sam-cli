@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/awslabs/goformation"
+	"github.com/awslabs/goformation/intrinsics"
 	"github.com/codegangsta/cli"
 )
 
@@ -20,7 +21,7 @@ func invoke(c *cli.Context) {
 	// Setup the logger
 	stdout := io.Writer(os.Stdout)
 	stderr := io.Writer(os.Stderr)
-	logarg := c.String("log")
+	logarg := c.String("log-file") // matches the definition in main.go
 
 	if len(logarg) > 0 {
 		if logFile, err := os.Create(logarg); err == nil {
@@ -33,7 +34,9 @@ func invoke(c *cli.Context) {
 	}
 
 	filename := getTemplateFilename(c.String("template"))
-	template, err := goformation.Open(filename)
+	template, err := goformation.OpenWithOptions(filename, &intrinsics.ProcessorOptions{
+		ParameterOverrides: parseParameters(c.String("parameter-values")),
+	})
 	if err != nil {
 		log.Fatalf("Failed to parse template: %s\n", err)
 	}
@@ -46,6 +49,9 @@ func invoke(c *cli.Context) {
 	// logical ID matches the first CLI argument, or if they only have a single function
 	// defined, and don't specify a name, then just use that function.
 	functions := template.GetAllAWSServerlessFunctionResources()
+
+	addCloudformationLambdaFunctions(template, functions)
+
 	function, found := functions[name]
 	if !found {
 		if len(functions) == 1 && name == "" {
@@ -92,7 +98,7 @@ func invoke(c *cli.Context) {
 		EnvOverrideFile: c.String("env-vars"),
 		DebugPort:       c.String("debug-port"),
 		SkipPullImage:   c.Bool("skip-pull-image"),
-		DockerNetwork:        c.String("docker-network"),
+		DockerNetwork:   c.String("docker-network"),
 	})
 
 	if err != nil {
@@ -118,7 +124,7 @@ func invoke(c *cli.Context) {
 		event = string(pb)
 	}
 
-	stdoutTxt, stderrTxt, err := runt.Invoke(event)
+	stdoutTxt, stderrTxt, err := runt.Invoke(event, c.String("profile"))
 	if err != nil {
 		log.Fatalf("Could not invoke function: %s\n", err)
 	}

@@ -19,8 +19,3 @@ type AWSEMRCluster_MetricDimension struct {
 func (r *AWSEMRCluster_MetricDimension) AWSCloudFormationType() string {
 	return "AWS::EMR::Cluster.MetricDimension"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRCluster_MetricDimension) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

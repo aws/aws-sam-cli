@@ -34,8 +34,3 @@ type AWSCognitoUserPool_PasswordPolicy struct {
 func (r *AWSCognitoUserPool_PasswordPolicy) AWSCloudFormationType() string {
 	return "AWS::Cognito::UserPool.PasswordPolicy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCognitoUserPool_PasswordPolicy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

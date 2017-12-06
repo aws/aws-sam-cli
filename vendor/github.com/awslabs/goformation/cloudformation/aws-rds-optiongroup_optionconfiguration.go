@@ -19,6 +19,11 @@ type AWSRDSOptionGroup_OptionConfiguration struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-optiongroup-optionconfigurations.html#cfn-rds-optiongroup-optionconfigurations-optionsettings
 	OptionSettings *AWSRDSOptionGroup_OptionSetting `json:"OptionSettings,omitempty"`
 
+	// OptionVersion AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-optiongroup-optionconfigurations.html#cfn-rds-optiongroup-optionconfiguration-optionversion
+	OptionVersion string `json:"OptionVersion,omitempty"`
+
 	// Port AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-rds-optiongroup-optionconfigurations.html#cfn-rds-optiongroup-optionconfigurations-port
@@ -33,9 +38,4 @@ type AWSRDSOptionGroup_OptionConfiguration struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSRDSOptionGroup_OptionConfiguration) AWSCloudFormationType() string {
 	return "AWS::RDS::OptionGroup.OptionConfiguration"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRDSOptionGroup_OptionConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }

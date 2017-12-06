@@ -2,12 +2,14 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -40,8 +42,8 @@ import (
 
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
-	Invoke(string) (io.Reader, io.Reader, error)
-	InvokeHTTP() func(http.ResponseWriter, *http.Request)
+	Invoke(string, string) (io.Reader, io.Reader, error)
+	InvokeHTTP(string) func(http.ResponseWriter, *http.Request)
 	CleanUp()
 }
 
@@ -233,6 +235,10 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 		mount = r.DecompressedCwd
 	}
 
+	// If the path is a Windows style one, convert it to the format that Docker Toolbox requires.
+	mount = convertWindowsPath(mount)
+
+	log.Printf("Mounting %s as /var/task:ro inside runtime container\n", mount)
 	host := &container.HostConfig{
 		Resources: container.Resources{
 			Memory: int64(r.Function.MemorySize * 1024 * 1024),
@@ -253,7 +259,7 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 // Invoke runs a Lambda function within the runtime with the provided event
 // payload and returns a pair of io.Readers for it's stdout (callback results)
 // and stderr (runtime logs).
-func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
+func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, error) {
 
 	log.Printf("Invoking %s (%s)\n", r.Function.Handler, r.Name)
 
@@ -293,7 +299,7 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 		Cmd:          []string{r.Function.Handler, event},
 		Env: func() []string {
 			result := []string{}
-			for k, v := range getEnvironmentVariables(r.LogicalID, &r.Function, r.EnvOverrideFile) {
+			for k, v := range getEnvironmentVariables(r.LogicalID, &r.Function, r.EnvOverrideFile, profile) {
 				result = append(result, k+"="+v)
 			}
 			return result
@@ -477,7 +483,7 @@ func (r *Runtime) CleanUp() {
 
 // InvokeHTTP invokes a Lambda function, and implements the Go http.HandlerFunc interface
 // so it can be connected straight into most HTTP packages/frameworks etc.
-func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
+func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Request) {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		var wg sync.WaitGroup
@@ -501,7 +507,7 @@ func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON)
+		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON, profile)
 		if err != nil {
 			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
 			log.Println(msg)
@@ -511,59 +517,15 @@ func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
 		}
 
 		wg.Add(1)
+		var output []byte
 		go func() {
-
-			result, err := ioutil.ReadAll(stdoutTxt)
-			if err != nil {
-				msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
-				log.Println(msg)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{ "message": "Internal server error" }`))
-				wg.Done()
-				return
-			}
-
-			// At this point, we need to see whether the response is in the format
-			// of a Lambda proxy response (inc statusCode / body), and if so, handle it
-			// otherwise just copy the whole output back to the http.ResponseWriter
-			proxy := &struct {
-				StatusCode json.Number       `json:"statusCode"`
-				Headers    map[string]string `json:"headers"`
-				Body       json.Number       `json:"body"`
-			}{}
-
-			if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == "" && len(proxy.Headers) == 0 && proxy.Body == "") {
-				// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
-				// Return HTTP 502 (Bad Gateway) to match API Gateway behaviour: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-simple-proxy-for-lambda-output-format
-				log.Printf(color.RedString("Function returned an invalid response (must include one of: body, headers or statusCode in the response object): %s\n"), err)
-				w.WriteHeader(http.StatusBadGateway)
-				w.Write([]byte(`{ "message": "Internal server error" }`))
-				wg.Done()
-				return
-			}
-
-			// Set any HTTP headers requested by the proxy function
-			if len(proxy.Headers) > 0 {
-				for key, value := range proxy.Headers {
-					w.Header().Set(key, value)
-				}
-			}
-
-			// This is a proxy function, so set the http status code and return the body
-			if statusCode, err := proxy.StatusCode.Int64(); err != nil {
-				w.WriteHeader(http.StatusBadGateway)
-			} else {
-				w.WriteHeader(int(statusCode))
-			}
-
-			w.Write([]byte(proxy.Body))
-			wg.Done()
-
+			output = parseOutput(w, stdoutTxt, r.Function.Runtime, &wg)
 		}()
 
 		wg.Add(1)
 		go func() {
-			// Finally, copy the container stderr (runtime logs) to the console stderr
+			// Finally, copy the container stdout and stderr (runtime logs) to the console stderr
+			r.Logger.Write(output)
 			io.Copy(r.Logger, stderrTxt)
 			wg.Done()
 		}()
@@ -573,6 +535,66 @@ func (r *Runtime) InvokeHTTP() func(http.ResponseWriter, *http.Request) {
 		r.CleanUp()
 	}
 
+}
+
+// parseOutput decodes the proxy response from the output of the function and returns
+// the rest
+func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg *sync.WaitGroup) (output []byte) {
+	defer wg.Done()
+
+	result, err := ioutil.ReadAll(stdoutTxt)
+	if err != nil {
+		msg := fmt.Sprintf("Error invoking %s runtime: %s", runtime, err)
+		log.Println(msg)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{ "message": "Internal server error" }`))
+		return
+	}
+
+	// At this point, we need to see whether the response is in the format
+	// of a Lambda proxy response (inc statusCode / body), and if so, handle it
+	// otherwise just copy the whole output back to the http.ResponseWriter
+	proxy := &struct {
+		StatusCode json.Number       `json:"statusCode"`
+		Headers    map[string]string `json:"headers"`
+		Body       json.Number       `json:"body"`
+	}{}
+
+	// We only want the last line of stdout, because it's possible that
+	// the function may have written directly to stdout using
+	// System.out.println or similar, before docker-lambda output the result
+	lastNewlineIx := bytes.LastIndexByte(bytes.TrimRight(result, "\n"), '\n')
+	if lastNewlineIx > 0 {
+		output = result[:lastNewlineIx]
+		result = result[lastNewlineIx:]
+	}
+
+	if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == "" && len(proxy.Headers) == 0 && proxy.Body == "") {
+		// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
+		// Return HTTP 502 (Bad Gateway) to match API Gateway behaviour: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-simple-proxy-for-lambda-output-format
+		log.Printf(color.RedString("Function returned an invalid response (must include one of: body, headers or statusCode in the response object): %s\n"), err)
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte(`{ "message": "Internal server error" }`))
+		return
+	}
+
+	// Set any HTTP headers requested by the proxy function
+	if len(proxy.Headers) > 0 {
+		for key, value := range proxy.Headers {
+			w.Header().Set(key, value)
+		}
+	}
+
+	// This is a proxy function, so set the http status code and return the body
+	if statusCode, err := proxy.StatusCode.Int64(); err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+	} else {
+		w.WriteHeader(int(statusCode))
+	}
+
+	w.Write([]byte(proxy.Body))
+
+	return
 }
 
 // demuxDockerStream takes a Docker attach stream, and parses out stdout/stderr
@@ -624,7 +646,7 @@ func getWorkingDir(dir string) string {
 		if err != nil {
 			// A directory wasn't specified on the command line
 			// and we can't determin the current working directory.
-			log.Print("Could not determin find working directory for template")
+			log.Printf("Could not find working directory for template: %s\n", err)
 			return ""
 		}
 		dir = cwd
@@ -643,7 +665,7 @@ func decompressArchive(src string) (string, error) {
 	// Create a temporary directory just for this decompression (dirname: OS tmp directory + unix timestamp))
 	tmpdir := os.TempDir()
 
-	// By default on OSX, os.TempDir() returns a directory in /var/folders/.
+	// By default on macOS, os.TempDir() returns a directory in /var/folders/.
 	// This sits outside the default Docker Shared Files directories, however
 	// /var/folders is just a symlink to /private/var/folders/, so use that instead
 	if strings.HasPrefix(tmpdir, "/var/folders") {
@@ -713,5 +735,26 @@ func decompressArchive(src string) (string, error) {
 	}
 
 	return dest, nil
+
+}
+
+func convertWindowsPath(input string) string {
+
+	rg := regexp.MustCompile(`^([A-Za-z]+):`)
+	drive := rg.FindAllStringSubmatch(input, 1)
+	if drive != nil {
+
+		// The path starts with a drive letter.
+		// Docker toolbox mounts C:\ as /c/ so we need to extract, convert to lowercase
+		// and replace into the correct format
+		letter := drive[0][1]
+
+		input = rg.ReplaceAllString(input, "/"+strings.ToLower(letter))
+
+	}
+
+	// Convert all OS seperators to '/'
+	input = filepath.ToSlash(input)
+	return input
 
 }

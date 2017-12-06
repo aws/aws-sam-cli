@@ -24,8 +24,3 @@ type AWSEMRInstanceFleetConfig_SpotProvisioningSpecification struct {
 func (r *AWSEMRInstanceFleetConfig_SpotProvisioningSpecification) AWSCloudFormationType() string {
 	return "AWS::EMR::InstanceFleetConfig.SpotProvisioningSpecification"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEMRInstanceFleetConfig_SpotProvisioningSpecification) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

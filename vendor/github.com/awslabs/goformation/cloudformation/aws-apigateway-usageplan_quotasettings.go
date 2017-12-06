@@ -24,8 +24,3 @@ type AWSApiGatewayUsagePlan_QuotaSettings struct {
 func (r *AWSApiGatewayUsagePlan_QuotaSettings) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::UsagePlan.QuotaSettings"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayUsagePlan_QuotaSettings) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

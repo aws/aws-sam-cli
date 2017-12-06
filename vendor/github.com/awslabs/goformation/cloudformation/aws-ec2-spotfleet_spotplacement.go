@@ -19,8 +19,3 @@ type AWSEC2SpotFleet_SpotPlacement struct {
 func (r *AWSEC2SpotFleet_SpotPlacement) AWSCloudFormationType() string {
 	return "AWS::EC2::SpotFleet.SpotPlacement"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SpotFleet_SpotPlacement) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

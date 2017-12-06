@@ -19,8 +19,3 @@ type AWSElasticLoadBalancingLoadBalancer_LBCookieStickinessPolicy struct {
 func (r *AWSElasticLoadBalancingLoadBalancer_LBCookieStickinessPolicy) AWSCloudFormationType() string {
 	return "AWS::ElasticLoadBalancing::LoadBalancer.LBCookieStickinessPolicy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticLoadBalancingLoadBalancer_LBCookieStickinessPolicy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

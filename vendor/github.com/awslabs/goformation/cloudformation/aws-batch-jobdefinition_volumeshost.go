@@ -14,8 +14,3 @@ type AWSBatchJobDefinition_VolumesHost struct {
 func (r *AWSBatchJobDefinition_VolumesHost) AWSCloudFormationType() string {
 	return "AWS::Batch::JobDefinition.VolumesHost"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSBatchJobDefinition_VolumesHost) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

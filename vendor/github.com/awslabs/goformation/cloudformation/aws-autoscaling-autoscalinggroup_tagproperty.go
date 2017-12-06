@@ -24,8 +24,3 @@ type AWSAutoScalingAutoScalingGroup_TagProperty struct {
 func (r *AWSAutoScalingAutoScalingGroup_TagProperty) AWSCloudFormationType() string {
 	return "AWS::AutoScaling::AutoScalingGroup.TagProperty"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSAutoScalingAutoScalingGroup_TagProperty) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

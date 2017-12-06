@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/fatih/color"
@@ -63,6 +65,11 @@ func main() {
 							EnvVar: "SAM_TEMPLATE_FILE",
 						},
 						cli.StringFlag{
+							Name:   "parameter-values",
+							Usage:  "Optional. A string that contains CloudFormation parameter overrides encoded as key-value pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'. In case of parsing errors all values are ignored",
+							EnvVar: "SAM_TEMPLATE_PARAM_ARG",
+						},
+						cli.StringFlag{
 							Name:  "log-file, l",
 							Usage: "Optional logfile to send runtime logs to",
 						},
@@ -108,6 +115,15 @@ func main() {
 							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
 						},
+						cli.StringFlag{
+							Name:  "profile",
+							Usage: "Optional. Specify which AWS credentials profile to use.",
+						},
+						cli.BoolFlag{
+							Name:   "prefix-routing",
+							Usage:  "Optional. Specify whether SAM routing is based on prefix or exact matching (e.g. given a function mounted at '/' with prefix routing calls to '/beers' will be routed the function).",
+							EnvVar: "SAM_PREFIX_ROUTING",
+						},
 					},
 				},
 				cli.Command{
@@ -123,6 +139,11 @@ func main() {
 							Value:  "template.[yaml|yml]",
 							Usage:  "AWS SAM template file",
 							EnvVar: "SAM_TEMPLATE_FILE",
+						},
+						cli.StringFlag{
+							Name:   "parameter-values",
+							Usage:  "Optional. A string that contains CloudFormation parameter overrides encoded as key-value pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'. In case of parsing errors all values are ignored",
+							EnvVar: "SAM_TEMPLATE_PARAM_ARG",
 						},
 						cli.StringFlag{
 							Name:  "log-file, l",
@@ -158,6 +179,10 @@ func main() {
 							Name:   "skip-pull-image",
 							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
 							EnvVar: "SAM_SKIP_PULL_IMAGE",
+						},
+						cli.StringFlag{
+							Name:  "profile",
+							Usage: "Optional. Specify which AWS credentials profile to use.",
 						},
 					},
 				},
@@ -349,6 +374,24 @@ func main() {
 
 	app.Run(os.Args)
 
+}
+
+// regexp that parses Cloudformation paramter key-value pair: https://regex101.com/r/hruxlg/3
+var paramRe = regexp.MustCompile(`(?:ParameterKey)=("(?:\\.|[^"\\]+)*"|(?:\\.|[^, "\\]+)*),(?:ParameterValue)=("(?:\\.|[^"\\]+)*"|(?:\\.|[^ ,"\\]+)*)`)
+
+// parseParameters parses the Cloudformation parameters like string and converts
+// it into a map of key-value pairs.
+func parseParameters(arg string) (overrides map[string]interface{}) {
+	overrides = make(map[string]interface{})
+
+	unquote := func(orig string) string {
+		return strings.Replace(strings.TrimSuffix(strings.TrimPrefix(orig, `"`), `"`), `\ `, ` `, -1)
+	}
+
+	for _, match := range paramRe.FindAllStringSubmatch(arg, -1) {
+		overrides[unquote(match[1])] = unquote(match[2])
+	}
+	return
 }
 
 // getTemplateFilename allows SAM Local to default to either template.yaml

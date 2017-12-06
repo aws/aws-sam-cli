@@ -19,8 +19,3 @@ type AWSWAFXssMatchSet_XssMatchTuple struct {
 func (r *AWSWAFXssMatchSet_XssMatchTuple) AWSCloudFormationType() string {
 	return "AWS::WAF::XssMatchSet.XssMatchTuple"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFXssMatchSet_XssMatchTuple) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

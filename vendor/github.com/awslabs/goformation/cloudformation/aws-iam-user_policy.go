@@ -19,8 +19,3 @@ type AWSIAMUser_Policy struct {
 func (r *AWSIAMUser_Policy) AWSCloudFormationType() string {
 	return "AWS::IAM::User.Policy"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSIAMUser_Policy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

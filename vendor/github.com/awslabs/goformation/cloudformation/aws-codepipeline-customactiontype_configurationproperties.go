@@ -44,8 +44,3 @@ type AWSCodePipelineCustomActionType_ConfigurationProperties struct {
 func (r *AWSCodePipelineCustomActionType_ConfigurationProperties) AWSCloudFormationType() string {
 	return "AWS::CodePipeline::CustomActionType.ConfigurationProperties"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodePipelineCustomActionType_ConfigurationProperties) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

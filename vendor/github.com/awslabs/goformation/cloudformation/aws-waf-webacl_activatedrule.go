@@ -24,8 +24,3 @@ type AWSWAFWebACL_ActivatedRule struct {
 func (r *AWSWAFWebACL_ActivatedRule) AWSCloudFormationType() string {
 	return "AWS::WAF::WebACL.ActivatedRule"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFWebACL_ActivatedRule) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

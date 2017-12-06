@@ -29,8 +29,3 @@ type AWSEC2SpotFleet_BlockDeviceMapping struct {
 func (r *AWSEC2SpotFleet_BlockDeviceMapping) AWSCloudFormationType() string {
 	return "AWS::EC2::SpotFleet.BlockDeviceMapping"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SpotFleet_BlockDeviceMapping) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

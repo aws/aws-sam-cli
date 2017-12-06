@@ -20,6 +20,11 @@ type AWSEC2SecurityGroupIngress struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group-ingress.html#cfn-ec2-security-group-ingress-cidripv6
 	CidrIpv6 string `json:"CidrIpv6,omitempty"`
 
+	// Description AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group-ingress.html#cfn-ec2-security-group-ingress-description
+	Description string `json:"Description,omitempty"`
+
 	// FromPort AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group-ingress.html#cfn-ec2-security-group-ingress-fromport
@@ -64,11 +69,6 @@ type AWSEC2SecurityGroupIngress struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSEC2SecurityGroupIngress) AWSCloudFormationType() string {
 	return "AWS::EC2::SecurityGroupIngress"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SecurityGroupIngress) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

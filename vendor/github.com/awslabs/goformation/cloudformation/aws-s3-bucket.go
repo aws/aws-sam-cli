@@ -10,10 +10,20 @@ import (
 // See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html
 type AWSS3Bucket struct {
 
+	// AccelerateConfiguration AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-accelerateconfiguration
+	AccelerateConfiguration *AWSS3Bucket_AccelerateConfiguration `json:"AccelerateConfiguration,omitempty"`
+
 	// AccessControl AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-accesscontrol
 	AccessControl string `json:"AccessControl,omitempty"`
+
+	// AnalyticsConfigurations AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-analyticsconfigurations
+	AnalyticsConfigurations []AWSS3Bucket_AnalyticsConfiguration `json:"AnalyticsConfigurations,omitempty"`
 
 	// BucketName AWS CloudFormation Property
 	// Required: false
@@ -25,6 +35,11 @@ type AWSS3Bucket struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-crossoriginconfig
 	CorsConfiguration *AWSS3Bucket_CorsConfiguration `json:"CorsConfiguration,omitempty"`
 
+	// InventoryConfigurations AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-inventoryconfigurations
+	InventoryConfigurations []AWSS3Bucket_InventoryConfiguration `json:"InventoryConfigurations,omitempty"`
+
 	// LifecycleConfiguration AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-lifecycleconfig
@@ -34,6 +49,11 @@ type AWSS3Bucket struct {
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-loggingconfig
 	LoggingConfiguration *AWSS3Bucket_LoggingConfiguration `json:"LoggingConfiguration,omitempty"`
+
+	// MetricsConfigurations AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-metricsconfigurations
+	MetricsConfigurations []AWSS3Bucket_MetricsConfiguration `json:"MetricsConfigurations,omitempty"`
 
 	// NotificationConfiguration AWS CloudFormation Property
 	// Required: false
@@ -64,11 +84,6 @@ type AWSS3Bucket struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSS3Bucket) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

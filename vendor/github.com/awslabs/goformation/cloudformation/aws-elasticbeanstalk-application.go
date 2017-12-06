@@ -19,16 +19,16 @@ type AWSElasticBeanstalkApplication struct {
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-beanstalk.html#cfn-elasticbeanstalk-application-description
 	Description string `json:"Description,omitempty"`
+
+	// ResourceLifecycleConfig AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-beanstalk.html#cfn-elasticbeanstalk-application-resourcelifecycleconfig
+	ResourceLifecycleConfig *AWSElasticBeanstalkApplication_ApplicationResourceLifecycleConfig `json:"ResourceLifecycleConfig,omitempty"`
 }
 
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSElasticBeanstalkApplication) AWSCloudFormationType() string {
 	return "AWS::ElasticBeanstalk::Application"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticBeanstalkApplication) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

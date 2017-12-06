@@ -19,8 +19,3 @@ type AWSAutoScalingAutoScalingGroup_MetricsCollection struct {
 func (r *AWSAutoScalingAutoScalingGroup_MetricsCollection) AWSCloudFormationType() string {
 	return "AWS::AutoScaling::AutoScalingGroup.MetricsCollection"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSAutoScalingAutoScalingGroup_MetricsCollection) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

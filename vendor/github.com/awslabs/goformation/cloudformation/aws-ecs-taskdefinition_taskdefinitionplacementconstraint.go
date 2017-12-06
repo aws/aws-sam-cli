@@ -19,8 +19,3 @@ type AWSECSTaskDefinition_TaskDefinitionPlacementConstraint struct {
 func (r *AWSECSTaskDefinition_TaskDefinitionPlacementConstraint) AWSCloudFormationType() string {
 	return "AWS::ECS::TaskDefinition.TaskDefinitionPlacementConstraint"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSECSTaskDefinition_TaskDefinitionPlacementConstraint) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

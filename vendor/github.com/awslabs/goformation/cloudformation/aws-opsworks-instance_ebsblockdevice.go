@@ -34,8 +34,3 @@ type AWSOpsWorksInstance_EbsBlockDevice struct {
 func (r *AWSOpsWorksInstance_EbsBlockDevice) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Instance.EbsBlockDevice"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksInstance_EbsBlockDevice) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

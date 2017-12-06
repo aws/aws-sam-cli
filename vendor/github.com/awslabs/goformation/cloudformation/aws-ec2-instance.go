@@ -40,6 +40,11 @@ type AWSEC2Instance struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html#cfn-ec2-instance-ebsoptimized
 	EbsOptimized bool `json:"EbsOptimized,omitempty"`
 
+	// ElasticGpuSpecifications AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html#cfn-ec2-instance-elasticgpuspecifications
+	ElasticGpuSpecifications []AWSEC2Instance_ElasticGpuSpecification `json:"ElasticGpuSpecifications,omitempty"`
+
 	// HostId AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html#cfn-ec2-instance-hostid
@@ -159,11 +164,6 @@ type AWSEC2Instance struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSEC2Instance) AWSCloudFormationType() string {
 	return "AWS::EC2::Instance"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2Instance) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

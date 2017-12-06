@@ -14,7 +14,7 @@
     - [Main features](#main-features)
     - [Installation](#installation)
         - [Prerequisites](#prerequisites)
-        - [Windows, Linux, OSX with NPM [Recommended]](#windows-linux-osx-with-npm-recommended)
+        - [Windows, Linux, macOS with NPM [Recommended]](#windows-linux-macos-with-npm-recommended)
         - [Binary release](#binary-release)
         - [Build From Source](#build-from-source)
     - [Usage](#usage)
@@ -55,18 +55,18 @@
 
 Running Serverless projects and functions locally with SAM Local requires Docker to be installed and running. SAM Local will use the `DOCKER_HOST` environment variable to contact the docker daemon.
 
- - OSX: [Docker for Mac](https://store.docker.com/editions/community/docker-ce-desktop-mac)
+ - macOS: [Docker for Mac](https://store.docker.com/editions/community/docker-ce-desktop-mac)
  - Windows: [Docker Toolbox](https://download.docker.com/win/stable/DockerToolbox.exe)
  - Linux: Check your distro’s package manager (e.g. yum install docker)
 
-For OSX and Windows users: SAM local requires that the project directory (or any parent directory) is listed in Docker file sharing options.
+For macOS and Windows users: SAM local requires that the project directory (or any parent directory) is listed in Docker file sharing options.
 
 Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required.
 
 
-### Windows, Linux, OSX with NPM [Recommended]
+### Windows, Linux, macOS with NPM [Recommended]
 
-The easiest way to install **`sam`** is to use [NPM](npmjs.com).
+The easiest way to install **`sam`** is to use [NPM](https://www.npmjs.com).
 
 ```bash
 npm install -g aws-sam-local
@@ -249,6 +249,8 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
 #### Debugging Python functions
 
 Unlike Node.JS and Java, Python requires you to enable remote debugging in your Lambda function code. If you enable debugging with `--debug-port` or `-d` for a function that uses one of the Python runtimes, SAM Local will just map through that port from your host machine through to the Lambda runtime container. You will need to enable remote debugging in your function code. To do this, use a python package such as [remote-pdb](https://pypi.python.org/pypi/remote-pdb). When configuring the host the debugger listens on in your code, make sure to use `0.0.0.0` not `127.0.0.1` to allow Docker to map through the port to your host machine.
+
+> Please note, due to a [open bug](https://github.com/Microsoft/vscode-python/issues/71) with Visual Studio Code, you may get a `Debug adapter process has terminated unexpectedly` error when attempting to debug Python applications with this IDE. Please track the [GitHub issue](https://github.com/Microsoft/vscode-python/issues/71) for updates.
 
 ### Connecting to docker network
 Both `sam local invoke` and `sam local start-api` support connecting the create lambda docker containers to an existing docker network.

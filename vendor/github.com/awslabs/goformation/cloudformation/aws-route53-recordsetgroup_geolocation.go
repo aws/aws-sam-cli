@@ -24,8 +24,3 @@ type AWSRoute53RecordSetGroup_GeoLocation struct {
 func (r *AWSRoute53RecordSetGroup_GeoLocation) AWSCloudFormationType() string {
 	return "AWS::Route53::RecordSetGroup.GeoLocation"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSRoute53RecordSetGroup_GeoLocation) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

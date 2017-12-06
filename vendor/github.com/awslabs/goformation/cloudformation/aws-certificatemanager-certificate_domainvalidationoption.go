@@ -19,8 +19,3 @@ type AWSCertificateManagerCertificate_DomainValidationOption struct {
 func (r *AWSCertificateManagerCertificate_DomainValidationOption) AWSCloudFormationType() string {
 	return "AWS::CertificateManager::Certificate.DomainValidationOption"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCertificateManagerCertificate_DomainValidationOption) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

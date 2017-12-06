@@ -24,8 +24,3 @@ type AWSWAFRegionalWebACL_Rule struct {
 func (r *AWSWAFRegionalWebACL_Rule) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::WebACL.Rule"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalWebACL_Rule) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

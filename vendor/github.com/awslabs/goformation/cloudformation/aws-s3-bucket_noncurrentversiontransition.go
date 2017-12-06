@@ -19,8 +19,3 @@ type AWSS3Bucket_NoncurrentVersionTransition struct {
 func (r *AWSS3Bucket_NoncurrentVersionTransition) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.NoncurrentVersionTransition"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_NoncurrentVersionTransition) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

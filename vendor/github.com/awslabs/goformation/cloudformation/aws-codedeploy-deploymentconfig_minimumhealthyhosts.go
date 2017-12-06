@@ -19,8 +19,3 @@ type AWSCodeDeployDeploymentConfig_MinimumHealthyHosts struct {
 func (r *AWSCodeDeployDeploymentConfig_MinimumHealthyHosts) AWSCloudFormationType() string {
 	return "AWS::CodeDeploy::DeploymentConfig.MinimumHealthyHosts"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeDeployDeploymentConfig_MinimumHealthyHosts) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

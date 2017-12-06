@@ -24,6 +24,11 @@ type AWSEC2SpotFleet_SpotFleetRequestConfigData struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata.html#cfn-ec2-spotfleet-spotfleetrequestconfigdata-launchspecifications
 	LaunchSpecifications []AWSEC2SpotFleet_SpotFleetLaunchSpecification `json:"LaunchSpecifications,omitempty"`
 
+	// ReplaceUnhealthyInstances AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata.html#cfn-ec2-spotfleet-spotfleetrequestconfigdata-replaceunhealthyinstances
+	ReplaceUnhealthyInstances bool `json:"ReplaceUnhealthyInstances,omitempty"`
+
 	// SpotPrice AWS CloudFormation Property
 	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata.html#cfn-ec2-spotfleet-spotfleetrequestconfigdata-spotprice
@@ -39,6 +44,11 @@ type AWSEC2SpotFleet_SpotFleetRequestConfigData struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata.html#cfn-ec2-spotfleet-spotfleetrequestconfigdata-terminateinstanceswithexpiration
 	TerminateInstancesWithExpiration bool `json:"TerminateInstancesWithExpiration,omitempty"`
 
+	// Type AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata.html#cfn-ec2-spotfleet-spotfleetrequestconfigdata-type
+	Type string `json:"Type,omitempty"`
+
 	// ValidFrom AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-spotfleet-spotfleetrequestconfigdata.html#cfn-ec2-spotfleet-spotfleetrequestconfigdata-validfrom
@@ -53,9 +63,4 @@ type AWSEC2SpotFleet_SpotFleetRequestConfigData struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSEC2SpotFleet_SpotFleetRequestConfigData) AWSCloudFormationType() string {
 	return "AWS::EC2::SpotFleet.SpotFleetRequestConfigData"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SpotFleet_SpotFleetRequestConfigData) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }

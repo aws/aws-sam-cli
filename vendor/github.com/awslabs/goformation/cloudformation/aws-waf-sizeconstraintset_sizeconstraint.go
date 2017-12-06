@@ -29,8 +29,3 @@ type AWSWAFSizeConstraintSet_SizeConstraint struct {
 func (r *AWSWAFSizeConstraintSet_SizeConstraint) AWSCloudFormationType() string {
 	return "AWS::WAF::SizeConstraintSet.SizeConstraint"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFSizeConstraintSet_SizeConstraint) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

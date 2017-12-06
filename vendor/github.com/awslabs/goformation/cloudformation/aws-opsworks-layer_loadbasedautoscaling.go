@@ -24,8 +24,3 @@ type AWSOpsWorksLayer_LoadBasedAutoScaling struct {
 func (r *AWSOpsWorksLayer_LoadBasedAutoScaling) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Layer.LoadBasedAutoScaling"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksLayer_LoadBasedAutoScaling) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

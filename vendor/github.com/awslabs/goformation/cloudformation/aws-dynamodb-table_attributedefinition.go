@@ -19,8 +19,3 @@ type AWSDynamoDBTable_AttributeDefinition struct {
 func (r *AWSDynamoDBTable_AttributeDefinition) AWSCloudFormationType() string {
 	return "AWS::DynamoDB::Table.AttributeDefinition"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSDynamoDBTable_AttributeDefinition) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

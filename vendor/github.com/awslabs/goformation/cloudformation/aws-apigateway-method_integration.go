@@ -14,6 +14,11 @@ type AWSApiGatewayMethod_Integration struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html#cfn-apigateway-method-integration-cachenamespace
 	CacheNamespace string `json:"CacheNamespace,omitempty"`
 
+	// ContentHandling AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html#cfn-apigateway-method-integration-contenthandling
+	ContentHandling string `json:"ContentHandling,omitempty"`
+
 	// Credentials AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html#cfn-apigateway-method-integration-credentials
@@ -58,9 +63,4 @@ type AWSApiGatewayMethod_Integration struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSApiGatewayMethod_Integration) AWSCloudFormationType() string {
 	return "AWS::ApiGateway::Method.Integration"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSApiGatewayMethod_Integration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }

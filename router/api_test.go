@@ -12,7 +12,7 @@ func getApiResourceFromTemplate(path string) (*router.AWSServerlessApi) {
 	templateUri := &path
 	apiResource := &router.AWSServerlessApi{
 		AWSServerlessApi: &cloudformation.AWSServerlessApi{
-			DefinitionUri: &cloudformation.AWSServerlessApi_StringOrS3Location{
+			DefinitionUri: &cloudformation.AWSServerlessApi_DefinitionUri{
 				String: templateUri,
 			},
 		},

@@ -24,8 +24,3 @@ type AWSOpsWorksApp_SslConfiguration struct {
 func (r *AWSOpsWorksApp_SslConfiguration) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::App.SslConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksApp_SslConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

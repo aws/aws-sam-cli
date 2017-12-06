@@ -19,8 +19,3 @@ type AWSCodeDeployDeploymentGroup_GitHubLocation struct {
 func (r *AWSCodeDeployDeploymentGroup_GitHubLocation) AWSCloudFormationType() string {
 	return "AWS::CodeDeploy::DeploymentGroup.GitHubLocation"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeDeployDeploymentGroup_GitHubLocation) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

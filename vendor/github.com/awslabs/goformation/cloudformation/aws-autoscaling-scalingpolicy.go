@@ -11,7 +11,7 @@ import (
 type AWSAutoScalingScalingPolicy struct {
 
 	// AdjustmentType AWS CloudFormation Property
-	// Required: true
+	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-as-policy.html#cfn-as-scalingpolicy-adjustmenttype
 	AdjustmentType string `json:"AdjustmentType,omitempty"`
 
@@ -54,16 +54,16 @@ type AWSAutoScalingScalingPolicy struct {
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-as-policy.html#cfn-as-scalingpolicy-stepadjustments
 	StepAdjustments []AWSAutoScalingScalingPolicy_StepAdjustment `json:"StepAdjustments,omitempty"`
+
+	// TargetTrackingConfiguration AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-as-policy.html#cfn-autoscaling-scalingpolicy-targettrackingconfiguration
+	TargetTrackingConfiguration *AWSAutoScalingScalingPolicy_TargetTrackingConfiguration `json:"TargetTrackingConfiguration,omitempty"`
 }
 
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSAutoScalingScalingPolicy) AWSCloudFormationType() string {
 	return "AWS::AutoScaling::ScalingPolicy"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSAutoScalingScalingPolicy) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

@@ -24,8 +24,3 @@ type AWSWAFRegionalRule_Predicate struct {
 func (r *AWSWAFRegionalRule_Predicate) AWSCloudFormationType() string {
 	return "AWS::WAFRegional::Rule.Predicate"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSWAFRegionalRule_Predicate) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

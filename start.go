@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/awslabs/goformation/intrinsics"
+
 	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation"
 	"github.com/codegangsta/cli"
@@ -17,7 +19,7 @@ func start(c *cli.Context) {
 
 	// Setup the logger
 	stderr := io.Writer(os.Stderr)
-	logarg := c.String("log")
+	logarg := c.String("log-file")
 
 	if len(logarg) > 0 {
 		if logFile, err := os.Create(logarg); err == nil {
@@ -29,7 +31,9 @@ func start(c *cli.Context) {
 	}
 
 	filename := getTemplateFilename(c.String("template"))
-	template, err := goformation.Open(filename)
+	template, err := goformation.OpenWithOptions(filename, &intrinsics.ProcessorOptions{
+		ParameterOverrides: parseParameters(c.String("parameter-values")),
+	})
 	if err != nil {
 		log.Fatalf("Failed to parse template: %s\n", err)
 	}
@@ -52,7 +56,7 @@ func start(c *cli.Context) {
 	}
 
 	// Create a new router
-	mux := router.NewServerlessRouter()
+	mux := router.NewServerlessRouter(c.Bool("prefix-routing"))
 
 	templateApis := template.GetAllAWSServerlessApiResources()
 
@@ -94,7 +98,7 @@ func start(c *cli.Context) {
 		}
 
 		// Add this AWS::Serverless::Function to the HTTP router
-		if err := mux.AddFunction(&function, runt.InvokeHTTP()); err != nil {
+		if err := mux.AddFunction(&function, runt.InvokeHTTP(c.String("profile"))); err != nil {
 			if err == router.ErrNoEventsFound {
 				log.Printf("Ignoring %s (%s) as no API event sources are defined", name, function.Handler)
 			}
@@ -122,8 +126,11 @@ func start(c *cli.Context) {
 	// Mount static files
 	if c.String("static-dir") != "" {
 		static := filepath.Join(cwd, c.String("static-dir"))
-		fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", static)
-		mux.AddStaticDir(static)
+
+		if _, err := os.Stat(static); err == nil {
+			fmt.Fprintf(os.Stderr, "Mounting static files from %s at /\n", static)
+			mux.AddStaticDir(static)
+		}
 	}
 
 	fmt.Fprintf(stderr, "\n")

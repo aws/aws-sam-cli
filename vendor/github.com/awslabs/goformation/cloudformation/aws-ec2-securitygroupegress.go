@@ -20,6 +20,11 @@ type AWSEC2SecurityGroupEgress struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-security-group-egress.html#cfn-ec2-securitygroupegress-cidripv6
 	CidrIpv6 string `json:"CidrIpv6,omitempty"`
 
+	// Description AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-security-group-egress.html#cfn-ec2-securitygroupegress-description
+	Description string `json:"Description,omitempty"`
+
 	// DestinationPrefixListId AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-security-group-egress.html#cfn-ec2-securitygroupegress-destinationprefixlistid
@@ -54,11 +59,6 @@ type AWSEC2SecurityGroupEgress struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSEC2SecurityGroupEgress) AWSCloudFormationType() string {
 	return "AWS::EC2::SecurityGroupEgress"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSEC2SecurityGroupEgress) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into

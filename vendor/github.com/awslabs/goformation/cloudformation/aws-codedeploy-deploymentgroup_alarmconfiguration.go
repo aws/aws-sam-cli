@@ -24,8 +24,3 @@ type AWSCodeDeployDeploymentGroup_AlarmConfiguration struct {
 func (r *AWSCodeDeployDeploymentGroup_AlarmConfiguration) AWSCloudFormationType() string {
 	return "AWS::CodeDeploy::DeploymentGroup.AlarmConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSCodeDeployDeploymentGroup_AlarmConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

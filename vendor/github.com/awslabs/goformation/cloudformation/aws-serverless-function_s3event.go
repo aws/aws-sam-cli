@@ -12,7 +12,7 @@ type AWSServerlessFunction_S3Event struct {
 	// Events AWS CloudFormation Property
 	// Required: true
 	// See: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#s3
-	Events *AWSServerlessFunction_StringOrListOfString `json:"Events,omitempty"`
+	Events *AWSServerlessFunction_Events `json:"Events,omitempty"`
 
 	// Filter AWS CloudFormation Property
 	// Required: false
@@ -23,9 +23,4 @@ type AWSServerlessFunction_S3Event struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSServerlessFunction_S3Event) AWSCloudFormationType() string {
 	return "AWS::Serverless::Function.S3Event"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSServerlessFunction_S3Event) AWSCloudFormationSpecificationVersion() string {
-	return "2016-10-31"
 }

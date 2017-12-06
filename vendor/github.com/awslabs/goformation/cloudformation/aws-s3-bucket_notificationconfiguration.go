@@ -24,8 +24,3 @@ type AWSS3Bucket_NotificationConfiguration struct {
 func (r *AWSS3Bucket_NotificationConfiguration) AWSCloudFormationType() string {
 	return "AWS::S3::Bucket.NotificationConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSS3Bucket_NotificationConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

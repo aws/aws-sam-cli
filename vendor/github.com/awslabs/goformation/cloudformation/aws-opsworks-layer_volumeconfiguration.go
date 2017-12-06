@@ -39,8 +39,3 @@ type AWSOpsWorksLayer_VolumeConfiguration struct {
 func (r *AWSOpsWorksLayer_VolumeConfiguration) AWSCloudFormationType() string {
 	return "AWS::OpsWorks::Layer.VolumeConfiguration"
 }
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSOpsWorksLayer_VolumeConfiguration) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}

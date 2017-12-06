@@ -36,11 +36,6 @@ func (r *AWSIAMGroup) AWSCloudFormationType() string {
 	return "AWS::IAM::Group"
 }
 
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSIAMGroup) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
-}
-
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
 // an AWS CloudFormation JSON resource's 'Properties' field and adds a 'Type'.
 func (r *AWSIAMGroup) MarshalJSON() ([]byte, error) {

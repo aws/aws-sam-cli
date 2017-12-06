@@ -30,6 +30,11 @@ type AWSElasticBeanstalkConfigurationTemplate struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-beanstalk-configurationtemplate.html#cfn-elasticbeanstalk-configurationtemplate-optionsettings
 	OptionSettings []AWSElasticBeanstalkConfigurationTemplate_ConfigurationOptionSetting `json:"OptionSettings,omitempty"`
 
+	// PlatformArn AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-beanstalk-configurationtemplate.html#cfn-elasticbeanstalk-configurationtemplate-platformarn
+	PlatformArn string `json:"PlatformArn,omitempty"`
+
 	// SolutionStackName AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-beanstalk-configurationtemplate.html#cfn-elasticbeanstalk-configurationtemplate-solutionstackname
@@ -44,11 +49,6 @@ type AWSElasticBeanstalkConfigurationTemplate struct {
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSElasticBeanstalkConfigurationTemplate) AWSCloudFormationType() string {
 	return "AWS::ElasticBeanstalk::ConfigurationTemplate"
-}
-
-// AWSCloudFormationSpecificationVersion returns the AWS Specification Version that this resource was generated from
-func (r *AWSElasticBeanstalkConfigurationTemplate) AWSCloudFormationSpecificationVersion() string {
-	return "1.4.2"
 }
 
 // MarshalJSON is a custom JSON marshalling hook that embeds this object into
