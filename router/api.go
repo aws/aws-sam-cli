@@ -10,11 +10,14 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"strings"
 )
 
 const apiGatewayIntegrationExtension = "x-amazon-apigateway-integration"
 const apiGatewayAnyMethodExtension = "x-amazon-apigateway-any-method"
 
+// temporary object. This is just used to marshal and unmarshal the any method
+// API Gateway swagger extension
 type ApiGatewayAnyMethod struct {
 	IntegrationSettings interface{} `json:"x-amazon-apigateway-integration"`
 }
@@ -47,36 +50,18 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 
 	for path, pathItem := range swagger.Paths.Paths {
 
-		if pathItem.Get != nil {
-			integration, _ := pathItem.Get.Extensions[apiGatewayIntegrationExtension]
-			mounts = append(mounts, api.createMount(path, "get", api.parseIntegrationSettings(integration)))
-		}
-		if pathItem.Post != nil {
-			integration, _ := pathItem.Post.Extensions[apiGatewayIntegrationExtension]
-			mounts = append(mounts, api.createMount(path, "post", api.parseIntegrationSettings(integration)))
-		}
-		if pathItem.Put != nil {
-			integration, _ := pathItem.Put.Extensions[apiGatewayIntegrationExtension]
-			mounts = append(mounts, api.createMount(path, "put", api.parseIntegrationSettings(integration)))
-		}
-		if pathItem.Patch != nil {
-			integration, _ := pathItem.Patch.Extensions[apiGatewayIntegrationExtension]
-			mounts = append(mounts, api.createMount(path, "patch", api.parseIntegrationSettings(integration)))
-		}
-		if pathItem.Delete != nil {
-			integration, _ := pathItem.Delete.Extensions[apiGatewayIntegrationExtension]
-			mounts = append(mounts, api.createMount(path, "delete", api.parseIntegrationSettings(integration)))
-		}
-		if pathItem.Head != nil {
-			integration, _ := pathItem.Delete.Extensions[apiGatewayIntegrationExtension]
-			mounts = append(mounts, api.createMount(path, "head", api.parseIntegrationSettings(integration)))
-		}
-		if pathItem.Options != nil {
-			integration, _ := pathItem.Options.Extensions[apiGatewayIntegrationExtension]
-			mounts = append(mounts, api.createMount(path, "options", api.parseIntegrationSettings(integration)))
+		for _, method := range HttpMethods {
+			if operationIface, err := pathItem.JSONLookup(method); err == nil {
+				operation := operationIface.(spec.Operation)
+
+				integration, _ := operation.Extensions[apiGatewayIntegrationExtension]
+				mounts = append(mounts, api.createMount(
+					path,
+					strings.ToLower(method),
+					api.parseIntegrationSettings(integration)))
+			}
 		}
 
-		// support for any method extension
 		anyMethod, available := pathItem.Extensions[apiGatewayAnyMethodExtension]
 		if available {
 			// any method to json then unmarshal to temporary object
@@ -92,28 +77,13 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 				return nil, fmt.Errorf("Could not unmarshal any method josn to object model")
 			}
 
-			// we only add the ANY mounts for methods that are not already explicitly defined.
-			// Explicitly defined methods override the ANY
-			if pathItem.Get == nil {
-				mounts = append(mounts, api.createMount(path, "get", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
-			}
-			if pathItem.Post == nil {
-				mounts = append(mounts, api.createMount(path, "post", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
-			}
-			if pathItem.Put == nil {
-				mounts = append(mounts, api.createMount(path, "put", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
-			}
-			if pathItem.Patch == nil {
-				mounts = append(mounts, api.createMount(path, "patch", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
-			}
-			if pathItem.Delete == nil {
-				mounts = append(mounts, api.createMount(path, "delete", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
-			}
-			if pathItem.Head == nil {
-				mounts = append(mounts, api.createMount(path, "head", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
-			}
-			if pathItem.Options == nil {
-				mounts = append(mounts, api.createMount(path, "options", api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+			for _, method := range HttpMethods {
+				if _, err := pathItem.JSONLookup(method); err != nil {
+					mounts = append(mounts, api.createMount(
+						path,
+						strings.ToLower(method),
+						api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+				}
 			}
 		}
 	}
