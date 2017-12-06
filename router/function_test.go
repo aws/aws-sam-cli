@@ -79,7 +79,6 @@ var _ = Describe("Function", func() {
 				"Name":      Equal("GetRequests"),
 				"Path":      Equal("/get"),
 				"Method":    Equal("get"),
-				"UsePrefix": Equal(false),
 			}))))
 		})
 
@@ -88,7 +87,6 @@ var _ = Describe("Function", func() {
 				"Name":      Equal("PostRequests"),
 				"Path":      Equal("/post"),
 				"Method":    Equal("post"),
-				"UsePrefix": Equal(false),
 			}))))
 		})
 
@@ -97,7 +95,6 @@ var _ = Describe("Function", func() {
 				"Name":      Equal("AnyRequests"),
 				"Path":      Equal("/any"),
 				"Method":    Equal("any"),
-				"UsePrefix": Equal(false),
 			}))))
 		})
 
@@ -106,7 +103,6 @@ var _ = Describe("Function", func() {
 				"Name":      Equal("ProxyResource"),
 				"Path":      Equal("/proxy/{proxy+}"),
 				"Method":    Equal("any"),
-				"UsePrefix": Equal(true),
 			}))))
 		})
 
@@ -148,8 +144,15 @@ var _ = Describe("Function", func() {
 			Expect(rr.Code).To(Equal(http.StatusOK))
 		})
 
+		It("should respond to GET requests on a single sub-resource", func() {
+			req, _ := http.NewRequest("GET", "/proxy/hello", nil)
+			rr := httptest.NewRecorder()
+			r.Router().ServeHTTP(rr, req)
+			Expect(rr.Code).To(Equal(http.StatusOK))
+		})
+
 		It("should not respond to base proxy path, only sub-resources", func() {
-			req, _ := http.NewRequest("GET", "/proxy/", nil)
+			req, _ := http.NewRequest("GET", "/proxy", nil)
 			rr := httptest.NewRecorder()
 			r.Router().ServeHTTP(rr, req)
 			Expect(rr.Code).To(Equal(http.StatusNotFound))
@@ -223,15 +226,13 @@ var _ = Describe("Function", func() {
 				rr := httptest.NewRecorder()
 				r.Router().ServeHTTP(rr, req)
 				Expect(rr.Code).To(Equal(http.StatusOK))
-				Expect(rr.Body.String()).To(Equal("ok"))
 			})
 
 			It("should respond to HTTP requests on "+method+" /any/foo", func() {
 				req, _ := http.NewRequest(method, "/any/foo", nil)
 				rr := httptest.NewRecorder()
 				r.Router().ServeHTTP(rr, req)
-				Expect(rr.Code).To(Equal(http.StatusOK))
-				Expect(rr.Body.String()).To(Equal("ok"))
+				Expect(rr.Code).To(Equal(http.StatusNotFound))
 			})
 		}
 

@@ -16,7 +16,6 @@ type ServerlessRouterMount struct {
 	Handler  		http.HandlerFunc
 	Path     		string
 	Method   		string
-	UsePrefix 		bool
 
 	// authorization settings
 	AuthType       string

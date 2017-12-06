@@ -2,7 +2,6 @@ package router
 
 import (
 	"net/http"
-	"regexp"
 
 	"github.com/awslabs/goformation/cloudformation"
 )
@@ -14,8 +13,6 @@ type AWSServerlessFunction struct {
 	*cloudformation.AWSServerlessFunction
 	handler http.HandlerFunc
 }
-
-var catchAllPathVar = regexp.MustCompile(`\{([^}/]+)\+\}$`)
 
 // Mounts fetches an array of the ServerlessRouterMount's for this API.
 // These contain the path, method and handler function for each mount point.
@@ -32,7 +29,6 @@ func (f *AWSServerlessFunction) Mounts() ([]*ServerlessRouterMount, error) {
 					Method:    event.Properties.ApiEvent.Method,
 					Handler:   f.handler,
 					Function:  f,
-					UsePrefix: catchAllPathVar.MatchString(event.Properties.ApiEvent.Path),
 				})
 			}
 		}
