@@ -48,12 +48,12 @@ var _ = Describe("Function", func() {
 						},
 					},
 				},
-				"CatchAll": cloudformation.AWSServerlessFunction_EventSource{
+				"ProxyResource": cloudformation.AWSServerlessFunction_EventSource{
 					Type: "Api",
 					Properties: &cloudformation.AWSServerlessFunction_Properties{
 						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
-							Path:   "/foo/{catch+}",
-							Method: "get",
+							Path:   "/proxy/{proxy+}",
+							Method: "any",
 						},
 					},
 				},
@@ -79,7 +79,6 @@ var _ = Describe("Function", func() {
 				"Name":      Equal("GetRequests"),
 				"Path":      Equal("/get"),
 				"Method":    Equal("get"),
-				"UsePrefix": Equal(false),
 			}))))
 		})
 
@@ -88,7 +87,6 @@ var _ = Describe("Function", func() {
 				"Name":      Equal("PostRequests"),
 				"Path":      Equal("/post"),
 				"Method":    Equal("post"),
-				"UsePrefix": Equal(false),
 			}))))
 		})
 
@@ -97,16 +95,14 @@ var _ = Describe("Function", func() {
 				"Name":      Equal("AnyRequests"),
 				"Path":      Equal("/any"),
 				"Method":    Equal("any"),
-				"UsePrefix": Equal(false),
 			}))))
 		})
 
 		It("should have the correct values for an event with catchAll path", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":      Equal("CatchAll"),
-				"Path":      Equal("/foo/{catch+}"),
-				"Method":    Equal("get"),
-				"UsePrefix": Equal(true),
+				"Name":      Equal("ProxyResource"),
+				"Path":      Equal("/proxy/{proxy+}"),
+				"Method":    Equal("any"),
 			}))))
 		})
 
@@ -141,7 +137,28 @@ var _ = Describe("Function", func() {
 			Expect(rr.Code).To(Equal(http.StatusNotFound))
 		})
 
-		methods := []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT"}
+		It("should respond to GET requests on any path in catch-all resource", func() {
+			req, _ := http.NewRequest("GET", "/proxy/hello/world", nil)
+			rr := httptest.NewRecorder()
+			r.Router().ServeHTTP(rr, req)
+			Expect(rr.Code).To(Equal(http.StatusOK))
+		})
+
+		It("should respond to GET requests on a single sub-resource", func() {
+			req, _ := http.NewRequest("GET", "/proxy/hello", nil)
+			rr := httptest.NewRecorder()
+			r.Router().ServeHTTP(rr, req)
+			Expect(rr.Code).To(Equal(http.StatusOK))
+		})
+
+		It("should not respond to base proxy path, only sub-resources", func() {
+			req, _ := http.NewRequest("GET", "/proxy", nil)
+			rr := httptest.NewRecorder()
+			r.Router().ServeHTTP(rr, req)
+			Expect(rr.Code).To(Equal(http.StatusNotFound))
+		})
+
+		methods := []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"}
 		for _, method := range methods {
 			It("should respond to HTTP requests on "+method+" /any", func() {
 				req, _ := http.NewRequest(method, "/any", nil)
@@ -202,22 +219,20 @@ var _ = Describe("Function", func() {
 			Expect(rr.Code).To(Equal(http.StatusNotFound))
 		})
 
-		methods := []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT"}
+		methods := []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"}
 		for _, method := range methods {
 			It("should respond to HTTP requests on "+method+" /any", func() {
 				req, _ := http.NewRequest(method, "/any", nil)
 				rr := httptest.NewRecorder()
 				r.Router().ServeHTTP(rr, req)
 				Expect(rr.Code).To(Equal(http.StatusOK))
-				Expect(rr.Body.String()).To(Equal("ok"))
 			})
 
 			It("should respond to HTTP requests on "+method+" /any/foo", func() {
 				req, _ := http.NewRequest(method, "/any/foo", nil)
 				rr := httptest.NewRecorder()
 				r.Router().ServeHTTP(rr, req)
-				Expect(rr.Code).To(Equal(http.StatusOK))
-				Expect(rr.Body.String()).To(Equal("ok"))
+				Expect(rr.Code).To(Equal(http.StatusNotFound))
 			})
 		}
 
