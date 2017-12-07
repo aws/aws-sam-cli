@@ -1,16 +1,17 @@
 package router
 
 import (
-	"fmt"
-	"log"
-	"io/ioutil"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
 
-	"github.com/awslabs/goformation/cloudformation"
-	"github.com/go-openapi/spec"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"strings"
+	"github.com/awslabs/goformation/cloudformation"
+	"github.com/go-openapi/spec"
 )
 
 const apiGatewayIntegrationExtension = "x-amazon-apigateway-integration"
@@ -32,7 +33,7 @@ type AWSServerlessApi struct {
 // Mounts fetches an array of the ServerlessRouterMount's for this API.
 // These contain the path, method and handler function for each mount point.
 func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
-	jsonDefinition, err := api.Swagger();
+	jsonDefinition, err := api.Swagger()
 
 	if err != nil {
 		// this is our own error so we return it directly
@@ -46,8 +47,6 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 	}
 
 	mounts := []*ServerlessRouterMount{}
-
-	log.Printf("Reading paths from Swagger")
 
 	for path, pathItem := range swagger.Paths.Paths {
 		// temporary tracking of mounted methods for the current path. Used to
@@ -110,7 +109,7 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 // parses a byte[] for the API Gateway inetegration extension from a method and return
 // the object representation
 func (api *AWSServerlessApi) parseIntegrationSettings(integrationData interface{}) *ApiGatewayIntegration {
-	integrationJson, err := json.Marshal(integrationData);
+	integrationJson, err := json.Marshal(integrationData)
 	if err != nil {
 		log.Printf("Could not parse integration data to json")
 		return nil
@@ -129,8 +128,8 @@ func (api *AWSServerlessApi) parseIntegrationSettings(integrationData interface{
 
 func (api *AWSServerlessApi) createMount(path string, verb string, integration *ApiGatewayIntegration) *(ServerlessRouterMount) {
 	newMount := &ServerlessRouterMount{
-		Name: path,
-		Path: path,
+		Name:   path,
+		Path:   path,
 		Method: verb,
 	}
 
@@ -146,7 +145,7 @@ func (api *AWSServerlessApi) createMount(path string, verb string, integration *
 	}
 	newMount.IntegrationArn = functionName
 
-	return newMount;
+	return newMount
 }
 
 // Swagger gets the swagger definition for the API.
@@ -202,15 +201,15 @@ func (api *AWSServerlessApi) getSwaggerFromS3Location(loc cloudformation.AWSServ
 
 	objectVersion := string(loc.Version)
 	s3Input := s3.GetObjectInput{
-		Bucket: &loc.Bucket,
-		Key: &loc.Key,
+		Bucket:    &loc.Bucket,
+		Key:       &loc.Key,
 		VersionId: &objectVersion,
 	}
 
 	object, err := client.GetObject(&s3Input)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error while fetching Swagger template from S3: %s\n%s", loc.Bucket + loc.Key, err.Error())
+		return nil, fmt.Errorf("Error while fetching Swagger template from S3: %s\n%s", loc.Bucket+loc.Key, err.Error())
 	}
 
 	body, err := ioutil.ReadAll(object.Body)

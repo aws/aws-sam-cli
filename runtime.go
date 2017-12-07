@@ -652,6 +652,15 @@ func getWorkingDir(dir string) string {
 		dir = cwd
 	}
 
+	// Docker volumes require an absolute path.
+	// If the path exists, use the absolute version.
+	if _, err := os.Stat(dir); err == nil {
+		absolute, err := filepath.Abs(dir)
+		if err == nil {
+			dir = absolute
+		}
+	}
+
 	// Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
 	// Hence the use of filepath.ToSlash for return values.
 	return filepath.ToSlash(dir)

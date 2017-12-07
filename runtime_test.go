@@ -39,7 +39,8 @@ var _ = Describe("sam", func() {
 				[]string{"", cwd},
 				[]string{".", cwd},
 				[]string{"/test/directory", "/test/directory"},
-				[]string{"test/directory", "test/directory"},
+				[]string{"test/non-existant-directory", "test/non-existant-directory"},
+				[]string{"test", cwd + "/test"},
 			}
 
 			// func getWorkingDir(basedir string, codeuri string, checkWorkingDirExist bool) (string, error) {
