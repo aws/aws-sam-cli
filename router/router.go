@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/gorilla/mux"
@@ -84,16 +85,20 @@ func (r *ServerlessRouter) mergeMounts(newMounts []*ServerlessRouterMount) error
 		newMountExists := false
 
 		for _, existingMount := range r.mounts {
-			if newMount.Path == existingMount.Path && newMount.Method == existingMount.Method {
+			if newMount.Path == existingMount.Path && strings.ToLower(newMount.Method) == strings.ToLower(existingMount.Method) {
 				newMountExists = true
 				// if the new mount has a valid handler I override the existing one anyway
 				if newMount.Handler != nil {
 					existingMount.Handler = newMount.Handler
+					existingMount.Function = newMount.Function
 				}
 			}
 		}
 
 		if !newMountExists {
+			if newMount.Handler == nil {
+				newMount.Handler = r.missingFunctionHandler()
+			}
 			r.mounts = append(r.mounts, newMount)
 		}
 	}
@@ -120,4 +125,12 @@ func (r *ServerlessRouter) Router() http.Handler {
 // Mounts returns a list of the mounts associated with this router
 func (r *ServerlessRouter) Mounts() []*ServerlessRouterMount {
 	return r.mounts
+}
+
+func (r *ServerlessRouter) missingFunctionHandler() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte(`{ "message": "No function defined for resource method" }`))
+	}
 }
