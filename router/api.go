@@ -39,6 +39,7 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 		// this is our own error so we return it directly
 		return nil, err
 	}
+
 	swagger := spec.Swagger{}
 	err = swagger.UnmarshalJSON(jsonDefinition)
 
@@ -58,12 +59,14 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 
 			if operationIface, err := pathItem.JSONLookup(strings.ToLower(method)); err == nil {
 				operation := spec.Operation{}
-
-				operationJson, err := json.Marshal(operationIface)
+				operationJSON, err := json.Marshal(operationIface)
 				if err != nil {
 					return nil, fmt.Errorf("Could not parse %s operation: %s", method, err.Error())
 				}
-				operation.UnmarshalJSON(operationJson)
+				operation.UnmarshalJSON(operationJSON)
+
+				// the JSON will always contain the method because it's a property in the Swagger model
+				// If we don't have an integration defined then we skip it.
 				if operation.Extensions[apiGatewayIntegrationExtension] == nil {
 					continue
 				}
@@ -80,13 +83,13 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 		anyMethod, available := pathItem.Extensions[apiGatewayAnyMethodExtension]
 		if available {
 			// any method to json then unmarshal to temporary object
-			anyMethodJson, err := json.Marshal(anyMethod)
+			anyMethodJSON, err := json.Marshal(anyMethod)
 			if err != nil {
 				return nil, fmt.Errorf("Could not marshal any method object to json")
 			}
 
 			anyMethodObject := ApiGatewayAnyMethod{}
-			err = json.Unmarshal(anyMethodJson, &anyMethodObject)
+			err = json.Unmarshal(anyMethodJSON, &anyMethodObject)
 
 			if err != nil {
 				return nil, fmt.Errorf("Could not unmarshal any method josn to object model")
@@ -109,14 +112,14 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 // parses a byte[] for the API Gateway inetegration extension from a method and return
 // the object representation
 func (api *AWSServerlessApi) parseIntegrationSettings(integrationData interface{}) *ApiGatewayIntegration {
-	integrationJson, err := json.Marshal(integrationData)
+	integrationJSON, err := json.Marshal(integrationData)
 	if err != nil {
 		log.Printf("Could not parse integration data to json")
 		return nil
 	}
 
 	integration := ApiGatewayIntegration{}
-	err = json.Unmarshal(integrationJson, &integration)
+	err = json.Unmarshal(integrationJSON, &integration)
 
 	if err != nil {
 		log.Printf("Could not unmarshal integration data to ApiGatewayIntegration model")
