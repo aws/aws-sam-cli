@@ -66,8 +66,7 @@ func start(c *cli.Context) {
 
 	templateApis := template.GetAllAWSServerlessApiResources()
 
-	for name, api := range templateApis {
-		successMsg.Printf("Adding new API: %s\n\n", name)
+	for _, api := range templateApis {
 		err := mux.AddAPI(&api)
 		if err != nil {
 			errMsg.Printf("%s\n\n", err.Error())
