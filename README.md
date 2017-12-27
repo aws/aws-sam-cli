@@ -403,6 +403,17 @@ Use `--env-vars` argument of `invoke` or `start-api` commands to provide a JSON 
 $ sam local start-api --env-vars env.json
 ```
 
+in alternative you can pass a cloudformation configuration.json containing a parameters key:
+
+```json
+{
+  "Parameters": {
+    "TABLE_NAME": "localtable",
+    "BUCKET_NAME": "testBucket"
+  }
+}
+```
+
 #### Shell environment 
 Variables defined in your Shell's environment will be passed to the Docker container, if they map to a Variable in your Lambda function. Shell variables are globally applicable to functions ie. If two functions have a variable called `TABLE_NAME`, then the value for `TABLE_NAME` provided through Shell's environment will be availabe to both functions. 
 
