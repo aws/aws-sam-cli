@@ -1,11 +1,17 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"golang.org/x/net/context"
@@ -19,8 +25,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/awslabs/goformation/resources"
+	"github.com/awslabs/goformation/cloudformation"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -37,22 +42,27 @@ import (
 
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
-	Invoke(string) (io.Reader, io.Reader, error)
+	Invoke(string, string) (io.Reader, io.Reader, error)
+	InvokeHTTP(string) func(http.ResponseWriter, *http.Request)
 	CleanUp()
 }
 
 // Runtime contains a reference to a single container for a specific runtime. It is used to invoke functions multiple times against a single container.
 type Runtime struct {
+	LogicalID       string
 	ID              string
 	Name            string
 	Image           string
 	Cwd             string
-	Function        resources.AWSServerlessFunction
-	EnvVarOverrides map[string]string
+	DecompressedCwd string
+	Function        cloudformation.AWSServerlessFunction
+	EnvOverrideFile string
 	DebugPort       string
 	Context         context.Context
 	Client          *client.Client
 	TimeoutTimer    *time.Timer
+	Logger          io.Writer
+	DockerNetwork   string
 }
 
 var (
@@ -91,16 +101,20 @@ var runtimeImageFor = map[string]string{
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
 type NewRuntimeOpt struct {
-	Function         resources.AWSServerlessFunction
-	EnvVarsOverrides map[string]string
-	Basedir          string
-	DebugPort        string
+	Cwd             string
+	LogicalID       string
+	Function        cloudformation.AWSServerlessFunction
+	EnvOverrideFile string
+	DebugPort       string
+	Logger          io.Writer
+	SkipPullImage   bool
+	DockerNetwork   string
 }
 
 // NewRuntime instantiates a Lambda runtime container
 func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 	// Determine which docker image to use for the provided runtime
-	image, found := runtimeImageFor[opt.Function.Runtime()]
+	image, found := runtimeImageFor[opt.Function.Runtime]
 	if !found {
 		return nil, ErrRuntimeNotSupported
 	}
@@ -110,20 +124,18 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	cwd, err := getWorkingDir(opt.Basedir, opt.Function.CodeURI().String())
-	if err != nil {
-		return nil, err
-	}
-
 	r := &Runtime{
-		Name:            opt.Function.Runtime(),
-		Cwd:             cwd,
+		LogicalID:       opt.LogicalID,
+		Name:            opt.Function.Runtime,
+		Cwd:             getWorkingDir(opt.Cwd),
 		Image:           image,
 		Function:        opt.Function,
-		EnvVarOverrides: opt.EnvVarsOverrides,
+		EnvOverrideFile: opt.EnvOverrideFile,
 		DebugPort:       opt.DebugPort,
 		Context:         context.Background(),
 		Client:          cli,
+		Logger:          opt.Logger,
+		DockerNetwork:   opt.DockerNetwork,
 	}
 
 	// Check if we have the required Docker image for this runtime
@@ -136,35 +148,50 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		return nil, err
 	}
 
-	log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime())
-	progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
-	if len(images) < 0 && err != nil {
-		log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
-		return nil, err
+	// By default, pull images unless we are told not to
+	pullImage := true
+
+	if opt.SkipPullImage {
+		log.Printf("Requested to skip pulling images ...\n")
+		pullImage = false
 	}
 
-	if err != nil {
-		log.Printf("Could not fetch %s Docker image: %s\n", r.Image, err)
-	} else {
+	// However, if we don't have the image we will need it...
+	if len(images) == 0 {
+		log.Printf("Runtime image missing, will pull....\n")
+		pullImage = true
+	}
 
-		// Use Docker's standard progressbar to show image pull progress.
-		// However there is a bug that we are working around. We'll do the same
-		// as Docker does, and temporarily set the TERM to a non-existant
-		// terminal
-		// More info here:
-		// https://github.com/Nvveen/Gotty/pull/1
+	if pullImage {
+		log.Printf("Fetching %s image for %s runtime...\n", r.Image, opt.Function.Runtime)
+		progress, err := cli.ImagePull(r.Context, r.Image, types.ImagePullOptions{})
+		if len(images) < 0 && err != nil {
+			log.Fatalf("Could not fetch %s Docker image\n%s", r.Image, err)
+			return nil, err
+		}
 
-		origTerm := os.Getenv("TERM")
-		os.Setenv("TERM", "eifjccgifcdekgnbtlvrgrinjjvfjggrcudfrriivjht")
-		defer os.Setenv("TERM", origTerm)
+		if err != nil {
+			log.Printf("Could not fetch %s Docker image: %s\n", r.Image, err)
+		} else {
 
-		// Show the Docker pull messages in green
-		color.Output = colorable.NewColorableStderr()
-		color.Set(color.FgGreen)
-		defer color.Unset()
+			// Use Docker's standard progressbar to show image pull progress.
+			// However there is a bug that we are working around. We'll do the same
+			// as Docker does, and temporarily set the TERM to a non-existant
+			// terminal
+			// More info here:
+			// https://github.com/Nvveen/Gotty/pull/1
 
-		jsonmessage.DisplayJSONMessagesStream(progress, os.Stderr, os.Stderr.Fd(), term.IsTerminal(os.Stderr.Fd()), nil)
+			origTerm := os.Getenv("TERM")
+			os.Setenv("TERM", "eifjccgifcdekgnbtlvrgrinjjvfjggrcudfrriivjht")
+			defer os.Setenv("TERM", origTerm)
 
+			// Show the Docker pull messages in green
+			color.Output = colorable.NewColorableStderr()
+			color.Set(color.FgGreen)
+			defer color.Unset()
+
+			jsonmessage.DisplayJSONMessagesStream(progress, os.Stderr, os.Stderr.Fd(), term.IsTerminal(os.Stderr.Fd()), nil)
+		}
 	}
 
 	return r, nil
@@ -172,6 +199,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 }
 
 func overrideHostConfig(cfg *container.HostConfig) error {
+
 	const dotfile = ".config/aws-sam-local/container-config.json"
 	const eMsg = "unable to use container host config override file from '$HOME/%s'"
 
@@ -198,15 +226,29 @@ func overrideHostConfig(cfg *container.HostConfig) error {
 }
 
 func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
+
+	// Check if there is a decompressed archive directory we should
+	// be using instead of the normal working directory (e.g. if a
+	// ZIP/JAR archive was specified as the CodeUri)
+	mount := r.Cwd
+	if r.DecompressedCwd != "" {
+		mount = r.DecompressedCwd
+	}
+
+	// If the path is a Windows style one, convert it to the format that Docker Toolbox requires.
+	mount = convertWindowsPath(mount)
+
+	log.Printf("Mounting %s as /var/task:ro inside runtime container\n", mount)
 	host := &container.HostConfig{
 		Resources: container.Resources{
-			Memory: int64(r.Function.MemorySize() * 1024 * 1024),
+			Memory: int64(r.Function.MemorySize * 1024 * 1024),
 		},
 		Binds: []string{
-			fmt.Sprintf("%s:/var/task:ro", r.Cwd),
+			fmt.Sprintf("%s:/var/task:ro", mount),
 		},
 		PortBindings: r.getDebugPortBindings(),
 	}
+
 	if err := overrideHostConfig(host); err != nil {
 		log.Print(err)
 	}
@@ -217,11 +259,35 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 // Invoke runs a Lambda function within the runtime with the provided event
 // payload and returns a pair of io.Readers for it's stdout (callback results)
 // and stderr (runtime logs).
-func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
+func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, error) {
 
-	log.Printf("Invoking %s (%s)\n", r.Function.Handler(), r.Name)
+	log.Printf("Invoking %s (%s)\n", r.Function.Handler, r.Name)
 
-	env := getEnvironmentVariables(r.Function, r.EnvVarOverrides)
+	// If the CodeUri has been specified as a .jar or .zip file, unzip it on the fly
+	if r.Function.CodeUri != nil && r.Function.CodeUri.String != nil {
+		codeuri := filepath.Join(r.Cwd, *r.Function.CodeUri.String)
+
+		// Check if the CodeUri exists on the local filesystem
+		if _, err := os.Stat(codeuri); err == nil {
+			// It does exist - maybe it's a ZIP/JAR that we need to decompress on the fly
+			if strings.HasSuffix(codeuri, ".jar") || strings.HasSuffix(codeuri, ".zip") {
+				log.Printf("Decompressing %s\n", codeuri)
+				decompressedDir, err := decompressArchive(codeuri)
+				if err != nil {
+					log.Printf("ERROR: Failed to decompress archive: %s\n", err)
+					return nil, nil, fmt.Errorf("failed to decompress archive: %s", err)
+				}
+				r.DecompressedCwd = decompressedDir
+			} else {
+				// We have a CodeUri that exists locally, but isn't a ZIP/JAR.
+				// Just append it to the working directory
+				r.Cwd = codeuri
+			}
+		} else {
+			// The CodeUri specified doesn't exist locally. It could be
+			// an S3 location (s3://.....), so just ignore it.
+		}
+	}
 
 	// Define the container options
 	config := &container.Config{
@@ -230,10 +296,10 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 		Tty:          false,
 		ExposedPorts: r.getDebugExposedPorts(),
 		Entrypoint:   r.getDebugEntrypoint(),
-		Cmd:          []string{r.Function.Handler(), event},
+		Cmd:          []string{r.Function.Handler, event},
 		Env: func() []string {
 			result := []string{}
-			for k, v := range env {
+			for k, v := range getEnvironmentVariables(r.LogicalID, &r.Function, r.EnvOverrideFile, profile) {
 				result = append(result, k+"="+v)
 			}
 			return result
@@ -251,6 +317,13 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 	}
 
 	r.ID = resp.ID
+
+	if r.DockerNetwork != "" {
+		if err := r.Client.NetworkConnect(r.Context, r.DockerNetwork, resp.ID, nil); err != nil {
+			return nil, nil, err
+		}
+		log.Printf("Connecting container %s to network %s", resp.ID, r.DockerNetwork)
+	}
 
 	// Invoke the container
 	if err := r.Client.ContainerStart(r.Context, resp.ID, types.ContainerStartOptions{}); err != nil {
@@ -289,13 +362,13 @@ func (r *Runtime) Invoke(event string) (io.Reader, io.Reader, error) {
 func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser) {
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
 	timeout := time.Duration(3) * time.Second
-	if r.Function.Timeout() > 0 {
-		timeout = time.Duration(r.Function.Timeout()) * time.Second
+	if r.Function.Timeout > 0 {
+		timeout = time.Duration(r.Function.Timeout) * time.Second
 	}
 	r.TimeoutTimer = time.NewTimer(timeout)
 	go func() {
 		<-r.TimeoutTimer.C
-		log.Printf("Function %s timed out after %d seconds", r.Function.Handler(), timeout/time.Second)
+		log.Printf("Function %s timed out after %d seconds", r.Function.Handler, timeout/time.Second)
 		stderr.Close()
 		stdout.Close()
 		r.CleanUp()
@@ -307,47 +380,12 @@ func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser) {
 	signal.Notify(iChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-iChan
-		log.Printf("Execution of function %q was interrupted", r.Function.Handler())
+		log.Printf("Execution of function %q was interrupted", r.Function.Handler)
 		stderr.Close()
 		stdout.Close()
 		r.CleanUp()
 		os.Exit(0)
 	}()
-}
-
-func getSessionOrDefaultCreds() map[string]string {
-	region := "us-east-1"
-	key := "defaultkey"
-	secret := "defaultsecret"
-	sessiontoken := "sessiontoken"
-
-	result := map[string]string{
-		"region":  region,
-		"key":     key,
-		"secret":  secret,
-		"session": sessiontoken,
-	}
-
-	// Obtain AWS credentials and pass them through to the container runtime via env variables
-	if sess, err := session.NewSession(); err == nil {
-		if creds, err := sess.Config.Credentials.Get(); err == nil {
-			result["region"] = *sess.Config.Region
-			result["key"] = creds.AccessKeyID
-			result["secret"] = creds.SecretAccessKey
-			result["sessiontoken"] = creds.SessionToken
-		}
-	}
-	return result
-}
-
-func getOsEnviron() map[string]string {
-	result := map[string]string{}
-	for _, value := range os.Environ() {
-		keyVal := strings.Split(value, "=")
-		result[keyVal[0]] = keyVal[1]
-	}
-
-	return result
 }
 
 func (r *Runtime) getDebugPortBindings() nat.PortMap {
@@ -424,99 +462,139 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 	return
 }
 
-/**
- The Environment Variable Saga..
-
- There are two types of environment variables
- 	- Lambda runtime variables starting with "AWS_" and passed to every function
- 	- Custom environment variables defined in SAM template for each function
-
- Custom environment variables defined in the SAM template can contain hard-coded
- values or fetch from a stack parameter or use Intrinsics to generate a value at
- at stack creation time like ARNs. It can get complicated to support all cases
-
- Instead we will parse only hard-coded values from the template. For the rest,
- users can supply values through the Shell's environment or the env-var override
- CLI argument. If a value is provided through more than one method, the method
- with higher priority will win.
-
- Priority (Highest to lowest)
-	Env-Var CLI argument
-	Shell's Environment
-	Hard-coded values from template
-
- This priority also applies to AWS_* system variables
-*/
-func getEnvironmentVariables(function resources.AWSServerlessFunction, overrides map[string]string) map[string]string {
-
-	creds := getSessionOrDefaultCreds()
-
-	// Variables available in Lambda execution environment for all functions (AWS_* variables)
-	env := map[string]string{
-		"AWS_SAM_LOCAL":                   "true",
-		"AWS_DEFAULT_REGION":              creds["region"],
-		"AWS_ACCESS_KEY_ID":               creds["key"],
-		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
-		"AWS_SESSION_TOKEN":               creds["sessiontoken"],
-		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(int(function.MemorySize())),
-		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(int(function.Timeout())),
-		"AWS_LAMBDA_FUNCTION_HANDLER":     function.Handler(),
-		// "AWS_ACCOUNT_ID=",
-		// "AWS_LAMBDA_EVENT_BODY=",
-		// "AWS_REGION=",
-		// "AWS_LAMBDA_FUNCTION_NAME=",
-		// "AWS_LAMBDA_FUNCTION_VERSION=",
-	}
-
-	// Get all env vars from SAM file. Use values if it was hard-coded
-	osEnviron := getOsEnviron()
-	for name, value := range function.EnvironmentVariables() {
-		// hard-coded values, lowest priority
-		if stringedValue, ok := toStringMaybe(value); ok {
-			// Get only hard-coded values from the template
-			env[name] = stringedValue
-		}
-
-		// Shell's environment, second priority
-		if value, ok := osEnviron[name]; ok {
-			env[name] = value
-		}
-
-		// EnvVars overrides provided by customer, highest priority
-		if len(overrides) > 0 {
-			if value, ok := overrides[name]; ok {
-				env[name] = value
-			}
-		}
-	}
-
-	return env
-}
-
-// Converts the input to string if it is a primitive type, Otherwise returns nil
-func toStringMaybe(value interface{}) (string, bool) {
-
-	switch value.(type) {
-	case string:
-		return value.(string), true
-	case int:
-		return strconv.Itoa(value.(int)), true
-	case float32, float64:
-		return strconv.FormatFloat(value.(float64), 'f', -1, 64), true
-	case bool:
-		return strconv.FormatBool(value.(bool)), true
-	default:
-		return "", false
-	}
-}
-
 // CleanUp removes the Docker container used by this runtime
 func (r *Runtime) CleanUp() {
+
+	// Stop the Lambda timeout timer
 	if r.TimeoutTimer != nil {
 		r.TimeoutTimer.Stop()
 	}
+
+	// Remove the container
 	r.Client.ContainerKill(r.Context, r.ID, "SIGKILL")
 	r.Client.ContainerRemove(r.Context, r.ID, types.ContainerRemoveOptions{})
+
+	// Remove any decompressed archive if there was one (e.g. ZIP/JAR)
+	if r.DecompressedCwd != "" {
+		os.RemoveAll(r.DecompressedCwd)
+	}
+
+}
+
+// InvokeHTTP invokes a Lambda function, and implements the Go http.HandlerFunc interface
+// so it can be connected straight into most HTTP packages/frameworks etc.
+func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Request) {
+
+	return func(w http.ResponseWriter, req *http.Request) {
+		var wg sync.WaitGroup
+		w.Header().Set("Content-Type", "application/json")
+
+		event, err := NewEvent(req)
+		if err != nil {
+			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
+			log.Println(msg)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+			return
+		}
+
+		eventJSON, err := event.JSON()
+		if err != nil {
+			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
+			log.Println(msg)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+			return
+		}
+
+		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON, profile)
+		if err != nil {
+			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
+			log.Println(msg)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+			return
+		}
+
+		wg.Add(1)
+		var output []byte
+		go func() {
+			output = parseOutput(w, stdoutTxt, r.Function.Runtime, &wg)
+		}()
+
+		wg.Add(1)
+		go func() {
+			// Finally, copy the container stdout and stderr (runtime logs) to the console stderr
+			r.Logger.Write(output)
+			io.Copy(r.Logger, stderrTxt)
+			wg.Done()
+		}()
+
+		wg.Wait()
+
+		r.CleanUp()
+	}
+
+}
+
+// parseOutput decodes the proxy response from the output of the function and returns
+// the rest
+func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg *sync.WaitGroup) (output []byte) {
+	defer wg.Done()
+
+	result, err := ioutil.ReadAll(stdoutTxt)
+	if err != nil {
+		msg := fmt.Sprintf("Error invoking %s runtime: %s", runtime, err)
+		log.Println(msg)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{ "message": "Internal server error" }`))
+		return
+	}
+
+	// At this point, we need to see whether the response is in the format
+	// of a Lambda proxy response (inc statusCode / body), and if so, handle it
+	// otherwise just copy the whole output back to the http.ResponseWriter
+	proxy := &struct {
+		StatusCode json.Number       `json:"statusCode"`
+		Headers    map[string]string `json:"headers"`
+		Body       json.Number       `json:"body"`
+	}{}
+
+	// We only want the last line of stdout, because it's possible that
+	// the function may have written directly to stdout using
+	// System.out.println or similar, before docker-lambda output the result
+	lastNewlineIx := bytes.LastIndexByte(bytes.TrimRight(result, "\n"), '\n')
+	if lastNewlineIx > 0 {
+		output = result[:lastNewlineIx]
+		result = result[lastNewlineIx:]
+	}
+
+	if err := json.Unmarshal(result, proxy); err != nil || (proxy.StatusCode == "" && len(proxy.Headers) == 0 && proxy.Body == "") {
+		// This is not a proxy integration function, as the response doesn't container headers, statusCode or body.
+		// Return HTTP 502 (Bad Gateway) to match API Gateway behaviour: http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-set-up-simple-proxy.html#api-gateway-simple-proxy-for-lambda-output-format
+		log.Printf(color.RedString("Function returned an invalid response (must include one of: body, headers or statusCode in the response object): %s\n"), err)
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte(`{ "message": "Internal server error" }`))
+		return
+	}
+
+	// Set any HTTP headers requested by the proxy function
+	if len(proxy.Headers) > 0 {
+		for key, value := range proxy.Headers {
+			w.Header().Set(key, value)
+		}
+	}
+
+	// This is a proxy function, so set the http status code and return the body
+	if statusCode, err := proxy.StatusCode.Int64(); err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+	} else {
+		w.WriteHeader(int(statusCode))
+	}
+
+	w.Write([]byte(proxy.Body))
+
+	return
 }
 
 // demuxDockerStream takes a Docker attach stream, and parses out stdout/stderr
@@ -560,26 +638,132 @@ func getDockerVersion() (string, error) {
 
 }
 
-func getWorkingDir(basedir string, codeuri string) (string, error) {
+func getWorkingDir(dir string) string {
 
-	// Determine which directory to mount into the runtime container.
-	// If no CodeUri is specified for this function, then use the same
-	// directory as the SAM template (basedir), otherwise mount the
-	// directory specified in the CodeUri property.
-	abs, err := filepath.Abs(basedir)
+	// If the template filepath isn't set, just use the cwd
+	if dir == "" || dir == "." {
+		cwd, err := os.Getwd()
+		if err != nil {
+			// A directory wasn't specified on the command line
+			// and we can't determin the current working directory.
+			log.Printf("Could not find working directory for template: %s\n", err)
+			return ""
+		}
+		dir = cwd
+	}
+
+	// Docker volumes require an absolute path.
+	// If the path exists, use the absolute version.
+	if _, err := os.Stat(dir); err == nil {
+		absolute, err := filepath.Abs(dir)
+		if err == nil {
+			dir = absolute
+		}
+	}
+
+	// Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
+	// Hence the use of filepath.ToSlash for return values.
+	return filepath.ToSlash(dir)
+
+}
+
+// decompressArchive unzips a ZIP archive to a temporary directory and returns
+// the temporary directory name, or an error
+func decompressArchive(src string) (string, error) {
+
+	// Create a temporary directory just for this decompression (dirname: OS tmp directory + unix timestamp))
+	tmpdir := os.TempDir()
+
+	// By default on macOS, os.TempDir() returns a directory in /var/folders/.
+	// This sits outside the default Docker Shared Files directories, however
+	// /var/folders is just a symlink to /private/var/folders/, so use that instead
+	if strings.HasPrefix(tmpdir, "/var/folders") {
+		tmpdir = "/private" + tmpdir
+	}
+
+	dest := filepath.Join(tmpdir, "aws-sam-local-"+strconv.FormatInt(time.Now().UnixNano(), 10))
+
+	var filenames []string
+
+	r, err := zip.OpenReader(src)
 	if err != nil {
-		return "", err
+		return dest, err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+
+		err := func() error {
+			rc, err := f.Open()
+			if err != nil {
+				return err
+			}
+			defer rc.Close()
+
+			// Store filename/path for returning and using later on
+			fpath := filepath.Join(dest, f.Name)
+			filenames = append(filenames, fpath)
+
+			if f.FileInfo().IsDir() {
+
+				// Make Folder
+				os.MkdirAll(fpath, os.ModePerm)
+
+			} else {
+
+				// Make File
+				var fdir string
+				if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
+					fdir = fpath[:lastIndex]
+				}
+
+				err = os.MkdirAll(fdir, os.ModePerm)
+				if err != nil {
+					return err
+				}
+				f, err := os.OpenFile(
+					fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+
+				_, err = io.Copy(f, rc)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}()
+
+		if err != nil {
+			log.Fatal(err)
+			return dest, err
+		}
 	}
 
-	dir := filepath.Join(abs, codeuri)
+	return dest, nil
 
-	// ...but only if it actually exists
-	if _, err := os.Stat(dir); err != nil {
-		// It doesn't, so just use the directory of the SAM template
-		// which might have been passed as a relative directory
-		dir = basedir
+}
+
+func convertWindowsPath(input string) string {
+
+	rg := regexp.MustCompile(`^([A-Za-z]+):`)
+	drive := rg.FindAllStringSubmatch(input, 1)
+	if drive != nil {
+
+		// The path starts with a drive letter.
+		// Docker toolbox mounts C:\ as /c/ so we need to extract, convert to lowercase
+		// and replace into the correct format
+		letter := drive[0][1]
+
+		input = rg.ReplaceAllString(input, "/"+strings.ToLower(letter))
+
 	}
 
-	return dir, nil
+	// Convert all OS seperators to '/'
+	input = filepath.ToSlash(input)
+	return input
 
 }

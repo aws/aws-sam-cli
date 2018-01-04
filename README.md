@@ -6,13 +6,15 @@
 
 # SAM Local (Beta)
 
+[![Build Status](https://travis-ci.org/awslabs/aws-sam-local.svg?branch=develop)](https://travis-ci.org/awslabs/aws-sam-local) ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg?maxAge=2592000) ![Contributers](https://img.shields.io/github/contributors/awslabs/aws-sam-local.svg?maxAge=2592000) ![GitHub-release](https://img.shields.io/github/release/awslabs/aws-sam-local.svg?maxAge=2592000) ![npm-release](https://img.shields.io/npm/v/aws-sam-local.svg?maxAge=2592000) [![Join the chat at https://gitter.im/awslabs/aws-sam-local](https://badges.gitter.im/awslabs/aws-sam-local.svg)](https://gitter.im/awslabs/aws-sam-local?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
  **`sam`** is the AWS CLI tool for managing Serverless applications written with [AWS Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model). SAM Local can be used to test functions locally, start a local API Gateway from a SAM template, validate a SAM template, and generate sample payloads for various event sources.
 
 - [SAM Local (Beta)](#sam-local-beta)
     - [Main features](#main-features)
     - [Installation](#installation)
         - [Prerequisites](#prerequisites)
-        - [Windows, Linux, OSX with NPM [Recommended]](#windows-linux-osx-with-npm-recommended)
+        - [Windows, Linux, macOS with NPM [Recommended]](#windows-linux-macos-with-npm-recommended)
         - [Binary release](#binary-release)
         - [Build From Source](#build-from-source)
     - [Usage](#usage)
@@ -25,13 +27,16 @@
         - [Package and Deploy to Lambda](#package-and-deploy-to-lambda)
     - [Getting started](#getting-started)
     - [Advanced](#advanced)
+        - [Compiled Languages (Java)](#compiled-languages-java)
         - [IAM Credentials](#iam-credentials)
         - [Lambda Environment Variables](#lambda-environment-variables)
             - [Environment Variable file](#environment-variable-file)
             - [Shell environment](#shell-environment)
             - [Combination of Shell and Environment Variable file](#combination-of-shell-and-environment-variable-file)
         - [Identifying local execution from Lambda function code](#identifying-local-execution-from-lambda-function-code)
+        - [Static Assets](#static-assets)
         - [Local Logging](#local-logging)
+        - [Remote Docker](#remote-docker)
     - [Project Status](#project-status)
     - [Contributing](#contributing)
     - [A special thank you](#a-special-thank-you)
@@ -50,15 +55,18 @@
 
 Running Serverless projects and functions locally with SAM Local requires Docker to be installed and running. SAM Local will use the `DOCKER_HOST` environment variable to contact the docker daemon.
 
- - OSX: [Docker for Mac](http://docs.docker.com/docker-for-mac/install/)
+ - macOS: [Docker for Mac](https://store.docker.com/editions/community/docker-ce-desktop-mac)
  - Windows: [Docker Toolbox](https://download.docker.com/win/stable/DockerToolbox.exe)
  - Linux: Check your distro’s package manager (e.g. yum install docker)
 
-Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required. 
+For macOS and Windows users: SAM local requires that the project directory (or any parent directory) is listed in Docker file sharing options.
 
-### Windows, Linux, OSX with NPM [Recommended]
+Verify that docker is working, and that you can run docker commands from the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any containers – SAM Local will do it automatically as required.
 
-The easiest way to install **`sam`** is to use [NPM](npmjs.com).
+
+### Windows, Linux, macOS with NPM [Recommended]
+
+The easiest way to install **`sam`** is to use [NPM](https://www.npmjs.com).
 
 ```bash
 npm install -g aws-sam-local
@@ -68,6 +76,8 @@ Verify the installation worked:
 ```bash
 sam --version
 ```
+
+If you get a permission error when using npm (such as `EACCES: permission denied`), please see the instructions on this page of the NPM documentation: [https://docs.npmjs.com/getting-started/fixing-npm-permissions](https://docs.npmjs.com/getting-started/fixing-npm-permissions).
 
 ### Binary release
 
@@ -238,7 +248,22 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
 
 #### Debugging Python functions
 
-Unlike Node.JS and Java, Python requires you to enable remote debugging in your Lambda function code. If you enable debugging with `--debug-port` or `-d` for a function that uses one of the Python runtimes, SAM Local will just map through that port from your host machine through to the Lambda runtime container. You will need to enable remote debugging in your function code. To do this, use a python package such as [remote-pdb](https://pypi.python.org/pypi/remote-pdb). When configuring the host the debugger listens on in your code, make sure to use `0.0.0.0` not `127.0.0.1` to allow Docker to map through the port to your host machine. 
+Unlike Node.JS and Java, Python requires you to enable remote debugging in your Lambda function code. If you enable debugging with `--debug-port` or `-d` for a function that uses one of the Python runtimes, SAM Local will just map through that port from your host machine through to the Lambda runtime container. You will need to enable remote debugging in your function code. To do this, use a python package such as [remote-pdb](https://pypi.python.org/pypi/remote-pdb). When configuring the host the debugger listens on in your code, make sure to use `0.0.0.0` not `127.0.0.1` to allow Docker to map through the port to your host machine.
+
+> Please note, due to a [open bug](https://github.com/Microsoft/vscode-python/issues/71) with Visual Studio Code, you may get a `Debug adapter process has terminated unexpectedly` error when attempting to debug Python applications with this IDE. Please track the [GitHub issue](https://github.com/Microsoft/vscode-python/issues/71) for updates.
+
+### Connecting to docker network
+Both `sam local invoke` and `sam local start-api` support connecting the create lambda docker containers to an existing docker network.
+
+To connect the containers to an existing docker network, you can use the `--docker-network` command-line argument or the `SAM_DOCKER_NETWORK` environment variable along with the name or id of the docker network you wish to connect to.
+
+```bash
+# Invoke a function locally and connect to a docker network
+$ sam local invoke --docker-network my-custom-network <function logical id>
+
+# Start local API Gateway and connect all containers to a docker network
+$ sam local start-api --docker-network b91847306671 -d 5858
+```
 
 ### Validate SAM templates
 
@@ -278,6 +303,40 @@ $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities
 * Check out [HOWTO Guide](HOWTO.md) section for more details
 
 ## Advanced
+
+### Compiled Languages (Java)
+
+To use SAM Local with compiled languages, such as Java that require a packaged artifact (e.g. a JAR, or ZIP), you can specify the location of the artifact with the `AWS::Serverless::Function` `CodeUri` property in your SAM template.
+
+For example:
+
+```
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  ExampleJavaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.example.HelloWorldHandler
+      CodeUri: ./target/HelloWorld-1.0.jar
+      Runtime: java8
+```
+
+You should then build your JAR file using your normal build process. Please note that JAR files used with AWS Lambda should be a shaded JAR file (or uber jar) containing all of the function dependencies.
+
+```
+// Build the JAR file
+$ mvn package shade:shade
+
+// Invoke with SAM Local
+$ echo '{ "some": "input" }' | sam local invoke
+
+// Or start local API Gateway simulator
+$ sam local start-api
+```
+
+You can find a full Java example in the [samples/java](samples/java) folder
 
 ### IAM Credentials
 
@@ -363,6 +422,9 @@ For greater control, you can use a combination shell variables and external envi
 ### Identifying local execution from Lambda function code
 When your Lambda function is invoked using SAM Local, it sets an environment variable `AWS_SAM_LOCAL=true` in the Docker container. Your Lambda function can use this property to enable or disable functionality that would not make sense in local development. For example: Disable emitting metrics to CloudWatch (or) Enable verbose logging etc.
 
+### Static Assets
+Often, it's useful to serve up static assets (e.g CSS/HTML/Javascript etc) when developing a Serverless application. On AWS, this would normally be done with CloudFront/S3. SAM Local by default looks for a `./public/` directory in your SAM project directory and will serve up all files from it at the root of the HTTP server when using `sam local start-api`. You can override the default static asset directory by using the `-s` or `--static-dir` command line flag. You can also disable this behaviour completely by setting `--static-dir ""`. 
+
 ### Local Logging
 Both `invoke` and `start-api` command allow you to pipe logs from the function's invocation into a file. This will be useful if you are running automated tests against SAM Local and want to capture logs for analysis. 
 
@@ -370,6 +432,22 @@ Example:
 ```bash
 $ sam local invoke --log-file ./output.log
 ```
+
+
+### Remote Docker
+Sam Local loads function code by mounting filesystem to a Docker Volume. As a result, The project directory must be pre-mounted on the remote host where the Docker is running.
+
+If mounted, you can use the remote docker normally using `--docker-volume-basedir` or environment variable `SAM_DOCKER_VOLUME_BASEDIR`.
+
+Example - Docker Toolbox (Windows):
+
+When you install and run Docker Toolbox, the Linux VM with Docker is automatically installed in the virtual box.
+
+The /c/ path for this Linux VM is automatically shared with C:\ on the host machine.
+```powershell
+sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Ratings"
+```
+
 
 ## Project Status
   

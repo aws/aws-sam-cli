@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/fatih/color"
 )
 
 const LOCAL_BUILD_VERSION = "snapshot"
+
 // `version` property will be replaced by the build upon release
 var version = LOCAL_BUILD_VERSION
 
@@ -62,8 +65,18 @@ func main() {
 							EnvVar: "SAM_TEMPLATE_FILE",
 						},
 						cli.StringFlag{
+							Name:   "parameter-values",
+							Usage:  "Optional. A string that contains CloudFormation parameter overrides encoded as key-value pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'. In case of parsing errors all values are ignored",
+							EnvVar: "SAM_TEMPLATE_PARAM_ARG",
+						},
+						cli.StringFlag{
 							Name:  "log-file, l",
 							Usage: "Optional logfile to send runtime logs to",
+						},
+						cli.StringFlag{
+							Name:  "static-dir, s",
+							Usage: "Any static assets (e.g. CSS/Javascript/HTML) files located in this directory will be presented at /",
+							Value: "public",
 						},
 						cli.StringFlag{
 							Name:  "port, p",
@@ -80,9 +93,36 @@ func main() {
 							Usage: "Optional. JSON file containing values for Lambda function's environment variables. ",
 						},
 						cli.StringFlag{
-							Name: "debug-port, d",
-							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
+							Name:   "debug-port, d",
+							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
+						},
+						cli.StringFlag{
+							Name: "docker-volume-basedir, v",
+							Usage: "Optional. Specifies the location basedir where the SAM file exists. If the Docker is running on a remote machine, " +
+								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
+							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
+						},
+						cli.StringFlag{
+							Name: "docker-network",
+							Usage: "Optional. Specifies the name or id of an existing docker network to lambda docker " +
+								"containers should connect to, along with the default bridge network. If not specified, " +
+								"the lambdadocker containers will only connect to the default bridge docker network.",
+							EnvVar: "SAM_DOCKER_NETWORK",
+						},
+						cli.BoolFlag{
+							Name:   "skip-pull-image",
+							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
+							EnvVar: "SAM_SKIP_PULL_IMAGE",
+						},
+						cli.StringFlag{
+							Name:  "profile",
+							Usage: "Optional. Specify which AWS credentials profile to use.",
+						},
+						cli.BoolFlag{
+							Name:   "prefix-routing",
+							Usage:  "Optional. Specify whether SAM routing is based on prefix or exact matching (e.g. given a function mounted at '/' with prefix routing calls to '/beers' will be routed the function).",
+							EnvVar: "SAM_PREFIX_ROUTING",
 						},
 					},
 				},
@@ -101,6 +141,11 @@ func main() {
 							EnvVar: "SAM_TEMPLATE_FILE",
 						},
 						cli.StringFlag{
+							Name:   "parameter-values",
+							Usage:  "Optional. A string that contains CloudFormation parameter overrides encoded as key-value pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'. In case of parsing errors all values are ignored",
+							EnvVar: "SAM_TEMPLATE_PARAM_ARG",
+						},
+						cli.StringFlag{
 							Name:  "log-file, l",
 							Usage: "Optional. Logfile to send runtime logs to",
 						},
@@ -113,9 +158,31 @@ func main() {
 							Usage: "JSON file containing event data passed to the Lambda function during invoke",
 						},
 						cli.StringFlag{
-							Name: "debug-port, d",
-							Usage: "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
+							Name:   "debug-port, d",
+							Usage:  "Optional. When specified, Lambda function container will start in debug mode and will expose this port on localhost.",
 							EnvVar: "SAM_DEBUG_PORT",
+						},
+						cli.StringFlag{
+							Name: "docker-volume-basedir, v",
+							Usage: "Optional. Specifies the location basedir where the SAM file exists. If the Docker is running on a remote machine, " +
+								"you must mount the path where the SAM file exists on the docker machine and modify this value to match the remote machine.",
+							EnvVar: "SAM_DOCKER_VOLUME_BASEDIR",
+						},
+						cli.StringFlag{
+							Name: "docker-network",
+							Usage: "Optional. Specifies the name or id of an existing docker network to lambda docker " +
+								"containers should connect to, along with the default bridge network. If not specified, " +
+								"the lambdadocker containers will only connect to the default bridge docker network.",
+							EnvVar: "SAM_DOCKER_NETWORK",
+						},
+						cli.BoolFlag{
+							Name:   "skip-pull-image",
+							Usage:  "Optional. Specify whether SAM should skip pulling down the latest Docker image. Default is false.",
+							EnvVar: "SAM_SKIP_PULL_IMAGE",
+						},
+						cli.StringFlag{
+							Name:  "profile",
+							Usage: "Optional. Specify which AWS credentials profile to use.",
 						},
 					},
 				},
@@ -307,6 +374,24 @@ func main() {
 
 	app.Run(os.Args)
 
+}
+
+// regexp that parses Cloudformation paramter key-value pair: https://regex101.com/r/hruxlg/3
+var paramRe = regexp.MustCompile(`(?:ParameterKey)=("(?:\\.|[^"\\]+)*"|(?:\\.|[^, "\\]+)*),(?:ParameterValue)=("(?:\\.|[^"\\]+)*"|(?:\\.|[^ ,"\\]+)*)`)
+
+// parseParameters parses the Cloudformation parameters like string and converts
+// it into a map of key-value pairs.
+func parseParameters(arg string) (overrides map[string]interface{}) {
+	overrides = make(map[string]interface{})
+
+	unquote := func(orig string) string {
+		return strings.Replace(strings.TrimSuffix(strings.TrimPrefix(orig, `"`), `"`), `\ `, ` `, -1)
+	}
+
+	for _, match := range paramRe.FindAllStringSubmatch(arg, -1) {
+		overrides[unquote(match[1])] = unquote(match[2])
+	}
+	return
 }
 
 // getTemplateFilename allows SAM Local to default to either template.yaml

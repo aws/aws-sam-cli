@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/awslabs/goformation"
-	"github.com/awslabs/goformation/resources"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 )
 
 var _ = Describe("sam", func() {
@@ -27,7 +27,7 @@ var _ = Describe("sam", func() {
 
 			for _, filename := range inputs {
 				Context("including "+filename, func() {
-					template, _, err := goformation.Open(filename)
+					template, err := goformation.Open(filename)
 					It("should successfully validate the SAM template", func() {
 						Expect(err).To(BeNil())
 						Expect(template).ShouldNot(BeNil())
@@ -47,7 +47,7 @@ var _ = Describe("sam", func() {
 
 			for _, filename := range inputs {
 				Context("including "+filename, func() {
-					template, _, err := goformation.Open(filename)
+					template, err := goformation.Open(filename)
 					It("should successfully validate the SAM template", func() {
 						Expect(err).To(BeNil())
 						Expect(template).ShouldNot(BeNil())
@@ -58,13 +58,13 @@ var _ = Describe("sam", func() {
 
 		Context("with a Serverless template containing different CodeUri formats", func() {
 
-			template, _, err := goformation.Open("test/templates/aws-common-string-or-s3-location.yaml")
+			template, err := goformation.Open("test/templates/aws-common-string-or-s3-location.yaml")
 			It("should successfully parse the template", func() {
 				Expect(err).To(BeNil())
 				Expect(template).ShouldNot(BeNil())
 			})
 
-			functions := template.GetResourcesByType("AWS::Serverless::Function")
+			functions := template.GetAllAWSServerlessFunctionResources()
 
 			It("should have exactly three functions", func() {
 				Expect(functions).To(HaveLen(3))
@@ -73,32 +73,34 @@ var _ = Describe("sam", func() {
 				Expect(functions).To(HaveKey("CodeUriWithString"))
 			})
 
-			f1 := functions["CodeUriWithS3LocationSpecifiedAsString"].(resources.AWSServerlessFunction)
+			f1 := functions["CodeUriWithS3LocationSpecifiedAsString"]
 			It("should parse a CodeUri property with an S3 location specified as a string", func() {
-				Expect(f1.CodeURI().String()).To(Equal("s3://testbucket/testkey.zip"))
+				Expect(f1.CodeUri.String).To(PointTo(Equal("s3://testbucket/testkey.zip")))
 			})
 
-			f2 := functions["CodeUriWithS3LocationSpecifiedAsObject"].(resources.AWSServerlessFunction)
+			f2 := functions["CodeUriWithS3LocationSpecifiedAsObject"]
 			It("should parse a CodeUri property with an S3 location specified as an object", func() {
-				Expect(f2.CodeURI().String()).To(Equal("s3://testbucket/testkey.zip#5"))
+				Expect(f2.CodeUri.S3Location.Bucket).To(Equal("testbucket"))
+				Expect(f2.CodeUri.S3Location.Key).To(Equal("testkey.zip"))
+				Expect(f2.CodeUri.S3Location.Version).To(Equal(5))
 			})
 
-			f3 := functions["CodeUriWithString"].(resources.AWSServerlessFunction)
+			f3 := functions["CodeUriWithString"]
 			It("should parse a CodeUri property with a string", func() {
-				Expect(f3.CodeURI().String()).To(Equal("./testfolder"))
+				Expect(f3.CodeUri.String).To(PointTo(Equal("./testfolder")))
 			})
 
 		})
 
 		Context("with a Serverless template containing function environment variables", func() {
 
-			template, _, err := goformation.Open("test/templates/function-environment-variables.yaml")
+			template, err := goformation.Open("test/templates/function-environment-variables.yaml")
 			It("should successfully parse the template", func() {
 				Expect(err).To(BeNil())
 				Expect(template).ShouldNot(BeNil())
 			})
 
-			functions := template.GetResourcesByType("AWS::Serverless::Function")
+			functions := template.GetAllAWSServerlessFunctionResources()
 
 			It("should have exactly one function", func() {
 				Expect(functions).To(HaveLen(5))
@@ -109,43 +111,53 @@ var _ = Describe("sam", func() {
 				Expect(functions).To(HaveKey("NonExistSubEnvironmentVariableTestFunction"))
 			})
 
-			f1 := functions["EnvironmentVariableTestFunction"].(resources.AWSServerlessFunction)
+			f1 := functions["EnvironmentVariableTestFunction"]
 			Context("with a simple string based variable", func() {
 				It("should have an environment variable named STRING_ENV_VAR", func() {
-					Expect(f1.EnvironmentVariables()).To(HaveLen(1))
-					Expect(f1.EnvironmentVariables()).To(HaveKeyWithValue("STRING_ENV_VAR", "test123"))
+					Expect(f1.Environment).ToNot(BeNil())
+					Expect(f1.Environment.Variables).ToNot(BeNil())
+					Expect(f1.Environment.Variables).To(HaveLen(1))
+					Expect(f1.Environment.Variables).To(HaveKeyWithValue("STRING_ENV_VAR", "test123"))
 				})
 			})
 
-			f2 := functions["NoValueEnvironmentVariableTestFunction"].(resources.AWSServerlessFunction)
+			f2 := functions["NoValueEnvironmentVariableTestFunction"]
 			Context("with an empty variable value", func() {
 				It("should have an environment variable named EMPTY_ENV_VAR", func() {
-					Expect(f2.EnvironmentVariables()).To(HaveLen(1))
-					Expect(f2.EnvironmentVariables()).To(HaveKeyWithValue("EMPTY_ENV_VAR", ""))
+					Expect(f2.Environment).ToNot(BeNil())
+					Expect(f2.Environment.Variables).ToNot(BeNil())
+					Expect(f2.Environment.Variables).To(HaveLen(1))
+					Expect(f2.Environment.Variables).To(HaveKeyWithValue("EMPTY_ENV_VAR", ""))
 				})
 			})
 
-			f3 := functions["IntrinsicEnvironmentVariableTestFunction"].(resources.AWSServerlessFunction)
+			f3 := functions["IntrinsicEnvironmentVariableTestFunction"]
 			Context("with a !Ref lookup variable", func() {
 				It("should have an environment variable named REF_ENV_VAR", func() {
-					Expect(f3.EnvironmentVariables()).To(HaveLen(1))
-					Expect(f3.EnvironmentVariables()).To(HaveKeyWithValue("REF_ENV_VAR", ""))
+					Expect(f3.Environment).ToNot(BeNil())
+					Expect(f3.Environment.Variables).ToNot(BeNil())
+					Expect(f3.Environment.Variables).To(HaveLen(1))
+					Expect(f3.Environment.Variables).To(HaveKeyWithValue("REF_ENV_VAR", "SomeValue"))
 				})
 			})
 
-			f4 := functions["SubEnvironmentVariableTestFunction"].(resources.AWSServerlessFunction)
+			f4 := functions["SubEnvironmentVariableTestFunction"]
 			Context("with a !Sub variable value", func() {
 				It("should have an environment variable named SUB_ENV_VAR", func() {
-					Expect(f4.EnvironmentVariables()).To(HaveLen(1))
-					Expect(f4.EnvironmentVariables()).To(HaveKeyWithValue("SUB_ENV_VAR", "Hello"))
+					Expect(f4.Environment).ToNot(BeNil())
+					Expect(f4.Environment.Variables).ToNot(BeNil())
+					Expect(f4.Environment.Variables).To(HaveLen(1))
+					Expect(f4.Environment.Variables).To(HaveKeyWithValue("SUB_ENV_VAR", "Hello"))
 				})
 			})
 
-			f5 := functions["NonExistSubEnvironmentVariableTestFunction"].(resources.AWSServerlessFunction)
+			f5 := functions["NonExistSubEnvironmentVariableTestFunction"]
 			Context("with a !Sub variable value that contains a non-existant reference", func() {
 				It("should have an environment variable named SUB_REF_ENV_VAR", func() {
-					Expect(f5.EnvironmentVariables()).To(HaveLen(1))
-					Expect(f5.EnvironmentVariables()).To(HaveKeyWithValue("SUB_REF_ENV_VAR", "Hello-"))
+					Expect(f5.Environment).ToNot(BeNil())
+					Expect(f5.Environment.Variables).ToNot(BeNil())
+					Expect(f5.Environment.Variables).To(HaveLen(1))
+					Expect(f5.Environment.Variables).To(HaveKeyWithValue("SUB_REF_ENV_VAR", "Hello-"))
 				})
 			})
 
@@ -153,50 +165,50 @@ var _ = Describe("sam", func() {
 
 		Context("with a Serverless function matching 2016-10-31 specification", func() {
 
-			template, _, err := goformation.Open("test/templates/function-2016-10-31.yaml")
+			template, err := goformation.Open("test/templates/function-2016-10-31.yaml")
 			It("should successfully validate the SAM template", func() {
 				Expect(err).To(BeNil())
 				Expect(template).ShouldNot(BeNil())
 			})
 
-			functions := template.GetResourcesByType("AWS::Serverless::Function")
+			functions := template.GetAllAWSServerlessFunctionResources()
 
 			It("should have exactly one function", func() {
 				Expect(functions).To(HaveLen(1))
 				Expect(functions).To(HaveKey("Function20161031"))
 			})
 
-			f := functions["Function20161031"].(resources.AWSServerlessFunction)
+			f := functions["Function20161031"]
 
 			It("should correctly parse all of the function properties", func() {
 
-				Expect(f.Handler()).To(Equal("file.method"))
-				Expect(f.Runtime()).To(Equal("nodejs"))
-				Expect(f.FunctionName()).To(Equal("functionname"))
-				Expect(f.Description()).To(Equal("description"))
-				Expect(f.MemorySize()).To(Equal(128))
-				Expect(f.Timeout()).To(Equal(30))
-				Expect(f.Role()).To(Equal("aws::arn::123456789012::some/role"))
-				Expect(f.Policies()).To(ContainElement("AmazonDynamoDBFullAccess"))
-				Expect(f.EnvironmentVariables()).To(HaveKeyWithValue("NAME", "VALUE"))
+				Expect(f.Handler).To(Equal("file.method"))
+				Expect(f.Runtime).To(Equal("nodejs"))
+				Expect(f.FunctionName).To(Equal("functionname"))
+				Expect(f.Description).To(Equal("description"))
+				Expect(f.MemorySize).To(Equal(128))
+				Expect(f.Timeout).To(Equal(30))
+				Expect(f.Role).To(Equal("aws::arn::123456789012::some/role"))
+				Expect(f.Policies.StringArray).To(PointTo(ContainElement("AmazonDynamoDBFullAccess")))
+				Expect(f.Environment).ToNot(BeNil())
+				Expect(f.Environment.Variables).To(HaveKeyWithValue("NAME", "VALUE"))
 
 			})
 
 			It("should correctly parse all of the function API event sources/endpoints", func() {
 
-				endpoints, err := f.Endpoints()
-				Expect(err).To(BeNil())
+				Expect(f.Events).ToNot(BeNil())
+				Expect(f.Events).To(HaveKey("TestApi"))
+				Expect(f.Events["TestApi"].Type).To(Equal("Api"))
+				Expect(f.Events["TestApi"].Properties.ApiEvent).ToNot(BeNil())
 
-				Expect(endpoints).To(HaveLen(1))
-
-				firstEndpoint := endpoints[0]
-				Expect(firstEndpoint.Methods()).To(Equal([]string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "TRACE", "CONNECT"}))
-				Expect(firstEndpoint.Path()).To(Equal("/testing"))
+				event := f.Events["TestApi"].Properties.ApiEvent
+				Expect(event.Method).To(Equal("any"))
+				Expect(event.Path).To(Equal("/testing"))
 
 			})
 
 		})
-
 
 		Context("with non-resource sections in CloudFormation template", func() {
 
@@ -206,7 +218,7 @@ var _ = Describe("sam", func() {
 
 			for _, filename := range inputs {
 				Context("including "+filename, func() {
-					template, _, err := goformation.Open(filename)
+					template, err := goformation.Open(filename)
 					It("should successfully validate the SAM template", func() {
 						Expect(err).To(BeNil())
 						Expect(template).ShouldNot(BeNil())
