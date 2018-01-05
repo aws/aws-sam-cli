@@ -57,7 +57,7 @@ var _ = Describe("Event", func() {
 					r.Router().ServeHTTP(rec, req)
 				})
 			})
-			
+
 			Context("and path parameters on the request", func() {
 				req, _ := http.NewRequest("GET", "/get/1", new(bytes.Buffer))
 

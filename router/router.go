@@ -115,7 +115,7 @@ func (r *ServerlessRouter) Router() http.Handler {
 
 	// Mount all of the things!
 	for _, mount := range r.Mounts() {
-		r.mux.Handle(mount.GetMuxPath(), mount.Handler).Methods(mount.Methods()...)
+		r.mux.Handle(mount.GetMuxPath(), mount.WrappedHandler()).Methods(mount.Methods()...)
 	}
 
 	return r.mux

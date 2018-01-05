@@ -1,6 +1,8 @@
 package router
 
 import (
+	"encoding/base64"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -11,16 +13,41 @@ var HttpMethods = []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "P
 // ServerlessRouterMount represents a single mount point on the API
 // Such as '/path', the HTTP method, and the function to resolve it
 type ServerlessRouterMount struct {
-	Name     		string
-	Function 		*AWSServerlessFunction
-	Handler  		http.HandlerFunc
-	Path     		string
-	Method   		string
+	Name             string
+	Function         *AWSServerlessFunction
+	Handler          http.HandlerFunc
+	Path             string
+	Method           string
+	BinaryMediaTypes []string
 
 	// authorization settings
 	AuthType       string
 	AuthFunction   *AWSServerlessFunction
 	IntegrationArn *LambdaFunctionArn
+}
+
+// Returns the wrapped handler to encode the body as base64 when binary
+// media types contains Content-Type
+func (m *ServerlessRouterMount) WrappedHandler() http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		contentType := req.Header.Get("Content-Type")
+		binaryContent := false
+
+		for _, value := range m.BinaryMediaTypes {
+			if value == contentType {
+				binaryContent = true
+				break
+			}
+		}
+
+		if binaryContent {
+			if body, err := ioutil.ReadAll(req.Body); err == nil {
+				req.Body = ioutil.NopCloser(strings.NewReader(base64.StdEncoding.EncodeToString(body)))
+			}
+		}
+
+		m.Handler(w, req)
+	})
 }
 
 // Methods gets an array of HTTP methods from a AWS::Serverless::Function

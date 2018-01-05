@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,7 +77,7 @@ var _ = Describe("sam", func() {
 			}{
 				{
 					name:    "only proxy response",
-					output:  strings.NewReader(`{"statusCode":202,"headers":{"foo":"bar"},"body":"{\"nextToken\":null,\"beers\":[]}","base64Encoded":false}`),
+					output:  strings.NewReader(`{"statusCode":202,"headers":{"foo":"bar"},"body":"{\"nextToken\":null,\"beers\":[]}","isBase64Encoded":false}`),
 					body:    []byte(`{"nextToken":null,"beers":[]}`),
 					status:  202,
 					headers: http.Header(map[string][]string{"foo": []string{"bar"}}),
@@ -85,7 +86,7 @@ var _ = Describe("sam", func() {
 					name: "proxy response with extra output",
 					output: strings.NewReader(`Foo
 					Bar
-					{"statusCode":200,"headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","base64Encoded":false}`),
+					{"statusCode":200,"headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","isBase64Encoded":false}`),
 					body:    []byte(`{"nextToken":null,"beers":[]}`),
 					status:  200,
 					headers: make(http.Header),
@@ -101,7 +102,7 @@ var _ = Describe("sam", func() {
 				},
 				{
 					name:    "bad status code",
-					output:  strings.NewReader(`{"statusCode":"xxx","headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","base64Encoded":false}`),
+					output:  strings.NewReader(`{"statusCode":"xxx","headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","isBase64Encoded":false}`),
 					body:    []byte(`{"nextToken":null,"beers":[]}`),
 					status:  502,
 					headers: make(http.Header),
@@ -109,6 +110,20 @@ var _ = Describe("sam", func() {
 				{
 					name:    "io error",
 					output:  &errReader{},
+					body:    []byte(`{ "message": "Internal server error" }`),
+					status:  500,
+					headers: make(http.Header),
+				},
+				{
+					name:    "base64 encoded response",
+					output:  strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":null,"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
+					body:    []byte("abc"),
+					status:  200,
+					headers: make(http.Header),
+				},
+				{
+					name:    "invalid base64 encoded response",
+					output:  strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":null,"body": "a","isBase64Encoded":true}`)),
 					body:    []byte(`{ "message": "Internal server error" }`),
 					status:  500,
 					headers: make(http.Header),

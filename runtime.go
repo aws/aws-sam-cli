@@ -18,6 +18,7 @@ import (
 
 	"strings"
 
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -555,9 +556,10 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 	// of a Lambda proxy response (inc statusCode / body), and if so, handle it
 	// otherwise just copy the whole output back to the http.ResponseWriter
 	proxy := &struct {
-		StatusCode json.Number       `json:"statusCode"`
-		Headers    map[string]string `json:"headers"`
-		Body       json.Number       `json:"body"`
+		StatusCode      json.Number       `json:"statusCode"`
+		Headers         map[string]string `json:"headers"`
+		Body            json.Number       `json:"body"`
+		IsBase64Encoded bool              `json:"isBase64Encoded"`
 	}{}
 
 	// We only want the last line of stdout, because it's possible that
@@ -592,7 +594,18 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 		w.WriteHeader(int(statusCode))
 	}
 
-	w.Write([]byte(proxy.Body))
+	// Decode base64 encoded body if isBase64Encoded is true
+	if proxy.IsBase64Encoded {
+		if decodedBytes, err := base64.StdEncoding.DecodeString(string(proxy.Body)); err != nil {
+			log.Printf(color.RedString("Function returned an invalid base64 body: %s\n"), err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+		} else {
+			w.Write(decodedBytes)
+		}
+	} else {
+		w.Write([]byte(proxy.Body))
+	}
 
 	return
 }
