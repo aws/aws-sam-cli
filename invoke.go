@@ -90,6 +90,9 @@ func invoke(c *cli.Context) {
 		cwd = c.String("docker-volume-basedir")
 	}
 
+	// Make the function's timeout match the actual runtime timeout.
+	function.Timeout = c.Int("timeout")
+
 	runt, err := NewRuntime(NewRuntimeOpt{
 		Cwd:             cwd,
 		LogicalID:       name,
@@ -99,6 +102,7 @@ func invoke(c *cli.Context) {
 		DebugPort:       c.String("debug-port"),
 		SkipPullImage:   c.Bool("skip-pull-image"),
 		DockerNetwork:   c.String("docker-network"),
+		TimeoutDuration: c.Int("timeout"),
 	})
 
 	if err != nil {

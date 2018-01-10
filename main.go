@@ -124,6 +124,11 @@ func main() {
 							Usage:  "Optional. Specify whether SAM routing is based on prefix or exact matching (e.g. given a function mounted at '/' with prefix routing calls to '/beers' will be routed the function).",
 							EnvVar: "SAM_PREFIX_ROUTING",
 						},
+						cli.IntFlag{
+							Name:  "timeout",
+							Usage: "Optional. Specifies the duration of the Invoker timeout in seconds (default: 3)",
+							Value: 3,
+						},
 					},
 				},
 				cli.Command{
@@ -183,6 +188,11 @@ func main() {
 						cli.StringFlag{
 							Name:  "profile",
 							Usage: "Optional. Specify which AWS credentials profile to use.",
+						},
+						cli.IntFlag{
+							Name:  "timeout",
+							Usage: "Optional. Specifies the duration of the Invoker timeout in seconds (default: 3)",
+							Value: 3,
 						},
 					},
 				},

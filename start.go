@@ -83,6 +83,9 @@ func start(c *cli.Context) {
 			cwd = c.String("docker-volume-basedir")
 		}
 
+		// Make the function's timeout match the actual runtime timeout.
+		function.Timeout = c.Int("timeout")
+
 		// Initiate a new Lambda runtime
 		runt, err := NewRuntime(NewRuntimeOpt{
 			Cwd:             cwd,
@@ -93,6 +96,7 @@ func start(c *cli.Context) {
 			DebugPort:       c.String("debug-port"),
 			SkipPullImage:   c.Bool("skip-pull-image"),
 			DockerNetwork:   c.String("docker-network"),
+			TimeoutDuration: c.Int("timeout"),
 		})
 
 		// Check there wasn't a problem initiating the Lambda runtime
