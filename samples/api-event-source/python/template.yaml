@@ -11,7 +11,7 @@ Resources:
       Runtime: python3.6
       Handler: api.get
       Events:
-        ListCustomers:
+        GetItems:
           Type: Api
           Properties:
             Path: /
@@ -22,7 +22,7 @@ Resources:
       Runtime: python3.6
       Handler: api.put
       Events:
-        ListCustomers:
+        PutItems:
           Type: Api
           Properties:
             Path: /
