@@ -81,6 +81,7 @@ var runtimeName = struct {
 	python27  string
 	python36  string
 	java8     string
+	go1x      string
 }{
 	nodejs:    "nodejs",
 	nodejs43:  "nodejs4.3",
@@ -88,6 +89,7 @@ var runtimeName = struct {
 	python27:  "python2.7",
 	python36:  "python3.6",
 	java8:     "java8",
+	go1x:      "go1.x",
 }
 
 var runtimeImageFor = map[string]string{
@@ -97,6 +99,7 @@ var runtimeImageFor = map[string]string{
 	runtimeName.python27:  "lambci/lambda:python2.7",
 	runtimeName.python36:  "lambci/lambda:python3.6",
 	runtimeName.java8:     "lambci/lambda:java8",
+	runtimeName.go1x:      "lambci/lambda:go1.x",
 }
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
