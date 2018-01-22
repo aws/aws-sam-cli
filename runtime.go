@@ -60,6 +60,7 @@ type Runtime struct {
 	DebugPort       string
 	Context         context.Context
 	Client          *client.Client
+	TimeoutDuration int
 	TimeoutTimer    *time.Timer
 	Logger          io.Writer
 	DockerNetwork   string
@@ -112,6 +113,7 @@ type NewRuntimeOpt struct {
 	Logger          io.Writer
 	SkipPullImage   bool
 	DockerNetwork   string
+	TimeoutDuration int
 }
 
 // NewRuntime instantiates a Lambda runtime container
@@ -137,6 +139,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		DebugPort:       opt.DebugPort,
 		Context:         context.Background(),
 		Client:          cli,
+		TimeoutDuration: opt.TimeoutDuration,
 		Logger:          opt.Logger,
 		DockerNetwork:   opt.DockerNetwork,
 	}
@@ -364,7 +367,7 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 
 func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser) {
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-	timeout := time.Duration(3) * time.Second
+	timeout := time.Duration(r.TimeoutDuration) * time.Second
 	if r.Function.Timeout > 0 {
 		timeout = time.Duration(r.Function.Timeout) * time.Second
 	}
