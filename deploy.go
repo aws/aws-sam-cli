@@ -10,9 +10,7 @@ import (
 func deploy() {
 
 	args := []string{"cloudformation", "deploy"}
-	for _, arg := range os.Args[2:] {
-		args = append(args, arg)
-	}
+	args = append(args, os.Args[2:]...)
 
 	cmd := exec.Command("aws", args...)
 

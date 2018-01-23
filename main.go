@@ -358,16 +358,18 @@ func main() {
 		},
 	}
 
+	argLen := len(os.Args)
+
 	// For 'package' and 'deploy' CLI options, we want to intercept
 	// and just pass all arguments through to the AWS CLI commands.
-	if len(os.Args) > 1 && os.Args[1] == "package" {
+	if argLen > 1 && os.Args[1] == "package" {
 		pkg()
 		return
 	}
 
 	// For 'package' and 'deploy' CLI options, we want to intercept
 	// and just pass all arguments through to the AWS CLI commands.
-	if len(os.Args) > 1 && os.Args[1] == "deploy" {
+	if argLen > 1 && os.Args[1] == "deploy" {
 		deploy()
 		return
 	}

@@ -66,10 +66,6 @@ type Runtime struct {
 }
 
 var (
-	// ErrRuntimeNotDownloaded is thrown when NewRuntime() is called, but the requested
-	// runtime has not been downloaded
-	ErrRuntimeNotDownloaded = errors.New("requested runtime has not been downloaded")
-
 	// ErrRuntimeNotSupported is thrown with the requested runtime is not yet supported
 	ErrRuntimeNotSupported = errors.New("unsupported runtime")
 )
@@ -286,9 +282,6 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 				// Just append it to the working directory
 				r.Cwd = codeuri
 			}
-		} else {
-			// The CodeUri specified doesn't exist locally. It could be
-			// an S3 location (s3://.....), so just ignore it.
 		}
 	}
 
@@ -334,7 +327,7 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 	}
 
 	// Attach to the container to read the stdout/stderr stream
-	attach, err := r.Client.ContainerAttach(r.Context, resp.ID, types.ContainerAttachOptions{
+	attach, _ := r.Client.ContainerAttach(r.Context, resp.ID, types.ContainerAttachOptions{
 		Stream: true,
 		Stdin:  false,
 		Stdout: true,
@@ -362,7 +355,7 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 
 }
 
-func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser) {
+func (r *Runtime) setupTimeoutTimer(stdout, stderr io.Closer) {
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
 	timeout := time.Duration(3) * time.Second
 	if r.Function.Timeout > 0 {

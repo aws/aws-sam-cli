@@ -1,14 +1,14 @@
 package router
 
 import (
-	"regexp"
 	"fmt"
+	"regexp"
 )
 
 type ApiGatewayIntegration struct {
-	Uri string `json:"uri"`
+	Uri                 string `json:"uri"`
 	PassthroughBehavior string `json:"passthroughBehavior"`
-	Type string `json:"type"`
+	Type                string `json:"type"`
 }
 
 func (i *ApiGatewayIntegration) GetFunctionArn() (*LambdaFunctionArn, error) {
@@ -19,7 +19,7 @@ func (i *ApiGatewayIntegration) GetFunctionArn() (*LambdaFunctionArn, error) {
 		return nil, err
 	}
 
-	return &LambdaFunctionArn{ Arn: firstMatch }, nil
+	return &LambdaFunctionArn{Arn: firstMatch}, nil
 }
 
 type LambdaFunctionArn struct {
