@@ -62,7 +62,7 @@ var _ = Describe("ServerlessRouterMount", func() {
 
 	Context("Catch-all resource path", func() {
 		m := ServerlessRouterMount{
-			Path: "/{proxy+}",
+			Path:   "/{proxy+}",
 			Method: "any",
 		}
 

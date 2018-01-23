@@ -76,33 +76,33 @@ var _ = Describe("Function", func() {
 
 		It("should have the correct values for an event with GET http method", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":      Equal("GetRequests"),
-				"Path":      Equal("/get"),
-				"Method":    Equal("get"),
+				"Name":   Equal("GetRequests"),
+				"Path":   Equal("/get"),
+				"Method": Equal("get"),
 			}))))
 		})
 
 		It("should have the correct values for an event with POST http method", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":      Equal("PostRequests"),
-				"Path":      Equal("/post"),
-				"Method":    Equal("post"),
+				"Name":   Equal("PostRequests"),
+				"Path":   Equal("/post"),
+				"Method": Equal("post"),
 			}))))
 		})
 
 		It("should have the correct values for an event with ANY http method", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":      Equal("AnyRequests"),
-				"Path":      Equal("/any"),
-				"Method":    Equal("any"),
+				"Name":   Equal("AnyRequests"),
+				"Path":   Equal("/any"),
+				"Method": Equal("any"),
 			}))))
 		})
 
 		It("should have the correct values for an event with catchAll path", func() {
 			Expect(mounts).To(ContainElement(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Name":      Equal("ProxyResource"),
-				"Path":      Equal("/proxy/{proxy+}"),
-				"Method":    Equal("any"),
+				"Name":   Equal("ProxyResource"),
+				"Path":   Equal("/proxy/{proxy+}"),
+				"Method": Equal("any"),
 			}))))
 		})
 

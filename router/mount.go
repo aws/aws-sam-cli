@@ -6,16 +6,17 @@ import (
 )
 
 const MuxPathRegex = ".+"
+
 var HttpMethods = []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"}
 
 // ServerlessRouterMount represents a single mount point on the API
 // Such as '/path', the HTTP method, and the function to resolve it
 type ServerlessRouterMount struct {
-	Name     		string
-	Function 		*AWSServerlessFunction
-	Handler  		http.HandlerFunc
-	Path     		string
-	Method   		string
+	Name     string
+	Function *AWSServerlessFunction
+	Handler  http.HandlerFunc
+	Path     string
+	Method   string
 
 	// authorization settings
 	AuthType       string
@@ -40,7 +41,7 @@ func (m *ServerlessRouterMount) GetMuxPath() string {
 	outputPath := m.Path
 
 	if strings.Contains(outputPath, "+") {
-		outputPath = strings.Replace(outputPath, "+", ":" + MuxPathRegex, -1)
+		outputPath = strings.Replace(outputPath, "+", ":"+MuxPathRegex, -1)
 	}
 
 	return outputPath

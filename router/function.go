@@ -24,11 +24,11 @@ func (f *AWSServerlessFunction) Mounts() ([]*ServerlessRouterMount, error) {
 		if event.Type == "Api" {
 			if event.Properties != nil && event.Properties.ApiEvent != nil {
 				mounts = append(mounts, &ServerlessRouterMount{
-					Name:      name,
-					Path:      event.Properties.ApiEvent.Path,
-					Method:    event.Properties.ApiEvent.Method,
-					Handler:   f.handler,
-					Function:  f,
+					Name:     name,
+					Path:     event.Properties.ApiEvent.Path,
+					Method:   event.Properties.ApiEvent.Method,
+					Handler:  f.handler,
+					Function: f,
 				})
 			}
 		}
