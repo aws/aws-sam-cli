@@ -99,7 +99,7 @@ var _ = Describe("ServerlessRouter", func() {
 				Expect(err).To(BeNil())
 			}
 
-			mux.AddFunction(function, func(w http.ResponseWriter, r *http.Request) {
+			mux.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
 				body, err := ioutil.ReadAll(r.Body)
 				Expect(err).To(BeNil())
 				Expect(string(body)).To(Equal(base64.StdEncoding.EncodeToString(data)))

@@ -11,12 +11,16 @@ import (
 const MuxPathRegex = ".+"
 var HttpMethods = []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"}
 
+// RequestHandlerFunc is similar to Go http.Handler but it receives an additional bool value
+// to check if the request body is base64 encoded or not.
+type RequestHandlerFunc func(http.ResponseWriter, *http.Request, bool)
+
 // ServerlessRouterMount represents a single mount point on the API
 // Such as '/path', the HTTP method, and the function to resolve it
 type ServerlessRouterMount struct {
 	Name             string
 	Function         *AWSServerlessFunction
-	Handler          http.HandlerFunc
+	Handler          RequestHandlerFunc
 	Path             string
 	Method           string
 	BinaryMediaTypes []string
@@ -48,7 +52,7 @@ func (m *ServerlessRouterMount) WrappedHandler() http.HandlerFunc {
 			}
 		}
 
-		m.Handler(w, req)
+		m.Handler(w, req, binaryContent)
 	})
 }
 

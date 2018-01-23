@@ -60,7 +60,7 @@ var _ = Describe("Function", func() {
 			},
 		}
 
-		err := r.AddFunction(function, func(w http.ResponseWriter, r *http.Request) {
+		err := r.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
 			w.WriteHeader(200)
 			w.Write([]byte("ok"))
 		})
@@ -190,7 +190,7 @@ var _ = Describe("Function", func() {
 			},
 		}
 
-		err := r.AddFunction(function, func(w http.ResponseWriter, r *http.Request) {
+		err := r.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
 			w.WriteHeader(200)
 			w.Write([]byte("ok"))
 		})
@@ -246,7 +246,7 @@ var _ = Describe("Function", func() {
 			Runtime: "nodejs6.10",
 		}
 
-		err := r.AddFunction(function, func(w http.ResponseWriter, r *http.Request) {
+		err := r.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
 			w.WriteHeader(200)
 			w.Write([]byte("ok"))
 		})

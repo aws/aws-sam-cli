@@ -34,7 +34,7 @@ func NewServerlessRouter(usePrefix bool) *ServerlessRouter {
 
 // AddFunction adds a AWS::Serverless::Function to the router and mounts all of it's
 // event sources that have type 'Api'
-func (r *ServerlessRouter) AddFunction(f *cloudformation.AWSServerlessFunction, handler http.HandlerFunc) error {
+func (r *ServerlessRouter) AddFunction(f *cloudformation.AWSServerlessFunction, handler RequestHandlerFunc) error {
 
 	// Wrap GoFormation's AWS::Serverless::Function definition in our own, which provides
 	// convenience methods for extracting the ServerlessRouterMount(s) from it.
@@ -127,8 +127,8 @@ func (r *ServerlessRouter) Mounts() []*ServerlessRouterMount {
 	return r.mounts
 }
 
-func (r *ServerlessRouter) missingFunctionHandler() func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
+func (r *ServerlessRouter) missingFunctionHandler() func(http.ResponseWriter, *http.Request, bool) {
+	return func(w http.ResponseWriter, req *http.Request, isBase64Encoded bool) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadGateway)
 		w.Write([]byte(`{ "message": "No function defined for resource method" }`))

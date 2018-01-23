@@ -1,8 +1,6 @@
 package router
 
 import (
-	"net/http"
-
 	"github.com/awslabs/goformation/cloudformation"
 )
 
@@ -11,7 +9,7 @@ import (
 // from the event sources.
 type AWSServerlessFunction struct {
 	*cloudformation.AWSServerlessFunction
-	handler http.HandlerFunc
+	handler RequestHandlerFunc
 }
 
 // Mounts fetches an array of the ServerlessRouterMount's for this API.

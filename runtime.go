@@ -44,7 +44,7 @@ import (
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
 	Invoke(string, string) (io.Reader, io.Reader, error)
-	InvokeHTTP(string) func(http.ResponseWriter, *http.Request)
+	InvokeHTTP(string) func(http.ResponseWriter, *http.Request, bool)
 	CleanUp()
 }
 
@@ -482,15 +482,14 @@ func (r *Runtime) CleanUp() {
 
 }
 
-// InvokeHTTP invokes a Lambda function, and implements the Go http.HandlerFunc interface
-// so it can be connected straight into most HTTP packages/frameworks etc.
-func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Request) {
+// InvokeHTTP invokes a Lambda function.
+func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Request, bool) {
 
-	return func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request, isBase64Encoded bool) {
 		var wg sync.WaitGroup
 		w.Header().Set("Content-Type", "application/json")
 
-		event, err := NewEvent(req)
+		event, err := NewEvent(req, isBase64Encoded)
 		if err != nil {
 			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
 			log.Println(msg)

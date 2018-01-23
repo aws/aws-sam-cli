@@ -19,6 +19,7 @@ type Event struct {
 	PathParameters    map[string]string `json:"pathParameters"`
 	StageVariables    map[string]string `json:"stageVariables"`
 	Path              string            `json:"path"`
+	IsBase64Encoded   bool              `json:"isBase64Encoded"`
 }
 
 // RequestContext represents the context object that gets passed to an AWS Lambda function
@@ -49,8 +50,8 @@ type ContextIdentity struct {
 }
 
 // NewEvent initalises and populates a new ApiEvent with
-// event details from a http.Request
-func NewEvent(req *http.Request) (*Event, error) {
+// event details from a http.Request and isBase64Encoded value
+func NewEvent(req *http.Request, isBase64Encoded bool) (*Event, error) {
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -84,6 +85,7 @@ func NewEvent(req *http.Request) (*Event, error) {
 		Path:              req.URL.Path,
 		Resource:          req.URL.Path,
 		PathParameters:    pathParams,
+		IsBase64Encoded:   isBase64Encoded,
 	}
 
 	event.RequestContext.Identity.SourceIP = req.RemoteAddr
