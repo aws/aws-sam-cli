@@ -3,6 +3,7 @@ package router
 import (
 	"encoding/base64"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"strings"
 )
@@ -34,7 +35,8 @@ func (m *ServerlessRouterMount) WrappedHandler() http.HandlerFunc {
 		binaryContent := false
 
 		for _, value := range m.BinaryMediaTypes {
-			if value == contentType {
+			mediaType, _, err := mime.ParseMediaType(contentType)
+			if err == nil && mediaType == value {
 				binaryContent = true
 				break
 			}

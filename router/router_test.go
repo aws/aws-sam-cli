@@ -66,7 +66,7 @@ var _ = Describe("ServerlessRouter", func() {
                         }
                       }
                     },
-                    "x-amazon-apigateway-binary-media-types": ["application/octet-stream"]
+                    "x-amazon-apigateway-binary-media-types": ["multipart/form-data"]
                   }
                 }
               }
@@ -92,7 +92,7 @@ var _ = Describe("ServerlessRouter", func() {
 			mux := NewServerlessRouter(false)
 			data := []byte{1, 2, 3}
 			req, _ := http.NewRequest("POST", "/post", bytes.NewReader(data))
-			req.Header.Add("Content-Type", "application/octet-stream")
+			req.Header.Add("Content-Type", "multipart/form-data; boundary=something")
 
 			for _, api := range templateApis {
 				err := mux.AddAPI(&api)
