@@ -80,14 +80,9 @@ func getEnvDefaults(function *cloudformation.AWSServerlessFunction, profile stri
 		"AWS_DEFAULT_REGION":              creds["region"],
 		"AWS_ACCESS_KEY_ID":               creds["key"],
 		"AWS_SECRET_ACCESS_KEY":           creds["secret"],
-		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(int(function.MemorySize)),
-		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(int(function.Timeout)),
+		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": strconv.Itoa(function.MemorySize),
+		"AWS_LAMBDA_FUNCTION_TIMEOUT":     strconv.Itoa(function.Timeout),
 		"AWS_LAMBDA_FUNCTION_HANDLER":     function.Handler,
-		// "AWS_ACCOUNT_ID=",
-		// "AWS_LAMBDA_EVENT_BODY=",
-		// "AWS_REGION=",
-		// "AWS_LAMBDA_FUNCTION_NAME=",
-		// "AWS_LAMBDA_FUNCTION_VERSION=",
 	}
 
 	if token, ok := creds["sessiontoken"]; ok && token != "" {
