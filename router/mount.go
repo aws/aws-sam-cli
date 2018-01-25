@@ -40,7 +40,7 @@ func (m *ServerlessRouterMount) WrappedHandler() http.HandlerFunc {
 
 		for _, value := range m.BinaryMediaTypes {
 			mediaType, _, err := mime.ParseMediaType(contentType)
-			if err == nil && mediaType == value {
+			if err == nil && value != "" && value == mediaType {
 				binaryContent = true
 				break
 			}
