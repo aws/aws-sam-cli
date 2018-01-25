@@ -36,13 +36,15 @@ type ServerlessRouterMount struct {
 func (m *ServerlessRouterMount) WrappedHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		contentType := req.Header.Get("Content-Type")
+		mediaType, _, err := mime.ParseMediaType(contentType)
 		binaryContent := false
 
-		for _, value := range m.BinaryMediaTypes {
-			mediaType, _, err := mime.ParseMediaType(contentType)
-			if err == nil && value != "" && value == mediaType {
-				binaryContent = true
-				break
+		if err == nil {
+			for _, value := range m.BinaryMediaTypes {
+				if value != "" && value == mediaType {
+					binaryContent = true
+					break
+				}
 			}
 		}
 
