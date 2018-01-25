@@ -139,6 +139,14 @@ var _ = Describe("sam", func() {
 					headers:      http.Header(map[string][]string{"Content-Type": []string{"multipart/form-data; boundary=something"}}),
 					acceptHeader: "application/foo",
 				},
+				{
+					name:         "base64 encoded response and empty Accept and Content-Type headers",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type": ""},"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
+					body:         []byte(base64.StdEncoding.EncodeToString([]byte("abc"))),
+					status:       200,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{""}}),
+					acceptHeader: "",
+				},
 			}
 
 			for _, input := range inputs {

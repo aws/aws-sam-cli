@@ -595,11 +595,14 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 		w.WriteHeader(int(statusCode))
 	}
 
-	//API Gateway only honors the first Accept media type.
-	acceptMediaType := strings.Split(acceptHeader, ",")[0]
-	contentType := proxy.Headers["Content-Type"]
-	contentMediaType, _, err := mime.ParseMediaType(contentType)
-	acceptMediaTypeMatched := err == nil && acceptMediaType != "" && acceptMediaType == contentMediaType
+	acceptMediaTypeMatched := false
+	if acceptHeader != "" {
+		//API Gateway only honors the first Accept media type.
+		acceptMediaType := strings.Split(acceptHeader, ",")[0]
+		contentType := proxy.Headers["Content-Type"]
+		contentMediaType, _, err := mime.ParseMediaType(contentType)
+		acceptMediaTypeMatched = err == nil && acceptMediaType == contentMediaType
+	}
 
 	if proxy.IsBase64Encoded && acceptMediaTypeMatched {
 		if decodedBytes, err := base64.StdEncoding.DecodeString(string(proxy.Body)); err != nil {
