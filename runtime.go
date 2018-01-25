@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -488,6 +489,7 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 	return func(w http.ResponseWriter, req *http.Request, isBase64Encoded bool) {
 		var wg sync.WaitGroup
 		w.Header().Set("Content-Type", "application/json")
+		acceptHeader := req.Header.Get("Accept")
 
 		event, err := NewEvent(req, isBase64Encoded)
 		if err != nil {
@@ -519,7 +521,7 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 		wg.Add(1)
 		var output []byte
 		go func() {
-			output = parseOutput(w, stdoutTxt, r.Function.Runtime, &wg)
+			output = parseOutput(w, stdoutTxt, r.Function.Runtime, &wg, acceptHeader)
 		}()
 
 		wg.Add(1)
@@ -539,7 +541,7 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 
 // parseOutput decodes the proxy response from the output of the function and returns
 // the rest
-func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg *sync.WaitGroup) (output []byte) {
+func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg *sync.WaitGroup, acceptHeader string) (output []byte) {
 	defer wg.Done()
 
 	result, err := ioutil.ReadAll(stdoutTxt)
@@ -593,8 +595,13 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 		w.WriteHeader(int(statusCode))
 	}
 
-	// Decode base64 encoded body if isBase64Encoded is true
-	if proxy.IsBase64Encoded {
+	//API Gateway only honors the first Accept media type.
+	acceptMediaType := strings.Split(acceptHeader, ",")[0]
+	contentType := proxy.Headers["Content-Type"]
+	contentMediaType, _, err := mime.ParseMediaType(contentType)
+	acceptMediaTypeMatched := err == nil && acceptMediaType != "" && acceptMediaType == contentMediaType
+
+	if proxy.IsBase64Encoded && acceptMediaTypeMatched {
 		if decodedBytes, err := base64.StdEncoding.DecodeString(string(proxy.Body)); err != nil {
 			log.Printf(color.RedString("Function returned an invalid base64 body: %s\n"), err)
 			w.WriteHeader(http.StatusInternalServerError)

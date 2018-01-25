@@ -68,12 +68,13 @@ var _ = Describe("sam", func() {
 			var r *fakeResponse
 
 			inputs := []struct {
-				name     string
-				output   io.Reader
-				body     []byte
-				status   int
-				headers  http.Header
-				trailing string
+				name         string
+				output       io.Reader
+				body         []byte
+				status       int
+				headers      http.Header
+				trailing     string
+				acceptHeader string
 			}{
 				{
 					name:    "only proxy response",
@@ -115,18 +116,28 @@ var _ = Describe("sam", func() {
 					headers: make(http.Header),
 				},
 				{
-					name:    "base64 encoded response",
-					output:  strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":null,"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
-					body:    []byte("abc"),
-					status:  200,
-					headers: make(http.Header),
+					name:         "base64 encoded response and Accept and Content-Type media types are matched",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type": "multipart/form-data; boundary=something"},"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
+					body:         []byte("abc"),
+					status:       200,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{"multipart/form-data; boundary=something"}}),
+					acceptHeader: "multipart/form-data, application/foo",
 				},
 				{
-					name:    "invalid base64 encoded response",
-					output:  strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":null,"body": "a","isBase64Encoded":true}`)),
-					body:    []byte(`{ "message": "Internal server error" }`),
-					status:  500,
-					headers: make(http.Header),
+					name:         "invalid base64 encoded response and Accept and Content-Type media types are matched",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type":"multipart/form-data; boundary=something"},"body": "a","isBase64Encoded":true}`)),
+					body:         []byte(`{ "message": "Internal server error" }`),
+					status:       500,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{"multipart/form-data; boundary=something"}}),
+					acceptHeader: "multipart/form-data, application/foo",
+				},
+				{
+					name:         "base64 encoded response but Accept and Content-Type media types are not matched",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type": "multipart/form-data; boundary=something"},"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
+					body:         []byte(base64.StdEncoding.EncodeToString([]byte("abc"))),
+					status:       200,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{"multipart/form-data; boundary=something"}}),
+					acceptHeader: "application/foo",
 				},
 			}
 
@@ -135,7 +146,7 @@ var _ = Describe("sam", func() {
 				Context(input.name, func() {
 					wg.Add(1)
 					r = newResponse()
-					out = parseOutput(r, input.output, "foo", &wg)
+					out = parseOutput(r, input.output, "foo", &wg, input.acceptHeader)
 
 					It("should have the expected output", func() {
 						Expect(r.status).To(Equal(input.status))
