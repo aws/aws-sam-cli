@@ -7,21 +7,23 @@ import (
 	"net/http"
 	"strings"
 	"unicode/utf8"
+	"log"
+	"fmt"
 )
 
 const MuxPathRegex = ".+"
 var HttpMethods = []string{"OPTIONS", "GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"}
 
-// RequestHandlerFunc is similar to Go http.Handler but it receives an additional bool value
-// to check if the request body is base64 encoded or not.
-type RequestHandlerFunc func(http.ResponseWriter, *http.Request, bool)
+// EventHandlerFunc is similar to Go http.Handler but it receives an event from API Gateway
+// instead of http.Request
+type EventHandlerFunc func(http.ResponseWriter, *Event)
 
 // ServerlessRouterMount represents a single mount point on the API
 // Such as '/path', the HTTP method, and the function to resolve it
 type ServerlessRouterMount struct {
 	Name             string
 	Function         *AWSServerlessFunction
-	Handler          RequestHandlerFunc
+	Handler          EventHandlerFunc
 	Path             string
 	Method           string
 	BinaryMediaTypes []string
@@ -57,7 +59,15 @@ func (m *ServerlessRouterMount) WrappedHandler() http.HandlerFunc {
 			}
 		}
 
-		m.Handler(w, req, binaryContent)
+		event, err := NewEvent(req, binaryContent)
+		if err != nil {
+			msg := fmt.Sprintf("Error creating a new event: %s", err)
+			log.Println(msg)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+		} else {
+			m.Handler(w, event)
+		}
 	})
 }
 

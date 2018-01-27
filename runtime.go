@@ -27,6 +27,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -45,7 +46,7 @@ import (
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
 	Invoke(string, string) (io.Reader, io.Reader, error)
-	InvokeHTTP(string) func(http.ResponseWriter, *http.Request, bool)
+	InvokeHTTP(string) func(http.ResponseWriter, *router.Event)
 	CleanUp()
 }
 
@@ -484,20 +485,14 @@ func (r *Runtime) CleanUp() {
 }
 
 // InvokeHTTP invokes a Lambda function.
-func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Request, bool) {
+func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *router.Event) {
 
-	return func(w http.ResponseWriter, req *http.Request, isBase64Encoded bool) {
+	return func(w http.ResponseWriter, event *router.Event) {
 		var wg sync.WaitGroup
 		w.Header().Set("Content-Type", "application/json")
-		acceptHeader := req.Header.Get("Accept")
-
-		event, err := NewEvent(req, isBase64Encoded)
-		if err != nil {
-			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
-			log.Println(msg)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(`{ "message": "Internal server error" }`))
-			return
+		acceptHeader, ok := event.Headers["Accept"]
+		if !ok {
+			acceptHeader = ""
 		}
 
 		eventJSON, err := event.JSON()

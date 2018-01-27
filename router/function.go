@@ -9,7 +9,7 @@ import (
 // from the event sources.
 type AWSServerlessFunction struct {
 	*cloudformation.AWSServerlessFunction
-	handler RequestHandlerFunc
+	handler EventHandlerFunc
 }
 
 // Mounts fetches an array of the ServerlessRouterMount's for this API.

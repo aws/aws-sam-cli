@@ -3,7 +3,6 @@ package router
 import (
 	"bytes"
 	"encoding/base64"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -101,10 +100,8 @@ var _ = Describe("ServerlessRouter", func() {
 			req, _ := http.NewRequest("POST", "/post", bytes.NewReader(data))
 			req.Header.Add("Content-Type", "multipart/form-data; boundary=something")
 
-			mux.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
-				body, err := ioutil.ReadAll(r.Body)
-				Expect(err).To(BeNil())
-				Expect(string(body)).To(Equal(base64.StdEncoding.EncodeToString(data)))
+			mux.AddFunction(function, func(w http.ResponseWriter, e *Event) {
+				Expect(string(e.Body)).To(Equal(base64.StdEncoding.EncodeToString(data)))
 			})
 
 			rec := httptest.NewRecorder()
@@ -122,10 +119,8 @@ var _ = Describe("ServerlessRouter", func() {
 			req, _ := http.NewRequest("POST", "/post", strings.NewReader(text))
 			req.Header.Add("Content-Type", "multipart/form-data; boundary=something")
 
-			mux.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
-				body, err := ioutil.ReadAll(r.Body)
-				Expect(err).To(BeNil())
-				Expect(string(body)).To(Equal(text))
+			mux.AddFunction(function, func(w http.ResponseWriter, e *Event) {
+				Expect(string(e.Body)).To(Equal(text))
 			})
 
 			rec := httptest.NewRecorder()

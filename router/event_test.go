@@ -1,11 +1,10 @@
-package main
+package router
 
 import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation/cloudformation"
 
 	. "github.com/onsi/ginkgo"
@@ -14,9 +13,9 @@ import (
 
 var _ = Describe("Event", func() {
 	Describe("PathParameters", func() {
-		var r *router.ServerlessRouter
+		var r *ServerlessRouter
 		BeforeEach(func() {
-			r = router.NewServerlessRouter(false)
+			r = NewServerlessRouter(false)
 		})
 
 		Context("with path parameters on the route", func() {
@@ -48,8 +47,7 @@ var _ = Describe("Event", func() {
 				req, _ := http.NewRequest("GET", "/get/1", new(bytes.Buffer))
 
 				It("returns the parameters on the event", func() {
-					r.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
-						e, _ := NewEvent(r, isBase64Encoded)
+					r.AddFunction(function, func(w http.ResponseWriter, e *Event) {
 						Expect(e.PathParameters).To(HaveKeyWithValue("parameter", "1"))
 					})
 
@@ -62,8 +60,7 @@ var _ = Describe("Event", func() {
 				req, _ := http.NewRequest("GET", "/get/1", new(bytes.Buffer))
 
 				It("returns stage property with value \"prod\"", func() {
-					r.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
-						e, _ := NewEvent(r, isBase64Encoded)
+					r.AddFunction(function, func(w http.ResponseWriter, e *Event) {
 						Expect(e.RequestContext.Stage).To(BeIdenticalTo("prod"))
 					})
 
@@ -76,8 +73,7 @@ var _ = Describe("Event", func() {
 				req, _ := http.NewRequest("GET", "/get", new(bytes.Buffer))
 
 				It("returns nil for PathParameters on the event", func() {
-					r.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
-						e, _ := NewEvent(r, isBase64Encoded)
+					r.AddFunction(function, func(w http.ResponseWriter, e *Event) {
 						Expect(e.PathParameters).To(BeNil())
 					})
 
@@ -106,8 +102,7 @@ var _ = Describe("Event", func() {
 			req, _ := http.NewRequest("GET", "/get", new(bytes.Buffer))
 
 			It("returns nil for PathParameters on the event", func() {
-				r.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
-					e, _ := NewEvent(r, isBase64Encoded)
+				r.AddFunction(function, func(w http.ResponseWriter, e *Event) {
 					Expect(e.PathParameters).To(BeNil())
 				})
 

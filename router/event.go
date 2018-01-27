@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"encoding/json"
@@ -53,9 +53,13 @@ type ContextIdentity struct {
 // event details from a http.Request and isBase64Encoded value
 func NewEvent(req *http.Request, isBase64Encoded bool) (*Event, error) {
 
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
+	var body []byte
+	if req.Body != nil {
+		var err error
+		body, err = ioutil.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	headers := map[string]string{}
