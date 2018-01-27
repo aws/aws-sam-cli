@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/awslabs/goformation"
 	"github.com/awslabs/goformation/cloudformation"
@@ -44,8 +45,7 @@ var _ = Describe("ServerlessRouter", func() {
 	})
 
 	Context("with SAM template and x-amazon-apigateway-binary-media-types defined in it", func() {
-		It("returns the base64 encoded body on a binary request", func() {
-			const input = `{
+		const input = `{
             "Resources": {
               "MyApi": {
                 "Type": "AWS::Serverless::Api",
@@ -72,37 +72,60 @@ var _ = Describe("ServerlessRouter", func() {
               }
             }
           }`
-			template, _ := goformation.ParseJSON([]byte(input))
+		template, _ := goformation.ParseJSON([]byte(input))
 
-			function := &cloudformation.AWSServerlessFunction{
-				Runtime: "nodejs6.10",
-				Events: map[string]cloudformation.AWSServerlessFunction_EventSource{
-					"PostRequest": {
-						Type: "Api",
-						Properties: &cloudformation.AWSServerlessFunction_Properties{
-							ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
-								Path:   "/post",
-								Method: "post",
-							},
+		function := &cloudformation.AWSServerlessFunction{
+			Runtime: "nodejs6.10",
+			Events: map[string]cloudformation.AWSServerlessFunction_EventSource{
+				"PostRequest": {
+					Type: "Api",
+					Properties: &cloudformation.AWSServerlessFunction_Properties{
+						ApiEvent: &cloudformation.AWSServerlessFunction_ApiEvent{
+							Path:   "/post",
+							Method: "post",
 						},
 					},
 				},
-			}
-			templateApis := template.GetAllAWSServerlessApiResources()
+			},
+		}
+		templateApis := template.GetAllAWSServerlessApiResources()
+
+		It("returns the base64 encoded body on a binary request", func() {
 			mux := NewServerlessRouter(false)
-			data := []byte{1, 2, 3}
-			req, _ := http.NewRequest("POST", "/post", bytes.NewReader(data))
-			req.Header.Add("Content-Type", "multipart/form-data; boundary=something")
 
 			for _, api := range templateApis {
 				err := mux.AddAPI(&api)
 				Expect(err).To(BeNil())
 			}
+			data := []byte{'\xe3'}
+			req, _ := http.NewRequest("POST", "/post", bytes.NewReader(data))
+			req.Header.Add("Content-Type", "multipart/form-data; boundary=something")
 
 			mux.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
 				body, err := ioutil.ReadAll(r.Body)
 				Expect(err).To(BeNil())
 				Expect(string(body)).To(Equal(base64.StdEncoding.EncodeToString(data)))
+			})
+
+			rec := httptest.NewRecorder()
+			mux.Router().ServeHTTP(rec, req)
+		})
+
+		It("returns the text body on a text request", func() {
+			mux := NewServerlessRouter(false)
+
+			for _, api := range templateApis {
+				err := mux.AddAPI(&api)
+				Expect(err).To(BeNil())
+			}
+			text := "foo"
+			req, _ := http.NewRequest("POST", "/post", strings.NewReader(text))
+			req.Header.Add("Content-Type", "multipart/form-data; boundary=something")
+
+			mux.AddFunction(function, func(w http.ResponseWriter, r *http.Request, isBase64Encoded bool) {
+				body, err := ioutil.ReadAll(r.Body)
+				Expect(err).To(BeNil())
+				Expect(string(body)).To(Equal(text))
 			})
 
 			rec := httptest.NewRecorder()

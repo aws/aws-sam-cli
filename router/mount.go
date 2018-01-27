@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 )
 
 const MuxPathRegex = ".+"
@@ -49,8 +50,10 @@ func (m *ServerlessRouterMount) WrappedHandler() http.HandlerFunc {
 		}
 
 		if binaryContent {
-			if body, err := ioutil.ReadAll(req.Body); err == nil {
+			if body, err := ioutil.ReadAll(req.Body); err == nil && !utf8.Valid(body) {
 				req.Body = ioutil.NopCloser(strings.NewReader(base64.StdEncoding.EncodeToString(body)))
+			} else {
+				req.Body = ioutil.NopCloser(strings.NewReader(string(body)))
 			}
 		}
 
