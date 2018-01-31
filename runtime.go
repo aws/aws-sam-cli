@@ -467,7 +467,8 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 	case runtimeName.nodejs610:
 		overrides = []string{
 			"/var/lang/bin/node",
-			"--inspect-brk=" + r.DebugPort,
+			"--inspect=" + r.DebugPort,
+			"--debug-brk",
 			"--nolazy",
 			"--max-old-space-size=1229",
 			"--max-semi-space-size=76",
