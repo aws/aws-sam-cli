@@ -105,7 +105,6 @@ This will install **`sam`** to your `$GOPATH/bin` folder. Make sure this directo
 aws-sam-local --help
 ```
 
-
 ## Usage
 
 **`sam`** requires a SAM template in order to know how to invoke your function locally, and it's also true for spawning API Gateway locally - If no template is specified `template.yaml` will be used instead.
