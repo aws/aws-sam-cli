@@ -600,7 +600,7 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 	// Set any HTTP headers requested by the proxy function
 	if len(proxy.Headers) > 0 {
 		for key, value := range proxy.Headers {
-			w.Header().Set(key, value)
+			w.Header().Add(key, value)
 		}
 	}
 
