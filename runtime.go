@@ -475,7 +475,14 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"--expose-gc",
 			"/var/runtime/node_modules/awslambda/index.js",
 		}
-		// TODO: also add debug mode for Python runtimes
+	case runtimeName.python27:
+		additionalArgs := os.Getenv("ADDITIONAL_ARGS")
+		additionalArgsArray := strings.Split(additionalArgs, " ")
+		overrides = []string{
+			"/usr/bin/python2.7",
+		}
+		overrides = append(overrides, additionalArgsArray...)
+		overrides = append(overrides, "/var/runtime/awslambda/bootstrap.py")
 	}
 	return
 }
