@@ -50,7 +50,6 @@ type Invoker interface {
 // Runtime contains a reference to a single container for a specific runtime. It is used to invoke functions multiple times against a single container.
 type Runtime struct {
 	LogicalID       string
-	ID              string
 	Name            string
 	Image           string
 	Cwd             string
