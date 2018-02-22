@@ -1,6 +1,8 @@
 package router_test
 
 import (
+	"strings"
+
 	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation/cloudformation"
 
@@ -68,6 +70,17 @@ var _ = Describe("Api", func() {
 					Expect(mount.IntegrationArn.Arn).Should(ContainSubstring("Calc"))
 				}
 			}
+		})
+
+		It("Loads a YAML Swagger template", func() {
+			apiResource := getApiResourceFromTemplate("../test/templates/open-api/simple-yaml.yaml")
+
+			mounts, err := apiResource.Mounts()
+			Expect(err).To(BeNil())
+			Expect(mounts).ToNot(BeNil())
+			Expect(1).To(Equal(len(mounts)))
+			Expect("/").To(Equal(mounts[0].Path))
+			Expect("post").To(Equal(strings.ToLower(mounts[0].Method)))
 		})
 
 	})
