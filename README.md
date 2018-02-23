@@ -229,7 +229,7 @@ $ sam local invoke -d 5858 <function logical id>
 $ sam local start-api -d 5858
 ```
 
-Note: If using `sam local start-api`, the local API Gateway will expose all of your lambda functions but, since you can specify a single debug port, you can only debug one function at a time.
+Note: If using `sam local start-api`, the local API Gateway will expose all of your lambda functions but, since you can specify a single debug port, you can only debug one function at a time. You will need to hit your api before Sam Local binds to the port allowing the debugger to connect.
 
 Here is an example showing how to debug a NodeJS function with Microsoft Visual Studio Code:
 
@@ -248,7 +248,8 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
             "address": "localhost",
             "port": 5858,
             "localRoot": "${workspaceRoot}",
-            "remoteRoot": "/var/task"
+            "remoteRoot": "/var/task",
+            "protocol": "legacy"
         }
     ]
 }
