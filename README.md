@@ -352,6 +352,13 @@ As with the AWS CLI and SDKs, SAM Local will look for credentials in the followi
 2. The AWS credentials file (located at `~/.aws/credentials` on Linux, macOS, or Unix, or at `C:\Users\USERNAME \.aws\credentials` on Windows).
 3. Instance profile credentials (if running on Amazon EC2 with an assigned instance role).
 
+In order to test API Gateway with a non-default profile from your AWS credentials file append `--profile <profile name>` to the `start-api` command:
+
+```
+// Test API Gateway locally with a credential profile.
+$ sam local start-api --profile some_profile
+```
+
 See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#config-settings-and-precedence) for more details.
 
 ### Lambda Environment Variables
