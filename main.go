@@ -44,7 +44,7 @@ func main() {
 
      AWS Serverless Application Model (SAM) CLI
 
-     The AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application. You can find more in-depth guide about the SAM specification here:\nhttps://github.com/awslabs/serverless-application-model.
+     The AWS Serverless Application Model extends AWS CloudFormation to provide a simplified way of defining the Amazon API Gateway APIs, AWS Lambda functions, and Amazon DynamoDB tables needed by your serverless application. You can find more in-depth guide about the SAM specification here: https://github.com/awslabs/serverless-application-model.
 	`
 	app.EnableBashCompletion = true // \m/
 

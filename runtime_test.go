@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -67,16 +68,17 @@ var _ = Describe("sam", func() {
 			var r *fakeResponse
 
 			inputs := []struct {
-				name     string
-				output   io.Reader
-				body     []byte
-				status   int
-				headers  http.Header
-				trailing string
+				name         string
+				output       io.Reader
+				body         []byte
+				status       int
+				headers      http.Header
+				trailing     string
+				acceptHeader string
 			}{
 				{
 					name:    "only proxy response",
-					output:  strings.NewReader(`{"statusCode":202,"headers":{"foo":"bar"},"body":"{\"nextToken\":null,\"beers\":[]}","base64Encoded":false}`),
+					output:  strings.NewReader(`{"statusCode":202,"headers":{"foo":"bar"},"body":"{\"nextToken\":null,\"beers\":[]}","isBase64Encoded":false}`),
 					body:    []byte(`{"nextToken":null,"beers":[]}`),
 					status:  202,
 					headers: http.Header(map[string][]string{"foo": []string{"bar"}}),
@@ -85,7 +87,7 @@ var _ = Describe("sam", func() {
 					name: "proxy response with extra output",
 					output: strings.NewReader(`Foo
 					Bar
-					{"statusCode":200,"headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","base64Encoded":false}`),
+					{"statusCode":200,"headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","isBase64Encoded":false}`),
 					body:    []byte(`{"nextToken":null,"beers":[]}`),
 					status:  200,
 					headers: make(http.Header),
@@ -101,7 +103,7 @@ var _ = Describe("sam", func() {
 				},
 				{
 					name:    "bad status code",
-					output:  strings.NewReader(`{"statusCode":"xxx","headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","base64Encoded":false}`),
+					output:  strings.NewReader(`{"statusCode":"xxx","headers":null,"body":"{\"nextToken\":null,\"beers\":[]}","isBase64Encoded":false}`),
 					body:    []byte(`{"nextToken":null,"beers":[]}`),
 					status:  502,
 					headers: make(http.Header),
@@ -113,6 +115,38 @@ var _ = Describe("sam", func() {
 					status:  500,
 					headers: make(http.Header),
 				},
+				{
+					name:         "base64 encoded response and Accept and Content-Type media types are matched",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type": "multipart/form-data; boundary=something"},"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
+					body:         []byte("abc"),
+					status:       200,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{"multipart/form-data; boundary=something"}}),
+					acceptHeader: "multipart/form-data, application/foo",
+				},
+				{
+					name:         "invalid base64 encoded response and Accept and Content-Type media types are matched",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type":"multipart/form-data; boundary=something"},"body": "a","isBase64Encoded":true}`)),
+					body:         []byte(`{ "message": "Internal server error" }`),
+					status:       500,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{"multipart/form-data; boundary=something"}}),
+					acceptHeader: "multipart/form-data, application/foo",
+				},
+				{
+					name:         "base64 encoded response but Accept and Content-Type media types are not matched",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type": "multipart/form-data; boundary=something"},"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
+					body:         []byte(base64.StdEncoding.EncodeToString([]byte("abc"))),
+					status:       200,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{"multipart/form-data; boundary=something"}}),
+					acceptHeader: "application/foo",
+				},
+				{
+					name:         "base64 encoded response and empty Accept and Content-Type headers",
+					output:       strings.NewReader(fmt.Sprintf(`{"statusCode":200,"headers":{"Content-Type": ""},"body": "%v","isBase64Encoded":true}`, base64.StdEncoding.EncodeToString([]byte("abc")))),
+					body:         []byte(base64.StdEncoding.EncodeToString([]byte("abc"))),
+					status:       200,
+					headers:      http.Header(map[string][]string{"Content-Type": []string{""}}),
+					acceptHeader: "",
+				},
 			}
 
 			for _, input := range inputs {
@@ -120,7 +154,7 @@ var _ = Describe("sam", func() {
 				Context(input.name, func() {
 					wg.Add(1)
 					r = newResponse()
-					out = parseOutput(r, input.output, "foo", &wg)
+					out = parseOutput(r, input.output, "foo", &wg, input.acceptHeader)
 
 					It("should have the expected output", func() {
 						Expect(r.status).To(Equal(input.status))
