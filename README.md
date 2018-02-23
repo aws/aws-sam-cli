@@ -79,6 +79,14 @@ sam --version
 
 If you get a permission error when using npm (such as `EACCES: permission denied`), please see the instructions on this page of the NPM documentation: [https://docs.npmjs.com/getting-started/fixing-npm-permissions](https://docs.npmjs.com/getting-started/fixing-npm-permissions).
 
+#### Upgrading via npm
+
+To update **`sam`** once installed via npm:
+
+```bash
+npm update -g aws-sam-local
+```
+
 ### Binary release
 
 We also release the CLI as binaries that you can download and instantly use. You can find them under [Releases] in this repo. In case you cannot find the version or architecture you're looking for you can refer to [Build From Source](#build-from-source) section for build details.
@@ -268,21 +276,17 @@ $ sam local start-api --docker-network b91847306671 -d 5858
 ### Validate SAM templates
 
 Validate your templates with `$ sam validate`.
-This command will validate your template against the official [AWS Serverless Application Model specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md).
+Currently this command will validate that the template provided is valid JSON / YAML.
 As with most SAM Local commands, it will look for a `template.yaml` file in your current working directory by default. You can specify a different template file/location with the `-t` or `--template` option.
 
 **Syntax**
 
 ```bash
 $ sam validate
-ERROR: Resource "HelloWorld", property "Runtime": Invalid value node. Valid values are "nodejs", "nodejs4.3", "nodejs6.10", "java8", "python2.7", "python3.6", "dotnetcore1.0", "nodejs4.3-edge" (line: 11; col: 6)
-
-# Let's fix that error...
-$ sed -i 's/node/nodejs6.10/g' template.yaml
-
-$ sam validate
 Valid!
 ```
+
+Note: More in-depth functionality is currently disabled. An alternative validation route is to validate your JSON against schema for [the whole CloudFormation and SAM specification.](https://github.com/awslabs/goformation/blob/master/schema/sam.schema.json)
 
 ### Package and Deploy to Lambda
 Once you have developed and tested your Serverless application locally, you can deploy to Lambda using `sam package` and `sam deploy` command. `package` command will zip your code artifacts, upload to S3 and produce a SAM file that is ready to be deployed to Lambda using AWS CloudFormation. `deploy` command will deploy the packaged SAM template to CloudFormation. Both `sam package` and `sam deploy` are identical to their AWS CLI equivalents commands [`aws cloudformation package`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html) and [`aws cloudformation deploy`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html) respectively. Please consult the AWS CLI command documentation for usage.
@@ -347,6 +351,13 @@ As with the AWS CLI and SDKs, SAM Local will look for credentials in the followi
 1. Environment Variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`).
 2. The AWS credentials file (located at `~/.aws/credentials` on Linux, macOS, or Unix, or at `C:\Users\USERNAME \.aws\credentials` on Windows).
 3. Instance profile credentials (if running on Amazon EC2 with an assigned instance role).
+
+In order to test API Gateway with a non-default profile from your AWS credentials file append `--profile <profile name>` to the `start-api` command:
+
+```
+// Test API Gateway locally with a credential profile.
+$ sam local start-api --profile some_profile
+```
 
 See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#config-settings-and-precedence) for more details.
 
@@ -461,7 +472,7 @@ sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Rating
   - [ ] `dotnetcore1.0`
 * [x] AWS credential support 
 * [x] Debugging support
-* [ ] Inline Swagger support within SAM templates
+* [x] Inline Swagger support within SAM templates
 
 ## Contributing
 
