@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ import (
 
 	"strings"
 
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -25,6 +27,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -43,7 +46,7 @@ import (
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
 	Invoke(string, string) (io.Reader, io.Reader, error)
-	InvokeHTTP(string) func(http.ResponseWriter, *http.Request)
+	InvokeHTTP(string) func(http.ResponseWriter, *router.Event)
 	CleanUp()
 }
 
@@ -503,21 +506,15 @@ func (r *Runtime) CleanUp() {
 
 }
 
-// InvokeHTTP invokes a Lambda function, and implements the Go http.HandlerFunc interface
-// so it can be connected straight into most HTTP packages/frameworks etc.
-func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Request) {
+// InvokeHTTP invokes a Lambda function.
+func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *router.Event) {
 
-	return func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, event *router.Event) {
 		var wg sync.WaitGroup
 		w.Header().Set("Content-Type", "application/json")
-
-		event, err := NewEvent(req)
-		if err != nil {
-			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
-			log.Println(msg)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(`{ "message": "Internal server error" }`))
-			return
+		acceptHeader, ok := event.Headers["Accept"]
+		if !ok {
+			acceptHeader = ""
 		}
 
 		eventJSON, err := event.JSON()
@@ -541,7 +538,7 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 		wg.Add(1)
 		var output []byte
 		go func() {
-			output = parseOutput(w, stdoutTxt, r.Function.Runtime, &wg)
+			output = parseOutput(w, stdoutTxt, r.Function.Runtime, &wg, acceptHeader)
 		}()
 
 		wg.Add(1)
@@ -561,7 +558,7 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 
 // parseOutput decodes the proxy response from the output of the function and returns
 // the rest
-func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg *sync.WaitGroup) (output []byte) {
+func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg *sync.WaitGroup, acceptHeader string) (output []byte) {
 	defer wg.Done()
 
 	result, err := ioutil.ReadAll(stdoutTxt)
@@ -577,9 +574,10 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 	// of a Lambda proxy response (inc statusCode / body), and if so, handle it
 	// otherwise just copy the whole output back to the http.ResponseWriter
 	proxy := &struct {
-		StatusCode json.Number       `json:"statusCode"`
-		Headers    map[string]string `json:"headers"`
-		Body       json.Number       `json:"body"`
+		StatusCode      json.Number       `json:"statusCode"`
+		Headers         map[string]string `json:"headers"`
+		Body            json.Number       `json:"body"`
+		IsBase64Encoded bool              `json:"isBase64Encoded"`
 	}{}
 
 	// We only want the last line of stdout, because it's possible that
@@ -614,7 +612,26 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 		w.WriteHeader(int(statusCode))
 	}
 
-	w.Write([]byte(proxy.Body))
+	acceptMediaTypeMatched := false
+	if acceptHeader != "" {
+		//API Gateway only honors the first Accept media type.
+		acceptMediaType := strings.Split(acceptHeader, ",")[0]
+		contentType := proxy.Headers["Content-Type"]
+		contentMediaType, _, err := mime.ParseMediaType(contentType)
+		acceptMediaTypeMatched = err == nil && acceptMediaType == contentMediaType
+	}
+
+	if proxy.IsBase64Encoded && acceptMediaTypeMatched {
+		if decodedBytes, err := base64.StdEncoding.DecodeString(string(proxy.Body)); err != nil {
+			log.Printf(color.RedString("Function returned an invalid base64 body: %s\n"), err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{ "message": "Internal server error" }`))
+		} else {
+			w.Write(decodedBytes)
+		}
+	} else {
+		w.Write([]byte(proxy.Body))
+	}
 
 	return
 }

@@ -229,7 +229,7 @@ $ sam local invoke -d 5858 <function logical id>
 $ sam local start-api -d 5858
 ```
 
-Note: If using `sam local start-api`, the local API Gateway will expose all of your lambda functions but, since you can specify a single debug port, you can only debug one function at a time.
+Note: If using `sam local start-api`, the local API Gateway will expose all of your lambda functions but, since you can specify a single debug port, you can only debug one function at a time. You will need to hit your api before Sam Local binds to the port allowing the debugger to connect.
 
 Here is an example showing how to debug a NodeJS function with Microsoft Visual Studio Code:
 
@@ -248,7 +248,8 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
             "address": "localhost",
             "port": 5858,
             "localRoot": "${workspaceRoot}",
-            "remoteRoot": "/var/task"
+            "remoteRoot": "/var/task",
+            "protocol": "legacy"
         }
     ]
 }
@@ -276,21 +277,17 @@ $ sam local start-api --docker-network b91847306671 -d 5858
 ### Validate SAM templates
 
 Validate your templates with `$ sam validate`.
-This command will validate your template against the official [AWS Serverless Application Model specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md).
+Currently this command will validate that the template provided is valid JSON / YAML.
 As with most SAM Local commands, it will look for a `template.yaml` file in your current working directory by default. You can specify a different template file/location with the `-t` or `--template` option.
 
 **Syntax**
 
 ```bash
 $ sam validate
-ERROR: Resource "HelloWorld", property "Runtime": Invalid value node. Valid values are "nodejs", "nodejs4.3", "nodejs6.10", "java8", "python2.7", "python3.6", "dotnetcore1.0", "nodejs4.3-edge" (line: 11; col: 6)
-
-# Let's fix that error...
-$ sed -i 's/node/nodejs6.10/g' template.yaml
-
-$ sam validate
 Valid!
 ```
+
+Note: More in-depth functionality is currently disabled. An alternative validation route is to validate your JSON against schema for [the whole CloudFormation and SAM specification.](https://github.com/awslabs/goformation/blob/master/schema/sam.schema.json)
 
 ### Package and Deploy to Lambda
 Once you have developed and tested your Serverless application locally, you can deploy to Lambda using `sam package` and `sam deploy` command. `package` command will zip your code artifacts, upload to S3 and produce a SAM file that is ready to be deployed to Lambda using AWS CloudFormation. `deploy` command will deploy the packaged SAM template to CloudFormation. Both `sam package` and `sam deploy` are identical to their AWS CLI equivalents commands [`aws cloudformation package`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html) and [`aws cloudformation deploy`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html) respectively. Please consult the AWS CLI command documentation for usage.
@@ -356,6 +353,13 @@ As with the AWS CLI and SDKs, SAM Local will look for credentials in the followi
 2. The AWS credentials file (located at `~/.aws/credentials` on Linux, macOS, or Unix, or at `C:\Users\USERNAME \.aws\credentials` on Windows).
 3. Instance profile credentials (if running on Amazon EC2 with an assigned instance role).
 
+In order to test API Gateway with a non-default profile from your AWS credentials file append `--profile <profile name>` to the `start-api` command:
+
+```
+// Test API Gateway locally with a credential profile.
+$ sam local start-api --profile some_profile
+```
+
 See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#config-settings-and-precedence) for more details.
 
 ### Lambda Environment Variables
@@ -409,6 +413,17 @@ Use `--env-vars` argument of `invoke` or `start-api` commands to provide a JSON 
 
 ```bash
 $ sam local start-api --env-vars env.json
+```
+
+in alternative you can pass a cloudformation configuration.json containing a parameters key:
+
+```json
+{
+  "Parameters": {
+    "TABLE_NAME": "localtable",
+    "BUCKET_NAME": "testBucket"
+  }
+}
 ```
 
 #### Shell environment 
