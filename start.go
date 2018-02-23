@@ -9,11 +9,17 @@ import (
 	"path/filepath"
 
 	"github.com/awslabs/goformation/intrinsics"
+	"github.com/fatih/color"
 
 	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation"
 	"github.com/codegangsta/cli"
 )
+
+// messages color
+var errMsg = color.New(color.FgRed).Add(color.Bold)
+var warnMsg = color.New(color.FgYellow).Add(color.Bold)
+var successMsg = color.New(color.FgGreen).Add(color.Bold)
 
 func start(c *cli.Context) {
 
@@ -58,6 +64,16 @@ func start(c *cli.Context) {
 	// Create a new router
 	mux := router.NewServerlessRouter(c.Bool("prefix-routing"))
 
+	templateApis := template.GetAllAWSServerlessApiResources()
+
+	for _, api := range templateApis {
+		err := mux.AddAPI(&api)
+		if err != nil {
+			errMsg.Printf("%s\n\n", err.Error())
+			os.Exit(1)
+		}
+	}
+
 	functions := template.GetAllAWSServerlessFunctionResources()
 
 	for name, function := range functions {
@@ -82,10 +98,10 @@ func start(c *cli.Context) {
 		// Check there wasn't a problem initiating the Lambda runtime
 		if err != nil {
 			if err == ErrRuntimeNotSupported {
-				log.Printf("Ignoring %s (%s) due to unsupported runtime (%s)\n", name, function.Handler, function.Runtime)
+				warnMsg.Printf("Ignoring %s (%s) due to unsupported runtime (%s)\n", name, function.Handler, function.Runtime)
 				continue
 			} else {
-				log.Printf("Ignoring %s (%s) due to %s runtime init error: %s\n", name, function.Handler, function.Runtime, err)
+				warnMsg.Printf("Ignoring %s (%s) due to %s runtime init error: %s\n", name, function.Handler, function.Runtime, err)
 				continue
 			}
 		}
@@ -93,26 +109,31 @@ func start(c *cli.Context) {
 		// Add this AWS::Serverless::Function to the HTTP router
 		if err := mux.AddFunction(&function, runt.InvokeHTTP(c.String("profile"))); err != nil {
 			if err == router.ErrNoEventsFound {
-				log.Printf("Ignoring %s (%s) as no API event sources are defined", name, function.Handler)
+				warnMsg.Printf("Ignoring %s (%s) as no API event sources are defined\n", name, function.Handler)
 			}
 		}
-
 	}
 
 	// Check we actually mounted some functions on our HTTP router
 	if len(mux.Mounts()) < 1 {
 		if len(functions) < 1 {
-			fmt.Fprintf(stderr, "ERROR: No Serverless functions were found in your SAM template.\n")
+			errMsg.Fprintf(stderr, "ERROR: No Serverless functions were found in your SAM template.\n")
 			os.Exit(1)
 		}
-		fmt.Fprintf(stderr, "ERROR: None of the Serverless functions in your SAM template were able to be mounted. See above for errors.\n")
+		errMsg.Fprintf(stderr, "ERROR: None of the Serverless functions in your SAM template were able to be mounted. See above for errors.\n")
 		os.Exit(1)
 	}
 
 	fmt.Fprintf(stderr, "\n")
 
 	for _, mount := range mux.Mounts() {
-		msg := fmt.Sprintf("Mounting %s (%s) at http://%s:%s%s %s", mount.Function.Handler, mount.Function.Runtime, c.String("host"), c.String("port"), mount.Path, mount.Methods())
+		if mount.Function == nil || len(mount.Function.Handler) == 0 {
+			msg := warnMsg.Sprint(fmt.Sprintf("WARNING: Could not find function for %s to %s resource", mount.Methods(), mount.Path))
+			fmt.Fprintf(os.Stderr, "%s\n", msg)
+			continue
+		}
+
+		msg := successMsg.Sprintf("Mounting %s (%s) at http://%s:%s%s %s", mount.Function.Handler, mount.Function.Runtime, c.String("host"), c.String("port"), mount.Path, mount.Methods())
 		fmt.Fprintf(os.Stderr, "%s\n", msg)
 	}
 

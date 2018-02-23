@@ -52,7 +52,7 @@ In order to service these, let's create a Lambda function in `products.js` like 
 
 exports.handler = (event, context, callback) => {
 
-    let id = event.pathParameters.product || false;
+    let id = event.pathParameters ? event.pathParameters.product : null;
     switch(event.httpMethod){
         
         case "GET":
