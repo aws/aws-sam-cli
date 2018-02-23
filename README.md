@@ -276,21 +276,17 @@ $ sam local start-api --docker-network b91847306671 -d 5858
 ### Validate SAM templates
 
 Validate your templates with `$ sam validate`.
-This command will validate your template against the official [AWS Serverless Application Model specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md).
+Currently this command will validate that the template provided is valid JSON / YAML.
 As with most SAM Local commands, it will look for a `template.yaml` file in your current working directory by default. You can specify a different template file/location with the `-t` or `--template` option.
 
 **Syntax**
 
 ```bash
 $ sam validate
-ERROR: Resource "HelloWorld", property "Runtime": Invalid value node. Valid values are "nodejs", "nodejs4.3", "nodejs6.10", "java8", "python2.7", "python3.6", "dotnetcore1.0", "nodejs4.3-edge" (line: 11; col: 6)
-
-# Let's fix that error...
-$ sed -i 's/node/nodejs6.10/g' template.yaml
-
-$ sam validate
 Valid!
 ```
+
+Note: More in-depth functionality is currently disabled. An alternative validation route is to validate your JSON against schema for [the whole CloudFormation and SAM specification.](https://github.com/awslabs/goformation/blob/master/schema/sam.schema.json)
 
 ### Package and Deploy to Lambda
 Once you have developed and tested your Serverless application locally, you can deploy to Lambda using `sam package` and `sam deploy` command. `package` command will zip your code artifacts, upload to S3 and produce a SAM file that is ready to be deployed to Lambda using AWS CloudFormation. `deploy` command will deploy the packaged SAM template to CloudFormation. Both `sam package` and `sam deploy` are identical to their AWS CLI equivalents commands [`aws cloudformation package`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html) and [`aws cloudformation deploy`](http://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html) respectively. Please consult the AWS CLI command documentation for usage.
