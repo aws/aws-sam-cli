@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/go-openapi/spec"
+	"github.com/sanathkr/go-yaml"
 )
 
 const apiGatewayIntegrationExtension = "x-amazon-apigateway-integration"
@@ -169,14 +170,22 @@ func (api *AWSServerlessApi) Swagger() ([]byte, error) {
 	// 1. A definition URI defined as a string
 	if api.DefinitionUri != nil {
 		if api.DefinitionUri.String != nil {
-			return api.getSwaggerFromURI(*api.DefinitionUri.String)
+			data, err := api.getSwaggerFromURI(*api.DefinitionUri.String)
+			if err != nil {
+				return nil, err
+			}
+			return api.ensureJSON(data)
 		}
 	}
 
 	// 2. A definition URI defined as an S3 Location
 	if api.DefinitionUri != nil {
 		if api.DefinitionUri.S3Location != nil {
-			return api.getSwaggerFromS3Location(*api.DefinitionUri.S3Location)
+			data, err := api.getSwaggerFromS3Location(*api.DefinitionUri.S3Location)
+			if err != nil {
+				return nil, err
+			}
+			return api.ensureJSON(data)
 		}
 	}
 
@@ -196,7 +205,29 @@ func (api *AWSServerlessApi) Swagger() ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("no swagger definition found")
+}
 
+func (api *AWSServerlessApi) ensureJSON(data []byte) ([]byte, error) {
+	var tmpDefinition interface{}
+	err := json.Unmarshal(data, &tmpDefinition)
+
+	if err != nil { // may be yaml
+		err = yaml.Unmarshal(data, &tmpDefinition)
+
+		if err != nil {
+			// we can't make it work either as json or yaml. fail :(
+			return nil, err
+		}
+		tmpDefinition = yamlToJSON(tmpDefinition)
+
+		outputData, err := json.Marshal(tmpDefinition)
+		if err != nil {
+			return nil, err
+		}
+		return outputData, nil
+	}
+
+	return data, nil
 }
 
 func (api *AWSServerlessApi) getSwaggerFromURI(uri string) ([]byte, error) {
@@ -238,4 +269,28 @@ func (api *AWSServerlessApi) getSwaggerFromString(input string) ([]byte, error) 
 
 func (api *AWSServerlessApi) getSwaggerFromMap(input map[string]interface{}) ([]byte, error) {
 	return json.Marshal(input)
+}
+
+// Recursively convert a map[interface{}]interface{} (yaml) to map[string]interface{} (json)
+// with an additional special case for the Swagger version that makes the offical Swagger
+// library very upset.
+func yamlToJSON(i interface{}) interface{} {
+	switch x := i.(type) {
+	case map[interface{}]interface{}:
+		m2 := map[string]interface{}{}
+		for k, v := range x {
+			// we have a special case for the swagger version, we need to convert it to a string
+			if strings.ToLower(k.(string)) == "swagger" {
+				m2[k.(string)] = fmt.Sprintf("%v", v)
+			} else {
+				m2[k.(string)] = yamlToJSON(v)
+			}
+		}
+		return m2
+	case []interface{}:
+		for i, v := range x {
+			x[i] = yamlToJSON(v)
+		}
+	}
+	return i
 }
