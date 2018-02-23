@@ -78,31 +78,34 @@ var (
 )
 
 var runtimeName = struct {
-	nodejs    string
-	nodejs43  string
-	nodejs610 string
-	python27  string
-	python36  string
-	java8     string
-	go1x      string
+	nodejs       string
+	nodejs43     string
+	nodejs610    string
+	python27     string
+	python36     string
+	java8        string
+	go1x         string
+	dotnetcore20 string
 }{
-	nodejs:    "nodejs",
-	nodejs43:  "nodejs4.3",
-	nodejs610: "nodejs6.10",
-	python27:  "python2.7",
-	python36:  "python3.6",
-	java8:     "java8",
-	go1x:      "go1.x",
+	nodejs:       "nodejs",
+	nodejs43:     "nodejs4.3",
+	nodejs610:    "nodejs6.10",
+	python27:     "python2.7",
+	python36:     "python3.6",
+	java8:        "java8",
+	go1x:         "go1.x",
+	dotnetcore20: "dotnetcore2.0",
 }
 
 var runtimeImageFor = map[string]string{
-	runtimeName.nodejs:    "lambci/lambda:nodejs",
-	runtimeName.nodejs43:  "lambci/lambda:nodejs4.3",
-	runtimeName.nodejs610: "lambci/lambda:nodejs6.10",
-	runtimeName.python27:  "lambci/lambda:python2.7",
-	runtimeName.python36:  "lambci/lambda:python3.6",
-	runtimeName.java8:     "lambci/lambda:java8",
-	runtimeName.go1x:      "lambci/lambda:go1.x",
+	runtimeName.nodejs:       "lambci/lambda:nodejs",
+	runtimeName.nodejs43:     "lambci/lambda:nodejs4.3",
+	runtimeName.nodejs610:    "lambci/lambda:nodejs6.10",
+	runtimeName.python27:     "lambci/lambda:python2.7",
+	runtimeName.python36:     "lambci/lambda:python3.6",
+	runtimeName.java8:        "lambci/lambda:java8",
+	runtimeName.go1x:         "lambci/lambda:go1.x",
+	runtimeName.dotnetcore20: "lambci/lambda:dotnetcore2.0",
 }
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
