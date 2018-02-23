@@ -114,7 +114,16 @@ func getEnvOverrides(logicalID string, filename string) map[string]string {
 			log.Printf("Invalid environment override file %s: %s\n", filename, err)
 			return map[string]string{}
 		}
+		// In case we have a cloudformation parameters json, structure {Parameters: {key:value}}
+		if _,ok := overrides["Parameters"]; ok {
+			if _,ok := overrides[logicalID]; ! ok {
+				overrides[logicalID] = map[string]string{}
+			}
 
+			for k, v := range overrides["Parameters"] {
+		    	overrides[logicalID][k] = v
+			}
+		}
 		return overrides[logicalID]
 
 	}
