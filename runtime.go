@@ -42,15 +42,14 @@ import (
 
 // Invoker is a simple interface to help with testing runtimes
 type Invoker interface {
-	Invoke(string, string) (io.Reader, io.Reader, error)
+	Invoke(string, string, context.Context) (io.Reader, io.Reader, *time.Timer, string, error)
 	InvokeHTTP(string) func(http.ResponseWriter, *http.Request)
-	CleanUp()
+	CleanUp(*time.Timer, context.Context, string)
 }
 
 // Runtime contains a reference to a single container for a specific runtime. It is used to invoke functions multiple times against a single container.
 type Runtime struct {
 	LogicalID       string
-	ID              string
 	Name            string
 	Image           string
 	Cwd             string
@@ -60,7 +59,6 @@ type Runtime struct {
 	DebugPort       string
 	Context         context.Context
 	Client          *client.Client
-	TimeoutTimer    *time.Timer
 	Logger          io.Writer
 	DockerNetwork   string
 }
@@ -265,7 +263,7 @@ func (r *Runtime) getHostConfig() (*container.HostConfig, error) {
 // Invoke runs a Lambda function within the runtime with the provided event
 // payload and returns a pair of io.Readers for it's stdout (callback results)
 // and stderr (runtime logs).
-func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, error) {
+func (r *Runtime) Invoke(event string, profile string, containerContext context.Context) (io.Reader, io.Reader, *time.Timer, string, error) {
 
 	log.Printf("Invoking %s (%s)\n", r.Function.Handler, r.Name)
 
@@ -281,7 +279,7 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 				decompressedDir, err := decompressArchive(codeuri)
 				if err != nil {
 					log.Printf("ERROR: Failed to decompress archive: %s\n", err)
-					return nil, nil, fmt.Errorf("failed to decompress archive: %s", err)
+					return nil, nil, nil, "", fmt.Errorf("failed to decompress archive: %s", err)
 				}
 				r.DecompressedCwd = decompressedDir
 			} else {
@@ -330,30 +328,30 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 
 	host, err := r.getHostConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, "", err
 	}
 
-	resp, err := r.Client.ContainerCreate(r.Context, config, host, nil, "")
+	resp, err := r.Client.ContainerCreate(containerContext, config, host, nil, "")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, "", err
 	}
 
-	r.ID = resp.ID
+	id := resp.ID
 
 	if r.DockerNetwork != "" {
-		if err := r.Client.NetworkConnect(r.Context, r.DockerNetwork, resp.ID, nil); err != nil {
-			return nil, nil, err
+		if err := r.Client.NetworkConnect(containerContext, r.DockerNetwork, resp.ID, nil); err != nil {
+			return nil, nil, nil, "", err
 		}
 		log.Printf("Connecting container %s to network %s", resp.ID, r.DockerNetwork)
 	}
 
 	// Invoke the container
-	if err := r.Client.ContainerStart(r.Context, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return nil, nil, err
+	if err := r.Client.ContainerStart(containerContext, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return nil, nil, nil, "", err
 	}
 
 	// Attach to the container to read the stdout/stderr stream
-	attach, err := r.Client.ContainerAttach(r.Context, resp.ID, types.ContainerAttachOptions{
+	attach, err := r.Client.ContainerAttach(containerContext, resp.ID, types.ContainerAttachOptions{
 		Stream: true,
 		Stdin:  false,
 		Stdout: true,
@@ -368,35 +366,38 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 	// src: https://docs.docker.com/engine/api/v1.28/#operation/ContainerAttach
 	stdout, stderr, err := demuxDockerStream(attach.Reader)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, "", err
 	}
 
+	var timeoutTimer *time.Timer
 	if len(r.DebugPort) == 0 {
-		r.setupTimeoutTimer(stdout, stderr)
+		timeoutTimer = r.setupTimeoutTimer(stdout, stderr, containerContext, id)
 	} else {
-		r.setupInterruptHandler(stdout, stderr)
+		r.setupInterruptHandler(stdout, stderr, containerContext, id)
 	}
 
-	return stdout, stderr, nil
+	return stdout, stderr, timeoutTimer, id, nil
 
 }
 
-func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser) {
+func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser, containerContext context.Context, id string) *time.Timer {
 
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
 	timeout := time.Duration(r.Function.Timeout) * time.Second
 
-	r.TimeoutTimer = time.NewTimer(timeout)
+	timeoutTimer := time.NewTimer(timeout)
 	go func() {
-		<-r.TimeoutTimer.C
+		<-timeoutTimer.C
 		log.Printf("Function %s timed out after %d seconds", r.Function.Handler, timeout/time.Second)
 		stderr.Close()
 		stdout.Close()
-		r.CleanUp()
+		r.CleanUp(timeoutTimer, containerContext, id)
 	}()
+
+	return timeoutTimer
 }
 
-func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser) {
+func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser, containerContext context.Context, id string) {
 	iChan := make(chan os.Signal, 2)
 	signal.Notify(iChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -404,7 +405,7 @@ func (r *Runtime) setupInterruptHandler(stdout, stderr io.ReadCloser) {
 		log.Printf("Execution of function %q was interrupted", r.Function.Handler)
 		stderr.Close()
 		stdout.Close()
-		r.CleanUp()
+		r.CleanUp(nil, containerContext, id)
 		os.Exit(0)
 	}()
 }
@@ -484,16 +485,16 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 }
 
 // CleanUp removes the Docker container used by this runtime
-func (r *Runtime) CleanUp() {
+func (r *Runtime) CleanUp(timeoutTimer *time.Timer, containerContext context.Context, id string) {
 
 	// Stop the Lambda timeout timer
-	if r.TimeoutTimer != nil {
-		r.TimeoutTimer.Stop()
+	if timeoutTimer != nil {
+		timeoutTimer.Stop()
 	}
 
 	// Remove the container
-	r.Client.ContainerKill(r.Context, r.ID, "SIGKILL")
-	r.Client.ContainerRemove(r.Context, r.ID, types.ContainerRemoveOptions{})
+	r.Client.ContainerKill(containerContext, id, "SIGKILL")
+	r.Client.ContainerRemove(containerContext, id, types.ContainerRemoveOptions{})
 
 	// Remove any decompressed archive if there was one (e.g. ZIP/JAR)
 	if r.DecompressedCwd != "" {
@@ -528,7 +529,8 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 			return
 		}
 
-		stdoutTxt, stderrTxt, err := r.Invoke(eventJSON, profile)
+		containerContext := context.Background()
+		stdoutTxt, stderrTxt, timeoutTimer, id, err := r.Invoke(eventJSON, profile, containerContext)
 		if err != nil {
 			msg := fmt.Sprintf("Error invoking %s runtime: %s", r.Function.Runtime, err)
 			log.Println(msg)
@@ -553,7 +555,7 @@ func (r *Runtime) InvokeHTTP(profile string) func(http.ResponseWriter, *http.Req
 
 		wg.Wait()
 
-		r.CleanUp()
+		r.CleanUp(timeoutTimer, containerContext, id)
 	}
 
 }

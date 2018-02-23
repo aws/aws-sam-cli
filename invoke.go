@@ -11,6 +11,8 @@ import (
 	"io"
 	"sync"
 
+	"golang.org/x/net/context"
+
 	"github.com/awslabs/goformation"
 	"github.com/awslabs/goformation/intrinsics"
 	"github.com/codegangsta/cli"
@@ -124,7 +126,8 @@ func invoke(c *cli.Context) {
 		event = string(pb)
 	}
 
-	stdoutTxt, stderrTxt, err := runt.Invoke(event, c.String("profile"))
+	ctx := context.Background()
+	stdoutTxt, stderrTxt, timeoutTimer, id, err := runt.Invoke(event, c.String("profile"), ctx)
 	if err != nil {
 		log.Fatalf("Could not invoke function: %s\n", err)
 	}
@@ -145,5 +148,5 @@ func invoke(c *cli.Context) {
 	wg.Wait()
 
 	fmt.Fprintf(stderr, "\n")
-	runt.CleanUp()
+	runt.CleanUp(timeoutTimer, ctx, id)
 }
