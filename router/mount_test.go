@@ -48,17 +48,30 @@ var _ = Describe("ServerlessRouterMount", func() {
 
 		methods := m.Methods()
 		It("should have the correct HTTP method", func() {
-			Expect(methods).To(HaveLen(8))
+			Expect(methods).To(HaveLen(7))
 			Expect(methods).To(ContainElement("OPTIONS"))
 			Expect(methods).To(ContainElement("GET"))
 			Expect(methods).To(ContainElement("HEAD"))
 			Expect(methods).To(ContainElement("POST"))
 			Expect(methods).To(ContainElement("PUT"))
 			Expect(methods).To(ContainElement("DELETE"))
-			Expect(methods).To(ContainElement("TRACE"))
-			Expect(methods).To(ContainElement("CONNECT"))
+			Expect(methods).To(ContainElement("PATCH"))
 		})
 
+	})
+
+	Context("Catch-all resource path", func() {
+		m := ServerlessRouterMount{
+			Path: "/{proxy+}",
+			Method: "any",
+		}
+
+		It("should replace + correctly", func() {
+			Expect(m.GetMuxPath()).To(Equal("/{proxy:" + MuxPathRegex + "}"))
+		})
+		It("should support all methods", func() {
+			Expect(m.Methods()).To(HaveLen(7))
+		})
 	})
 
 })

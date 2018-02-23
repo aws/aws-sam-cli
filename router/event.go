@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"encoding/json"
@@ -10,15 +10,16 @@ import (
 
 // Event represents an event passed to an AWS Lambda function by the runtime
 type Event struct {
-	HTTPMethod        string            `json:"httpMethod,omitempty"`
-	Body              string            `json:"body,omitempty"`
-	Resource          string            `json:"resource,omitempty"`
-	RequestContext    RequestContext    `json:"requestContext,omitempty"`
-	QueryStringParams map[string]string `json:"queryStringParameters,omitempty"`
-	Headers           map[string]string `json:"headers,omitempty"`
-	PathParameters    map[string]string `json:"pathParameters,omitempty"`
-	StageVariables    map[string]string `json:"stageVariables,omitempty"`
-	Path              string            `json:"path,omitempty"`
+	HTTPMethod        string            `json:"httpMethod"`
+	Body              string            `json:"body"`
+	Resource          string            `json:"resource"`
+	RequestContext    RequestContext    `json:"requestContext"`
+	QueryStringParams map[string]string `json:"queryStringParameters"`
+	Headers           map[string]string `json:"headers"`
+	PathParameters    map[string]string `json:"pathParameters"`
+	StageVariables    map[string]string `json:"stageVariables"`
+	Path              string            `json:"path"`
+	IsBase64Encoded   bool              `json:"isBase64Encoded"`
 }
 
 // RequestContext represents the context object that gets passed to an AWS Lambda function
@@ -49,12 +50,16 @@ type ContextIdentity struct {
 }
 
 // NewEvent initalises and populates a new ApiEvent with
-// event details from a http.Request
-func NewEvent(req *http.Request) (*Event, error) {
+// event details from a http.Request and isBase64Encoded value
+func NewEvent(req *http.Request, isBase64Encoded bool) (*Event, error) {
 
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return nil, err
+	var body []byte
+	if req.Body != nil {
+		var err error
+		body, err = ioutil.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	headers := map[string]string{}
@@ -84,6 +89,7 @@ func NewEvent(req *http.Request) (*Event, error) {
 		Path:              req.URL.Path,
 		Resource:          req.URL.Path,
 		PathParameters:    pathParams,
+		IsBase64Encoded:   isBase64Encoded,
 	}
 
 	event.RequestContext.Identity.SourceIP = req.RemoteAddr
