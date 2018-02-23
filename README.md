@@ -268,7 +268,7 @@ To pass additional runtime arguments when debugging your function, use the envir
 For example, if you want to load a debugger like iKPdb at runtime of your Python function, you could pass the following as `DEBUGGER_ARGUMENTS`: `-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0`. This would load iKPdb at runtime with the other arguments you've specified. In this case, your full SAM local command would be:
 
 ```bash
-$ DEBUGGER_ARGUMENTS="-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0" echo {} | sam local invoke myFunction
+$ DEBUGGER_ARGUMENTS="-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0" echo {} | sam local invoke -d 5858 myFunction
 ```
 
 You may pass debugger arguments to functions of all runtimes.
