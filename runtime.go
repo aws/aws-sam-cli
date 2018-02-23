@@ -75,28 +75,34 @@ var (
 )
 
 var runtimeName = struct {
-	nodejs    string
-	nodejs43  string
-	nodejs610 string
-	python27  string
-	python36  string
-	java8     string
+	nodejs       string
+	nodejs43     string
+	nodejs610    string
+	python27     string
+	python36     string
+	java8        string
+	go1x         string
+	dotnetcore20 string
 }{
-	nodejs:    "nodejs",
-	nodejs43:  "nodejs4.3",
-	nodejs610: "nodejs6.10",
-	python27:  "python2.7",
-	python36:  "python3.6",
-	java8:     "java8",
+	nodejs:       "nodejs",
+	nodejs43:     "nodejs4.3",
+	nodejs610:    "nodejs6.10",
+	python27:     "python2.7",
+	python36:     "python3.6",
+	java8:        "java8",
+	go1x:         "go1.x",
+	dotnetcore20: "dotnetcore2.0",
 }
 
 var runtimeImageFor = map[string]string{
-	runtimeName.nodejs:    "lambci/lambda:nodejs",
-	runtimeName.nodejs43:  "lambci/lambda:nodejs4.3",
-	runtimeName.nodejs610: "lambci/lambda:nodejs6.10",
-	runtimeName.python27:  "lambci/lambda:python2.7",
-	runtimeName.python36:  "lambci/lambda:python3.6",
-	runtimeName.java8:     "lambci/lambda:java8",
+	runtimeName.nodejs:       "lambci/lambda:nodejs",
+	runtimeName.nodejs43:     "lambci/lambda:nodejs4.3",
+	runtimeName.nodejs610:    "lambci/lambda:nodejs6.10",
+	runtimeName.python27:     "lambci/lambda:python2.7",
+	runtimeName.python36:     "lambci/lambda:python3.6",
+	runtimeName.java8:        "lambci/lambda:java8",
+	runtimeName.go1x:         "lambci/lambda:go1.x",
+	runtimeName.dotnetcore20: "lambci/lambda:dotnetcore2.0",
 }
 
 // NewRuntimeOpt contains parameters that are passed to the NewRuntime method
@@ -289,6 +295,22 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 		}
 	}
 
+	// If the timeout hasn't been set for the function in the SAM template
+	// then default to 3 seconds (as per SAM specification).
+	// This needs to be done before environment variables are generated for
+	// the Lambda runtime so that the correct AWS_LAMBDA_FUNCTION_TIMEOUT is used
+	if r.Function.Timeout <= 0 {
+		r.Function.Timeout = 3
+	}
+
+	// If the memory size hasn't been set for the function in the SAM template
+	// then default to 128MB (as per SAM specification).
+	// This needs to be done before environment variables are generated for
+	// the Lambda runtime so that the correct AWS_LAMBDA_FUNCTION_MEMORY_SIZE is used
+	if r.Function.MemorySize <= 0 {
+		r.Function.MemorySize = 128
+	}
+
 	// Define the container options
 	config := &container.Config{
 		WorkingDir:   "/var/task",
@@ -360,11 +382,10 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 }
 
 func (r *Runtime) setupTimeoutTimer(stdout, stderr io.ReadCloser) {
+
 	// Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-	timeout := time.Duration(3) * time.Second
-	if r.Function.Timeout > 0 {
-		timeout = time.Duration(r.Function.Timeout) * time.Second
-	}
+	timeout := time.Duration(r.Function.Timeout) * time.Second
+
 	r.TimeoutTimer = time.NewTimer(timeout)
 	go func() {
 		<-r.TimeoutTimer.C
@@ -650,6 +671,15 @@ func getWorkingDir(dir string) string {
 			return ""
 		}
 		dir = cwd
+	}
+
+	// Docker volumes require an absolute path.
+	// If the path exists, use the absolute version.
+	if _, err := os.Stat(dir); err == nil {
+		absolute, err := filepath.Abs(dir)
+		if err == nil {
+			dir = absolute
+		}
 	}
 
 	// Windows uses \ as the path delimiter, but Docker requires / as the path delimiter.
