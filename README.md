@@ -469,7 +469,7 @@ sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Rating
   - [ ] `dotnetcore1.0`
 * [x] AWS credential support 
 * [x] Debugging support
-* [ ] Inline Swagger support within SAM templates
+* [x] Inline Swagger support within SAM templates
 
 ## Contributing
 
