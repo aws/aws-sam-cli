@@ -1,0 +1,14 @@
+---
+swagger: 2.0
+
+info:
+  title: example
+  version: 0.1.0
+
+paths:
+  /:
+    post:
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:<<region>>:<<accountId>>:function:${stageVariables.LambdaFunctionName}/invocations
