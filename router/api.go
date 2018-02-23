@@ -16,6 +16,7 @@ import (
 
 const apiGatewayIntegrationExtension = "x-amazon-apigateway-integration"
 const apiGatewayAnyMethodExtension = "x-amazon-apigateway-any-method"
+const apiGatewayBinaryMediaTypesExtension = "x-amazon-apigateway-binary-media-types"
 
 // temporary object. This is just used to marshal and unmarshal the any method
 // API Gateway swagger extension
@@ -49,6 +50,11 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 
 	mounts := []*ServerlessRouterMount{}
 
+	binaryMediaTypes, ok := swagger.VendorExtensible.Extensions.GetStringSlice(apiGatewayBinaryMediaTypesExtension)
+	if !ok {
+		binaryMediaTypes = []string{}
+	}
+
 	for path, pathItem := range swagger.Paths.Paths {
 		// temporary tracking of mounted methods for the current path. Used to
 		// mount all non-existing methods for the any extension. This is because
@@ -75,7 +81,8 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 				mounts = append(mounts, api.createMount(
 					path,
 					strings.ToLower(method),
-					api.parseIntegrationSettings(integration)))
+					api.parseIntegrationSettings(integration),
+					binaryMediaTypes))
 				mappedMethods[method] = true
 			}
 		}
@@ -100,7 +107,8 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 					mounts = append(mounts, api.createMount(
 						path,
 						strings.ToLower(method),
-						api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+						api.parseIntegrationSettings(anyMethodObject.IntegrationSettings),
+						binaryMediaTypes))
 				}
 			}
 		}
@@ -129,11 +137,12 @@ func (api *AWSServerlessApi) parseIntegrationSettings(integrationData interface{
 	return &integration
 }
 
-func (api *AWSServerlessApi) createMount(path string, verb string, integration *ApiGatewayIntegration) *(ServerlessRouterMount) {
+func (api *AWSServerlessApi) createMount(path string, verb string, integration *ApiGatewayIntegration, binaryMediaTypes []string) *(ServerlessRouterMount) {
 	newMount := &ServerlessRouterMount{
-		Name:   path,
-		Path:   path,
-		Method: verb,
+		Name:             path,
+		Path:             path,
+		Method:           verb,
+		BinaryMediaTypes: binaryMediaTypes,
 	}
 
 	if integration == nil {
