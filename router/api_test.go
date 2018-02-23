@@ -1,6 +1,8 @@
 package router_test
 
 import (
+	"strings"
+
 	"github.com/awslabs/aws-sam-local/router"
 	"github.com/awslabs/goformation/cloudformation"
 
@@ -8,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func getApiResourceFromTemplate(path string) (*router.AWSServerlessApi) {
+func getApiResourceFromTemplate(path string) *router.AWSServerlessApi {
 	templateUri := &path
 	apiResource := &router.AWSServerlessApi{
 		AWSServerlessApi: &cloudformation.AWSServerlessApi{
@@ -23,13 +25,6 @@ func getApiResourceFromTemplate(path string) (*router.AWSServerlessApi) {
 var _ = Describe("Api", func() {
 
 	Context("Load local Swagger definitions", func() {
-		/*apiResource := router.AWSServerlessApi{}
-		templateUri := new(string)
-		*templateUri = "test/templates/open-api/pet-store-simple.json"
-		definitionUri := new(cloudformation.AWSServerlessApi_StringOrS3Location)
-		definitionUri.String = templateUri
-
-		apiResource.DefinitionUri = definitionUri*/
 		It("Succesfully loads the basic template", func() {
 			apiResource := getApiResourceFromTemplate("../test/templates/open-api/pet-store-simple.json")
 
@@ -75,6 +70,17 @@ var _ = Describe("Api", func() {
 					Expect(mount.IntegrationArn.Arn).Should(ContainSubstring("Calc"))
 				}
 			}
+		})
+
+		It("Loads a YAML Swagger template", func() {
+			apiResource := getApiResourceFromTemplate("../test/templates/open-api/simple-yaml.yaml")
+
+			mounts, err := apiResource.Mounts()
+			Expect(err).To(BeNil())
+			Expect(mounts).ToNot(BeNil())
+			Expect(1).To(Equal(len(mounts)))
+			Expect("/").To(Equal(mounts[0].Path))
+			Expect("post").To(Equal(strings.ToLower(mounts[0].Method)))
 		})
 
 	})

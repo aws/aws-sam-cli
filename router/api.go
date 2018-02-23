@@ -12,10 +12,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/go-openapi/spec"
+	"github.com/sanathkr/go-yaml"
 )
 
 const apiGatewayIntegrationExtension = "x-amazon-apigateway-integration"
 const apiGatewayAnyMethodExtension = "x-amazon-apigateway-any-method"
+const apiGatewayBinaryMediaTypesExtension = "x-amazon-apigateway-binary-media-types"
 
 // temporary object. This is just used to marshal and unmarshal the any method
 // API Gateway swagger extension
@@ -39,6 +41,7 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 		// this is our own error so we return it directly
 		return nil, err
 	}
+
 	swagger := spec.Swagger{}
 	err = swagger.UnmarshalJSON(jsonDefinition)
 
@@ -47,6 +50,11 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 	}
 
 	mounts := []*ServerlessRouterMount{}
+
+	binaryMediaTypes, ok := swagger.VendorExtensible.Extensions.GetStringSlice(apiGatewayBinaryMediaTypesExtension)
+	if !ok {
+		binaryMediaTypes = []string{}
+	}
 
 	for path, pathItem := range swagger.Paths.Paths {
 		// temporary tracking of mounted methods for the current path. Used to
@@ -58,12 +66,14 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 
 			if operationIface, err := pathItem.JSONLookup(strings.ToLower(method)); err == nil {
 				operation := spec.Operation{}
-
-				operationJson, err := json.Marshal(operationIface)
+				operationJSON, err := json.Marshal(operationIface)
 				if err != nil {
 					return nil, fmt.Errorf("Could not parse %s operation: %s", method, err.Error())
 				}
-				operation.UnmarshalJSON(operationJson)
+				operation.UnmarshalJSON(operationJSON)
+
+				// the JSON will always contain the method because it's a property in the Swagger model
+				// If we don't have an integration defined then we skip it.
 				if operation.Extensions[apiGatewayIntegrationExtension] == nil {
 					continue
 				}
@@ -72,7 +82,8 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 				mounts = append(mounts, api.createMount(
 					path,
 					strings.ToLower(method),
-					api.parseIntegrationSettings(integration)))
+					api.parseIntegrationSettings(integration),
+					binaryMediaTypes))
 				mappedMethods[method] = true
 			}
 		}
@@ -80,13 +91,13 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 		anyMethod, available := pathItem.Extensions[apiGatewayAnyMethodExtension]
 		if available {
 			// any method to json then unmarshal to temporary object
-			anyMethodJson, err := json.Marshal(anyMethod)
+			anyMethodJSON, err := json.Marshal(anyMethod)
 			if err != nil {
 				return nil, fmt.Errorf("Could not marshal any method object to json")
 			}
 
 			anyMethodObject := ApiGatewayAnyMethod{}
-			err = json.Unmarshal(anyMethodJson, &anyMethodObject)
+			err = json.Unmarshal(anyMethodJSON, &anyMethodObject)
 
 			if err != nil {
 				return nil, fmt.Errorf("Could not unmarshal any method josn to object model")
@@ -97,7 +108,8 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 					mounts = append(mounts, api.createMount(
 						path,
 						strings.ToLower(method),
-						api.parseIntegrationSettings(anyMethodObject.IntegrationSettings)))
+						api.parseIntegrationSettings(anyMethodObject.IntegrationSettings),
+						binaryMediaTypes))
 				}
 			}
 		}
@@ -109,14 +121,14 @@ func (api *AWSServerlessApi) Mounts() ([]*ServerlessRouterMount, error) {
 // parses a byte[] for the API Gateway inetegration extension from a method and return
 // the object representation
 func (api *AWSServerlessApi) parseIntegrationSettings(integrationData interface{}) *ApiGatewayIntegration {
-	integrationJson, err := json.Marshal(integrationData)
+	integrationJSON, err := json.Marshal(integrationData)
 	if err != nil {
 		log.Printf("Could not parse integration data to json")
 		return nil
 	}
 
 	integration := ApiGatewayIntegration{}
-	err = json.Unmarshal(integrationJson, &integration)
+	err = json.Unmarshal(integrationJSON, &integration)
 
 	if err != nil {
 		log.Printf("Could not unmarshal integration data to ApiGatewayIntegration model")
@@ -126,11 +138,12 @@ func (api *AWSServerlessApi) parseIntegrationSettings(integrationData interface{
 	return &integration
 }
 
-func (api *AWSServerlessApi) createMount(path string, verb string, integration *ApiGatewayIntegration) *(ServerlessRouterMount) {
+func (api *AWSServerlessApi) createMount(path string, verb string, integration *ApiGatewayIntegration, binaryMediaTypes []string) *(ServerlessRouterMount) {
 	newMount := &ServerlessRouterMount{
-		Name:   path,
-		Path:   path,
-		Method: verb,
+		Name:             path,
+		Path:             path,
+		Method:           verb,
+		BinaryMediaTypes: binaryMediaTypes,
 	}
 
 	if integration == nil {
@@ -157,14 +170,22 @@ func (api *AWSServerlessApi) Swagger() ([]byte, error) {
 	// 1. A definition URI defined as a string
 	if api.DefinitionUri != nil {
 		if api.DefinitionUri.String != nil {
-			return api.getSwaggerFromURI(*api.DefinitionUri.String)
+			data, err := api.getSwaggerFromURI(*api.DefinitionUri.String)
+			if err != nil {
+				return nil, err
+			}
+			return api.ensureJSON(data)
 		}
 	}
 
 	// 2. A definition URI defined as an S3 Location
 	if api.DefinitionUri != nil {
 		if api.DefinitionUri.S3Location != nil {
-			return api.getSwaggerFromS3Location(*api.DefinitionUri.S3Location)
+			data, err := api.getSwaggerFromS3Location(*api.DefinitionUri.S3Location)
+			if err != nil {
+				return nil, err
+			}
+			return api.ensureJSON(data)
 		}
 	}
 
@@ -184,7 +205,29 @@ func (api *AWSServerlessApi) Swagger() ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("no swagger definition found")
+}
 
+func (api *AWSServerlessApi) ensureJSON(data []byte) ([]byte, error) {
+	var tmpDefinition interface{}
+	err := json.Unmarshal(data, &tmpDefinition)
+
+	if err != nil { // may be yaml
+		err = yaml.Unmarshal(data, &tmpDefinition)
+
+		if err != nil {
+			// we can't make it work either as json or yaml. fail :(
+			return nil, err
+		}
+		tmpDefinition = yamlToJSON(tmpDefinition)
+
+		outputData, err := json.Marshal(tmpDefinition)
+		if err != nil {
+			return nil, err
+		}
+		return outputData, nil
+	}
+
+	return data, nil
 }
 
 func (api *AWSServerlessApi) getSwaggerFromURI(uri string) ([]byte, error) {
@@ -226,4 +269,28 @@ func (api *AWSServerlessApi) getSwaggerFromString(input string) ([]byte, error) 
 
 func (api *AWSServerlessApi) getSwaggerFromMap(input map[string]interface{}) ([]byte, error) {
 	return json.Marshal(input)
+}
+
+// Recursively convert a map[interface{}]interface{} (yaml) to map[string]interface{} (json)
+// with an additional special case for the Swagger version that makes the offical Swagger
+// library very upset.
+func yamlToJSON(i interface{}) interface{} {
+	switch x := i.(type) {
+	case map[interface{}]interface{}:
+		m2 := map[string]interface{}{}
+		for k, v := range x {
+			// we have a special case for the swagger version, we need to convert it to a string
+			if strings.ToLower(k.(string)) == "swagger" {
+				m2[k.(string)] = fmt.Sprintf("%v", v)
+			} else {
+				m2[k.(string)] = yamlToJSON(v)
+			}
+		}
+		return m2
+	case []interface{}:
+		for i, v := range x {
+			x[i] = yamlToJSON(v)
+		}
+	}
+	return i
 }

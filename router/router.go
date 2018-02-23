@@ -3,6 +3,7 @@ package router
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/gorilla/mux"
@@ -33,7 +34,7 @@ func NewServerlessRouter(usePrefix bool) *ServerlessRouter {
 
 // AddFunction adds a AWS::Serverless::Function to the router and mounts all of it's
 // event sources that have type 'Api'
-func (r *ServerlessRouter) AddFunction(f *cloudformation.AWSServerlessFunction, handler http.HandlerFunc) error {
+func (r *ServerlessRouter) AddFunction(f *cloudformation.AWSServerlessFunction, handler EventHandlerFunc) error {
 
 	// Wrap GoFormation's AWS::Serverless::Function definition in our own, which provides
 	// convenience methods for extracting the ServerlessRouterMount(s) from it.
@@ -84,16 +85,20 @@ func (r *ServerlessRouter) mergeMounts(newMounts []*ServerlessRouterMount) error
 		newMountExists := false
 
 		for _, existingMount := range r.mounts {
-			if newMount.Path == existingMount.Path && newMount.Method == existingMount.Method {
+			if newMount.Path == existingMount.Path && strings.ToLower(newMount.Method) == strings.ToLower(existingMount.Method) {
 				newMountExists = true
 				// if the new mount has a valid handler I override the existing one anyway
 				if newMount.Handler != nil {
 					existingMount.Handler = newMount.Handler
+					existingMount.Function = newMount.Function
 				}
 			}
 		}
 
 		if !newMountExists {
+			if newMount.Handler == nil {
+				newMount.Handler = r.missingFunctionHandler()
+			}
 			r.mounts = append(r.mounts, newMount)
 		}
 	}
@@ -110,7 +115,7 @@ func (r *ServerlessRouter) Router() http.Handler {
 
 	// Mount all of the things!
 	for _, mount := range r.Mounts() {
-		r.mux.Handle(mount.GetMuxPath(), mount.Handler).Methods(mount.Methods()...)
+		r.mux.Handle(mount.GetMuxPath(), mount.WrappedHandler()).Methods(mount.Methods()...)
 	}
 
 	return r.mux
@@ -120,4 +125,12 @@ func (r *ServerlessRouter) Router() http.Handler {
 // Mounts returns a list of the mounts associated with this router
 func (r *ServerlessRouter) Mounts() []*ServerlessRouterMount {
 	return r.mounts
+}
+
+func (r *ServerlessRouter) missingFunctionHandler() func(http.ResponseWriter, *Event) {
+	return func(w http.ResponseWriter, event *Event) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadGateway)
+		w.Write([]byte(`{ "message": "No function defined for resource method" }`))
+	}
 }
