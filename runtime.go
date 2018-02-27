@@ -432,12 +432,17 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 	if len(r.DebugPort) == 0 {
 		return
 	}
+	debuggerArgs := os.Getenv("DEBUGGER_ARGS")
+	debuggerArgsArray := strings.Split(debuggerArgs, " ")
 	switch r.Name {
 	// configs from: https://github.com/lambci/docker-lambda
 	// to which we add the extra debug mode options
 	case runtimeName.java8:
 		overrides = []string{
 			"/usr/bin/java",
+		}
+		overrides = append(overrides, debuggerArgsArray...)
+		overrides = append(overrides,
 			"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=" + r.DebugPort,
 			"-XX:MaxHeapSize=1336935k",
 			"-XX:MaxMetaspaceSize=157286k",
@@ -447,10 +452,13 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"-XX:-TieredCompilation",
 			"-jar",
 			"/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
-		}
+		)
 	case runtimeName.nodejs:
 		overrides = []string{
 			"/usr/bin/node",
+		}
+		overrides = append(overrides, debuggerArgsArray...)
+		overrides = append(overrides,
 			"--debug-brk=" + r.DebugPort,
 			"--nolazy",
 			"--max-old-space-size=1229",
@@ -458,10 +466,13 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"--max-executable-size=153",
 			"--expose-gc",
 			"/var/runtime/node_modules/awslambda/bin/awslambda",
-		}
+		)
 	case runtimeName.nodejs43:
 		overrides = []string{
 			"/usr/local/lib64/node-v4.3.x/bin/node",
+		}
+		overrides = append(overrides, debuggerArgsArray...)
+		overrides = append(overrides,
 			"--debug-brk=" + r.DebugPort,
 			"--nolazy",
 			"--max-old-space-size=1229",
@@ -469,10 +480,13 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"--max-executable-size=153",
 			"--expose-gc",
 			"/var/runtime/node_modules/awslambda/index.js",
-		}
+		)
 	case runtimeName.nodejs610:
 		overrides = []string{
 			"/var/lang/bin/node",
+		}
+		overrides = append(overrides, debuggerArgsArray...)
+		overrides = append(overrides,
 			"--inspect=" + r.DebugPort,
 			"--debug-brk",
 			"--nolazy",
@@ -481,8 +495,13 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"--max-executable-size=153",
 			"--expose-gc",
 			"/var/runtime/node_modules/awslambda/index.js",
+		)
+	case runtimeName.python27:
+		overrides = []string{
+			"/usr/bin/python2.7",
 		}
-		// TODO: also add debug mode for Python runtimes
+		overrides = append(overrides, debuggerArgsArray...)
+		overrides = append(overrides, "/var/runtime/awslambda/bootstrap.py")
 	}
 	return
 }
