@@ -487,7 +487,8 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides,
-			"--debug-brk=" + r.DebugPort,
+			"--inspect=" + r.DebugPort,
+			"--debug-brk",
 			"--nolazy",
 			"--max-old-space-size=1229",
 			"--max-semi-space-size=76",
@@ -619,7 +620,7 @@ func parseOutput(w http.ResponseWriter, stdoutTxt io.Reader, runtime string, wg 
 	// Set any HTTP headers requested by the proxy function
 	if len(proxy.Headers) > 0 {
 		for key, value := range proxy.Headers {
-			w.Header().Set(key, value)
+			w.Header().Add(key, value)
 		}
 	}
 
