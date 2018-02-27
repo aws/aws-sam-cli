@@ -249,11 +249,13 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
             "port": 5858,
             "localRoot": "${workspaceRoot}",
             "remoteRoot": "/var/task",
-            "protocol": "legacy"
+            "protocol": "inspector"
         }
     ]
 }
 ``` 
+
+Note: You must detach your debugger in order for the result to be sent back to AWS SAM Local.
 
 #### Debugging Python functions
 
