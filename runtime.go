@@ -502,6 +502,12 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides, "/var/runtime/awslambda/bootstrap.py")
+	case runtimeName.python36:
+		overrides = []string{
+			"/var/lang/bin/python3.6",
+		}
+		overrides = append(overrides, debuggerArgsArray...)
+		overrides = append(overrides, "/var/runtime/awslambda/bootstrap.py")
 	}
 	return
 }
