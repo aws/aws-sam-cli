@@ -488,14 +488,14 @@ sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Rating
 
 ## Project Status
   
-* [ ] Supported AWS Lambda Runtimes
+* [x] Supported AWS Lambda Runtimes
   - [x] `nodejs`
   - [x] `nodejs4.3`
   - [x] `nodejs6.10`
   - [x] `java8`
   - [x] `python2.7`
   - [x] `python3.6`
-  - [ ] `dotnetcore1.0`
+  - [x] `dotnetcore1.0`
 * [x] AWS credential support 
 * [x] Debugging support
 * [x] Inline Swagger support within SAM templates
