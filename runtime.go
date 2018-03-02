@@ -432,8 +432,13 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 	if len(r.DebugPort) == 0 {
 		return
 	}
+
 	debuggerArgs := os.Getenv("DEBUGGER_ARGS")
-	debuggerArgsArray := strings.Split(debuggerArgs, " ")
+	debuggerArgsArray := []string{}
+	if len(debuggerArgs) > 0 {
+		debuggerArgsArray = strings.Split(debuggerArgs, " ")
+	}
+
 	switch r.Name {
 	// configs from: https://github.com/lambci/docker-lambda
 	// to which we add the extra debug mode options
@@ -443,7 +448,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides,
-			"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=" + r.DebugPort,
+			"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address="+r.DebugPort,
 			"-XX:MaxHeapSize=1336935k",
 			"-XX:MaxMetaspaceSize=157286k",
 			"-XX:ReservedCodeCacheSize=78643k",
@@ -459,7 +464,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides,
-			"--debug-brk=" + r.DebugPort,
+			"--debug-brk="+r.DebugPort,
 			"--nolazy",
 			"--max-old-space-size=1229",
 			"--max-new-space-size=153",
@@ -473,7 +478,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides,
-			"--debug-brk=" + r.DebugPort,
+			"--debug-brk="+r.DebugPort,
 			"--nolazy",
 			"--max-old-space-size=1229",
 			"--max-semi-space-size=76",
@@ -487,7 +492,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides,
-			"--inspect=" + r.DebugPort,
+			"--inspect="+r.DebugPort,
 			"--debug-brk",
 			"--nolazy",
 			"--max-old-space-size=1229",
