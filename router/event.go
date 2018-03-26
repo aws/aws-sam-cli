@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -68,6 +69,17 @@ func NewEvent(req *http.Request, isBase64Encoded bool) (*Event, error) {
 			headers[name] = value
 		}
 	}
+
+	// add the forwarded headers we expect to see from an API Gateway request
+	if _, ok := headers["Host"]; !ok {
+		host := req.Host
+		if strings.Contains(host, ":") {
+			host = host[:strings.Index(host, ":")]
+		}
+		headers["Host"] = host
+	}
+	headers["X-Forwarded-Proto"] = req.URL.Scheme
+	headers["X-Forwarded-Port"] = req.URL.Port()
 
 	query := map[string]string{}
 	for name, values := range req.URL.Query() {

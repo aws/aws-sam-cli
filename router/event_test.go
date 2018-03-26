@@ -81,6 +81,40 @@ var _ = Describe("Event", func() {
 					r.Router().ServeHTTP(rec, req)
 				})
 			})
+
+			Context("Includes forwarded headers", func() {
+				req, _ := http.NewRequest("GET", "http://localhost:3000/get", new(bytes.Buffer))
+
+				It("Includes Host header", func() {
+					r.AddFunction(function, func(w http.ResponseWriter, e *Event) {
+						hostHeader, ok := e.Headers["Host"]
+						Expect(ok).To(BeTrue())
+						Expect(hostHeader).To(BeIdenticalTo("localhost"))
+					})
+					rec := httptest.NewRecorder()
+					r.Router().ServeHTTP(rec, req)
+				})
+
+				It("Includes X-Forwarded-Proto header", func() {
+					r.AddFunction(function, func(w http.ResponseWriter, e *Event) {
+						hostHeader, ok := e.Headers["X-Forwarded-Proto"]
+						Expect(ok).To(BeTrue())
+						Expect(hostHeader).To(BeIdenticalTo("http"))
+					})
+					rec := httptest.NewRecorder()
+					r.Router().ServeHTTP(rec, req)
+				})
+
+				It("Includes X-Forwarded-Port header", func() {
+					r.AddFunction(function, func(w http.ResponseWriter, e *Event) {
+						hostHeader, ok := e.Headers["X-Forwarded-Port"]
+						Expect(ok).To(BeTrue())
+						Expect(hostHeader).To(BeIdenticalTo("3000"))
+					})
+					rec := httptest.NewRecorder()
+					r.Router().ServeHTTP(rec, req)
+				})
+			})
 		})
 
 		Context("with no parameters on the route", func() {
