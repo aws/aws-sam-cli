@@ -455,6 +455,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"-XX:+UseSerialGC",
 			//"-Xshare:on", doesn't work in conjunction with the debug options
 			"-XX:-TieredCompilation",
+			"-Djava.net.preferIPv4Stack=true",
 			"-jar",
 			"/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
 		)
@@ -480,9 +481,9 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		overrides = append(overrides,
 			"--debug-brk="+r.DebugPort,
 			"--nolazy",
-			"--max-old-space-size=1229",
-			"--max-semi-space-size=76",
-			"--max-executable-size=153",
+			"--max-old-space-size=2547",
+			"--max-semi-space-size=150",
+			"--max-executable-size=160",
 			"--expose-gc",
 			"/var/runtime/node_modules/awslambda/index.js",
 		)
@@ -495,9 +496,9 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"--inspect="+r.DebugPort,
 			"--debug-brk",
 			"--nolazy",
-			"--max-old-space-size=1229",
-			"--max-semi-space-size=76",
-			"--max-executable-size=153",
+			"--max-old-space-size=2547",
+			"--max-semi-space-size=150",
+			"--max-executable-size=160",
 			"--expose-gc",
 			"/var/runtime/node_modules/awslambda/index.js",
 		)
