@@ -492,10 +492,12 @@ sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Rating
   - [x] `nodejs`
   - [x] `nodejs4.3`
   - [x] `nodejs6.10`
+  - [x] `nodejs8.10`
   - [x] `java8`
   - [x] `python2.7`
   - [x] `python3.6`
   - [ ] `dotnetcore1.0`
+  - [x] `dotnetcore2.0`
 * [x] AWS credential support 
 * [x] Debugging support
 * [x] Inline Swagger support within SAM templates

@@ -81,6 +81,7 @@ var runtimeName = struct {
 	nodejs       string
 	nodejs43     string
 	nodejs610    string
+	nodejs810    string
 	python27     string
 	python36     string
 	java8        string
@@ -90,6 +91,7 @@ var runtimeName = struct {
 	nodejs:       "nodejs",
 	nodejs43:     "nodejs4.3",
 	nodejs610:    "nodejs6.10",
+	nodejs810:    "nodejs8.10",
 	python27:     "python2.7",
 	python36:     "python3.6",
 	java8:        "java8",
@@ -101,6 +103,7 @@ var runtimeImageFor = map[string]string{
 	runtimeName.nodejs:       "lambci/lambda:nodejs",
 	runtimeName.nodejs43:     "lambci/lambda:nodejs4.3",
 	runtimeName.nodejs610:    "lambci/lambda:nodejs6.10",
+	runtimeName.nodejs810:    "lambci/lambda:nodejs8.10",
 	runtimeName.python27:     "lambci/lambda:python2.7",
 	runtimeName.python36:     "lambci/lambda:python3.6",
 	runtimeName.java8:        "lambci/lambda:java8",
@@ -455,6 +458,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"-XX:+UseSerialGC",
 			//"-Xshare:on", doesn't work in conjunction with the debug options
 			"-XX:-TieredCompilation",
+			"-Djava.net.preferIPv4Stack=true",
 			"-jar",
 			"/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
 		)
@@ -480,9 +484,9 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		overrides = append(overrides,
 			"--debug-brk="+r.DebugPort,
 			"--nolazy",
-			"--max-old-space-size=1229",
-			"--max-semi-space-size=76",
-			"--max-executable-size=153",
+			"--max-old-space-size=2547",
+			"--max-semi-space-size=150",
+			"--max-executable-size=160",
 			"--expose-gc",
 			"/var/runtime/node_modules/awslambda/index.js",
 		)
@@ -495,10 +499,24 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 			"--inspect="+r.DebugPort,
 			"--debug-brk",
 			"--nolazy",
-			"--max-old-space-size=1229",
-			"--max-semi-space-size=76",
-			"--max-executable-size=153",
+			"--max-old-space-size=2547",
+			"--max-semi-space-size=150",
+			"--max-executable-size=160",
 			"--expose-gc",
+			"/var/runtime/node_modules/awslambda/index.js",
+		)
+	case runtimeName.nodejs810:
+		overrides = []string{
+			"/var/lang/bin/node",
+		}
+		overrides = append(overrides, debuggerArgsArray...)
+		overrides = append(overrides,
+			"--inspect="+r.DebugPort,
+			"--debug-brk",
+			"--nolazy",
+			"--expose-gc",
+			"--max-semi-space-size=150",
+			"--max-old-space-size=2707",
 			"/var/runtime/node_modules/awslambda/index.js",
 		)
 	case runtimeName.python27:
