@@ -496,8 +496,7 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides,
-			"--inspect="+r.DebugPort,
-			"--debug-brk",
+			"--debug-brk="+r.DebugPort,
 			"--nolazy",
 			"--max-old-space-size=2547",
 			"--max-semi-space-size=150",
