@@ -510,8 +510,9 @@ func (r *Runtime) getDebugEntrypoint() (overrides []string) {
 		}
 		overrides = append(overrides, debuggerArgsArray...)
 		overrides = append(overrides,
-			"--inspect="+r.DebugPort,
-			"--debug-brk",
+			// Node8 requires the host to be explicitly set in order to bind to localhost instead of 127.0.0.1
+			// https://github.com/nodejs/node/issues/11591#issuecomment-283110138
+			"--inspect-brk=0.0.0.0:"+r.DebugPort,
 			"--nolazy",
 			"--expose-gc",
 			"--max-semi-space-size=150",
