@@ -229,7 +229,7 @@ $ sam local invoke -d 5858 <function logical id>
 $ sam local start-api -d 5858
 ```
 
-Note: If using `sam local start-api`, the local API Gateway will expose all of your lambda functions but, since you can specify a single debug port, you can only debug one function at a time. You will need to hit your api before Sam Local binds to the port allowing the debugger to connect.
+Note: If using `sam local start-api`, the local API Gateway will expose all of your Lambda functions but, since you can specify a single debug port, you can only debug one function at a time. You will need to hit your API before SAM Local binds to the port allowing the debugger to connect.
 
 Here is an example showing how to debug a NodeJS function with Microsoft Visual Studio Code:
 
@@ -249,13 +249,13 @@ In order to setup Visual Studio Code for debugging with AWS SAM Local, use the f
             "port": 5858,
             "localRoot": "${workspaceRoot}",
             "remoteRoot": "/var/task",
-            "protocol": "inspector"
+            "protocol": "legacy"
         }
     ]
 }
 ``` 
 
-Note: You must detach your debugger in order for the result to be sent back to AWS SAM Local.
+Note: Node.js versions **below** 7 (e.g. Node.js 4.3 and Node.js 6.10) use the `legacy` protocol, while Node.js versions including and above 7 (e.g. Node.js 8.10) use the `inspector` protocol. Be sure to specify the corresponding protocol in the `protocol` entry of your launch configuration.
 
 #### Debugging Python functions
 
