@@ -58,6 +58,7 @@ type Runtime struct {
 	Image           string
 	Cwd             string
 	DecompressedCwd string
+	TemplateDir     string
 	Function        cloudformation.AWSServerlessFunction
 	EnvOverrideFile string
 	DebugPort       string
@@ -140,6 +141,7 @@ func NewRuntime(opt NewRuntimeOpt) (Invoker, error) {
 		LogicalID:       opt.LogicalID,
 		Name:            opt.Function.Runtime,
 		Cwd:             getWorkingDir(opt.Cwd),
+		TemplateDir:     getWorkingDir(opt.Cwd),
 		Image:           image,
 		Function:        opt.Function,
 		EnvOverrideFile: opt.EnvOverrideFile,
@@ -277,7 +279,7 @@ func (r *Runtime) Invoke(event string, profile string) (io.Reader, io.Reader, er
 
 	// If the CodeUri has been specified as a .jar or .zip file, unzip it on the fly
 	if r.Function.CodeUri != nil && r.Function.CodeUri.String != nil {
-		codeuri := filepath.Join(r.Cwd, *r.Function.CodeUri.String)
+		codeuri := filepath.Join(r.TemplateDir, *r.Function.CodeUri.String)
 
 		// Check if the CodeUri exists on the local filesystem
 		if _, err := os.Stat(codeuri); err == nil {
