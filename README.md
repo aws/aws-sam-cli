@@ -292,7 +292,7 @@ As with the AWS CLI and SDKs, SAM Local will look for credentials in the followi
 See this [Configuring the AWS CLI](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#config-settings-and-precedence) for more details.
 
 ### Lambda Environment Variables
-If your Lambda function uses environment variables, you can you can provide values for them will passed to the Docker container. Here is how you would do it:
+If your Lambda function uses environment variables, you can provide values for them will passed to the Docker container. Here is how you would do it:
 
 For example, consider the SAM template snippet:
 
