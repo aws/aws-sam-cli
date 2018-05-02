@@ -5,6 +5,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorld", "src\HelloWorld\HelloWorld.csproj", "{1C72B9A4-F5C5-4019-BF0F-CC10BDECF582}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{7C692A39-E2E3-4170-AB91-86BD226D61D7}"
+ProjectSection(SolutionItems) = preProject
+	build.cake = build.cake
+	build.ps1 = build.ps1
+	build.sh = build.sh
+	event.json = event.json
+	template.yml = template.yml
+EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{F090076F-EE78-4CC6-B614-9069D413A885}"
 EndProject
