@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{15BADD3C-EB9E-4027-83A8-4164B0FD0B94}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorld", "src\HelloWorld\HelloWorld.csproj", "{1C72B9A4-F5C5-4019-BF0F-CC10BDECF582}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{7C692A39-E2E3-4170-AB91-86BD226D61D7}"
+ProjectSection(SolutionItems) = preProject
+	build.cake = build.cake
+	build.ps1 = build.ps1
+	build.sh = build.sh
+	event.json = event.json
+	template.yml = template.yml
+EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{F090076F-EE78-4CC6-B614-9069D413A885}"
+ProjectSection(SolutionItems) = preProject
+	README.md = README.md
+EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1C72B9A4-F5C5-4019-BF0F-CC10BDECF582} = {15BADD3C-EB9E-4027-83A8-4164B0FD0B94}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1C72B9A4-F5C5-4019-BF0F-CC10BDECF582}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C72B9A4-F5C5-4019-BF0F-CC10BDECF582}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C72B9A4-F5C5-4019-BF0F-CC10BDECF582}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C72B9A4-F5C5-4019-BF0F-CC10BDECF582}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

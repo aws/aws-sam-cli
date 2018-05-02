@@ -10,6 +10,7 @@ To work with the example applications in this repository, first ensure that you'
 * SAM Local
 * An Amazon S3 bucket
 * (Optional) Maven
+* (Optional) .NET Core 2.0
 
 To install the AWS CLI, follow the instructions at [Installing the AWS Command Line Interface](http://docs.aws.amazon.com/cli/latest/userguide/installing.html).
 
@@ -18,6 +19,8 @@ To install Docker and SAM Local, follow the instructions at [Requirements for Us
 To create an Amazon S3 bucket, follow the instructions at [Create a Bucket](http://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html).
 
 To run the Java examples, you'll need to install Maven. For more information, see [Creating a .jar Deployment Package Using Maven without any IDE (Java) ](http://docs.aws.amazon.com/lambda/latest/dg/java-create-jar-pkg-maven-no-ide.html).
+
+To run the .NET Core 2.0 examples you'll need to install .NET Core SDK. For more information, see [.NET Downloads](https://www.microsoft.com/net/download/windows).
 
 ## Recommended ##
 
