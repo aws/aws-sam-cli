@@ -27,7 +27,9 @@
         - [Package and Deploy to Lambda](#package-and-deploy-to-lambda)
     - [Getting started](#getting-started)
     - [Advanced](#advanced)
-        - [Compiled Languages (Java)](#compiled-languages-java)
+        - [Compiled Languages](#compiled-languages)
+          - [Java](#compiled-languages-java)
+          - [.NET Core](#compiled-languages-dotnetcore)
         - [IAM Credentials](#iam-credentials)
         - [Lambda Environment Variables](#lambda-environment-variables)
             - [Environment Variable file](#environment-variable-file)
@@ -323,7 +325,9 @@ $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities
 
 ## Advanced
 
-### Compiled Languages (Java)
+### Compiled Languages
+
+#### Java
 
 To use SAM Local with compiled languages, such as Java that require a packaged artifact (e.g. a JAR, or ZIP), you can specify the location of the artifact with the `AWS::Serverless::Function` `CodeUri` property in your SAM template.
 
@@ -355,7 +359,30 @@ $ echo '{ "some": "input" }' | sam local invoke
 $ sam local start-api
 ```
 
-You can find a full Java example in the [samples/java](samples/java) folder
+You can find a full Java example in the [samples/java](samples/java) folder.
+
+#### .NET Core
+
+To use SAM Local with compiled languages, such as .NET Core that require a packaged artifact (e.g. a ZIP), you can specify the location of the artifact with the `AWS::Serverless::Function` `CodeUri` property in your SAM template.
+
+For example:
+
+```
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  ExampleJavaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: HelloWorld::HelloWorld.Function::Handler
+      CodeUri: ./artifacts/HelloWorld.zip
+      Runtime: dotnetcore2.0
+```
+
+You should then build your ZIP file using your normal build process.
+
+You can find a .NET Core example in the [samples/hello-world/dotnetcore2.0](samples/hello-world/dotnetcore2.0) folder.
 
 ### IAM Credentials
 
