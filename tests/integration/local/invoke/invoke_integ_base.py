@@ -1,0 +1,42 @@
+import os
+from unittest import TestCase
+
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
+
+
+class InvokeIntegBase(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cmd = cls.base_command()
+
+        integration_dir = str(Path(__file__).resolve().parents[2])
+
+        cls.template_path = integration_dir + "/testdata/invoke/template.yml"
+        cls.event_path = integration_dir + "/testdata/invoke/event.json"
+        cls.env_var_path = integration_dir + "/testdata/invoke/vars.json"
+
+    @classmethod
+    def base_command(cls):
+        command = "sam"
+        if os.getenv("SAM_CLI_DEV"):
+            command = "samdev"
+
+        return command
+
+    def get_command_list(self, function_to_invoke, template_path=None, event_path=None, env_var_path=None):
+        command_list = [self.cmd, "local", "invoke", function_to_invoke]
+
+        if template_path:
+            command_list = command_list + ["-t", template_path]
+
+        if event_path:
+            command_list = command_list + ["-e", event_path]
+
+        if env_var_path:
+            command_list = command_list + ["-n", env_var_path]
+
+        return command_list

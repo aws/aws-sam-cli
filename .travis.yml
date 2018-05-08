@@ -1,0 +1,13 @@
+# Enable container based builds
+sudo: false
+language: python
+
+install:
+# Install the code requirements
+- make init
+
+# Install Docs requirements
+
+script:
+# Runs unit tests
+- make pr
