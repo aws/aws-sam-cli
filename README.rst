@@ -15,7 +15,7 @@ SAM CLI (Beta)
 Slack <https://awssamopensource.splashthat.com/>`__ to collaborate with
 fellow community members and the AWS SAM team.
 
-**``sam``** is the AWS CLI tool for managing Serverless applications
+``sam`` is the AWS CLI tool for managing Serverless applications
 written with `AWS Serverless Application Model
 (SAM) <https://github.com/awslabs/serverless-application-model>`__. SAM
 CLI can be used to test functions locally, start a local API Gateway
@@ -131,7 +131,7 @@ Verify Python Version is 2.7.
 .. code:: bash
     python --version
 
-The easiest way to install **``sam``** is to use
+The easiest way to install ``sam`` is to use
 `PIP <https://pypi.org/>`__.
 
 .. code:: bash
@@ -144,10 +144,37 @@ Verify the installation worked:
 
    sam --version
 
+If you are running into issues with PIP installation, follow the instructions to `Install with PyEnv <#install-with-pyenv>`__. PyEnv will install a fresh copy of Python in a separate folder under your home directory. 
+
+Install with PyEnv
+~~~~~~~~~~~~~~~~~~
+
+.. code:: bash
+
+    Install PyEnv from https://github.com/pyenv/pyenv#installation
+    
+    # Initialize pyenv using bash_profile
+    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.bash_profile
+    # or using zshrc
+    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.zshrc
+
+    # restart the shell
+    $ exec "$SHELL"
+
+    # Install Python 2.7
+    $ pyenv install 2.7.14
+    $ pyenv local 2.7.14
+
+    # Install the CLI
+    $ pip install --user aws-sam-cli
+
+    # Verify your installation worked
+    $ sam –version
+
 Upgrading via pip
 ^^^^^^^^^^^^^^^^^
 
-To update **``sam``** once installed via pip:
+To update ``sam`` once installed via pip:
 
 .. code:: bash
 
@@ -168,32 +195,6 @@ First, install Python(2.7) on your machine, then run the following:
 
    # pip install the repository
    $ pip install --user -e .
-
-Install with PyEnv
-~~~~~~~~~~~~~~~~~~
-.. code:: bash
-
-    # Install PyEnv (https://github.com/pyenv/pyenv#installation)
-    $ brew update
-    $ brew install pyenv
-
-    # Initialize pyenv using bash_profile
-    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.bash_profile
-    # or using zshrc
-    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.zshrc
-
-    # restart the shell
-    $ exec "$SHELL"
-
-    # Install Python 2.7
-    $ pyenv install 2.7.14
-    $ pyenv local 2.7.14
-
-    # Install the CLI
-    $ pip install --user aws-sam-cli
-
-    # Verify your installation worked
-    $ sam –version
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
@@ -233,12 +234,11 @@ Followed by:
 Usage
 -----
 
-**``sam``** requires a SAM template in order to know how to invoke your
+``sam`` requires a SAM template in order to know how to invoke your
 function locally, and it’s also true for spawning API Gateway locally -
 If no template is specified ``template.yaml`` will be used instead.
 
-You can find sample SAM templates either under **``samples``** located
-in this repo or by visiting
+You can find sample SAM templates by visiting
 `SAM <https://github.com/awslabs/serverless-application-model>`__
 official repository.
 
@@ -320,7 +320,7 @@ quickly develop, and iterate over your functions.
 
    sam local start-api
 
-**``sam``** will automatically find any functions within your SAM
+``sam`` will automatically find any functions within your SAM
 template that have ``Api`` event sources defined, and mount them at the
 defined HTTP paths.
 
