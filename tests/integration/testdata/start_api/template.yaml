@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Api:
+    BinaryMediaTypes:
+      # These are equivalent to image/gif and image/png when deployed
+      - image~1gif
+      - image~1png
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /id
+
+        PathWithAnyMethod:
+          Type: Api
+          Properties:
+            Method: ANY
+            Path: /anyandall
+
+        ProxyPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /proxypath/{proxy+}
+
+  EchoEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /id/{id}/user/{user}
+
+        PathWithPathParam:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /id/{id}
+
+  ContentTypeSetterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.content_type_setter_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        ContentTypeSetter:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /getcontenttype
+
+  OnlySetStatusCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.only_set_status_code_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        OnlySetStatusCodePath:
+          Type: Api
+          Properties:
+            Method: Get
+            Path: /onlysetstatuscode
+
+  OnlySetBodyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.only_set_body_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        OnlySetBodyPath:
+          Type: Api
+          Properties:
+            Method: Get
+            Path: /onlysetbody
+
+  SleepFunction0:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Events:
+        SleepPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /sleepfortenseconds/function0
+
+  SleepFunction1:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Events:
+        SleepPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /sleepfortenseconds/function1
+
+  WriteToStderrFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.write_to_stderr
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        WriteToStderrPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /writetostderr
+
+  WriteToStdoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.write_to_stdout
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        WriteToStdoutPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /writetostdout
+
+  InvalidResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        InvalidResponseReturned:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /invalidresponsereturned
+
+  Base64ResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.base64_response
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        Base64ResponsePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /base64response
+
+  EchoBase64EventBodyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_base64_event_body
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        EchoBase64EventBodyPath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /echobase64eventbody

@@ -1,3 +1,0 @@
-# we're only loading one example dep here
-requests==2.18.4
-.
