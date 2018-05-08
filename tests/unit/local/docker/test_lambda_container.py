@@ -1,0 +1,143 @@
+"""
+Unit test for Lambda container management
+"""
+
+from unittest import TestCase
+from mock import patch
+from parameterized import parameterized, param
+
+from samcli.local.docker.lambda_container import LambdaContainer, Runtime
+
+RUNTIMES_WITH_ENTRYPOINT = [Runtime.java8.value,
+                            Runtime.nodejs.value,
+                            Runtime.nodejs43.value,
+                            Runtime.nodejs610.value,
+                            Runtime.nodejs810.value,
+                            Runtime.python36.value,
+                            Runtime.python27.value]
+
+ALL_RUNTIMES = [r for r in Runtime]
+
+
+class TestLambdaContainer_init(TestCase):
+
+    def setUp(self):
+        self.runtime = "nodejs4.3"
+        self.handler = "handler"
+        self.code_dir = "codedir"
+        self.env_var = {"var": "value"}
+        self.memory_mb = 1024
+        self.debug_port = 1235
+        self.debug_arg = "a=b c=d e=f"
+
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_entry_point")
+    def test_must_configure_container_properly(self,
+                                               get_entry_point_mock,
+                                               get_exposed_ports_mock,
+                                               get_image_mock):
+
+        image = "image"
+        ports = {"a": "b"}
+        entry = [1, 2, 3]
+        expected_cmd = [self.handler]
+
+        get_image_mock.return_value = image
+        get_exposed_ports_mock.return_value = ports
+        get_entry_point_mock.return_value = entry
+
+        container = LambdaContainer(self.runtime,
+                                    self.handler,
+                                    self.code_dir,
+                                    env_vars=self.env_var,
+                                    memory_mb=self.memory_mb,
+                                    debug_port=self.debug_port,
+                                    debug_args=self.debug_arg)
+
+        self.assertEquals(image, container._image)
+        self.assertEquals(expected_cmd, container._cmd)
+        self.assertEquals("/var/task", container._working_dir)
+        self.assertEquals(self.code_dir, container._host_dir)
+        self.assertEquals(ports, container._exposed_ports)
+        self.assertEquals(entry, container._entrypoint)
+        self.assertEquals(self.env_var, container._env_vars)
+        self.assertEquals(self.memory_mb, container._memory_limit_mb)
+
+        get_image_mock.assert_called_with(self.runtime)
+        get_exposed_ports_mock.assert_called_with(self.debug_port)
+        get_entry_point_mock.assert_called_with(self.runtime, self.debug_port, self.debug_arg)
+
+    def test_must_fail_for_unsupported_runtime(self):
+
+        runtime = "foo"
+
+        with self.assertRaises(ValueError) as context:
+            LambdaContainer(runtime, self.handler, self.code_dir)
+
+        self.assertEquals(str(context.exception), "Unsupported Lambda runtime foo")
+
+
+class TestLambdaContainer_get_exposed_ports(TestCase):
+
+    def test_must_map_same_port_on_host_and_container(self):
+
+        port = 12345
+        expected = {port: port}
+        result = LambdaContainer._get_exposed_ports(port)
+
+        self.assertEquals(expected, result)
+
+    def test_must_skip_if_port_is_not_given(self):
+
+        self.assertIsNone(LambdaContainer._get_exposed_ports(None), "No ports should be exposed")
+
+
+class TestLambdaContainer_get_image(TestCase):
+
+    def test_must_return_lambci_image(self):
+
+        runtime = "foo"
+        expected = "lambci/lambda:foo"
+
+        self.assertEquals(LambdaContainer._get_image(runtime), expected)
+
+
+class TestLambdaContainer_get_entry_point(TestCase):
+
+    def setUp(self):
+
+        self.debug_port = 1235
+        self.debug_args = "a=b c=d e=f"
+
+    def test_must_skip_if_debug_port_is_not_specified(self):
+        self.assertIsNone(LambdaContainer._get_entry_point("runtime", None, self.debug_args),
+                          "Must not provide entrypoint if debug port is not given")
+
+    @parameterized.expand([param(r) for r in ALL_RUNTIMES])
+    def test_must_provide_entrypoint_for_certain_runtimes_only(self, runtime):
+
+        result = LambdaContainer._get_entry_point(runtime, self.debug_port, self.debug_args)
+
+        if runtime in RUNTIMES_WITH_ENTRYPOINT:
+            self.assertIsNotNone(result, "{} runtime must provide entrypoint".format(runtime))
+        else:
+            self.assertIsNone(result, "{} runtime must NOT provide entrypoint".format(runtime))
+
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
+    def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
+        """
+        Debug args list is appended starting at second position in the array
+        """
+        expected_debug_args = ["a=b", "c=d", "e=f"]
+        result = LambdaContainer._get_entry_point(runtime, self.debug_port, self.debug_args)
+        actual = result[1:4]
+
+        self.assertEquals(actual, expected_debug_args)
+
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
+    def test_must_provide_entrypoint_even_without_debug_args(self, runtime):
+
+        result = LambdaContainer._get_entry_point(runtime, self.debug_port)
+
+        self.assertIsNotNone(result)

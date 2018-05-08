@@ -1,0 +1,5 @@
+{
+  "EchoCustomEnvVarFunction": {
+    "CustomEnvVar": "MyVar"
+  }
+}
