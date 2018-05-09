@@ -541,7 +541,7 @@ Example:
 Getting started
 ---------------
 
--  Check out `HOWTO Guide <HOWTO.md>`__ section for more details
+-  Check out our `Getting Started Guide <docs/getting_started.rst>`__ for more details
 
 Advanced
 --------
