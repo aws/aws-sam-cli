@@ -36,6 +36,7 @@ Lambda Runtime.
       -  `Install with PyEnv <#install-with-pyenv>`__
       -  `Troubleshooting <#troubleshooting>`__
 
+         -  `General <#general-issues>`__
          -  `Mac <#mac-issues>`__
 
    -  `Usage <#usage>`__
@@ -197,6 +198,29 @@ Install with PyEnv
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
+
+General Issues
+^^^^^^^^^^^^^^
+
+1. If you are seeing `sam command not found`, this is likely due to the installation using the `--user` and
+   adding `sam` to a path that is not in your $PATH.
+
+.. code:: bash
+
+    # Find your path Python User Base path (where Python --user will install packages/scripts)
+    USER_BASE_PATH="$(python -m site --user-base)"
+
+    # Add this path to your $PATH
+    export PATH=$USER_BASE_PATH:$PATH
+
+You can also try an installing aws-sam-cli without `--user`
+
+.. code:: bash
+
+    # Uninstall aws-sam-cli from the --user path
+    pip uninstall --user aws-sam-cli
+
+    pip install aws-sam-cli
 
 Mac Issues
 ^^^^^^^^^^
