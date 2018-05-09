@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import base64
+import uuid
 
 from flask import Flask, request, Response
 
@@ -351,6 +352,7 @@ class Service(object):
         event_headers = dict(flask_request.headers)
         event_headers["X-Forwarded-Proto"] = flask_request.scheme
         event_headers["X-Forwarded-Port"] = str(port)
+        event_headers["X-Amzn-Trace-Id"] = uuid.uuid4()
 
         event = ApiGatewayLambdaEvent(http_method=method,
                                       body=request_data,
