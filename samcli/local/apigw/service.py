@@ -15,14 +15,15 @@ LOG = logging.getLogger(__name__)
 
 
 class CaseInsensitiveDict(dict):
-    def __setitem__(self, key, value):
-        super(CaseInsensitiveDict, self).__setitem__(key.title(), value)
 
     def __getitem__(self, key):
-        return super(CaseInsensitiveDict, self).__getitem__(key.title())
+        try:
+            return [v for k, v in self.items() if k.lower() == key.lower()][0]
+        except IndexError:
+            raise KeyError
 
     def __contains__(self, key):
-        return key.title() in [k.title() for k in self.keys()]
+        return key.lower() in [k.lower() for k in self.keys()]
 
 
 class Route(object):
