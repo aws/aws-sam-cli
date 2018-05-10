@@ -76,7 +76,7 @@ def invoke_common_options(f):
 
         click.option('--debug-args',
                      help="Additional arguments to be passed to the debugger",
-                     envvar="DEBUGGER_ARGS"),
+                     envvar="SAM_DEBUGGER_ARGUMENTS"),
 
         click.option('--docker-volume-basedir', '-v',
                      envvar="SAM_DOCKER_VOLUME_BASEDIR",
