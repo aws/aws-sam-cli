@@ -126,14 +126,15 @@ Task("Build")
         }
     });
 
-Task("Test")
+Task("Test-Unit")
 	.Description("Tests all the different parts of the project.")
 	.Does(() => 
     {
         var settings = new DotNetCoreTestSettings
         {
             Configuration = configuration,
-            NoRestore = true
+            NoRestore = true,
+            NoBuild = true
         };
         
         var projectFiles = GetFiles("./test/**/*.csproj");
@@ -225,17 +226,25 @@ Task("Package")
     .IsDependentOn("Clean")
     .IsDependentOn("Restore")
     .IsDependentOn("Build")
-    .IsDependentOn("Test")
+    .IsDependentOn("Test-Unit")
     .IsDependentOn("Publish")
     .IsDependentOn("Pack")
     .Does(() => { Information("Package target ran."); });
+
+Task("Test")
+    .Description("This is the task which will run if target Test is passed in.")
+    .IsDependentOn("Clean")
+    .IsDependentOn("Restore")
+    .IsDependentOn("Build")
+    .IsDependentOn("Test-Unit")
+    .Does(() => { Information("Test target ran."); });
 
 Task("Run")
     .Description("This is the task which will run if target Run is passed in.")
     .IsDependentOn("Clean")
     .IsDependentOn("Restore")
     .IsDependentOn("Build")
-    .IsDependentOn("Test")
+    .IsDependentOn("Test-Unit")
     .IsDependentOn("Publish")
     .IsDependentOn("Pack")
     .IsDependentOn("Run-Local")
