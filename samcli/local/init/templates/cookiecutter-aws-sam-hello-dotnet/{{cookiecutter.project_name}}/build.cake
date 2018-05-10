@@ -126,6 +126,25 @@ Task("Build")
         }
     });
 
+Task("Test")
+	.Description("Tests all the different parts of the project.")
+	.Does(() => 
+    {
+        var settings = new DotNetCoreTestSettings
+        {
+            Configuration = configuration,
+            NoRestore = true
+        };
+        
+        var projectFiles = GetFiles("./test/**/*.csproj");
+        foreach(var file in projectFiles)
+        {
+            Information("Testing '{0}'...", file);
+            DotNetCoreTest(file.FullPath, settings);
+            Information("'{0}' has been tested.", file);
+        }
+    });
+
 Task("Publish")
     .Description("Publish the Lambda Functions.")
     .Does(() => 
@@ -206,6 +225,7 @@ Task("Package")
     .IsDependentOn("Clean")
     .IsDependentOn("Restore")
     .IsDependentOn("Build")
+    .IsDependentOn("Test")
     .IsDependentOn("Publish")
     .IsDependentOn("Pack")
     .Does(() => { Information("Package target ran."); });
@@ -215,6 +235,7 @@ Task("Run")
     .IsDependentOn("Clean")
     .IsDependentOn("Restore")
     .IsDependentOn("Build")
+    .IsDependentOn("Test")
     .IsDependentOn("Publish")
     .IsDependentOn("Pack")
     .IsDependentOn("Run-Local")
