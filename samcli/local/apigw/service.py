@@ -14,6 +14,17 @@ from .path_converter import PathConverter
 LOG = logging.getLogger(__name__)
 
 
+class CaseInsensitiveDict(dict):
+    def __setitem__(self, key, value):
+        super(CaseInsensitiveDict, self).__setitem__(key.title(), value)
+
+    def __getitem__(self, key):
+        return super(CaseInsensitiveDict, self).__getitem__(key.title())
+
+    def __contains__(self, key):
+        return key.title() in [k.title() for k in self.keys()]
+
+
 class Route(object):
 
     def __init__(self, methods, function_name, path, binary_types=None):
@@ -270,7 +281,7 @@ class Service(object):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
         status_code = json_output.get("statusCode") or 200
-        headers = json_output.get("headers") or {}
+        headers = CaseInsensitiveDict(json_output.get("headers") or {})
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
