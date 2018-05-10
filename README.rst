@@ -577,8 +577,7 @@ Advanced
 Compiled Languages
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Java
-~~~~
+**Java**
 
 To use SAM CLI with compiled languages, such as Java that require a
 packaged artifact (e.g. a JAR, or ZIP), you can specify the location of
@@ -618,8 +617,7 @@ file (or uber jar) containing all of the function dependencies.
 You can find a full Java example in the `samples/java <samples/java>`__
 folder
 
-.NET Core
-~~~~~~~~~
+**.NET Core**
 
 To use SAM Local with compiled languages, such as .NET Core that require a packaged artifact (e.g. a ZIP), you can specify the location of the artifact with the `AWS::Serverless::Function` `CodeUri` property in your SAM template.
 
