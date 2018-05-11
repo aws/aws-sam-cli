@@ -481,20 +481,20 @@ Passing Additional Runtime Debug Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To pass additional runtime arguments when debugging your function, use
-the environment variable ``DEBUGGER_ARGUMENTS``. This will pass a string
+the environment variable ``DEBUGGER_ARGS``. This will pass a string
 of arguments directly into the run command SAM CLI uses to start your
 function.
 
 For example, if you want to load a debugger like iKPdb at runtime of
 your Python function, you could pass the following as
-``DEBUGGER_ARGUMENTS``:
+``DEBUGGER_ARGS``:
 ``-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0``.
 This would load iKPdb at runtime with the other arguments you’ve
 specified. In this case, your full SAM CLI command would be:
 
 .. code:: bash
 
-   $ DEBUGGER_ARGUMENTS="-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0" echo {} | sam local invoke -d 5858 myFunction
+   $ DEBUGGER_ARGS="-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0" echo {} | sam local invoke -d 5858 myFunction
 
 You may pass debugger arguments to functions of all runtimes.
 
