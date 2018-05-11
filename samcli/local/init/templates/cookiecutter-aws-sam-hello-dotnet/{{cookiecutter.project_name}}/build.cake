@@ -252,7 +252,7 @@ Task("Run")
     
 Task("Default")
     .Description("This is the default task which will run if no specific target is passed in.")
-    .IsDependentOn("Default");
+    .IsDependentOn("Package");
 
 ///////////////////////////////////////////////////////////////////////////////
 // EXECUTION
