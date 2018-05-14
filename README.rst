@@ -638,7 +638,7 @@ Resources:
 
 You should then build your ZIP file using your normal build process.
 
-You can find a .NET Core example in the `sam init` folder.
+You can generate a .NET Core example by `sam init --runtime dotnetcore` folder.
 
 .. _IAMCreds
 
