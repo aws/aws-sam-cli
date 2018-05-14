@@ -162,7 +162,7 @@ First, install Python(2.7) on your machine, then run the following:
 .. code:: bash
 
    # Clone the repository
-   $ git clone git@github.com:awslabs/aws-sam-cli.git
+   $ git clone git@github.com/awslabs/aws-sam-cli.git
 
    # cd into the git
    $ cd aws-sam-cli
