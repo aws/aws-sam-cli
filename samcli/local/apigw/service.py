@@ -15,12 +15,17 @@ LOG = logging.getLogger(__name__)
 
 
 class CaseInsensitiveDict(dict):
+    """
+    Implement a simple case insensitive dictionary for storing headers. To preserve the original
+    case of the given Header (e.g. X-FooBar-Fizz) this only touches the get and contains magic
+    methods rather than implementing a __setitem__ where we normalize the case of the headers.
+    """
 
     def __getitem__(self, key):
-        try:
-            return [v for k, v in self.items() if k.lower() == key.lower()][0]
-        except IndexError:
-            raise KeyError
+        matches = [v for k, v in self.items() if k.lower() == key.lower()]
+        if not matches:
+            raise KeyError(key)
+        return matches[0]
 
     def __contains__(self, key):
         return key.lower() in [k.lower() for k in self.keys()]
