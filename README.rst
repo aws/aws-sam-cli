@@ -628,7 +628,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 
 Resources:
-  ExampleJavaFunction:
+  ExampleDotNetFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: HelloWorld::HelloWorld.Function::Handler
