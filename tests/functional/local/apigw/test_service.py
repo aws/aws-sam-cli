@@ -9,7 +9,7 @@ import requests
 import random
 from mock import Mock
 
-from samcli.local.apigw.service import Route, Service, CaseInsensitiveDict
+from samcli.local.apigw.service import Route, Service
 from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT, API_GATEWAY_BAD_PROXY_RESPONSE, API_GATEWAY_ECHO_BASE64_EVENT, API_GATEWAY_CONTENT_TYPE_LOWER
 from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -500,33 +500,6 @@ class TestService_PostingBinary(TestCase):
         self.assertEquals(actual, expected)
         self.assertEquals(response.status_code, 502)
         self.assertEquals(response.headers.get('Content-Type'), "application/json")
-
-
-class TestService_CaseInsensiveDict(TestCase):
-    def test_contains(self):
-        data = CaseInsensitiveDict({
-            'Content-Type': 'text/html',
-            'Browser': 'APIGW',
-        })
-
-        self.assertTrue('content-type' in data)
-        self.assertTrue('Content-Type' in data)
-        self.assertTrue('CONTENT-TYPE' in data)
-        self.assertTrue('Browser' in data)
-        self.assertTrue('Dog-Food' not in data)
-
-    def test_getitem(self):
-        data = CaseInsensitiveDict({
-            'Content-Type': 'text/html'
-        })
-        data['Browser'] = 'APIGW'
-
-        self.assertTrue(data['content-type'])
-        self.assertTrue(data['Content-Type'])
-        self.assertTrue(data['CONTENT-TYPE'])
-        self.assertTrue(data['browser'])
-        with self.assertRaises(KeyError):
-            data['does-not-exist']
 
 
 def make_service(list_of_routes, function_provider, cwd):
