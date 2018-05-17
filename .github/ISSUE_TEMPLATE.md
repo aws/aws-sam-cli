@@ -25,9 +25,9 @@ questions, the following resources are a good place to start:
 2.
 3.
 
-**Expected result:**
-
 **Observed result:**
+
+**Expected result:**
 
 **SAM CLI version:**
 
