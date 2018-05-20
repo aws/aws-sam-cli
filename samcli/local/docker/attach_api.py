@@ -3,6 +3,7 @@ Wrapper to Docker Attach API
 """
 
 import struct
+from socket import timeout
 from docker.utils.socket import read, read_exactly, SocketError
 
 
@@ -102,6 +103,10 @@ def _read_socket(socket):
 
             for data in _read_payload(socket, payload_size):
                 yield payload_type, data
+
+        except timeout:
+            # Timeouts are normal during debug sessions
+            pass
 
         except SocketError:
             # There isn't enough data in the stream. Probably the socket terminated
