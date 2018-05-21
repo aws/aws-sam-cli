@@ -623,7 +623,7 @@ To use SAM Local with compiled languages, such as .NET Core that require a packa
 
 For example:
 
-::
+.. code:: yaml
 
    AWSTemplateFormatVersion: 2010-09-09
    Transform: AWS::Serverless-2016-10-31
