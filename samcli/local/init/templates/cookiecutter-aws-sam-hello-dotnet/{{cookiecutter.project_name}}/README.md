@@ -7,16 +7,20 @@ This is a sample template for {{ cookiecutter.project_name }}
 * AWS CLI already configured with at least PowerUser permission
 * [Docker installed](https://www.docker.com/community-edition)
 * [SAM Local installed](https://github.com/awslabs/aws-sam-cli)
-* [DotNet Core installed](https://www.microsoft.com/net/download/macos)
+* [DotNet Core installed](https://www.microsoft.com/net/download)
 
 ## Setup process
 
-### Creating the project and its dependencies
-
-In this example we use DotNet Core CLI to bundle our project with its dependencies:
+### Linux & macOS
 
 ```bash
-dotnet publish src/HelloWorld
+sh build.sh --target=Package
+```
+
+### Windows (Powershell)
+
+```powershell
+build.ps1 --target=Package
 ```
 
 ### Local development
@@ -95,6 +99,21 @@ For testing our code, we use XUnit and you can use `dotnet test` to run tests de
 ```bash
 dotnet test test/HelloWorld.Test
 ```
+
+Alternatively, you can use Cake. It discovers and executes all the tests.
+
+### Linux & macOS
+
+```bash
+sh build.sh --target=Test
+```
+
+### Windows (Powershell)
+
+```powershell
+build.ps1 --target=Test
+```
+
 # Appendix
 
 ## AWS CLI commands
