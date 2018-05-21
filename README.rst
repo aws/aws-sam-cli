@@ -58,8 +58,8 @@ Lambda Runtime.
 
       -  `Compiled Languages <#compiled-languages>`__
          
-         -  `Java <#compiled-languages-java>`__
-         -  `.NET Core <#compiled-languages-dotnetcore>`__
+         -  `Java <#java>`__
+         -  `.NET Core <#net_core>`__
       
       -  `IAM Credentials <#iam-credentials>`__
       -  `Lambda Environment
@@ -623,22 +623,22 @@ To use SAM Local with compiled languages, such as .NET Core that require a packa
 
 For example:
 
-```
-AWSTemplateFormatVersion: 2010-09-09
-Transform: AWS::Serverless-2016-10-31
+::
 
-Resources:
-  ExampleDotNetFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: HelloWorld::HelloWorld.Function::Handler
-      CodeUri: ./artifacts/HelloWorld.zip
-      Runtime: dotnetcore2.0
-```
+   AWSTemplateFormatVersion: 2010-09-09
+   Transform: AWS::Serverless-2016-10-31
+ 
+   Resources:
+     ExampleDotNetFunction:
+       Type: AWS::Serverless::Function
+       Properties:
+         Handler: HelloWorld::HelloWorld.Function::Handler
+         CodeUri: ./artifacts/HelloWorld.zip
+         Runtime: dotnetcore2.0
 
 You should then build your ZIP file using your normal build process.
 
-You can generate a .NET Core example by `sam init --runtime dotnetcore` folder.
+You can generate a .NET Core example by using the ``sam init --runtime dotnetcore`` command.
 
 .. _IAMCreds
 
