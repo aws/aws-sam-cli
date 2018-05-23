@@ -298,8 +298,11 @@ class Service(object):
 
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
-            LOG.info("No Content-Type given. Defaulting to 'application/json'.")
-            headers["Content-Type"] = "application/json"
+            if "content-type" in headers:
+                headers["Content-Type"] = headers["content-type"]
+            else:
+                LOG.info("No Content-Type given. Defaulting to 'application/json'.")
+                headers["Content-Type"] = "application/json"
 
         if Service._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
             body = base64.b64decode(body)
