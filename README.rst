@@ -869,15 +869,14 @@ A special thank you
 
 SAM CLI uses the open source
 `docker-lambda <https://github.com/lambci/docker-lambda>`__ Docker
-images created by [@mhart](https://github.com/mhart).
+images created by `@mhart <https://github.com/mhart>`__.
 
 Examples
 --------
 
-You can find sample functions code and a SAM template used in this
-README under the
-`samples <https://github.com/awslabs/aws-sam-local/tree/master/samples>`__
-folder within this repo.
+You can find sample code and SAM templates in this
+`examples <https://github.com/awslabs/serverless-application-model/tree/master/examples>`__
+folder within the `serverless-application-model <https://github.com/awslabs/serverless-application-model>`__ repository.
 
 .. raw:: html
 
@@ -885,7 +884,6 @@ folder within this repo.
 
 .. |Build Status| image:: https://travis-ci.org/awslabs/aws-sam-local.svg?branch=develop
 .. |Apache-2.0| image:: https://img.shields.io/npm/l/aws-sam-local.svg?maxAge=2592000
-.. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-local.svg?maxAge=2592000
+.. |Contributors| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-local.svg?maxAge=2592000
 .. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-local.svg?maxAge=2592000
 .. |PyPI version| image:: https://badge.fury.io/py/aws-sam-cli.svg
-
