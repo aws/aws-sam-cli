@@ -57,10 +57,10 @@ Lambda Runtime.
    -  `Advanced <#advanced>`__
 
       -  `Compiled Languages <#compiled-languages>`__
-         
+
          -  `Java <#compiled-languages-java>`__
          -  `.NET Core <#compiled-languages-dotnetcore>`__
-      
+
       -  `IAM Credentials <#iam-credentials>`__
       -  `Lambda Environment
          Variables <#lambda-environment-variables>`__
@@ -874,7 +874,7 @@ images created by `@mhart <https://github.com/mhart>`__.
 Examples
 --------
 
-You can find sample code and SAM templates in this
+You can find sample code and SAM templates in the
 `examples <https://github.com/awslabs/serverless-application-model/tree/master/examples>`__
 folder within the `serverless-application-model <https://github.com/awslabs/serverless-application-model>`__ repository.
 
