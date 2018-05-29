@@ -871,14 +871,6 @@ SAM CLI uses the open source
 `docker-lambda <https://github.com/lambci/docker-lambda>`__ Docker
 images created by [@mhart](https://github.com/mhart).
 
-Examples
---------
-
-You can find sample functions code and a SAM template used in this
-README under the
-`samples <https://github.com/awslabs/aws-sam-local/tree/master/samples>`__
-folder within this repo.
-
 .. raw:: html
 
    <!-- Links -->
