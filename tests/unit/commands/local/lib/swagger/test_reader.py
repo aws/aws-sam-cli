@@ -260,7 +260,7 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
         self.assertEquals(actual, expected)
 
         s3_mock.download_fileobj.assert_called_with(self.bucket, self.key, fp_mock,
-                                                 ExtraArgs={"VersionId": self.version})
+                                                    ExtraArgs={"VersionId": self.version})
 
         fp_mock.seek.assert_called_with(0)  # make sure we seek the file before reading
         fp_mock.read.assert_called_with()
@@ -286,7 +286,7 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
         self.assertEquals(actual, expected)
 
         s3_mock.download_fileobj.assert_called_with(self.bucket, self.key, fp_mock,
-                                                 ExtraArgs={})
+                                                    ExtraArgs={})
 
     @patch('samcli.commands.local.lib.swagger.reader.boto3')
     @patch('samcli.commands.local.lib.swagger.reader.tempfile')
@@ -298,7 +298,7 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
         fp_mock = Mock()
         tempfilemock.TemporaryFile.return_value.__enter__.return_value = fp_mock  # mocking context manager
         s3_mock.download_fileobj.side_effect = botocore.exceptions.ClientError({"Error": {}},
-                                                                            "download_file")
+                                                                               "download_file")
 
         with self.assertRaises(botocore.exceptions.ClientError):
             SamSwaggerReader._download_from_s3(self.bucket, self.key)
