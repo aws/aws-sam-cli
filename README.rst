@@ -57,10 +57,10 @@ Lambda Runtime.
    -  `Advanced <#advanced>`__
 
       -  `Compiled Languages <#compiled-languages>`__
-         
+
          -  `Java <#java>`__
          -  `.NET Core <#net_core>`__
-      
+
       -  `IAM Credentials <#iam-credentials>`__
       -  `Lambda Environment
          Variables <#lambda-environment-variables>`__
@@ -169,7 +169,7 @@ First, install Python(2.7) on your machine, then run the following:
 .. code:: bash
 
    # Clone the repository
-   $ git clone git@github.com/awslabs/aws-sam-cli.git
+   $ git clone git@github.com:awslabs/aws-sam-cli.git
 
    # cd into the git
    $ cd aws-sam-cli
@@ -630,7 +630,7 @@ For example:
 
    AWSTemplateFormatVersion: 2010-09-09
    Transform: AWS::Serverless-2016-10-31
- 
+
    Resources:
      ExampleDotNetFunction:
        Type: AWS::Serverless::Function
