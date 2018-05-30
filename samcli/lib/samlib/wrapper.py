@@ -11,7 +11,7 @@ import copy
 import os
 import json
 
-from functools import reduce
+import functools
 import boto3
 
 # SAM Translator Library Internal module imports #
@@ -67,7 +67,7 @@ class SamTranslatorWrapper(object):
             parser.parse(template_copy, all_plugins)  # parse() will run all configured plugins
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
+                functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
 
         return template_copy
 
