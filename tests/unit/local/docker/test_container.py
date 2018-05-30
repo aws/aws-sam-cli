@@ -378,17 +378,17 @@ class TestContainer_write_container_output(TestCase):
 
     def setUp(self):
         self.output_itr = [
-            (Container._STDOUT_FRAME_TYPE, "stdout1"),
-            (Container._STDERR_FRAME_TYPE, "stderr1"),
-            (30, "invalid1"),
+            (Container._STDOUT_FRAME_TYPE, b"stdout1"),
+            (Container._STDERR_FRAME_TYPE, b"stderr1"),
+            (30, b"invalid1"),
 
-            (Container._STDOUT_FRAME_TYPE, "stdout2"),
-            (Container._STDERR_FRAME_TYPE, "stderr2"),
-            (30, "invalid2"),
+            (Container._STDOUT_FRAME_TYPE, b"stdout2"),
+            (Container._STDERR_FRAME_TYPE, b"stderr2"),
+            (30, b"invalid2"),
 
-            (Container._STDOUT_FRAME_TYPE, "stdout3"),
-            (Container._STDERR_FRAME_TYPE, "stderr3"),
-            (30, "invalid3"),
+            (Container._STDOUT_FRAME_TYPE, b"stdout3"),
+            (Container._STDERR_FRAME_TYPE, b"stderr3"),
+            (30, b"invalid3"),
         ]
 
         self.stdout_mock = Mock()

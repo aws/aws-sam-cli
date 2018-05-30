@@ -1,6 +1,7 @@
 """
 Library for Validating Sam Templates
 """
+from functools import reduce
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser.parser import Parser
 from samtranslator.translator.translator import Translator
@@ -60,7 +61,7 @@ class SamTemplateValidator(object):
                                      parameter_values={})
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                reduce(lambda message, error: message + ' ' + error.message, e.causes, e.message))
+                reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
 
     def _replace_local_codeuri(self):
         """

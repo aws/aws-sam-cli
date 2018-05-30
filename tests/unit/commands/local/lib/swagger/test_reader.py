@@ -184,7 +184,7 @@ class TestSamSwaggerReader_download_swagger(TestCase):
         expected = "parsed result"
         yaml_parse_mock.return_value = expected
 
-        with tempfile.NamedTemporaryFile() as fp:
+        with tempfile.NamedTemporaryFile(mode='w') as fp:
             filepath = fp.name
 
             json.dump(data, fp)
@@ -205,7 +205,7 @@ class TestSamSwaggerReader_download_swagger(TestCase):
         expected = "parsed result"
         yaml_parse_mock.return_value = expected
 
-        with tempfile.NamedTemporaryFile() as fp:
+        with tempfile.NamedTemporaryFile(mode='w') as fp:
             filepath = fp.name
 
             json.dump(data, fp)

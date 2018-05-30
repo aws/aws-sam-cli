@@ -311,7 +311,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         response = requests.get(self.url + "/onlysetstatuscode")
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.content, "no data")
+        self.assertEquals(response.content.decode(), "no data")
         self.assertEquals(response.headers.get("Content-Type"), "application/json")
 
     def test_default_status_code(self):
@@ -331,7 +331,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         response = requests.get(self.url + "/onlysetstatuscode")
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.content, "no data")
+        self.assertEquals(response.content.decode(), "no data")
 
     def test_function_writing_to_stdout(self):
         response = requests.get(self.url + "/writetostdout")

@@ -19,7 +19,7 @@ class TestCli(TestCase):
         self.project_folder = os.path.abspath(
                                 os.path.join(self.output_dir, self.name))
         self.custom_location_folder = os.path.abspath(
-                                        os.path.join(self.output_dir, 'name-of-the-project'))
+                                        os.path.join(self.output_dir, 'Name of the project'))
 
     def tearDown(self):
         leftover_folders = (self.output_dir, self.cookiecutter_dir)
@@ -32,7 +32,7 @@ class TestCli(TestCase):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
-            ctx=None, location=self.location, runtime=self.runtime, output_dir=self.output_dir, 
+            ctx=None, location=self.location, runtime=self.runtime, output_dir=self.output_dir,
             name=self.name, no_input=self.no_input)
 
         # THEN we should see a new project created and a successful return

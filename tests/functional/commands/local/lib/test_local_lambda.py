@@ -76,8 +76,8 @@ class TestFunctionalLocalLambda(TestCase):
         expected_env_vars["AWS_ACCESS_KEY_ID"] = creds.get("key", "defaultkey")
         expected_env_vars["AWS_REGION"] = creds.get("region", "us-east-1")
 
-        stdout_stream = io.BytesIO()
-        stderr_stream = io.BytesIO()
+        stdout_stream = io.StringIO()
+        stderr_stream = io.StringIO()
         runner.invoke(self.function_name, input_event, stdout=stdout_stream, stderr=stderr_stream)
 
         # stderr is where the Lambda container runtime logs are available. It usually contains requestId, start time
