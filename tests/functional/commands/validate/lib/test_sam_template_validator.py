@@ -104,6 +104,28 @@ class TestValidate(TestCase):
         # Should not throw an exception
         validator.is_valid()
 
+    def test_valid_template_with_DefinitionBody_for_api(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {"swagger": "2.0"}
+                        }
+                    }
+                }
+            }
+
+        managed_policy_mock = Mock()
+        managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        # Should not throw an exception
+        validator.is_valid()
 
     def test_valid_template_with_s3_object_passed(self):
         template = {
