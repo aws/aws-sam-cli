@@ -2,7 +2,7 @@
 Generates a S3 Event for a Lambda Invoke
 """
 import json
-
+import urllib as url
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
@@ -19,6 +19,7 @@ from samcli.commands.local.lib.events import generate_s3_event
               default="example-bucket",
               help='The S3 bucket the event should reference (default: "example-bucket")')
 @click.option("--key", "-k",
+	#url.quote for getting the sam local generate-event to url encode s3 object key
               type=str,
               default="test/key",
               help='The S3 key the event should reference (default: "test/key")')
@@ -26,7 +27,6 @@ from samcli.commands.local.lib.events import generate_s3_event
 @pass_context
 def cli(ctx, region, bucket, key):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
-
     do_cli(ctx, region, bucket, key)  # pragma: no cover
 
 
@@ -34,6 +34,8 @@ def do_cli(ctx, region, bucket, key):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
-    event_dict = generate_s3_event(region, bucket, key)
+    #used url.quote to URL encode the key
+    event_dict = generate_s3_event(region, bucket, url.quote(key))
+    #event_dict = generate_s3_event(region, bucket, key)
     event = json.dumps(event_dict, indent=4)
     click.echo(event)
