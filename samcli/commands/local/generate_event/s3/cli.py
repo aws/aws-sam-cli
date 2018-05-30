@@ -36,6 +36,5 @@ def do_cli(ctx, region, bucket, key):
     """
     #used url.quote to URL encode the key
     event_dict = generate_s3_event(region, bucket, url.quote(key))
-    #event_dict = generate_s3_event(region, bucket, key)
     event = json.dumps(event_dict, indent=4)
     click.echo(event)
