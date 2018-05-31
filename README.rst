@@ -261,8 +261,8 @@ Usage
 function locally, and it’s also true for spawning API Gateway locally -
 If no template is specified ``template.yaml`` will be used instead.
 
-You can find sample SAM templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__
-official repository.
+You can create a sample app by running the command ``sam init --runtime <your-favorite-runtime>``
+or find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
 
 Invoke functions locally
 ~~~~~~~~~~~~~~~~~~~~~~~~
