@@ -266,7 +266,8 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
         fp_mock.read.assert_called_with()
 
     def test_must_fail_on_download_from_s3(self):
-        with self.assertRaises(botocore.exceptions.ClientError):
+        with self.assertRaises(botocore.exceptions.ClientError) or self.assertRaises(
+                botocore.exceptions.NoCredentialsError):
             SamSwaggerReader._download_from_s3(self.bucket, self.key)
 
     @patch('samcli.commands.local.lib.swagger.reader.boto3')
