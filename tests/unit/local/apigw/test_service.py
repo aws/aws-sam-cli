@@ -444,7 +444,7 @@ class TestService_construct_event(TestCase):
         self.request_mock.method = "GET"
         self.request_mock.remote_addr = "190.0.0.0"
         self.request_mock.data = b"DATA!!!!"
-        self.request_mock.args = {"query": "params"}
+        self.request_mock.args = {"query": ["params"]}
         self.request_mock.headers = {"Content-Type": "application/json", "X-Test": "Value"}
         self.request_mock.view_args = {"path": "params"}
         self.request_mock.scheme = "http"
@@ -488,6 +488,27 @@ class TestService_construct_event(TestCase):
 
         actual_event_str = Service._construct_event(self.request_mock, 3000, binary_types=[])
         self.assertEquals(json.loads(actual_event_str), self.expected_dict)
+
+    def test_query_string_params_with_empty_params(self):
+        request_mock = Mock()
+        request_mock.args = {}
+
+        actual_query_string = Service._query_string_params(request_mock)
+        self.assertEquals(actual_query_string, {})
+
+    def test_query_string_params_with_param_value_being_empty_list(self):
+        request_mock = Mock()
+        request_mock.args = {"param": []}
+
+        actual_query_string = Service._query_string_params(request_mock)
+        self.assertEquals(actual_query_string, {"param": ""})
+
+    def test_query_string_params_with_param_value_being_non_empty_list(self):
+        request_mock = Mock()
+        request_mock.args = {"param": ["a", "b"]}
+
+        actual_query_string = Service._query_string_params(request_mock)
+        self.assertEquals(actual_query_string, {"param": "b"})
 
 
 class TestService_service_response(TestCase):

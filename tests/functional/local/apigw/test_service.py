@@ -272,7 +272,7 @@ class TestService_EventSerialization(TestCase):
                                          resolvedResourcePath=path,
                                          pathParameters={"event": "event1"},
                                          body=json.dumps(body),
-                                         queryParams={"key": ["value"]},
+                                         queryParams={"key": "value"},
                                          headers={"X-Test": "TestValue", "Content-Length": "16",
                                                   "Content-Type": "application/json"})
 
