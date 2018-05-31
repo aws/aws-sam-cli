@@ -268,8 +268,8 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
     def test_must_fail_on_download_from_s3(self):
         with self.assertRaises(Exception) as cm:
             SamSwaggerReader._download_from_s3(self.bucket, self.key)
-        self.assertEqual(cm.exception.__class__,
-                         botocore.exceptions.ClientError or botocore.exceptions.NoCredentialsError)
+        self.assertIn(cm.exception.__class__,
+                      (botocore.exceptions.NoCredentialsError, botocore.exceptions.ClientError))
 
     @patch('samcli.commands.local.lib.swagger.reader.boto3')
     @patch('samcli.commands.local.lib.swagger.reader.tempfile')
