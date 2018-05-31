@@ -10,7 +10,7 @@ import random
 from mock import Mock
 
 from samcli.local.apigw.service import Route, Service
-from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT, API_GATEWAY_BAD_PROXY_RESPONSE, API_GATEWAY_ECHO_BASE64_EVENT
+from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT, API_GATEWAY_BAD_PROXY_RESPONSE, API_GATEWAY_ECHO_BASE64_EVENT, API_GATEWAY_CONTENT_TYPE_LOWER
 from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -61,6 +61,58 @@ class TestService_InvalidResponses(TestCase):
         self.assertEquals(actual, expected)
         self.assertEquals(response.status_code, 502)
         self.assertEquals(response.headers.get('Content-Type'), "application/json")
+
+
+class TestService_ContentType(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.code_abs_path = nodejs_lambda(API_GATEWAY_CONTENT_TYPE_LOWER)
+
+        # Let's convert this absolute path to relative path. Let the parent be the CWD, and codeuri be the folder
+        cls.cwd = os.path.dirname(cls.code_abs_path)
+        cls.code_uri = os.path.relpath(cls.code_abs_path, cls.cwd)  # Get relative path with respect to CWD
+
+        cls.function_name = "name"
+
+        cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
+                                         handler="index.handler", codeuri=cls.code_uri, environment=None,
+                                         rolearn=None)
+
+        cls.base64_response_function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
+                                                         handler="index.handler", codeuri=cls.code_uri, environment=None,
+                                                         rolearn=None)
+
+        cls.mock_function_provider = Mock()
+        cls.mock_function_provider.get.return_value = cls.function
+
+        list_of_routes = [
+                          Route(['GET'], cls.function_name, '/'),
+                          ]
+
+        cls.service, cls.port, cls.url, cls.scheme = make_service(list_of_routes, cls.mock_function_provider, cls.cwd)
+        cls.service.create()
+        t = threading.Thread(name='thread', target=cls.service.run, args=())
+        t.setDaemon(True)
+        t.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.code_abs_path)
+
+    def setUp(self):
+        # Print full diff when comparing large dictionaries
+        self.maxDiff = None
+
+    def test_calling_service_root(self):
+        expected = "hello"
+
+        response = requests.get(self.url)
+
+        actual = response.json()
+
+        self.assertEquals(actual, expected)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get('content-type'), "text/plain")
 
 
 class TestService_EventSerialization(TestCase):

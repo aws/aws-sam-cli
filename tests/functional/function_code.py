@@ -63,6 +63,15 @@ exports.handler = function(event, context, callback){
 }
 """
 
+API_GATEWAY_CONTENT_TYPE_LOWER = """
+exports.handler = function(event, context, callback){
+    body = JSON.stringify("hello")
+
+    response = {"statusCode":200,"headers":{"content-type":"text/plain"},"body":body,"isBase64Encoded":false}
+    context.done(null, response);
+}
+"""
+
 API_GATEWAY_ECHO_BASE64_EVENT = """
 exports.base54request = function(event, context, callback){
 

@@ -36,6 +36,7 @@ Lambda Runtime.
       -  `Install with PyEnv <#install-with-pyenv>`__
       -  `Troubleshooting <#troubleshooting>`__
 
+         -  `General <#general-issues>`__
          -  `Mac <#mac-issues>`__
 
    -  `Usage <#usage>`__
@@ -55,7 +56,11 @@ Lambda Runtime.
    -  `Getting started <#getting-started>`__
    -  `Advanced <#advanced>`__
 
-      -  `Compiled Languages (Java) <#compiled-languages-java>`__
+      -  `Compiled Languages <#compiled-languages>`__
+         
+         -  `Java <#java>`__
+         -  `.NET Core <#net_core>`__
+      
       -  `IAM Credentials <#iam-credentials>`__
       -  `Lambda Environment
          Variables <#lambda-environment-variables>`__
@@ -94,6 +99,9 @@ Installation
 
 Prerequisites
 ~~~~~~~~~~~~~
+
+- Docker
+- Python2.7 (Python3+ not yet supported)
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
@@ -161,7 +169,7 @@ First, install Python(2.7) on your machine, then run the following:
 .. code:: bash
 
    # Clone the repository
-   $ git clone git@github.com:awslabs/aws-sam-cli.git
+   $ git clone git@github.com/awslabs/aws-sam-cli.git
 
    # cd into the git
    $ cd aws-sam-cli
@@ -197,6 +205,29 @@ Install with PyEnv
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
+
+General Issues
+^^^^^^^^^^^^^^
+
+1. If you are seeing `sam command not found`, this is likely due to the installation using the `--user` and
+   adding `sam` to a path that is not in your $PATH.
+
+.. code:: bash
+
+    # Find your path Python User Base path (where Python --user will install packages/scripts)
+    USER_BASE_PATH="$(python -m site --user-base)"
+
+    # Add this path to your $PATH
+    export PATH=$USER_BASE_PATH:$PATH
+
+You can also try an installing aws-sam-cli without `--user`
+
+.. code:: bash
+
+    # Uninstall aws-sam-cli from the --user path
+    pip uninstall --user aws-sam-cli
+
+    pip install aws-sam-cli
 
 Mac Issues
 ^^^^^^^^^^
@@ -457,20 +488,20 @@ Passing Additional Runtime Debug Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To pass additional runtime arguments when debugging your function, use
-the environment variable ``DEBUGGER_ARGUMENTS``. This will pass a string
+the environment variable ``DEBUGGER_ARGS``. This will pass a string
 of arguments directly into the run command SAM CLI uses to start your
 function.
 
 For example, if you want to load a debugger like iKPdb at runtime of
 your Python function, you could pass the following as
-``DEBUGGER_ARGUMENTS``:
+``DEBUGGER_ARGS``:
 ``-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0``.
 This would load iKPdb at runtime with the other arguments you’ve
 specified. In this case, your full SAM CLI command would be:
 
 .. code:: bash
 
-   $ DEBUGGER_ARGUMENTS="-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0" echo {} | sam local invoke -d 5858 myFunction
+   $ DEBUGGER_ARGS="-m ikpdb --ikpdb-port=5858 --ikpdb-working-directory=/var/task/ --ikpdb-client-working-directory=/myApp --ikpdb-address=0.0.0.0" echo {} | sam local invoke -d 5858 myFunction
 
 You may pass debugger arguments to functions of all runtimes.
 
@@ -541,13 +572,15 @@ Example:
 Getting started
 ---------------
 
--  Check out `HOWTO Guide <HOWTO.md>`__ section for more details
+-  Check out our `Getting Started Guide <docs/getting_started.rst>`__ for more details
 
 Advanced
 --------
 
-Compiled Languages (Java)
+Compiled Languages
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Java**
 
 To use SAM CLI with compiled languages, such as Java that require a
 packaged artifact (e.g. a JAR, or ZIP), you can specify the location of
@@ -586,6 +619,29 @@ file (or uber jar) containing all of the function dependencies.
 
 You can find a full Java example in the `samples/java <samples/java>`__
 folder
+
+**.NET Core**
+
+To use SAM Local with compiled languages, such as .NET Core that require a packaged artifact (e.g. a ZIP), you can specify the location of the artifact with the ``AWS::Serverless::Function`` ``CodeUri`` property in your SAM template.
+
+For example:
+
+.. code:: yaml
+
+   AWSTemplateFormatVersion: 2010-09-09
+   Transform: AWS::Serverless-2016-10-31
+ 
+   Resources:
+     ExampleDotNetFunction:
+       Type: AWS::Serverless::Function
+       Properties:
+         Handler: HelloWorld::HelloWorld.Function::Handler
+         CodeUri: ./artifacts/HelloWorld.zip
+         Runtime: dotnetcore2.0
+
+You should then build your ZIP file using your normal build process.
+
+You can generate a .NET Core example by using the ``sam init --runtime dotnetcore`` command.
 
 .. _IAMCreds
 
