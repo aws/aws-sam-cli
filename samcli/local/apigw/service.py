@@ -14,6 +14,23 @@ from .path_converter import PathConverter
 LOG = logging.getLogger(__name__)
 
 
+class CaseInsensitiveDict(dict):
+    """
+    Implement a simple case insensitive dictionary for storing headers. To preserve the original
+    case of the given Header (e.g. X-FooBar-Fizz) this only touches the get and contains magic
+    methods rather than implementing a __setitem__ where we normalize the case of the headers.
+    """
+
+    def __getitem__(self, key):
+        matches = [v for k, v in self.items() if k.lower() == key.lower()]
+        if not matches:
+            raise KeyError(key)
+        return matches[0]
+
+    def __contains__(self, key):
+        return key.lower() in [k.lower() for k in self.keys()]
+
+
 class Route(object):
 
     def __init__(self, methods, function_name, path, binary_types=None):
@@ -270,7 +287,7 @@ class Service(object):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
         status_code = json_output.get("statusCode") or 200
-        headers = json_output.get("headers") or {}
+        headers = CaseInsensitiveDict(json_output.get("headers") or {})
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 

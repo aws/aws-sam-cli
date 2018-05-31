@@ -171,6 +171,33 @@ class TestSamTemplateValidator(TestCase):
         self.assertEquals(tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"),
                           "s3://bucket/value")
 
+    def test_DefinitionUri_does_not_get_added_to_template_when_DefinitionBody_given(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "swagger": {}
+                        }
+                    }
+                }
+            }
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_codeuri()
+
+        tempalte_resources = validator.sam_template.get("Resources")
+        self.assertNotIn("DefinitionUri", tempalte_resources.get("ServerlessApi").get("Properties"))
+        self.assertIn("DefinitionBody", tempalte_resources.get("ServerlessApi").get("Properties"))
+
     def test_replace_local_codeuri_with_no_resources(self):
 
         template = {
