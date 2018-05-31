@@ -56,7 +56,11 @@ Lambda Runtime.
    -  `Getting started <#getting-started>`__
    -  `Advanced <#advanced>`__
 
-      -  `Compiled Languages (Java) <#compiled-languages-java>`__
+      -  `Compiled Languages <#compiled-languages>`__
+         
+         -  `Java <#java>`__
+         -  `.NET Core <#net_core>`__
+      
       -  `IAM Credentials <#iam-credentials>`__
       -  `Lambda Environment
          Variables <#lambda-environment-variables>`__
@@ -95,6 +99,9 @@ Installation
 
 Prerequisites
 ~~~~~~~~~~~~~
+
+- Docker
+- Python2.7 (Python3+ not yet supported)
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
@@ -568,8 +575,10 @@ Getting started
 Advanced
 --------
 
-Compiled Languages (Java)
+Compiled Languages
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Java**
 
 To use SAM CLI with compiled languages, such as Java that require a
 packaged artifact (e.g. a JAR, or ZIP), you can specify the location of
@@ -606,6 +615,29 @@ file (or uber jar) containing all of the function dependencies.
    // Or start local API Gateway simulator
    $ sam local start-api
 
+
+**.NET Core**
+
+To use SAM Local with compiled languages, such as .NET Core that require a packaged artifact (e.g. a ZIP), you can specify the location of the artifact with the ``AWS::Serverless::Function`` ``CodeUri`` property in your SAM template.
+
+For example:
+
+.. code:: yaml
+
+   AWSTemplateFormatVersion: 2010-09-09
+   Transform: AWS::Serverless-2016-10-31
+ 
+   Resources:
+     ExampleDotNetFunction:
+       Type: AWS::Serverless::Function
+       Properties:
+         Handler: HelloWorld::HelloWorld.Function::Handler
+         CodeUri: ./artifacts/HelloWorld.zip
+         Runtime: dotnetcore2.0
+
+You should then build your ZIP file using your normal build process.
+
+You can generate a .NET Core example by using the ``sam init --runtime dotnetcore`` command.
 
 .. _IAMCreds
 
