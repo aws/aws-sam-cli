@@ -220,6 +220,28 @@ class TestService_EventSerialization(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers.get('Content-Type'), "application/json")
 
+    def test_calling_service_with_form_data_on_path(self):
+        path = "/something"
+        body = {"key1": "value1"}
+        expected = make_service_response(self.port,
+                                         scheme=self.scheme,
+                                         method="POST",
+                                         resourcePath=path,
+                                         resolvedResourcePath=path,
+                                         pathParameters=None,
+                                         body='key1=value1',
+                                         queryParams=None,
+                                         headers={"Content-Length": "11",
+                                                  "Content-Type": "application/x-www-form-urlencoded"})
+
+        response = requests.post(self.url + path, data=body)
+
+        actual = response.json()
+
+        self.assertEquals(actual, expected)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get('Content-Type'), "application/json")
+
     def test_calling_service_with_path_params(self):
         path = '/something/event1'
         expected = make_service_response(self.port,

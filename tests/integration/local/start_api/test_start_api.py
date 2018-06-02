@@ -369,6 +369,18 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEquals(response.headers.get("Content-Type"), "image/gif")
         self.assertEquals(response.content, input_data)
 
+    def test_request_with_form_data(self):
+        """
+        Form-encoded data should be put into the Event to Lambda
+        """
+        response = requests.post(self.url + "/echobase64eventbody",
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"},
+                                 data='key=value')
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "application/x-www-form-urlencoded")
+        self.assertEquals(response.text, "key=value")
+
     def test_request_with_query_params(self):
         """
         Query params given should be put into the Event to Lambda
