@@ -56,7 +56,11 @@ Lambda Runtime.
    -  `Getting started <#getting-started>`__
    -  `Advanced <#advanced>`__
 
-      -  `Compiled Languages (Java) <#compiled-languages-java>`__
+      -  `Compiled Languages <#compiled-languages>`__
+         
+         -  `Java <#java>`__
+         -  `.NET Core <#net_core>`__
+      
       -  `IAM Credentials <#iam-credentials>`__
       -  `Lambda Environment
          Variables <#lambda-environment-variables>`__
@@ -95,6 +99,9 @@ Installation
 
 Prerequisites
 ~~~~~~~~~~~~~
+
+- Docker
+- Python2.7 (Python3+ not yet supported)
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
@@ -261,10 +268,8 @@ Usage
 function locally, and it’s also true for spawning API Gateway locally -
 If no template is specified ``template.yaml`` will be used instead.
 
-You can find sample SAM templates either under **``samples``** located
-in this repo or by visiting
-`SAM <https://github.com/awslabs/serverless-application-model>`__
-official repository.
+You can create a sample app by running the command ``sam init --runtime <your-favorite-runtime>``
+or find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
 
 Invoke functions locally
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -570,8 +575,10 @@ Getting started
 Advanced
 --------
 
-Compiled Languages (Java)
+Compiled Languages
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Java**
 
 To use SAM CLI with compiled languages, such as Java that require a
 packaged artifact (e.g. a JAR, or ZIP), you can specify the location of
@@ -608,8 +615,29 @@ file (or uber jar) containing all of the function dependencies.
    // Or start local API Gateway simulator
    $ sam local start-api
 
-You can find a full Java example in the `samples/java <samples/java>`__
-folder
+
+**.NET Core**
+
+To use SAM Local with compiled languages, such as .NET Core that require a packaged artifact (e.g. a ZIP), you can specify the location of the artifact with the ``AWS::Serverless::Function`` ``CodeUri`` property in your SAM template.
+
+For example:
+
+.. code:: yaml
+
+   AWSTemplateFormatVersion: 2010-09-09
+   Transform: AWS::Serverless-2016-10-31
+ 
+   Resources:
+     ExampleDotNetFunction:
+       Type: AWS::Serverless::Function
+       Properties:
+         Handler: HelloWorld::HelloWorld.Function::Handler
+         CodeUri: ./artifacts/HelloWorld.zip
+         Runtime: dotnetcore2.0
+
+You should then build your ZIP file using your normal build process.
+
+You can generate a .NET Core example by using the ``sam init --runtime dotnetcore`` command.
 
 .. _IAMCreds
 
@@ -842,13 +870,6 @@ SAM CLI uses the open source
 `docker-lambda <https://github.com/lambci/docker-lambda>`__ Docker
 images created by [@mhart](https://github.com/mhart).
 
-Examples
---------
-
-You can find sample functions code and a SAM template used in this
-README under the
-`samples <https://github.com/awslabs/aws-sam-local/tree/master/samples>`__
-folder within this repo.
 
 .. raw:: html
 

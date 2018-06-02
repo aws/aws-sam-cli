@@ -5,7 +5,7 @@ import base64
 
 from parameterized import parameterized, param
 
-from samcli.local.apigw.service import Service, Route
+from samcli.local.apigw.service import Service, Route, CaseInsensitiveDict
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
@@ -444,7 +444,7 @@ class TestService_construct_event(TestCase):
         self.request_mock.method = "GET"
         self.request_mock.remote_addr = "190.0.0.0"
         self.request_mock.get_data.return_value = b"DATA!!!!"
-        self.request_mock.args = {"query": "params"}
+        self.request_mock.args = {"query": ["params"]}
         self.request_mock.headers = {"Content-Type": "application/json", "X-Test": "Value"}
         self.request_mock.view_args = {"path": "params"}
         self.request_mock.scheme = "http"
@@ -489,6 +489,27 @@ class TestService_construct_event(TestCase):
         actual_event_str = Service._construct_event(self.request_mock, 3000, binary_types=[])
         self.assertEquals(json.loads(actual_event_str), self.expected_dict)
 
+    def test_query_string_params_with_empty_params(self):
+        request_mock = Mock()
+        request_mock.args = {}
+
+        actual_query_string = Service._query_string_params(request_mock)
+        self.assertEquals(actual_query_string, {})
+
+    def test_query_string_params_with_param_value_being_empty_list(self):
+        request_mock = Mock()
+        request_mock.args = {"param": []}
+
+        actual_query_string = Service._query_string_params(request_mock)
+        self.assertEquals(actual_query_string, {"param": ""})
+
+    def test_query_string_params_with_param_value_being_non_empty_list(self):
+        request_mock = Mock()
+        request_mock.args = {"param": ["a", "b"]}
+
+        actual_query_string = Service._query_string_params(request_mock)
+        self.assertEquals(actual_query_string, {"param": "b"})
+
 
 class TestService_service_response(TestCase):
 
@@ -525,3 +546,36 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(Service._should_base64_encode(binary_types, mimetype))
+
+
+class TestService_CaseInsensiveDict(TestCase):
+
+    def setUp(self):
+        self.data = CaseInsensitiveDict({
+            'Content-Type': 'text/html',
+            'Browser': 'APIGW',
+        })
+
+    def test_contains_lower(self):
+        self.assertTrue('content-type' in self.data)
+
+    def test_contains_title(self):
+        self.assertTrue('Content-Type' in self.data)
+
+    def test_contains_upper(self):
+        self.assertTrue('CONTENT-TYPE' in self.data)
+
+    def test_contains_browser_key(self):
+        self.assertTrue('Browser' in self.data)
+
+    def test_contains_not_in(self):
+        self.assertTrue('Dog-Food' not in self.data)
+
+    def test_setitem_found(self):
+        self.data['Browser'] = 'APIGW'
+
+        self.assertTrue(self.data['browser'])
+
+    def test_keyerror(self):
+        with self.assertRaises(KeyError):
+            self.data['does-not-exist']

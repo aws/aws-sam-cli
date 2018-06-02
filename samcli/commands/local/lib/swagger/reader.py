@@ -213,7 +213,7 @@ class SamSwaggerReader(object):
 
         with tempfile.TemporaryFile() as fp:
             try:
-                s3.download_file(
+                s3.download_fileobj(
                     bucket, key, fp,
                     ExtraArgs=extra_args)
 
