@@ -268,10 +268,8 @@ Usage
 function locally, and it’s also true for spawning API Gateway locally -
 If no template is specified ``template.yaml`` will be used instead.
 
-You can find sample SAM templates either under **``samples``** located
-in this repo or by visiting
-`SAM <https://github.com/awslabs/serverless-application-model>`__
-official repository.
+You can create a sample app by running the command ``sam init --runtime <your-favorite-runtime>``
+or find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
 
 Invoke functions locally
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -617,8 +615,6 @@ file (or uber jar) containing all of the function dependencies.
    // Or start local API Gateway simulator
    $ sam local start-api
 
-You can find a full Java example in the `samples/java <samples/java>`__
-folder
 
 **.NET Core**
 
@@ -874,13 +870,6 @@ SAM CLI uses the open source
 `docker-lambda <https://github.com/lambci/docker-lambda>`__ Docker
 images created by [@mhart](https://github.com/mhart).
 
-Examples
---------
-
-You can find sample functions code and a SAM template used in this
-README under the
-`samples <https://github.com/awslabs/aws-sam-local/tree/master/samples>`__
-folder within this repo.
 
 .. raw:: html
 
