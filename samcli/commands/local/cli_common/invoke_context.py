@@ -8,7 +8,7 @@ import json
 import yaml
 import docker
 
-import requests.exceptions as requests_exceptions
+import requests
 
 from samcli.yamlhelper import yaml_parse
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -270,5 +270,5 @@ class InvokeContext(object):
         try:
             docker_client.ping()
         # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-        except (docker.errors.APIError, requests_exceptions.ConnectionError):
+        except (docker.errors.APIError, requests.exceptions.ConnectionError):
             raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")
