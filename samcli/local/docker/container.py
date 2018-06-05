@@ -204,20 +204,19 @@ class Container(object):
         # Iterator returns a tuple of (frame_type, data) where the frame type determines which stream we write output
         # to
         for frame_type, data in output_itr:
-            utf8_data = data.decode()
 
             if frame_type == Container._STDOUT_FRAME_TYPE and stdout:
                 # Frame type 1 is stdout data.
-                stdout.write(utf8_data)
+                stdout.write(data)
 
             elif frame_type == Container._STDERR_FRAME_TYPE and stderr:
                 # Frame type 2 is stderr data.
-                stderr.write(utf8_data)
+                stderr.write(data)
 
             else:
                 # Either an unsupported frame type or stream for this frame type is not configured
                 LOG.debug("Dropping Docker container output because of unconfigured frame type. "
-                          "Frame Type: %s. Data: %s", frame_type, utf8_data)
+                          "Frame Type: %s. Data: %s", frame_type, data)
 
     @property
     def network_id(self):

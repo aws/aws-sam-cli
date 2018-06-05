@@ -113,12 +113,12 @@ class TestLambdaContainer(TestCase):
 
         # This is the JSON result from Lambda function
         # Convert to proper binary type to be compatible with Python 2 & 3
-        expected_output = '{"a":"b"}'
-        expected_stderr = "**This string is printed from Lambda function**"
+        expected_output = b'{"a":"b"}'
+        expected_stderr = b"**This string is printed from Lambda function**"
 
         container = LambdaContainer(self.runtime, self.handler, self.code_dir)
-        stdout_stream = io.StringIO()
-        stderr_stream = io.StringIO()
+        stdout_stream = io.BytesIO()
+        stderr_stream = io.BytesIO()
 
         with self._create(container):
 

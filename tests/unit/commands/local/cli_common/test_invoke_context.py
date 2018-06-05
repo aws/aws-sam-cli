@@ -204,7 +204,12 @@ class TestInvokeContext_stdout_property(TestCase):
     def test_must_return_sys_stdout(self):
         context = InvokeContext(template_file="template")
 
-        self.assertEquals(sys.stdout, context.stdout)
+        expected_stdout = sys.stdout
+
+        if sys.version_info.major > 2:
+            expected_stdout = sys.stdout.buffer
+
+        self.assertEquals(expected_stdout, context.stdout)
 
 
 class TestInvokeContext_stderr_property(TestCase):
@@ -218,7 +223,12 @@ class TestInvokeContext_stderr_property(TestCase):
     def test_must_return_sys_stderr(self):
         context = InvokeContext(template_file="template")
 
-        self.assertEquals(sys.stderr, context.stderr)
+        expected_stderr = sys.stderr
+
+        if sys.version_info.major > 2:
+            expected_stderr = sys.stderr.buffer
+
+        self.assertEquals(expected_stderr, context.stderr)
 
 
 class TestInvokeContext_template_property(TestCase):
@@ -353,7 +363,7 @@ class TestInvokeContext_setup_log_file(TestCase):
         with patch("samcli.commands.local.cli_common.invoke_context.open", m):
             InvokeContext._setup_log_file(filename)
 
-        m.assert_called_with(filename, 'w')
+        m.assert_called_with(filename, 'wb')
 
 
 class TestInvokeContext_check_docker_connectivity(TestCase):

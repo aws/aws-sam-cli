@@ -160,7 +160,12 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        return sys.stdout
+        byte_stdout = sys.stdout
+
+        if sys.version_info.major > 2:
+            byte_stdout = sys.stdout.buffer  # pylint: disable=no-member
+
+        return byte_stdout
 
     @property
     def stderr(self):
@@ -172,7 +177,12 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        return sys.stderr
+        byte_stderr = sys.stderr
+
+        if sys.version_info.major > 2:
+            byte_stderr = sys.stderr.buffer  # pylint: disable=no-member
+
+        return byte_stderr
 
     @property
     def template(self):
@@ -253,7 +263,7 @@ class InvokeContext(object):
         if not log_file:
             return None
 
-        return open(log_file, 'w')
+        return open(log_file, 'wb')
 
     @staticmethod
     def _check_docker_connectivity(docker_client=None):

@@ -45,7 +45,7 @@ class TestLambdaRuntime(TestCase):
     def test_echo_function(self):
         timeout = 3
         input_event = '{"a":"b"}'
-        expected_output = '{"a":"b"}'
+        expected_output = b'{"a":"b"}'
 
         config = FunctionConfig(name="helloworld",
                                 runtime=RUNTIME,
@@ -53,7 +53,7 @@ class TestLambdaRuntime(TestCase):
                                 code_abs_path=self.code_dir["echo"],
                                 timeout=timeout)
 
-        stdout_stream = io.StringIO()
+        stdout_stream = io.BytesIO()
         self.runtime.invoke(config, input_event, stdout=stdout_stream)
 
         actual_output = stdout_stream.getvalue()
@@ -63,7 +63,7 @@ class TestLambdaRuntime(TestCase):
         """
         Setup a short timeout and verify that the container is stopped
         """
-        stdout_stream = io.StringIO()
+        stdout_stream = io.BytesIO()
         timeout = 1  # 1 second timeout
         sleep_seconds = 20  # Ask the function to sleep for 20 seconds
 
@@ -88,7 +88,7 @@ class TestLambdaRuntime(TestCase):
 
         # There should be no output from the function because timer was interrupted
         actual_output = stdout_stream.getvalue()
-        self.assertEquals(actual_output.strip(), "")
+        self.assertEquals(actual_output.strip(), b"")
 
     @parameterized.expand([
         ("zip"),
@@ -99,7 +99,7 @@ class TestLambdaRuntime(TestCase):
     def test_echo_function_with_zip_file(self, file_name_extension):
         timeout = 3
         input_event = '"this input should be echoed"'
-        expected_output = '"this input should be echoed"'
+        expected_output = b'"this input should be echoed"'
 
         code_dir = self.code_dir["echo"]
         with make_zip(code_dir, file_name_extension) as code_zip_path:
@@ -110,7 +110,7 @@ class TestLambdaRuntime(TestCase):
                                     code_abs_path=code_zip_path,
                                     timeout=timeout)
 
-            stdout_stream = io.StringIO()
+            stdout_stream = io.BytesIO()
             self.runtime.invoke(config, input_event, stdout=stdout_stream)
 
             actual_output = stdout_stream.getvalue()
@@ -122,7 +122,7 @@ class TestLambdaRuntime(TestCase):
 
         timeout = 30
         input_event = ""
-        stdout_stream = io.StringIO()
+        stdout_stream = io.BytesIO()
         expected_output = {
             "AWS_SAM_LOCAL": "true",
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
@@ -153,7 +153,7 @@ class TestLambdaRuntime(TestCase):
 
         self.runtime.invoke(config, input_event, stdout=stdout_stream)
 
-        actual_output = json.loads(stdout_stream.getvalue().strip())  # Output is a JSON String. Deserialize.
+        actual_output = json.loads(stdout_stream.getvalue().strip().decode())  # Output is a JSON String. Deserialize.
 
         # Make sure all key/value from expected_output is present in actual_output
         for key, value in expected_output.items():
@@ -191,7 +191,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
         name = "sleepfunction_timeout_{}_sleep_{}".format(timeout, sleep_duration)
         print("Invoking function " + name)
         try:
-            stdout_stream = io.StringIO()
+            stdout_stream = io.BytesIO()
             config = FunctionConfig(name=name,
                                     runtime=RUNTIME,
                                     handler=HANDLER,
@@ -202,7 +202,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
             self.runtime.invoke(config, sleep_duration, stdout=stdout_stream)
             actual_output = stdout_stream.getvalue().strip()  # Must output the sleep duration
             if check_stdout:
-                self.assertEquals(actual_output, str(sleep_duration))
+                self.assertEquals(actual_output.decode(), str(sleep_duration))
         except Exception as ex:
             if exceptions is not None:
                 exceptions.append({"name": name, "error": ex})

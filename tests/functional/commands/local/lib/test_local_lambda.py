@@ -76,8 +76,8 @@ class TestFunctionalLocalLambda(TestCase):
         expected_env_vars["AWS_ACCESS_KEY_ID"] = creds.get("key", "defaultkey")
         expected_env_vars["AWS_REGION"] = creds.get("region", "us-east-1")
 
-        stdout_stream = io.StringIO()
-        stderr_stream = io.StringIO()
+        stdout_stream = io.BytesIO()
+        stderr_stream = io.BytesIO()
         runner.invoke(self.function_name, input_event, stdout=stdout_stream, stderr=stderr_stream)
 
         # stderr is where the Lambda container runtime logs are available. It usually contains requestId, start time
@@ -85,7 +85,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.assertGreater(len(stderr_stream.getvalue().strip()), 0, "stderr stream must contain data")
 
         # This should contain all the environment variables passed to the function
-        actual_output = json.loads(stdout_stream.getvalue().strip())
+        actual_output = json.loads(stdout_stream.getvalue().strip().decode())
 
         for key, value in expected_env_vars.items():
             self.assertTrue(key in actual_output, "Key '{}' must be in function output".format(key))

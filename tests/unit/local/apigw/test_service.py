@@ -267,35 +267,35 @@ class TestApiGatewayService(TestCase):
     @parameterized.expand([
         param(
             "with both logs and response",
-            'this\nis\nlog\ndata\n{"a": "b"}', 'this\nis\nlog\ndata', '{"a": "b"}'
+            b'this\nis\nlog\ndata\n{"a": "b"}', b'this\nis\nlog\ndata', b'{"a": "b"}'
         ),
         param(
             "with response as string",
-            "logs\nresponse", "logs", "response"
+            b"logs\nresponse", b"logs", b"response"
         ),
         param(
             "with response only",
-            '{"a": "b"}', None, '{"a": "b"}'
+            b'{"a": "b"}', None, b'{"a": "b"}'
         ),
         param(
             "with response only as string",
-            'this is the response line', None, 'this is the response line'
+            b'this is the response line', None, b'this is the response line'
         ),
         param(
             "with whitespaces",
-            'log\ndata\n{"a": "b"}  \n\n\n', "log\ndata", '{"a": "b"}'
+            b'log\ndata\n{"a": "b"}  \n\n\n', b"log\ndata", b'{"a": "b"}'
         ),
         param(
             "with empty data",
-            '', None, ''
+            b'', None, b''
         ),
         param(
             "with just new lines",
-            '\n\n', None, ''
+            b'\n\n', None, b''
         ),
         param(
             "with no data but with whitespaces",
-            '\n   \n   \n', '\n   ', ''   # Log data with whitespaces will be in the output unchanged
+            b'\n   \n   \n', b'\n   ', b''   # Log data with whitespaces will be in the output unchanged
         )
     ])
     def test_get_lambda_output_extracts_response(self, test_case_name, stdout_data, expected_logs, expected_response):

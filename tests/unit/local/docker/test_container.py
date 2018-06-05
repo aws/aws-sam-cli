@@ -400,11 +400,11 @@ class TestContainer_write_container_output(TestCase):
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=self.stderr_mock)
 
         self.stdout_mock.write.assert_has_calls([
-            call("stdout1"), call("stdout2"), call("stdout3")
+            call(b"stdout1"), call(b"stdout2"), call(b"stdout3")
         ])
 
         self.stderr_mock.write.assert_has_calls([
-            call("stderr1"), call("stderr2"), call("stderr3")
+            call(b"stderr1"), call(b"stderr2"), call(b"stderr3")
         ])
 
     def test_must_write_only_stdout(self):
@@ -412,7 +412,7 @@ class TestContainer_write_container_output(TestCase):
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
 
         self.stdout_mock.write.assert_has_calls([
-            call("stdout1"), call("stdout2"), call("stdout3")
+            call(b"stdout1"), call(b"stdout2"), call(b"stdout3")
         ])
 
         self.stderr_mock.write.assert_not_called()  # stderr must never be called
@@ -425,7 +425,7 @@ class TestContainer_write_container_output(TestCase):
         self.stdout_mock.write.assert_not_called()
 
         self.stderr_mock.write.assert_has_calls([
-            call("stderr1"), call("stderr2"), call("stderr3")
+            call(b"stderr1"), call(b"stderr2"), call(b"stderr3")
         ])
 
 

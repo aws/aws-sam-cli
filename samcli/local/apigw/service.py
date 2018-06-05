@@ -172,7 +172,7 @@ class Service(object):
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
-        stdout_stream = io.StringIO()
+        stdout_stream = io.BytesIO()
 
         try:
             self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream, stderr=self.stderr)
@@ -254,7 +254,7 @@ class Service(object):
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
         # System.out.println or similar, before docker-lambda output the result
-        stdout_data = stdout_stream.getvalue().rstrip('\n')
+        stdout_data = stdout_stream.getvalue().rstrip(b'\n')
 
         # Usually the output is just one line and contains response as JSON string, but if the Lambda function
         # wrote anything directly to stdout, there will be additional lines. So just extract the last line as
@@ -262,7 +262,7 @@ class Service(object):
         lambda_response = stdout_data
         lambda_logs = None
 
-        last_line_position = stdout_data.rfind('\n')
+        last_line_position = stdout_data.rfind(b'\n')
         if last_line_position > 0:
             # So there are multiple lines. Separate them out.
             # Everything but the last line are logs
