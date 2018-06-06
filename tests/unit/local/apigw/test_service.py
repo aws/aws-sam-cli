@@ -147,7 +147,8 @@ class TestApiGatewayService(TestCase):
         app_mock.add_url_rule.assert_called_once_with('/',
                                                       endpoint='/',
                                                       view_func=self.service._request_handler,
-                                                      methods=['GET'])
+                                                      methods=['GET'],
+                                                      provide_automatic_options=False)
 
     def test_initalize_creates_default_values(self):
         self.assertEquals(self.service.port, 3000)
