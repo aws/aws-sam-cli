@@ -15,9 +15,10 @@ class InvokeIntegBase(TestCase):
 
         integration_dir = str(Path(__file__).resolve().parents[2])
 
-        cls.template_path = integration_dir + "/testdata/invoke/template.yml"
-        cls.event_path = integration_dir + "/testdata/invoke/event.json"
-        cls.env_var_path = integration_dir + "/testdata/invoke/vars.json"
+        cls.test_data_path = os.path.join(integration_dir, "testdata")
+        cls.template_path = os.path.join(cls.test_data_path, "invoke", "template.yml")
+        cls.event_path = os.path.join(cls.test_data_path, "invoke", "event.json")
+        cls.env_var_path = os.path.join(cls.test_data_path, "invoke", "vars.json")
 
     @classmethod
     def base_command(cls):
