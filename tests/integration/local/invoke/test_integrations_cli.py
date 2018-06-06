@@ -24,7 +24,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode(), '"Hello world"')
+        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
 
     def test_invoke_of_lambda_function(self):
         command_list = self.get_command_list("HelloWorldLambdaFunction",
@@ -34,7 +34,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode(), '"Hello world"')
+        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
 
     def test_invoke_with_timeout_set(self):
         command_list = self.get_command_list("HelloWorldSleepFunction",
@@ -55,8 +55,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertLess(wall_clock_cli_duration, 20)
 
         self.assertEquals(return_code, 0)
-        self.assertEquals(process_stdout.decode(), "", msg="The return statement in the LambdaFunction "
-                                                           "should never return leading to an empty string")
+        self.assertEquals(process_stdout.decode('utf-8'), "", msg="The return statement in the LambdaFunction "
+                                                                  "should never return leading to an empty string")
 
     def test_invoke_with_env_vars(self):
         command_list = self.get_command_list("EchoCustomEnvVarFunction",
@@ -67,7 +67,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode(), '"MyVar"')
+        self.assertEquals(process_stdout.decode('utf-8'), '"MyVar"')
 
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list("WriteToStdoutFunction",
@@ -80,8 +80,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         process_stderr = b"".join(process.stderr.readlines()).strip()
 
-        self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode())
-        self.assertIn("wrote to stdout", process_stdout.decode())
+        self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode('utf-8'))
+        self.assertIn("wrote to stdout", process_stdout.decode('utf-8'))
 
     def test_invoke_when_function_writes_stderr(self):
         command_list = self.get_command_list("WriteToStderrFunction",
@@ -93,4 +93,4 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         process_stderr = b"".join(process.stderr.readlines()).strip()
 
-        self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode())
+        self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode('utf-8'))

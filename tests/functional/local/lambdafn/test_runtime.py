@@ -153,7 +153,7 @@ class TestLambdaRuntime(TestCase):
 
         self.runtime.invoke(config, input_event, stdout=stdout_stream)
 
-        actual_output = json.loads(stdout_stream.getvalue().strip().decode())  # Output is a JSON String. Deserialize.
+        actual_output = json.loads(stdout_stream.getvalue().strip().decode('utf-8'))  # Output is a JSON String. Deserialize.
 
         # Make sure all key/value from expected_output is present in actual_output
         for key, value in expected_output.items():
@@ -202,7 +202,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
             self.runtime.invoke(config, sleep_duration, stdout=stdout_stream)
             actual_output = stdout_stream.getvalue().strip()  # Must output the sleep duration
             if check_stdout:
-                self.assertEquals(actual_output.decode(), str(sleep_duration))
+                self.assertEquals(actual_output.decode('utf-8'), str(sleep_duration))
         except Exception as ex:
             if exceptions is not None:
                 exceptions.append({"name": name, "error": ex})

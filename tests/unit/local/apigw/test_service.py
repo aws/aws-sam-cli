@@ -377,7 +377,7 @@ class TestServiceParsingLambdaOutput(TestCase):
         should_decode_body_patch.return_value = True
 
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
-        base64_body = base64.b64encode(binary_body).decode()
+        base64_body = base64.b64encode(binary_body).decode('utf-8')
         lambda_output = {"statusCode": 200,
                          "headers": {"Content-Type": "application/octet-stream"},
                          "body": base64_body,
@@ -481,7 +481,7 @@ class TestService_construct_event(TestCase):
         should_base64_encode_patch.return_value = True
 
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
-        base64_body = base64.b64encode(binary_body).decode()
+        base64_body = base64.b64encode(binary_body).decode('utf-8')
 
         self.request_mock.data = binary_body
         self.expected_dict["body"] = base64_body

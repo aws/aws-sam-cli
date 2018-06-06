@@ -85,7 +85,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.assertGreater(len(stderr_stream.getvalue().strip()), 0, "stderr stream must contain data")
 
         # This should contain all the environment variables passed to the function
-        actual_output = json.loads(stdout_stream.getvalue().strip().decode())
+        actual_output = json.loads(stdout_stream.getvalue().strip().decode('utf-8'))
 
         for key, value in expected_env_vars.items():
             self.assertTrue(key in actual_output, "Key '{}' must be in function output".format(key))
