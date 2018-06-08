@@ -17,7 +17,7 @@ class TestCli(TestCase):
         key = "key"
 
         # unquoted key cannot be same length unless key itself is not encoded.
-        if (len(u.unquote(key)) != key):
+        if (len(u.unquote(key)) <= key):
             s3_cli(ctx=None, region=region, bucket=bucket, key=key)
 
         s3_event_patch.assert_called_once_with(region, bucket, key)
