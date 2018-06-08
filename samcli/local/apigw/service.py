@@ -95,7 +95,8 @@ class Service(object):
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
-                                   methods=api_gateway_route.methods)
+                                   methods=api_gateway_route.methods,
+                                   provide_automatic_options=False)
 
         self._construct_error_handling()
 
