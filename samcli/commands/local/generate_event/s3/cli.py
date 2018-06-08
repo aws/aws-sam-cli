@@ -19,7 +19,6 @@ from samcli.commands.local.lib.events import generate_s3_event
               default="example-bucket",
               help='The S3 bucket the event should reference (default: "example-bucket")')
 @click.option("--key", "-k",
-	#url.quote for getting the sam local generate-event to url encode s3 object key
               type=str,
               default="test/key",
               help='The S3 key the event should reference (default: "test/key")')
@@ -34,7 +33,9 @@ def do_cli(ctx, region, bucket, key):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
-    #used url.quote to URL encode the key
+    # used url.quote to URL encode the key
     event_dict = generate_s3_event(region, bucket, url.quote(key))
+    # event_dict = generate_s3_event(region, bucket, key)
+
     event = json.dumps(event_dict, indent=4)
     click.echo(event)
