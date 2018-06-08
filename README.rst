@@ -57,10 +57,10 @@ Lambda Runtime.
    -  `Advanced <#advanced>`__
 
       -  `Compiled Languages <#compiled-languages>`__
-         
+
          -  `Java <#java>`__
          -  `.NET Core <#net_core>`__
-      
+
       -  `IAM Credentials <#iam-credentials>`__
       -  `Lambda Environment
          Variables <#lambda-environment-variables>`__
@@ -169,7 +169,7 @@ First, install Python(2.7) on your machine, then run the following:
 .. code:: bash
 
    # Clone the repository
-   $ git clone git@github.com/awslabs/aws-sam-cli.git
+   $ git clone git@github.com:awslabs/aws-sam-cli.git
 
    # cd into the git
    $ cd aws-sam-cli
@@ -268,10 +268,8 @@ Usage
 function locally, and it’s also true for spawning API Gateway locally -
 If no template is specified ``template.yaml`` will be used instead.
 
-You can find sample SAM templates either under **``samples``** located
-in this repo or by visiting
-`SAM <https://github.com/awslabs/serverless-application-model>`__
-official repository.
+You can create a sample app by running the command ``sam init --runtime <your-favorite-runtime>``
+or find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
 
 Invoke functions locally
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -541,7 +539,7 @@ option.
    $ sam validate
    <path-to-file>/template.yml is a valid SAM Template
 
-Note: The validate command requires AWS credentials to be configured. See IAMCreds_.
+Note: The validate command requires AWS credentials to be configured. See `IAM Credentials <#iam-credentials>`__.
 
 Package and Deploy to Lambda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -617,8 +615,6 @@ file (or uber jar) containing all of the function dependencies.
    // Or start local API Gateway simulator
    $ sam local start-api
 
-You can find a full Java example in the `samples/java <samples/java>`__
-folder
 
 **.NET Core**
 
@@ -630,7 +626,7 @@ For example:
 
    AWSTemplateFormatVersion: 2010-09-09
    Transform: AWS::Serverless-2016-10-31
- 
+
    Resources:
      ExampleDotNetFunction:
        Type: AWS::Serverless::Function
@@ -874,13 +870,6 @@ SAM CLI uses the open source
 `docker-lambda <https://github.com/lambci/docker-lambda>`__ Docker
 images created by [@mhart](https://github.com/mhart).
 
-Examples
---------
-
-You can find sample functions code and a SAM template used in this
-README under the
-`samples <https://github.com/awslabs/aws-sam-local/tree/master/samples>`__
-folder within this repo.
 
 .. raw:: html
 

@@ -380,7 +380,20 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEquals(response_data.get("queryStringParameters"), {"key": ["value"]})
+        self.assertEquals(response_data.get("queryStringParameters"), {"key": "value"})
+
+    def test_request_with_list_of_query_params(self):
+        """
+        Query params given should be put into the Event to Lambda
+        """
+        response = requests.get(self.url + "/id/4",
+                                params={"key": ["value", "value2"]})
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("queryStringParameters"), {"key": "value2"})
 
     def test_request_with_path_params(self):
         """

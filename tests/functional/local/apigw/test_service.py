@@ -94,6 +94,7 @@ class TestService_ContentType(TestCase):
         t = threading.Thread(name='thread', target=cls.service.run, args=())
         t.setDaemon(True)
         t.start()
+        time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
@@ -148,6 +149,7 @@ class TestService_EventSerialization(TestCase):
         t = threading.Thread(name='thread', target=cls.service.run, args=())
         t.setDaemon(True)
         t.start()
+        time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
@@ -272,7 +274,7 @@ class TestService_EventSerialization(TestCase):
                                          resolvedResourcePath=path,
                                          pathParameters={"event": "event1"},
                                          body=json.dumps(body),
-                                         queryParams={"key": ["value"]},
+                                         queryParams={"key": "value"},
                                          headers={"X-Test": "TestValue", "Content-Length": "16",
                                                   "Content-Type": "application/json"})
 
@@ -316,6 +318,7 @@ class TestService_ProxyAtBasePath(TestCase):
         t = threading.Thread(name='thread', target=cls.service.run, args=())
         t.setDaemon(True)
         t.start()
+        time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
@@ -377,6 +380,7 @@ class TestService_Binary(TestCase):
         t = threading.Thread(name='thread', target=cls.service.run, args=())
         t.setDaemon(True)
         t.start()
+        time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
@@ -451,6 +455,7 @@ class TestService_PostingBinary(TestCase):
         t = threading.Thread(name='thread', target=cls.service.run, args=())
         t.setDaemon(True)
         t.start()
+        time.sleep(1)
 
     @classmethod
     def tearDownClass(cls):
