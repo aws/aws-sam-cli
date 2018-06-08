@@ -539,7 +539,7 @@ option.
    $ sam validate
    <path-to-file>/template.yml is a valid SAM Template
 
-Note: The validate command requires AWS credentials to be configured. See IAMCreds_.
+Note: The validate command requires AWS credentials to be configured. See `IAM Credentials <#iam-credentials>`__.
 
 Package and Deploy to Lambda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
