@@ -95,7 +95,8 @@ class Service(object):
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
-                                   methods=api_gateway_route.methods)
+                                   methods=api_gateway_route.methods,
+                                   provide_automatic_options=False)
 
         self._construct_error_handling()
 
@@ -254,7 +255,7 @@ class Service(object):
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
         # System.out.println or similar, before docker-lambda output the result
-        stdout_data = stdout_stream.getvalue().rstrip('\n')
+        stdout_data = stdout_stream.getvalue().rstrip(b'\n')
 
         # Usually the output is just one line and contains response as JSON string, but if the Lambda function
         # wrote anything directly to stdout, there will be additional lines. So just extract the last line as
@@ -262,7 +263,7 @@ class Service(object):
         lambda_response = stdout_data
         lambda_logs = None
 
-        last_line_position = stdout_data.rfind('\n')
+        last_line_position = stdout_data.rfind(b'\n')
         if last_line_position > 0:
             # So there are multiple lines. Separate them out.
             # Everything but the last line are logs
@@ -355,7 +356,8 @@ class Service(object):
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
             request_data = base64.b64encode(request_data)
-        elif request_data:
+
+        if request_data:
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode('utf-8')
 
