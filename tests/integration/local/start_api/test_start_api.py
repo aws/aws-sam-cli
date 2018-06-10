@@ -373,13 +373,16 @@ class TestServiceRequests(StartApiIntegBaseClass):
         """
         Form-encoded data should be put into the Event to Lambda
         """
-        response = requests.post(self.url + "/echobase64eventbody",
+        response = requests.post(self.url + "/echoeventbody",
                                  headers={"Content-Type": "application/x-www-form-urlencoded"},
                                  data='key=value')
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.headers.get("Content-Type"), "application/x-www-form-urlencoded")
-        self.assertEquals(response.text, "key=value")
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
+        self.assertEquals(response_data.get("body"), "key=value")
 
     def test_request_with_query_params(self):
         """
