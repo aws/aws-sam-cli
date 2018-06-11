@@ -201,7 +201,7 @@ Install with PyEnv
     $ pip install --user aws-sam-cli
 
     # Verify your installation worked
-    $ sam –version
+    $ sam -–version
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
