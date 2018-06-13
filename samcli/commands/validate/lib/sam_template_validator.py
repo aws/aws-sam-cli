@@ -59,22 +59,22 @@ class SamTemplateValidator(object):
         # does not match the schema. The logger they use is the root logger instead of one scoped to
         # their module. Currently this does not cause templates to fail, so we will suppress this
         # by patching the logging.warning method that is used in that class.
-        class HackLogger():
+        class WarningSuppressLogger(object):
 
-            def __init__(self, original_logger):
-                self.original_logger = original_logger
+            def __init__(self, obj_to_patch):
+                self.obj_to_patch = obj_to_patch
 
             def __enter__(self):
-                parser.logging.warning = self.warning
+                self.obj_to_patch.warning = self.warning
 
             def __exit__(self, exc_type, exc_val, exc_tb):
-                parser.logging.warning = self.original_logger.warning
+                self.obj_to_patch.warning = self.obj_to_patch.warning
 
             def warning(self, message):
                 pass
 
         try:
-            with HackLogger(parser.logging):
+            with WarningSuppressLogger(parser.logging):
                 sam_translator.translate(sam_template=self.sam_template,
                                          parameter_values={})
         except InvalidDocumentException as e:
