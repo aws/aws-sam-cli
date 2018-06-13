@@ -27,4 +27,4 @@ lint:
 dev: flake lint test
 
 # Verifications to run before sending a pull request
-pr: init dev
+pr: init dev func-test integ-test
