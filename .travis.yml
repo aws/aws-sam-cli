@@ -6,9 +6,6 @@ python:
   - "2.7"
   - "3.6"
 
-services:
-  - docker
-
 install:
   # Install the code requirements
   - make init
@@ -17,8 +14,4 @@ install:
 
 script:
   # Runs unit tests
-  - tox
-  - make func-test
-  # tox has trouble with running our integ-test target in Py3. We run integ-test here until the cause of the issue
-  # is addressed.
-  - make integ-test
+  - make pr
