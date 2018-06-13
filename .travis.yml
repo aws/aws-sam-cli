@@ -2,12 +2,19 @@
 sudo: false
 language: python
 
+services:
+  - docker
+
 install:
-# Install the code requirements
-- make init
+  # Install the code requirements
+  - make init
 
 # Install Docs requirements
 
 script:
-# Runs unit tests
-- make pr
+  # Runs unit tests
+  - tox
+  # tox has trouble with running our integ-test target in Py3. We run integ-test here until the cause of the issue
+  # is addressed.
+  - make init
+  - make integ-test
