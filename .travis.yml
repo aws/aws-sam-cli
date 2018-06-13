@@ -1,5 +1,5 @@
 # Enable container based builds
-sudo: required
+sudo: false
 language: python
 
 services:
