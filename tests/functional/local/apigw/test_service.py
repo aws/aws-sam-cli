@@ -4,6 +4,7 @@ import os
 import shutil
 import json
 import time
+import logging
 
 import requests
 import random
@@ -15,6 +16,8 @@ from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 class TestService_InvalidResponses(TestCase):

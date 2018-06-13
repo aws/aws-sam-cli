@@ -13,7 +13,7 @@ install:
 
 script:
   # Runs unit tests
-  - tox
+  - TOX_TESTENV_PASSENV=* tox
   # tox has trouble with running our integ-test target in Py3. We run integ-test here until the cause of the issue
   # is addressed.
   - make integ-test
