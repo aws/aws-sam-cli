@@ -3,7 +3,7 @@ Library for Validating Sam Templates
 """
 import functools
 from samtranslator.public.exceptions import InvalidDocumentException
-from samtranslator.parser.parser import Parser
+from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
 import six
 
@@ -35,8 +35,7 @@ class SamTemplateValidator(object):
         """
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
-
-        self.sam_parser = Parser()
+        self.sam_parser = parser.Parser()
 
     def is_valid(self):
         """
@@ -56,9 +55,28 @@ class SamTemplateValidator(object):
 
         self._replace_local_codeuri()
 
+        # In the Paser class, within the SAM Translator, they log a warning for when the template
+        # does not match the schema. The logger they use is the root logger instead of one scoped to
+        # their module. Currently this does not cause templates to fail, so we will suppress this
+        # by patching the logging.warning method that is used in that class.
+        class HackLogger():
+
+            def __init__(self, original_logger):
+                self.original_logger = original_logger
+
+            def __enter__(self):
+                parser.logging.warning = self.warning
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                parser.logging.warning = self.original_logger.warning
+
+            def warning(self, message):
+                pass
+
         try:
-            sam_translator.translate(sam_template=self.sam_template,
-                                     parameter_values={})
+            with HackLogger(parser.logging):
+                sam_translator.translate(sam_template=self.sam_template,
+                                         parameter_values={})
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
