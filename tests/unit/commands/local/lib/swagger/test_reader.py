@@ -265,7 +265,17 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
         fp_mock.seek.assert_called_with(0)  # make sure we seek the file before reading
         fp_mock.read.assert_called_with()
 
-    def test_must_fail_on_download_from_s3(self):
+    @patch('samcli.commands.local.lib.swagger.reader.boto3')
+    @patch('samcli.commands.local.lib.swagger.reader.tempfile')
+    def test_must_fail_on_download_from_s3(self, tempfilemock, botomock):
+        s3_mock = Mock()
+        botomock.client.return_value = s3_mock
+
+        fp_mock = Mock()
+        tempfilemock.TemporaryFile.return_value.__enter__.return_value = fp_mock  # mocking context manager
+        s3_mock.download_fileobj.side_effect = botocore.exceptions.ClientError({"Error": {}},
+                                                                               "download_file")
+
         with self.assertRaises(Exception) as cm:
             SamSwaggerReader._download_from_s3(self.bucket, self.key)
         self.assertIn(cm.exception.__class__,
