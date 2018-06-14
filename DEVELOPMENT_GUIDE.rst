@@ -12,7 +12,7 @@ Environment Setup
 
 1. Install Python Versions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-Even though Python 2.7 is our officially supported version, we have a goal to support both Python 2.7 and 3.6 versions.
+We support both Python 2.7 and 3.6 versions.
 Follow the idioms from this `excellent cheatsheet`_ to make sure your code is compatible with both Python versions.
 Our CI/CD pipeline is setup to run unit tests against both Python versions. So make sure you test it with both
 versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup multiple Python versions.
@@ -28,8 +28,8 @@ versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup
 Virtualenv allows you to install required libraries outside of the Python installation. A good practice is to setup
 a different virtualenv for each project. `pyenv`_ comes with a handy plugin that can create virtualenv.
 
-#. Create new virtualenv if it does not exist: ``pyenv virtualenv 2.7.14 samcli27``
-#. ``pyenv activate samcli27``
+#. Create new virtualenv if it does not exist: ``pyenv virtualenv 2.7.14 samcli27`` and ``pyenv virtualenv 3.6.4 samcli36``
+#. ``pyenv activate samcli27`` for Python2.7 or ``pyenv activate samcli36`` for Python3.6
 
 
 3. Install dev version of SAM CLI
@@ -38,7 +38,7 @@ We will install a development version of SAM CLI from source into the virtualenv
 make changes. We will install in a command called ``samdev`` to keep it separate from a global SAM CLI installation,
 if any.
 
-#. Activate Virtualenv: ``pyenv activate samcli27``
+#. Activate Virtualenv: ``pyenv activate samcli27`` or ``pyenv activate samcli36``
 #. Install dev CLI: ``make init``
 #. Make sure installation succeeded: ``which samdev``
 
