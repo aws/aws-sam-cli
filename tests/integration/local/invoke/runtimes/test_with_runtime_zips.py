@@ -4,7 +4,7 @@ import tempfile
 from subprocess import Popen, PIPE
 from nose_parameterized import parameterized, param
 
-from ..invoke_integ_base import InvokeIntegBase
+from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 
 
 class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
