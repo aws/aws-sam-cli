@@ -8,7 +8,7 @@ import json
 import yaml
 import docker
 
-from requests.exceptions import ConnectionError
+import requests
 
 from samcli.yamlhelper import yaml_parse
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
@@ -160,7 +160,15 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        return sys.stdout
+        # We write all of the data to stdout with bytes, typically io.BytesIO. stdout in Python2
+        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
+        # this consistent, we leave Python2 the same and get the .buffer attribute on stdout in Python3
+        byte_stdout = sys.stdout
+
+        if sys.version_info.major > 2:
+            byte_stdout = sys.stdout.buffer  # pylint: disable=no-member
+
+        return byte_stdout
 
     @property
     def stderr(self):
@@ -172,7 +180,15 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        return sys.stderr
+        # We write all of the data to stdout with bytes, typically io.BytesIO. stderr in Python2
+        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
+        # this consistent, we leave Python2 the same and get the .buffer attribute on stderr in Python3
+        byte_stderr = sys.stderr
+
+        if sys.version_info.major > 2:
+            byte_stderr = sys.stderr.buffer  # pylint: disable=no-member
+
+        return byte_stderr
 
     @property
     def template(self):
@@ -253,7 +269,7 @@ class InvokeContext(object):
         if not log_file:
             return None
 
-        return open(log_file, 'w')
+        return open(log_file, 'wb')
 
     @staticmethod
     def _check_docker_connectivity(docker_client=None):
@@ -270,5 +286,5 @@ class InvokeContext(object):
         try:
             docker_client.ping()
         # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-        except (docker.errors.APIError, ConnectionError):
+        except (docker.errors.APIError, requests.exceptions.ConnectionError):
             raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")

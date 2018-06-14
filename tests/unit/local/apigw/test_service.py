@@ -147,7 +147,8 @@ class TestApiGatewayService(TestCase):
         app_mock.add_url_rule.assert_called_once_with('/',
                                                       endpoint='/',
                                                       view_func=self.service._request_handler,
-                                                      methods=['GET'])
+                                                      methods=['GET'],
+                                                      provide_automatic_options=False)
 
     def test_initalize_creates_default_values(self):
         self.assertEquals(self.service.port, 3000)
@@ -217,7 +218,7 @@ class TestApiGatewayService(TestCase):
     @patch('samcli.local.apigw.service.ServiceErrorResponses')
     def test_request_handler_errors_when_unable_to_read_binary_data(self, service_error_responses_patch):
         _construct_event = Mock()
-        _construct_event.side_effect = UnicodeDecodeError("utf8", "obj", 1, 2, "reason")
+        _construct_event.side_effect = UnicodeDecodeError("utf8", b"obj", 1, 2, "reason")
         self.service._get_current_route = Mock()
         self.service._construct_event = _construct_event
 
@@ -267,35 +268,35 @@ class TestApiGatewayService(TestCase):
     @parameterized.expand([
         param(
             "with both logs and response",
-            'this\nis\nlog\ndata\n{"a": "b"}', 'this\nis\nlog\ndata', '{"a": "b"}'
+            b'this\nis\nlog\ndata\n{"a": "b"}', b'this\nis\nlog\ndata', b'{"a": "b"}'
         ),
         param(
             "with response as string",
-            "logs\nresponse", "logs", "response"
+            b"logs\nresponse", b"logs", b"response"
         ),
         param(
             "with response only",
-            '{"a": "b"}', None, '{"a": "b"}'
+            b'{"a": "b"}', None, b'{"a": "b"}'
         ),
         param(
             "with response only as string",
-            'this is the response line', None, 'this is the response line'
+            b'this is the response line', None, b'this is the response line'
         ),
         param(
             "with whitespaces",
-            'log\ndata\n{"a": "b"}  \n\n\n', "log\ndata", '{"a": "b"}'
+            b'log\ndata\n{"a": "b"}  \n\n\n', b"log\ndata", b'{"a": "b"}'
         ),
         param(
             "with empty data",
-            '', None, ''
+            b'', None, b''
         ),
         param(
             "with just new lines",
-            '\n\n', None, ''
+            b'\n\n', None, b''
         ),
         param(
             "with no data but with whitespaces",
-            '\n   \n   \n', '\n   ', ''   # Log data with whitespaces will be in the output unchanged
+            b'\n   \n   \n', b'\n   ', b''   # Log data with whitespaces will be in the output unchanged
         )
     ])
     def test_get_lambda_output_extracts_response(self, test_case_name, stdout_data, expected_logs, expected_response):
@@ -375,8 +376,9 @@ class TestServiceParsingLambdaOutput(TestCase):
     @patch('samcli.local.apigw.service.Service._should_base64_decode_body')
     def test_parse_returns_decodes_base64_to_binary(self, should_decode_body_patch):
         should_decode_body_patch.return_value = True
-        binary_body = "011000100110100101101110011000010111001001111001"  # binary in binary
-        base64_body = base64.b64encode(binary_body)
+
+        binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
+        base64_body = base64.b64encode(binary_body).decode('utf-8')
         lambda_output = {"statusCode": 200,
                          "headers": {"Content-Type": "application/octet-stream"},
                          "body": base64_body,
@@ -479,8 +481,8 @@ class TestService_construct_event(TestCase):
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
         should_base64_encode_patch.return_value = True
 
-        binary_body = "011000100110100101101110011000010111001001111001"  # binary in binary
-        base64_body = base64.b64encode(binary_body)
+        binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
+        base64_body = base64.b64encode(binary_body).decode('utf-8')
 
         self.request_mock.data = binary_body
         self.expected_dict["body"] = base64_body
