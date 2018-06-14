@@ -242,10 +242,11 @@ class TestGeneratedEvent(TestCase):
 
         self.assertEquals(actual_event, expected_event)
 
-    def test_scheudle_event(self):
+    def test_schedule_event(self):
         actual_event = generate_schedule_event("us-east-1")
 
         expected_event = {
+            "version": "0",
             "account": "123456789012",
             "region": "us-east-1",
             "detail": {},
