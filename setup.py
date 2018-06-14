@@ -44,8 +44,8 @@ setup(
     license=read('LICENSE'),
     packages=find_packages(exclude=('tests', 'docs')),
     keywords="AWS SAM CLI",
-    # Support Python2.7 and higher, but not 3.x
-    python_requires='~=2.7',
+    # Support Python 2.7 and 3.6 or greater
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*',
     entry_points={
         'console_scripts': [
             '{}=samcli.cli.main:cli'.format(cmd_name)
@@ -66,6 +66,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Internet',
         'Topic :: Software Development :: Build Tools',
         'Topic :: Utilities',
