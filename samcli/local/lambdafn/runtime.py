@@ -4,7 +4,6 @@ Classes representing a local Lambda runtime
 
 import os
 import shutil
-import zipfile
 import tempfile
 import signal
 import logging
@@ -12,6 +11,7 @@ import threading
 from contextlib import contextmanager
 
 from samcli.local.docker.lambda_container import LambdaContainer
+from .zip import unzip
 
 LOG = logging.getLogger(__name__)
 
@@ -193,8 +193,7 @@ def _unzip_file(filepath):
 
     LOG.info("Decompressing %s", filepath)
 
-    zip_ref = zipfile.ZipFile(filepath, 'r')
-    zip_ref.extractall(temp_dir)
+    unzip(filepath, temp_dir)
 
     # The directory that Python returns might have symlinks. The Docker File sharing settings will not resolve
     # symlinks. Hence get the real path before passing to Docker.

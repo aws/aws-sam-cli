@@ -101,7 +101,7 @@ Prerequisites
 ~~~~~~~~~~~~~
 
 - Docker
-- Python2.7 (Python3+ not yet supported)
+- Python2.7 or Python3.6
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
@@ -134,7 +134,7 @@ To upgrade to Version 0.3.0 or above, follow instructions below:
 Windows, Linux, macOS with PIP [Recommended]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Verify Python Version is 2.7.
+Verify Python Version is 2.7 or 3.6.
 
 .. code:: bash
     python --version
@@ -164,7 +164,7 @@ To update **``sam``** once installed via pip:
 Build From Source
 ~~~~~~~~~~~~~~~~~
 
-First, install Python(2.7) on your machine, then run the following:
+First, install Python(2.7 or 3.6) on your machine, then run the following:
 
 .. code:: bash
 
@@ -193,9 +193,9 @@ Install with PyEnv
     # restart the shell
     $ exec "$SHELL"
 
-    # Install Python 2.7
-    $ pyenv install 2.7.14
-    $ pyenv local 2.7.14
+    # Install Python 3.6.4
+    $ pyenv install 3.6.4
+    $ pyenv local 3.6.4
 
     # Install the CLI
     $ pip install --user aws-sam-cli
@@ -253,7 +253,7 @@ homebrew and try again:
 
 .. code:: bash
 
-   brew install python@2
+   brew install python
 
 Followed by:
 
@@ -826,7 +826,7 @@ Project Status
 -  [ ] Python Versions support
 
    -  [x] Python 2.7
-   -  [ ] Python 3.6
+   -  [x] Python 3.6
 
 -  [ ] Supported AWS Lambda Runtimes
 

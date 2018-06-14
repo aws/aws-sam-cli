@@ -347,7 +347,7 @@ class Service(object):
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
         method = flask_request.method
 
-        request_data = flask_request.data
+        request_data = flask_request.get_data()
 
         request_mimetype = flask_request.mimetype
 
