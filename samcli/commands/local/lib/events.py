@@ -100,6 +100,7 @@ def generate_schedule_event(region):
     :return dict: Dictionary representing the Schedule Event
     """
     return {
+        "version": "0",
         "account": "123456789012",
         "region": region,
         "detail": {},
