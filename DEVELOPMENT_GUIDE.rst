@@ -26,7 +26,7 @@ versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup
 2. Activate Virtualenv
 ~~~~~~~~~~~~~~~~~~~~~~
 Virtualenv allows you to install required libraries outside of the Python installation. A good practice is to setup
-a different virtualenv for each project. `pyenv`_ comes with a handy plugin that can create virtualenv.
+a different virtualenv for each project. `pyenv`_ comes with a handy `plugin`_ that can create virtualenv.
 
 #. Create new virtualenv if it does not exist: ``pyenv virtualenv 2.7.14 samcli27`` and ``pyenv virtualenv 3.6.4 samcli36``
 #. ``pyenv activate samcli27`` for Python2.7 or ``pyenv activate samcli36`` for Python3.6
@@ -105,3 +105,4 @@ best practices that we have learnt over time.
 .. _pyenv: https://github.com/pyenv/pyenv
 .. _tox: http://tox.readthedocs.io/en/latest/
 .. _numpy docstring: https://numpydoc.readthedocs.io/en/latest/format.html
+.. _plugin: https://github.com/pyenv/pyenv-virtualenv
