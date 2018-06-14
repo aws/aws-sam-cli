@@ -17,8 +17,6 @@ from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager
 
-logging.getLogger().setLevel(logging.DEBUG)
-
 
 class TestService_InvalidResponses(TestCase):
     @classmethod

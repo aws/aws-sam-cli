@@ -253,7 +253,7 @@ homebrew and try again:
 
 .. code:: bash
 
-   brew install python@3
+   brew install python
 
 Followed by:
 
