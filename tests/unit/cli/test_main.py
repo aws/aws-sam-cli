@@ -19,11 +19,11 @@ class TestCliBase(TestCase):
     def test_cli_some_command(self):
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["validate"])
-        self.assertEquals(result.exit_code, 1)
+        result = runner.invoke(cli, ["local", "generate-event", "s3"])
+        self.assertEquals(result.exit_code, 0)
 
     def test_cli_with_debug(self):
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["validate", "--debug"])
-        self.assertEquals(result.exit_code, 1)
+        result = runner.invoke(cli, ["local", "generate-event", "s3", "--debug"])
+        self.assertEquals(result.exit_code, 0)

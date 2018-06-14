@@ -445,7 +445,7 @@ class TestService_construct_event(TestCase):
         self.request_mock.path = "path"
         self.request_mock.method = "GET"
         self.request_mock.remote_addr = "190.0.0.0"
-        self.request_mock.data = b"DATA!!!!"
+        self.request_mock.get_data.return_value = b"DATA!!!!"
         self.request_mock.args = {"query": ["params"]}
         self.request_mock.headers = {"Content-Type": "application/json", "X-Test": "Value"}
         self.request_mock.view_args = {"path": "params"}
@@ -471,7 +471,7 @@ class TestService_construct_event(TestCase):
         self.assertEquals(json.loads(actual_event_str), self.expected_dict)
 
     def test_construct_event_no_data(self):
-        self.request_mock.data = None
+        self.request_mock.get_data.return_value = None
         self.expected_dict["body"] = None
 
         actual_event_str = Service._construct_event(self.request_mock, 3000, binary_types=[])
@@ -484,7 +484,7 @@ class TestService_construct_event(TestCase):
         binary_body = b"011000100110100101101110011000010111001001111001"  # binary in binary
         base64_body = base64.b64encode(binary_body).decode('utf-8')
 
-        self.request_mock.data = binary_body
+        self.request_mock.get_data.return_value = binary_body
         self.expected_dict["body"] = base64_body
         self.expected_dict["isBase64Encoded"] = True
 

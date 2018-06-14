@@ -4,6 +4,7 @@ import os
 import shutil
 import json
 import time
+import logging
 
 import requests
 import random
@@ -215,6 +216,28 @@ class TestService_EventSerialization(TestCase):
                                                   "Content-Type": "application/json"})
 
         response = requests.post(self.url + path, json=body)
+
+        actual = response.json()
+
+        self.assertEquals(actual, expected)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get('Content-Type'), "application/json")
+
+    def test_calling_service_with_form_data_on_path(self):
+        path = "/something"
+        body = {"key1": "value1"}
+        expected = make_service_response(self.port,
+                                         scheme=self.scheme,
+                                         method="POST",
+                                         resourcePath=path,
+                                         resolvedResourcePath=path,
+                                         pathParameters=None,
+                                         body='key1=value1',
+                                         queryParams=None,
+                                         headers={"Content-Length": "11",
+                                                  "Content-Type": "application/x-www-form-urlencoded"})
+
+        response = requests.post(self.url + path, data=body)
 
         actual = response.json()
 
@@ -582,7 +605,7 @@ def make_service(list_of_routes, function_provider, cwd):
 
 def make_service_response(port, method, scheme, resourcePath, resolvedResourcePath, pathParameters=None,
                           body=None, headers=None, queryParams=None, isBase64Encoded=False):
-    response_str = '{"httpMethod": "GET", "body": null, "resource": "/something/{event}", "requestContext": {"resourceId": "123456", "apiId": "1234567890", "resourcePath": "/something/{event}", "httpMethod": "GET", "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef", "accountId": "123456789012", "stage": "prod", "identity": {"apiKey": null, "userArn": null, "cognitoAuthenticationType": null, "caller": null, "userAgent": "Custom User Agent String", "user": null, "cognitoIdentityPoolId": null, "cognitoAuthenticationProvider": null, "sourceIp": "127.0.0.1", "accountId": null}, "extendedRequestId": null, "path": "/something/{event}"}, "queryStringParameters": null, "headers": {"Host": "0.0.0.0:33651", "User-Agent": "python-requests/2.18.4", "Accept-Encoding": "gzip, deflate", "Accept": "*/*", "Connection": "keep-alive"}, "pathParameters": {"event": "event1"}, "stageVariables": null, "path": "/something/event1", "isBase64Encoded": false}' # NOQA
+    response_str = '{"httpMethod": "GET", "body": null, "resource": "/something/{event}", "requestContext": {"resourceId": "123456", "apiId": "1234567890", "resourcePath": "/something/{event}", "httpMethod": "GET", "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef", "accountId": "123456789012", "stage": "prod", "identity": {"apiKey": null, "userArn": null, "cognitoAuthenticationType": null, "caller": null, "userAgent": "Custom User Agent String", "user": null, "cognitoIdentityPoolId": null, "cognitoAuthenticationProvider": null, "sourceIp": "127.0.0.1", "accountId": null}, "extendedRequestId": null, "path": "/something/{event}"}, "queryStringParameters": null, "headers": {"Host": "0.0.0.0:33651", "User-Agent": "python-requests/2.19.0", "Accept-Encoding": "gzip, deflate", "Accept": "*/*", "Connection": "keep-alive"}, "pathParameters": {"event": "event1"}, "stageVariables": null, "path": "/something/event1", "isBase64Encoded": false}' # NOQA
     response = json.loads(response_str)
 
     if body:
