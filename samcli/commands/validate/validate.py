@@ -18,17 +18,20 @@ from .lib.sam_template_validator import SamTemplateValidator
 
 @click.command("validate",
                short_help="Validate an AWS SAM template.")
+@click.option("--profile",
+              help="Specify which AWS credentials profile to use.",
+              required=False)
 @template_option
 @cli_framework_options
 @pass_context
-def cli(ctx, template):
+def cli(ctx, template, profile=None):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template)  # pragma: no cover
+    do_cli(ctx, template, profile)  # pragma: no cover
 
 
-def do_cli(ctx, template):
+def do_cli(ctx, template, profile=None):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """

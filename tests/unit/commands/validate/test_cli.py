@@ -35,13 +35,13 @@ class TestValidateCli(TestCase):
     @patch('samcli.commands.validate.validate.SamTemplateValidator')
     @patch('samcli.commands.validate.validate.click')
     @patch('samcli.commands.validate.validate._read_sam_file')
-    def test_template_fails_validation(self, read_sam_file_patch, click_patch, template_valiadator):
+    def test_template_fails_validation(self, read_sam_file_patch, click_patch, template_validator):
         template_path = 'path_to_template'
         read_sam_file_patch.return_value = {"a": "b"}
 
         is_valid_mock = Mock()
         is_valid_mock.is_valid.side_effect = InvalidSamDocumentException
-        template_valiadator.return_value = is_valid_mock
+        template_validator.return_value = is_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
             do_cli(ctx=None,
@@ -50,13 +50,29 @@ class TestValidateCli(TestCase):
     @patch('samcli.commands.validate.validate.SamTemplateValidator')
     @patch('samcli.commands.validate.validate.click')
     @patch('samcli.commands.validate.validate._read_sam_file')
-    def test_template_passes_validation(self, read_sam_file_patch, click_patch, template_valiadator):
+    def test_template_passes_validation(self, read_sam_file_patch, click_patch, template_validator):
         template_path = 'path_to_template'
         read_sam_file_patch.return_value = {"a": "b"}
 
         is_valid_mock = Mock()
         is_valid_mock.is_valid.return_value = True
-        template_valiadator.return_value = is_valid_mock
+        template_validator.return_value = is_valid_mock
 
         do_cli(ctx=None,
                template=template_path)
+
+    @patch('samcli.commands.validate.validate.SamTemplateValidator')
+    @patch('samcli.commands.validate.validate.click')
+    @patch('samcli.commands.validate.validate._read_sam_file')
+    def test_profile_is_passed(self, read_sam_file_patch, click_patch, template_validator):
+        template_path = 'path_to_template'
+        profile = 'development'
+        read_sam_file_patch.return_value = {"a": "b"}
+
+        is_valid_mock = Mock()
+        is_valid_mock.is_valid.return_value = True
+        template_validator.return_value = is_valid_mock
+
+        do_cli(ctx=None,
+               template=template_path,
+               profile=profile)
