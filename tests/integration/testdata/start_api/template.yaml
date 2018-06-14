@@ -53,6 +53,12 @@ Resources:
             Method: GET
             Path: /id/{id}
 
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /echoeventbody
+
   ContentTypeSetterFunction:
     Type: AWS::Serverless::Function
     Properties:
