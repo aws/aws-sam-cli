@@ -9,6 +9,7 @@ import tempfile
 import signal
 import logging
 import threading
+import stat
 from contextlib import contextmanager
 
 from samcli.local.docker.lambda_container import LambdaContainer
@@ -187,6 +188,7 @@ def _unzip_file(filepath):
     """
 
     temp_dir = tempfile.mkdtemp()
+    os.chmod(temp_dir, 0755)
 
     LOG.info("Decompressing %s", filepath)
 
