@@ -38,7 +38,14 @@ def do_cli(ctx, template, profile=None):
 
     sam_template = _read_sam_file(template)
 
-    iam_client = boto3.client('iam')
+    # If a profile is passed, instantiate the boto3 client from the session.
+    if profile:
+        # Throws a botocore.exceptions.ProfileNotFound for unknown profiles.
+        session = boto3.Session(profile_name=profile)
+        iam_client = session.client('iam')
+    else:
+        iam_client = boto3.client('iam')
+
     validator = SamTemplateValidator(sam_template, ManagedPolicyLoader(iam_client))
 
     try:
