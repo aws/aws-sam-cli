@@ -189,7 +189,7 @@ def _unzip_file(filepath):
     temp_dir = tempfile.mkdtemp()
 
     if os.name == 'posix':
-        os.chmod(temp_dir, 0755)
+        os.chmod(temp_dir, 0o755)
 
     LOG.info("Decompressing %s", filepath)
 
