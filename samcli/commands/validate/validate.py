@@ -37,15 +37,7 @@ def do_cli(ctx, template, profile=None):
     """
 
     sam_template = _read_sam_file(template)
-
-    # If a profile is passed, instantiate the boto3 client from the session.
-    if profile:
-        # Throws a botocore.exceptions.ProfileNotFound for unknown profiles.
-        session = boto3.Session(profile_name=profile)
-        iam_client = session.client('iam')
-    else:
-        iam_client = boto3.client('iam')
-
+    iam_client = _get_boto_client(profile)
     validator = SamTemplateValidator(sam_template, ManagedPolicyLoader(iam_client))
 
     try:
@@ -55,6 +47,16 @@ def do_cli(ctx, template, profile=None):
         raise InvalidSamTemplateException(str(e))
 
     click.secho("{} is a valid SAM Template".format(template), fg='green')
+
+
+def _get_boto_client(profile):
+    # If a profile is passed, instantiate the boto3 client from the session.
+    if profile:
+        # Throws a botocore.exceptions.ProfileNotFound for unknown profiles.
+        session = boto3.Session(profile_name=profile)
+        return session.client('iam')
+
+    return boto3.client('iam')
 
 
 def _read_sam_file(template):

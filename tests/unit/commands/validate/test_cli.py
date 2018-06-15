@@ -1,5 +1,6 @@
 from unittest import TestCase
 from mock import Mock, patch
+import boto3
 
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, InvalidSamTemplateException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -61,10 +62,11 @@ class TestValidateCli(TestCase):
         do_cli(ctx=None,
                template=template_path)
 
+    @patch('samcli.commands.validate.validate._get_boto_client')
     @patch('samcli.commands.validate.validate.SamTemplateValidator')
     @patch('samcli.commands.validate.validate.click')
     @patch('samcli.commands.validate.validate._read_sam_file')
-    def test_profile_is_passed(self, read_sam_file_patch, click_patch, template_validator):
+    def test_profile_is_passed(self, read_sam_file_patch, click_patch, template_validator, get_boto_client_patch):
         template_path = 'path_to_template'
         profile = 'development'
         read_sam_file_patch.return_value = {"a": "b"}
@@ -72,6 +74,12 @@ class TestValidateCli(TestCase):
         is_valid_mock = Mock()
         is_valid_mock.is_valid.return_value = True
         template_validator.return_value = is_valid_mock
+
+        # We were relying on an actual implementation in tests. Changing that seems
+        # highly out of scope for the current change. I'm limiting the scope to
+        # breaking dependency on the profile being defined in the runtime environment.
+        # If I understand the code correctly though, this is a major red flag for testability.
+        get_boto_client_patch.return_value = boto3.client('iam')
 
         do_cli(ctx=None,
                template=template_path,
