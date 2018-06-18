@@ -339,13 +339,14 @@ class TestUnzipFile(TestCase):
     @patch("samcli.local.lambdafn.runtime.tempfile")
     @patch("samcli.local.lambdafn.runtime.unzip")
     @patch("samcli.local.lambdafn.runtime.os")
-    def test_must_unzip(self, os_mock, unzip_mock, tempfile_mock):
+    def test_must_unzip_not_posix(self, os_mock, unzip_mock, tempfile_mock):
         inputpath = "somepath"
         tmpdir = "/tmp/dir"
         realpath = "/foo/bar/tmp/dir/code.zip"
 
         tempfile_mock.mkdtemp.return_value = tmpdir
         os_mock.path.realpath.return_value = realpath
+        os_mock.name = 'not-posix'
 
         output = _unzip_file(inputpath)
         self.assertEquals(output, realpath)
@@ -353,3 +354,24 @@ class TestUnzipFile(TestCase):
         tempfile_mock.mkdtemp.assert_called_with()
         unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
+        os_mock.chmod.assert_not_called()  # Assert we do not chmod the temporary directory
+
+    @patch("samcli.local.lambdafn.runtime.tempfile")
+    @patch("samcli.local.lambdafn.runtime.unzip")
+    @patch("samcli.local.lambdafn.runtime.os")
+    def test_must_unzip_posix(self, os_mock, unzip_mock, tempfile_mock):
+        inputpath = "somepath"
+        tmpdir = "/tmp/dir"
+        realpath = "/foo/bar/tmp/dir/code.zip"
+
+        tempfile_mock.mkdtemp.return_value = tmpdir
+        os_mock.path.realpath.return_value = realpath
+        os_mock.name = 'posix'
+
+        output = _unzip_file(inputpath)
+        self.assertEquals(output, realpath)
+
+        tempfile_mock.mkdtemp.assert_called_with()
+        unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
+        os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
+        os_mock.chmod.assert_called_with(tmpdir, 0o755)  # Assert we do chmod the temporary directory

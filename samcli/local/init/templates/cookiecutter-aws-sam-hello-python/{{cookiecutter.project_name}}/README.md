@@ -41,7 +41,7 @@ cp hello_world/*.py hello_world/build/
 1. Step 1 install our dependencies into ``build`` folder 
 2. Step 2 copies our application into ``build`` folder
 
-**NOTE:** As you change your application code as well as dependencies during development you'll need to make sure these steps are repated in order to execute your Lambda and/or API Gateway locally.
+**NOTE:** As you change your application code as well as dependencies during development you'll need to make sure these steps are repeated in order to execute your Lambda and/or API Gateway locally.
 
 ### Local development
 
