@@ -13,14 +13,16 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
 
         self.template_path = os.path.join(self.test_data_path, "invoke", "runtimes", "template.yaml")
 
-        self.events_file = tempfile.NamedTemporaryFile()
-        self.events_file.write('"yolo"')  # Just empty event
-        self.events_file.flush()
+        # Don't delete on close. Need the file to be present for tests to run.
+        events_file = tempfile.NamedTemporaryFile(delete=False)
+        events_file.write(b'"yolo"')  # Just empty event
+        events_file.flush()
+        events_file.close()
 
-        self.events_file_path = self.events_file.name
+        self.events_file_path = events_file.name
 
     def tearDown(self):
-        self.events_file.close()
+        os.remove(self.events_file_path)
 
     @parameterized.expand([
         param("Go1xFunction"),
