@@ -2,6 +2,7 @@
 import io
 import json
 import logging
+import os
 import base64
 
 from flask import Flask, request, Response
@@ -146,6 +147,11 @@ class Service(object):
         multi_threaded = not self.lambda_runner.is_debugging()
 
         LOG.debug("Local API Server starting up. Multi-threading = %s", multi_threaded)
+
+        # This environ signifies we are running a main function for Flask. This is true, since we are using it within
+        # our cli and not on a production server.
+        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 
     def _request_handler(self, **kwargs):
