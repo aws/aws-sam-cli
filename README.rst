@@ -215,7 +215,7 @@ General Issues
 .. code:: bash
 
     # Find your path Python User Base path (where Python --user will install packages/scripts)
-    USER_BASE_PATH="$(python -m site --user-base)"
+    USER_BASE_PATH="$(python -m site --user-base)/bin"
 
     # Add this path to your $PATH
     export PATH=$USER_BASE_PATH:$PATH
