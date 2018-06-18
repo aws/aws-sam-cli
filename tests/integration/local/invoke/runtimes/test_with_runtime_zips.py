@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from subprocess import Popen, PIPE, call
+from subprocess import Popen, PIPE
 from nose_parameterized import parameterized, param
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
@@ -18,13 +18,6 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
         self.events_file.flush()
 
         self.events_file_path = self.events_file.name
-
-        self.saved_path = os.getcwd()
-        self.new_path = os.path.join(self.test_data_path, "invoke", "runtimes", "java8")
-        os.chdir(self.new_path)
-        maven_cmd_path = os.path.join(os.getcwd(), "mvnw")
-        call([maven_cmd_path, 'clean', 'package', 'shade:shade'])
-        os.chdir(self.saved_path)
 
     def tearDown(self):
         self.events_file.close()
