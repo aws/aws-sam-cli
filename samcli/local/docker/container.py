@@ -81,6 +81,8 @@ class Container(object):
         kwargs = {
             "command": self._cmd,
             "working_dir": self._working_dir,
+            "security_opt": ["seccomp:unconfined"],
+            "cap_add": ["SYS_PTRACE"],
             "volumes": {
                 self._host_dir: {
                     # Mount the host directory as "read only" directory inside container at working_dir

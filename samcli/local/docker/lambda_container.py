@@ -145,6 +145,12 @@ class LambdaContainer(Container):
                         "/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
                    ]
 
+        elif runtime == Runtime.go1x.value:
+            entrypoint = ["/var/runtime/aws-lambda-debug-go"] \
+                    + [
+                        str(debug_port)
+                    ]
+
         elif runtime == Runtime.nodejs.value:
 
             entrypoint = ["/usr/bin/node"] \

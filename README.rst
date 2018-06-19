@@ -394,6 +394,37 @@ port to your host machine.
    issue <https://github.com/Microsoft/vscode-python/issues/71>`__ for
    updates.
 
+Debugging Golang functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Golang function debugging is slightly different when compared to Node.JS,
+Java, and Python. We utilize `delve <https://github.com/derekparker/delve>`__
+as the debugger, and wrap your function with it at runtime. The debugger
+is run in headless mode, listening on the debug port. The following is an
+example launch configuration for Visual Studio Code to attach to a debug
+session.
+
+.. code:: bash
+
+  {
+    "version": "0.2.0",
+    "configurations": [
+    {
+        "name": "Connect to Lambda container",
+        "type": "go",
+        "request": "launch",
+        "mode": "remote",
+        "remotePath": "",
+        "port": <debug port>,
+        "host": "127.0.0.1",
+        "program": "${workspaceRoot}",
+        "env": {},
+        "args": [],
+      },
+    ]
+  }
+
+
 Passing Additional Runtime Debug Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

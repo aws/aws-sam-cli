@@ -93,7 +93,9 @@ class TestContainer_create(TestCase):
 
         self.mock_docker_client.containers.create.assert_called_with(self.image,
                                                                      command=self.cmd,
+                                                                     cap_add=['SYS_PTRACE'],
                                                                      working_dir=self.working_dir,
+                                                                     security_opt=['seccomp:unconfined'],
                                                                      volumes=expected_volumes,
                                                                      tty=False)
         self.mock_docker_client.networks.get.assert_not_called()
@@ -132,9 +134,11 @@ class TestContainer_create(TestCase):
 
         self.mock_docker_client.containers.create.assert_called_with(self.image,
                                                                      command=self.cmd,
+                                                                     cap_add=['SYS_PTRACE'],
                                                                      working_dir=self.working_dir,
                                                                      volumes=expected_volumes,
                                                                      tty=False,
+                                                                     security_opt=['seccomp:unconfined'],
                                                                      environment=self.env_vars,
                                                                      ports=self.exposed_ports,
                                                                      entrypoint=self.entrypoint,
