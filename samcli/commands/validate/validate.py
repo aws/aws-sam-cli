@@ -4,13 +4,15 @@ CLI Command for Validating a SAM Template
 import os
 
 import boto3
+import botocore
+
 import click
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
 from samcli.commands.local.cli_common.options import template_common_option as template_option, profile_common_option as profile_option
-from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException, InvalidProfileException
 from samcli.yamlhelper import yaml_parse
 from .lib.exceptions import InvalidSamDocumentException
 from .lib.sam_template_validator import SamTemplateValidator
@@ -50,9 +52,12 @@ def do_cli(ctx, template, profile=None):
 def _get_boto_client(profile):
     # If a profile is passed, instantiate the boto3 client from the session.
     if profile:
-        # Throws a botocore.exceptions.ProfileNotFound for unknown profiles.
-        session = boto3.Session(profile_name=profile)
-        return session.client('iam')
+        try:
+            session = boto3.Session(profile_name=profile)
+            return session.client('iam')
+        except botocore.exceptions.ProfileNotFound as e:
+            click.secho("Profile '{}' was not found. Check your credential file.".format(profile), bg='red')
+            raise InvalidProfileException(str(e))
 
     return boto3.client('iam')
 

@@ -33,3 +33,10 @@ class SamTemplateNotFoundException(UserException):
     The SAM Template provided could not be found
     """
     pass
+
+
+class InvalidProfileException(UserException):
+    """
+    The profile provided was not found in the AWS Credentials file, causing Boto to raise an exception
+    """
+    pass
