@@ -9,7 +9,7 @@ from samtranslator.translator.managed_policy_translator import ManagedPolicyLoad
 
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
-from samcli.commands.local.cli_common.options import template_common_option as template_option
+from samcli.commands.local.cli_common.options import template_common_option as template_option, profile_common_option as profile_option
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
 from .lib.exceptions import InvalidSamDocumentException
@@ -18,13 +18,11 @@ from .lib.sam_template_validator import SamTemplateValidator
 
 @click.command("validate",
                short_help="Validate an AWS SAM template.")
-@click.option("--profile",
-              help="Specify which AWS credentials profile to use.",
-              required=False)
+@profile_option
 @template_option
 @cli_framework_options
 @pass_context
-def cli(ctx, template, profile=None):
+def cli(ctx, template, profile):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
