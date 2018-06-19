@@ -837,7 +837,7 @@ homebrew and try again:
 
 .. code:: bash
 
-   $ brew install python@2
+   $ brew install python
 
 Once installed then repeat the `installation process <#windows-linux-macos-with-pip-recommended>`_
 
