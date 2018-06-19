@@ -29,8 +29,7 @@ Lambda Runtime.
    -  `Installation <#installation>`__
 
       -  `Prerequisites <#prerequisites>`__
-      -  `Windows, Linux, macOS with PIP
-         [Recommended] <#windows-linux-macos-with-pip-recommended>`__
+      -  `Windows, Linux, macOS with PIP <#windows-linux-macos-with-pip>`__
       -  `Upgrade from 0.2.11, below or above <#upgrading>`__
 
    -  `Usage <#usage>`__
@@ -110,7 +109,7 @@ environment variable to contact the docker daemon.
    Mac <https://store.docker.com/editions/community/docker-ce-desktop-mac>`__
 -  **Windows**: `Docker
    Toolbox <https://download.docker.com/win/stable/DockerToolbox.exe>`__
--  **Linux**: Check your distro’s package manager (e.g. `yum install docker`)
+-  **Linux**: Check your distro’s package manager (e.g. yum install docker)
 
 **Note for macOS and Windows users**: SAM CLI requires that the project directory
 (or any parent directory) is listed in `Docker file sharing options <https://docs.docker.com/docker-for-mac/osxfs/>`__.
@@ -158,9 +157,6 @@ Restart or Open up a new terminal and verify that the installation worked:
 
 **NOTE**: For Windows users you may want to search for `Environment Variables` on your computer as Windows PATH configuration varies under depending on the version.
 
-Upgrading via pip
-^^^^^^^^^^^^^^^^^
-
 Upgrading
 ~~~~~~~~~~
 
@@ -170,47 +166,11 @@ Upgrading
 
    $ pip install --user --upgrade aws-sam-cli
 
-Previous CLI Versions must be uninstalled first (0.2.11 or below):
-
-Install with PyEnv
-~~~~~~~~~~~~~~~~~~
-.. code:: bash
-
-    # Install PyEnv (https://github.com/pyenv/pyenv#installation)
-    $ brew update
-    $ brew install pyenv
-
-    # Initialize pyenv using bash_profile
-    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.bash_profile
-    # or using zshrc
-    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.zshrc
-
-    # restart the shell
-    $ exec "$SHELL"
-
-    # Install Python 3.6.4
-    $ pyenv install 3.6.4
-    $ pyenv local 3.6.4
-
-    # Install the CLI
-    $ pip install --user aws-sam-cli
-
-    # Verify your installation worked
-    $ sam -–version
-
-Troubleshooting
-~~~~~~~~~~~~~~~
-
-Mac Issues
-^^^^^^^^^^
-
-1. **[Errno 13] Permission denied** If you had installed Python using
-   Homebrew, you might need to use ``sudo`` to install SAM CLI:
+Previous CLI Versions must be uninstalled first (0.2.11 or below) and then follow the `Installation <#windows-linux-macos-with-pip>`__ steps above:
 
 .. code:: bash
 
    $ npm uninstall -g aws-sam-local
-
 
 Usage
 -----
@@ -778,7 +738,7 @@ Advanced installations
 Build From Source
 ~~~~~~~~~~~~~~~~~
 
-First, install Python(2.7) on your machine, then run the following:
+First, install Python(2.7 or 3.6) on your machine, then run the following:
 
 .. code:: bash
 
@@ -839,7 +799,7 @@ homebrew and try again:
 
    $ brew install python
 
-Once installed then repeat the `installation process <#windows-linux-macos-with-pip-recommended>`_
+Once installed then repeat the `Installation process <#windows-linux-macos-with-pip>`_
 
 Project Status
 --------------
