@@ -15,7 +15,7 @@ SAM CLI (Beta)
 Slack <https://awssamopensource.splashthat.com/>`__ to collaborate with
 fellow community members and the AWS SAM team.
 
-**``sam``** is the AWS CLI tool for managing Serverless applications
+``sam`` is the AWS CLI tool for managing Serverless applications
 written with `AWS Serverless Application Model
 (SAM) <https://github.com/awslabs/serverless-application-model>`__. SAM
 CLI can be used to test functions locally, start a local API Gateway
@@ -29,15 +29,8 @@ Lambda Runtime.
    -  `Installation <#installation>`__
 
       -  `Prerequisites <#prerequisites>`__
-      -  `Upgrade from 0.2.11 or Below <#upgrade-from-version-0-2-11-or-below>`__
-      -  `Windows, Linux, macOS with PIP
-         [Recommended] <#windows-linux-macos-with-pip-recommended>`__
-      -  `Build From Source <#build-from-source>`__
-      -  `Install with PyEnv <#install-with-pyenv>`__
-      -  `Troubleshooting <#troubleshooting>`__
-
-         -  `General <#general-issues>`__
-         -  `Mac <#mac-issues>`__
+      -  `Windows, Linux, macOS with PIP <#windows-linux-macos-with-pip>`__
+      -  `Upgrade from 0.2.11, below or above <#upgrading>`__
 
    -  `Usage <#usage>`__
 
@@ -52,8 +45,6 @@ Lambda Runtime.
       -  `Validate SAM templates <#validate-sam-templates>`__
       -  `Package and Deploy to
          Lambda <#package-and-deploy-to-lambda>`__
-
-   -  `Getting started <#getting-started>`__
    -  `Advanced <#advanced>`__
 
       -  `Compiled Languages <#compiled-languages>`__
@@ -76,6 +67,13 @@ Lambda Runtime.
       -  `Local Logging <#local-logging>`__
       -  `Remote Docker <#remote-docker>`__
 
+   -  `Advanced/Custom Installation <#advanced-installations>`__
+
+      -  `Build From Source <#build-from-source>`__
+      -  `Install with PyEnv <#install-with-pyenv>`__
+      -  `Troubleshooting <#troubleshooting>`__
+
+         -  `Mac <#mac-issues>`__
    -  `Project Status <#project-status>`__
    -  `Contributing <#contributing>`__
    -  `A special thank you <#a-special-thank-you>`__
@@ -107,169 +105,83 @@ Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
 environment variable to contact the docker daemon.
 
--  macOS: `Docker for
+-  **macOS**: `Docker for
    Mac <https://store.docker.com/editions/community/docker-ce-desktop-mac>`__
--  Windows: `Docker
+-  **Windows**: `Docker
    Toolbox <https://download.docker.com/win/stable/DockerToolbox.exe>`__
--  Linux: Check your distro’s package manager (e.g. yum install docker)
+-  **Linux**: Check your distro’s package manager (e.g. yum install docker)
 
-For macOS and Windows users: SAM CLI requires that the project directory
-(or any parent directory) is listed in Docker file sharing options.
+**Note for macOS and Windows users**: SAM CLI requires that the project directory
+(or any parent directory) is listed in `Docker file sharing options <https://docs.docker.com/docker-for-mac/osxfs/>`__.
 
 Verify that docker is working, and that you can run docker commands from
-the CLI (e.g. ‘docker ps’). You do not need to install/fetch/pull any
+the CLI (e.g. `docker ps`). You do not need to install/fetch/pull any
 containers – SAM CLI will do it automatically as required.
 
-Upgrade from Version 0.2.11 or Below
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Uninstall previous CLI Version
-
-.. code:: bash
-
-    npm uninstall -g aws-sam-local
-
-To upgrade to Version 0.3.0 or above, follow instructions below:
-
-Windows, Linux, macOS with PIP [Recommended]
+Windows, Linux, macOS with PIP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Verify Python Version is 2.7 or 3.6.
 
 .. code:: bash
-    python --version
 
-The easiest way to install **``sam``** is to use
+    $ python --version
+
+The easiest way to install ``sam`` is to use
 `PIP <https://pypi.org/>`__.
 
 .. code:: bash
 
-   pip install --user aws-sam-cli
+   $ pip install --user aws-sam-cli
 
-Verify the installation worked:
-
-.. code:: bash
-
-   sam --version
-
-Upgrading via pip
-^^^^^^^^^^^^^^^^^
-
-To update **``sam``** once installed via pip:
+**Adjust your PATH** to include Python scripts installed under User's directory:
 
 .. code:: bash
 
-   pip install --user --upgrade aws-sam-cli
+    # Find your Python User Base path (where Python --user will install packages/scripts)
+    $ USER_BASE_PATH=$(python -m site --user-base)
 
-Build From Source
-~~~~~~~~~~~~~~~~~
+    # Update your preferred shell configuration
+    ## Standard bash --> ~/.bash_profile
+    ## ZSH           --> ~/.zshrc
+    ## OSX users may need to append 'bin': $USER_BASE_PATH/bin
+    $ export PATH=$PATH:$USER_BASE_PATH
 
-First, install Python(2.7 or 3.6) on your machine, then run the following:
-
-.. code:: bash
-
-   # Clone the repository
-   $ git clone git@github.com:awslabs/aws-sam-cli.git
-
-   # cd into the git
-   $ cd aws-sam-cli
-
-   # pip install the repository
-   $ pip install --user -e .
-
-Install with PyEnv
-~~~~~~~~~~~~~~~~~~
-.. code:: bash
-
-    # Install PyEnv (https://github.com/pyenv/pyenv#installation)
-    $ brew update
-    $ brew install pyenv
-
-    # Initialize pyenv using bash_profile
-    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.bash_profile
-    # or using zshrc
-    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.zshrc
-
-    # restart the shell
-    $ exec "$SHELL"
-
-    # Install Python 3.6.4
-    $ pyenv install 3.6.4
-    $ pyenv local 3.6.4
-
-    # Install the CLI
-    $ pip install --user aws-sam-cli
-
-    # Verify your installation worked
-    $ sam -–version
-
-Troubleshooting
-~~~~~~~~~~~~~~~
-
-General Issues
-^^^^^^^^^^^^^^
-
-1. If you are seeing `sam command not found`, this is likely due to the installation using the `--user` and
-   adding `sam` to a path that is not in your $PATH.
+Restart or Open up a new terminal and verify that the installation worked:
 
 .. code:: bash
 
-    # Find your path Python User Base path (where Python --user will install packages/scripts)
-    USER_BASE_PATH="$(python -m site --user-base)"
+   # Restart current shell
+   $ exec "$SHELL"
+   $ sam --version
 
-    # Add this path to your $PATH
-    export PATH=$USER_BASE_PATH:$PATH
+**NOTE**: For Windows users you may want to search for `Environment Variables` on your computer as Windows PATH configuration varies under depending on the version.
 
-You can also try an installing aws-sam-cli without `--user`
+Upgrading
+~~~~~~~~~~
 
-.. code:: bash
-
-    # Uninstall aws-sam-cli from the --user path
-    pip uninstall --user aws-sam-cli
-
-    pip install aws-sam-cli
-
-Mac Issues
-^^^^^^^^^^
-
-1. **[Errno 13] Permission denied** If you had installed Python using
-   Homebrew, you might need to use ``sudo`` to install SAM CLI:
+``sam`` can be upgraded via pip:
 
 .. code:: bash
 
-   sudo pip install aws-sam-cli
+   $ pip install --user --upgrade aws-sam-cli
 
-1. **TLSV1_ALERT_PROTOCOL_VERSION**:
-
-If you get an error something similar to:
-
-::
-
-   Could not fetch URL https://pypi.python.org/simple/click/: There was a problem confirming the ssl certificate: [SSL: TLSV1_ALERT_PROTOCOL_VERSION] tlsv1 alert protocol version (_ssl.c:590) - skipping
-
-then you are probably using the default version of Python that came with
-your Mac. This is outdated. So make sure you install Python again using
-homebrew and try again:
+Previous CLI Versions must be uninstalled first (0.2.11 or below) and then follow the `Installation <#windows-linux-macos-with-pip>`__ steps above:
 
 .. code:: bash
 
-   brew install python
-
-Followed by:
-
-.. code:: bash
-
-   pip install --user aws-sam-cli
+   $ npm uninstall -g aws-sam-local
 
 Usage
 -----
 
-**``sam``** requires a SAM template in order to know how to invoke your
+**Create a sample app with sam init command**: ``sam init`` or ``sam init --runtime <favourite-runtime>``
+
+``sam`` requires a SAM template in order to know how to invoke your
 function locally, and it’s also true for spawning API Gateway locally -
 If no template is specified ``template.yaml`` will be used instead.
 
-You can create a sample app by running the command ``sam init --runtime <your-favorite-runtime>``
-or find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
+Alternatively, you can find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
 
 Invoke functions locally
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -320,14 +232,14 @@ can generate mock/sample event payloads for the following services:
 
 .. code:: bash
 
-   sam local generate-event <service>
+   $ sam local generate-event <service>
 
 Also, you can invoke an individual lambda function locally from a sample
 event payload - Here’s an example using S3:
 
 .. code:: bash
 
-   sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <function logical id>
+   $ sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <function logical id>
 
 For more options, see ``sam local generate-event --help``.
 
@@ -347,9 +259,9 @@ quickly develop, and iterate over your functions.
 
 .. code:: bash
 
-   sam local start-api
+   $ sam local start-api
 
-**``sam``** will automatically find any functions within your SAM
+``sam`` will automatically find any functions within your SAM
 template that have ``Api`` event sources defined, and mount them at the
 defined HTTP paths.
 
@@ -546,16 +458,21 @@ Package and Deploy to Lambda
 
 Once you have developed and tested your Serverless application locally,
 you can deploy to Lambda using ``sam package`` and ``sam deploy``
-command. ``package`` command will zip your code artifacts, upload to S3
+command.
+
+``sam package`` command will zip your code artifacts, upload to S3
 and produce a SAM file that is ready to be deployed to Lambda using AWS
-CloudFormation. ``deploy`` command will deploy the packaged SAM template
-to CloudFormation. Both ``sam package`` and ``sam deploy`` are identical
+CloudFormation.
+
+``sam deploy`` command will deploy the packaged SAM template
+to CloudFormation.
+
+Both ``sam package`` and ``sam deploy`` are identical
 to their AWS CLI equivalents commands
-```aws cloudformation package`` <http://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html>`__
+`aws cloudformation package <http://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html>`__
 and
-```aws cloudformation deploy`` <http://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html>`__
-respectively. Please consult the AWS CLI command documentation for
-usage.
+`aws cloudformation deploy <http://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html>`__
+respectively - Please consult the AWS CLI command documentation for usage.
 
 Example:
 
@@ -566,11 +483,6 @@ Example:
 
    # Deploy packaged SAM template
    $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities CAPABILITY_IAM
-
-Getting started
----------------
-
--  Check out our `Getting Started Guide <docs/getting_started.rst>`__ for more details
 
 Advanced
 --------
@@ -818,7 +730,76 @@ host machine.
 
 .. code:: powershell
 
-   sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Ratings"
+   $ sam local invoke --docker-volume-basedir /c/Users/shlee322/projects/test "Ratings"
+
+Advanced installations
+----------------------
+
+Build From Source
+~~~~~~~~~~~~~~~~~
+
+First, install Python(2.7 or 3.6) on your machine, then run the following:
+
+.. code:: bash
+
+   # Clone the repository
+   $ git clone git@github.com/awslabs/aws-sam-cli.git
+
+   # cd into the git
+   $ cd aws-sam-cli
+
+   # pip install the repository
+   $ pip install --user -e .
+
+Install with PyEnv
+~~~~~~~~~~~~~~~~~~
+.. code:: bash
+
+    # Install PyEnv (https://github.com/pyenv/pyenv#installation)
+    $ brew update
+    $ brew install pyenv
+
+    # Initialize pyenv using bash_profile
+    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.bash_profile
+    # or using zshrc
+    $ echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi\nexport PATH="~/.pyenv/bin:$PATH"' >> ~/.zshrc
+
+    # restart the shell
+    $ exec "$SHELL"
+
+    # Install Python 2.7
+    $ pyenv install 2.7.14
+    $ pyenv local 2.7.14
+
+    # Install the CLI
+    $ pip install --user aws-sam-cli
+
+    # Verify your installation worked
+    $ sam –version
+
+Troubleshooting
+~~~~~~~~~~~~~~~
+
+Mac Issues
+^^^^^^^^^^
+
+1. **TLSV1_ALERT_PROTOCOL_VERSION**:
+
+If you get an error something similar to:
+
+::
+
+   Could not fetch URL https://pypi.python.org/simple/click/: There was a problem confirming the ssl certificate: [SSL: TLSV1_ALERT_PROTOCOL_VERSION] tlsv1 alert protocol version (_ssl.c:590) - skipping
+
+then you are probably using the default version of Python that came with
+your Mac. This is outdated. So make sure you install Python again using
+homebrew and try again:
+
+.. code:: bash
+
+   $ brew install python
+
+Once installed then repeat the `Installation process <#windows-linux-macos-with-pip>`_
 
 Project Status
 --------------
