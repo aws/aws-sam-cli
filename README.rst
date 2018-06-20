@@ -108,7 +108,7 @@ environment variable to contact the docker daemon.
 -  **macOS**: `Docker for
    Mac <https://store.docker.com/editions/community/docker-ce-desktop-mac>`__
 -  **Windows**: `Docker
-   Toolbox <https://download.docker.com/win/stable/DockerToolbox.exe>`__
+   For Windows (create an account & follow through to download from the Docker Store) <https://www.docker.com/docker-windows>`__
 -  **Linux**: Check your distro’s package manager (e.g. yum install docker)
 
 **Note for macOS and Windows users**: SAM CLI requires that the project directory
