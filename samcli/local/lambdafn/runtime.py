@@ -40,7 +40,8 @@ class LambdaRuntime(object):
                debug_port=None,
                debug_args=None,
                stdout=None,
-               stderr=None):
+               stderr=None,
+               delve_path=None):
         """
         Invoke the given Lambda function locally.
 
@@ -75,7 +76,8 @@ class LambdaRuntime(object):
                                         memory_mb=function_config.memory,
                                         env_vars=env_vars,
                                         debug_port=debug_port,
-                                        debug_args=debug_args)
+                                        debug_args=debug_args,
+                                        delve_path=delve_path)
 
             try:
 

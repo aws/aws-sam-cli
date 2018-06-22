@@ -36,16 +36,16 @@ stdout.
 @click.argument('function_identifier', required=False)
 @pass_context
 def cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile):
+        docker_network, log_file, skip_pull_image, profile, delve_path):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
+           docker_network, log_file, skip_pull_image, profile, delve_path)  # pragma: no cover
 
 
-def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile):
+def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args,  # pylint: disable=R0914
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, delve_path):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -67,7 +67,8 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile) as context:
+                           aws_profile=profile,
+                           delve_path=delve_path) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(context.function_name,

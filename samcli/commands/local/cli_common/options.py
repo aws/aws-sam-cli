@@ -74,6 +74,9 @@ def invoke_common_options(f):
                           "port on localhost.",
                      envvar="SAM_DEBUG_PORT"),
 
+        click.option('--delve-path',
+                     help="Directory containing the delve binary, used for debugging golang functions."),
+
         click.option('--debug-args',
                      help="Additional arguments to be passed to the debugger",
                      envvar="DEBUGGER_ARGS"),

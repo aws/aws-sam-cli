@@ -45,7 +45,8 @@ class LambdaContainer(Container):
                  memory_mb=128,
                  env_vars=None,
                  debug_port=None,
-                 debug_args=None):
+                 debug_args=None,
+                 delve_path=None):
         """
         Initializes the class
 
@@ -74,7 +75,8 @@ class LambdaContainer(Container):
                                               memory_limit_mb=memory_mb,
                                               exposed_ports=ports,
                                               entrypoint=entry,
-                                              env_vars=env_vars)
+                                              env_vars=env_vars,
+                                              delve_path=delve_path)
 
     @staticmethod
     def _get_exposed_ports(debug_port):
@@ -146,10 +148,11 @@ class LambdaContainer(Container):
                    ]
 
         elif runtime == Runtime.go1x.value:
-            entrypoint = ["/var/runtime/aws-lambda-debug-go"] \
-                    + [
-                        str(debug_port)
-                    ]
+            entrypoint = ["/var/runtime/aws-lambda-go"] \
+                + [
+                    "-debug=true",
+                    "-delvePort=" + debug_port
+                  ]
 
         elif runtime == Runtime.nodejs.value:
 

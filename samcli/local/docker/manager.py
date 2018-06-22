@@ -19,7 +19,8 @@ class ContainerManager(object):
     def __init__(self,
                  docker_network_id=None,
                  docker_client=None,
-                 skip_pull_image=False):
+                 skip_pull_image=False,
+                 delve_path=None):
         """
         Instantiate the container manager
 
@@ -31,6 +32,7 @@ class ContainerManager(object):
         self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
         self.docker_client = docker_client or docker.from_env()
+        self.delve_path = delve_path
 
     def run(self, container, input_data=None, warm=False):
         """

@@ -27,8 +27,8 @@ class LocalLambdaRunner(object):
                  env_vars_values=None,
                  debug_port=None,
                  debug_args=None,
-                 aws_profile=None
-                 ):
+                 aws_profile=None,
+                 delve_path=None):
         """
         Initializes the class
 
@@ -49,6 +49,7 @@ class LocalLambdaRunner(object):
         self.debug_port = debug_port
         self.debug_args = debug_args
         self.aws_profile = aws_profile
+        self.delve_path = delve_path
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
         """
@@ -77,7 +78,7 @@ class LocalLambdaRunner(object):
 
         # Invoke the function
         self.local_runtime.invoke(config, event, debug_port=self.debug_port, debug_args=self.debug_args,
-                                  stdout=stdout, stderr=stderr)
+                                  stdout=stdout, stderr=stderr, delve_path=self.delve_path)
 
     def is_debugging(self):
         """
