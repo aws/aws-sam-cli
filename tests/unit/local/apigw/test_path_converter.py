@@ -19,6 +19,13 @@ class TestPathConverter_toFlask(TestCase):
 
         self.assertEquals(flask_path, "/<path:proxy>")
 
+    def test_proxy_path_with_different_name(self):
+        path = "/{resource+}"
+
+        flask_path = PathConverter.convert_path_to_flask(path)
+
+        self.assertEquals(flask_path, "/<path:resource>")
+
     def test_proxy_with_path_param(self):
         path = "/id/{id}/user/{proxy+}"
 
@@ -56,6 +63,13 @@ class TestPathConverter_toApiGateway(TestCase):
         flask_path = PathConverter.convert_path_to_api_gateway(path)
 
         self.assertEquals(flask_path, "/{proxy+}")
+
+    def test_proxy_path_with_different_name(self):
+        path = "/<path:resource>"
+
+        flask_path = PathConverter.convert_path_to_api_gateway(path)
+
+        self.assertEquals(flask_path, "/{resource+}")
 
     def test_proxy_with_path_param(self):
         path = "/id/<id>/user/<path:proxy>"
