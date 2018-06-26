@@ -65,7 +65,7 @@ class Service(object):
         :param int port: Optional. port for the service to start listening on
           Defaults to 3000
         :param str host: Optional. host to start the service on
-          Defaults to '0.0.0.0'
+          Defaults to '127.0.0.1
         :param io.BaseIO stderr: Optional stream where the stderr from Docker container should be written to
         """
         self.routing_list = routing_list
