@@ -4,10 +4,12 @@ CLI command for "local start-api" command
 
 import logging
 import click
+import json
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
 from samcli.commands.local.cli_common.options import invoke_common_options
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
+from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.local.lib.local_api_service import LocalApiService
@@ -48,21 +50,23 @@ def cli(ctx,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile, delve_path
+        docker_network, log_file, skip_pull_image, profile, debug_context_file
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile, delve_path)  # pragma: no cover
+           docker_network, log_file, skip_pull_image, profile, debug_context_file)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, delve_path):
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, debug_context_file):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
     LOG.debug("local start-api command is called")
+
+    debug_context = _get_debug_ctx(debug_context_file)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
@@ -78,7 +82,7 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
                            aws_profile=profile,
-                           delve_path=delve_path) as invoke_context:
+                           debug_context=debug_context) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context,
                                       port=port,
@@ -90,3 +94,9 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
         raise UserException("Template does not have any APIs connected to Lambda functions")
     except InvalidSamDocumentException as ex:
         raise UserException(str(ex))
+
+
+def _get_debug_ctx(debug_context_file_name):
+    with open(debug_context_file_name, 'r') as fp:
+        data = fp.read()
+        return DebugContext.deserialize(json.loads(data))

@@ -37,11 +37,9 @@ class LambdaRuntime(object):
     def invoke(self,
                function_config,
                event,
-               debug_port=None,
-               debug_args=None,
+               debug_context=None,
                stdout=None,
-               stderr=None,
-               delve_path=None):
+               stderr=None):
         """
         Invoke the given Lambda function locally.
 
@@ -75,9 +73,7 @@ class LambdaRuntime(object):
                                         code_dir,
                                         memory_mb=function_config.memory,
                                         env_vars=env_vars,
-                                        debug_port=debug_port,
-                                        debug_args=debug_args,
-                                        delve_path=delve_path)
+                                        debug_options=debug_context)
 
             try:
 
@@ -92,7 +88,7 @@ class LambdaRuntime(object):
                 timer = self._configure_interrupt(function_config.name,
                                                   function_config.timeout,
                                                   container,
-                                                  bool(debug_port))
+                                                  bool(debug_context.debug_port))
 
                 # NOTE: BLOCKING METHOD
                 # Block the thread waiting to fetch logs from the container. This method will return after container

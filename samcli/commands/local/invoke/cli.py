@@ -4,11 +4,13 @@ CLI command for "local invoke" command
 
 import logging
 import click
+import json
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
 from samcli.commands.local.cli_common.options import invoke_common_options
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
+from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
@@ -36,16 +38,16 @@ stdout.
 @click.argument('function_identifier', required=False)
 @pass_context
 def cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile, delve_path):
+        docker_network, log_file, skip_pull_image, profile, debug_context_file):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile, delve_path)  # pragma: no cover
+           docker_network, log_file, skip_pull_image, profile, debug_context_file)  # pragma: no cover
 
 
 def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, delve_path):
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, debug_context_file):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -53,7 +55,7 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
     LOG.debug("local invoke command is called")
 
     event_data = _get_event(event)
-
+    debug_context = _get_debug_ctx(debug_context_file)
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
     try:
@@ -68,7 +70,7 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
                            aws_profile=profile,
-                           delve_path=delve_path) as context:
+                           debug_context=debug_context) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(context.function_name,
@@ -98,3 +100,9 @@ def _get_event(event_file_name):
     # accidentally closing a standard stream
     with click.open_file(event_file_name, 'r') as fp:
         return fp.read()
+
+
+def _get_debug_ctx(debug_context_file_name):
+    with click.open_file(debug_context_file_name, 'r') as fp:
+        data = fp.read()
+        return DebugContext.deserialize(json.loads(data))

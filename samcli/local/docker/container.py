@@ -34,7 +34,8 @@ class Container(object):
                  entrypoint=None,
                  env_vars=None,
                  docker_client=None,
-                 delve_path=None):
+                 container_opts=None,
+                 additional_volumes=None):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
 
@@ -58,7 +59,8 @@ class Container(object):
         self._env_vars = env_vars
         self._memory_limit_mb = memory_limit_mb
         self._network_id = None
-        self._delve_path = delve_path
+        self._container_opts = container_opts
+        self._additional_volumes = additional_volumes
 
         # Use the given Docker client or create new one
         self.docker_client = docker_client or docker.from_env()
@@ -96,23 +98,11 @@ class Container(object):
             "tty": False
         }
 
-        if self._delve_path:
-            LOG.info("in golang debug mode")
-            kwargs["volumes"] = {
-                self._host_dir: {
-                    # Mount the host directory as "read only" directory inside container at working_dir
-                    # https://docs.docker.com/storage/bind-mounts
-                    # Mount the host directory as "read only" inside container
-                    "bind": self._working_dir,
-                    "mode": "ro"
-                },
-                self._delve_path: {
-                    "bind": "/var/debug",
-                    "mode": "ro"
-                }
-            }
-            kwargs["security_opt"] = ["seccomp:unconfined"]
-            kwargs["cap_add"] = ["SYS_PTRACE"]
+        if self._container_opts:
+            kwargs.update(self._container_opts)
+
+        if self._additional_volumes:
+            kwargs["volumes"].update(self._additional_volumes)
 
         if self._env_vars:
             kwargs["environment"] = self._env_vars

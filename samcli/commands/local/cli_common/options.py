@@ -74,8 +74,10 @@ def invoke_common_options(f):
                           "port on localhost.",
                      envvar="SAM_DEBUG_PORT"),
 
-        click.option('--delve-path',
-                     help="Directory containing the delve binary, used for debugging golang functions."),
+        click.option('--debug-context-file',
+                     type=click.Path(exists=True),
+                     help="When specified, Lambda function container will start in debug mode and will expose the "
+                          "container using this information"),
 
         click.option('--debug-args',
                      help="Additional arguments to be passed to the debugger",
