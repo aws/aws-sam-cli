@@ -9,17 +9,17 @@ import os
 import requests
 
 from samcli.local.lambda_service.service import LocalLambdaService
-from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT
+from tests.functional.function_code import nodejs_lambda, HELLO_FROM_LAMBDA
 from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager
 
 
-class TestLocalLambda(TestCase):
+class TestLocalLambdaService(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.code_abs_path = nodejs_lambda(API_GATEWAY_ECHO_EVENT)
+        cls.code_abs_path = nodejs_lambda(HELLO_FROM_LAMBDA)
 
         # Let's convert this absolute path to relative path. Let the parent be the CWD, and codeuri be the folder
         cls.cwd = os.path.dirname(cls.code_abs_path)
@@ -52,7 +52,7 @@ class TestLocalLambda(TestCase):
         self.maxDiff = None
 
     def test_mock_response_is_returned(self):
-        expected = {"lambda": "mock response"}
+        expected = 'Hello from Lambda'
 
         response = requests.post(self.url + '/2015-03-31/functions/HelloWorld/invocations')
 

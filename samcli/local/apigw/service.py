@@ -7,6 +7,7 @@ import base64
 
 from flask import Flask, request, Response
 
+from samcli.local.services.base_service import BaseService
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 from .service_error_responses import ServiceErrorResponses
@@ -48,7 +49,7 @@ class Route(object):
         self.binary_types = binary_types or []
 
 
-class Service(object):
+class Service(BaseService):
 
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
@@ -69,13 +70,9 @@ class Service(object):
         :param io.BaseIO stderr: Optional stream where the stderr from Docker container should be written to
         """
         self.routing_list = routing_list
-        self.lambda_runner = lambda_runner
         self.static_dir = static_dir
-        self.port = port or self._DEFAULT_PORT
-        self.host = host or self._DEFAULT_HOST
         self._dict_of_routes = {}
-        self._app = None
-        self.stderr = stderr
+        super(Service, self).__init__(lambda_runner, port=port, host=host, stderr=stderr)
 
     def create(self):
         """
@@ -203,21 +200,6 @@ class Service(object):
 
         return self._service_response(body, headers, status_code)
 
-    @staticmethod
-    def _service_response(body, headers, status_code):
-        """
-        Constructs a Flask Response from the body, headers, and status_code.
-
-        :param str body: Response body as a string
-        :param dict headers: headers for the response
-        :param int status_code: status_code for response
-        :return: Flask Response
-        """
-        response = Response(body)
-        response.headers = headers
-        response.status_code = status_code
-        return response
-
     def _get_current_route(self, flask_request):
         """
         Get the route (Route) based on the current request
@@ -238,46 +220,6 @@ class Service(object):
             raise KeyError("Lambda function for the route not found")
 
         return route
-
-    @staticmethod
-    def _get_lambda_output(stdout_stream):
-        """
-        This method will extract read the given stream and return the response from Lambda function separated out
-        from any log statements it might have outputted. Logs end up in the stdout stream if the Lambda function
-        wrote directly to stdout using System.out.println or equivalents.
-
-        Parameters
-        ----------
-        stdout_stream : io.BaseIO
-            Stream to fetch data from
-
-        Returns
-        -------
-        str
-            String data containing response from Lambda function
-        str
-            String data containng logs statements, if any.
-        """
-        # We only want the last line of stdout, because it's possible that
-        # the function may have written directly to stdout using
-        # System.out.println or similar, before docker-lambda output the result
-        stdout_data = stdout_stream.getvalue().rstrip(b'\n')
-
-        # Usually the output is just one line and contains response as JSON string, but if the Lambda function
-        # wrote anything directly to stdout, there will be additional lines. So just extract the last line as
-        # response and everything else as log output.
-        lambda_response = stdout_data
-        lambda_logs = None
-
-        last_line_position = stdout_data.rfind(b'\n')
-        if last_line_position > 0:
-            # So there are multiple lines. Separate them out.
-            # Everything but the last line are logs
-            lambda_logs = stdout_data[:last_line_position]
-            # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
-            lambda_response = stdout_data[last_line_position:].strip()
-
-        return lambda_response, lambda_logs
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod

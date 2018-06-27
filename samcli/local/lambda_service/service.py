@@ -1,14 +1,20 @@
 """Local Lambda Service"""
 
 import logging
+import re
+import io
 import os
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, Response
+
+
+from samcli.local.services.base_service import BaseService
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 LOG = logging.getLogger(__name__)
 
 
-class LocalLambdaService(object):
+class LocalLambdaService(BaseService):
 
     _DEFAULT_PORT = 3001
     _DEFAULT_HOST = '127.0.0.1'
@@ -31,11 +37,7 @@ class LocalLambdaService(object):
             Optional stream where the stderr from Docker container should be written to
         """
         self.function_name_list = function_name_list
-        self.lambda_runner = lambda_runner
-        self.port = port or self._DEFAULT_PORT
-        self.host = host or self._DEFAULT_HOST
-        self._app = None
-        self.stderr = stderr
+        super(LocalLambdaService, self).__init__(lambda_runner, port=port, host=host, stderr=stderr)
 
     def create(self):
         """
@@ -98,6 +100,31 @@ class LocalLambdaService(object):
         A Flask Response response object as if it was returned from Lambda
 
         """
-        response = jsonify({"lambda": "mock response"})
-        response.status_code = 200
-        return response
+        flask_request = request
+
+        function_name_regex = re.compile(r'/2015-03-31/functions/(.*)/invocations')
+
+        regex_match = function_name_regex.match(request.path)
+
+        function_name = ""
+
+        if regex_match:
+           function_name = regex_match.group(1)
+
+        stdout_stream = io.BytesIO()
+
+        try:
+            self.lambda_runner.invoke(function_name, {}, stdout=stdout_stream, stderr=self.stderr)
+        except FunctionNotFound:
+            # TODO Change this
+            raise Exception('Change this later')
+
+        lambda_response, lambda_logs = self._get_lambda_output(stdout_stream)
+
+        # import pdb; pdb.set_trace()
+
+        if self.stderr and lambda_logs:
+            # Write the logs to stderr if available.
+            self.stderr.write(lambda_logs)
+
+        return self._service_response(lambda_response, {'Content-Type': 'application/json'}, 200)
