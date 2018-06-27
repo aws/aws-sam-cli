@@ -5,7 +5,7 @@ import re
 import io
 import os
 
-from flask import Flask, jsonify, request, Response
+from flask import Flask, request
 
 
 from samcli.local.services.base_service import BaseService
@@ -104,12 +104,12 @@ class LocalLambdaService(BaseService):
 
         function_name_regex = re.compile(r'/2015-03-31/functions/(.*)/invocations')
 
-        regex_match = function_name_regex.match(request.path)
+        regex_match = function_name_regex.match(flask_request.path)
 
         function_name = ""
 
         if regex_match:
-           function_name = regex_match.group(1)
+            function_name = regex_match.group(1)
 
         stdout_stream = io.BytesIO()
 
@@ -120,8 +120,6 @@ class LocalLambdaService(BaseService):
             raise Exception('Change this later')
 
         lambda_response, lambda_logs = self._get_lambda_output(stdout_stream)
-
-        # import pdb; pdb.set_trace()
 
         if self.stderr and lambda_logs:
             # Write the logs to stderr if available.

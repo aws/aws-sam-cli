@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, MagicMock, ANY
+from mock import Mock, patch, ANY
 import json
 import base64
 
@@ -265,48 +265,6 @@ class TestApiGatewayService(TestCase):
         with self.assertRaises(KeyError):
             self.service._get_current_route(request_mock)
 
-    @parameterized.expand([
-        param(
-            "with both logs and response",
-            b'this\nis\nlog\ndata\n{"a": "b"}', b'this\nis\nlog\ndata', b'{"a": "b"}'
-        ),
-        param(
-            "with response as string",
-            b"logs\nresponse", b"logs", b"response"
-        ),
-        param(
-            "with response only",
-            b'{"a": "b"}', None, b'{"a": "b"}'
-        ),
-        param(
-            "with response only as string",
-            b'this is the response line', None, b'this is the response line'
-        ),
-        param(
-            "with whitespaces",
-            b'log\ndata\n{"a": "b"}  \n\n\n', b"log\ndata", b'{"a": "b"}'
-        ),
-        param(
-            "with empty data",
-            b'', None, b''
-        ),
-        param(
-            "with just new lines",
-            b'\n\n', None, b''
-        ),
-        param(
-            "with no data but with whitespaces",
-            b'\n   \n   \n', b'\n   ', b''   # Log data with whitespaces will be in the output unchanged
-        )
-    ])
-    def test_get_lambda_output_extracts_response(self, test_case_name, stdout_data, expected_logs, expected_response):
-        stdout = Mock()
-        stdout.getvalue.return_value = stdout_data
-
-        response, logs = self.service._get_lambda_output(stdout)
-        self.assertEquals(logs, expected_logs)
-        self.assertEquals(response, expected_response)
-
 
 class TestApiGatewayModel(TestCase):
 
@@ -511,26 +469,6 @@ class TestService_construct_event(TestCase):
 
         actual_query_string = Service._query_string_params(request_mock)
         self.assertEquals(actual_query_string, {"param": "b"})
-
-
-class TestService_service_response(TestCase):
-
-    @patch('samcli.local.apigw.service.Response')
-    def test_service_response(self, flask_response_patch):
-        flask_response_mock = MagicMock()
-
-        flask_response_patch.return_value = flask_response_mock
-
-        body = "this is the body"
-        status_code = 200
-        headers = {"Content-Type": "application/json"}
-
-        actual_response = Service._service_response(body, headers, status_code)
-
-        flask_response_patch.assert_called_once_with("this is the body")
-
-        self.assertEquals(actual_response.status_code, 200)
-        self.assertEquals(actual_response.headers, {"Content-Type": "application/json"})
 
 
 class TestService_should_base64_encode(TestCase):

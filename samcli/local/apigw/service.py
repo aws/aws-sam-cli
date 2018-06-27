@@ -5,7 +5,7 @@ import logging
 import os
 import base64
 
-from flask import Flask, request, Response
+from flask import Flask, request
 
 from samcli.local.services.base_service import BaseService
 from samcli.local.lambdafn.exceptions import FunctionNotFound

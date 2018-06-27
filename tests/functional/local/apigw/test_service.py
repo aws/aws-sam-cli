@@ -4,7 +4,6 @@ import os
 import shutil
 import json
 import time
-import logging
 
 import requests
 import random
@@ -549,6 +548,7 @@ class TestService_PostingBinary(TestCase):
         self.assertEquals(actual, expected)
         self.assertEquals(response.status_code, 502)
         self.assertEquals(response.headers.get('Content-Type'), "application/json")
+
 
 class TestService_FlaskDefaultOptionsDisabled(TestCase):
     @classmethod

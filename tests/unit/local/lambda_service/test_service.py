@@ -1,7 +1,8 @@
 from unittest import TestCase
-from mock import Mock, patch
+from mock import Mock, patch, ANY
 
 from samcli.local.lambda_service.service import LocalLambdaService
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestLocalLambdaService(TestCase):
@@ -77,13 +78,61 @@ class TestLocalLambdaService(TestCase):
 
         app_run_mock.assert_called_once_with(threaded=False, host='127.0.0.1', port=3001)
 
-    @patch('samcli.local.lambda_service.service.jsonify')
-    def test_invoke_request_handler(self, jsonify_mock):
+    @patch('samcli.local.lambda_service.service.LocalLambdaService._service_response')
+    @patch('samcli.local.lambda_service.service.LocalLambdaService._get_lambda_output')
+    @patch('samcli.local.lambda_service.service.request')
+    def test_invoke_request_handler(self, request_mock, get_lambda_output_mock, service_response_mock):
+        request_mock.path = '/2015-03-31/functions/HelloWorld/invocations'
+        get_lambda_output_mock.return_value = 'hello world', None
+        service_response_mock.return_value = 'request response'
+
         lambda_runner_mock = Mock()
         service = LocalLambdaService(function_name_list=['HelloWorld'], lambda_runner=lambda_runner_mock)
 
         response = service._invoke_request_handler()
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response, 'request response')
 
-        jsonify_mock.assert_called_once_with({"lambda": "mock response"})
+        lambda_runner_mock.invoke.assert_called_once_with('HelloWorld', {}, stdout=ANY, stderr=None)
+        service_response_mock.assert_called_once_with('hello world', {'Content-Type': 'application/json'}, 200)
+
+    @patch('samcli.local.lambda_service.service.request')
+    def test_invoke_request_handler_on_incorrect_path(self, request_mock):
+        # This will not match the regex
+        request_mock.path = '/2015-03-31/functions/'
+
+        lambda_runner_mock = Mock()
+        lambda_runner_mock.invoke.side_effect = FunctionNotFound
+        service = LocalLambdaService(function_name_list=['HelloWorld'], lambda_runner=lambda_runner_mock)
+
+        with self.assertRaises(Exception):
+            service._invoke_request_handler()
+
+        lambda_runner_mock.invoke.assert_called_once_with('', {}, stdout=ANY, stderr=None)
+
+    @patch('samcli.local.lambda_service.service.LocalLambdaService._service_response')
+    @patch('samcli.local.lambda_service.service.LocalLambdaService._get_lambda_output')
+    @patch('samcli.local.lambda_service.service.request')
+    def test_request_handler_returns_process_stdout_when_making_response(self, request_mock, get_lambda_output_mock,
+                                                                         service_response_mock):
+        request_mock.path = '/2015-03-31/functions/HelloWorld/invocations'
+
+        lambda_logs = "logs"
+        lambda_response = "response"
+        get_lambda_output_mock.return_value = lambda_response, lambda_logs
+
+        service_response_mock.return_value = 'request response'
+
+        lambda_runner_mock = Mock()
+        stderr_mock = Mock()
+        service = LocalLambdaService(function_name_list=['HelloWorld'],
+                                     lambda_runner=lambda_runner_mock,
+                                     stderr=stderr_mock)
+
+        result = service._invoke_request_handler()
+
+        self.assertEquals(result, 'request response')
+        service._get_lambda_output.assert_called_with(ANY)
+
+        # Make sure the logs are written to stderr
+        stderr_mock.write.assert_called_with(lambda_logs)

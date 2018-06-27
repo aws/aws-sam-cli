@@ -1,9 +1,28 @@
+"""Base class for all Services that interact with Local Lambda"""
+
 from flask import Response
 
 
 class BaseService(object):
 
+    _DEFAULT_PORT = 3000
+    _DEFAULT_HOST = '127.0.0.1'
+
     def __init__(self, lambda_runner, port=None, host=None, stderr=None):
+        """
+        Creates a BaseService class
+
+        Parameters
+        ----------
+        lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
+            The Lambda runner class capable of invoking the function
+        port int
+            Optional. port for the service to start listening on Defaults to 3000
+        host str
+            Optional. host to start the service on Defaults to '127.0.0.1
+        stderr io.BaseIO
+            Optional stream where the stderr from Docker container should be written to
+        """
         self.lambda_runner = lambda_runner
         self.port = port or self._DEFAULT_PORT
         self.host = host or self._DEFAULT_HOST
