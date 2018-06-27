@@ -16,7 +16,7 @@ from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager
 
 
-class TestService_FlaskDefaultOptionsDisabled(TestCase):
+class TestLocalLambda(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.code_abs_path = nodejs_lambda(API_GATEWAY_ECHO_EVENT)
@@ -30,10 +30,6 @@ class TestService_FlaskDefaultOptionsDisabled(TestCase):
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
                                          rolearn=None)
-
-        cls.base64_response_function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
-                                                         handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                                         rolearn=None)
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -55,7 +51,7 @@ class TestService_FlaskDefaultOptionsDisabled(TestCase):
         # Print full diff when comparing large dictionaries
         self.maxDiff = None
 
-    def test_flask_default_options_is_disabled(self):
+    def test_mock_response_is_returned(self):
         expected = {"lambda": "mock response"}
 
         response = requests.post(self.url + '/2015-03-31/functions/HelloWorld/invocations')
