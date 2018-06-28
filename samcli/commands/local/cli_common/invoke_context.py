@@ -38,8 +38,6 @@ class InvokeContext(object):
                  template_file,
                  function_identifier=None,
                  env_vars_file=None,
-                 debug_port=None,
-                 debug_args=None,
                  docker_volume_basedir=None,
                  docker_network=None,
                  log_file=None,
@@ -64,8 +62,6 @@ class InvokeContext(object):
         self._template_file = template_file
         self._function_identifier = function_identifier
         self._env_vars_file = env_vars_file
-        self._debug_port = debug_port
-        self._debug_args = debug_args
         self._docker_volume_basedir = docker_volume_basedir
         self._docker_network = docker_network
         self._log_file = log_file

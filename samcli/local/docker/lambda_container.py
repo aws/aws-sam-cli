@@ -63,8 +63,8 @@ class LambdaContainer(Container):
         image = LambdaContainer._get_image(runtime)
         ports = LambdaContainer._get_exposed_ports(debug_options)
         entry = LambdaContainer._get_entry_point(runtime, debug_options)
-        additional_options = LambdaContainer._get_additional_container_options(runtime, debug_options)
-        additional_volumes = LambdaContainer._get_additional_container_volumes(debug_options)
+        additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
+        additional_volumes = LambdaContainer._get_additional_volumes(debug_options)
         cmd = [handler]
 
         super(LambdaContainer, self).__init__(image,
@@ -97,7 +97,7 @@ class LambdaContainer(Container):
         }
 
     @staticmethod
-    def _get_additional_container_options(runtime, debug_options):
+    def _get_additional_options(runtime, debug_options):
         """
         Return additional Docker container options. Used by container debug mode to enable certain container
         security options.
@@ -118,7 +118,7 @@ class LambdaContainer(Container):
         return opts
 
     @staticmethod
-    def _get_additional_container_volumes(debug_options):
+    def _get_additional_volumes(debug_options):
         """
         Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
         debugger executable into the container.

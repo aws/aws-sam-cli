@@ -19,8 +19,7 @@ class TestCli(TestCase):
         self.template = "template"
         self.eventfile = "eventfile"
         self.env_vars = "env-vars"
-        self.debug_port = 123
-        self.debug_args = "args"
+        self.debug_context_file = None
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -42,8 +41,7 @@ class TestCli(TestCase):
                    template=self.template,
                    event=self.eventfile,
                    env_vars=self.env_vars,
-                   debug_port=self.debug_port,
-                   debug_args=self.debug_args,
+                   debug_context_file=self.debug_context_file,
                    docker_volume_basedir=self.docker_volume_basedir,
                    docker_network=self.docker_network,
                    log_file=self.log_file,
@@ -53,8 +51,7 @@ class TestCli(TestCase):
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
                                              env_vars_file=self.env_vars,
-                                             debug_port=self.debug_port,
-                                             debug_args=self.debug_args,
+                                             debug_context=self.debug_context_file,
                                              docker_volume_basedir=self.docker_volume_basedir,
                                              docker_network=self.docker_network,
                                              log_file=self.log_file,
@@ -86,8 +83,7 @@ class TestCli(TestCase):
                        template=self.template,
                        event=self.eventfile,
                        env_vars=self.env_vars,
-                       debug_port=self.debug_port,
-                       debug_args=self.debug_args,
+                       debug_context_file=self.debug_context_file,
                        docker_volume_basedir=self.docker_volume_basedir,
                        docker_network=self.docker_network,
                        log_file=self.log_file,
@@ -112,8 +108,7 @@ class TestCli(TestCase):
                        template=self.template,
                        event=self.eventfile,
                        env_vars=self.env_vars,
-                       debug_port=self.debug_port,
-                       debug_args=self.debug_args,
+                       debug_context_file=self.debug_context_file,
                        docker_volume_basedir=self.docker_volume_basedir,
                        docker_network=self.docker_network,
                        log_file=self.log_file,

@@ -4,7 +4,6 @@ CLI command for "local invoke" command
 
 import logging
 import click
-import json
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
 from samcli.commands.local.cli_common.options import invoke_common_options
@@ -37,16 +36,16 @@ stdout.
 @cli_framework_options
 @click.argument('function_identifier', required=False)
 @pass_context
-def cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
+def cli(ctx, function_identifier, template, event, env_vars, docker_volume_basedir,
         docker_network, log_file, skip_pull_image, profile, debug_context_file):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
+    do_cli(ctx, function_identifier, template, event, env_vars, docker_volume_basedir,
            docker_network, log_file, skip_pull_image, profile, debug_context_file)  # pragma: no cover
 
 
-def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args,  # pylint: disable=R0914
+def do_cli(ctx, function_identifier, template, event, env_vars,  # pylint: disable=R0914
            docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, debug_context_file):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -63,8 +62,6 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
         with InvokeContext(template_file=template,
                            function_identifier=function_identifier,
                            env_vars_file=env_vars,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
                            docker_volume_basedir=docker_volume_basedir,
                            docker_network=docker_network,
                            log_file=log_file,

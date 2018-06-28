@@ -4,6 +4,7 @@ Information and debug options for a specific runtime.
 
 import json
 
+
 class DebugContext(object):
 
     def __init__(self,
@@ -27,6 +28,9 @@ class DebugContext(object):
 
     @staticmethod
     def get_debug_ctx(debug_context_file_name):
+        if not debug_context_file_name:
+            return None
+
         with open(debug_context_file_name, 'r') as fp:
             data = fp.read()
             contexts = []

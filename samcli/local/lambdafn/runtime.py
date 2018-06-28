@@ -67,7 +67,10 @@ class LambdaRuntime(object):
         env_vars = environ.resolve()
 
         with self._get_code_dir(function_config.code_abs_path) as code_dir:
-            runtime_debug_context = next((ctx for ctx in debug_context if ctx.runtime == function_config.runtime), None)
+            if debug_context:
+                runtime_debug_context = next(ctx for ctx in debug_context if ctx.runtime == function_config.runtime)
+            else:
+                runtime_debug_context = None
             container = LambdaContainer(function_config.runtime,
                                         function_config.handler,
                                         code_dir,
