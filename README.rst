@@ -144,7 +144,7 @@ The easiest way to install ``sam`` is to use
     # Update your preferred shell configuration
     ## Standard bash --> ~/.bash_profile
     ## ZSH           --> ~/.zshrc
-    ## OSX users may need to append 'bin': $USER_BASE_PATH/bin
+    ## NOTE: some users may need to append 'bin': $USER_BASE_PATH/bin
     $ export PATH=$PATH:$USER_BASE_PATH
 
 Restart or Open up a new terminal and verify that the installation worked:
