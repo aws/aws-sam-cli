@@ -87,6 +87,8 @@ class Service(object):
                           static_folder=self.static_dir  # Serve static files from this directory
                           )
 
+        self._app.add_url_rule('/', 'index', self.index)
+
         for api_gateway_route in self.routing_list:
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods,
@@ -445,3 +447,14 @@ class Service(object):
 
         """
         return request_mimetype in binary_types or "*/*" in binary_types
+
+    def index(self):
+        """
+        Default Index file
+
+        Returns
+        -------
+            index.html
+
+        """
+        return self._app.send_static_file('index.html')
