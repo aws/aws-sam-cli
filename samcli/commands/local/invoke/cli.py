@@ -55,7 +55,7 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
     LOG.debug("local invoke command is called")
 
     event_data = _get_event(event)
-    debug_context = _get_debug_ctx(debug_context_file)
+    debug_context = DebugContext.get_debug_ctx(debug_context_file)
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
     try:
@@ -100,9 +100,3 @@ def _get_event(event_file_name):
     # accidentally closing a standard stream
     with click.open_file(event_file_name, 'r') as fp:
         return fp.read()
-
-
-def _get_debug_ctx(debug_context_file_name):
-    with click.open_file(debug_context_file_name, 'r') as fp:
-        data = fp.read()
-        return DebugContext.deserialize(json.loads(data))

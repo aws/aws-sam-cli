@@ -109,7 +109,7 @@ class LambdaContainer(Container):
 
         opts = {}
 
-        if debug_options.runtime == runtime:
+        if runtime == Runtime.go1x.value:
             # These options are required for delve to function properly inside a docker container on docker < 1.12
             # See https://github.com/moby/moby/issues/21051
             opts["security_opt"] = ["seccomp:unconfined"]

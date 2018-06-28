@@ -2,6 +2,7 @@
 Information and debug options for a specific runtime.
 """
 
+import json
 
 class DebugContext(object):
 
@@ -23,3 +24,12 @@ class DebugContext(object):
         debugger_path = obj.get("debugger_path", None)
         debug_args = obj.get("debug_args", None)
         return DebugContext(debug_port, runtime, debugger_path, debug_args)
+
+    @staticmethod
+    def get_debug_ctx(debug_context_file_name):
+        with open(debug_context_file_name, 'r') as fp:
+            data = fp.read()
+            contexts = []
+            for ctx in json.loads(data):
+                contexts.append(DebugContext.deserialize(ctx))
+            return contexts

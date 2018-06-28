@@ -66,7 +66,7 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
 
     LOG.debug("local start-api command is called")
 
-    debug_context = _get_debug_ctx(debug_context_file)
+    debug_context = DebugContext.get_debug_ctx(debug_context_file)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
@@ -94,9 +94,3 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
         raise UserException("Template does not have any APIs connected to Lambda functions")
     except InvalidSamDocumentException as ex:
         raise UserException(str(ex))
-
-
-def _get_debug_ctx(debug_context_file_name):
-    with open(debug_context_file_name, 'r') as fp:
-        data = fp.read()
-        return DebugContext.deserialize(json.loads(data))
