@@ -108,7 +108,7 @@ environment variable to contact the docker daemon.
 -  **macOS**: `Docker for
    Mac <https://store.docker.com/editions/community/docker-ce-desktop-mac>`__
 -  **Windows**: `Docker
-   Toolbox <https://download.docker.com/win/stable/DockerToolbox.exe>`__
+   For Windows (create an account & follow through to download from the Docker Store) <https://www.docker.com/docker-windows>`__
 -  **Linux**: Check your distro’s package manager (e.g. yum install docker)
 
 **Note for macOS and Windows users**: SAM CLI requires that the project directory
@@ -134,7 +134,11 @@ The easiest way to install ``sam`` is to use
 
    $ pip install --user aws-sam-cli
 
-**Adjust your PATH** to include Python scripts installed under User's directory:
+**Adjust your PATH** to include Python scripts installed under User's directory.
+
+**NOTE**: As explained in the `Python Developer's Guide <https://www.python.org/dev/peps/pep-0370/#specification>`__, the User's directory where the scripts are installed is ``~/.local/bin`` for Unix/Mac and ``%APPDATA%\Python\Scripts`` for Windows.
+
+The Python command can help to detect the correct path. However, in Unix/Mac systems the command ``python -m site --user-base`` typically print ``~/.local`` path, so that you'll need to add ``/bin`` to obtain the script path, while in Windows systems the command ``py -m site --user-site`` typically print ``%APPDATA%\Roaming\Python<VERSION>\site-packages``, so you'll need to remove the last ``\site-packages`` folder and replace it with the ``\Scripts`` one.
 
 .. code:: bash
 
@@ -144,8 +148,7 @@ The easiest way to install ``sam`` is to use
     # Update your preferred shell configuration
     ## Standard bash --> ~/.bash_profile
     ## ZSH           --> ~/.zshrc
-    ## OSX users may need to append 'bin': $USER_BASE_PATH/bin
-    $ export PATH=$PATH:$USER_BASE_PATH
+    $ export PATH=$PATH:$USER_BASE_PATH/bin
 
 Restart or Open up a new terminal and verify that the installation worked:
 
@@ -154,8 +157,6 @@ Restart or Open up a new terminal and verify that the installation worked:
    # Restart current shell
    $ exec "$SHELL"
    $ sam --version
-
-**NOTE**: For Windows users you may want to search for `Environment Variables` on your computer as Windows PATH configuration varies under depending on the version.
 
 Upgrading
 ~~~~~~~~~~
