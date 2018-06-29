@@ -48,24 +48,24 @@ def cli(ctx,
         host, port, static_dir,
 
         # Common Options for Lambda Invoke
-        template, env_vars, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile, debug_context_file
+        template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
+        docker_network, log_file, skip_pull_image, profile
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, host, port, static_dir, template, env_vars, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile, debug_context_file)  # pragma: no cover
+    do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, debugger_path,
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
 
 
-def do_cli(ctx, host, port, static_dir, template, env_vars,  # pylint: disable=R0914
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, debug_context_file):
+def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
+           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
     LOG.debug("local start-api command is called")
 
-    debug_context = DebugContext.get_debug_ctx(debug_context_file)
+    debug_context = _get_debug_context(debug_port, debug_args, debugger_path)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
@@ -91,3 +91,16 @@ def do_cli(ctx, host, port, static_dir, template, env_vars,  # pylint: disable=R
         raise UserException("Template does not have any APIs connected to Lambda functions")
     except InvalidSamDocumentException as ex:
         raise UserException(str(ex))
+
+
+def _get_debug_context(debug_port, debug_args, debugger_path):
+    """
+    Returns a debug context from debug options; Separated out for unit testing.
+    :param int debug_port: Container debug port
+    :param string debug_args: Extra debug arguments for process
+    :param string debugger_path: Path to debugger on host
+    :return DebugContext:
+    """
+    if not debug_port or debug_args or debugger_path:
+        return None
+    return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)

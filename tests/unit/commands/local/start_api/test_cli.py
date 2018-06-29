@@ -5,6 +5,7 @@ Unit test for `start-api` CLI
 from unittest import TestCase
 from mock import patch, Mock
 
+from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.start_api.cli import do_cli as start_api_cli
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.local.cli_common.user_exceptions import UserException
@@ -16,7 +17,9 @@ class TestCli(TestCase):
     def setUp(self):
         self.template = "template"
         self.env_vars = "env-vars"
-        self.debug_context = None
+        self.debug_port = 123
+        self.debug_args = "args"
+        self.debugger_path = "/test/path"
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -29,7 +32,9 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.start_api.cli.InvokeContext")
     @patch("samcli.commands.local.start_api.cli.LocalApiService")
-    def test_cli_must_setup_context_and_start_service(self, LocalApiServiceMock, InvokeContextMock):
+    @patch("samcli.commands.local.start_api.cli._get_debug_context")
+    def test_cli_must_setup_context_and_start_service(self, get_debug_context_mock, LocalApiServiceMock,
+                                                      InvokeContextMock):
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -38,12 +43,16 @@ class TestCli(TestCase):
         service_mock = Mock()
         LocalApiServiceMock.return_value = service_mock
 
+        debug_context_data = DebugContext(debug_port=self.debug_port, debug_args=self.debug_args,
+                                          debugger_path=self.debugger_path)
+        get_debug_context_mock.return_value = debug_context_data
+
         self.call_cli()
 
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=None,
                                              env_vars_file=self.env_vars,
-                                             debug_context=self.debug_context,
+                                             debug_context=debug_context_data,
                                              docker_volume_basedir=self.docker_volume_basedir,
                                              docker_network=self.docker_network,
                                              log_file=self.log_file,
@@ -96,7 +105,9 @@ class TestCli(TestCase):
                       static_dir=self.static_dir,
                       template=self.template,
                       env_vars=self.env_vars,
-                      debug_context_file=self.debug_context,
+                      debug_port=self.debug_port,
+                      debug_args=self.debug_args,
+                      debugger_path=self.debugger_path,
                       docker_volume_basedir=self.docker_volume_basedir,
                       docker_network=self.docker_network,
                       log_file=self.log_file,

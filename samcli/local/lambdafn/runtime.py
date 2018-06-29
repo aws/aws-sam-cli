@@ -67,16 +67,12 @@ class LambdaRuntime(object):
         env_vars = environ.resolve()
 
         with self._get_code_dir(function_config.code_abs_path) as code_dir:
-            if debug_context:
-                runtime_debug_context = next(ctx for ctx in debug_context if ctx.runtime == function_config.runtime)
-            else:
-                runtime_debug_context = None
             container = LambdaContainer(function_config.runtime,
                                         function_config.handler,
                                         code_dir,
                                         memory_mb=function_config.memory,
                                         env_vars=env_vars,
-                                        debug_options=runtime_debug_context)
+                                        debug_options=debug_context)
 
             try:
 
@@ -91,7 +87,7 @@ class LambdaRuntime(object):
                 timer = self._configure_interrupt(function_config.name,
                                                   function_config.timeout,
                                                   container,
-                                                  bool(runtime_debug_context))
+                                                  bool(debug_context))
 
                 # NOTE: BLOCKING METHOD
                 # Block the thread waiting to fetch logs from the container. This method will return after container

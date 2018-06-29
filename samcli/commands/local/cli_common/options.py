@@ -69,10 +69,17 @@ def invoke_common_options(f):
                      type=click.Path(exists=True),
                      help="JSON file containing values for Lambda function's environment variables."),
 
-        click.option('--debug-context-file',
-                     type=click.Path(exists=True),
-                     help="When specified, Lambda function container will start in debug mode and will expose the "
-                          "container using this information"),
+        click.option('--debug-port', '-d',
+                     help="When specified, Lambda function container will start in debug mode and will expose this "
+                          "port on localhost.",
+                     envvar="SAM_DEBUG_PORT"),
+
+        click.option('--debugger-path',
+                     help="Host path to a debugger that will be mounted into the Lambda container."),
+
+        click.option('--debug-args',
+                     help="Additional arguments to be passed to the debugger",
+                     envvar="DEBUGGER_ARGS"),
 
         click.option('--docker-volume-basedir', '-v',
                      envvar="SAM_DOCKER_VOLUME_BASEDIR",
