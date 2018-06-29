@@ -28,7 +28,7 @@ class TestLambdaContainer_init(TestCase):
         self.code_dir = "codedir"
         self.env_var = {"var": "value"}
         self.memory_mb = 1024
-        self.debug_options = DebugContext(runtime="nodejs4.3", debug_args="a=b c=d e=f", debug_port=1235)
+        self.debug_options = DebugContext(debug_args="a=b c=d e=f", debug_port=1235)
 
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
@@ -118,7 +118,7 @@ class TestLambdaContainer_get_entry_point(TestCase):
 
         self.debug_port = 1235
         self.debug_args = "a=b c=d e=f"
-        self.debug_options = DebugContext(debug_port=1235, debug_args="a=b c=d e=f", runtime="nodejs4.3")
+        self.debug_options = DebugContext(debug_port=1235, debug_args="a=b c=d e=f")
 
     def test_must_skip_if_debug_port_is_not_specified(self):
         self.assertIsNone(LambdaContainer._get_entry_point("runtime", None),

@@ -38,6 +38,7 @@ class LambdaRuntime_invoke(TestCase):
         stderr = "stderr"
         container = Mock()
         timer = Mock()
+        debug_options = Mock()
 
         self.runtime = LambdaRuntime(self.manager_mock)
 
@@ -53,6 +54,7 @@ class LambdaRuntime_invoke(TestCase):
 
         self.runtime.invoke(self.func_config,
                             event,
+                            debug_context=debug_options,
                             stdout=stdout,
                             stderr=stderr)
 
@@ -68,11 +70,11 @@ class LambdaRuntime_invoke(TestCase):
         # Make sure the container is created with proper values
         LambdaContainerMock.assert_called_with(self.lang, self.handler, code_dir,
                                                memory_mb=self.DEFAULT_MEMORY, env_vars=self.env_var_value,
-                                               debug_options=None)
+                                               debug_options=debug_options)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
-        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, False)
+        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_logs.assert_called_with(stdout=stdout, stderr=stderr)
 
         # Finally block
@@ -126,6 +128,7 @@ class LambdaRuntime_invoke(TestCase):
         stderr = "stderr"
         container = Mock()
         timer = Mock()
+        debug_options = Mock()
 
         self.runtime = LambdaRuntime(self.manager_mock)
 
@@ -142,14 +145,14 @@ class LambdaRuntime_invoke(TestCase):
         with self.assertRaises(ValueError):
             self.runtime.invoke(self.func_config,
                                 event,
-                                debug_context=None,
+                                debug_context=debug_options,
                                 stdout=stdout,
                                 stderr=stderr)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
 
-        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, False)
+        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
 
         # Finally block must be called
         # Timer was created. So it must be cancelled

@@ -52,8 +52,7 @@ class LambdaRuntime(object):
 
         :param FunctionConfig function_config: Configuration of the function to invoke
         :param event: String input event passed to Lambda function
-        :param integer debug_port: Optional, port to attach debugger to
-        :param string debug_args: Optional, additional args to pass to debugger
+        :param DebugContext debug_context: Debugging context for the function (includes port, args, and path)
         :param io.IOBase stdout: Optional. IO Stream to that receives stdout text from container.
         :param io.IOBase stderr: Optional. IO Stream that receives stderr text from container
         :raises Keyboard
