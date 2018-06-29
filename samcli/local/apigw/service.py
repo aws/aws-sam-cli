@@ -2,12 +2,11 @@
 import io
 import json
 import logging
-import os
 import base64
 
 from flask import Flask, request
 
-from samcli.local.services.base_service import BaseService
+from samcli.local.services.localhost_runner import LocalhostRunner, LambdaOutputParser
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 from .service_error_responses import ServiceErrorResponses
@@ -49,7 +48,7 @@ class Route(object):
         self.binary_types = binary_types or []
 
 
-class Service(BaseService):
+class Service(LocalhostRunner):
 
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
@@ -125,32 +124,6 @@ class Service(BaseService):
         # Something went wrong
         self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
 
-    def run(self):
-        """
-        This starts up the (threaded) Local Server.
-        Note: This is a **blocking call**
-
-        :raise RuntimeError: If the service was not created
-        """
-
-        if not self._app:
-            raise RuntimeError("The application must be created before running")
-
-        # Flask can operate as a single threaded server (which is default) and a multi-threaded server which is
-        # more for development. When the Lambda container is going to be debugged, then it does not make sense
-        # to turn on multi-threading because customers can realistically attach only one container at a time to
-        # the debugger. Keeping this single threaded also enables the Lambda Runner to handle Ctrl+C in order to
-        # kill the container gracefully (Ctrl+C can be handled only by the main thread)
-        multi_threaded = not self.lambda_runner.is_debugging()
-
-        LOG.debug("Local API Server starting up. Multi-threading = %s", multi_threaded)
-
-        # This environ signifies we are running a main function for Flask. This is true, since we are using it within
-        # our cli and not on a production server.
-        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
-
-        self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
-
     def _request_handler(self, **kwargs):
         """
         We handle all requests to the host:port. The general flow of handling a request is as follows
@@ -183,7 +156,7 @@ class Service(BaseService):
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 
-        lambda_response, lambda_logs = self._get_lambda_output(stdout_stream)
+        lambda_response, lambda_logs = LambdaOutputParser.get_lambda_output(stdout_stream)
 
         if self.stderr and lambda_logs:
             # Write the logs to stderr if available.

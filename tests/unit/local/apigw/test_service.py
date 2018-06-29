@@ -19,7 +19,7 @@ class TestApiGatewayService(TestCase):
         self.lambda_runner = Mock()
 
         self.stderr = Mock()
-        self.service = Service(self.list_of_routes, self.lambda_runner, stderr=self.stderr)
+        self.service = Service(self.list_of_routes, self.lambda_runner, port=3000, host='127.0.0.1', stderr=self.stderr)
 
     def test_request_must_invoke_lambda(self):
         make_response_mock = Mock()
@@ -44,7 +44,9 @@ class TestApiGatewayService(TestCase):
                                                      stdout=ANY,
                                                      stderr=self.stderr)
 
-    def test_request_handler_returns_process_stdout_when_making_response(self):
+    @patch('samcli.local.apigw.service.LambdaOutputParser')
+    def test_request_handler_returns_process_stdout_when_making_response(self, lambda_output_parser_mock):
+
         make_response_mock = Mock()
 
         self.service._service_response = make_response_mock
@@ -57,8 +59,7 @@ class TestApiGatewayService(TestCase):
 
         lambda_logs = "logs"
         lambda_response = "response"
-        self.service._get_lambda_output = Mock()
-        self.service._get_lambda_output.return_value = lambda_response, lambda_logs
+        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs
 
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
@@ -67,7 +68,7 @@ class TestApiGatewayService(TestCase):
         result = self.service._request_handler()
 
         self.assertEquals(result, make_response_mock)
-        self.service._get_lambda_output.assert_called_with(ANY)
+        lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY)
 
         # Make sure the parse method is called only on the returned response and not on the raw data from stdout
         parse_output_mock.assert_called_with(lambda_response, ANY, ANY)
@@ -92,30 +93,6 @@ class TestApiGatewayService(TestCase):
         result = self.service._request_handler()
 
         self.assertEquals(result, make_response_mock)
-
-    def test_runtime_error_raised_when_app_not_created(self):
-        with self.assertRaises(RuntimeError):
-            self.service.run()
-
-    def test_run_starts_service_multithreaded(self):
-        self.service._app = Mock()
-        app_run_mock = Mock()
-        self.service._app.run = app_run_mock
-
-        self.lambda_runner.is_debugging.return_value = False  # multithreaded
-        self.service.run()
-
-        app_run_mock.assert_called_once_with(threaded=True, host='127.0.0.1', port=3000)
-
-    def test_run_starts_service_singlethreaded(self):
-        self.service._app = Mock()
-        app_run_mock = Mock()
-        self.service._app.run = app_run_mock
-
-        self.lambda_runner.is_debugging.return_value = True  # single threaded
-        self.service.run()
-
-        app_run_mock.assert_called_once_with(threaded=False, host='127.0.0.1', port=3000)
 
     def test_create_creates_dict_of_routes(self):
         function_name_1 = Mock()

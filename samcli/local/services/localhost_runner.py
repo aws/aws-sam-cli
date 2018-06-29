@@ -1,14 +1,16 @@
 """Base class for all Services that interact with Local Lambda"""
 
+import logging
+import os
+
 from flask import Response
 
+LOG = logging.getLogger(__name__)
 
-class BaseService(object):
 
-    _DEFAULT_PORT = 3000
-    _DEFAULT_HOST = '127.0.0.1'
+class LocalhostRunner(object):
 
-    def __init__(self, lambda_runner, port=None, host=None, stderr=None):
+    def __init__(self, lambda_runner, port, host, stderr=None):
         """
         Creates a BaseService class
 
@@ -24,13 +26,65 @@ class BaseService(object):
             Optional stream where the stderr from Docker container should be written to
         """
         self.lambda_runner = lambda_runner
-        self.port = port or self._DEFAULT_PORT
-        self.host = host or self._DEFAULT_HOST
+        self.port = port
+        self.host = host
         self._app = None
         self.stderr = stderr
 
+    def create(self):
+        """
+        Creates a Flask Application that can be started.
+        """
+        raise NotImplementedError("Required method to implement")
+
+    def run(self):
+        """
+        This starts up the (threaded) Local Server.
+        Note: This is a **blocking call**
+
+        Raises
+        ------
+        RuntimeError
+            if the service was not created
+        """
+        if not self._app:
+            raise RuntimeError("The application must be created before running")
+
+        # Flask can operate as a single threaded server (which is default) and a multi-threaded server which is
+        # more for development. When the Lambda container is going to be debugged, then it does not make sense
+        # to turn on multi-threading because customers can realistically attach only one container at a time to
+        # the debugger. Keeping this single threaded also enables the Lambda Runner to handle Ctrl+C in order to
+        # kill the container gracefully (Ctrl+C can be handled only by the main thread)
+        multi_threaded = not self.lambda_runner.is_debugging()
+
+        LOG.debug("Localhost server is starting up. Multi-threading = %s", multi_threaded)
+
+        # This environ signifies we are running a main function for Flask. This is true, since we are using it within
+        # our cli and not on a production server.
+        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+
+        self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
+
     @staticmethod
-    def _get_lambda_output(stdout_stream):
+    def _service_response(body, headers, status_code):
+        """
+        Constructs a Flask Response from the body, headers, and status_code.
+
+        :param str body: Response body as a string
+        :param dict headers: headers for the response
+        :param int status_code: status_code for response
+        :return: Flask Response
+        """
+        response = Response(body)
+        response.headers = headers
+        response.status_code = status_code
+        return response
+
+
+class LambdaOutputParser(object):
+
+    @staticmethod
+    def get_lambda_output(stdout_stream):
         """
         This method will extract read the given stream and return the response from Lambda function separated out
         from any log statements it might have outputted. Logs end up in the stdout stream if the Lambda function
@@ -68,18 +122,3 @@ class BaseService(object):
             lambda_response = stdout_data[last_line_position:].strip()
 
         return lambda_response, lambda_logs
-
-    @staticmethod
-    def _service_response(body, headers, status_code):
-        """
-        Constructs a Flask Response from the body, headers, and status_code.
-
-        :param str body: Response body as a string
-        :param dict headers: headers for the response
-        :param int status_code: status_code for response
-        :return: Flask Response
-        """
-        response = Response(body)
-        response.headers = headers
-        response.status_code = status_code
-        return response
