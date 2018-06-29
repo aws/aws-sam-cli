@@ -37,6 +37,7 @@ class LambdaContainer(Container):
 
     _IMAGE_REPO_NAME = "lambci/lambda"
     _WORKING_DIR = "/var/task"
+    _DEFAULT_CONTAINER_DEBUG_PATH = "/tmp/lambci_debug_files/dlv"
 
     def __init__(self,
                  runtime,
@@ -125,7 +126,7 @@ class LambdaContainer(Container):
         :param DebugContext debug_options: DebugContext for the runtime of the container.
         :return dict: Dictionary containing volume map passed to container creation.
         """
-        if not debug_options:
+        if not debug_options.debugger_path:
             return None
 
         return {
@@ -192,7 +193,7 @@ class LambdaContainer(Container):
                 + [
                     "-debug=true",
                     "-delvePort=" + str(debug_port),
-                    "-delvePath=/tmp/lambci_debug_files/dlv",
+                    "-delvePath=" + LambdaContainer._DEFAULT_CONTAINER_DEBUG_PATH,
                   ]
 
         elif runtime == Runtime.nodejs.value:
