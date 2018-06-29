@@ -5,6 +5,19 @@ File that holds functions for generating different types of events
 from samcli.local.events.api_event import ContextIdentity, ApiGatewayLambdaEvent, RequestContext
 
 
+def generate_step_event(key, value):
+    """
+    Generates a Step Function Event
+
+    :param str key: Key of the message to emit.
+    :param str value: Value of the message to emit.
+    :return dict: Dictionary representing the Step Function Event
+    """
+    return {
+        key: value
+    }
+
+
 def generate_s3_event(region, bucket, key):
     """
     Generates a S3 Event
@@ -147,7 +160,8 @@ def generate_dynamodb_event(region):
                 "awsRegion": region,
                 "eventName": "INSERT",
                 "eventSourceARN": "arn:aws:dynamodb:{}:account-id:table/"
-                                  "ExampleTableWithStream/stream/2015-06-27T00:48:05.899".format(region),
+                                  "ExampleTableWithStream/stream/2015-06-27T00:48:05.899".format(
+                                      region),
                 "eventSource": "aws:dynamodb"
             },
             {
@@ -183,7 +197,8 @@ def generate_dynamodb_event(region):
                 "eventName": "MODIFY",
                 "eventSourceARN":
                     "arn:aws:dynamodb:{}:account-id:table/"
-                    "ExampleTableWithStream/stream/2015-06-27T00:48:05.899".format(region),
+                    "ExampleTableWithStream/stream/2015-06-27T00:48:05.899".format(
+                        region),
                 "eventSource": "aws:dynamodb"
             },
             {
@@ -210,7 +225,8 @@ def generate_dynamodb_event(region):
                 "awsRegion": region,
                 "eventName": "REMOVE",
                 "eventSourceARN": "arn:aws:dynamodb:{}:account-id:table/"
-                                  "ExampleTableWithStream/stream/2015-06-27T00:48:05.899".format(region),
+                                  "ExampleTableWithStream/stream/2015-06-27T00:48:05.899".format(
+                                      region),
                 "eventSource": "aws:dynamodb"
             }
         ]

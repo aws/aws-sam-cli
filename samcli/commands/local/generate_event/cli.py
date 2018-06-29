@@ -10,7 +10,7 @@ from .dynamodb.cli import cli as dynamodb_cli
 from .kinesis.cli import cli as kinesis_cli
 from .schedule.cli import cli as schedule_cli
 from .sns.cli import cli as sns_cli
-
+from .step.cli import cli as step_cli
 
 HELP_TEXT = """
 Generate a Lambda Event that can be used to invoke a Lambda Function.
@@ -37,3 +37,4 @@ cli.add_command(dynamodb_cli)
 cli.add_command(kinesis_cli)
 cli.add_command(schedule_cli)
 cli.add_command(sns_cli)
+cli.add_command(step_cli)
