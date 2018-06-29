@@ -1,13 +1,17 @@
 """
 Library for Validating Sam Templates
 """
+import logging
 import functools
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
+from samcli.yamlhelper import yaml_dump
 import six
 
 from .exceptions import InvalidSamDocumentException
+
+LOG = logging.getLogger(__name__)
 
 
 class SamTemplateValidator(object):
@@ -75,8 +79,9 @@ class SamTemplateValidator(object):
 
         try:
             with WarningSuppressLogger(parser.logging):
-                sam_translator.translate(sam_template=self.sam_template,
-                                         parameter_values={})
+                template = sam_translator.translate(sam_template=self.sam_template,
+                                                    parameter_values={})
+                LOG.debug("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
