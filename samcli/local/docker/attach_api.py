@@ -3,8 +3,11 @@ Wrapper to Docker Attach API
 """
 
 import struct
+import logging
 from socket import timeout
 from docker.utils.socket import read, read_exactly, SocketError
+
+LOG = logging.getLogger(__name__)
 
 
 def attach(docker_client, container, stdout=True, stderr=True, logs=False):
@@ -105,8 +108,8 @@ def _read_socket(socket):
                 yield payload_type, data
 
         except timeout:
-            # Timeouts are normal during debug sessions
-            pass
+            # Timeouts are normal during debug sessions and long running tasks
+            LOG.debug("Ignoring docker socket timeout")
 
         except SocketError:
             # There isn't enough data in the stream. Probably the socket terminated
