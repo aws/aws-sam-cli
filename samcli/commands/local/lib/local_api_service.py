@@ -6,8 +6,10 @@ import os
 import logging
 
 from samcli.local.apigw.service import Service, Route
+from samcli.local.docker.lambda_container import Runtime
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
+from samcli.commands.local.lib.hot_loader import HotLoader
 
 LOG = logging.getLogger(__name__)
 
@@ -77,6 +79,10 @@ class LocalApiService(object):
                  "You do not need to restart/reload SAM CLI while working on your functions "
                  "changes will be reflected instantly/automatically. You only need to restart "
                  "SAM CLI if you update your AWS SAM template")
+
+        if self.lambda_runner in [Runtime.python27.value, Runtime.python36.value]:
+            hot_loader = HotLoader(self.cwd)
+            hot_loader.start()
 
         service.run()
 
