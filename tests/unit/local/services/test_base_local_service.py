@@ -3,45 +3,43 @@ from mock import Mock, patch
 
 from parameterized import parameterized, param
 
-from samcli.local.services.localhost_runner import LocalhostRunner, LambdaOutputParser
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 
 
 class TestLocalHostRunner(TestCase):
 
     def test_runtime_error_raised_when_app_not_created(self):
-        lambda_runner_mock = Mock()
-        service = LocalhostRunner(lambda_runner=lambda_runner_mock, port=3000, host='127.0.0.1')
+        is_debugging = False
+        service = BaseLocalService(is_debugging=is_debugging, port=3000, host='127.0.0.1')
 
         with self.assertRaises(RuntimeError):
             service.run()
 
     def test_run_starts_service_multithreaded(self):
-        lambda_runner_mock = Mock()
-        service = LocalhostRunner(lambda_runner=lambda_runner_mock, port=3000, host='127.0.0.1')
+        is_debugging = False  # multithreaded
+        service = BaseLocalService(is_debugging=is_debugging, port=3000, host='127.0.0.1')
 
         service._app = Mock()
         app_run_mock = Mock()
         service._app.run = app_run_mock
 
-        lambda_runner_mock.is_debugging.return_value = False  # multithreaded
         service.run()
 
         app_run_mock.assert_called_once_with(threaded=True, host='127.0.0.1', port=3000)
 
     def test_run_starts_service_singlethreaded(self):
-        lambda_runner_mock = Mock()
-        service = LocalhostRunner(lambda_runner=lambda_runner_mock, port=3000, host='127.0.0.1')
+        is_debugging = True  # singlethreaded
+        service = BaseLocalService(is_debugging=is_debugging, port=3000, host='127.0.0.1')
 
         service._app = Mock()
         app_run_mock = Mock()
         service._app.run = app_run_mock
 
-        lambda_runner_mock.is_debugging.return_value = True  # single threaded
         service.run()
 
         app_run_mock.assert_called_once_with(threaded=False, host='127.0.0.1', port=3000)
 
-    @patch('samcli.local.services.localhost_runner.Response')
+    @patch('samcli.local.services.base_local_service.Response')
     def test_service_response(self, flask_response_patch):
         flask_response_mock = Mock()
 
@@ -51,7 +49,7 @@ class TestLocalHostRunner(TestCase):
         status_code = 200
         headers = {"Content-Type": "application/json"}
 
-        actual_response = LocalhostRunner._service_response(body, headers, status_code)
+        actual_response = BaseLocalService._service_response(body, headers, status_code)
 
         flask_response_patch.assert_called_once_with("this is the body")
 
@@ -59,8 +57,8 @@ class TestLocalHostRunner(TestCase):
         self.assertEquals(actual_response.headers, {"Content-Type": "application/json"})
 
     def test_create_returns_not_implemented(self):
-        lambda_runner_mock = Mock()
-        service = LocalhostRunner(lambda_runner=lambda_runner_mock, port=3000, host='127.0.0.1')
+        is_debugging = False
+        service = BaseLocalService(is_debugging=is_debugging, port=3000, host='127.0.0.1')
 
         with self.assertRaises(NotImplementedError):
             service.create()

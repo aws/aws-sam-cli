@@ -8,7 +8,7 @@ import os
 
 import requests
 
-from samcli.local.lambda_service.local_invoke import LocalInvoke
+from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
 from tests.functional.function_code import nodejs_lambda, HELLO_FROM_LAMBDA, ECHO_CODE
 from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -116,7 +116,7 @@ def make_service(list_of_function_names, function_provider, cwd):
                                       function_provider=function_provider,
                                       cwd=cwd)
 
-    service = LocalInvoke(lambda_runner, port=port, host='127.0.0.1')
+    service = LocalLambdaInvokeService(lambda_runner, port=port, host='127.0.0.1')
 
     scheme = "http"
     url = '{}://127.0.0.1:{}'.format(scheme, port)

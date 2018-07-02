@@ -6,13 +6,13 @@ import io
 from flask import Flask, request
 
 
-from samcli.local.services.localhost_runner import LocalhostRunner, LambdaOutputParser
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 LOG = logging.getLogger(__name__)
 
 
-class LocalInvoke(LocalhostRunner):
+class LocalLambdaInvokeService(BaseLocalService):
 
     def __init__(self, lambda_runner, port, host, stderr=None):
         """
@@ -29,7 +29,9 @@ class LocalInvoke(LocalhostRunner):
         stderr io.BaseIO
             Optional stream where the stderr from Docker container should be written to
         """
-        super(LocalInvoke, self).__init__(lambda_runner, port=port, host=host, stderr=stderr)
+        super(LocalLambdaInvokeService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
+        self.lambda_runner = lambda_runner
+        self.stderr = stderr
 
     def create(self):
         """

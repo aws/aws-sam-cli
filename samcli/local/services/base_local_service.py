@@ -8,28 +8,25 @@ from flask import Response
 LOG = logging.getLogger(__name__)
 
 
-class LocalhostRunner(object):
+class BaseLocalService(object):
 
-    def __init__(self, lambda_runner, port, host, stderr=None):
+    def __init__(self, is_debugging, port, host):
         """
-        Creates a BaseService class
+        Creates a BaseLocalService class
 
         Parameters
         ----------
-        lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
-            The Lambda runner class capable of invoking the function
+        is_debugging bool
+            Flag to run in debug mode or not
         port int
             Optional. port for the service to start listening on Defaults to 3000
         host str
             Optional. host to start the service on Defaults to '127.0.0.1
-        stderr io.BaseIO
-            Optional stream where the stderr from Docker container should be written to
         """
-        self.lambda_runner = lambda_runner
+        self.is_debugging = is_debugging
         self.port = port
         self.host = host
         self._app = None
-        self.stderr = stderr
 
     def create(self):
         """
@@ -55,7 +52,7 @@ class LocalhostRunner(object):
         # to turn on multi-threading because customers can realistically attach only one container at a time to
         # the debugger. Keeping this single threaded also enables the Lambda Runner to handle Ctrl+C in order to
         # kill the container gracefully (Ctrl+C can be handled only by the main thread)
-        multi_threaded = not self.lambda_runner.is_debugging()
+        multi_threaded = not self.is_debugging
 
         LOG.debug("Localhost server is starting up. Multi-threading = %s", multi_threaded)
 

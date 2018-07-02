@@ -6,7 +6,7 @@ import base64
 
 from flask import Flask, request
 
-from samcli.local.services.localhost_runner import LocalhostRunner, LambdaOutputParser
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 from .service_error_responses import ServiceErrorResponses
@@ -48,7 +48,7 @@ class Route(object):
         self.binary_types = binary_types or []
 
 
-class Service(LocalhostRunner):
+class LocalApigwService(BaseLocalService):
 
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
@@ -68,10 +68,12 @@ class Service(LocalhostRunner):
           Defaults to '127.0.0.1
         :param io.BaseIO stderr: Optional stream where the stderr from Docker container should be written to
         """
+        super(LocalApigwService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.routing_list = routing_list
+        self.lambda_runner = lambda_runner
         self.static_dir = static_dir
         self._dict_of_routes = {}
-        super(Service, self).__init__(lambda_runner, port=port, host=host, stderr=stderr)
+        self.stderr = stderr
 
     def create(self):
         """
@@ -223,7 +225,7 @@ class Service(LocalhostRunner):
             LOG.info("No Content-Type given. Defaulting to 'application/json'.")
             headers["Content-Type"] = "application/json"
 
-        if Service._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
+        if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
             body = base64.b64decode(body)
 
         return status_code, headers, body
@@ -272,7 +274,7 @@ class Service(LocalhostRunner):
 
         request_mimetype = flask_request.mimetype
 
-        is_base_64 = Service._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -295,7 +297,7 @@ class Service(LocalhostRunner):
         # APIGW does not support duplicate query parameters. Flask gives query params as a list so
         # we need to convert only grab the first item unless many were given, were we grab the last to be consistent
         # with APIGW
-        query_string_dict = Service._query_string_params(flask_request)
+        query_string_dict = LocalApigwService._query_string_params(flask_request)
 
         event = ApiGatewayLambdaEvent(http_method=method,
                                       body=request_data,

@@ -9,7 +9,7 @@ import requests
 import random
 from mock import Mock
 
-from samcli.local.apigw.service import Route, Service
+from samcli.local.apigw.local_apigw_service import Route, LocalApigwService
 from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT, API_GATEWAY_BAD_PROXY_RESPONSE, API_GATEWAY_ECHO_BASE64_EVENT, API_GATEWAY_CONTENT_TYPE_LOWER
 from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -617,7 +617,7 @@ def make_service(list_of_routes, function_provider, cwd):
                                       function_provider=function_provider,
                                       cwd=cwd)
 
-    service = Service(list_of_routes, lambda_runner, port=port)
+    service = LocalApigwService(list_of_routes, lambda_runner, port=port)
 
     scheme = "http"
     url = '{}://0.0.0.0:{}'.format(scheme, port)
