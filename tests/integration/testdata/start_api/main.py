@@ -13,6 +13,13 @@ def echo_event_handler(event, context):
     return {"statusCode": 200, "body": json.dumps(event)}
 
 
+def echo_event_handler_2(event, context):
+
+    event['handler'] = 'echo_event_handler_2'
+
+    return {"statusCode": 200, "body": json.dumps(event)}
+
+
 def content_type_setter_handler(event, context):
 
     return {"statusCode": 200, "body": "hello", "headers": {"Content-Type": "text/plain"}}

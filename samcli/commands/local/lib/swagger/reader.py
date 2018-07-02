@@ -6,11 +6,11 @@ import os
 import tempfile
 import logging
 
+from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=relative-import
+from six import string_types
 import boto3
 import botocore
 
-from six import string_types
-from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=relative-import
 from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)
@@ -213,7 +213,7 @@ class SamSwaggerReader(object):
 
         with tempfile.TemporaryFile() as fp:
             try:
-                s3.download_file(
+                s3.download_fileobj(
                     bucket, key, fp,
                     ExtraArgs=extra_args)
 

@@ -45,7 +45,7 @@ class TestLambdaRuntime(TestCase):
     def test_echo_function(self):
         timeout = 3
         input_event = '{"a":"b"}'
-        expected_output = '{"a":"b"}'
+        expected_output = b'{"a":"b"}'
 
         config = FunctionConfig(name="helloworld",
                                 runtime=RUNTIME,
@@ -57,7 +57,7 @@ class TestLambdaRuntime(TestCase):
         self.runtime.invoke(config, input_event, stdout=stdout_stream)
 
         actual_output = stdout_stream.getvalue()
-        self.assertEquals(actual_output.strip().decode('utf-8'), expected_output)
+        self.assertEquals(actual_output.strip(), expected_output)
 
     def test_function_timeout(self):
         """
@@ -88,7 +88,7 @@ class TestLambdaRuntime(TestCase):
 
         # There should be no output from the function because timer was interrupted
         actual_output = stdout_stream.getvalue()
-        self.assertEquals(actual_output.strip().decode('utf-8'), "")
+        self.assertEquals(actual_output.strip(), b"")
 
     @parameterized.expand([
         ("zip"),
@@ -99,7 +99,7 @@ class TestLambdaRuntime(TestCase):
     def test_echo_function_with_zip_file(self, file_name_extension):
         timeout = 3
         input_event = '"this input should be echoed"'
-        expected_output = '"this input should be echoed"'
+        expected_output = b'"this input should be echoed"'
 
         code_dir = self.code_dir["echo"]
         with make_zip(code_dir, file_name_extension) as code_zip_path:
@@ -114,7 +114,7 @@ class TestLambdaRuntime(TestCase):
             self.runtime.invoke(config, input_event, stdout=stdout_stream)
 
             actual_output = stdout_stream.getvalue()
-            self.assertEquals(actual_output.strip().decode('utf-8'), expected_output)
+            self.assertEquals(actual_output.strip(), expected_output)
 
     def test_check_environment_variables(self):
         variables = {"var1": "value1", "var2": "value2"}
@@ -153,7 +153,7 @@ class TestLambdaRuntime(TestCase):
 
         self.runtime.invoke(config, input_event, stdout=stdout_stream)
 
-        actual_output = json.loads(stdout_stream.getvalue().strip())  # Output is a JSON String. Deserialize.
+        actual_output = json.loads(stdout_stream.getvalue().strip().decode('utf-8'))  # Output is a JSON String. Deserialize.
 
         # Make sure all key/value from expected_output is present in actual_output
         for key, value in expected_output.items():

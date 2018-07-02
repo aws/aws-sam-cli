@@ -53,6 +53,25 @@ Resources:
             Method: GET
             Path: /id/{id}
 
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /echoeventbody
+
+  EchoEventFunction2:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler_2
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /echoeventbody
+
   ContentTypeSetterFunction:
     Type: AWS::Serverless::Function
     Properties:

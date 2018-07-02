@@ -10,14 +10,14 @@ from samcli.commands.validate.lib.sam_template_validator import SamTemplateValid
 class TestSamTemplateValidator(TestCase):
 
     @patch('samcli.commands.validate.lib.sam_template_validator.Translator')
-    @patch('samcli.commands.validate.lib.sam_template_validator.Parser')
+    @patch('samcli.commands.validate.lib.sam_template_validator.parser')
     def test_is_valid_returns_true(self, sam_parser, sam_translator):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
         template = {"a": "b"}
 
         parser = Mock()
-        sam_parser.return_value = parser
+        sam_parser.Parser.return_value = parser
 
         translate_mock = Mock()
         translate_mock.translate.return_value = {"c": "d"}
@@ -32,17 +32,17 @@ class TestSamTemplateValidator(TestCase):
                                                sam_parser=parser,
                                                plugins=[])
         translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
-        sam_parser.assert_called_once()
+        sam_parser.Parser.assert_called_once()
 
     @patch('samcli.commands.validate.lib.sam_template_validator.Translator')
-    @patch('samcli.commands.validate.lib.sam_template_validator.Parser')
+    @patch('samcli.commands.validate.lib.sam_template_validator.parser')
     def test_is_valid_raises_exception(self, sam_parser, sam_translator):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
         template = {"a": "b"}
 
         parser = Mock()
-        sam_parser.return_value = parser
+        sam_parser.Parser.return_value = parser
 
         translate_mock = Mock()
         translate_mock.translate.side_effect = InvalidDocumentException([Exception('message')])
@@ -57,7 +57,7 @@ class TestSamTemplateValidator(TestCase):
                                                sam_parser=parser,
                                                plugins=[])
         translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
-        sam_parser.assert_called_once()
+        sam_parser.Parser.assert_called_once()
 
     def test_init(self):
         managed_policy_mock = Mock()
@@ -170,6 +170,33 @@ class TestSamTemplateValidator(TestCase):
                           "s3://bucket/value")
         self.assertEquals(tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"),
                           "s3://bucket/value")
+
+    def test_DefinitionUri_does_not_get_added_to_template_when_DefinitionBody_given(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "swagger": {}
+                        }
+                    }
+                }
+            }
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_codeuri()
+
+        tempalte_resources = validator.sam_template.get("Resources")
+        self.assertNotIn("DefinitionUri", tempalte_resources.get("ServerlessApi").get("Properties"))
+        self.assertIn("DefinitionBody", tempalte_resources.get("ServerlessApi").get("Properties"))
 
     def test_replace_local_codeuri_with_no_resources(self):
 

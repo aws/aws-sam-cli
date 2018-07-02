@@ -42,7 +42,7 @@ def do_cli(ctx, template):
         validator.is_valid()
     except InvalidSamDocumentException as e:
         click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg='red')
-        raise InvalidSamTemplateException(e.message)
+        raise InvalidSamTemplateException(str(e))
 
     click.secho("{} is a valid SAM Template".format(template), fg='green')
 

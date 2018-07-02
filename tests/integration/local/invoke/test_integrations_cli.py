@@ -23,8 +23,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
-        process_stdout = "".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout, '"Hello world"')
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
 
     def test_invoke_of_lambda_function(self):
         command_list = self.get_command_list("HelloWorldLambdaFunction",
@@ -33,8 +33,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
-        process_stdout = "".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout, '"Hello world"')
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
 
     def test_invoke_with_timeout_set(self):
         command_list = self.get_command_list("HelloWorldSleepFunction",
@@ -48,15 +48,15 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         wall_clock_cli_duration = end - start
 
-        process_stdout = "".join(process.stdout.readlines()).strip()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
 
         # validate the time of the cli (timeout is set to 5s)
         self.assertGreater(wall_clock_cli_duration, 5)
         self.assertLess(wall_clock_cli_duration, 20)
 
         self.assertEquals(return_code, 0)
-        self.assertEquals(process_stdout, "", msg="The return statement in the LambdaFunction "
-                                                  "should never return leading to an empty string")
+        self.assertEquals(process_stdout.decode('utf-8'), "", msg="The return statement in the LambdaFunction "
+                                                                  "should never return leading to an empty string")
 
     def test_invoke_with_env_vars(self):
         command_list = self.get_command_list("EchoCustomEnvVarFunction",
@@ -66,8 +66,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
-        process_stdout = "".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout, '"MyVar"')
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        self.assertEquals(process_stdout.decode('utf-8'), '"MyVar"')
 
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list("WriteToStdoutFunction",
@@ -77,11 +77,11 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         process.wait()
 
-        process_stdout = "".join(process.stdout.readlines()).strip()
-        process_stderr = "".join(process.stderr.readlines()).strip()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        process_stderr = b"".join(process.stderr.readlines()).strip()
 
-        self.assertIn("Docker Lambda is writing to stdout", process_stderr)
-        self.assertIn("wrote to stdout", process_stdout)
+        self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode('utf-8'))
+        self.assertIn("wrote to stdout", process_stdout.decode('utf-8'))
 
     def test_invoke_when_function_writes_stderr(self):
         command_list = self.get_command_list("WriteToStderrFunction",
@@ -91,6 +91,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stderr=PIPE)
         process.wait()
 
-        process_stderr = "".join(process.stderr.readlines()).strip()
+        process_stderr = b"".join(process.stderr.readlines()).strip()
 
-        self.assertIn("Docker Lambda is writing to stderr", process_stderr)
+        self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode('utf-8'))

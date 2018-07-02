@@ -5,6 +5,8 @@ from unittest import TestCase
 from mock import patch
 from nose_parameterized import parameterized
 
+from six import assertCountEqual
+
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -404,7 +406,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = SamApiProvider(template)
 
-        self.assertItemsEqual(provider.apis, expected_apis)
+        assertCountEqual(self, provider.apis, expected_apis)
 
     def test_convert_event_api_with_invalid_event_properties(self):
         properties = {
@@ -468,11 +470,11 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         }
 
         provider = SamApiProvider(template)
-        self.assertItemsEqual(self.input_apis, provider.apis)
+        assertCountEqual(self, self.input_apis, provider.apis)
 
     def test_with_swagger_as_local_file(self):
 
-        with tempfile.NamedTemporaryFile() as fp:
+        with tempfile.NamedTemporaryFile(mode='w') as fp:
             filename = fp.name
 
             swagger = make_swagger(self.input_apis)
@@ -493,7 +495,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
 
             provider = SamApiProvider(template)
-            self.assertItemsEqual(self.input_apis, provider.apis)
+            assertCountEqual(self, self.input_apis, provider.apis)
 
     @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
@@ -519,7 +521,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         cwd = "foo"
         provider = SamApiProvider(template, cwd=cwd)
-        self.assertItemsEqual(self.input_apis, provider.apis)
+        assertCountEqual(self, self.input_apis, provider.apis)
         SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
@@ -551,7 +553,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         }
 
         provider = SamApiProvider(template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types(self):
 
@@ -585,7 +587,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
 
@@ -614,7 +616,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
 
 class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
@@ -692,7 +694,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(self.template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_prefer_implicit_api_over_explicit(self):
 
@@ -728,7 +730,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(self.template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_prefer_implicit_with_any_method(self):
 
@@ -763,7 +765,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(self.template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_any_method_on_both(self):
 
@@ -809,7 +811,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(self.template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_add_explicit_api_when_ref_with_rest_api_id(self):
 
@@ -847,7 +849,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(self.template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_both_apis_must_get_binary_media_types(self):
 
@@ -901,7 +903,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(self.template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
     def test_binary_media_types_with_rest_api_id_reference(self):
 
@@ -960,7 +962,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = SamApiProvider(self.template)
-        self.assertItemsEqual(expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.apis)
 
 
 def make_swagger(apis, binary_media_types=None):

@@ -1,12 +1,17 @@
 """
 Library for Validating Sam Templates
 """
+import logging
+import functools
 from samtranslator.public.exceptions import InvalidDocumentException
-from samtranslator.parser.parser import Parser
+from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
+from samcli.yamlhelper import yaml_dump
 import six
 
 from .exceptions import InvalidSamDocumentException
+
+LOG = logging.getLogger(__name__)
 
 
 class SamTemplateValidator(object):
@@ -34,8 +39,7 @@ class SamTemplateValidator(object):
         """
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
-
-        self.sam_parser = Parser()
+        self.sam_parser = parser.Parser()
 
     def is_valid(self):
         """
@@ -55,12 +59,32 @@ class SamTemplateValidator(object):
 
         self._replace_local_codeuri()
 
+        # In the Paser class, within the SAM Translator, they log a warning for when the template
+        # does not match the schema. The logger they use is the root logger instead of one scoped to
+        # their module. Currently this does not cause templates to fail, so we will suppress this
+        # by patching the logging.warning method that is used in that class.
+        class WarningSuppressLogger(object):
+
+            def __init__(self, obj_to_patch):
+                self.obj_to_patch = obj_to_patch
+
+            def __enter__(self):
+                self.obj_to_patch.warning = self.warning
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                self.obj_to_patch.warning = self.obj_to_patch.warning
+
+            def warning(self, message):
+                pass
+
         try:
-            sam_translator.translate(sam_template=self.sam_template,
-                                     parameter_values={})
+            with WarningSuppressLogger(parser.logging):
+                template = sam_translator.translate(sam_template=self.sam_template,
+                                                    parameter_values={})
+                LOG.debug("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                reduce(lambda message, error: message + ' ' + error.message, e.causes, e.message))
+                functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
 
     def _replace_local_codeuri(self):
         """
@@ -81,8 +105,8 @@ class SamTemplateValidator(object):
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 
             if resource_type == "AWS::Serverless::Api":
-
-                SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+                if "DefinitionBody" not in resource_dict:
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
 
     @staticmethod
     def is_s3_uri(uri):

@@ -2,6 +2,7 @@
 import io
 import json
 import logging
+import os
 import base64
 
 from flask import Flask, request, Response
@@ -12,6 +13,23 @@ from .service_error_responses import ServiceErrorResponses
 from .path_converter import PathConverter
 
 LOG = logging.getLogger(__name__)
+
+
+class CaseInsensitiveDict(dict):
+    """
+    Implement a simple case insensitive dictionary for storing headers. To preserve the original
+    case of the given Header (e.g. X-FooBar-Fizz) this only touches the get and contains magic
+    methods rather than implementing a __setitem__ where we normalize the case of the headers.
+    """
+
+    def __getitem__(self, key):
+        matches = [v for k, v in self.items() if k.lower() == key.lower()]
+        if not matches:
+            raise KeyError(key)
+        return matches[0]
+
+    def __contains__(self, key):
+        return key.lower() in [k.lower() for k in self.keys()]
 
 
 class Route(object):
@@ -78,7 +96,8 @@ class Service(object):
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
-                                   methods=api_gateway_route.methods)
+                                   methods=api_gateway_route.methods,
+                                   provide_automatic_options=False)
 
         self._construct_error_handling()
 
@@ -128,6 +147,11 @@ class Service(object):
         multi_threaded = not self.lambda_runner.is_debugging()
 
         LOG.debug("Local API Server starting up. Multi-threading = %s", multi_threaded)
+
+        # This environ signifies we are running a main function for Flask. This is true, since we are using it within
+        # our cli and not on a production server.
+        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 
     def _request_handler(self, **kwargs):
@@ -237,7 +261,7 @@ class Service(object):
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
         # System.out.println or similar, before docker-lambda output the result
-        stdout_data = stdout_stream.getvalue().rstrip('\n')
+        stdout_data = stdout_stream.getvalue().rstrip(b'\n')
 
         # Usually the output is just one line and contains response as JSON string, but if the Lambda function
         # wrote anything directly to stdout, there will be additional lines. So just extract the last line as
@@ -245,7 +269,7 @@ class Service(object):
         lambda_response = stdout_data
         lambda_logs = None
 
-        last_line_position = stdout_data.rfind('\n')
+        last_line_position = stdout_data.rfind(b'\n')
         if last_line_position > 0:
             # So there are multiple lines. Separate them out.
             # Everything but the last line are logs
@@ -270,7 +294,7 @@ class Service(object):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
         status_code = json_output.get("statusCode") or 200
-        headers = json_output.get("headers") or {}
+        headers = CaseInsensitiveDict(json_output.get("headers") or {})
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
@@ -329,7 +353,7 @@ class Service(object):
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
         method = flask_request.method
 
-        request_data = flask_request.data
+        request_data = flask_request.get_data()
 
         request_mimetype = flask_request.mimetype
 
@@ -338,7 +362,8 @@ class Service(object):
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
             request_data = base64.b64encode(request_data)
-        elif request_data:
+
+        if request_data:
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode('utf-8')
 
@@ -352,11 +377,16 @@ class Service(object):
         event_headers["X-Forwarded-Proto"] = flask_request.scheme
         event_headers["X-Forwarded-Port"] = str(port)
 
+        # APIGW does not support duplicate query parameters. Flask gives query params as a list so
+        # we need to convert only grab the first item unless many were given, were we grab the last to be consistent
+        # with APIGW
+        query_string_dict = Service._query_string_params(flask_request)
+
         event = ApiGatewayLambdaEvent(http_method=method,
                                       body=request_data,
                                       resource=endpoint,
                                       request_context=context,
-                                      query_string_params=flask_request.args,
+                                      query_string_params=query_string_dict,
                                       headers=event_headers,
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
@@ -365,6 +395,37 @@ class Service(object):
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
         return event_str
+
+    @staticmethod
+    def _query_string_params(flask_request):
+        """
+        Constructs an APIGW equivalent query string dictionary
+
+        Parameters
+        ----------
+        flask_request request
+            Request from Flask
+
+        Returns dict (str: str)
+        -------
+            Empty dict if no query params where in the request otherwise returns a dictionary of key to value
+
+        """
+        query_string_dict = {}
+
+        # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
+        # a dict(str: list) then iterate over
+        for query_string_key, query_string_list in dict(flask_request.args).items():
+            query_string_value_length = len(query_string_list)
+
+            # if the list is empty, default to empty string
+            if not query_string_value_length:
+                query_string_dict[query_string_key] = ""
+            else:
+                # APIGW doesn't handle duplicate query string keys, picking the last one in the list
+                query_string_dict[query_string_key] = query_string_list[-1]
+
+        return query_string_dict
 
     @staticmethod
     def _should_base64_encode(binary_types, request_mimetype):

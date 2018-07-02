@@ -20,7 +20,7 @@ Running API Gateway Locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 start-api: Creates a local HTTP server hosting all of your Lambda functions. When accessed by using a browser or the CLI, this operation launches a Docker container locally to invoke your function. It reads the CodeUri property of the AWS::Serverless::Function resource to find the path in your file system containing the Lambda function code. This path can be the project's root directory for interpreted languages like Node.js or Python, a build directory that stores your compiled artifacts, or for Java, a .jar file.
 
-If you use an interpreted language, local changes are made available within the same Docker container. This approach means you can reinvoke your Lambda function with no need for redeployment.
+If you use an interpreted language, local changes are made available without rebuilding. This approach means you can reinvoke your Lambda function with no need to restart the CLI.
 
 invoke: Invokes a local Lambda function once and terminates after invocation completes.
 
