@@ -33,12 +33,13 @@ class LambdaRuntime_invoke(TestCase):
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_must_run_container_and_wait_for_logs(self, LambdaContainerMock):
         event = "event"
+        debug_port = 123
+        debug_arg = "abc"
         code_dir = "some code dir"
         stdout = "stdout"
         stderr = "stderr"
         container = Mock()
         timer = Mock()
-        debug_options = Mock()
 
         self.runtime = LambdaRuntime(self.manager_mock)
 
@@ -54,7 +55,8 @@ class LambdaRuntime_invoke(TestCase):
 
         self.runtime.invoke(self.func_config,
                             event,
-                            debug_context=debug_options,
+                            debug_port=debug_port,
+                            debug_args=debug_arg,
                             stdout=stdout,
                             stderr=stderr)
 
@@ -70,7 +72,7 @@ class LambdaRuntime_invoke(TestCase):
         # Make sure the container is created with proper values
         LambdaContainerMock.assert_called_with(self.lang, self.handler, code_dir,
                                                memory_mb=self.DEFAULT_MEMORY, env_vars=self.env_var_value,
-                                               debug_options=debug_options)
+                                               debug_port=debug_port, debug_args=debug_arg)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
@@ -84,6 +86,8 @@ class LambdaRuntime_invoke(TestCase):
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_exception_from_run_must_trigger_cleanup(self, LambdaContainerMock):
         event = "event"
+        debug_port = 123
+        debug_arg = "abc"
         code_dir = "some code dir"
         stdout = "stdout"
         stderr = "stderr"
@@ -105,7 +109,8 @@ class LambdaRuntime_invoke(TestCase):
         with self.assertRaises(ValueError):
             self.runtime.invoke(self.func_config,
                                 event,
-                                debug_context=None,
+                                debug_port=debug_port,
+                                debug_args=debug_arg,
                                 stdout=stdout,
                                 stderr=stderr)
 
@@ -123,12 +128,13 @@ class LambdaRuntime_invoke(TestCase):
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_exception_from_wait_for_logs_must_trigger_cleanup(self, LambdaContainerMock):
         event = "event"
+        debug_port = 123
+        debug_arg = "abc"
         code_dir = "some code dir"
         stdout = "stdout"
         stderr = "stderr"
         container = Mock()
         timer = Mock()
-        debug_options = Mock()
 
         self.runtime = LambdaRuntime(self.manager_mock)
 
@@ -145,7 +151,8 @@ class LambdaRuntime_invoke(TestCase):
         with self.assertRaises(ValueError):
             self.runtime.invoke(self.func_config,
                                 event,
-                                debug_context=debug_options,
+                                debug_port=debug_port,
+                                debug_args=debug_arg,
                                 stdout=stdout,
                                 stderr=stderr)
 
@@ -163,6 +170,8 @@ class LambdaRuntime_invoke(TestCase):
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_keyboard_interrupt_must_not_raise(self, LambdaContainerMock):
         event = "event"
+        debug_port = 123
+        debug_arg = "abc"
         code_dir = "some code dir"
         stdout = "stdout"
         stderr = "stderr"
@@ -181,6 +190,8 @@ class LambdaRuntime_invoke(TestCase):
 
         self.runtime.invoke(self.func_config,
                             event,
+                            debug_port=debug_port,
+                            debug_args=debug_arg,
                             stdout=stdout,
                             stderr=stderr)
 

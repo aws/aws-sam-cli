@@ -32,12 +32,13 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context = InvokeContext(template_file=template_file,
                                        function_identifier="id",
                                        env_vars_file=env_vars_file,
+                                       debug_port=123,
+                                       debug_args="args",
                                        docker_volume_basedir="volumedir",
                                        docker_network="network",
                                        log_file=log_file,
                                        skip_pull_image=True,
-                                       aws_profile="profile",
-                                       debug_context=None)
+                                       aws_profile="profile")
 
         template_dict = "template_dict"
         invoke_context._get_template_data = Mock()
@@ -104,12 +105,13 @@ class TestInvokeContextAsContextManager(TestCase):
         with InvokeContext(template_file="template_file",
                            function_identifier="id",
                            env_vars_file="env_vars_file",
+                           debug_port=123,
+                           debug_args="args",
                            docker_volume_basedir="volumedir",
                            docker_network="network",
                            log_file="log_file",
                            skip_pull_image=True,
-                           aws_profile="profile",
-                           debug_context=None) as context:
+                           aws_profile="profile") as context:
             self.assertEquals(context_obj, context)
 
         EnterMock.assert_called_with()
@@ -150,7 +152,8 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context = InvokeContext(template_file="template_file",
                                      function_identifier="id",
                                      env_vars_file="env_vars_file",
-                                     debug_context=None,
+                                     debug_port=123,
+                                     debug_args="args",
                                      docker_volume_basedir="volumedir",
                                      docker_network="network",
                                      log_file="log_file",
@@ -184,8 +187,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
                                            function_provider=ANY,
                                            cwd=cwd,
-                                           debug_context=None,
                                            env_vars_values=ANY,
+                                           debug_port=123,
+                                           debug_args="args",
                                            aws_profile="profile")
 
 
