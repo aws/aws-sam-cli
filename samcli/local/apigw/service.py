@@ -376,6 +376,7 @@ class Service(object):
         event_headers = dict(flask_request.headers)
         event_headers["X-Forwarded-Proto"] = flask_request.scheme
         event_headers["X-Forwarded-Port"] = str(port)
+        event_headers["X-Amzn-Trace-Id"] = 'Root=1-00000000-000000000000000000000000'
 
         # APIGW does not support duplicate query parameters. Flask gives query params as a list so
         # we need to convert only grab the first item unless many were given, were we grab the last to be consistent

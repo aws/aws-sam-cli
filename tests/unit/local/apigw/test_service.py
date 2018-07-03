@@ -460,7 +460,8 @@ class TestService_construct_event(TestCase):
                    '"cognitoAuthenticationProvider": null, "cognitoIdentityPoolId": null, "userAgent": ' \
                    '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": ' \
                    '"190.0.0.0", "user": null}, "accountId": "123456789012"}, "headers": {"Content-Type": ' \
-                   '"application/json", "X-Test": "Value", "X-Forwarded-Port": "3000", "X-Forwarded-Proto": "http"}, ' \
+                   '"application/json", "X-Test": "Value", "X-Forwarded-Port": "3000", "X-Forwarded-Proto": "http", ' \
+                   '"X-Amzn-Trace-Id": "Root=1-00000000-000000000000000000000000"}, ' \
                    '"stageVariables": null, "path": "path", "pathParameters": {"path": "params"}, ' \
                    '"isBase64Encoded": false}'
 
