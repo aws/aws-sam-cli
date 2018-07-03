@@ -24,15 +24,17 @@ class TestLocalLambda_get_aws_creds(TestCase):
         self.function_provider_mock = Mock()
         self.cwd = "cwd"
         self.env_vars_values = {}
-        self.debug_context = None
+        self.debug_port = 123
+        self.debug_args = "abc"
         self.aws_profile = "myprofile"
 
         self.local_lambda = LocalLambdaRunner(self.runtime_mock,
                                               self.function_provider_mock,
                                               self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              debug_context=self.debug_context,
-                                              aws_profile=self.aws_profile)
+                                              self.env_vars_values,
+                                              self.debug_port,
+                                              self.debug_args,
+                                              self.aws_profile)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_get_from_boto_session(self, boto3_mock):
@@ -185,7 +187,8 @@ class TestLocalLambda_get_code_path(TestCase):
         self.function_provider_mock = Mock()
         self.cwd = "/my/current/working/directory"
         self.env_vars_values = {}
-        self.debug_context = None
+        self.debug_port = 123
+        self.debug_args = "abc"
         self.aws_profile = "myprofile"
 
         self.relative_codeuri = "./my/path"
@@ -195,9 +198,10 @@ class TestLocalLambda_get_code_path(TestCase):
         self.local_lambda = LocalLambdaRunner(self.runtime_mock,
                                               self.function_provider_mock,
                                               self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context)
+                                              self.env_vars_values,
+                                              self.debug_port,
+                                              self.debug_args,
+                                              self.aws_profile)
 
     @parameterized.expand([
         ("."),
@@ -263,7 +267,8 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.runtime_mock = Mock()
         self.function_provider_mock = Mock()
         self.cwd = "/my/current/working/directory"
-        self.debug_context = None
+        self.debug_port = 123
+        self.debug_args = "abc"
         self.aws_profile = "myprofile"
         self.env_vars_values = {}
 
@@ -276,9 +281,10 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.local_lambda = LocalLambdaRunner(self.runtime_mock,
                                               self.function_provider_mock,
                                               self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              debug_context=self.debug_context,
-                                              aws_profile=self.aws_profile)
+                                              self.env_vars_values,
+                                              self.debug_port,
+                                              self.debug_args,
+                                              self.aws_profile)
 
         self.aws_creds = {"key": "key"}
         self.local_lambda.get_aws_creds = Mock()
@@ -361,16 +367,18 @@ class TestLocalLambda_get_invoke_config(TestCase):
         self.runtime_mock = Mock()
         self.function_provider_mock = Mock()
         self.cwd = "/my/current/working/directory"
+        self.debug_port = 123
+        self.debug_args = "abc"
         self.aws_profile = "myprofile"
-        self.debug_context = None
         self.env_vars_values = {}
 
         self.local_lambda = LocalLambdaRunner(self.runtime_mock,
                                               self.function_provider_mock,
                                               self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context)
+                                              self.env_vars_values,
+                                              self.debug_port,
+                                              self.debug_args,
+                                              self.aws_profile)
 
     @patch('samcli.commands.local.lib.local_lambda.FunctionConfig')
     def test_must_work(self, FunctionConfigMock):
@@ -414,16 +422,18 @@ class TestLocalLambda_invoke(TestCase):
         self.runtime_mock = Mock()
         self.function_provider_mock = Mock()
         self.cwd = "/my/current/working/directory"
-        self.debug_context = None
+        self.debug_port = 123
+        self.debug_args = "abc"
         self.aws_profile = "myprofile"
         self.env_vars_values = {}
 
         self.local_lambda = LocalLambdaRunner(self.runtime_mock,
                                               self.function_provider_mock,
                                               self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context)
+                                              self.env_vars_values,
+                                              self.debug_port,
+                                              self.debug_args,
+                                              self.aws_profile)
 
     def test_must_work(self):
         name = "name"
@@ -440,7 +450,8 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(invoke_config, event,
-                                                    debug_context=None,
+                                                    debug_port=self.debug_port,
+                                                    debug_args=self.debug_args,
                                                     stdout=stdout, stderr=stderr)
 
     def test_must_raise_if_function_not_found(self):
@@ -456,16 +467,18 @@ class TestLocalLambda_is_debugging(TestCase):
         self.runtime_mock = Mock()
         self.function_provider_mock = Mock()
         self.cwd = "/my/current/working/directory"
-        self.debug_context = Mock()
+        self.debug_port = 123
+        self.debug_args = "abc"
         self.aws_profile = "myprofile"
         self.env_vars_values = {}
 
         self.local_lambda = LocalLambdaRunner(self.runtime_mock,
                                               self.function_provider_mock,
                                               self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context)
+                                              self.env_vars_values,
+                                              self.debug_port,
+                                              self.debug_args,
+                                              self.aws_profile)
 
     def test_must_be_on(self):
         self.assertTrue(self.local_lambda.is_debugging())
@@ -475,8 +488,9 @@ class TestLocalLambda_is_debugging(TestCase):
         self.local_lambda = LocalLambdaRunner(self.runtime_mock,
                                               self.function_provider_mock,
                                               self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              debug_context=None,
+                                              self.env_vars_values,
+                                              debug_port=None,  # No debug port
+                                              debug_args=self.debug_args,
                                               aws_profile=self.aws_profile)
 
         self.assertFalse(self.local_lambda.is_debugging())
