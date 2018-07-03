@@ -37,7 +37,8 @@ class LambdaRuntime(object):
     def invoke(self,
                function_config,
                event,
-               debug_context=None,
+               debug_port=None,
+               debug_args=None,
                stdout=None,
                stderr=None):
         """
@@ -52,7 +53,8 @@ class LambdaRuntime(object):
 
         :param FunctionConfig function_config: Configuration of the function to invoke
         :param event: String input event passed to Lambda function
-        :param DebugContext debug_context: Debugging context for the function (includes port, args, and path)
+        :param integer debug_port: Optional, port to attach debugger to
+        :param string debug_args: Optional, additional args to pass to debugger
         :param io.IOBase stdout: Optional. IO Stream to that receives stdout text from container.
         :param io.IOBase stderr: Optional. IO Stream that receives stderr text from container
         :raises Keyboard
@@ -66,12 +68,14 @@ class LambdaRuntime(object):
         env_vars = environ.resolve()
 
         with self._get_code_dir(function_config.code_abs_path) as code_dir:
+
             container = LambdaContainer(function_config.runtime,
                                         function_config.handler,
                                         code_dir,
                                         memory_mb=function_config.memory,
                                         env_vars=env_vars,
-                                        debug_options=debug_context)
+                                        debug_port=debug_port,
+                                        debug_args=debug_args)
 
             try:
 
@@ -86,7 +90,7 @@ class LambdaRuntime(object):
                 timer = self._configure_interrupt(function_config.name,
                                                   function_config.timeout,
                                                   container,
-                                                  bool(debug_context))
+                                                  bool(debug_port))
 
                 # NOTE: BLOCKING METHOD
                 # Block the thread waiting to fetch logs from the container. This method will return after container
