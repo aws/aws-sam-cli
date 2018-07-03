@@ -38,12 +38,13 @@ class InvokeContext(object):
                  template_file,
                  function_identifier=None,
                  env_vars_file=None,
+                 debug_port=None,
+                 debug_args=None,
                  docker_volume_basedir=None,
                  docker_network=None,
                  log_file=None,
                  skip_pull_image=None,
-                 aws_profile=None,
-                 debug_context=None):
+                 aws_profile=None):
         """
         Initialize the context
 
@@ -62,12 +63,13 @@ class InvokeContext(object):
         self._template_file = template_file
         self._function_identifier = function_identifier
         self._env_vars_file = env_vars_file
+        self._debug_port = debug_port
+        self._debug_args = debug_args
         self._docker_volume_basedir = docker_volume_basedir
         self._docker_network = docker_network
         self._log_file = log_file
         self._skip_pull_image = skip_pull_image
         self._aws_profile = aws_profile
-        self._debug_context = debug_context
 
         self._template_dict = None
         self._function_provider = None
@@ -144,7 +146,8 @@ class InvokeContext(object):
                                  function_provider=self._function_provider,
                                  cwd=self.get_cwd(),
                                  env_vars_values=self._env_vars_value,
-                                 debug_context=self._debug_context,
+                                 debug_port=self._debug_port,
+                                 debug_args=self._debug_args,
                                  aws_profile=self._aws_profile)
 
     @property

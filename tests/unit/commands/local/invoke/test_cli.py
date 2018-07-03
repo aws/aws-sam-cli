@@ -6,7 +6,6 @@ from unittest import TestCase
 from mock import patch, Mock
 from parameterized import parameterized, param
 
-from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.cli_common.user_exceptions import UserException
@@ -22,7 +21,6 @@ class TestCli(TestCase):
         self.env_vars = "env-vars"
         self.debug_port = 123
         self.debug_args = "args"
-        self.debugger_path = "/test/path"
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -31,14 +29,9 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    @patch("samcli.commands.local.invoke.cli._get_debug_context")
-    def test_cli_must_setup_context_and_invoke(self, get_debug_context_mock, get_event_mock, InvokeContextMock):
+    def test_cli_must_setup_context_and_invoke(self, get_event_mock, InvokeContextMock):
         event_data = "data"
         get_event_mock.return_value = event_data
-
-        debug_context_data = DebugContext(debug_port=self.debug_port, debug_args=self.debug_args,
-                                          debugger_path=self.debugger_path)
-        get_debug_context_mock.return_value = debug_context_data
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -51,7 +44,6 @@ class TestCli(TestCase):
                    env_vars=self.env_vars,
                    debug_port=self.debug_port,
                    debug_args=self.debug_args,
-                   debugger_path=self.debugger_path,
                    docker_volume_basedir=self.docker_volume_basedir,
                    docker_network=self.docker_network,
                    log_file=self.log_file,
@@ -61,7 +53,8 @@ class TestCli(TestCase):
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
                                              env_vars_file=self.env_vars,
-                                             debug_context=debug_context_data,
+                                             debug_port=self.debug_port,
+                                             debug_args=self.debug_args,
                                              docker_volume_basedir=self.docker_volume_basedir,
                                              docker_network=self.docker_network,
                                              log_file=self.log_file,
@@ -95,7 +88,6 @@ class TestCli(TestCase):
                        env_vars=self.env_vars,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
-                       debugger_path=self.debugger_path,
                        docker_volume_basedir=self.docker_volume_basedir,
                        docker_network=self.docker_network,
                        log_file=self.log_file,
@@ -122,7 +114,6 @@ class TestCli(TestCase):
                        env_vars=self.env_vars,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
-                       debugger_path=self.debugger_path,
                        docker_volume_basedir=self.docker_volume_basedir,
                        docker_network=self.docker_network,
                        log_file=self.log_file,

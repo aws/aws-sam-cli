@@ -25,8 +25,10 @@ class LocalLambdaRunner(object):
                  function_provider,
                  cwd,
                  env_vars_values=None,
-                 aws_profile=None,
-                 debug_context=None):
+                 debug_port=None,
+                 debug_args=None,
+                 aws_profile=None
+                 ):
         """
         Initializes the class
 
@@ -44,8 +46,9 @@ class LocalLambdaRunner(object):
         self.provider = function_provider
         self.cwd = cwd
         self.env_vars_values = env_vars_values or {}
+        self.debug_port = debug_port
+        self.debug_args = debug_args
         self.aws_profile = aws_profile
-        self.debug_context = debug_context
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
         """
@@ -73,7 +76,8 @@ class LocalLambdaRunner(object):
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        self.local_runtime.invoke(config, event, debug_port=self.debug_port, debug_args=self.debug_args,
+                                  stdout=stdout, stderr=stderr)
 
     def is_debugging(self):
         """
@@ -85,7 +89,7 @@ class LocalLambdaRunner(object):
             True, if we are debugging the invoke ie. the Docker container will break into the debugger and wait for
             attach
         """
-        return bool(self.debug_context)
+        return bool(self.debug_port)
 
     def _get_invoke_config(self, function):
         """
