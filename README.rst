@@ -134,7 +134,11 @@ The easiest way to install ``sam`` is to use
 
    $ pip install --user aws-sam-cli
 
-**Adjust your PATH** to include Python scripts installed under User's directory:
+**Adjust your PATH** to include Python scripts installed under User's directory.
+
+**NOTE**: As explained in the `Python Developer's Guide <https://www.python.org/dev/peps/pep-0370/#specification>`__, the User's directory where the scripts are installed is ``~/.local/bin`` for Unix/Mac and ``%APPDATA%\Python\Scripts`` for Windows.
+
+The Python command can help to detect the correct path. However, in Unix/Mac systems the command ``python -m site --user-base`` typically print ``~/.local`` path, so that you'll need to add ``/bin`` to obtain the script path, while in Windows systems the command ``py -m site --user-site`` typically print ``%APPDATA%\Roaming\Python<VERSION>\site-packages``, so you'll need to remove the last ``\site-packages`` folder and replace it with the ``\Scripts`` one.
 
 .. code:: bash
 
@@ -144,8 +148,7 @@ The easiest way to install ``sam`` is to use
     # Update your preferred shell configuration
     ## Standard bash --> ~/.bash_profile
     ## ZSH           --> ~/.zshrc
-    ## OSX users may need to append 'bin': $USER_BASE_PATH/bin
-    $ export PATH=$PATH:$USER_BASE_PATH
+    $ export PATH=$PATH:$USER_BASE_PATH/bin
 
 Restart or Open up a new terminal and verify that the installation worked:
 
@@ -154,8 +157,6 @@ Restart or Open up a new terminal and verify that the installation worked:
    # Restart current shell
    $ exec "$SHELL"
    $ sam --version
-
-**NOTE**: For Windows users you may want to search for `Environment Variables` on your computer as Windows PATH configuration varies under depending on the version.
 
 Upgrading
 ~~~~~~~~~~
@@ -393,6 +394,47 @@ port to your host machine.
    the `GitHub
    issue <https://github.com/Microsoft/vscode-python/issues/71>`__ for
    updates.
+
+Debugging Golang functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Golang function debugging is slightly different when compared to Node.JS,
+Java, and Python. We require `delve <https://github.com/derekparker/delve>`__
+as the debugger, and wrap your function with it at runtime. The debugger
+is run in headless mode, listening on the debug port.
+
+You must compile `delve` to run in the container and provide its local path
+via the `--debugger-path` argument. Build delve locally as follows:
+
+`GOARCH=amd64 GOOS=linux go build -o <output path> github.com/derekparker/delve/cmd/dlv`
+
+Then invoke `sam` similar to the following:
+
+`sam local start-api -d 5986 --debugger-path <output path>`
+
+The following is an example launch configuration for Visual Studio Code to
+attach to a debug session.
+
+.. code:: bash
+
+  {
+    "version": "0.2.0",
+    "configurations": [
+    {
+        "name": "Connect to Lambda container",
+        "type": "go",
+        "request": "launch",
+        "mode": "remote",
+        "remotePath": "",
+        "port": <debug port>,
+        "host": "127.0.0.1",
+        "program": "${workspaceRoot}",
+        "env": {},
+        "args": [],
+      },
+    ]
+  }
+
 
 Passing Additional Runtime Debug Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
