@@ -8,7 +8,7 @@ from mock import Mock, patch
 from samcli.commands.local.lib.local_api_service import LocalApiService
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.local.lib.provider import Api
-from samcli.local.apigw.service import Route
+from samcli.local.apigw.local_apigw_service import Route
 
 
 class TestLocalApiService_start(TestCase):
@@ -32,7 +32,7 @@ class TestLocalApiService_start(TestCase):
         self.lambda_invoke_context_mock.get_cwd.return_value = self.cwd
         self.lambda_invoke_context_mock.stderr = self.stderr_mock
 
-    @patch("samcli.commands.local.lib.local_api_service.Service")
+    @patch("samcli.commands.local.lib.local_api_service.LocalApigwService")
     @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
@@ -73,7 +73,7 @@ class TestLocalApiService_start(TestCase):
         self.apigw_service.create.assert_called_with()
         self.apigw_service.run.assert_called_with()
 
-    @patch("samcli.commands.local.lib.local_api_service.Service")
+    @patch("samcli.commands.local.lib.local_api_service.LocalApigwService")
     @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")

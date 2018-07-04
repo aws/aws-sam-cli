@@ -2,11 +2,11 @@
 import io
 import json
 import logging
-import os
 import base64
 
-from flask import Flask, request, Response
+from flask import Flask, request
 
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 from .service_error_responses import ServiceErrorResponses
@@ -48,7 +48,7 @@ class Route(object):
         self.binary_types = binary_types or []
 
 
-class Service(object):
+class LocalApigwService(BaseLocalService):
 
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
@@ -65,16 +65,14 @@ class Service(object):
         :param int port: Optional. port for the service to start listening on
           Defaults to 3000
         :param str host: Optional. host to start the service on
-          Defaults to '0.0.0.0'
+          Defaults to '127.0.0.1
         :param io.BaseIO stderr: Optional stream where the stderr from Docker container should be written to
         """
+        super(LocalApigwService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.routing_list = routing_list
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
-        self.port = port or self._DEFAULT_PORT
-        self.host = host or self._DEFAULT_HOST
         self._dict_of_routes = {}
-        self._app = None
         self.stderr = stderr
 
     def create(self):
@@ -128,32 +126,6 @@ class Service(object):
         # Something went wrong
         self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
 
-    def run(self):
-        """
-        This starts up the (threaded) Local Server.
-        Note: This is a **blocking call**
-
-        :raise RuntimeError: If the service was not created
-        """
-
-        if not self._app:
-            raise RuntimeError("The application must be created before running")
-
-        # Flask can operate as a single threaded server (which is default) and a multi-threaded server which is
-        # more for development. When the Lambda container is going to be debugged, then it does not make sense
-        # to turn on multi-threading because customers can realistically attach only one container at a time to
-        # the debugger. Keeping this single threaded also enables the Lambda Runner to handle Ctrl+C in order to
-        # kill the container gracefully (Ctrl+C can be handled only by the main thread)
-        multi_threaded = not self.lambda_runner.is_debugging()
-
-        LOG.debug("Local API Server starting up. Multi-threading = %s", multi_threaded)
-
-        # This environ signifies we are running a main function for Flask. This is true, since we are using it within
-        # our cli and not on a production server.
-        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
-
-        self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
-
     def _request_handler(self, **kwargs):
         """
         We handle all requests to the host:port. The general flow of handling a request is as follows
@@ -186,7 +158,7 @@ class Service(object):
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 
-        lambda_response, lambda_logs = self._get_lambda_output(stdout_stream)
+        lambda_response, lambda_logs = LambdaOutputParser.get_lambda_output(stdout_stream)
 
         if self.stderr and lambda_logs:
             # Write the logs to stderr if available.
@@ -202,21 +174,6 @@ class Service(object):
             return ServiceErrorResponses.lambda_failure_response()
 
         return self._service_response(body, headers, status_code)
-
-    @staticmethod
-    def _service_response(body, headers, status_code):
-        """
-        Constructs a Flask Response from the body, headers, and status_code.
-
-        :param str body: Response body as a string
-        :param dict headers: headers for the response
-        :param int status_code: status_code for response
-        :return: Flask Response
-        """
-        response = Response(body)
-        response.headers = headers
-        response.status_code = status_code
-        return response
 
     def _get_current_route(self, flask_request):
         """
@@ -238,46 +195,6 @@ class Service(object):
             raise KeyError("Lambda function for the route not found")
 
         return route
-
-    @staticmethod
-    def _get_lambda_output(stdout_stream):
-        """
-        This method will extract read the given stream and return the response from Lambda function separated out
-        from any log statements it might have outputted. Logs end up in the stdout stream if the Lambda function
-        wrote directly to stdout using System.out.println or equivalents.
-
-        Parameters
-        ----------
-        stdout_stream : io.BaseIO
-            Stream to fetch data from
-
-        Returns
-        -------
-        str
-            String data containing response from Lambda function
-        str
-            String data containng logs statements, if any.
-        """
-        # We only want the last line of stdout, because it's possible that
-        # the function may have written directly to stdout using
-        # System.out.println or similar, before docker-lambda output the result
-        stdout_data = stdout_stream.getvalue().rstrip(b'\n')
-
-        # Usually the output is just one line and contains response as JSON string, but if the Lambda function
-        # wrote anything directly to stdout, there will be additional lines. So just extract the last line as
-        # response and everything else as log output.
-        lambda_response = stdout_data
-        lambda_logs = None
-
-        last_line_position = stdout_data.rfind(b'\n')
-        if last_line_position > 0:
-            # So there are multiple lines. Separate them out.
-            # Everything but the last line are logs
-            lambda_logs = stdout_data[:last_line_position]
-            # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
-            lambda_response = stdout_data[last_line_position:].strip()
-
-        return lambda_response, lambda_logs
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
@@ -308,7 +225,7 @@ class Service(object):
             LOG.info("No Content-Type given. Defaulting to 'application/json'.")
             headers["Content-Type"] = "application/json"
 
-        if Service._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
+        if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
             body = base64.b64decode(body)
 
         return status_code, headers, body
@@ -357,7 +274,7 @@ class Service(object):
 
         request_mimetype = flask_request.mimetype
 
-        is_base_64 = Service._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -380,7 +297,7 @@ class Service(object):
         # APIGW does not support duplicate query parameters. Flask gives query params as a list so
         # we need to convert only grab the first item unless many were given, were we grab the last to be consistent
         # with APIGW
-        query_string_dict = Service._query_string_params(flask_request)
+        query_string_dict = LocalApigwService._query_string_params(flask_request)
 
         event = ApiGatewayLambdaEvent(http_method=method,
                                       body=request_data,
