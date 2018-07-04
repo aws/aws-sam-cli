@@ -4,13 +4,12 @@ import os
 import shutil
 import json
 import time
-import logging
 
 import requests
 import random
 from mock import Mock
 
-from samcli.local.apigw.service import Route, Service
+from samcli.local.apigw.local_apigw_service import Route, LocalApigwService
 from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT, API_GATEWAY_BAD_PROXY_RESPONSE, API_GATEWAY_ECHO_BASE64_EVENT, API_GATEWAY_CONTENT_TYPE_LOWER
 from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -550,6 +549,7 @@ class TestService_PostingBinary(TestCase):
         self.assertEquals(response.status_code, 502)
         self.assertEquals(response.headers.get('Content-Type'), "application/json")
 
+
 class TestService_FlaskDefaultOptionsDisabled(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -617,7 +617,7 @@ def make_service(list_of_routes, function_provider, cwd):
                                       function_provider=function_provider,
                                       cwd=cwd)
 
-    service = Service(list_of_routes, lambda_runner, port=port)
+    service = LocalApigwService(list_of_routes, lambda_runner, port=port)
 
     scheme = "http"
     url = '{}://0.0.0.0:{}'.format(scheme, port)

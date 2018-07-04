@@ -5,7 +5,7 @@ Connects the CLI with Local API Gateway service.
 import os
 import logging
 
-from samcli.local.apigw.service import Service, Route
+from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 
@@ -62,12 +62,12 @@ class LocalApiService(object):
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = Service(routing_list=routing_list,
-                          lambda_runner=self.lambda_runner,
-                          static_dir=static_dir_path,
-                          port=self.port,
-                          host=self.host,
-                          stderr=self.stderr_stream)
+        service = LocalApigwService(routing_list=routing_list,
+                                    lambda_runner=self.lambda_runner,
+                                    static_dir=static_dir_path,
+                                    port=self.port,
+                                    host=self.host,
+                                    stderr=self.stderr_stream)
 
         service.create()
 
