@@ -64,8 +64,8 @@ class TestApiGatewayService(TestCase):
 
         lambda_logs = "logs"
         lambda_response = "response"
-        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs
-
+        is_customer_error = False
+        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs, is_customer_error
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
         self.service._service_response = service_response_mock

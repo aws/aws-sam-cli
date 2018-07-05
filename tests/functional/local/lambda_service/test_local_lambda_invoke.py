@@ -14,9 +14,18 @@ from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestLocalLambdaService(TestCase):
+
+    @classmethod
+    def mocked_function_provider(cls, function_name):
+        if function_name == "HelloWorld":
+            return cls.function
+        else:
+            raise FunctionNotFound("Could not find Function")
+
     @classmethod
     def setUpClass(cls):
         cls.code_abs_path = nodejs_lambda(HELLO_FROM_LAMBDA)
@@ -32,11 +41,9 @@ class TestLocalLambdaService(TestCase):
                                          rolearn=None)
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get.side_effect = cls.mocked_function_provider
 
-        list_of_function_names = ['HelloWorld']
-
-        cls.service, cls.port, cls.url, cls.scheme = make_service(list_of_function_names, cls.mock_function_provider, cls.cwd)
+        cls.service, cls.port, cls.url, cls.scheme = make_service(cls.mock_function_provider, cls.cwd)
         cls.service.create()
         t = threading.Thread(name='thread', target=cls.service.run, args=())
         t.setDaemon(True)
@@ -51,7 +58,7 @@ class TestLocalLambdaService(TestCase):
         # Print full diff when comparing large dictionaries
         self.maxDiff = None
 
-    def test_mock_response_is_returned(self):
+    def test_lambda_str_response_is_returned(self):
         expected = 'Hello from Lambda'
 
         response = requests.post(self.url + '/2015-03-31/functions/HelloWorld/invocations')
@@ -61,6 +68,18 @@ class TestLocalLambdaService(TestCase):
         self.assertEquals(actual, expected)
         self.assertEquals(response.status_code, 200)
 
+    def test_request_with_non_existing_function(self):
+        expected_data = {"Message": "Function not found: arn:aws:lambda:us-west-2:012345678901:function:{}".format('IDoNotExist'),
+             "Type": "User"}
+
+        response = requests.post(self.url + '/2015-03-31/functions/IDoNotExist/invocations')
+
+        actual_data = response.json()
+        acutal_error_type_header = response.headers.get('x-amzn-errortype')
+
+        self.assertEquals(actual_data, expected_data)
+        self.assertEquals(acutal_error_type_header, 'ResourceNotFound')
+        self.assertEquals(response.status_code, 404)
 
 class TestLocalEchoLambdaService(TestCase):
     @classmethod
@@ -80,9 +99,7 @@ class TestLocalEchoLambdaService(TestCase):
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
 
-        list_of_function_names = ['HelloWorld']
-
-        cls.service, cls.port, cls.url, cls.scheme = make_service(list_of_function_names, cls.mock_function_provider, cls.cwd)
+        cls.service, cls.port, cls.url, cls.scheme = make_service(cls.mock_function_provider, cls.cwd)
         cls.service.create()
         t = threading.Thread(name='thread', target=cls.service.run, args=())
         t.setDaemon(True)
@@ -108,7 +125,7 @@ class TestLocalEchoLambdaService(TestCase):
         self.assertEquals(response.status_code, 200)
 
 
-def make_service(list_of_function_names, function_provider, cwd):
+def make_service(function_provider, cwd):
     port = random_port()
     manager = ContainerManager()
     local_runtime = LambdaRuntime(manager)

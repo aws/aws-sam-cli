@@ -47,7 +47,7 @@ class TestLocalLambdaService(TestCase):
     @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser')
     @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
     def test_invoke_request_handler(self, request_mock, lambda_output_parser_mock, service_response_mock):
-        lambda_output_parser_mock.get_lambda_output.return_value = 'hello world', None
+        lambda_output_parser_mock.get_lambda_output.return_value = 'hello world', None, False
         service_response_mock.return_value = 'request response'
         request_mock.get_data.return_value = b'{}'
 
@@ -61,17 +61,24 @@ class TestLocalLambdaService(TestCase):
         lambda_runner_mock.invoke.assert_called_once_with('HelloWorld', '{}', stdout=ANY, stderr=None)
         service_response_mock.assert_called_once_with('hello world', {'Content-Type': 'application/json'}, 200)
 
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
     @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
-    def test_invoke_request_handler_on_incorrect_path(self, request_mock):
+    def test_invoke_request_handler_on_incorrect_path(self, request_mock, lambda_error_responses_mock):
         request_mock.get_data.return_value = b'{}'
         lambda_runner_mock = Mock()
         lambda_runner_mock.invoke.side_effect = FunctionNotFound
+
+        lambda_error_responses_mock.resource_not_found.return_value = "Couldn't find Lambda"
+
         service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host='localhost')
 
-        with self.assertRaises(Exception):
-            service._invoke_request_handler(function_name='NotFound')
+        response = service._invoke_request_handler(function_name='NotFound')
+
+        self.assertEquals(response, "Couldn't find Lambda")
 
         lambda_runner_mock.invoke.assert_called_once_with('NotFound', '{}', stdout=ANY, stderr=None)
+
+        lambda_error_responses_mock.resource_not_found.assert_called_once_with('NotFound')
 
     @patch('samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService._service_response')
     @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser')
@@ -82,7 +89,8 @@ class TestLocalLambdaService(TestCase):
 
         lambda_logs = "logs"
         lambda_response = "response"
-        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs
+        is_customer_error = False
+        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs, is_customer_error
 
         service_response_mock.return_value = 'request response'
 

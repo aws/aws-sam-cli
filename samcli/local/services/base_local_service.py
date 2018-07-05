@@ -1,5 +1,6 @@
 """Base class for all Services that interact with Local Lambda"""
 
+import json
 import logging
 import os
 
@@ -98,6 +99,8 @@ class LambdaOutputParser(object):
             String data containing response from Lambda function
         str
             String data containng logs statements, if any.
+        bool
+            If the response is an error/exception from the container
         """
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
@@ -118,4 +121,19 @@ class LambdaOutputParser(object):
             # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
             lambda_response = stdout_data[last_line_position:].strip()
 
-        return lambda_response, lambda_logs
+        is_lambda_user_error_response = False
+
+        try:
+            lambda_response_dict = json.loads(lambda_response)
+
+            if isinstance(lambda_response_dict, dict) and \
+                    len(lambda_response_dict.keys()) == 3 and \
+                    'errorMessage' in lambda_response_dict and \
+                    'errorType' in lambda_response_dict and \
+                    'stackTrace' in lambda_response_dict:
+                is_lambda_user_error_response = True
+        except ValueError:
+            # If you cant serialize the output into a dict, then do nothing
+            pass
+
+        return lambda_response, lambda_logs, is_lambda_user_error_response

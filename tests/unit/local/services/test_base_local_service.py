@@ -104,6 +104,7 @@ class TestLambdaOutputParser(TestCase):
         stdout = Mock()
         stdout.getvalue.return_value = stdout_data
 
-        response, logs = LambdaOutputParser.get_lambda_output(stdout)
+        response, logs, is_customer_error = LambdaOutputParser.get_lambda_output(stdout)
         self.assertEquals(logs, expected_logs)
         self.assertEquals(response, expected_response)
+        self.assertFalse(is_customer_error)

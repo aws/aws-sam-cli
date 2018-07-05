@@ -158,7 +158,7 @@ class LocalApigwService(BaseLocalService):
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 
-        lambda_response, lambda_logs = LambdaOutputParser.get_lambda_output(stdout_stream)
+        lambda_response, lambda_logs, _ = LambdaOutputParser.get_lambda_output(stdout_stream)
 
         if self.stderr and lambda_logs:
             # Write the logs to stderr if available.
