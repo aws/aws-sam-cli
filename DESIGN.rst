@@ -26,8 +26,7 @@ This component implements generic CLI functionality that makes it easy to write 
 - Generating help text and man pages from RST docs of the command.
 - Fetching configuration information from environment
 - Consistent exit code generation
-- [Future] HTTP Mode: Ability to call the CLI commands with same parameters through a HTTP Endpoint. This is useful for
-IDEs and other tools to integrate with this CLI.
+- [Future] HTTP Mode: Ability to call the CLI commands with same parameters through a HTTP Endpoint. This is useful for IDEs and other tools to integrate with this CLI.
 
 Each command, along with any subcommands, is implemented using Click annotations. They are not directly wired with
 the core of the CLI. Instead, commands are dynamically loaded into the CLI at run time by importing the Python
