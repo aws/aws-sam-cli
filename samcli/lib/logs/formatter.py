@@ -142,7 +142,8 @@ class LambdaLogMsgFormatters(object):
         -------
 
         """
-        if event.message == "Process exited before completing request":
+        if event.message == "Process exited before completing request" \
+                or "Task timed out" in event.message:
             event.message = colored.red(event.message)
 
         return event
