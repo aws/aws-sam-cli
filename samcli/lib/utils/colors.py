@@ -8,16 +8,31 @@ class Colored(object):
         self.colorize = colorize
 
     def red(self, msg):
-        self._color(msg, 'red')
+        return self._color(msg, 'red')
 
     def green(self, msg):
-        self._color(msg, 'green')
+        return self._color(msg, 'green')
 
-    def blue(self, msg):
-        self._color(msg, 'blue')
+    def cyan(self, msg):
+        return self._color(msg, 'cyan')
 
     def white(self, msg):
-        self._color(msg, 'white')
+        return self._color(msg, 'white')
 
-    def _color(self, msg, color):
-        click.style(msg, fg=color) if self.colorize else msg
+    def yellow(self, msg):
+        return self._color(msg, 'yellow')
+
+    def bold(self, msg):
+        return click.style(msg, underline=True) if self.colorize else msg
+
+    def _color(self, msg, color, bg=False):
+        kwargs = {}
+
+        if bg:
+            # Set the background color
+            kwargs['bg'] = color
+        else:
+            # Set text color
+            kwargs['fg'] = color
+
+        return click.style(msg, **kwargs) if self.colorize else msg

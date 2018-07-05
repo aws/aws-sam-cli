@@ -1,7 +1,11 @@
 
 import json
 import functools
-import itertools
+
+try:
+    import itertools.imap as map
+except ImportError:
+    pass
 
 
 class LogsFormatter(object):
@@ -67,9 +71,9 @@ class LogsFormatter(object):
         self.formatter_chain = formatter_chain or []
 
         # At end of the chain, pretty print the Event object as string.
-        self.formatter_chain.push(LogsFormatter.pretty_print_event)
+        self.formatter_chain.append(LogsFormatter._pretty_print_event)
 
-    def format(self, event_iterable):
+    def do_format(self, event_iterable):
         """
         Formats the given CloudWatch Logs Event dictionary as necessary and returns an iterable that will
         return the formatted string. This can be used to parse and format the events based on context
@@ -95,12 +99,12 @@ class LogsFormatter(object):
 
             # Make sure the operation has access to certain basic objects like colored
             partial_op = functools.partial(operation, colored=self.colored)
-            event_iterable = itertools.imap(partial_op, event_iterable)
+            event_iterable = map(partial_op, event_iterable)
 
         return event_iterable
 
     @staticmethod
-    def pretty_print_event(event, colored):
+    def _pretty_print_event(event, colored):
         """
         Basic formatter to convert an event object to string
 
@@ -114,8 +118,9 @@ class LogsFormatter(object):
 
         """
         event.timestamp = colored.yellow(event.timestamp)
+        event.log_stream_name = colored.cyan(event.log_stream_name)
 
-        return ' '.join([event.log_group_name, event.timestamp, event.message])
+        return ' '.join([event.log_stream_name, event.timestamp, event.message])
 
 
 class LambdaLogMsgFormatters(object):
@@ -159,15 +164,22 @@ class LambdaLogMsgFormatters(object):
            or event.message.startswith("END") \
            or event.message.startswith("REPORT"):
 
-            event.message = colored.red()
+            event.message = colored.white(event.message)
 
         return event
 
-class FilterHighlighter(object):
 
-    @staticmethod
-    def format_highlight_keywords(event, keyword, colored):
-        pass
+class KeywordHighlighter(object):
+
+    def __init__(self, keyword):
+        self.keyword = keyword
+
+    def format_highlight_keywords(self, event, colored):
+        if self.keyword:
+            highlight = colored.bold(self.keyword)
+            event.message = event.message.replace(self.keyword, highlight)
+
+        return event
 
 
 class JSONMsgFormatter(object):

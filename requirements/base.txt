@@ -8,3 +8,4 @@ cookiecutter~=1.6.0
 aws-sam-translator==1.6.0
 docker>=3.3.0
 dateparser~=0.7
+python-dateutil~=2.6

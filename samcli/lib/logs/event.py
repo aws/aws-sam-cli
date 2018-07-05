@@ -1,5 +1,8 @@
 
 import datetime
+import logging
+
+LOG = logging.getLogger(__name__)
 
 
 class LogEvent(object):
@@ -23,6 +26,8 @@ class LogEvent(object):
             https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilteredLogEvent.html
         """
 
+        LOG.debug(event_dict)
+
         self.log_group_name = log_group_name
         self.log_stream_name = event_dict.get('logStreamName')
         self.message = event_dict.get('message', '').strip()
@@ -31,5 +36,6 @@ class LogEvent(object):
 
         # Convert the timestamp from epoch to readable ISO timestamp, easier for formatting.
         if self.timestamp:
-            self._timestamp_datetime = datetime.datetime.utcfromtimestamp(int(self.timestamp))
+            timestamp_secs = int(self.timestamp) / 1000
+            self._timestamp_datetime = datetime.datetime.utcfromtimestamp(timestamp_secs)
             self.timestamp = self._timestamp_datetime.isoformat()

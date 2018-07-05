@@ -14,9 +14,9 @@ class LogsFetcher(object):
     a pattern, and in the future possibly multiplex from from multiple streams together.
     """
 
-    def __init__(self):
+    def __init__(self, cw_client=None):
 
-        self.cw_client = boto3.client('logs')
+        self.cw_client = cw_client or boto3.client('logs')
 
     def fetch(self, log_group_name, start=None, end=None, filter_pattern=None):
         """
@@ -51,10 +51,10 @@ class LogsFetcher(object):
         }
 
         if start:
-            kwargs["start"] = self.epoch(start)
+            kwargs["startTime"] = self.epoch(start)
 
         if end:
-            kwargs["end"] = self.epoch(end)
+            kwargs["endTime"] = self.epoch(end)
 
         if filter_pattern:
             kwargs["filterPattern"] = filter_pattern
@@ -88,4 +88,5 @@ class LogsFetcher(object):
             Unix timestamp of the given time
         """
 
-        return (some_time - datetime.datetime(1970, 1, 1)).total_seconds()
+        # `total_seconds()` returns elaped microseconds as a float. Get just milliseconds and discard the rest.
+        return int((some_time - datetime.datetime(1970, 1, 1)).total_seconds() * 1000.0)
