@@ -22,7 +22,7 @@ class Colored(object):
     def yellow(self, msg):
         return self._color(msg, 'yellow')
 
-    def bold(self, msg):
+    def underline(self, msg):
         return click.style(msg, underline=True) if self.colorize else msg
 
     def _color(self, msg, color, bg=False):

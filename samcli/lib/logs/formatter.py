@@ -177,7 +177,7 @@ class KeywordHighlighter(object):
 
     def format_highlight_keywords(self, event, colored):
         if self.keyword:
-            highlight = colored.bold(self.keyword)
+            highlight = colored.underline(self.keyword)
             event.message = event.message.replace(self.keyword, highlight)
 
         return event

@@ -2,10 +2,13 @@
 Filters & fetches logs from CloudWatch Logs
 """
 
-import datetime
-import boto3
+import logging
 
 from .event import LogEvent
+from samcli.lib.utils.time import to_timestamp
+
+
+LOG = logging.getLogger(__name__)
 
 
 class LogsFetcher(object):
@@ -15,8 +18,7 @@ class LogsFetcher(object):
     """
 
     def __init__(self, cw_client=None):
-
-        self.cw_client = cw_client or boto3.client('logs')
+        self.cw_client = cw_client
 
     def fetch(self, log_group_name, start=None, end=None, filter_pattern=None):
         """
@@ -51,15 +53,16 @@ class LogsFetcher(object):
         }
 
         if start:
-            kwargs["startTime"] = self.epoch(start)
+            kwargs["startTime"] = to_timestamp(start)
 
         if end:
-            kwargs["endTime"] = self.epoch(end)
+            kwargs["endTime"] = to_timestamp(end)
 
         if filter_pattern:
             kwargs["filterPattern"] = filter_pattern
 
         while True:
+            LOG.debug("Fetching logs from CloudWatch with parameters %s", kwargs)
             result = self.cw_client.filter_log_events(**kwargs)
 
             # Several events will be returned. Yield one at a time
@@ -72,21 +75,3 @@ class LogsFetcher(object):
             if not next_token:
                 break
 
-    @staticmethod
-    def epoch(some_time):
-        """
-        Converts the given datetime value to Unix timestamp
-
-        Parameters
-        ----------
-        some_time : datetime.datetime
-            Value to be converted to unix epoch
-
-        Returns
-        -------
-        int
-            Unix timestamp of the given time
-        """
-
-        # `total_seconds()` returns elaped microseconds as a float. Get just milliseconds and discard the rest.
-        return int((some_time - datetime.datetime(1970, 1, 1)).total_seconds() * 1000.0)

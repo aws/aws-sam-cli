@@ -1,6 +1,7 @@
 
-import datetime
 import logging
+
+from samcli.lib.utils.time import timestamp_to_iso
 
 LOG = logging.getLogger(__name__)
 
@@ -26,7 +27,8 @@ class LogEvent(object):
             https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilteredLogEvent.html
         """
 
-        LOG.debug(event_dict)
+        if not event_dict:
+            return
 
         self.log_group_name = log_group_name
         self.log_stream_name = event_dict.get('logStreamName')
@@ -36,6 +38,23 @@ class LogEvent(object):
 
         # Convert the timestamp from epoch to readable ISO timestamp, easier for formatting.
         if self.timestamp:
-            timestamp_secs = int(self.timestamp) / 1000
-            self._timestamp_datetime = datetime.datetime.utcfromtimestamp(timestamp_secs)
-            self.timestamp = self._timestamp_datetime.isoformat()
+            self.timestamp = timestamp_to_iso(int(self.timestamp))
+
+    def __eq__(self, other):
+
+        if not isinstance(other, LogEvent):
+            return False
+
+        return self.log_group_name == other.log_group_name \
+                and self.log_stream_name == other.log_stream_name \
+                and self.timestamp == other.timestamp \
+                and self.message == other.message
+
+    def __repr__(self):
+        # Used to print pretty diff when testing
+        return str({
+            "log_group_name": self.log_group_name,
+            "log_stream_name": self.log_stream_name,
+            "message": self.message,
+            "timestamp": self.timestamp
+        })

@@ -6,6 +6,7 @@ import logging
 import click
 import dateparser
 import datetime
+import boto3
 
 from dateutil.tz import tzutc
 
@@ -65,7 +66,7 @@ def do_cli(ctx, function_name, stack_name, filter_pattern, is_watching, start_ti
     LOG.debug("'logs' command is called")
 
     group_name = LogGroupProvider.for_lambda_function(function_name)
-    fetcher = LogsFetcher()
+    fetcher = LogsFetcher(boto3.client('logs'))
 
     colored = Colored()
     formatter_chain = [
