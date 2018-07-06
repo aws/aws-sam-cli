@@ -70,10 +70,10 @@ def do_cli(ctx, function_name, stack_name, filter_pattern, is_watching, start_ti
 
     colored = Colored()
     formatter_chain = [
-        LambdaLogMsgFormatters.format_colorize_reports,
-        LambdaLogMsgFormatters.format_colorize_crashes,
-        KeywordHighlighter(filter_pattern).format_highlight_keywords,
-        JSONMsgFormatter.format_json_messages
+        LambdaLogMsgFormatters.colorize_reports,
+        LambdaLogMsgFormatters.colorize_errors,
+        KeywordHighlighter(filter_pattern).highlight_keywords,
+        JSONMsgFormatter.format_json
     ]
     formatter = LogsFormatter(colored, formatter_chain)
 

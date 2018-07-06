@@ -131,7 +131,7 @@ class LambdaLogMsgFormatters(object):
     """
 
     @staticmethod
-    def format_colorize_crashes(event, colored):
+    def colorize_errors(event, colored):
         """
 
         Parameters
@@ -142,14 +142,18 @@ class LambdaLogMsgFormatters(object):
         -------
 
         """
-        if event.message == "Process exited before completing request" \
-                or "Task timed out" in event.message:
+
+        nodejs_crash_msg = "Process exited before completing request"
+        timeout_msg = "Task timed out"
+
+        if nodejs_crash_msg in event.message \
+                or timeout_msg in event.message:
             event.message = colored.red(event.message)
 
         return event
 
     @staticmethod
-    def format_colorize_reports(event, colored):
+    def colorize_reports(event, colored):
         """
 
         Parameters
@@ -161,10 +165,7 @@ class LambdaLogMsgFormatters(object):
 
         """
 
-        if event.message.startswith("START") \
-           or event.message.startswith("END") \
-           or event.message.startswith("REPORT"):
-
+        if event.message.startswith("START") or event.message.startswith("END") or event.message.startswith("REPORT"):
             event.message = colored.white(event.message)
 
         return event
@@ -172,10 +173,10 @@ class LambdaLogMsgFormatters(object):
 
 class KeywordHighlighter(object):
 
-    def __init__(self, keyword):
+    def __init__(self, keyword=None):
         self.keyword = keyword
 
-    def format_highlight_keywords(self, event, colored):
+    def highlight_keywords(self, event, colored):
         if self.keyword:
             highlight = colored.underline(self.keyword)
             event.message = event.message.replace(self.keyword, highlight)
@@ -189,7 +190,7 @@ class JSONMsgFormatter(object):
     """
 
     @staticmethod
-    def format_json_messages(event, colored):
+    def format_json(event, colored):
         """
         If the event message is a JSON string, then pretty print the JSON with 2 indents.
 
