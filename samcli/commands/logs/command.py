@@ -48,10 +48,10 @@ def cli(ctx,
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, function, stack_name, filter, tail, start_time, end_time)
+    do_cli(function, stack_name, filter, tail, start_time, end_time)  # pragma: no cover
 
 
-def do_cli(ctx, function_name, stack_name, filter_pattern, tailing, start_time, end_time):
+def do_cli(function_name, stack_name, filter_pattern, tailing, start_time, end_time):
     """
     Implementation of the ``cli`` method
     """
@@ -64,6 +64,7 @@ def do_cli(ctx, function_name, stack_name, filter_pattern, tailing, start_time, 
                             tailing=tailing,
                             start_time=start_time,
                             end_time=end_time,
+                            # output_file is not yet supported by CLI
                             output_file=None) as context:
 
         events_iterable = context.fetcher.fetch(context.log_group_name,
@@ -74,4 +75,5 @@ def do_cli(ctx, function_name, stack_name, filter_pattern, tailing, start_time, 
         formatted_events = context.formatter.do_format(events_iterable)
 
         for event in formatted_events:
+            # New line is not necessary. It is already in the log events sent by CloudWatch
             click.echo(event, nl=False)

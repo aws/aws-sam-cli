@@ -3,7 +3,7 @@ from mock import patch
 
 from samcli.commands.init import do_cli as init_cli
 from samcli.local.init.exceptions import GenerateProjectFailedError
-from samcli.commands.local.cli_common.user_exceptions import UserException
+from samcli.commands.exceptions import UserException
 
 
 class TestCli(TestCase):

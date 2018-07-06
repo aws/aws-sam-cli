@@ -1,3 +1,3 @@
 
 # Expose the cli object here
-from .cli import cli
+from .command import cli

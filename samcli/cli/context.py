@@ -58,7 +58,7 @@ class Context(object):
 
     @property
     def profile(self):
-        return self._aws_region
+        return self._aws_profile
 
     @profile.setter
     def profile(self, value):

@@ -1,8 +1,8 @@
 
 import logging
 import boto3
-import click
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.logs.fetcher import LogsFetcher
 from samcli.lib.logs.formatter import LogsFormatter, LambdaLogMsgFormatters, JSONMsgFormatter, KeywordHighlighter
 from samcli.lib.logs.provider import LogGroupProvider
@@ -65,6 +65,7 @@ class LogsCommandContext(object):
         self._start_time = start_time
         self._end_time = end_time
         self._output_file = output_file
+        self._output_file_handle = None
 
         self._logs_client = boto3.client('logs')
 
@@ -105,22 +106,11 @@ class LogsCommandContext(object):
 
     @property
     def start_time(self):
-        if self._start_time:
-            parsed = parse_date(self._start_time)
-            if not parsed:
-                raise click.ClickException("start_time argument is invalid")
-
-            return to_utc(parsed)
+        return self._parse_time(self._start_time, 'start-time')
 
     @property
     def end_time(self):
-        if self._end_time:
-            parsed = parse_date(self._end_time)
-
-            if not parsed:
-                raise click.ClickException("end_time argument is invalid")
-
-            return to_utc(parsed)
+        return self._parse_time(self._end_time, 'end-time')
 
     @property
     def log_group_name(self):
@@ -128,6 +118,7 @@ class LogsCommandContext(object):
 
     @property
     def colored(self):
+        # No colors if we are writing output to a file
         return Colored(colorize=not self._output_file)
 
     @property
@@ -150,3 +141,36 @@ class LogsCommandContext(object):
             return None
 
         return open(output_file, 'wb')
+
+    @staticmethod
+    def _parse_time(time_str, property_name):
+        """
+        Parse the time from the given string, convert to UTC, and return the datetime object
+
+        Parameters
+        ----------
+        time_str : str
+            The time to parse
+
+        property_name : str
+            Name of the property where this time came from. Used in the exception raised if time is not parseable
+
+        Returns
+        -------
+        datetime.datetime
+            Parsed datetime object
+
+        Raises
+        ------
+        samcli.commands.exceptions.UserException
+            If the string cannot be parsed as a timestamp
+        """
+        if not time_str:
+            return
+
+        parsed = parse_date(time_str)
+        if not parsed:
+            raise UserException("Unable to parse the time provided by '{}'".format(property_name))
+
+        return to_utc(parsed)
+
