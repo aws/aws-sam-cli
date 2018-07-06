@@ -5,7 +5,7 @@ CLI command for "logs" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from .logs_context import LogsCommandContext
 
 LOG = logging.getLogger(__name__)
@@ -41,6 +41,7 @@ Use this command to fetch logs printed by your Lambda function.
               help="Fetch logs up to this time. Time can be relative values like '5 mins ago', 'tomorrow' or "
                    "formatted timestamp like '2017-01-01 10:10:10'")
 @cli_framework_options
+@aws_creds_options
 @pass_context
 def cli(ctx,
         function, stack_name, filter, tail, start_time, end_time
@@ -52,7 +53,7 @@ def cli(ctx,
 
 def do_cli(ctx, function_name, stack_name, filter_pattern, tailing, start_time, end_time):
     """
-    Implementation of the ``cli`` method, just separated out for unit testing purposes
+    Implementation of the ``cli`` method
     """
 
     LOG.debug("'logs' command is called")

@@ -21,7 +21,7 @@ def timestamp_to_iso(timestamp):
         ISO formatted time string
     """
 
-    timestamp_secs = int(timestamp) / 1000
+    timestamp_secs = int(timestamp) / 1000.0
     return datetime.datetime.utcfromtimestamp(timestamp_secs).isoformat()
 
 

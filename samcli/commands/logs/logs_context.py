@@ -75,14 +75,18 @@ class LogsCommandContext(object):
         :returns InvokeContext: Returns this object
         """
 
+        self._output_file_handle = self._setup_output_file(self._output_file)
+
         return self
 
     def __exit__(self, *args):
         """
         Cleanup any necessary opened files
         """
-        pass
 
+        if self._output_file_handle:
+            self._output_file_handle.close()
+            self._output_file_handle = None
 
     @property
     def fetcher(self):
@@ -129,3 +133,20 @@ class LogsCommandContext(object):
     @property
     def filter_pattern(self):
         return self._filter_pattern
+
+    @property
+    def output_file_handle(self):
+        return self._output_file_handle
+
+    @staticmethod
+    def _setup_output_file(output_file):
+        """
+        Open a log file if necessary and return the file handle. This will create a file if it does not exist
+
+        :param string output_file: Path to a file where the logs should be written to
+        :return: Handle to the opened log file, if necessary. None otherwise
+        """
+        if not output_file:
+            return None
+
+        return open(output_file, 'wb')

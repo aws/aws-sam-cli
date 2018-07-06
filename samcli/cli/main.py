@@ -6,7 +6,7 @@ import logging
 import click
 
 from samcli import __version__
-from .options import debug_option
+from .options import debug_option, region_option, profile_option
 from .context import Context
 from .command import BaseCommand
 
@@ -24,6 +24,15 @@ def common_options(f):
     :return: Callback function
     """
     f = debug_option(f)
+    return f
+
+
+def aws_creds_options(f):
+    """
+    Common CLI options necessary to interact with AWS services
+    """
+    f = region_option(f)
+    f = profile_option(f)
     return f
 
 
