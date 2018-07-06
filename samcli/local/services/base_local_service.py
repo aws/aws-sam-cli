@@ -9,6 +9,23 @@ from flask import Response
 LOG = logging.getLogger(__name__)
 
 
+class CaseInsensitiveDict(dict):
+    """
+    Implement a simple case insensitive dictionary for storing headers. To preserve the original
+    case of the given Header (e.g. X-FooBar-Fizz) this only touches the get and contains magic
+    methods rather than implementing a __setitem__ where we normalize the case of the headers.
+    """
+
+    def __getitem__(self, key):
+        matches = [v for k, v in self.items() if k.lower() == key.lower()]
+        if not matches:
+            raise KeyError(key)
+        return matches[0]
+
+    def __contains__(self, key):
+        return key.lower() in [k.lower() for k in self.keys()]
+
+
 class BaseLocalService(object):
 
     def __init__(self, is_debugging, port, host):
@@ -121,13 +138,18 @@ class LambdaOutputParser(object):
             # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
             lambda_response = stdout_data[last_line_position:].strip()
 
-        is_lambda_user_error_response = False
+        is_lambda_user_error_response = LambdaOutputParser.is_lambda_error_response(lambda_response)
 
+        return lambda_response, lambda_logs, is_lambda_user_error_response
+
+    @staticmethod
+    def is_lambda_error_response(lambda_response):
+        is_lambda_user_error_response = False
         try:
             lambda_response_dict = json.loads(lambda_response)
 
             if isinstance(lambda_response_dict, dict) and \
-                    len(lambda_response_dict.keys()) == 3 and \
+                    len(lambda_response_dict) == 3 and \
                     'errorMessage' in lambda_response_dict and \
                     'errorType' in lambda_response_dict and \
                     'stackTrace' in lambda_response_dict:
@@ -135,5 +157,4 @@ class LambdaOutputParser(object):
         except ValueError:
             # If you cant serialize the output into a dict, then do nothing
             pass
-
-        return lambda_response, lambda_logs, is_lambda_user_error_response
+        return is_lambda_user_error_response

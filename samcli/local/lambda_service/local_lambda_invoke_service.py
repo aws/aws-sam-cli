@@ -7,7 +7,7 @@ import io
 from flask import Flask, request
 
 
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from .lambda_error_responses import LambdaErrorResponses
 
@@ -49,7 +49,7 @@ class LocalLambdaInvokeService(BaseLocalService):
                                provide_automatic_options=False)
 
         # setup request validation before Flask calls the view_func
-        self._app.before_request = self.validate_request
+        self._app.before_request(self.validate_request)
 
         self._construct_error_handling()
 
@@ -86,27 +86,32 @@ class LocalLambdaInvokeService(BaseLocalService):
             LOG.debug("Query parameters are in the request but not supported")
             return LambdaErrorResponses.invalid_request_content("Query Parameters are not supported")
 
-        if flask_request.content_type.lower() != "application/json":
+        if flask_request.content_type and flask_request.content_type.lower() != "application/json":
             LOG.debug("%s media type is not supported. Must be application/json", flask_request.content_type)
             return LambdaErrorResponses.unsupported_media_type(flask_request.content_type)
 
-        log_type = flask_request.headers.get('X-Amz-Log-Type', 'None')
-        if log_type != 'None':
-            LOG.info("log-type: %s is not supported. Ignoring X-Amz-Log-Type header", log_type)
+        request_headers = CaseInsensitiveDict(flask_request.headers)
 
-        invocation_type = flask_request.headers.get('X-Amz-Invocation-Type', 'RequestResponse')
-        if invocation_type != 'RequestResponse':
-            LOG.warning("invocation_type: %s is not supported. RequestResponse is only supported.", invocation_type)
+        log_type = request_headers.get('X-Amz-Log-Type', 'None')
+        if log_type != 'None':
+            LOG.debug("log-type: %s is not supported. None is only supported.", log_type)
             return LambdaErrorResponses.not_implemented_locally(
-                "invocation_type: {} is not supported. RequestResponse is only supported.".format(invocation_type))
+                "log-type: {} is not supported. None is only supported.".format(log_type))
+
+        invocation_type = request_headers.get('X-Amz-Invocation-Type', 'RequestResponse')
+        if invocation_type != 'RequestResponse':
+            LOG.warning("invocation-type: %s is not supported. RequestResponse is only supported.", invocation_type)
+            return LambdaErrorResponses.not_implemented_locally(
+                "invocation-type: {} is not supported. RequestResponse is only supported.".format(invocation_type))
 
     def _construct_error_handling(self):
         """
         Updates the Flask app with Error Handlers for different Error Codes
 
         """
-        self._app.register_error_handler(500, LambdaErrorResponses.generic_service_exception())
-        self._app.register_error_handler(404, LambdaErrorResponses.resource_not_found(""))
+        self._app.register_error_handler(500, LambdaErrorResponses.generic_service_exception)
+        self._app.register_error_handler(404, LambdaErrorResponses.generic_path_not_found)
+        self._app.register_error_handler(405, LambdaErrorResponses.generic_method_not_allowed)
 
     def _invoke_request_handler(self, function_name):
         """
