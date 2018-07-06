@@ -4,17 +4,9 @@ CLI command for "logs" command
 
 import logging
 import click
-import dateparser
-import datetime
-import boto3
-
-from dateutil.tz import tzutc
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
-from samcli.lib.logs.fetcher import LogsFetcher
-from samcli.lib.logs.formatter import LogsFormatter, LambdaLogMsgFormatters, JSONMsgFormatter, KeywordHighlighter
-from samcli.lib.logs.provider import LogGroupProvider
-from samcli.lib.utils.colors import Colored
+from .logs_context import LogsCommandContext
 
 LOG = logging.getLogger(__name__)
 
@@ -58,52 +50,27 @@ def cli(ctx,
     do_cli(ctx, function, stack_name, filter, tail, start_time, end_time)
 
 
-def do_cli(ctx, function_name, stack_name, filter_pattern, is_watching, start_time, end_time):
+def do_cli(ctx, function_name, stack_name, filter_pattern, tailing, start_time, end_time):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
     LOG.debug("'logs' command is called")
 
-    group_name = LogGroupProvider.for_lambda_function(function_name)
-    fetcher = LogsFetcher(boto3.client('logs'))
+    with LogsCommandContext(function_name,
+                            stack_name=stack_name,
+                            filter_pattern=filter_pattern,
+                            tailing=tailing,
+                            start_time=start_time,
+                            end_time=end_time,
+                            output_file=None) as context:
 
-    colored = Colored()
-    formatter_chain = [
-        LambdaLogMsgFormatters.colorize_reports,
-        LambdaLogMsgFormatters.colorize_errors,
-        KeywordHighlighter(filter_pattern).highlight_keywords,
-        JSONMsgFormatter.format_json
-    ]
-    formatter = LogsFormatter(colored, formatter_chain)
+        events_iterable = context.fetcher.fetch(context.log_group_name,
+                                                filter_pattern=context.filter_pattern,
+                                                start=context.start_time,
+                                                end=context.end_time)
 
-    parser_settings = {
-        # Relative times like '10m ago' must subtract from the current UTC time. Without this setting, dateparser
-        # will use current local time as the base for subtraction, but falsely assume it is a UTC time. Therefore
-        # the time that dateparser returns will be a `datetime` object that did not have any timezone information.
-        # So be explicit to set the time to UTC.
-        "RELATIVE_BASE": datetime.datetime.utcnow()
-    }
+        formatted_events = context.formatter.do_format(events_iterable)
 
-    if start_time:
-        start_time = to_utc(dateparser.parse(start_time, settings=parser_settings))
-
-    if end_time:
-        end_time = to_utc(dateparser.parse(end_time, settings=parser_settings))
-
-    events_iterable = fetcher.fetch(group_name,
-                                    filter_pattern=filter_pattern,
-                                    start=start_time,
-                                    end=end_time)
-
-    for event in formatter.do_format(events_iterable):
-        click.echo(event)
-
-
-def to_utc(date):
-    if date.tzinfo:
-        if date.utcoffset != 0:
-            date = date.astimezone(tzutc())
-        date = date.replace(tzinfo=None)
-
-    return date
+        for event in formatted_events:
+            click.echo(event, nl=False)
