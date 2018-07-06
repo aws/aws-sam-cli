@@ -3,7 +3,7 @@ from mock import Mock, patch
 
 from parameterized import parameterized, param
 
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
 
 
 class TestLocalHostRunner(TestCase):
@@ -69,35 +69,35 @@ class TestLambdaOutputParser(TestCase):
     @parameterized.expand([
         param(
             "with both logs and response",
-            b'this\nis\nlog\ndata\n{"a": "b"}', b'this\nis\nlog\ndata', b'{"a": "b"}'
+            b'this\nis\nlog\ndata\n{"a": "b"}', b'this\nis\nlog\ndata', '{"a": "b"}'
         ),
         param(
             "with response as string",
-            b"logs\nresponse", b"logs", b"response"
+            b"logs\nresponse", b"logs", "response"
         ),
         param(
             "with response only",
-            b'{"a": "b"}', None, b'{"a": "b"}'
+            b'{"a": "b"}', None, '{"a": "b"}'
         ),
         param(
             "with response only as string",
-            b'this is the response line', None, b'this is the response line'
+            b'this is the response line', None, 'this is the response line'
         ),
         param(
             "with whitespaces",
-            b'log\ndata\n{"a": "b"}  \n\n\n', b"log\ndata", b'{"a": "b"}'
+            b'log\ndata\n{"a": "b"}  \n\n\n', b"log\ndata", '{"a": "b"}'
         ),
         param(
             "with empty data",
-            b'', None, b''
+            b'', None, ''
         ),
         param(
             "with just new lines",
-            b'\n\n', None, b''
+            b'\n\n', None, ''
         ),
         param(
             "with no data but with whitespaces",
-            b'\n   \n   \n', b'\n   ', b''  # Log data with whitespaces will be in the output unchanged
+            b'\n   \n   \n', b'\n   ', ''  # Log data with whitespaces will be in the output unchanged
         )
     ])
     def test_get_lambda_output_extracts_response(self, test_case_name, stdout_data, expected_logs, expected_response):
@@ -108,3 +108,46 @@ class TestLambdaOutputParser(TestCase):
         self.assertEquals(logs, expected_logs)
         self.assertEquals(response, expected_response)
         self.assertFalse(is_customer_error)
+
+    @parameterized.expand([
+        param('{"errorMessage": "has a message", "stackTrace": "has a stacktrace", "errorType": "has a type"}', True),
+        param('{"error message": "has a message", "stack Trace": "has a stacktrace", "error Type": "has a type"}', False),
+        param('{"errorMessage": "has a message", "stackTrace": "has a stacktrace", "errorType": "has a type", "hasextrakey": "value"}', False),
+        param("notat:asdfasdf", False),
+        param("errorMessage and stackTrace and errorType are in the string", False)
+    ])
+    def test_is_lambda_error_response(self, input, exected_result):
+        self.assertEquals(LambdaOutputParser.is_lambda_error_response(input), exected_result)
+
+class CaseInsensiveDict(TestCase):
+
+    def setUp(self):
+        self.data = CaseInsensitiveDict({
+            'Content-Type': 'text/html',
+            'Browser': 'APIGW',
+        })
+
+    def test_contains_lower(self):
+        self.assertTrue('content-type' in self.data)
+
+    def test_contains_title(self):
+        self.assertTrue('Content-Type' in self.data)
+
+    def test_contains_upper(self):
+        self.assertTrue('CONTENT-TYPE' in self.data)
+
+    def test_contains_browser_key(self):
+        self.assertTrue('Browser' in self.data)
+
+    def test_contains_not_in(self):
+        self.assertTrue('Dog-Food' not in self.data)
+
+    def test_setitem_found(self):
+        self.data['Browser'] = 'APIGW'
+
+        self.assertTrue(self.data['browser'])
+
+    def test_keyerror(self):
+        with self.assertRaises(KeyError):
+            self.data['does-not-exist']
+

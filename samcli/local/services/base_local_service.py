@@ -138,6 +138,8 @@ class LambdaOutputParser(object):
             # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
             lambda_response = stdout_data[last_line_position:].strip()
 
+        lambda_response = lambda_response.decode('utf-8')
+
         is_lambda_user_error_response = LambdaOutputParser.is_lambda_error_response(lambda_response)
 
         return lambda_response, lambda_logs, is_lambda_user_error_response
@@ -155,6 +157,6 @@ class LambdaOutputParser(object):
                     'stackTrace' in lambda_response_dict:
                 is_lambda_user_error_response = True
         except ValueError:
-            # If you cant serialize the output into a dict, then do nothing
+            # If you can't serialize the output into a dict, then do nothing
             pass
         return is_lambda_user_error_response

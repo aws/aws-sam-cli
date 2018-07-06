@@ -468,36 +468,3 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
-
-
-class TestService_CaseInsensiveDict(TestCase):
-
-    def setUp(self):
-        self.data = CaseInsensitiveDict({
-            'Content-Type': 'text/html',
-            'Browser': 'APIGW',
-        })
-
-    def test_contains_lower(self):
-        self.assertTrue('content-type' in self.data)
-
-    def test_contains_title(self):
-        self.assertTrue('Content-Type' in self.data)
-
-    def test_contains_upper(self):
-        self.assertTrue('CONTENT-TYPE' in self.data)
-
-    def test_contains_browser_key(self):
-        self.assertTrue('Browser' in self.data)
-
-    def test_contains_not_in(self):
-        self.assertTrue('Dog-Food' not in self.data)
-
-    def test_setitem_found(self):
-        self.data['Browser'] = 'APIGW'
-
-        self.assertTrue(self.data['browser'])
-
-    def test_keyerror(self):
-        with self.assertRaises(KeyError):
-            self.data['does-not-exist']
