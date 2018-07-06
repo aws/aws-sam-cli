@@ -27,12 +27,13 @@ class LogEvent(object):
             https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilteredLogEvent.html
         """
 
+        self.log_group_name = log_group_name
+
         if not event_dict:
             return
 
-        self.log_group_name = log_group_name
         self.log_stream_name = event_dict.get('logStreamName')
-        self.message = event_dict.get('message', '').strip()
+        self.message = event_dict.get('message', '')
 
         self.timestamp = event_dict.get('timestamp')
 
@@ -50,7 +51,7 @@ class LogEvent(object):
                 and self.timestamp == other.timestamp \
                 and self.message == other.message
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         # Used to print pretty diff when testing
         return str({
             "log_group_name": self.log_group_name,
