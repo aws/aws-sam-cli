@@ -4,6 +4,7 @@ Date & Time related utilities
 
 import datetime
 import dateparser
+import logging
 
 from dateutil.tz import tzutc
 
@@ -24,8 +25,26 @@ def timestamp_to_iso(timestamp):
         ISO formatted time string
     """
 
+    return to_datetime(timestamp).isoformat()
+
+
+def to_datetime(timestamp):
+    """
+    Convert Unix Epoch Timestamp to Python's ``datetime.datetime`` object
+
+    Parameters
+    ----------
+    timestamp : int
+        Unix epoch timestamp
+
+    Returns
+    -------
+    datetime.datetime
+        Datetime representation of timestamp
+    """
+
     timestamp_secs = int(timestamp) / 1000.0
-    return datetime.datetime.utcfromtimestamp(timestamp_secs).isoformat()
+    return datetime.datetime.utcfromtimestamp(timestamp_secs)
 
 
 def to_timestamp(some_time):

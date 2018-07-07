@@ -2,9 +2,11 @@
 Filters & fetches logs from CloudWatch Logs
 """
 
+import time
+import datetime
 import logging
 
-from samcli.lib.utils.time import to_timestamp
+from samcli.lib.utils.time import to_timestamp, to_datetime
 from .event import LogEvent
 
 
@@ -74,3 +76,68 @@ class LogsFetcher(object):
             kwargs["nextToken"] = next_token
             if not next_token:
                 break
+
+    def tail(self, log_group_name, start=None, filter_pattern=None, timeout=300):
+        """
+        ** This is a long blocking call **
+
+        Fetches logs from CloudWatch logs similar to the ``fetch`` method, but instead of stopping after all logs have
+        been fetched, this method continues to poll CloudWatch for new logs. So this essentially simulates the
+        ``tail -f`` bash command.
+
+        If no logs are available, then it keep polling for ``timeout`` number of seconds before exiting. This method
+        polls CloudWatch at around ~3 Calls Per Second to stay below the 5TPS limit.
+
+        Parameters
+        ----------
+        log_group_name : str
+            Name of CloudWatch Logs Group to query.
+
+        start : datetime.datetime
+            Optional start time for logs. Defaults to '5m ago'
+
+        filter_pattern : str
+            Expression to filter the logs by. This is passed directly to CloudWatch, so any expression supported by
+            CloudWatch Logs API is supported here.
+
+        timeout : int
+            Number of seconds to keep polling for new logs. This timer is reset every time new logs are available.
+
+        Yields
+        ------
+        samcli.lib.logs.event.LogEvent
+            Object containing the information from each log event returned by CloudWatch Logs
+        """
+
+        latest_event_time = 0  # Start of epoch
+        if start:
+            latest_event_time = to_timestamp(start)
+
+        counter = 100
+
+        while counter > 0:
+
+            LOG.debug("Tailing logs from %s starting at %s", log_group_name, str(latest_event_time))
+
+            has_data = False
+            counter -= 1
+            events_itr = self.fetch(log_group_name,
+                                    start=to_datetime(latest_event_time),
+                                    filter_pattern=filter_pattern)
+
+            # Find the timestamp of the most recent log event.
+            for event in events_itr:
+                has_data = True
+
+                if event._timestamp > latest_event_time:
+                    latest_event_time = event._timestamp
+
+                yield event
+
+            if has_data:
+                counter = 100
+                latest_event_time += 1  # one extra millisecond to fetch next log event
+
+            # We already fetched logs once. Sleep for some time before querying again.
+            # This also helps us scoot under the TPS limit for CloudWatch API call.
+            time.sleep(.300)

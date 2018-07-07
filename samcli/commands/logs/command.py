@@ -72,10 +72,15 @@ def do_cli(function_name, stack_name, filter_pattern, tailing, start_time, end_t
                             # output_file is not yet supported by CLI
                             output_file=None) as context:
 
-        events_iterable = context.fetcher.fetch(context.log_group_name,
-                                                filter_pattern=context.filter_pattern,
-                                                start=context.start_time,
-                                                end=context.end_time)
+        if tailing:
+            events_iterable = context.fetcher.tail(context.log_group_name,
+                                                   filter_pattern=context.filter_pattern,
+                                                   start=context.start_time)
+        else:
+            events_iterable = context.fetcher.fetch(context.log_group_name,
+                                                    filter_pattern=context.filter_pattern,
+                                                    start=context.start_time,
+                                                    end=context.end_time)
 
         formatted_events = context.formatter.do_format(events_iterable)
 
