@@ -2,7 +2,6 @@
 from unittest import TestCase
 
 from samcli.lib.logs.event import LogEvent
-from samcli.lib.utils.time import timestamp_to_iso, to_timestamp
 
 
 class TestLogEvent(TestCase):

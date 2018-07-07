@@ -1,9 +1,10 @@
 
 from unittest import TestCase
-from mock import Mock, patch, ANY, mock_open
+from mock import Mock, patch, ANY
 
 from samcli.commands.logs.logs_context import LogsCommandContext
 from samcli.commands.exceptions import UserException
+
 
 class TestLogsCommandContext(TestCase):
 
@@ -175,8 +176,3 @@ class TestLogsCommandContext(TestCase):
 
         # Context should be reset
         setup_output_file_mock.assert_called_with(None)
-
-
-
-
-

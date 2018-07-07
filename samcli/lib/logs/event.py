@@ -1,3 +1,6 @@
+"""
+Represents CloudWatch Log Event
+"""
 
 import logging
 
@@ -47,9 +50,9 @@ class LogEvent(object):
             return False
 
         return self.log_group_name == other.log_group_name \
-                and self.log_stream_name == other.log_stream_name \
-                and self.timestamp == other.timestamp \
-                and self.message == other.message
+            and self.log_stream_name == other.log_stream_name \
+            and self.timestamp == other.timestamp \
+            and self.message == other.message
 
     def __repr__(self):  # pragma: no cover
         # Used to print pretty diff when testing

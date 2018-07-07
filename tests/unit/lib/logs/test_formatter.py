@@ -41,6 +41,7 @@ class TestLogsFormatter_pretty_print_event(TestCase):
 def _passthru_formatter(event, colored):
     return event
 
+
 class TestLogsFormatter_do_format(TestCase):
 
     def setUp(self):
@@ -96,6 +97,7 @@ class TestLogsFormatter_do_format(TestCase):
         self.chain_method1.assert_not_called()
         self.chain_method2.assert_not_called()
         self.chain_method3.assert_not_called()
+
 
 class TestLambdaLogMsgFormatters_colorize_crashes(TestCase):
 
@@ -193,7 +195,6 @@ class TestJSONMsgFormatter_format_json(TestCase):
         result = JSONMsgFormatter.format_json(event, None)
         self.assertEquals(result.message, expected_msg)
 
-
     @parameterized.expand([
         "this is not json",
         '{"not a valid json"}',
@@ -204,4 +205,3 @@ class TestJSONMsgFormatter_format_json(TestCase):
 
         result = JSONMsgFormatter.format_json(event, None)
         self.assertEquals(result.message, input_msg)
-

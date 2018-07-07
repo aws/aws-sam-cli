@@ -4,8 +4,8 @@ Filters & fetches logs from CloudWatch Logs
 
 import logging
 
-from .event import LogEvent
 from samcli.lib.utils.time import to_timestamp
+from .event import LogEvent
 
 
 LOG = logging.getLogger(__name__)
@@ -74,4 +74,3 @@ class LogsFetcher(object):
             kwargs["nextToken"] = next_token
             if not next_token:
                 break
-

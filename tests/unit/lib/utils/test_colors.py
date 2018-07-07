@@ -26,6 +26,3 @@ class TestColored(TestCase):
 
         self.assertEquals(expected, getattr(with_color, decoration_name)(self.msg))
         self.assertEquals(self.msg, getattr(without_color, decoration_name)(self.msg))
-
-
-

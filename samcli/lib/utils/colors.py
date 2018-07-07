@@ -1,3 +1,6 @@
+"""
+Wrapper to generated colored messages for printing in Terminal
+"""
 
 import click
 

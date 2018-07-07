@@ -98,7 +98,6 @@ class TestLogsFetcher_fetch(TestCase):
             actual_result = list(events_iterable)
             self.assertEquals(self.expected_events, actual_result)
 
-
     def test_must_paginate_using_next_token(self):
         """Make three API calls, first two returns a nextToken and last does not."""
         token = "token"
@@ -132,4 +131,3 @@ class TestLogsFetcher_fetch(TestCase):
 
             actual_result = list(events_iterable)
             self.assertEquals(expected_events_result, actual_result)
-

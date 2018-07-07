@@ -11,7 +11,7 @@ from .logs_context import LogsCommandContext
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Use this command to fetch logs printed by your Lambda function. 
+Use this command to fetch logs printed by your Lambda function.
 """
 
 
@@ -44,7 +44,12 @@ Use this command to fetch logs printed by your Lambda function.
 @aws_creds_options
 @pass_context
 def cli(ctx,
-        function, stack_name, filter, tail, start_time, end_time
+        function,  # pylint: disable=redefined-builtin
+        stack_name,
+        filter,  # pylint: disable=redefined-builtin
+        tail,
+        start_time,
+        end_time
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 

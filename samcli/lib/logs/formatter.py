@@ -1,10 +1,15 @@
+"""
+Format log events produced by CloudWatch Logs
+"""
 
 import json
 import functools
 
 try:
-    import itertools.imap as map
+    # Python2
+    import itertools.imap as map  # pylint: disable=redefined-builtin
 except ImportError:
+    # Python3 already has `map` defined
     pass
 
 
@@ -213,4 +218,3 @@ class JSONMsgFormatter(object):
             pass
 
         return event
-

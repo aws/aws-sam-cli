@@ -1,3 +1,6 @@
+"""
+Read and parse CLI args for the Logs Command and setup the context for running the command
+"""
 
 import logging
 import boto3
@@ -173,4 +176,3 @@ class LogsCommandContext(object):
             raise UserException("Unable to parse the time provided by '{}'".format(property_name))
 
         return to_utc(parsed)
-

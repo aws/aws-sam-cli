@@ -74,5 +74,3 @@ class TestParseDate(TestCase):
         result = parse_date(date_str).replace(microsecond=0, second=0)
 
         self.assertEquals(expected, result)
-
-

@@ -1,3 +1,6 @@
+"""
+Discover & provide the log group name
+"""
 
 
 class LogGroupProvider(object):
