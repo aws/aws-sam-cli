@@ -80,6 +80,10 @@ class TestLambdaOutputParser(TestCase):
             b'{"a": "b"}', None, '{"a": "b"}'
         ),
         param(
+            "with one new line and response",
+            b'\n{"a": "b"}', b'', '{"a": "b"}'
+        ),
+        param(
             "with response only as string",
             b'this is the response line', None, 'this is the response line'
         ),

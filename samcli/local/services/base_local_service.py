@@ -131,7 +131,7 @@ class LambdaOutputParser(object):
         lambda_logs = None
 
         last_line_position = stdout_data.rfind(b'\n')
-        if last_line_position > 0:
+        if last_line_position >= 0:
             # So there are multiple lines. Separate them out.
             # Everything but the last line are logs
             lambda_logs = stdout_data[:last_line_position]
