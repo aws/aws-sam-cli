@@ -2,6 +2,8 @@ import boto3
 import logging
 
 from unittest import TestCase
+from mock import patch
+
 from samcli.cli.context import Context
 
 
@@ -37,13 +39,15 @@ class TestContext(TestCase):
         self.assertEquals(ctx.region, region)
         self.assertEquals(region, boto3._get_default_session().region_name)
 
-    def test_must_set_aws_profile_in_boto_session(self):
-        profile = "default"
+    @patch("samcli.cli.context.boto3")
+    def test_must_set_aws_profile_in_boto_session(self, boto_mock):
+        profile = "foo"
+
         ctx = Context()
 
         ctx.profile = profile
         self.assertEquals(ctx.profile, profile)
-        self.assertEquals(profile, boto3._get_default_session().profile_name)
+        boto_mock.setup_default_session.assert_called_with(region_name=None, profile_name=profile)
 
     def test_must_set_all_aws_session_properties(self):
         profile = "default"
