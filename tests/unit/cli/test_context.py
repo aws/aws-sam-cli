@@ -49,12 +49,12 @@ class TestContext(TestCase):
         self.assertEquals(ctx.profile, profile)
         boto_mock.setup_default_session.assert_called_with(region_name=None, profile_name=profile)
 
-    def test_must_set_all_aws_session_properties(self):
-        profile = "default"
+    @patch("samcli.cli.context.boto3")
+    def test_must_set_all_aws_session_properties(self, boto_mock):
+        profile = "foo"
         region = "myregion"
         ctx = Context()
 
         ctx.profile = profile
         ctx.region = region
-        self.assertEquals(profile, boto3._get_default_session().profile_name)
-        self.assertEquals(region, boto3._get_default_session().region_name)
+        boto_mock.setup_default_session.assert_called_with(region_name=region, profile_name=profile)
