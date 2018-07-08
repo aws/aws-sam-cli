@@ -49,11 +49,12 @@ class LocalLambdaInvokeService(BaseLocalService):
                                provide_automatic_options=False)
 
         # setup request validation before Flask calls the view_func
-        self._app.before_request(self.validate_request)
+        self._app.before_request(LocalLambdaInvokeService.validate_request)
 
         self._construct_error_handling()
 
-    def validate_request(self):
+    @staticmethod
+    def validate_request():
         """
         Validates the incoming request
 
@@ -148,13 +149,13 @@ class LocalLambdaInvokeService(BaseLocalService):
         lambda_response, lambda_logs, is_lambda_user_error_response = \
             LambdaOutputParser.get_lambda_output(stdout_stream)
 
+        if self.stderr and lambda_logs:
+            # Write the logs to stderr if available.
+            self.stderr.write(lambda_logs)
+
         if is_lambda_user_error_response:
             return self._service_response(lambda_response,
                                           {'Content-Type': 'application/json', 'x-amz-function-error': 'Unhandled'},
                                           200)
-
-        if self.stderr and lambda_logs:
-            # Write the logs to stderr if available.
-            self.stderr.write(lambda_logs)
 
         return self._service_response(lambda_response, {'Content-Type': 'application/json'}, 200)

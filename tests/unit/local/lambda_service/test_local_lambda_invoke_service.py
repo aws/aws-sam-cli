@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, ANY
+from mock import Mock, patch, ANY, call
 
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -108,3 +108,153 @@ class TestLocalLambdaService(TestCase):
 
         # Make sure the logs are written to stderr
         stderr_mock.write.assert_called_with(lambda_logs)
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
+    def test_construct_error_handling(self, lambda_error_response_mock):
+        service = LocalLambdaInvokeService(lambda_runner=Mock(),
+                                           port=3000,
+                                           host='localhost',
+                                           stderr=Mock())
+
+        flask_app_mock = Mock()
+        service._app = flask_app_mock
+        service._construct_error_handling()
+
+        flask_app_mock.register_error_handler.assert_has_calls([
+            call(500, lambda_error_response_mock.generic_service_exception),
+            call(404, lambda_error_response_mock.generic_path_not_found),
+            call(405, lambda_error_response_mock.generic_method_not_allowed)])
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService._service_response')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_invoke_request_handler_with_lambda_that_errors(self, request_mock, lambda_output_parser_mock, service_response_mock):
+        lambda_output_parser_mock.get_lambda_output.return_value = 'hello world', None, True
+        service_response_mock.return_value = 'request response'
+        request_mock.get_data.return_value = b'{}'
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host='localhost')
+
+        response = service._invoke_request_handler(function_name='HelloWorld')
+
+        self.assertEquals(response, 'request response')
+
+        lambda_runner_mock.invoke.assert_called_once_with('HelloWorld', '{}', stdout=ANY, stderr=None)
+        service_response_mock.assert_called_once_with('hello world', {'Content-Type': 'application/json', 'x-amz-function-error': 'Unhandled'}, 200)
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService._service_response')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaOutputParser')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_invoke_request_handler_with_no_data(self, request_mock, lambda_output_parser_mock, service_response_mock):
+        lambda_output_parser_mock.get_lambda_output.return_value = 'hello world', None, False
+        service_response_mock.return_value = 'request response'
+        request_mock.get_data.return_value = None
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3000, host='localhost')
+
+        response = service._invoke_request_handler(function_name='HelloWorld')
+
+        self.assertEquals(response, 'request response')
+
+        lambda_runner_mock.invoke.assert_called_once_with('HelloWorld', '{}', stdout=ANY, stderr=None)
+        service_response_mock.assert_called_once_with('hello world', {'Content-Type': 'application/json'}, 200)
+
+
+class TestValidateRequestHandling(TestCase):
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_request_with_non_json_data(self, flask_request, lambda_error_responses_mock):
+        flask_request.get_data.return_value = b'notat:asdfasdf'
+        flask_request.headers = {}
+        flask_request.content_type = 'application/json'
+        flask_request.args = {}
+
+        lambda_error_responses_mock.invalid_request_content.return_value = "InvalidRequestContent"
+
+        response = LocalLambdaInvokeService.validate_request()
+
+        self.assertEquals(response, "InvalidRequestContent")
+
+        lambda_error_responses_mock.invalid_request_content.assert_called_once_with("Could not parse request body into json: Expecting value: line 1 column 1 (char 0)")
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_request_with_query_strings(self, flask_request, lambda_error_responses_mock):
+        flask_request.get_data.return_value = None
+        flask_request.headers = {}
+        flask_request.content_type = 'application/json'
+        flask_request.args = {"key": "value"}
+
+        lambda_error_responses_mock.invalid_request_content.return_value = "InvalidRequestContent"
+
+        response = LocalLambdaInvokeService.validate_request()
+
+        self.assertEquals(response, "InvalidRequestContent")
+
+        lambda_error_responses_mock.invalid_request_content.assert_called_once_with(
+            "Query Parameters are not supported")
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_request_with_content_type_not_application_json(self, flask_request, lambda_error_responses_mock):
+        flask_request.get_data.return_value = None
+        flask_request.headers = {}
+        flask_request.content_type = 'image/gif'
+        flask_request.args = {}
+
+        lambda_error_responses_mock.unsupported_media_type.return_value = "UnsupportedMediaType"
+
+        response = LocalLambdaInvokeService.validate_request()
+
+        self.assertEquals(response, "UnsupportedMediaType")
+
+        lambda_error_responses_mock.unsupported_media_type.assert_called_once_with(
+            "image/gif")
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_request_log_type_not_None(self, flask_request, lambda_error_responses_mock):
+        flask_request.get_data.return_value = None
+        flask_request.headers = {'X-Amz-Log-Type': 'Tail'}
+        flask_request.content_type = 'application/json'
+        flask_request.args = {}
+
+        lambda_error_responses_mock.not_implemented_locally.return_value = "NotImplementedLocally"
+
+        response = LocalLambdaInvokeService.validate_request()
+
+        self.assertEquals(response, "NotImplementedLocally")
+
+        lambda_error_responses_mock.not_implemented_locally.assert_called_once_with(
+            "log-type: Tail is not supported. None is only supported.")
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_request_invocation_type_not_ResponseRequest(self, flask_request, lambda_error_responses_mock):
+        flask_request.get_data.return_value = None
+        flask_request.headers = {'X-Amz-Invocation-Type': 'DryRun'}
+        flask_request.content_type = 'application/json'
+        flask_request.args = {}
+
+        lambda_error_responses_mock.not_implemented_locally.return_value = "NotImplementedLocally"
+
+        response = LocalLambdaInvokeService.validate_request()
+
+        self.assertEquals(response, "NotImplementedLocally")
+
+        lambda_error_responses_mock.not_implemented_locally.assert_called_once_with(
+            "invocation-type: DryRun is not supported. RequestResponse is only supported.")
+
+    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
+    def test_request_with_no_data(self, flask_request):
+        flask_request.get_data.return_value = None
+        flask_request.headers = {}
+        flask_request.content_type = 'application/json'
+        flask_request.args = {}
+
+        response = LocalLambdaInvokeService.validate_request()
+
+        self.assertIsNone(response)
