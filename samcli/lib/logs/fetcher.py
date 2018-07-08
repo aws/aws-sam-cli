@@ -77,7 +77,7 @@ class LogsFetcher(object):
             if not next_token:
                 break
 
-    def tail(self, log_group_name, start=None, filter_pattern=None, timeout=300):
+    def tail(self, log_group_name, start=None, filter_pattern=None, max_retries=1000, poll_interval=0.3):
         """
         ** This is a long blocking call **
 
@@ -100,8 +100,13 @@ class LogsFetcher(object):
             Expression to filter the logs by. This is passed directly to CloudWatch, so any expression supported by
             CloudWatch Logs API is supported here.
 
-        timeout : int
-            Number of seconds to keep polling for new logs. This timer is reset every time new logs are available.
+        max_retries : int
+            When logs are not available, this value determines the number of times to retry fetching logs before giving
+            up. This counter is reset every time new logs are available.
+
+        poll_interval : float
+            Number of fractional seconds wait before polling again. Defaults to 300milliseconds.
+            If no new logs available, this method will stop polling after ``max_retries * poll_interval`` seconds
 
         Yields
         ------
@@ -109,12 +114,12 @@ class LogsFetcher(object):
             Object containing the information from each log event returned by CloudWatch Logs
         """
 
+        # On every poll, startTime of the API call is the timestamp of last record observed
         latest_event_time = 0  # Start of epoch
         if start:
             latest_event_time = to_timestamp(start)
 
-        counter = 100
-
+        counter = max_retries
         while counter > 0:
 
             LOG.debug("Tailing logs from %s starting at %s", log_group_name, str(latest_event_time))
@@ -129,15 +134,17 @@ class LogsFetcher(object):
             for event in events_itr:
                 has_data = True
 
-                if event._timestamp > latest_event_time:
-                    latest_event_time = event._timestamp
+                if event._timestamp_millis > latest_event_time:
+                    latest_event_time = event._timestamp_millis
 
+                # Yield the event back so it behaves similar to ``fetch``
                 yield event
 
+            # This poll fetched logs. Reset the retry counter and set the timestamp for next poll
             if has_data:
-                counter = 100
+                counter = max_retries
                 latest_event_time += 1  # one extra millisecond to fetch next log event
 
             # We already fetched logs once. Sleep for some time before querying again.
             # This also helps us scoot under the TPS limit for CloudWatch API call.
-            time.sleep(.300)
+            time.sleep(poll_interval)

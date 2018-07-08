@@ -30,7 +30,6 @@ class LogsCommandContext(object):
                  function_name,
                  stack_name=None,
                  filter_pattern=None,
-                 tailing=None,
                  start_time=None,
                  end_time=None,
                  output_file=None):
@@ -48,9 +47,6 @@ class LogsCommandContext(object):
         filter_pattern : str
             Optional pattern to filter the logs by
 
-        tailing : bool
-            Set to True, if we are tailing logs (ie. wait & fetch new logs as they arrive)
-
         start_time : str
             Fetch logs starting at this time
 
@@ -64,7 +60,6 @@ class LogsCommandContext(object):
         self._function_name = function_name
         self._stack_name = stack_name
         self._filter_pattern = filter_pattern
-        self._tailing = tailing
         self._start_time = start_time
         self._end_time = end_time
         self._output_file = output_file

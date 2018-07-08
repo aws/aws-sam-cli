@@ -4,11 +4,12 @@ import datetime
 import botocore.session
 
 from unittest import TestCase
+from mock import Mock, patch, call, ANY
 from botocore.stub import Stubber
 
 from samcli.lib.logs.fetcher import LogsFetcher
 from samcli.lib.logs.event import LogEvent
-from samcli.lib.utils.time import to_timestamp
+from samcli.lib.utils.time import to_timestamp, to_datetime
 
 
 class TestLogsFetcher_fetch(TestCase):
@@ -131,3 +132,140 @@ class TestLogsFetcher_fetch(TestCase):
 
             actual_result = list(events_iterable)
             self.assertEquals(expected_events_result, actual_result)
+
+
+class TestLogsFetcher_tail(TestCase):
+
+    def setUp(self):
+
+        self.fetcher = LogsFetcher(Mock())
+
+        self.log_group_name = "name"
+        self.filter_pattern = "pattern"
+
+        self.start_time = to_datetime(10)
+        self.max_retries = 3
+        self.poll_interval = 1
+
+        self.mock_events1 = [
+            LogEvent(self.log_group_name, {"timestamp": 11}),
+            LogEvent(self.log_group_name, {"timestamp": 12}),
+        ]
+        self.mock_events2 = [
+            LogEvent(self.log_group_name, {"timestamp": 13}),
+            LogEvent(self.log_group_name, {"timestamp": 14}),
+        ]
+        self.mock_events_empty = []
+
+    @patch("samcli.lib.logs.fetcher.time")
+    def test_must_tail_logs_with_single_data_fetch(self, time_mock):
+
+        self.fetcher.fetch = Mock()
+
+        self.fetcher.fetch.side_effect = [
+            self.mock_events1,
+
+            # Return empty data for `max_retries` number of polls
+            self.mock_events_empty,
+            self.mock_events_empty,
+            self.mock_events_empty,
+        ]
+
+        expected_fetch_calls = [
+            # First fetch returns data
+            call(ANY, start=self.start_time, filter_pattern=self.filter_pattern),
+
+            # Three empty fetches
+            call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
+            call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
+            call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
+        ]
+
+        # One per poll
+        expected_sleep_calls = [
+            call(self.poll_interval) for i in expected_fetch_calls
+        ]
+
+        result_itr = self.fetcher.tail(self.log_group_name,
+                                       start=self.start_time,
+                                       filter_pattern=self.filter_pattern,
+                                       max_retries=self.max_retries,
+                                       poll_interval=self.poll_interval)
+
+        self.assertEquals(self.mock_events1, list(result_itr))
+        self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
+        self.assertEquals(expected_sleep_calls, time_mock.sleep.call_args_list)
+
+    @patch("samcli.lib.logs.fetcher.time")
+    def test_must_tail_logs_with_multiple_data_fetches(self, time_mock):
+
+        self.fetcher.fetch = Mock()
+
+        self.fetcher.fetch.side_effect = [
+            self.mock_events1,
+
+            # Just one empty fetch
+            self.mock_events_empty,
+
+            # This fetch returns data
+            self.mock_events2,
+
+            # Return empty data for `max_retries` number of polls
+            self.mock_events_empty,
+            self.mock_events_empty,
+            self.mock_events_empty,
+        ]
+
+        expected_fetch_calls = [
+            # First fetch returns data
+            call(ANY, start=self.start_time, filter_pattern=self.filter_pattern),
+
+            # This fetch was empty
+            call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
+
+            # This fetch returned data
+            call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
+
+            # Three empty fetches
+            call(ANY, start=to_datetime(15), filter_pattern=self.filter_pattern),
+            call(ANY, start=to_datetime(15), filter_pattern=self.filter_pattern),
+            call(ANY, start=to_datetime(15), filter_pattern=self.filter_pattern),
+        ]
+
+        # One per poll
+        expected_sleep_calls = [
+            call(self.poll_interval) for i in expected_fetch_calls
+        ]
+
+        result_itr = self.fetcher.tail(self.log_group_name,
+                                       start=self.start_time,
+                                       filter_pattern=self.filter_pattern,
+                                       max_retries=self.max_retries,
+                                       poll_interval=self.poll_interval)
+
+        self.assertEquals(self.mock_events1 + self.mock_events2, list(result_itr))
+        self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
+        self.assertEquals(expected_sleep_calls, time_mock.sleep.call_args_list)
+
+    @patch("samcli.lib.logs.fetcher.time")
+    def test_without_start_time(self, time_mock):
+
+        self.fetcher.fetch = Mock()
+
+        self.fetcher.fetch.return_value = self.mock_events_empty
+
+        expected_fetch_calls = [
+            # Three empty fetches, all with default start time
+            call(ANY, start=to_datetime(0), filter_pattern=ANY),
+            call(ANY, start=to_datetime(0), filter_pattern=ANY),
+            call(ANY, start=to_datetime(0), filter_pattern=ANY),
+        ]
+
+        result_itr = self.fetcher.tail(self.log_group_name,
+                                       filter_pattern=self.filter_pattern,
+                                       max_retries=self.max_retries,
+                                       poll_interval=self.poll_interval)
+
+        self.assertEquals([], list(result_itr))
+        self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
+

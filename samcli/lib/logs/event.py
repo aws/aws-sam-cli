@@ -38,11 +38,11 @@ class LogEvent(object):
         self.log_stream_name = event_dict.get('logStreamName')
         self.message = event_dict.get('message', '')
 
-        self._timestamp = event_dict.get('timestamp')
+        self._timestamp_millis = event_dict.get('timestamp')
 
         # Convert the timestamp from epoch to readable ISO timestamp, easier for formatting.
-        if self._timestamp:
-            self.timestamp = timestamp_to_iso(int(self._timestamp))
+        if self._timestamp_millis:
+            self.timestamp = timestamp_to_iso(int(self._timestamp_millis))
 
     def __eq__(self, other):
 

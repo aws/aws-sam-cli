@@ -12,7 +12,6 @@ class TestLogsCommandContext(TestCase):
         self.function_name = "name"
         self.stack_name = "stack name"
         self.filter_pattern = "filter"
-        self.tailing = True
         self.start_time = "start"
         self.end_time = "end"
         self.output_file = "somefile"
@@ -20,7 +19,6 @@ class TestLogsCommandContext(TestCase):
         self.context = LogsCommandContext(self.function_name,
                                           stack_name=self.stack_name,
                                           filter_pattern=self.filter_pattern,
-                                          tailing=self.tailing,
                                           start_time=self.start_time,
                                           end_time=self.end_time,
                                           output_file=self.output_file)
@@ -150,7 +148,6 @@ class TestLogsCommandContext(TestCase):
         with LogsCommandContext(self.function_name,
                                 stack_name=self.stack_name,
                                 filter_pattern=self.filter_pattern,
-                                tailing=self.tailing,
                                 start_time=self.start_time,
                                 end_time=self.end_time,
                                 output_file=self.output_file) as context:
@@ -168,7 +165,6 @@ class TestLogsCommandContext(TestCase):
         with LogsCommandContext(self.function_name,
                                 stack_name=self.stack_name,
                                 filter_pattern=self.filter_pattern,
-                                tailing=self.tailing,
                                 start_time=self.start_time,
                                 end_time=self.end_time,
                                 output_file=None) as context:
