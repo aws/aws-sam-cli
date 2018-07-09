@@ -5,7 +5,7 @@ import base64
 
 from parameterized import parameterized, param
 
-from samcli.local.apigw.local_apigw_service import LocalApigwService, Route, CaseInsensitiveDict
+from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
@@ -29,7 +29,7 @@ class TestApiGatewayService(TestCase):
     def test_request_must_invoke_lambda(self):
         make_response_mock = Mock()
 
-        self.service._service_response = make_response_mock
+        self.service.service_response = make_response_mock
         self.service._get_current_route = Mock()
         self.service._construct_event = Mock()
 
@@ -39,7 +39,7 @@ class TestApiGatewayService(TestCase):
 
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
-        self.service._service_response = service_response_mock
+        self.service.service_response = service_response_mock
 
         result = self.service._request_handler()
 
@@ -54,7 +54,7 @@ class TestApiGatewayService(TestCase):
 
         make_response_mock = Mock()
 
-        self.service._service_response = make_response_mock
+        self.service.service_response = make_response_mock
         self.service._get_current_route = Mock()
         self.service._construct_event = Mock()
 
@@ -68,7 +68,7 @@ class TestApiGatewayService(TestCase):
         lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs, is_customer_error
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
-        self.service._service_response = service_response_mock
+        self.service.service_response = service_response_mock
 
         result = self.service._request_handler()
 
@@ -83,7 +83,7 @@ class TestApiGatewayService(TestCase):
     def test_request_handler_returns_make_response(self):
         make_response_mock = Mock()
 
-        self.service._service_response = make_response_mock
+        self.service.service_response = make_response_mock
         self.service._get_current_route = Mock()
         self.service._construct_event = Mock()
 
@@ -93,7 +93,7 @@ class TestApiGatewayService(TestCase):
 
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
-        self.service._service_response = service_response_mock
+        self.service.service_response = service_response_mock
 
         result = self.service._request_handler()
 

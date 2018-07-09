@@ -58,15 +58,20 @@ class LocalLambdaInvokeService(BaseLocalService):
         """
         Validates the incoming request
 
-        Returns
-        -------
-        flask.Response
-            A Response is returned in the following cases:
+        The following are invalid
             1. The Request data is not json serializable
             2. Query Parameters are sent to the endpoint
             3. The Request Content-Type is not application/json
+            4. 'X-Amz-Log-Type' header is not 'None'
+            5. 'X-Amz-Invocation-Type' header is not 'RequestResponse'
 
-            Otherwise this function does not return anything
+        Returns
+        -------
+        flask.Response
+            If the request is not valid a flask Response is returned
+
+        None:
+            If the request passes all validation
         """
         flask_request = request
         request_data = flask_request.get_data()
@@ -127,7 +132,6 @@ class LocalLambdaInvokeService(BaseLocalService):
         Returns
         -------
         A Flask Response response object as if it was returned from Lambda
-
         """
         flask_request = request
 
@@ -154,8 +158,8 @@ class LocalLambdaInvokeService(BaseLocalService):
             self.stderr.write(lambda_logs)
 
         if is_lambda_user_error_response:
-            return self._service_response(lambda_response,
-                                          {'Content-Type': 'application/json', 'x-amz-function-error': 'Unhandled'},
-                                          200)
+            return self.service_response(lambda_response,
+                                         {'Content-Type': 'application/json', 'x-amz-function-error': 'Unhandled'},
+                                         200)
 
-        return self._service_response(lambda_response, {'Content-Type': 'application/json'}, 200)
+        return self.service_response(lambda_response, {'Content-Type': 'application/json'}, 200)

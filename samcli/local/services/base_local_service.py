@@ -81,7 +81,7 @@ class BaseLocalService(object):
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 
     @staticmethod
-    def _service_response(body, headers, status_code):
+    def service_response(body, headers, status_code):
         """
         Constructs a Flask Response from the body, headers, and status_code.
 

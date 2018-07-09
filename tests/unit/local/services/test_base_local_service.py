@@ -49,7 +49,7 @@ class TestLocalHostRunner(TestCase):
         status_code = 200
         headers = {"Content-Type": "application/json"}
 
-        actual_response = BaseLocalService._service_response(body, headers, status_code)
+        actual_response = BaseLocalService.service_response(body, headers, status_code)
 
         flask_response_patch.assert_called_once_with("this is the body")
 
@@ -110,14 +110,21 @@ class TestLambdaOutputParser(TestCase):
         self.assertFalse(is_customer_error)
 
     @parameterized.expand([
-        param('{"errorMessage": "has a message", "stackTrace": "has a stacktrace", "errorType": "has a type"}', True),
-        param('{"error message": "has a message", "stack Trace": "has a stacktrace", "error Type": "has a type"}', False),
-        param('{"errorMessage": "has a message", "stackTrace": "has a stacktrace", "errorType": "has a type", "hasextrakey": "value"}', False),
-        param("notat:asdfasdf", False),
-        param("errorMessage and stackTrace and errorType are in the string", False)
+        param('{"errorMessage": "has a message", "stackTrace": "has a stacktrace", "errorType": "has a type"}',
+              True),
+        param('{"error message": "has a message", "stack Trace": "has a stacktrace", "error Type": "has a type"}',
+              False),
+        param('{"errorMessage": "has a message", "stackTrace": "has a stacktrace", "errorType": "has a type", '
+              '"hasextrakey": "value"}',
+              False),
+        param("notat:asdfasdf",
+              False),
+        param("errorMessage and stackTrace and errorType are in the string",
+              False)
     ])
     def test_is_lambda_error_response(self, input, exected_result):
         self.assertEquals(LambdaOutputParser.is_lambda_error_response(input), exected_result)
+
 
 class CaseInsensiveDict(TestCase):
 
@@ -150,4 +157,3 @@ class CaseInsensiveDict(TestCase):
     def test_keyerror(self):
         with self.assertRaises(KeyError):
             self.data['does-not-exist']
-

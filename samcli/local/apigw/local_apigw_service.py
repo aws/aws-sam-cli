@@ -156,7 +156,7 @@ class LocalApigwService(BaseLocalService):
                       "statusCode in the response object). Response received: %s", lambda_response)
             return ServiceErrorResponses.lambda_failure_response()
 
-        return self._service_response(body, headers, status_code)
+        return self.service_response(body, headers, status_code)
 
     def _get_current_route(self, flask_request):
         """
