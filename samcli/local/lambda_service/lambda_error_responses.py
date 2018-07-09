@@ -2,8 +2,6 @@
 
 import json
 
-from flask import Response
-
 from samcli.local.services.base_local_service import BaseLocalService
 
 
@@ -43,34 +41,34 @@ class LambdaErrorResponses(object):
         -------
 
         """
-        return BaseLocalService._service_response(LambdaErrorResponses.construct_error_response_body(LambdaErrorResponses.USER_ERROR, "Function not found: arn:aws:lambda:us-west-2:012345678901:function:{}".format(function_name)),
+        return BaseLocalService._service_response(LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, "Function not found: arn:aws:lambda:us-west-2:012345678901:function:{}".format(function_name)),
             {'x-amzn-errortype': LambdaErrorResponses.ResourceNotFoundException[0], 'Content-Type': 'application/json'},
             LambdaErrorResponses.ResourceNotFoundException[1])
 
     @staticmethod
     def invalid_request_content(message):
-        return BaseLocalService._service_response(LambdaErrorResponses.construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),
+        return BaseLocalService._service_response(LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),
             {'x-amzn-errortype': 'InvalidRequestContentException', 'Content-Type': 'application/json'},
             400
         )
 
     @staticmethod
     def unsupported_media_type(content_type):
-        return BaseLocalService._service_response(LambdaErrorResponses.construct_error_response_body(LambdaErrorResponses.USER_ERROR, "Unsupported content type: {}".format(content_type)),
+        return BaseLocalService._service_response(LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, "Unsupported content type: {}".format(content_type)),
             {'x-amzn-errortype': 'UnsupportedMediaType', 'Content-Type': 'application/json'},
             415
         )
 
     @staticmethod
     def generic_service_exception(*args):
-        return BaseLocalService._service_response(LambdaErrorResponses.construct_error_response_body(LambdaErrorResponses.SERVICE_ERROR, "ServiceException"),
+        return BaseLocalService._service_response(LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.SERVICE_ERROR, "ServiceException"),
             {'x-amzn-errortype': 'ServiceException', 'Content-Type': 'application/json'},
             500
         )
 
     @staticmethod
     def not_implemented_locally(message):
-        return BaseLocalService._service_response(LambdaErrorResponses.construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, message),
+        return BaseLocalService._service_response(LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, message),
             {'x-amzn-errortype': 'NotImplemented', 'Content-Type': 'application/json'},
             501
         )
@@ -78,7 +76,7 @@ class LambdaErrorResponses(object):
     @staticmethod
     def generic_path_not_found(*args):
         return BaseLocalService._service_response(
-            LambdaErrorResponses.construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, "PathNotFoundException"),
+            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, "PathNotFoundException"),
             {'x-amzn-errortype': 'LocalServiceException', 'Content-Type': 'application/json'},
             404
         )
@@ -86,12 +84,12 @@ class LambdaErrorResponses(object):
     @staticmethod
     def generic_method_not_allowed(*args):
         return BaseLocalService._service_response(
-            LambdaErrorResponses.construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR,
+            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR,
                                                                "MethodNotAllowedException"),
             {'x-amzn-errortype': 'LocalServiceException', 'Content-Type': 'application/json'},
             405
         )
 
     @staticmethod
-    def construct_error_response_body(error_type, error_message):
+    def _construct_error_response_body(error_type, error_message):
         return json.dumps({"Type": error_type, "Message": error_message})
