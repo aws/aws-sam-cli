@@ -140,16 +140,38 @@ class LambdaOutputParser(object):
 
         lambda_response = lambda_response.decode('utf-8')
 
+        # When the Lambda Function returns an Error/Exception, the output is added to the stdout of the container. From
+        # our perspective, the container returned some value, which is not always true. Since the output is the only
+        # information we have, we need to inspect this to understand if the container returned a some data or raised an
+        # error
         is_lambda_user_error_response = LambdaOutputParser.is_lambda_error_response(lambda_response)
 
         return lambda_response, lambda_logs, is_lambda_user_error_response
 
     @staticmethod
     def is_lambda_error_response(lambda_response):
+        """
+        Check to see if the output from the container is in the form of an Error/Exception from the Lambda invoke
+
+        Parameters
+        ----------
+        lambda_response str
+            The response the container returned
+
+        Returns
+        -------
+        bool
+            True if the output matches the Error/Exception Dictionary otherwise False
+        """
         is_lambda_user_error_response = False
         try:
             lambda_response_dict = json.loads(lambda_response)
 
+            # This is a best effort attempt to determine if the output (lambda_response) from the container was an
+            # Error/Exception that was raised/returned/thrown from the container. To ensure minimal false positives in
+            # this checking, we check for all three keys that can occur in Lambda raised/thrown/returned an
+            # Error/Exception. This still risks false positives when the data returned matches exactly a dictionary with
+            # the keys 'errorMessage', 'errorType' and 'stackTrace'.
             if isinstance(lambda_response_dict, dict) and \
                     len(lambda_response_dict) == 3 and \
                     'errorMessage' in lambda_response_dict and \
