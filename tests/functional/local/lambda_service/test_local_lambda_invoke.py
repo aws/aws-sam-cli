@@ -5,6 +5,7 @@ from mock import Mock
 import time
 from unittest import TestCase
 import os
+import sys
 
 import requests
 
@@ -207,12 +208,16 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         self.assertEquals(actual, expected)
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.headers.get('x-amzn-errortype'), 'InvalidRequestContentException')
+        self.assertEquals(response.headers.get('x-amzn-errortype'), 'InvalidRequestContent')
         self.assertEquals(response.headers.get('Content-Type'),'application/json')
 
     def test_payload_is_not_json_serializable(self):
-        expected = {"Type": "User",
-                    "Message": "Could not parse request body into json: Expecting value: line 1 column 1 (char 0)"}
+        if sys.version_info.major == 2:
+            expected = {"Type": "User",
+                        "Message": "Could not parse request body into json: No JSON object could be decoded"}
+        else:
+            expected = {"Type": "User",
+                        "Message": "Could not parse request body into json: Expecting value: line 1 column 1 (char 0)"}
 
         response = requests.post(self.url + '/2015-03-31/functions/HelloWorld/invocations', data='notat:asdfasdf')
 
@@ -220,7 +225,7 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         self.assertEquals(actual, expected)
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.headers.get('x-amzn-errortype'), 'InvalidRequestContentException')
+        self.assertEquals(response.headers.get('x-amzn-errortype'), 'InvalidRequestContent')
         self.assertEquals(response.headers.get('Content-Type'), 'application/json')
 
     def test_log_type_tail_in_request(self):
@@ -295,6 +300,8 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         self.assertEquals(actual_data, expected_data)
         self.assertEquals(response.status_code, 404)
+        self.assertEquals(response.headers.get('x-amzn-errortype'), 'PathNotFoundLocally')
+
 
     def test_generic_405_error_when_request_path_with_invalid_method(self):
         expected_data = {'Type': 'LocalService', 'Message': 'MethodNotAllowedException'}
@@ -305,6 +312,7 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         self.assertEquals(actual_data, expected_data)
         self.assertEquals(response.status_code, 405)
+        self.assertEquals(response.headers.get('x-amzn-errortype'), 'MethodNotAllowedLocally')
 
 
 def make_service(function_provider, cwd):

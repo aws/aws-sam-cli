@@ -28,7 +28,7 @@ class TestLambdaErrorResponses(TestCase):
         self.assertEquals(response, 'InvalidRequestContent')
         service_response_mock.assert_called_once_with(
             '{"Type": "User", "Message": "InvalidRequestContent"}',
-            {'x-amzn-errortype': 'InvalidRequestContentException', 'Content-Type': 'application/json'},
+            {'x-amzn-errortype': 'InvalidRequestContent', 'Content-Type': 'application/json'},
             400)
 
     @patch('samcli.local.services.base_local_service.BaseLocalService.service_response')
@@ -52,7 +52,7 @@ class TestLambdaErrorResponses(TestCase):
         self.assertEquals(response, 'GenericServiceException')
         service_response_mock.assert_called_once_with(
             '{"Type": "Service", "Message": "ServiceException"}',
-            {'x-amzn-errortype': 'ServiceException', 'Content-Type': 'application/json'},
+            {'x-amzn-errortype': 'Service', 'Content-Type': 'application/json'},
             500)
 
     @patch('samcli.local.services.base_local_service.BaseLocalService.service_response')
@@ -76,7 +76,7 @@ class TestLambdaErrorResponses(TestCase):
         self.assertEquals(response, 'GenericPathNotFound')
         service_response_mock.assert_called_once_with(
             '{"Type": "LocalService", "Message": "PathNotFoundException"}',
-            {'x-amzn-errortype': 'LocalServiceException', 'Content-Type': 'application/json'},
+            {'x-amzn-errortype': 'PathNotFoundLocally', 'Content-Type': 'application/json'},
             404)
 
     @patch('samcli.local.services.base_local_service.BaseLocalService.service_response')
@@ -88,5 +88,5 @@ class TestLambdaErrorResponses(TestCase):
         self.assertEquals(response, 'GenericMethodNotAllowed')
         service_response_mock.assert_called_once_with(
             '{"Type": "LocalService", "Message": "MethodNotAllowedException"}',
-            {'x-amzn-errortype': 'LocalServiceException', 'Content-Type': 'application/json'},
+            {'x-amzn-errortype': 'MethodNotAllowedLocally', 'Content-Type': 'application/json'},
             405)

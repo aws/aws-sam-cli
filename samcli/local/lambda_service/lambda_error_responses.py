@@ -1,6 +1,7 @@
 """Common Lambda Error Responses"""
 
 import json
+from collections import OrderedDict
 
 from samcli.local.services.base_local_service import BaseLocalService
 
@@ -18,6 +19,12 @@ class LambdaErrorResponses(object):
 
     # The request body could not be parsed as JSON.
     InvalidRequestContentException = ('InvalidRequestContent', 400)
+
+    NotImplementedException = ('NotImplemented', 501)
+
+    PathNotFoundException = ('PathNotFoundLocally', 404)
+
+    MethodNotAllowedException = ('MethodNotAllowedLocally', 405)
 
     # Error Types
     USER_ERROR = "User"
@@ -43,13 +50,16 @@ class LambdaErrorResponses(object):
         Flask.Response
             A response object representing the ResourceNotFound Error
         """
+        exception_tuple = LambdaErrorResponses.ResourceNotFoundException
+
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(
                 LambdaErrorResponses.USER_ERROR,
                 "Function not found: arn:aws:lambda:us-west-2:012345678901:function:{}".format(function_name)
             ),
-            {'x-amzn-errortype': LambdaErrorResponses.ResourceNotFoundException[0], 'Content-Type': 'application/json'},
-            LambdaErrorResponses.ResourceNotFoundException[1])
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1]
+        )
 
     @staticmethod
     def invalid_request_content(message):
@@ -66,10 +76,12 @@ class LambdaErrorResponses(object):
         Flask.Response
             A response object representing the InvalidRequestContent Error
         """
+        exception_tuple = LambdaErrorResponses.InvalidRequestContentException
+
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),
-            {'x-amzn-errortype': 'InvalidRequestContentException', 'Content-Type': 'application/json'},
-            400
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1]
         )
 
     @staticmethod
@@ -87,11 +99,13 @@ class LambdaErrorResponses(object):
         Flask.Response
             A response object representing the UnsupportedMediaType Error
         """
+        exception_tuple = LambdaErrorResponses.UnsupportedMediaTypeException
+
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR,
                                                                 "Unsupported content type: {}".format(content_type)),
-            {'x-amzn-errortype': 'UnsupportedMediaType', 'Content-Type': 'application/json'},
-            415
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1]
         )
 
     @staticmethod
@@ -109,10 +123,12 @@ class LambdaErrorResponses(object):
         Flask.Response
             A response object representing the GenericServiceException Error
         """
+        exception_tuple = LambdaErrorResponses.ServiceException
+
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.SERVICE_ERROR, "ServiceException"),
-            {'x-amzn-errortype': 'ServiceException', 'Content-Type': 'application/json'},
-            500
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1]
         )
 
     @staticmethod
@@ -130,10 +146,12 @@ class LambdaErrorResponses(object):
         Flask.Response
             A response object representing the NotImplementedLocally Error
         """
+        exception_tuple = LambdaErrorResponses.NotImplementedException
+
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, message),
-            {'x-amzn-errortype': 'NotImplemented', 'Content-Type': 'application/json'},
-            501
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1]
         )
 
     @staticmethod
@@ -151,11 +169,13 @@ class LambdaErrorResponses(object):
         Flask.Response
             A response object representing the GenericPathNotFound Error
         """
+        exception_tuple = LambdaErrorResponses.PathNotFoundException
+
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(
                 LambdaErrorResponses.LOCAL_SERVICE_ERROR, "PathNotFoundException"),
-            {'x-amzn-errortype': 'LocalServiceException', 'Content-Type': 'application/json'},
-            404
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1]
         )
 
     @staticmethod
@@ -173,11 +193,13 @@ class LambdaErrorResponses(object):
         Flask.Response
             A response object representing the GenericMethodNotAllowed Error
         """
+        exception_tuple = LambdaErrorResponses.MethodNotAllowedException
+
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR,
                                                                 "MethodNotAllowedException"),
-            {'x-amzn-errortype': 'LocalServiceException', 'Content-Type': 'application/json'},
-            405
+            LambdaErrorResponses._construct_headers(exception_tuple[0]),
+            exception_tuple[1]
         )
 
     @staticmethod
@@ -198,4 +220,23 @@ class LambdaErrorResponses(object):
         str
             str representing the response body
         """
-        return json.dumps({"Type": error_type, "Message": error_message})
+        # OrderedDict is used to make testing in Py2 and Py3 consistent
+        return json.dumps(OrderedDict([("Type", error_type), ("Message", error_message)]))
+
+    @staticmethod
+    def _construct_headers(error_type):
+        """
+        Constructs Headers for the Local Lambda Error Response
+
+        Parameters
+        ----------
+        error_type str
+            Error type that occurred to be put into the 'x-amzn-errortype' header
+
+        Returns
+        -------
+        dict
+            Dict representing the Lambda Error Response Headers
+        """
+        return {'x-amzn-errortype': error_type,
+                'Content-Type': 'application/json'}
