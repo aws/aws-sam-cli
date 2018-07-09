@@ -16,6 +16,7 @@ class Runtime(Enum):
     java8 = "java8"
     go1x = "go1.x"
     dotnetcore20 = "dotnetcore2.0"
+    dotnetcore21 = "dotnetcore2.1"
 
     @classmethod
     def has_value(cls, value):
