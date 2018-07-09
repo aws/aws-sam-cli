@@ -4,6 +4,7 @@ Read and parse CLI args for the Logs Command and setup the context for running t
 
 import logging
 import boto3
+import botocore
 
 from samcli.commands.exceptions import UserException
 from samcli.lib.logs.fetcher import LogsFetcher
@@ -112,7 +113,14 @@ class LogsCommandContext(object):
 
     @property
     def log_group_name(self):
-        return LogGroupProvider.for_lambda_function(self._function_name)
+
+        function_id = self._function_name
+        if self._stack_name:
+            function_id = self.get_resource_id_from_stack(self._stack_name, self._function_name)
+            LOG.debug("Function with LogicalId '%s' in stack '%s' resolves to actual physical ID '%s'",
+                      self._function_name, self._stack_name, function_id)
+
+        return LogGroupProvider.for_lambda_function(function_id)
 
     @property
     def colored(self):
@@ -171,3 +179,46 @@ class LogsCommandContext(object):
             raise UserException("Unable to parse the time provided by '{}'".format(property_name))
 
         return to_utc(parsed)
+
+    @staticmethod
+    def get_resource_id_from_stack(stack_name, logical_id):
+        """
+        Given the LogicalID of a resource, call AWS CloudFormation to get physical ID of the resource within
+        the specified stack.
+
+        Parameters
+        ----------
+        stack_name : str
+            Name of the stack to query
+
+        logical_id : str
+            LogicalId of the resource
+
+        Returns
+        -------
+        str
+            Physical ID of the resource
+
+        Raises
+        ------
+        samcli.commands.exceptions.UserException
+            If the stack or resource does not exist
+        """
+
+        client = boto3.client('cloudformation')
+        LOG.debug("Getting resource's PhysicalId from AWS CloudFormation stack. StackName=%s, LogicalId=%s",
+                  stack_name, logical_id)
+
+        try:
+            response = client.describe_stack_resource(StackName=stack_name, LogicalResourceId=logical_id)
+
+            LOG.debug("Response from AWS CloudFormation %s", response)
+            return response["StackResourceDetail"]["PhysicalResourceId"]
+
+        except botocore.exceptions.ClientError as ex:
+            LOG.debug("Unable to fetch resource name from CloudFormation Stack: "
+                      "StackName=%s, ResourceLogicalId=%s, Response=%s", stack_name, logical_id, ex.response)
+
+            # The exception message already has a well formatted error message that we can surface to user
+            raise UserException(str(ex))
+

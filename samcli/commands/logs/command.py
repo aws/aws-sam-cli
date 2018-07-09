@@ -66,7 +66,6 @@ def do_cli(function_name, stack_name, filter_pattern, tailing, start_time, end_t
     with LogsCommandContext(function_name,
                             stack_name=stack_name,
                             filter_pattern=filter_pattern,
-                            tailing=tailing,
                             start_time=start_time,
                             end_time=end_time,
                             # output_file is not yet supported by CLI
