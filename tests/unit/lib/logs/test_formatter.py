@@ -188,7 +188,7 @@ class TestJSONMsgFormatter_format_json(TestCase):
     def test_must_pretty_print_json(self):
         data = {"a": "b"}
         input_msg = '{"a": "b"}'
-        expected_msg = json.dumps(data, indent=2)
+        expected_msg = json.dumps(data, indent=2, sort_keys=True)
 
         event = LogEvent("group_name", {"message": input_msg})
 

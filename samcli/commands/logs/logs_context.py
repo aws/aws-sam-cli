@@ -66,6 +66,9 @@ class LogsCommandContext(object):
         self._output_file = output_file
         self._output_file_handle = None
 
+        # No colors when we write to a file. Otherwise use colors
+        self._must_print_colors = not self._output_file
+
         self._logs_client = boto3.client('logs')
         self._cfn_client = boto3.client('cloudformation')
 
@@ -126,7 +129,7 @@ class LogsCommandContext(object):
     @property
     def colored(self):
         # No colors if we are writing output to a file
-        return Colored(colorize=not self._output_file)
+        return Colored(colorize=self._must_print_colors)
 
     @property
     def filter_pattern(self):

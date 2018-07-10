@@ -33,6 +33,8 @@ class LogEvent(object):
         self.log_group_name = log_group_name
 
         if not event_dict:
+            # If event is empty, just use default values for properties. We don't raise an error here because
+            # this class is a data wrapper to the `events_dict`. It doesn't try to be smart.
             return
 
         self.log_stream_name = event_dict.get('logStreamName')

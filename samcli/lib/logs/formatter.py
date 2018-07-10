@@ -212,7 +212,7 @@ class JSONMsgFormatter(object):
         try:
             if event.message.startswith("{"):
                 msg_dict = json.loads(event.message)
-                event.message = json.dumps(msg_dict, indent=2)
+                event.message = json.dumps(msg_dict, indent=2, sort_keys=True)
         except Exception:
             # Skip if the event message was not JSON
             pass

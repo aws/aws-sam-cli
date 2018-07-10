@@ -54,11 +54,16 @@ class TestLogsCommandContext(TestCase):
     def test_colored_property_without_output_file(self, ColoredMock):
         ColoredMock.return_value = Mock()
 
-        # Remove the output file. It means we are printing to Terminal. Hence set the color
-        self.context._output_file = None
+        # No output file. It means we are printing to Terminal. Hence set the color
+        ctx = LogsCommandContext(self.function_name,
+                                 stack_name=self.stack_name,
+                                 filter_pattern=self.filter_pattern,
+                                 start_time=self.start_time,
+                                 end_time=self.end_time,
+                                 output_file=None)
 
         self.assertEqual(
-            self.context.colored,
+            ctx.colored,
             ColoredMock.return_value
         )
         ColoredMock.assert_called_with(colorize=True)  # Must enable colors
