@@ -1,11 +1,29 @@
 """Base class for all Services that interact with Local Lambda"""
 
+import json
 import logging
 import os
 
 from flask import Response
 
 LOG = logging.getLogger(__name__)
+
+
+class CaseInsensitiveDict(dict):
+    """
+    Implement a simple case insensitive dictionary for storing headers. To preserve the original
+    case of the given Header (e.g. X-FooBar-Fizz) this only touches the get and contains magic
+    methods rather than implementing a __setitem__ where we normalize the case of the headers.
+    """
+
+    def __getitem__(self, key):
+        matches = [v for k, v in self.items() if k.lower() == key.lower()]
+        if not matches:
+            raise KeyError(key)
+        return matches[0]
+
+    def __contains__(self, key):
+        return key.lower() in [k.lower() for k in self.keys()]
 
 
 class BaseLocalService(object):
@@ -63,7 +81,7 @@ class BaseLocalService(object):
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 
     @staticmethod
-    def _service_response(body, headers, status_code):
+    def service_response(body, headers, status_code):
         """
         Constructs a Flask Response from the body, headers, and status_code.
 
@@ -98,6 +116,8 @@ class LambdaOutputParser(object):
             String data containing response from Lambda function
         str
             String data containng logs statements, if any.
+        bool
+            If the response is an error/exception from the container
         """
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
@@ -118,4 +138,47 @@ class LambdaOutputParser(object):
             # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
             lambda_response = stdout_data[last_line_position:].strip()
 
-        return lambda_response, lambda_logs
+        lambda_response = lambda_response.decode('utf-8')
+
+        # When the Lambda Function returns an Error/Exception, the output is added to the stdout of the container. From
+        # our perspective, the container returned some value, which is not always true. Since the output is the only
+        # information we have, we need to inspect this to understand if the container returned a some data or raised an
+        # error
+        is_lambda_user_error_response = LambdaOutputParser.is_lambda_error_response(lambda_response)
+
+        return lambda_response, lambda_logs, is_lambda_user_error_response
+
+    @staticmethod
+    def is_lambda_error_response(lambda_response):
+        """
+        Check to see if the output from the container is in the form of an Error/Exception from the Lambda invoke
+
+        Parameters
+        ----------
+        lambda_response str
+            The response the container returned
+
+        Returns
+        -------
+        bool
+            True if the output matches the Error/Exception Dictionary otherwise False
+        """
+        is_lambda_user_error_response = False
+        try:
+            lambda_response_dict = json.loads(lambda_response)
+
+            # This is a best effort attempt to determine if the output (lambda_response) from the container was an
+            # Error/Exception that was raised/returned/thrown from the container. To ensure minimal false positives in
+            # this checking, we check for all three keys that can occur in Lambda raised/thrown/returned an
+            # Error/Exception. This still risks false positives when the data returned matches exactly a dictionary with
+            # the keys 'errorMessage', 'errorType' and 'stackTrace'.
+            if isinstance(lambda_response_dict, dict) and \
+                    len(lambda_response_dict) == 3 and \
+                    'errorMessage' in lambda_response_dict and \
+                    'errorType' in lambda_response_dict and \
+                    'stackTrace' in lambda_response_dict:
+                is_lambda_user_error_response = True
+        except ValueError:
+            # If you can't serialize the output into a dict, then do nothing
+            pass
+        return is_lambda_user_error_response
