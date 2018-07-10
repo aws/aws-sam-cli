@@ -1,5 +1,5 @@
 """
-CLI command for "local start-api" command
+CLI command for "local start-lambda" command
 """
 
 import logging
@@ -28,13 +28,13 @@ Allows you to run a Local Lambda Service that will service the invoke path to yo
 """
 
 
-@click.command("start-lambda", help=HELP_TEXT, short_help="Runs a Local Lambda Service (for the Invoke path only)")
+@click.command("start_lambda", help=HELP_TEXT, short_help="Runs a Local Lambda Service (for the Invoke path only)")
 @service_common_options
 @invoke_common_options
 @cli_framework_options
 @pass_context
 def cli(ctx,
-        # start-api Specific Options
+        # start-lambda Specific Options
         host, port,
 
         # Common Options for Lambda Invoke
@@ -53,7 +53,7 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
-    LOG.debug("local start-lambda command is called")
+    LOG.debug("local start_lambda command is called")
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors

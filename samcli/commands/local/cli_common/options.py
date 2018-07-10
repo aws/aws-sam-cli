@@ -57,7 +57,7 @@ def template_click_option():
 
 def service_common_options(f):
     """
-    Common CLI Options that are shared for service related commands ('start-api' and 'start-lambda')
+    Common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
 
     Parameters
     ----------
