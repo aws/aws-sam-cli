@@ -55,6 +55,40 @@ def template_click_option():
                         help="AWS SAM template file")
 
 
+def service_common_options(port):
+    def construct_options(f):
+        """
+        Common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
+
+        Parameters
+        ----------
+        f function
+            Callback passed by Click
+        port int
+            port number to use
+
+        Returns
+        -------
+        function
+            The callback function
+        """
+        service_options = [
+            click.option('--host',
+                         default="127.0.0.1",
+                         help="Local hostname or IP address to bind to (default: '127.0.0.1')"),
+            click.option("--port", "-p",
+                         default=port,
+                         help="Local port number to listen on (default: '{}')".format(str(port)))
+        ]
+
+        # Reverse the list to maintain ordering of options in help text printed with --help
+        for option in reversed(service_options):
+            option(f)
+
+        return f
+    return construct_options
+
+
 def invoke_common_options(f):
     """
     Common CLI options shared by "local invoke" and "local start-api" commands
