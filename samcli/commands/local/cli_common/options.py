@@ -55,6 +55,25 @@ def template_click_option():
                         help="AWS SAM template file")
 
 
+def profile_common_option(f):
+    """
+    Common ClI option for profile
+
+    :param f: Callback passed by Click
+    :return: Callback
+    """
+    return profile_click_option()(f)
+
+
+def profile_click_option():
+    """
+    Click Option for profile option
+    """
+    return click.option('--profile',
+                 help="Specifies the AWS credentials profile to use.",
+                 required=False)
+
+
 def invoke_common_options(f):
     """
     Common CLI options shared by "local invoke" and "local start-api" commands
@@ -98,8 +117,7 @@ def invoke_common_options(f):
                      help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime",
                      envvar="SAM_SKIP_PULL_IMAGE"),
 
-        click.option('--profile',
-                     help="Specify which AWS credentials profile to use."),
+        profile_click_option(),
 
     ]
 

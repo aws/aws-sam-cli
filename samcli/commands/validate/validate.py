@@ -4,13 +4,15 @@ CLI Command for Validating a SAM Template
 import os
 
 import boto3
+import botocore
+
 import click
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
-from samcli.commands.local.cli_common.options import template_common_option as template_option
-from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
+from samcli.commands.local.cli_common.options import template_common_option as template_option, profile_common_option as profile_option
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException, InvalidProfileException
 from samcli.yamlhelper import yaml_parse
 from .lib.exceptions import InvalidSamDocumentException
 from .lib.sam_template_validator import SamTemplateValidator
@@ -18,24 +20,24 @@ from .lib.sam_template_validator import SamTemplateValidator
 
 @click.command("validate",
                short_help="Validate an AWS SAM template.")
+@profile_option
 @template_option
 @cli_framework_options
 @pass_context
-def cli(ctx, template):
+def cli(ctx, template, profile):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template)  # pragma: no cover
+    do_cli(ctx, template, profile)  # pragma: no cover
 
 
-def do_cli(ctx, template):
+def do_cli(ctx, template, profile=None):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
     sam_template = _read_sam_file(template)
-
-    iam_client = boto3.client('iam')
+    iam_client = _get_boto_client(profile)
     validator = SamTemplateValidator(sam_template, ManagedPolicyLoader(iam_client))
 
     try:
@@ -45,6 +47,19 @@ def do_cli(ctx, template):
         raise InvalidSamTemplateException(str(e))
 
     click.secho("{} is a valid SAM Template".format(template), fg='green')
+
+
+def _get_boto_client(profile):
+    # If a profile is passed, instantiate the boto3 client from the session.
+    if profile:
+        try:
+            session = boto3.Session(profile_name=profile)
+            return session.client('iam')
+        except botocore.exceptions.ProfileNotFound as e:
+            click.secho("Profile '{}' was not found. Check your credential file.".format(profile), bg='red')
+            raise InvalidProfileException(str(e))
+
+    return boto3.client('iam')
 
 
 def _read_sam_file(template):
