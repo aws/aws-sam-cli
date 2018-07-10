@@ -821,6 +821,7 @@ Project Status
    -  [x] ``python3.6``
    -  [ ] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
+   -  [x] ``dotnetcore2.1``
 
 -  [x] AWS credential support
 -  [x] Debugging support
