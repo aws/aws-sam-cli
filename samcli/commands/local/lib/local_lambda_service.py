@@ -52,6 +52,7 @@ class LocalLambdaService(object):
 
         service.create()
 
-        LOG.info("Starting the Locally Lambda Service. You can now invoke you Lambda Functions through the endpoint.")
+        LOG.info("Starting the Local Lambda Service. You can now invoke your Lambda Functions defined in your template"
+                 "through the endpoint.")
 
         service.run()

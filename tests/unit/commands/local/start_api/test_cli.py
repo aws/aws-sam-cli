@@ -42,20 +42,20 @@ class TestCli(TestCase):
         self.call_cli()
 
         invoke_context_mock.assert_called_with(template_file=self.template,
-                                             function_identifier=None,
-                                             env_vars_file=self.env_vars,
-                                             debug_port=self.debug_port,
-                                             debug_args=self.debug_args,
-                                             docker_volume_basedir=self.docker_volume_basedir,
-                                             docker_network=self.docker_network,
-                                             log_file=self.log_file,
-                                             skip_pull_image=self.skip_pull_image,
-                                             aws_profile=self.profile)
+                                               function_identifier=None,
+                                               env_vars_file=self.env_vars,
+                                               debug_port=self.debug_port,
+                                               debug_args=self.debug_args,
+                                               docker_volume_basedir=self.docker_volume_basedir,
+                                               docker_network=self.docker_network,
+                                               log_file=self.log_file,
+                                               skip_pull_image=self.skip_pull_image,
+                                               aws_profile=self.profile)
 
         local_api_service_mock.assert_called_with(lambda_invoke_context=context_mock,
-                                               port=self.port,
-                                               host=self.host,
-                                               static_dir=self.static_dir)
+                                                  port=self.port,
+                                                  host=self.host,
+                                                  static_dir=self.static_dir)
 
         service_mock.start.assert_called_with()
 

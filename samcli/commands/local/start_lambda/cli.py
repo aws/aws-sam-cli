@@ -15,21 +15,21 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Allows you to run a Local Lambda Service that will service the invoke path to your functions for quick development & 
- testing through the AWS CLI or SDKs. When run in a directory that contains your Serverless functions and your AWS 
- SAM template, it will create a local HTTP server that wil response to the invoke call to your functions. 
- When accessed (via browser, cli etc), it will launch a Docker container locally to invoke the function. It will read 
- the CodeUri property of AWS::Serverless::Function resource to find the path in your file system containing the Lambda 
- Function code. This could be the project's root directory for interpreted languages like Node & Python, or a build 
- directory that stores your compiled artifacts or a JAR file. If you are using a interpreted language, local changes 
- will be available immediately in Docker container on every invoke. For more compiled languages or projects requiring 
- complex packing support, we recommended you run your own building solution and point SAM to the directory or file 
+Allows you to run a Local Lambda Service that will service the invoke path to your functions for quick development &
+ testing through the AWS CLI or SDKs. When run in a directory that contains your Serverless functions and your AWS
+ SAM template, it will create a local HTTP server that wil response to the invoke call to your functions.
+ When accessed (via browser, cli etc), it will launch a Docker container locally to invoke the function. It will read
+ the CodeUri property of AWS::Serverless::Function resource to find the path in your file system containing the Lambda
+ Function code. This could be the project's root directory for interpreted languages like Node & Python, or a build
+ directory that stores your compiled artifacts or a JAR file. If you are using a interpreted language, local changes
+ will be available immediately in Docker container on every invoke. For more compiled languages or projects requiring
+ complex packing support, we recommended you run your own building solution and point SAM to the directory or file
  containing build artifacts.
 """
 
 
-@click.command("start_lambda", help=HELP_TEXT, short_help="Runs a Local Lambda Service (for the Invoke path only)")
-@service_common_options
+@click.command("start-lambda", help=HELP_TEXT, short_help="Runs a Local Lambda Service (for the Invoke path only)")
+@service_common_options(3001)
 @invoke_common_options
 @cli_framework_options
 @pass_context

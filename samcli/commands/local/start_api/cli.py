@@ -29,7 +29,7 @@ and point SAM to the directory or file containing build artifacts.
 
 
 @click.command("start-api", help=HELP_TEXT, short_help="Runs your APIs locally")
-@service_common_options
+@service_common_options(3000)
 @click.option("--static-dir", "-s",
               default="public",
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
@@ -43,8 +43,7 @@ def cli(ctx,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile
-        ):
+        docker_network, log_file, skip_pull_image, profile):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, docker_volume_basedir,

@@ -5,6 +5,7 @@ from samcli.commands.local.start_lambda.cli import do_cli as start_lambda_cli
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
+
 class TestCli(TestCase):
 
     def setUp(self):
