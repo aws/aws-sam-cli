@@ -5,7 +5,7 @@ import base64
 
 from parameterized import parameterized, param
 
-from samcli.local.apigw.local_apigw_service import LocalApigwService, Route, CaseInsensitiveDict
+from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
@@ -29,7 +29,7 @@ class TestApiGatewayService(TestCase):
     def test_request_must_invoke_lambda(self):
         make_response_mock = Mock()
 
-        self.service._service_response = make_response_mock
+        self.service.service_response = make_response_mock
         self.service._get_current_route = Mock()
         self.service._construct_event = Mock()
 
@@ -39,7 +39,7 @@ class TestApiGatewayService(TestCase):
 
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
-        self.service._service_response = service_response_mock
+        self.service.service_response = service_response_mock
 
         result = self.service._request_handler()
 
@@ -54,7 +54,7 @@ class TestApiGatewayService(TestCase):
 
         make_response_mock = Mock()
 
-        self.service._service_response = make_response_mock
+        self.service.service_response = make_response_mock
         self.service._get_current_route = Mock()
         self.service._construct_event = Mock()
 
@@ -64,11 +64,11 @@ class TestApiGatewayService(TestCase):
 
         lambda_logs = "logs"
         lambda_response = "response"
-        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs
-
+        is_customer_error = False
+        lambda_output_parser_mock.get_lambda_output.return_value = lambda_response, lambda_logs, is_customer_error
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
-        self.service._service_response = service_response_mock
+        self.service.service_response = service_response_mock
 
         result = self.service._request_handler()
 
@@ -83,7 +83,7 @@ class TestApiGatewayService(TestCase):
     def test_request_handler_returns_make_response(self):
         make_response_mock = Mock()
 
-        self.service._service_response = make_response_mock
+        self.service.service_response = make_response_mock
         self.service._get_current_route = Mock()
         self.service._construct_event = Mock()
 
@@ -93,7 +93,7 @@ class TestApiGatewayService(TestCase):
 
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
-        self.service._service_response = service_response_mock
+        self.service.service_response = service_response_mock
 
         result = self.service._request_handler()
 
@@ -468,36 +468,3 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
-
-
-class TestService_CaseInsensiveDict(TestCase):
-
-    def setUp(self):
-        self.data = CaseInsensitiveDict({
-            'Content-Type': 'text/html',
-            'Browser': 'APIGW',
-        })
-
-    def test_contains_lower(self):
-        self.assertTrue('content-type' in self.data)
-
-    def test_contains_title(self):
-        self.assertTrue('Content-Type' in self.data)
-
-    def test_contains_upper(self):
-        self.assertTrue('CONTENT-TYPE' in self.data)
-
-    def test_contains_browser_key(self):
-        self.assertTrue('Browser' in self.data)
-
-    def test_contains_not_in(self):
-        self.assertTrue('Dog-Food' not in self.data)
-
-    def test_setitem_found(self):
-        self.data['Browser'] = 'APIGW'
-
-        self.assertTrue(self.data['browser'])
-
-    def test_keyerror(self):
-        with self.assertRaises(KeyError):
-            self.data['does-not-exist']

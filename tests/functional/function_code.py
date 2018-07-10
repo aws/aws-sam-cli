@@ -47,6 +47,13 @@ exports.handler = function(event, context) {
 };
 """
 
+THROW_ERROR_LAMBDA = """
+exports.handler = function(event, context, callback) {
+    var error = new Error("something is wrong");
+    callback(error);
+};
+"""
+
 API_GATEWAY_ECHO_EVENT = """
 exports.handler = function(event, context, callback){
 
