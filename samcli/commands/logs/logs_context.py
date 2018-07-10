@@ -76,7 +76,10 @@ class LogsCommandContext(object):
         """
         Performs some basic checks and returns itself when everything is ready to invoke a Lambda function.
 
-        :returns InvokeContext: Returns this object
+        Returns
+        -------
+        LogsCommandContext
+            Returns this object
         """
 
         self._output_file_handle = self._setup_output_file(self._output_file)
@@ -98,11 +101,22 @@ class LogsCommandContext(object):
 
     @property
     def formatter(self):
+        """
+        Creates and returns a Formatter capable of nicely formatting Lambda function logs
+
+        Returns
+        -------
+        LogsFormatter
+        """
         formatter_chain = [
             LambdaLogMsgFormatters.colorize_reports,
             LambdaLogMsgFormatters.colorize_errors,
+
+            # Format JSON "before" highlighting the keywords. Otherwise, JSON will be invalid from all the
+            # ANSI color codes and fail to pretty print
+            JSONMsgFormatter.format_json,
+
             KeywordHighlighter(self._filter_pattern).highlight_keywords,
-            JSONMsgFormatter.format_json
         ]
 
         return LogsFormatter(self.colored, formatter_chain)
@@ -117,6 +131,15 @@ class LogsCommandContext(object):
 
     @property
     def log_group_name(self):
+        """
+        Name of the AWS CloudWatch Log Group that we will be querying. It generates the name based on the
+        Lambda Function name and stack name provided.
+
+        Returns
+        -------
+        str
+            Name of the CloudWatch Log Group
+        """
 
         function_id = self._function_name
         if self._stack_name:
@@ -128,6 +151,13 @@ class LogsCommandContext(object):
 
     @property
     def colored(self):
+        """
+        Instance of Colored object to colorize strings
+
+        Returns
+        -------
+        samcli.commands.utils.colors.Colored
+        """
         # No colors if we are writing output to a file
         return Colored(colorize=self._must_print_colors)
 
@@ -144,8 +174,14 @@ class LogsCommandContext(object):
         """
         Open a log file if necessary and return the file handle. This will create a file if it does not exist
 
-        :param string output_file: Path to a file where the logs should be written to
-        :return: Handle to the opened log file, if necessary. None otherwise
+        Parameters
+        ----------
+        output_file : str
+            Path to a file where the logs should be written to
+
+        Returns
+        -------
+        Handle to the opened log file, if necessary. None otherwise
         """
         if not output_file:
             return None
