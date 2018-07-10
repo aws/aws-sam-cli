@@ -33,7 +33,6 @@ class TestLogsCliCommand(TestCase):
         LogsCommandContextMock.assert_called_with(self.function_name,
                                                   stack_name=self.stack_name,
                                                   filter_pattern=self.filter_pattern,
-                                                  tailing=tailing,
                                                   start_time=self.start_time,
                                                   end_time=self.end_time,
                                                   output_file=None)
@@ -65,7 +64,6 @@ class TestLogsCliCommand(TestCase):
         LogsCommandContextMock.assert_called_with(self.function_name,
                                                   stack_name=self.stack_name,
                                                   filter_pattern=self.filter_pattern,
-                                                  tailing=tailing,
                                                   start_time=self.start_time,
                                                   end_time=self.end_time,
                                                   output_file=None)

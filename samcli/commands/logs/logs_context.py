@@ -67,6 +67,7 @@ class LogsCommandContext(object):
         self._output_file_handle = None
 
         self._logs_client = boto3.client('logs')
+        self._cfn_client = boto3.client('cloudformation')
 
     def __enter__(self):
         """
@@ -116,7 +117,7 @@ class LogsCommandContext(object):
 
         function_id = self._function_name
         if self._stack_name:
-            function_id = self.get_resource_id_from_stack(self._stack_name, self._function_name)
+            function_id = self._get_resource_id_from_stack(self._cfn_client, self._stack_name, self._function_name)
             LOG.debug("Function with LogicalId '%s' in stack '%s' resolves to actual physical ID '%s'",
                       self._function_name, self._stack_name, function_id)
 
@@ -181,13 +182,16 @@ class LogsCommandContext(object):
         return to_utc(parsed)
 
     @staticmethod
-    def get_resource_id_from_stack(stack_name, logical_id):
+    def _get_resource_id_from_stack(cfn_client, stack_name, logical_id):
         """
         Given the LogicalID of a resource, call AWS CloudFormation to get physical ID of the resource within
         the specified stack.
 
         Parameters
         ----------
+        cfn_client
+            CloudFormation client provided by AWS SDK
+
         stack_name : str
             Name of the stack to query
 
@@ -205,12 +209,11 @@ class LogsCommandContext(object):
             If the stack or resource does not exist
         """
 
-        client = boto3.client('cloudformation')
         LOG.debug("Getting resource's PhysicalId from AWS CloudFormation stack. StackName=%s, LogicalId=%s",
                   stack_name, logical_id)
 
         try:
-            response = client.describe_stack_resource(StackName=stack_name, LogicalResourceId=logical_id)
+            response = cfn_client.describe_stack_resource(StackName=stack_name, LogicalResourceId=logical_id)
 
             LOG.debug("Response from AWS CloudFormation %s", response)
             return response["StackResourceDetail"]["PhysicalResourceId"]
@@ -221,4 +224,3 @@ class LogsCommandContext(object):
 
             # The exception message already has a well formatted error message that we can surface to user
             raise UserException(str(ex))
-

@@ -268,4 +268,3 @@ class TestLogsFetcher_tail(TestCase):
 
         self.assertEquals([], list(result_itr))
         self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
-

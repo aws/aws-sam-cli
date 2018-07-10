@@ -69,5 +69,10 @@ class Context(object):
         self._refresh_session()
 
     def _refresh_session(self):
+        """
+        Update boto3's default session by creating a new session based on values set in the context. Some properties of
+        the Boto3's session object are read-only. Therefore when Click parses new AWS session related properties (like
+        region & profile), it will call this method to create a new session with latest values for these properties.
+        """
         boto3.setup_default_session(region_name=self._aws_region,
                                     profile_name=self._aws_profile)

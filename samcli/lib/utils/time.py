@@ -4,7 +4,6 @@ Date & Time related utilities
 
 import datetime
 import dateparser
-import logging
 
 from dateutil.tz import tzutc
 

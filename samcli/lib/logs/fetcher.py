@@ -3,7 +3,6 @@ Filters & fetches logs from CloudWatch Logs
 """
 
 import time
-import datetime
 import logging
 
 from samcli.lib.utils.time import to_timestamp, to_datetime
@@ -20,6 +19,14 @@ class LogsFetcher(object):
     """
 
     def __init__(self, cw_client=None):
+        """
+        Initialize the fetcher
+
+        Parameters
+        ----------
+        cw_client
+            CloudWatch Logs Client from AWS SDK
+        """
         self.cw_client = cw_client
 
     def fetch(self, log_group_name, start=None, end=None, filter_pattern=None):
@@ -134,8 +141,8 @@ class LogsFetcher(object):
             for event in events_itr:
                 has_data = True
 
-                if event._timestamp_millis > latest_event_time:
-                    latest_event_time = event._timestamp_millis
+                if event.timestamp_millis > latest_event_time:
+                    latest_event_time = event.timestamp_millis
 
                 # Yield the event back so it behaves similar to ``fetch``
                 yield event
