@@ -5,7 +5,6 @@ from mock import Mock
 import time
 from unittest import TestCase
 import os
-import sys
 
 import requests
 
@@ -212,12 +211,8 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
         self.assertEquals(response.headers.get('Content-Type'),'application/json')
 
     def test_payload_is_not_json_serializable(self):
-        if sys.version_info.major == 2:
-            expected = {"Type": "User",
-                        "Message": "Could not parse request body into json: No JSON object could be decoded"}
-        else:
-            expected = {"Type": "User",
-                        "Message": "Could not parse request body into json: Expecting value: line 1 column 1 (char 0)"}
+        expected = {"Type": "User",
+                    "Message": "Could not parse request body into json: No JSON object could be decoded"}
 
         response = requests.post(self.url + '/2015-03-31/functions/HelloWorld/invocations', data='notat:asdfasdf')
 

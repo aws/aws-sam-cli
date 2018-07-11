@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
-import sys
 
 import boto3
 from botocore import UNSIGNED
@@ -77,12 +76,8 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
                                                         retries={'max_attempts': 0}))
 
     def test_invoke_with_non_json_data(self):
-        if sys.version_info.major == 2:
-            expected_error_message = "An error occurred (InvalidRequestContent) when calling the Invoke operation: " \
-                                     "Could not parse request body into json: No JSON object could be decoded"
-        else:
-            expected_error_message = "An error occurred (InvalidRequestContent) when calling the Invoke operation: " \
-                                     "Could not parse request body into json: Expecting value: line 1 column 1 (char 0)"
+        expected_error_message = "An error occurred (InvalidRequestContent) when calling the Invoke operation: " \
+                                 "Could not parse request body into json: No JSON object could be decoded"
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='notat:asdfasdf')
@@ -161,4 +156,18 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertEquals(response.get("StatusCode"), 200)
 
     def test_invoke_with_function_timeout(self):
-        pass
+        """
+        This behavior does not match the actually Lambda Service. For functions that timeout, data returned like the
+        following:
+        {"errorMessage":"<timestamp> <request_id> Task timed out after 5.00 seconds"}
+
+        For Local Lambda's, however, timeouts are an interrupt on the thread that runs invokes the function. Since the
+        invoke is on a different thread, we do not (currently) have a way to communicate this back to the caller. So
+        when a timeout happens locally, we do not add the FunctionError: Unhandled to the response and have an empty
+        string as the data returned (because no data was found in stdout from the container).
+        """
+        response = self.lambda_client.invoke(FunctionName="TimeoutFunction")
+
+        self.assertEquals(response.get("Payload").read().decode('utf-8'), '')
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEquals(response.get("StatusCode"), 200)
