@@ -6,7 +6,7 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
-from samcli.commands.local.cli_common.options import invoke_common_options
+from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.exceptions import UserException
@@ -29,12 +29,7 @@ and point SAM to the directory or file containing build artifacts.
 
 
 @click.command("start-api", help=HELP_TEXT, short_help="Runs your APIs locally")
-@click.option("--host",
-              default="127.0.0.1",
-              help="Local hostname or IP address to bind to (default: '127.0.0.1')")
-@click.option("--port", "-p",
-              default=3000,
-              help="Local port number to listen on (default: '3000')")
+@service_common_options(3000)
 @click.option("--static-dir", "-s",
               default="public",
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
@@ -48,8 +43,7 @@ def cli(ctx,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile
-        ):
+        docker_network, log_file, skip_pull_image, profile):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, docker_volume_basedir,
