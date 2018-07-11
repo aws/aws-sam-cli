@@ -37,7 +37,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
 
     def test_invoke_with_timeout_set(self):
-        command_list = self.get_command_list("HelloWorldSleepFunction",
+        command_list = self.get_command_list("TimeoutFunction",
                                              template_path=self.template_path,
                                              event_path=self.event_path)
 
