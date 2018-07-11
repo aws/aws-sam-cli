@@ -8,7 +8,7 @@ from parameterized import parameterized, param
 
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.cli_common.user_exceptions import UserException
+from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
 
 

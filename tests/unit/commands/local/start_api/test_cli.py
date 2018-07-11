@@ -7,7 +7,7 @@ from mock import patch, Mock
 
 from samcli.commands.local.start_api.cli import do_cli as start_api_cli
 from samcli.commands.local.lib.exceptions import NoApisDefined
-from samcli.commands.local.cli_common.user_exceptions import UserException
+from samcli.commands.exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 

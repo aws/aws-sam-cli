@@ -3,6 +3,7 @@ Context information passed to each CLI command
 """
 
 import logging
+import boto3
 
 
 class Context(object):
@@ -23,6 +24,8 @@ class Context(object):
         Initialize the context with default values
         """
         self._debug = False
+        self._aws_region = None
+        self._aws_profile = None
 
     @property
     def debug(self):
@@ -40,3 +43,36 @@ class Context(object):
         if self._debug:
             # Turn on debug logging
             logging.getLogger().setLevel(logging.DEBUG)
+
+    @property
+    def region(self):
+        return self._aws_region
+
+    @region.setter
+    def region(self, value):
+        """
+        Set AWS region
+        """
+        self._aws_region = value
+        self._refresh_session()
+
+    @property
+    def profile(self):
+        return self._aws_profile
+
+    @profile.setter
+    def profile(self, value):
+        """
+        Set AWS profile for credential resolution
+        """
+        self._aws_profile = value
+        self._refresh_session()
+
+    def _refresh_session(self):
+        """
+        Update boto3's default session by creating a new session based on values set in the context. Some properties of
+        the Boto3's session object are read-only. Therefore when Click parses new AWS session related properties (like
+        region & profile), it will call this method to create a new session with latest values for these properties.
+        """
+        boto3.setup_default_session(region_name=self._aws_region,
+                                    profile_name=self._aws_profile)

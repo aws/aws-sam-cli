@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options
 from samcli.commands.local.cli_common.options import invoke_common_options
-from samcli.commands.local.cli_common.user_exceptions import UserException
+from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException

@@ -9,7 +9,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.commands.local.lib.exceptions import NoApisDefined
-from samcli.commands.local.cli_common.user_exceptions import UserException
+from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.local_api_service import LocalApiService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 

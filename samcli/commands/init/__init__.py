@@ -9,7 +9,7 @@ from samcli.cli.main import pass_context, common_options
 from samcli.local.init import generate_project
 from samcli.local.init import RUNTIME_TEMPLATE_MAPPING
 from samcli.local.init.exceptions import GenerateProjectFailedError
-from samcli.commands.local.cli_common.user_exceptions import UserException
+from samcli.commands.exceptions import UserException
 
 LOG = logging.getLogger(__name__)
 SUPPORTED_RUNTIME = [r for r in RUNTIME_TEMPLATE_MAPPING]
