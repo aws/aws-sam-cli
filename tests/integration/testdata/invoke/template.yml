@@ -17,13 +17,21 @@ Resources:
       Runtime: python3.6
       CodeUri: .
 
-  HelloWorldSleepFunction:
+  TimeoutFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_handler
       Runtime: python3.6
       CodeUri: .
       Timeout: 5
+
+  HelloWorldSleepFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 15
 
   EchoCustomEnvVarFunction:
     Type: AWS::Serverless::Function
@@ -46,5 +54,19 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.write_to_stdout
+      Runtime: python3.6
+      CodeUri: .
+
+  EchoEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event
+      Runtime: python3.6
+      CodeUri: .
+
+  RaiseExceptionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.raise_exception
       Runtime: python3.6
       CodeUri: .
