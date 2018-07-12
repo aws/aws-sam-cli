@@ -26,7 +26,7 @@ logging.basicConfig(level=logging.INFO)
 class TestFunctionalLocalLambda(TestCase):
 
     def setUp(self):
-        self.host = "0.0.0.0"
+        self.host = "127.0.0.1"
         self.port = random.randint(30000, 40000)  # get a random port
         self.url = "http://{}:{}".format(self.host, self.port)
 
