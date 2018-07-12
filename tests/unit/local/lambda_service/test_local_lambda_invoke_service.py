@@ -1,6 +1,5 @@
 from unittest import TestCase
 from mock import Mock, patch, ANY, call
-import sys
 
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -185,10 +184,7 @@ class TestValidateRequestHandling(TestCase):
 
         self.assertEquals(response, "InvalidRequestContent")
 
-        if sys.version_info.major == 2:
-            expected_called_with = "Could not parse request body into json: No JSON object could be decoded"
-        else:
-            expected_called_with = "Could not parse request body into json: Expecting value: line 1 column 1 (char 0)"
+        expected_called_with = "Could not parse request body into json: No JSON object could be decoded"
 
         lambda_error_responses_mock.invalid_request_content.assert_called_once_with(expected_called_with)
 

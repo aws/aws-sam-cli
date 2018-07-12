@@ -84,9 +84,9 @@ class LocalLambdaInvokeService(BaseLocalService):
         try:
             json.loads(request_data)
         except ValueError as json_error:
-            LOG.debug("Request body was not json.")
+            LOG.debug("Request body was not json. Exception: %s", str(json_error))
             return LambdaErrorResponses.invalid_request_content(
-                "Could not parse request body into json: {}".format(str(json_error)))
+                "Could not parse request body into json: No JSON object could be decoded")
 
         if flask_request.args:
             LOG.debug("Query parameters are in the request but not supported")
