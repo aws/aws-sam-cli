@@ -28,7 +28,10 @@ and point SAM to the directory or file containing build artifacts.
 """
 
 
-@click.command("start-api", help=HELP_TEXT, short_help="Runs your APIs locally")
+@click.command("start-api",
+               help=HELP_TEXT,
+               short_help="Sets up a local endpoint you can use to test your API. Supports hot-reloading "
+                          "so you don't need to restart this service when you make changes to your function.")
 @service_common_options(3000)
 @click.option("--static-dir", "-s",
               default="public",

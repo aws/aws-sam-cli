@@ -15,20 +15,40 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-Allows you to run a Local Lambda Service that will service the invoke path to your functions for quick development &
- testing through the AWS CLI or SDKs. When run in a directory that contains your Serverless functions and your AWS
- SAM template, it will create a local HTTP server that wil response to the invoke call to your functions.
- When accessed (via browser, cli etc), it will launch a Docker container locally to invoke the function. It will read
- the CodeUri property of AWS::Serverless::Function resource to find the path in your file system containing the Lambda
- Function code. This could be the project's root directory for interpreted languages like Node & Python, or a build
- directory that stores your compiled artifacts or a JAR file. If you are using a interpreted language, local changes
- will be available immediately in Docker container on every invoke. For more compiled languages or projects requiring
- complex packing support, we recommended you run your own building solution and point SAM to the directory or file
- containing build artifacts.
+You can use this command to programmatically invoke your Lambda function locally using the AWS CLI or SDKs.
+This command starts a local endpoint that emulates the AWS Lambda service, and you can run your automated
+tests against this local Lambda endpoint. When you send an invoke to this endpoint using the AWS CLI or
+SDK, it will locally execute the Lambda function specified in the request.\n
+\b
+SETUP
+------
+Start the local Lambda endpoint by running this command in the directory that contains your AWS SAM template.
+$ sam local start-lambda\n
+\b
+USING AWS CLI
+-------------
+Then, you can invoke your Lambda function locally using the AWS CLI
+$ aws lambda invoke --function-name "HelloWorldFunction" --endpoint-url "http://127.0.0.1:3001" --no-verify-ssl out.txt
+\n
+\b
+USING AWS SDK
+-------------
+You can also use the AWS SDK in your automated tests to invoke your functions programatically.
+Here is a Python example:
+    self.lambda_client = boto3.client('lambda',
+                                  endpoint_url="http://127.0.0.1:3001",
+                                  use_ssl=False,
+                                  verify=False,
+                                  config=Config(signature_version=UNSIGNED,
+                                                read_timeout=0,
+                                                retries={'max_attempts': 0}))
+    self.lambda_client.invoke(FunctionName="HelloWorldFunction")
 """
 
 
-@click.command("start-lambda", help=HELP_TEXT, short_help="Runs a Local Lambda Service (for the Invoke path only)")
+@click.command("start-lambda",
+               help=HELP_TEXT,
+               short_help="Starts a local endpoint you can use to invoke your local Lambda functions.")
 @service_common_options(3001)
 @invoke_common_options
 @cli_framework_options

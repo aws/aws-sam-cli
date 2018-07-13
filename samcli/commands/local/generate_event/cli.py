@@ -13,20 +13,20 @@ from .sns.cli import cli as sns_cli
 
 
 HELP_TEXT = """
-Generate a Lambda Event that can be used to invoke a Lambda Function.
-
-Useful for developing serverless functions that handle asynchronous events (such as S3/Kinesis etc), or if you want to
-compose a script of test cases. Event body can be passed in either by stdin (default), or by using the --event
-parameter. Runtime output (logs etc) will be outputted to stderr, and the Lambda function result will be outputted to
-stdout.
+You can use this command to generate sample payloads from different event sources
+such as S3, API Gateway, and SNS. These payloads contain the information that the
+event sources send to your Lambda functions.\n
+\b
+Generate the event that S3 sends to your Lambda function when a new object is uploaded
+$ sam local generate-event s3 --bucket <bucket> --key <key>\n
+\b
+After you generate a sample event, you can use it to test your Lambda function locally
+$ sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <function logical id>
 """
 
 
-@click.group("generate-event")
+@click.group("generate-event", help=HELP_TEXT)
 def cli():
-    """
-    Generate an event
-    """
     pass  # pragma: no cover
 
 
