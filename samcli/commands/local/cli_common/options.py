@@ -109,7 +109,7 @@ def invoke_common_options(f):
                      envvar="SAM_DEBUG_PORT"),
 
         click.option('--debug-args',
-                     help="Additional arguments to be passed to the debugger",
+                     help="Additional arguments to be passed to the debugger.",
                      envvar="DEBUGGER_ARGS"),
 
         click.option('--docker-volume-basedir', '-v',
@@ -120,16 +120,16 @@ def invoke_common_options(f):
 
         click.option('--docker-network',
                      envvar="SAM_DOCKER_NETWORK",
-                     help="Specifies the name or id of an existing docker network to lambda docker"
-                          "containers should connect to, along with the default bridge network. If not specified,"
+                     help="Specifies the name or id of an existing docker network to lambda docker "
+                          "containers should connect to, along with the default bridge network. If not specified, "
                           "the Lambda containers will only connect to the default bridge docker network."),
 
         click.option('--log-file', '-l',
-                     help="logfile to send runtime logs to"),
+                     help="logfile to send runtime logs to."),
 
         click.option('--skip-pull-image',
                      is_flag=True,
-                     help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime",
+                     help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
                      envvar="SAM_SKIP_PULL_IMAGE"),
 
         click.option('--profile',

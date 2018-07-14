@@ -109,7 +109,6 @@ class LogsCommandContext(object):
         LogsFormatter
         """
         formatter_chain = [
-            LambdaLogMsgFormatters.colorize_reports,
             LambdaLogMsgFormatters.colorize_errors,
 
             # Format JSON "before" highlighting the keywords. Otherwise, JSON will be invalid from all the
