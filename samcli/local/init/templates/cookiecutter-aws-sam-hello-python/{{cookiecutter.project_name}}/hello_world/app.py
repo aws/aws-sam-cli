@@ -42,7 +42,7 @@ def lambda_handler(event, context):
             "memory_limit_in_mb: "Function memory"
         }
 
-        # Lambda Python Context Object doc
+        https://docs.aws.amazon.com/lambda/latest/dg/python-context-object.html
 
     Returns
     ------
