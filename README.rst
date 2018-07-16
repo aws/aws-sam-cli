@@ -19,7 +19,7 @@ fellow community members and the AWS SAM team.
 written with `AWS Serverless Application Model
 (SAM) <https://github.com/awslabs/serverless-application-model>`__. SAM
 CLI can be used to test functions locally, start a local API Gateway
-from a SAM template, validate a SAM template, fetch logs generate sample payloads
+from a SAM template, validate a SAM template, fetch logs, generate sample payloads
 for various event sources, and generate a SAM project in your favorite
 Lambda Runtime.
 
