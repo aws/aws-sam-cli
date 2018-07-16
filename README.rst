@@ -19,7 +19,7 @@ fellow community members and the AWS SAM team.
 written with `AWS Serverless Application Model
 (SAM) <https://github.com/awslabs/serverless-application-model>`__. SAM
 CLI can be used to test functions locally, start a local API Gateway
-from a SAM template, validate a SAM template, generate sample payloads
+from a SAM template, validate a SAM template, fetch logs generate sample payloads
 for various event sources, and generate a SAM project in your favorite
 Lambda Runtime.
 
@@ -35,13 +35,14 @@ Lambda Runtime.
    -  `Usage <#usage>`__
 
       -  `Invoke functions locally <#invoke-functions-locally>`__
+      -  `Run automated tests for your Lambda functions locally <#run-automated-tests-for-your-lambda-functions-locally>`__
       -  `Generate sample event source
          payloads <#generate-sample-event-source-payloads>`__
       -  `Run API Gateway locally <#run-api-gateway-locally>`__
       -  `Debugging Applications <#debugging-applications>`__
 
          -  `Debugging Python functions <#debugging-python-functions>`__
-
+      -  `Fetch, tail, and filter Lambda function logs <#fetch-tail-and-filter-lambda-function-logs>`__
       -  `Validate SAM templates <#validate-sam-templates>`__
       -  `Package and Deploy to
          Lambda <#package-and-deploy-to-lambda>`__
@@ -215,6 +216,99 @@ an event too.
 
    # For more options
    $ sam local invoke --help
+
+
+Run automated tests for your Lambda functions locally
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+You can use the ``sam local invoke`` command to manually test your code 
+by running Lambda function locally. With SAM CLI, you can easily
+author automated integration tests by
+first running tests against local Lambda functions before deploying to the
+cloud. The ``sam local start-lambda`` command starts a local
+endpoint that emulates the AWS Lambda service’s invoke endpoint, and you
+can invoke it from your automated tests. Because this endpoint emulates
+the Lambda service's invoke endpoint, you can write tests once and run
+them (without any modifications) against the local Lambda function or
+against a deployed Lambda function. You can also run the same tests
+against a deployed SAM stack in your CI/CD pipeline.
+
+Here is how this works:
+
+**1. Start the Local Lambda Endpoint** 
+
+Start the local Lambda endpoint by running the following command in the directory that contains your AWS
+SAM template:
+
+::
+
+   sam local start-lambda
+
+This command starts a local endpoint at http://127.0.0.1:3001 that
+emulates the AWS Lambda service, and you can run your automated tests
+against this local Lambda endpoint. When you send an invoke to this
+endpoint using the AWS CLI or SDK, it will locally execute the Lambda
+function specified in the request and return a response.
+
+**2. Run integration test against local Lambda endpoint** 
+
+In your integration test, you can use AWS SDK to invoke your Lambda function
+with test data, wait for response, and assert that the response what you
+expect. To run the integration test locally, you should configure AWS
+SDK to send Lambda Invoke API call to local Lambda endpoint started in
+previous step.
+
+Here is an Python example (AWS SDK for other languages have similar
+configurations):
+
+::
+
+   import boto3
+
+   # Set "running_locally" flag if you are running the integration test locally
+   if running_locally:
+
+       # Create Lambda SDK client to connect to appropriate Lambda endpoint
+       lambda_client = boto3.client('lambda',
+                                    endpoint_url="http://127.0.0.1:3001",
+                                    use_ssl=False,
+                                    verify=False,
+                                    config=Config(signature_version=UNSIGNED,
+                                                  read_timeout=0,
+                                                  retries={'max_attempts': 0}))
+   else:
+       lambda_client = boto3.client('lambda')
+                                           
+
+   # Invoke your Lambda function as you normally usually do. The function will run 
+   # locally if it is configured to do so
+   response = lambda_client.invoke(FunctionName="HelloWorldFunction")
+
+   # Verify the response 
+   assert response == "Hello World"
+
+This code can run without modifications against a Lambda function which
+is deployed. To do so, set the ``running_locally`` flag to ``False`` .
+This will setup AWS SDK to connect to AWS Lambda service on the cloud.
+
+Connecting to docker network
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Both ``sam local invoke`` and ``sam local start-api`` support connecting
+the create lambda docker containers to an existing docker network.
+
+To connect the containers to an existing docker network, you can use the
+``--docker-network`` command-line argument or the ``SAM_DOCKER_NETWORK``
+environment variable along with the name or id of the docker network you
+wish to connect to.
+
+.. code:: bash
+
+   # Invoke a function locally and connect to a docker network
+   $ sam local invoke --docker-network my-custom-network <function logical id>
+
+   # Start local API Gateway and connect all containers to a docker network
+   $ sam local start-api --docker-network b91847306671 -d 5858
+
 
 Generate sample event source payloads
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -416,24 +510,91 @@ specified. In this case, your full SAM CLI command would be:
 
 You may pass debugger arguments to functions of all runtimes.
 
-Connecting to docker network
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To simplify troubleshooting, we added a new command called ``sam logs``
+to SAM CLI. ``sam logs`` lets you fetch logs generated by your Lambda
+function from the command line. In addition to printing the logs on the
+terminal, this command has several nifty features to help you quickly
+find the bug. Note: This command works for all AWS Lambda functions; not
+just the ones you deploy using SAM.
 
-Both ``sam local invoke`` and ``sam local start-api`` support connecting
-the create lambda docker containers to an existing docker network.
+Fetch, tail, and filter Lambda function logs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To simplify troubleshooting, SAM CLI has a command called ``sam logs``. 
+``sam logs`` lets you fetch logs generated by your Lambda
+function from the command line. In addition to printing the logs on the
+terminal, this command has several nifty features to help you quickly
+find the bug. 
 
-To connect the containers to an existing docker network, you can use the
-``--docker-network`` command-line argument or the ``SAM_DOCKER_NETWORK``
-environment variable along with the name or id of the docker network you
-wish to connect to.
+Note: This command works for all AWS Lambda functions; not
+just the ones you deploy using SAM.
 
-.. code:: bash
+**Basic Usage: Using CloudFormation Stack** 
 
-   # Invoke a function locally and connect to a docker network
-   $ sam local invoke --docker-network my-custom-network <function logical id>
+When your function is a part
+of a CloudFormation stack, you can fetch logs using the function's
+LogicalID:
 
-   # Start local API Gateway and connect all containers to a docker network
-   $ sam local start-api --docker-network b91847306671 -d 5858
+::
+
+   sam logs -n HelloWorldFunction --stack-name mystack
+
+**Basic Usage: Using Lambda Function name** 
+
+Or, you can fetch logs using the function's name
+
+::
+
+   sam logs -n mystack-HelloWorldFunction-1FJ8PD
+
+**Tail Logs** 
+
+Add ``--tail`` option to wait for new logs and see them as
+they arrive. This is very handy during deployment or when
+troubleshooting a production issue.
+
+::
+
+   sam logs -n HelloWorldFunction --stack-name mystack --tail
+
+**View logs for specific time range** 
+You can view logs for specific time range using the ``-s`` and ``-e`` options
+
+::
+
+   sam logs -n HelloWorldFunction --stack-name mystack -s '10min ago' -e '2min ago'
+
+**Filter Logs** 
+
+Use the ``--filter`` option to quickly find logs that
+match terms, phrases or values in your log events
+
+::
+
+   sam logs -n HelloWorldFunction --stack-name mystack --filter "error"
+
+In the output, SAM CLI will underline all occurrences of the word
+“error” so you can easily locate the filter keyword within the log
+output.
+
+**Error Highlighting** 
+
+When your Lambda function crashes or times out,
+SAM CLI will highlight the timeout message in red. This will help you
+easily locate specific executions that are timing out within a giant
+stream of log output.
+
+.. figure:: https://user-images.githubusercontent.com/22755571/42301038-3363a366-7fc8-11e8-9d0e-308b209cb92b.png
+   :alt: SAM CLI Logs Error Highlighting
+
+
+**JSON pretty printing** 
+
+If your log messages print JSON strings, SAM
+CLI will automatically pretty print the JSON to help you visually parse
+and understand the JSON.
+
+.. figure:: https://user-images.githubusercontent.com/22755571/42301064-50c6cffa-7fc8-11e8-8f31-04ef117a9c5a.png
+   :alt: SAM CLI Logs JSON Pretty Print
 
 Validate SAM templates
 ~~~~~~~~~~~~~~~~~~~~~~
