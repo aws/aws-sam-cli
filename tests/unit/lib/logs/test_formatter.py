@@ -125,38 +125,6 @@ class TestLambdaLogMsgFormatters_colorize_crashes(TestCase):
         colored.red.assert_not_called()
 
 
-class TestLambdaLogMsgFormatters_colorize_reports(TestCase):
-
-    @parameterized.expand([
-        "START something",
-        "END something else",
-        "REPORT some other thing"
-    ])
-    def test_must_color_lines_starting_with_keywords(self, input_msg):
-        color_result = "colored messaage"
-        colored = Mock()
-        colored.white.return_value = color_result
-        event = LogEvent("group_name", {"message": input_msg})
-
-        result = LambdaLogMsgFormatters.colorize_reports(event, colored)
-        self.assertEquals(result.message, color_result)
-        colored.white.assert_called_with(input_msg)
-
-    @parameterized.expand([
-        "something START",
-        "something else END",
-        "some other REPORT thing",
-        "foo bar"
-    ])
-    def test_must_ignore_other_messages(self, input_msg):
-        colored = Mock()
-        event = LogEvent("group_name", {"message": input_msg})
-
-        result = LambdaLogMsgFormatters.colorize_reports(event, colored)
-        self.assertEquals(result.message, input_msg)
-        colored.white.assert_not_called()
-
-
 class TestKeywordHighlight_highlight_keyword(TestCase):
 
     def test_must_highlight_all_keywords(self):
