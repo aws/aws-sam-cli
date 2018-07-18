@@ -13,6 +13,7 @@ class TestCli(TestCase):
         self.env_vars = "env-vars"
         self.debug_port = 123
         self.debug_args = "args"
+        self.debugger_path = "/test/path"
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -24,7 +25,9 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.start_lambda.cli.InvokeContext")
     @patch("samcli.commands.local.start_lambda.cli.LocalLambdaService")
-    def test_cli_must_setup_context_and_start_service(self, local_lambda_service_mock, invoke_context_mock):
+    @patch("samcli.commands.local.start_lambda.cli.DebugContext")
+    def test_cli_must_setup_context_and_start_service(self, debug_context, local_lambda_service_mock,
+                                                      invoke_context_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         invoke_context_mock.return_value.__enter__.return_value = context_mock
@@ -32,13 +35,15 @@ class TestCli(TestCase):
         service_mock = Mock()
         local_lambda_service_mock.return_value = service_mock
 
+        debug_context_mock = Mock()
+        debug_context.return_value = debug_context_mock
+
         self.call_cli()
 
         invoke_context_mock.assert_called_with(template_file=self.template,
                                                function_identifier=None,
                                                env_vars_file=self.env_vars,
-                                               debug_port=self.debug_port,
-                                               debug_args=self.debug_args,
+                                               debug_context=debug_context_mock,
                                                docker_volume_basedir=self.docker_volume_basedir,
                                                docker_network=self.docker_network,
                                                log_file=self.log_file,
@@ -48,6 +53,9 @@ class TestCli(TestCase):
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock,
                                                      port=self.port,
                                                      host=self.host)
+
+        debug_context.assert_called_with(debug_port=self.debug_port, debug_args=self.debug_args,
+                                         debugger_path=self.debugger_path)
 
         service_mock.start.assert_called_with()
 
@@ -70,6 +78,7 @@ class TestCli(TestCase):
                          env_vars=self.env_vars,
                          debug_port=self.debug_port,
                          debug_args=self.debug_args,
+                         debugger_path=self.debugger_path,
                          docker_volume_basedir=self.docker_volume_basedir,
                          docker_network=self.docker_network,
                          log_file=self.log_file,

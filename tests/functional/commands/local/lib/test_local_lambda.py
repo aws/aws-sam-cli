@@ -67,7 +67,7 @@ class TestFunctionalLocalLambda(TestCase):
         manager = ContainerManager()
         local_runtime = LambdaRuntime(manager)
         runner = LocalLambdaRunner(local_runtime, self.mock_function_provider, self.cwd, self.env_var_overrides,
-                                   debug_args=None, debug_port=None, aws_profile=None)
+                                   debug_context=None, aws_profile=None)
 
         # Append the real AWS credentials to the expected values.
         creds = runner.get_aws_creds()

@@ -8,6 +8,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options
 from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
+from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.local_api_service import LocalApiService
@@ -45,21 +46,24 @@ def cli(ctx,
         host, port, static_dir,
 
         # Common Options for Lambda Invoke
-        template, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile):
+        template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
+        docker_network, log_file, skip_pull_image, profile
+        ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
+    do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, debugger_path,
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
+           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
     LOG.debug("local start-api command is called")
+
+    debug_context = DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
@@ -68,13 +72,12 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
         with InvokeContext(template_file=template,
                            function_identifier=None,  # Don't scope to one particular function
                            env_vars_file=env_vars,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
                            docker_volume_basedir=docker_volume_basedir,
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile) as invoke_context:
+                           aws_profile=profile,
+                           debug_context=debug_context) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context,
                                       port=port,

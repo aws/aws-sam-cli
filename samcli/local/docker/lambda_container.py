@@ -38,6 +38,7 @@ class LambdaContainer(Container):
 
     _IMAGE_REPO_NAME = "lambci/lambda"
     _WORKING_DIR = "/var/task"
+    _DEFAULT_CONTAINER_DEBUG_PATH = "/tmp/lambci_debug_files/dlv"
 
     def __init__(self,
                  runtime,
@@ -45,8 +46,7 @@ class LambdaContainer(Container):
                  code_dir,
                  memory_mb=128,
                  env_vars=None,
-                 debug_port=None,
-                 debug_args=None):
+                 debug_options=None):
         """
         Initializes the class
 
@@ -56,16 +56,17 @@ class LambdaContainer(Container):
             to the container to execute
         :param int memory_mb: Optional. Max limit of memory in MegaBytes this Lambda function can use.
         :param dict env_vars: Optional. Dictionary containing environment variables passed to container
-        :param int debug_port: Optional. Bind the runtime's debugger to this port
-        :param string debug_args: Optional. Extra arguments passed to the entry point to setup debugging
+        :param DebugContext debug_options: Optional. Contains container debugging info (port, debugger path)
         """
 
         if not Runtime.has_value(runtime):
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
         image = LambdaContainer._get_image(runtime)
-        ports = LambdaContainer._get_exposed_ports(debug_port)
-        entry = LambdaContainer._get_entry_point(runtime, debug_port, debug_args)
+        ports = LambdaContainer._get_exposed_ports(debug_options)
+        entry = LambdaContainer._get_entry_point(runtime, debug_options)
+        additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
+        additional_volumes = LambdaContainer._get_additional_volumes(debug_options)
         cmd = [handler]
 
         super(LambdaContainer, self).__init__(image,
@@ -75,10 +76,12 @@ class LambdaContainer(Container):
                                               memory_limit_mb=memory_mb,
                                               exposed_ports=ports,
                                               entrypoint=entry,
-                                              env_vars=env_vars)
+                                              env_vars=env_vars,
+                                              container_opts=additional_options,
+                                              additional_volumes=additional_volumes)
 
     @staticmethod
-    def _get_exposed_ports(debug_port):
+    def _get_exposed_ports(debug_options):
         """
         Return Docker container port binding information. If a debug port is given, then we will ask Docker to
         bind to same port both inside and outside the container ie. Runtime process is started in debug mode with
@@ -87,12 +90,51 @@ class LambdaContainer(Container):
         :param int debug_port: Optional, integer value of debug port
         :return dict: Dictionary containing port binding information. None, if debug_port was not given
         """
-        if not debug_port:
+        if not debug_options:
             return None
 
         return {
             # container port : host port
-            debug_port: debug_port
+            debug_options.debug_port: debug_options.debug_port
+        }
+
+    @staticmethod
+    def _get_additional_options(runtime, debug_options):
+        """
+        Return additional Docker container options. Used by container debug mode to enable certain container
+        security options.
+        :param DebugContext debug_options: DebugContext for the runtime of the container.
+        :return dict: Dictionary containing additional arguments to be passed to container creation.
+        """
+        if not debug_options:
+            return None
+
+        opts = {}
+
+        if runtime == Runtime.go1x.value:
+            # These options are required for delve to function properly inside a docker container on docker < 1.12
+            # See https://github.com/moby/moby/issues/21051
+            opts["security_opt"] = ["seccomp:unconfined"]
+            opts["cap_add"] = ["SYS_PTRACE"]
+
+        return opts
+
+    @staticmethod
+    def _get_additional_volumes(debug_options):
+        """
+        Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
+        debugger executable into the container.
+        :param DebugContext debug_options: DebugContext for the runtime of the container.
+        :return dict: Dictionary containing volume map passed to container creation.
+        """
+        if not debug_options or not debug_options.debugger_path:
+            return None
+
+        return {
+            debug_options.debugger_path: {
+                "bind": "/tmp/lambci_debug_files",
+                "mode": "ro"
+            }
         }
 
     @staticmethod
@@ -106,7 +148,7 @@ class LambdaContainer(Container):
         return "{}:{}".format(LambdaContainer._IMAGE_REPO_NAME, runtime)
 
     @staticmethod
-    def _get_entry_point(runtime, debug_port=None, debug_args=None):
+    def _get_entry_point(runtime, debug_options=None):
         """
         Returns the entry point for the container. The default value for the entry point is already configured in the
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes
@@ -119,12 +161,13 @@ class LambdaContainer(Container):
             ie. if command is ``node index.js arg1 arg2``, then this list will be ["node", "index.js", "arg1", "arg2"]
         """
 
-        if not debug_port:
+        if not debug_options:
             return None
 
+        debug_port = debug_options.debug_port
         debug_args_list = []
-        if debug_args:
-            debug_args_list = debug_args.split(" ")
+        if debug_options.debug_args:
+            debug_args_list = debug_options.debug_args.split(" ")
 
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
@@ -145,6 +188,15 @@ class LambdaContainer(Container):
                         "-jar",
                         "/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
                    ]
+
+        elif runtime == Runtime.go1x.value:
+            entrypoint = ["/var/runtime/aws-lambda-go"] \
+                + debug_args_list \
+                + [
+                    "-debug=true",
+                    "-delvePort=" + str(debug_port),
+                    "-delvePath=" + LambdaContainer._DEFAULT_CONTAINER_DEBUG_PATH,
+                  ]
 
         elif runtime == Runtime.nodejs.value:
 
