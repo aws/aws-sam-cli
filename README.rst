@@ -1012,7 +1012,7 @@ A special thank you
 
 SAM CLI uses the open source
 `docker-lambda <https://github.com/lambci/docker-lambda>`__ Docker
-images created by [@mhart](https://github.com/mhart).
+images created by `@mhart <https://github.com/mhart>`__.
 
 
 .. raw:: html
