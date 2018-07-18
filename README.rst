@@ -239,7 +239,7 @@ Here is how this works:
 Start the local Lambda endpoint by running the following command in the directory that contains your AWS
 SAM template:
 
-::
+.. code:: bash
 
    sam local start-lambda
 
@@ -260,7 +260,7 @@ previous step.
 Here is an Python example (AWS SDK for other languages have similar
 configurations):
 
-::
+.. code:: python
 
    import boto3
 
@@ -442,7 +442,7 @@ Visual Studio Code:
 In order to setup Visual Studio Code for debugging with AWS SAM CLI, use
 the following launch configuration:
 
-::
+.. code:: json
 
    {
        "version": "0.2.0",
@@ -534,7 +534,7 @@ When your function is a part
 of a CloudFormation stack, you can fetch logs using the function's
 LogicalID:
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack
 
@@ -542,7 +542,7 @@ LogicalID:
 
 Or, you can fetch logs using the function's name
 
-::
+.. code:: bash
 
    sam logs -n mystack-HelloWorldFunction-1FJ8PD
 
@@ -552,14 +552,14 @@ Add ``--tail`` option to wait for new logs and see them as
 they arrive. This is very handy during deployment or when
 troubleshooting a production issue.
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack --tail
 
 **View logs for specific time range** 
 You can view logs for specific time range using the ``-s`` and ``-e`` options
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack -s '10min ago' -e '2min ago'
 
@@ -568,7 +568,7 @@ You can view logs for specific time range using the ``-s`` and ``-e`` options
 Use the ``--filter`` option to quickly find logs that
 match terms, phrases or values in your log events
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack --filter "error"
 
@@ -661,7 +661,7 @@ in your SAM template.
 
 For example:
 
-::
+.. code:: yaml
 
    AWSTemplateFormatVersion: 2010-09-09
    Transform: AWS::Serverless-2016-10-31
@@ -678,7 +678,7 @@ You should then build your JAR file using your normal build process.
 Please note that JAR files used with AWS Lambda should be a shaded JAR
 file (or uber jar) containing all of the function dependencies.
 
-::
+.. code:: bash
 
    // Build the JAR file
    $ mvn package shade:shade
@@ -736,7 +736,7 @@ In order to test API Gateway with a non-default profile from your AWS
 credentials file append ``--profile <profile name>`` to the
 ``start-api`` command:
 
-::
+.. code:: bash
 
    // Test API Gateway locally with a credential profile.
    $ sam local start-api --profile some_profile
