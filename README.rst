@@ -100,7 +100,7 @@ Prerequisites
 ~~~~~~~~~~~~~
 
 - Docker
-- Python2.7 or Python3.6
+- Python2.7 or Python3.6+
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
@@ -122,7 +122,7 @@ containers – SAM CLI will do it automatically as required.
 Windows, Linux, macOS with PIP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Verify Python Version is 2.7 or 3.6.
+Verify Python Version is 2.7 or 3.6+.
 
 .. code:: bash
 
