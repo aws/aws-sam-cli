@@ -46,6 +46,17 @@ def intrinsics_multi_constructor(loader, tag_prefix, node):
     return {cfntag: value}
 
 
+def _resolve_aliases(dict_to_resolve):
+    """
+    Resolves all anchors in a yaml template
+    :param dict_to_resolve
+    :return:
+    """
+    yaml.SafeDumper.ignore_aliases = lambda *args: True
+    return yaml.safe_load(
+        yaml.safe_dump(dict_to_resolve, default_flow_style=False))
+
+
 def yaml_dump(dict_to_dump):
     """
     Dumps the dictionary as a YAML document
@@ -64,4 +75,4 @@ def yaml_parse(yamlstr):
         return json.loads(yamlstr)
     except ValueError:
         yaml.SafeLoader.add_multi_constructor("!", intrinsics_multi_constructor)
-        return yaml.safe_load(yamlstr)
+        return _resolve_aliases(yaml.safe_load(yamlstr))

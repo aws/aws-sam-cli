@@ -46,6 +46,29 @@ class TestYaml(TestCase):
         }
     }
 
+    yaml_with_aliases = """
+    Resource:
+        Foobar: &Foobar
+            Qux: Quux
+            Overridable: unknown
+        Baz:
+            <<: *Foobar
+            Overridable: True
+    """
+
+    parsed_yaml_with_aliases = {
+        "Resource": {
+            "Foobar": {
+                "Qux": "Quux",
+                "Overridable": "unknown"
+            },
+            "Baz": {
+                "Qux": "Quux",
+                "Overridable": True
+            }
+        }
+    }
+
     def test_yaml_with_tags(self):
         output = yaml_parse(self.yaml_with_tags)
         self.assertEquals(self.parsed_yaml_dict, output)
@@ -73,6 +96,10 @@ class TestYaml(TestCase):
 
         actual_output = yaml_parse(input)
         self.assertEquals(actual_output, output)
+
+    def test_yaml_aliases_resolution(self):
+        output = yaml_parse(self.yaml_with_aliases)
+        self.assertEquals(self.parsed_yaml_with_aliases, output)
 
     def test_parse_json_with_tabs(self):
         template = '{\n\t"foo": "bar"\n}'
