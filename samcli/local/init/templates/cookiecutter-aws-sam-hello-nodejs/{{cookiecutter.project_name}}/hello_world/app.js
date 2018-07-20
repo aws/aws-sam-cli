@@ -27,22 +27,15 @@ exports.lambda_handler = function (event, context, callback) {
         });    
 };
 {% else %}
-exports.lambda_handler = async (event, context, callback) => {
-    try {
-        const ret = await axios(url);
-        response = {
-            'statusCode': 200,
-            'body': JSON.stringify({
-                message: 'hello world',
-                location: ret.data.trim()
-            })
-        }
-    }
-    catch (err) {
-        console.log(err);
-        callback(err, null);
-    }
+exports.lambda_handler = async event => {
+    const ret = await axios(url);
 
-    callback(null, response)
+    return {
+        'statusCode': 200,
+        'body': JSON.stringify({
+            message: 'hello world',
+            location: ret.data.trim()
+        })
+    }
 };
 {% endif %}
