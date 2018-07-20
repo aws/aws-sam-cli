@@ -497,7 +497,7 @@ Java, and Python. We require `delve <https://github.com/derekparker/delve>`__
 as the debugger, and wrap your function with it at runtime. The debugger
 is run in headless mode, listening on the debug port.
 
-When debugging, you must compile you function in debug mode:
+When debugging, you must compile your function in debug mode:
 
 `GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o <output path> <path to code directory>
 
