@@ -7,38 +7,6 @@ from hello_world import app
 
 
 @pytest.fixture()
-def lambda_context():
-    """ Generates a dummy Lamba context """
-
-    context = namedtuple(
-        "context",
-        [
-            "aws_request_id",
-            "client_context",
-            "function_name",
-            "function_version",
-            "identity",
-            "invoked_function_arn",
-            "log_group_name",
-            "log_stream_name",
-            "memory_limit_in_mb",
-        ],
-    )
-
-    context.aws_request_id = "a1c0d36a-4371-457a-a8d4-8cda6958244e"
-    context.client_context = None
-    context.function_name = "test"
-    context.function_version = "$LATEST"
-    context.identity = None
-    context.invoked_function_arn = "arn:aws:lambda:eu-west-1:738236477645:function:test"
-    context.log_group_name = "/aws/lambda/test"
-    context.log_stream_name = "2018/7/12/[$LATEST]5979abf592037c9f"
-    context.memory_limit_in_mb = "128"
-
-    return context
-
-
-@pytest.fixture()
 def apigw_event():
     """ Generates API GW Event"""
 
@@ -111,18 +79,3 @@ def test_lambda_handler(apigw_event, mocker):
 
     data = json.loads(ret["body"])
     assert data["message"] == "hello world"
-
-
-def test_lambda_handler_error(apigw_event, lambda_context, mocker):
-
-    mocker.patch.object(app.requests, 'get',
-                        side_effect=app.requests.RequestException)
-    ret = app.lambda_handler(apigw_event, lambda_context)
-
-    assert ret["statusCode"] == 500
-
-    for key in ("message", "request_id"):
-        assert key in ret["body"]
-
-    data = json.loads(ret["body"])
-    assert data["message"] == "Something went wrong :("

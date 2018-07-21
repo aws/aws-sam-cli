@@ -63,26 +63,10 @@ def lambda_handler(event, context):
     try:
         ip = requests.get("http://checkip.amazonaws.com/")
     except requests.RequestException as e:
-        error = {
-            "lambda_request_id": context.aws_request_id,
-            "lambda_log_group": context.log_group_name,
-            "lambda_log_stream": context.log_stream_name,
-            "apigw_request_id": event["requestContext"]["requestId"],
-            "error_message": str(e.args),
-        }
-
         # Send some context about this error to Lambda Logs
-        print(json.dumps(error, indent=4))
+        print(e)
 
-        return {
-            "statusCode": 500,
-            "body": json.dumps(
-                {
-                    "message": "Something went wrong :(",
-                    "request_id": error["apigw_request_id"],
-                }
-            ),
-        }
+        raise e
 
     return {
         "statusCode": 200,
