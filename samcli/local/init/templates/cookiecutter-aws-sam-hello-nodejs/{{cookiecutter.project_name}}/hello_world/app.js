@@ -56,25 +56,8 @@ exports.lambda_handler = function (event, context, callback) {
             callback(null, response);
         })
         .catch(function (err) {
-            error = {
-                "lambda_request_id": context.awsRequestId,
-                "lambda_log_group": context.logGroupName,
-                "lambda_log_stream": context.logStreamName,
-                "apigw_request_id": event.requestContext.requestId,
-                "error_message": err,
-            }
-
-            console.error(error);
-
-            response = {
-                'statusCode': 500,
-                'body': JSON.stringify({
-                    message: 'Something went wrong :(',
-                    request_id: error.apigw_request_id
-                })
-            }
-
-            callback(null, response);
+            console.log(err);
+            callback(err);
         });
 };
 {%- else %}
@@ -90,25 +73,8 @@ exports.lambda_handler = async (event, context) => {
         }
     }
     catch (err) {
-        error = {
-            "lambda_request_id": context.awsRequestId,
-            "lambda_log_group": context.logGroupName,
-            "lambda_log_stream": context.logStreamName,
-            "apigw_request_id": event.requestContext.requestId,
-            "error_message": err,
-        }
-
-        console.error(error);
-
-        response = {
-            'statusCode': 500,
-            'body': JSON.stringify({
-                message: 'Something went wrong :(',
-                request_id: error.apigw_request_id
-            })
-        }
-
-        return response
+        console.log(err);
+        return err;
     }
 
     return response
