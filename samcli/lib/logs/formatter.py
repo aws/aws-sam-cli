@@ -145,18 +145,6 @@ class LambdaLogMsgFormatters(object):
 
         return event
 
-    @staticmethod
-    def colorize_reports(event, colored):
-        """
-        AWS Lambda emits special log statements when the function starts and ends. This formatter will highlight
-        these statements
-        """
-
-        if event.message.startswith("START") or event.message.startswith("END") or event.message.startswith("REPORT"):
-            event.message = colored.white(event.message)
-
-        return event
-
 
 class KeywordHighlighter(object):
     """

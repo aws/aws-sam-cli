@@ -33,3 +33,11 @@ def write_to_stdout(event, context):
     sys.stdout.write("Docker Lambda is writing to stdout")
 
     return "wrote to stdout"
+
+
+def echo_event(event, context):
+    return event
+
+
+def raise_exception(event, context):
+    raise Exception("Lambda is raising an exception")

@@ -16,16 +16,19 @@ LOG = logging.getLogger(__name__)
 
 
 HELP_TEXT = """
-Invokes a local Lambda function once and quits after invocation completes.
-
-Useful for developing serverless functions that handle asynchronous events (such as S3/Kinesis etc), or if you want to
-compose a script of test cases. Event body can be passed in either by stdin (default), or by using the --event
-parameter. Runtime output (logs etc) will be outputted to stderr, and the Lambda function result will be outputted to
-stdout.
+You can use this command to execute your function in a Lambda-like environment locally.
+You can pass in the event body via stdin or by using the -e (--event) parameter.
+Logs from the Lambda function will be output via stdout.\n
+\b
+Invoking a Lambda function using an event file
+$ sam local invoke "HelloWorldFunction" -e event.json\n
+\b
+Invoking a Lambda function using input from stdin
+$ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction" \n
 """
 
 
-@click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once")
+@click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
 @click.option("--event", '-e',
               type=click.Path(),
               default="-",  # Defaults to stdin
