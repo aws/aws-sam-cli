@@ -6,7 +6,6 @@ from unittest import TestCase
 from mock import patch, Mock
 from parameterized import parameterized, param
 
-from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
@@ -31,14 +30,13 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    @patch("samcli.commands.local.invoke.cli._get_debug_context")
-    def test_cli_must_setup_context_and_invoke(self, get_debug_context_mock, get_event_mock, InvokeContextMock):
+    @patch("samcli.commands.local.invoke.cli.DebugContext")
+    def test_cli_must_setup_context_and_invoke(self, debug_context, get_event_mock, InvokeContextMock):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        debug_context_data = DebugContext(debug_port=self.debug_port, debug_args=self.debug_args,
-                                          debugger_path=self.debugger_path)
-        get_debug_context_mock.return_value = debug_context_data
+        debug_context_mock = Mock()
+        debug_context.return_value = debug_context_mock
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -61,7 +59,7 @@ class TestCli(TestCase):
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
                                              env_vars_file=self.env_vars,
-                                             debug_context=debug_context_data,
+                                             debug_context=debug_context_mock,
                                              docker_volume_basedir=self.docker_volume_basedir,
                                              docker_network=self.docker_network,
                                              log_file=self.log_file,

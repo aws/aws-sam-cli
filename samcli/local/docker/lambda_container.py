@@ -38,7 +38,13 @@ class LambdaContainer(Container):
 
     _IMAGE_REPO_NAME = "lambci/lambda"
     _WORKING_DIR = "/var/task"
-    _DEFAULT_CONTAINER_DEBUG_PATH = "/tmp/lambci_debug_files/dlv"
+
+    # The Volume Mount path for debug files in docker
+    _DEBUGGER_VOLUME_MOUNT_PATH = "/tmp/lambci_debug_files"
+    _DEFAULT_CONTAINER_DBG_GO_PATH = _DEBUGGER_VOLUME_MOUNT_PATH + "/dlv"
+
+    # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
+    _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
 
     def __init__(self,
                  runtime,
@@ -131,10 +137,7 @@ class LambdaContainer(Container):
             return None
 
         return {
-            debug_options.debugger_path: {
-                "bind": "/tmp/lambci_debug_files",
-                "mode": "ro"
-            }
+            debug_options.debugger_path: LambdaContainer._DEBUGGER_VOLUME_MOUNT
         }
 
     @staticmethod
@@ -195,7 +198,7 @@ class LambdaContainer(Container):
                 + [
                     "-debug=true",
                     "-delvePort=" + str(debug_port),
-                    "-delvePath=" + LambdaContainer._DEFAULT_CONTAINER_DEBUG_PATH,
+                    "-delvePath=" + LambdaContainer._DEFAULT_CONTAINER_DBG_GO_PATH,
                   ]
 
         elif runtime == Runtime.nodejs.value:
