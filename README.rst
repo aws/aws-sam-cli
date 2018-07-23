@@ -320,8 +320,8 @@ can generate mock/sample event payloads for the following services:
 -  Kinesis
 -  DynamoDB
 -  Cloudwatch Scheduled Event
--  Cloudtrail
 -  API Gateway
+-  SNS
 
 **Syntax**
 
