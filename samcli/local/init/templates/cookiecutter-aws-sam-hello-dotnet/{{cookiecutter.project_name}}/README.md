@@ -7,7 +7,21 @@ This is a sample template for {{ cookiecutter.project_name }}
 * AWS CLI already configured with at least PowerUser permission
 * [Docker installed](https://www.docker.com/community-edition)
 * [SAM Local installed](https://github.com/awslabs/aws-sam-cli)
-* [DotNet Core installed](https://www.microsoft.com/net/download)
+* [.NET Core installed](https://www.microsoft.com/net/download)
+
+The sample template for {{ cookiecutter.project_name }} uses Cake. The Cake dependencies are listed below, per Operating System.
+
+### Linux
+
+* [Mono for Linux](https://www.mono-project.com/download/stable/#download-lin)
+
+### macOS
+
+* [Mono for macOS](https://www.mono-project.com/docs/getting-started/install/mac/)
+
+### Windows
+
+* [.NET Framework 4.6.1](https://www.microsoft.com/en-us/download/details.aspx?id=49981)
 
 ## Setup process
 
