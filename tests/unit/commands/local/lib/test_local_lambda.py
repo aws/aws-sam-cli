@@ -372,8 +372,11 @@ class TestLocalLambda_get_invoke_config(TestCase):
                                               aws_profile=self.aws_profile,
                                               debug_context=self.debug_context)
 
+    @patch('samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging')
     @patch('samcli.commands.local.lib.local_lambda.FunctionConfig')
-    def test_must_work(self, FunctionConfigMock):
+    def test_must_work(self, FunctionConfigMock, is_debugging_mock):
+        is_debugging_mock.return_value = False
+
         env_vars = "envvars"
         self.local_lambda._make_env_vars = Mock()
         self.local_lambda._make_env_vars.return_value = env_vars
@@ -386,6 +389,44 @@ class TestLocalLambda_get_invoke_config(TestCase):
                             runtime="runtime",
                             memory=1234,
                             timeout=12,
+                            handler="handler",
+                            codeuri="codeuri",
+                            environment=None,
+                            rolearn=None)
+
+        config = "someconfig"
+        FunctionConfigMock.return_value = config
+        actual = self.local_lambda._get_invoke_config(function)
+        self.assertEquals(actual, config)
+
+        FunctionConfigMock.assert_called_with(name=function.name,
+                                              runtime=function.runtime,
+                                              handler=function.handler,
+                                              code_abs_path=codepath,
+                                              memory=function.memory,
+                                              timeout=function.timeout,
+                                              env_vars=env_vars)
+
+        self.local_lambda._get_code_path.assert_called_with(function.codeuri)
+        self.local_lambda._make_env_vars.assert_called_with(function)
+
+    @patch('samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging')
+    @patch('samcli.commands.local.lib.local_lambda.FunctionConfig')
+    def test_timeout_set_to_max_during_debugging(self, FunctionConfigMock, is_debugging_mock):
+        is_debugging_mock.return_value = True
+
+        env_vars = "envvars"
+        self.local_lambda._make_env_vars = Mock()
+        self.local_lambda._make_env_vars.return_value = env_vars
+
+        codepath = "codepath"
+        self.local_lambda._get_code_path = Mock()
+        self.local_lambda._get_code_path.return_value = codepath
+
+        function = Function(name="function_name",
+                            runtime="runtime",
+                            memory=1234,
+                            timeout=36000,
                             handler="handler",
                             codeuri="codeuri",
                             environment=None,

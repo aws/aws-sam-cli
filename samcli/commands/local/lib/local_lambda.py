@@ -19,6 +19,7 @@ class LocalLambdaRunner(object):
     of actually running the function on a Docker container.
     """
     PRESENT_DIR = "."
+    MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
 
     def __init__(self,
                  local_runtime,
@@ -100,12 +101,20 @@ class LocalLambdaRunner(object):
 
         LOG.debug("Resolved absolute path to code is %s", code_abs_path)
 
+        function_timeout = function.timeout
+
+        # The Runtime container handles timeout inside the container. When debugging with short timeouts, this can
+        # cause the container execution to stop. When in debug mode, we set the timeout in the container to a max 10
+        # hours. This will ensure the container doesn't unexpectedly stop while debugging function code
+        if self.is_debugging():
+            function_timeout = self.MAX_DEBUG_TIMEOUT
+
         return FunctionConfig(name=function.name,
                               runtime=function.runtime,
                               handler=function.handler,
                               code_abs_path=code_abs_path,
                               memory=function.memory,
-                              timeout=function.timeout,
+                              timeout=function_timeout,
                               env_vars=env_vars)
 
     def _make_env_vars(self, function):
