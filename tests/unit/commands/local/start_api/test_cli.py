@@ -31,8 +31,7 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.start_api.cli.InvokeContext")
     @patch("samcli.commands.local.start_api.cli.LocalApiService")
-    @patch("samcli.commands.local.start_api.cli.DebugContext")
-    def test_cli_must_setup_context_and_start_service(self, debug_context, local_api_service_mock,
+    def test_cli_must_setup_context_and_start_service(self, local_api_service_mock,
                                                       invoke_context_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -41,28 +40,24 @@ class TestCli(TestCase):
         service_mock = Mock()
         local_api_service_mock.return_value = service_mock
 
-        debug_context_mock = Mock()
-        debug_context.return_value = debug_context_mock
-
         self.call_cli()
 
         invoke_context_mock.assert_called_with(template_file=self.template,
                                                function_identifier=None,
                                                env_vars_file=self.env_vars,
-                                               debug_context=debug_context_mock,
                                                docker_volume_basedir=self.docker_volume_basedir,
                                                docker_network=self.docker_network,
                                                log_file=self.log_file,
                                                skip_pull_image=self.skip_pull_image,
-                                               aws_profile=self.profile)
+                                               aws_profile=self.profile,
+                                               debug_port=self.debug_port,
+                                               debug_args=self.debug_args,
+                                               debugger_path=self.debugger_path)
 
         local_api_service_mock.assert_called_with(lambda_invoke_context=context_mock,
                                                   port=self.port,
                                                   host=self.host,
                                                   static_dir=self.static_dir)
-
-        debug_context.assert_called_with(debug_port=self.debug_port, debug_args=self.debug_args,
-                                         debugger_path=self.debugger_path)
 
         service_mock.start.assert_called_with()
 

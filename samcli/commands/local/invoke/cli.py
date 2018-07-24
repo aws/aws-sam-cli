@@ -9,7 +9,6 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands.local.cli_common.options import invoke_common_options
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
-from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
@@ -57,7 +56,7 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
     LOG.debug("local invoke command is called")
 
     event_data = _get_event(event)
-    debug_context = DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
+
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
     try:
@@ -70,7 +69,9 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
                            aws_profile=profile,
-                           debug_context=debug_context) as context:
+                           debug_port=debug_port,
+                           debug_args=debug_args,
+                           debugger_path=debugger_path) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(context.function_name,

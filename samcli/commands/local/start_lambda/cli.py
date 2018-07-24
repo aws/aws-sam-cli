@@ -8,7 +8,6 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options
 from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
-from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -76,8 +75,6 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
 
     LOG.debug("local start_lambda command is called")
 
-    debug_context = DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
-
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
 
@@ -85,12 +82,14 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
         with InvokeContext(template_file=template,
                            function_identifier=None,  # Don't scope to one particular function
                            env_vars_file=env_vars,
-                           debug_context=debug_context,
                            docker_volume_basedir=docker_volume_basedir,
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile) as invoke_context:
+                           aws_profile=profile,
+                           debug_port=debug_port,
+                           debug_args=debug_args,
+                           debugger_path=debugger_path) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context,
                                          port=port,

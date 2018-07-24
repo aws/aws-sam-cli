@@ -2,20 +2,30 @@
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
 
-import os
-import sys
+import errno
 import json
+import sys
+import os
 import yaml
-import docker
 
+import docker
 import requests
 
 from samcli.yamlhelper import yaml_parse
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.manager import ContainerManager
-from .user_exceptions import InvokeContextException
+from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
+
+# This is an attempt to do a controlled import. pathlib is in the
+# Python standard library starting at 3.4. This will import pathlib2,
+# which is a backport of the Python Standard Library pathlib
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
 
 
 class InvokeContext(object):
@@ -43,22 +53,38 @@ class InvokeContext(object):
                  log_file=None,
                  skip_pull_image=None,
                  aws_profile=None,
-                 debug_context=None):
+                 debug_port=None,
+                 debug_args=None,
+                 debugger_path=None):
         """
         Initialize the context
 
-        :param string template_file: Name or path to template
-        :param string function_identifier: Identifier of the function to invoke
-        :param string env_vars_file: Path to a file containing values for environment variables
-        :param int debug_port: Port to bind the debugger
-        :param string docker_volume_basedir: Directory for the Docker volume
-        :param string docker_network: Docker network identifier
-        :param string log_file: Path to a file to send container output to. If the file does not exist, it will be
+        Parameters
+        ----------
+        template_file str
+            Name or path to template
+        function_identifier str
+            Identifier of the function to invoke
+        env_vars_file str
+            Path to a file containing values for environment variables
+        docker_volume_basedir str
+            Directory for the Docker volume
+        docker_network str
+            Docker network identifier
+        log_file str
+            Path to a file to send container output to. If the file does not exist, it will be
             created
-        :param bool skip_pull_image: Should we skip pulling the Docker container image?
-        :param string aws_profile: Name of the profile to fetch AWS credentials from
+        skip_pull_image bool
+            Should we skip pulling the Docker container image?
+        aws_profile str
+            Name of the profile to fetch AWS credentials from
+        debug_port int
+            Port to bind the debugger to
+        debug_args str
+            Additional arguments passed to the debugger
+        debugger_path str
+            Path to the directory of the debugger to mount on Docker
         """
-
         self._template_file = template_file
         self._function_identifier = function_identifier
         self._env_vars_file = env_vars_file
@@ -67,12 +93,15 @@ class InvokeContext(object):
         self._log_file = log_file
         self._skip_pull_image = skip_pull_image
         self._aws_profile = aws_profile
-        self._debug_context = debug_context
+        self._debug_port = debug_port
+        self._debug_args = debug_args
+        self._debugger_path = debugger_path
 
         self._template_dict = None
         self._function_provider = None
         self._env_vars_value = None
         self._log_file_handle = None
+        self._debug_context = None
 
     def __enter__(self):
         """
@@ -87,6 +116,10 @@ class InvokeContext(object):
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
+
+        self._debug_context = self._get_debug_context(self._debug_port,
+                                                      self._debug_args,
+                                                      self._debugger_path)
 
         self._check_docker_connectivity()
 
@@ -267,6 +300,46 @@ class InvokeContext(object):
             return None
 
         return open(log_file, 'wb')
+
+    @staticmethod
+    def _get_debug_context(debug_port, debug_args, debugger_path):
+        """
+        Creates a DebugContext if the InvokeContext is in a debugging mode
+
+        Parameters
+        ----------
+        debug_port int
+             Port to bind the debugger to
+        debug_args str
+            Additional arguments passed to the debugger
+        debugger_path str
+            Path to the directory of the debugger to mount on Docker
+
+        Returns
+        -------
+        samcli.commands.local.lib.debug_context.DebugContext
+            Object representing the DebugContext
+
+        Raises
+        ------
+        samcli.commands.local.cli_common.user_exceptions.DebugContext
+            When the debugger_path is not valid
+        """
+        if debug_port and debugger_path:
+            try:
+                debugger = Path(debugger_path).resolve(strict=True)
+            except OSError as error:
+                if error.errno == errno.ENOENT:
+                    raise DebugContextException("'debugger_path' could not be found.")
+                else:
+                    raise error
+
+            # We turn off pylint here due to https://github.com/PyCQA/pylint/issues/1660
+            if not debugger.is_dir():  # pylint: disable=no-member
+                raise DebugContextException("'debugger_path' should be a directory with the debugger in it.")
+            debugger_path = str(debugger)
+
+        return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
 
     @staticmethod
     def _check_docker_connectivity(docker_client=None):

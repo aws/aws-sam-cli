@@ -506,7 +506,7 @@ via the `--debugger-path` argument. Build delve locally as follows:
 
 `GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv`
 
-NOTE: The output path needs to end in `/dlv`. The docker container will expect the dlv binary to be in the <output path>
+NOTE: The output path needs to end in `/dlv`. The docker container will expect the dlv binary to be in the <delve folder path>
 and will cause mounting issue otherwise.
 
 Then invoke `sam` similar to the following:
