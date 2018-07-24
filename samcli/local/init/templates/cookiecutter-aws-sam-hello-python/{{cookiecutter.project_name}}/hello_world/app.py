@@ -26,21 +26,32 @@ def lambda_handler(event, context):
 
         https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
 
-    context: dict, required
+    context: object, required
         Lambda Context runtime methods and attributes
 
-        {
-            "aws_request_id": "Lambda request ID",
-            "client_context": "Additional context",
-            "function_name": "Lambda function name",
-            "function_version": "Function version identifier",
-            "get_remaining_time_in_millis": "Time in milliseconds before function times out",
-            "identity": "Identity context from caller",
-            "invoked_function_arn": "Function ARN",
-            "log_group_name": "Cloudwatch Log group name",
-            "log_stream_name": "Cloudwatch Log stream name",
-            "memory_limit_in_mb: "Function memory"
-        }
+    Attributes
+    ----------
+
+    context.aws_request_id: str
+         Lambda request ID
+    context.client_context: object
+         Additional context when invoked through AWS Mobile SDK
+    context.function_name: str
+         Lambda function name
+    context.function_version: str
+         Function version identifier
+    context.get_remaining_time_in_millis: function
+         Time in milliseconds before function times out
+    context.identity:
+         Cognito identity provider context when invoked through AWS Mobile SDK
+    context.invoked_function_arn: str
+         Function ARN
+    context.log_group_name: str
+         Cloudwatch Log group name
+    context.log_stream_name: str
+         Cloudwatch Log stream name
+    context.memory_limit_in_mb: int
+        Function memory
 
         https://docs.aws.amazon.com/lambda/latest/dg/python-context-object.html
 
