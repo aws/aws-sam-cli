@@ -330,13 +330,13 @@ class InvokeContext(object):
                 debugger = Path(debugger_path).resolve(strict=True)
             except OSError as error:
                 if error.errno == errno.ENOENT:
-                    raise DebugContextException("'debugger_path' could not be found.")
+                    raise DebugContextException("'{}' could not be found.".format(debugger_path))
                 else:
                     raise error
 
             # We turn off pylint here due to https://github.com/PyCQA/pylint/issues/1660
             if not debugger.is_dir():  # pylint: disable=no-member
-                raise DebugContextException("'debugger_path' should be a directory with the debugger in it.")
+                raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
             debugger_path = str(debugger)
 
         return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
