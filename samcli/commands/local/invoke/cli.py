@@ -38,17 +38,17 @@ $ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunct
 @cli_framework_options
 @click.argument('function_identifier', required=False)
 @pass_context
-def cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile):
+def cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, debugger_path,
+        docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
+    do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, debugger_path,
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
 
 
-def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile):
+def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args,  # pylint: disable=R0914
+           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -64,13 +64,14 @@ def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debu
         with InvokeContext(template_file=template,
                            function_identifier=function_identifier,
                            env_vars_file=env_vars,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
                            docker_volume_basedir=docker_volume_basedir,
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile) as context:
+                           aws_profile=profile,
+                           debug_port=debug_port,
+                           debug_args=debug_args,
+                           debugger_path=debugger_path) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(context.function_name,
