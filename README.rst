@@ -1019,9 +1019,9 @@ images created by `@mhart <https://github.com/mhart>`__.
 
    <!-- Links -->
 
-.. |Build Status| image:: https://travis-ci.org/awslabs/aws-sam-local.svg?branch=develop
+.. |Build Status| image:: https://travis-ci.org/awslabs/aws-sam-cli.svg?branch=develop
 .. |Apache-2.0| image:: https://img.shields.io/npm/l/aws-sam-local.svg?maxAge=2592000
-.. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-local.svg?maxAge=2592000
-.. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-local.svg?maxAge=2592000
+.. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg?maxAge=2592000
+.. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?maxAge=2592000
 .. |PyPI version| image:: https://badge.fury.io/py/aws-sam-cli.svg
 
