@@ -195,7 +195,7 @@ class EnvironmentVariables(object):
         # value is a scalar type like int, str which can be stringified
         elif sys.version_info.major > 2:
             result = str(value)
-        elif not isinstance(value, unicode):
+        elif not isinstance(value, unicode):  # noqa: F821 pylint: disable=undefined-variable
             result = str(value)
         else:
             result = value
