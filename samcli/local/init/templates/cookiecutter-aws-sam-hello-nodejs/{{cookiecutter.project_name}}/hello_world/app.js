@@ -9,7 +9,7 @@ let response;
 {%- endif %}
 
 {% if cookiecutter.runtime == 'nodejs6.10' or cookiecutter.runtime == 'nodejs4.3' %}
-exports.lambda_handler = function (event, context, callback) {
+exports.lambdaHandler = function (event, context, callback) {
     axios(url)
         .then(function (ret) {
             response = {
@@ -27,7 +27,7 @@ exports.lambda_handler = function (event, context, callback) {
         });    
 };
 {% else %}
-exports.lambda_handler = async (event, context, callback) => {
+exports.lambdaHandler = async (event, context, callback) => {
     try {
         const ret = await axios(url);
         response = {
@@ -37,12 +37,10 @@ exports.lambda_handler = async (event, context, callback) => {
                 location: ret.data.trim()
             })
         }
-    }
-    catch (err) {
+        callback(null, response)
+    } catch (err) {
         console.log(err);
         callback(err, null);
     }
-
-    callback(null, response)
 };
 {% endif %}
