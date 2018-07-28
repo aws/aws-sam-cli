@@ -489,6 +489,56 @@ port to your host machine.
    issue <https://github.com/Microsoft/vscode-python/issues/71>`__ for
    updates.
 
+Debugging Golang functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Golang function debugging is slightly different when compared to Node.JS,
+Java, and Python. We require `delve <https://github.com/derekparker/delve>`__
+as the debugger, and wrap your function with it at runtime. The debugger
+is run in headless mode, listening on the debug port.
+
+When debugging, you must compile your function in debug mode:
+
+`GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o <output path> <path to code directory>
+
+You must compile `delve` to run in the container and provide its local path
+via the `--debugger-path` argument. Build delve locally as follows:
+
+`GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv`
+
+NOTE: The output path needs to end in `/dlv`. The docker container will expect the dlv binary to be in the <delve folder path>
+and will cause mounting issue otherwise.
+
+Then invoke `sam` similar to the following:
+
+`sam local start-api -d 5986 --debugger-path <delve folder path>`
+
+NOTE: The `--debugger-path` is the path to the directory that contains the `dlv` binary compiled from the above.
+
+The following is an example launch configuration for Visual Studio Code to
+attach to a debug session.
+
+.. code:: json
+
+  {
+    "version": "0.2.0",
+    "configurations": [
+    {
+        "name": "Connect to Lambda container",
+        "type": "go",
+        "request": "launch",
+        "mode": "remote",
+        "remotePath": "",
+        "port": <debug port>,
+        "host": "127.0.0.1",
+        "program": "${workspaceRoot}",
+        "env": {},
+        "args": [],
+      },
+    ]
+  }
+
+
 Passing Additional Runtime Debug Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1019,9 +1069,9 @@ images created by `@mhart <https://github.com/mhart>`__.
 
    <!-- Links -->
 
-.. |Build Status| image:: https://travis-ci.org/awslabs/aws-sam-local.svg?branch=develop
+.. |Build Status| image:: https://travis-ci.org/awslabs/aws-sam-cli.svg?branch=develop
 .. |Apache-2.0| image:: https://img.shields.io/npm/l/aws-sam-local.svg?maxAge=2592000
-.. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-local.svg?maxAge=2592000
-.. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-local.svg?maxAge=2592000
+.. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg?maxAge=2592000
+.. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?maxAge=2592000
 .. |PyPI version| image:: https://badge.fury.io/py/aws-sam-cli.svg
 

@@ -66,7 +66,7 @@ class TestFunctionalLocalLambda(TestCase):
         manager = ContainerManager()
         local_runtime = LambdaRuntime(manager)
         lambda_runner = LocalLambdaRunner(local_runtime, self.mock_function_provider, self.cwd, env_vars_values=None,
-                                          debug_args=None, debug_port=None, aws_profile=None)
+                                          debug_context=None, aws_profile=None)
         self.lambda_invoke_context_mock.local_lambda_runner = lambda_runner
         self.lambda_invoke_context_mock.get_cwd.return_value = self.cwd
 
@@ -74,8 +74,8 @@ class TestFunctionalLocalLambda(TestCase):
         shutil.rmtree(self.code_abs_path)
 
     @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
-    def test_must_start_service_and_serve_endpoints(self, SamApiProviderMock):
-        SamApiProviderMock.return_value = self.api_provider_mock
+    def test_must_start_service_and_serve_endpoints(self, sam_api_provider_mock):
+        sam_api_provider_mock.return_value = self.api_provider_mock
 
         local_service = LocalApiService(self.lambda_invoke_context_mock,
                                         self.port,
@@ -94,8 +94,8 @@ class TestFunctionalLocalLambda(TestCase):
         self.assertEquals(response.status_code, 403)  # "HTTP GET /post" must not exist
 
     @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
-    def test_must_serve_static_files(self, SamApiProviderMock):
-        SamApiProviderMock.return_value = self.api_provider_mock
+    def test_must_serve_static_files(self, sam_api_provider_mock):
+        sam_api_provider_mock.return_value = self.api_provider_mock
 
         local_service = LocalApiService(self.lambda_invoke_context_mock,
                                         self.port,

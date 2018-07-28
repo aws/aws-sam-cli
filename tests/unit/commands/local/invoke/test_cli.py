@@ -21,6 +21,7 @@ class TestCli(TestCase):
         self.env_vars = "env-vars"
         self.debug_port = 123
         self.debug_args = "args"
+        self.debugger_path = "/test/path"
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -44,6 +45,7 @@ class TestCli(TestCase):
                    env_vars=self.env_vars,
                    debug_port=self.debug_port,
                    debug_args=self.debug_args,
+                   debugger_path=self.debugger_path,
                    docker_volume_basedir=self.docker_volume_basedir,
                    docker_network=self.docker_network,
                    log_file=self.log_file,
@@ -53,13 +55,14 @@ class TestCli(TestCase):
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
                                              env_vars_file=self.env_vars,
-                                             debug_port=self.debug_port,
-                                             debug_args=self.debug_args,
                                              docker_volume_basedir=self.docker_volume_basedir,
                                              docker_network=self.docker_network,
                                              log_file=self.log_file,
                                              skip_pull_image=self.skip_pull_image,
-                                             aws_profile=self.profile)
+                                             aws_profile=self.profile,
+                                             debug_port=self.debug_port,
+                                             debug_args=self.debug_args,
+                                             debugger_path=self.debugger_path)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event=event_data,
@@ -88,6 +91,7 @@ class TestCli(TestCase):
                        env_vars=self.env_vars,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
+                       debugger_path=self.debugger_path,
                        docker_volume_basedir=self.docker_volume_basedir,
                        docker_network=self.docker_network,
                        log_file=self.log_file,
@@ -114,6 +118,7 @@ class TestCli(TestCase):
                        env_vars=self.env_vars,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
+                       debugger_path=self.debugger_path,
                        docker_volume_basedir=self.docker_volume_basedir,
                        docker_network=self.docker_network,
                        log_file=self.log_file,
