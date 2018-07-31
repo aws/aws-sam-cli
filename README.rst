@@ -1013,6 +1013,17 @@ homebrew and try again:
 
 Once installed then repeat the `Installation process <#windows-linux-macos-with-pip>`_
 
+2. **CONNECTING TO MAC SERVICES**
+
+If you running services on your Mac, for example elasticsearch, and having trouble connecting then make sure your host is set to "docker.for.mac.localhost:PORT". In this example I set it to "docker.for.mac.localhost:9200" for the ES you are talking to. Example:
+
+.. code:: javascript
+
+   let client = new elasticsearch.Client({
+        host: 'docker.for.mac.localhost:9200', //talking to my macs ip based from inside docker
+        log: 'error'
+    });
+
 Project Status
 --------------
 
