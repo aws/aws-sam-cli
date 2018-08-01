@@ -859,6 +859,22 @@ defined in your function. The file should be structured as follows:
 .. code:: bash
 
    $ sam local start-api --env-vars env.json
+   
+Only the variables in the Environment section will be read from the file and show up in the execution. In the example below, only TABLE_NAME and BUCKET_NAME will be read if defined in the env.json file
+
+.. code:: yaml
+
+
+   Resources:
+     MyFunction1:
+       Type: AWS::Serverless::Function
+       Properties:
+         Handler: index.handler
+         Runtime: nodejs4.3
+         Environment:
+           Variables:
+             TABLE_NAME: prodtable
+             BUCKET_NAME: prodbucket
 
 
 Shell environment
