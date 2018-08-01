@@ -455,7 +455,7 @@ the following launch configuration:
        "version": "0.2.0",
        "configurations": [
            {
-               "name": "Attach to SAM Local",
+               "name": "Attach to SAM CLI",
                "type": "node",
                "request": "attach",
                "address": "localhost",
