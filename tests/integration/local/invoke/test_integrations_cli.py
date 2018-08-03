@@ -94,3 +94,14 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stderr = b"".join(process.stderr.readlines()).strip()
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode('utf-8'))
+
+    def test_invoke_raises_exception_with_noargs_and_event(self):
+        command_list = self.get_command_list("HelloWorldLambdaFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+        command_list.append("--no-args")
+        process = Popen(command_list, stderr=PIPE)
+        process.wait()
+
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+        self.assertIn("no_args and event both given. Do not know what to do", process_stderr.decode('utf-8'))
