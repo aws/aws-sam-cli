@@ -101,6 +101,7 @@ Prerequisites
 
 - Docker
 - Python2.7 or Python3.6
+- `The AWS CLI <https://aws.amazon.com/cli/>`__
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
