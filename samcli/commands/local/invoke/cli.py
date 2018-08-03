@@ -34,28 +34,32 @@ $ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunct
               default="-",  # Defaults to stdin
               help="JSON file containing event data passed to the Lambda function during invoke. If this option "
                    "is not specified, we will default to reading JSON from stdin")
+@click.option("--no-args", '-na',
+              default=False,
+              is_flag=True,
+              help="Pass this flag to indicate the absence of an event.")
 @invoke_common_options
 @cli_framework_options
 @click.argument('function_identifier', required=False)
 @pass_context
-def cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, debugger_path,
-        docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
+def cli(ctx, function_identifier, template, event, env_vars, no_args, debug_port, debug_args,
+        debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, debugger_path,
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
+    do_cli(ctx, function_identifier, template, event, env_vars, no_args, debug_port, debug_args,
+           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
 
 
-def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
+def do_cli(ctx, function_identifier, template, event, env_vars, no_args, debug_port,  # pylint: disable=R0914
+           debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
     LOG.debug("local invoke command is called")
 
-    event_data = _get_event(event)
+    event_data = "{}" if no_args else _get_event(event)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
