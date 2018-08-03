@@ -350,7 +350,7 @@ Run API Gateway locally
 
 ``sam local start-api`` spawns a local API Gateway to test HTTP
 request/response functionality. Features hot-reloading to allow you to
-quickly develop, and iterate over your functions.
+quickly develop and iterate over your functions.
 
 .. figure:: media/sam-start-api.gif
    :alt: SAM CLI Start API
