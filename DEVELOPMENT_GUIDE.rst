@@ -7,6 +7,8 @@ This document will make your life easier by helping you setup a development envi
 or anything that will help you be more productive. If you found something is missing or inaccurate, update this guide
 and send a Pull Request.
 
+**Note**: ``pyenv`` currently only supports macOS and Linux. If you are a Windows users, consider using `pipenv`_.
+
 Environment Setup
 -----------------
 
@@ -105,3 +107,4 @@ best practices that we have learnt over time.
 .. _pyenv: https://github.com/pyenv/pyenv
 .. _tox: http://tox.readthedocs.io/en/latest/
 .. _numpy docstring: https://numpydoc.readthedocs.io/en/latest/format.html
+.. _pipenv: https://docs.pipenv.org/
