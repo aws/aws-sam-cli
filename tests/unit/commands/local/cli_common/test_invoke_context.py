@@ -39,7 +39,8 @@ class TestInvokeContext__enter__(TestCase):
                                        aws_profile="profile",
                                        debug_port=1111,
                                        debugger_path="path-to-debugger",
-                                       debug_args='args')
+                                       debug_args='args',
+                                       aws_region="region")
 
         template_dict = "template_dict"
         invoke_context._get_template_data = Mock()
@@ -119,7 +120,8 @@ class TestInvokeContextAsContextManager(TestCase):
                            aws_profile="profile",
                            debug_port=1111,
                            debugger_path="path-to-debugger",
-                           debug_args='args') as context:
+                           debug_args='args',
+                           aws_region="region") as context:
             self.assertEquals(context_obj, context)
 
         EnterMock.assert_called_with()
@@ -167,7 +169,8 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                                      aws_profile="profile",
                                      debug_port=1111,
                                      debugger_path="path-to-debugger",
-                                     debug_args='args')
+                                     debug_args='args',
+                                     aws_region="region")
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
@@ -198,7 +201,8 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                                            cwd=cwd,
                                            debug_context=None,
                                            env_vars_values=ANY,
-                                           aws_profile="profile")
+                                           aws_profile="profile",
+                                           aws_region="region")
 
 
 class TestInvokeContext_stdout_property(TestCase):

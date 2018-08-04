@@ -19,6 +19,7 @@ class TestCli(TestCase):
         self.log_file = "logfile"
         self.skip_pull_image = True
         self.profile = "profile"
+        self.region = "region"
 
         self.host = "host"
         self.port = 123
@@ -46,7 +47,8 @@ class TestCli(TestCase):
                                                aws_profile=self.profile,
                                                debug_port=self.debug_port,
                                                debug_args=self.debug_args,
-                                               debugger_path=self.debugger_path)
+                                               debugger_path=self.debugger_path,
+                                               aws_region=self.region)
 
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock,
                                                      port=self.port,
@@ -78,4 +80,5 @@ class TestCli(TestCase):
                          docker_network=self.docker_network,
                          log_file=self.log_file,
                          skip_pull_image=self.skip_pull_image,
-                         profile=self.profile)
+                         profile=self.profile,
+                         region=self.region)
