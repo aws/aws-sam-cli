@@ -1,8 +1,11 @@
+
+==============
 Advanced Usage
 ==============
 
+
 Compiled Languages
-~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------
 
 **Java**
 
@@ -68,7 +71,7 @@ You can generate a .NET Core example by using the ``sam init --runtime dotnetcor
 .. _IAMCreds
 
 IAM Credentials
-~~~~~~~~~~~~~~~
+---------------
 
 SAM CLI will invoke functions with your locally configured IAM
 credentials.
@@ -98,7 +101,7 @@ CLI <http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.ht
 for more details.
 
 Lambda Environment Variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 If your Lambda function uses environment variables, you can provide
 values for them will passed to the Docker container. Here is how you
@@ -132,7 +135,7 @@ For example, consider the SAM template snippet:
 
 
 Environment Variable file
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 Use ``--env-vars`` argument of ``invoke`` or ``start-api`` commands to
 provide a JSON file that contains values for environment variables
@@ -157,7 +160,7 @@ defined in your function. The file should be structured as follows:
 
 
 Shell environment
-^^^^^^^^^^^^^^^^^
+-----------------
 
 Variables defined in your Shell’s environment will be passed to the
 Docker container, if they map to a Variable in your Lambda function.
@@ -174,7 +177,7 @@ Following command will make value of ``mytable`` available to both
    $ TABLE_NAME=mytable sam local start-api
 
 Combination of Shell and Environment Variable file
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------------
 
 For greater control, you can use a combination shell variables and
 external environment variable file. If a variable is defined in both
@@ -187,7 +190,7 @@ lower.
 3. Hard-coded values from the template
 
 Identifying local execution from Lambda function code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------------
 
 When your Lambda function is invoked using SAM CLI, it sets an
 environment variable ``AWS_SAM_LOCAL=true`` in the Docker container.
@@ -197,7 +200,7 @@ example: Disable emitting metrics to CloudWatch (or) Enable verbose
 logging etc.
 
 Static Assets
-~~~~~~~~~~~~~
+-------------
 
 Often, it’s useful to serve up static assets (e.g CSS/HTML/Javascript
 etc) when developing a Serverless application. On AWS, this would
@@ -210,7 +213,7 @@ can also disable this behaviour completely by setting
 ``--static-dir ""``.
 
 Local Logging
-~~~~~~~~~~~~~
+-------------
 
 Both ``invoke`` and ``start-api`` command allow you to pipe logs from
 the function’s invocation into a file. This will be useful if you are
@@ -224,7 +227,7 @@ Example:
    $ sam local invoke --log-file ./output.log
 
 Remote Docker
-~~~~~~~~~~~~~
+-------------
 
 Sam CLI loads function code by mounting filesystem to a Docker Volume.
 As a result, The project directory must be pre-mounted on the remote

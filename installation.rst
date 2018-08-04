@@ -1,8 +1,9 @@
+==============
 Installation
-============
+==============
 
 Prerequisites
-~~~~~~~~~~~~~
+-------------
 
 - Docker
 - Python2.7 or Python3.6
@@ -26,7 +27,7 @@ the CLI (e.g. `docker ps`). You do not need to install/fetch/pull any
 containers – SAM CLI will do it automatically as required.
 
 Using PIP
-~~~~~~~~~
+---------
 
 Step 1.  Verify Python Version is 2.7 or 3.6.
 
@@ -70,8 +71,8 @@ In Unix/Mac systems the command ``python -m site --user-base`` typically print `
     $ USER_BASE_PATH=$(python -m site --user-base)
 
     # Update your preferred shell configuration
-    ## Standard bash --> ~/.bash_profile
-    ## ZSH           --> ~/.zshrc
+    -- Standard bash --> ~/.bash_profile
+    -- ZSH           --> ~/.zshrc
     $ export PATH=$PATH:$USER_BASE_PATH/bin
 
 Restart or Open up a new terminal and verify that the installation worked:
@@ -99,7 +100,7 @@ Copy the File Path.
 
 Seach Windows for ``Edit the system environment variables``.
 
-Select **Enviromental Variables**.
+Select **Environmental Variables**.
 
 Under **System variables**, select **Path**.
 
@@ -133,7 +134,7 @@ Advanced installations
 ----------------------
 
 Build From Source
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 First, install Python(2.7 or 3.6) on your machine, then run the following:
 
@@ -149,7 +150,8 @@ First, install Python(2.7 or 3.6) on your machine, then run the following:
    $ pip install --user -e .
 
 Install with PyEnv
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
+
 .. code:: bash
 
     # Install PyEnv (https://github.com/pyenv/pyenv#installation)
@@ -175,7 +177,7 @@ Install with PyEnv
     $ sam –version
 
 Troubleshooting
-~~~~~~~~~~~~~~~
+---------------
 
 Mac Issues
 ^^^^^^^^^^
