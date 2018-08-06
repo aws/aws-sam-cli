@@ -163,7 +163,7 @@ To make local development and testing of Lambda functions easier, you
 can generate mock/sample event payloads for the following services:
 
 -  S3
--  Kinesis
+-  Kinesis Streams
 -  DynamoDB
 -  Cloudwatch Scheduled Event
 -  API Gateway
