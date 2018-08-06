@@ -40,7 +40,7 @@ Main features
 -  Develop and test your Lambda functions locally with ``sam local`` and
    Docker
 -  Invoke functions from known event sources such as Amazon S3, Amazon
-   DynamoDB, Amazon Kinesis, etc.
+   DynamoDB, Amazon Kinesis Streams, etc.
 -  Start local API Gateway from a SAM template, and quickly iterate over
    your functions with hot-reloading
 -  Validate SAM templates
