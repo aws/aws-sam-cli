@@ -1,6 +1,9 @@
 from unittest import TestCase
 from mock import Mock, patch
 
+from botocore.exceptions import NoCredentialsError
+
+from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, InvalidSamTemplateException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.validate.validate import do_cli, _read_sam_file
@@ -44,6 +47,21 @@ class TestValidateCli(TestCase):
         template_valiadator.return_value = is_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
+            do_cli(ctx=None,
+                   template=template_path)
+
+    @patch('samcli.commands.validate.validate.SamTemplateValidator')
+    @patch('samcli.commands.validate.validate.click')
+    @patch('samcli.commands.validate.validate._read_sam_file')
+    def test_no_credentials_provided(self, read_sam_file_patch, click_patch, template_valiadator):
+        template_path = 'path_to_template'
+        read_sam_file_patch.return_value = {"a": "b"}
+
+        is_valid_mock = Mock()
+        is_valid_mock.is_valid.side_effect = NoCredentialsError
+        template_valiadator.return_value = is_valid_mock
+
+        with self.assertRaises(UserException):
             do_cli(ctx=None,
                    template=template_path)
 

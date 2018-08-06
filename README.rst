@@ -86,7 +86,7 @@ Main features
 -  Develop and test your Lambda functions locally with ``sam local`` and
    Docker
 -  Invoke functions from known event sources such as Amazon S3, Amazon
-   DynamoDB, Amazon Kinesis, etc.
+   DynamoDB, Amazon Kinesis Streams, etc.
 -  Start local API Gateway from a SAM template, and quickly iterate over
    your functions with hot-reloading
 -  Validate SAM templates
@@ -101,6 +101,7 @@ Prerequisites
 
 - Docker
 - Python2.7 or Python3.6
+- `The AWS CLI <https://aws.amazon.com/cli/>`__
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
@@ -239,7 +240,7 @@ Here is how this works:
 Start the local Lambda endpoint by running the following command in the directory that contains your AWS
 SAM template:
 
-::
+.. code:: bash
 
    sam local start-lambda
 
@@ -260,21 +261,28 @@ previous step.
 Here is an Python example (AWS SDK for other languages have similar
 configurations):
 
-::
+.. code:: python
 
    import boto3
-
+   import botocore
+   
    # Set "running_locally" flag if you are running the integration test locally
+   running_locally = True
+   
    if running_locally:
 
        # Create Lambda SDK client to connect to appropriate Lambda endpoint
        lambda_client = boto3.client('lambda',
-                                    endpoint_url="http://127.0.0.1:3001",
-                                    use_ssl=False,
-                                    verify=False,
-                                    config=Config(signature_version=UNSIGNED,
-                                                  read_timeout=0,
-                                                  retries={'max_attempts': 0}))
+           region_name="us-west-2",
+           endpoint_url="http://127.0.0.1:3001",
+           use_ssl=False,
+           verify=False,
+           config=botocore.client.Config(
+               signature_version=botocore.UNSIGNED,
+               read_timeout=0,
+               retries={'max_attempts': 0},
+           )
+       )
    else:
        lambda_client = boto3.client('lambda')
                                            
@@ -317,11 +325,11 @@ To make local development and testing of Lambda functions easier, you
 can generate mock/sample event payloads for the following services:
 
 -  S3
--  Kinesis
+-  Kinesis Streams
 -  DynamoDB
 -  Cloudwatch Scheduled Event
--  Cloudtrail
 -  API Gateway
+-  SNS
 
 **Syntax**
 
@@ -343,7 +351,7 @@ Run API Gateway locally
 
 ``sam local start-api`` spawns a local API Gateway to test HTTP
 request/response functionality. Features hot-reloading to allow you to
-quickly develop, and iterate over your functions.
+quickly develop and iterate over your functions.
 
 .. figure:: media/sam-start-api.gif
    :alt: SAM CLI Start API
@@ -442,13 +450,13 @@ Visual Studio Code:
 In order to setup Visual Studio Code for debugging with AWS SAM CLI, use
 the following launch configuration:
 
-::
+.. code:: json
 
    {
        "version": "0.2.0",
        "configurations": [
            {
-               "name": "Attach to SAM Local",
+               "name": "Attach to SAM CLI",
                "type": "node",
                "request": "attach",
                "address": "localhost",
@@ -488,6 +496,56 @@ port to your host machine.
    the `GitHub
    issue <https://github.com/Microsoft/vscode-python/issues/71>`__ for
    updates.
+
+Debugging Golang functions
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Golang function debugging is slightly different when compared to Node.JS,
+Java, and Python. We require `delve <https://github.com/derekparker/delve>`__
+as the debugger, and wrap your function with it at runtime. The debugger
+is run in headless mode, listening on the debug port.
+
+When debugging, you must compile your function in debug mode:
+
+`GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o <output path> <path to code directory>
+
+You must compile `delve` to run in the container and provide its local path
+via the `--debugger-path` argument. Build delve locally as follows:
+
+`GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv`
+
+NOTE: The output path needs to end in `/dlv`. The docker container will expect the dlv binary to be in the <delve folder path>
+and will cause mounting issue otherwise.
+
+Then invoke `sam` similar to the following:
+
+`sam local start-api -d 5986 --debugger-path <delve folder path>`
+
+NOTE: The `--debugger-path` is the path to the directory that contains the `dlv` binary compiled from the above.
+
+The following is an example launch configuration for Visual Studio Code to
+attach to a debug session.
+
+.. code:: json
+
+  {
+    "version": "0.2.0",
+    "configurations": [
+    {
+        "name": "Connect to Lambda container",
+        "type": "go",
+        "request": "launch",
+        "mode": "remote",
+        "remotePath": "",
+        "port": <debug port>,
+        "host": "127.0.0.1",
+        "program": "${workspaceRoot}",
+        "env": {},
+        "args": [],
+      },
+    ]
+  }
+
 
 Passing Additional Runtime Debug Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -534,7 +592,7 @@ When your function is a part
 of a CloudFormation stack, you can fetch logs using the function's
 LogicalID:
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack
 
@@ -542,7 +600,7 @@ LogicalID:
 
 Or, you can fetch logs using the function's name
 
-::
+.. code:: bash
 
    sam logs -n mystack-HelloWorldFunction-1FJ8PD
 
@@ -552,14 +610,14 @@ Add ``--tail`` option to wait for new logs and see them as
 they arrive. This is very handy during deployment or when
 troubleshooting a production issue.
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack --tail
 
 **View logs for specific time range** 
 You can view logs for specific time range using the ``-s`` and ``-e`` options
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack -s '10min ago' -e '2min ago'
 
@@ -568,7 +626,7 @@ You can view logs for specific time range using the ``-s`` and ``-e`` options
 Use the ``--filter`` option to quickly find logs that
 match terms, phrases or values in your log events
 
-::
+.. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack --filter "error"
 
@@ -661,7 +719,7 @@ in your SAM template.
 
 For example:
 
-::
+.. code:: yaml
 
    AWSTemplateFormatVersion: 2010-09-09
    Transform: AWS::Serverless-2016-10-31
@@ -678,7 +736,7 @@ You should then build your JAR file using your normal build process.
 Please note that JAR files used with AWS Lambda should be a shaded JAR
 file (or uber jar) containing all of the function dependencies.
 
-::
+.. code:: bash
 
    // Build the JAR file
    $ mvn package shade:shade
@@ -736,7 +794,7 @@ In order to test API Gateway with a non-default profile from your AWS
 credentials file append ``--profile <profile name>`` to the
 ``start-api`` command:
 
-::
+.. code:: bash
 
    // Test API Gateway locally with a credential profile.
    $ sam local start-api --profile some_profile
@@ -1012,16 +1070,16 @@ A special thank you
 
 SAM CLI uses the open source
 `docker-lambda <https://github.com/lambci/docker-lambda>`__ Docker
-images created by [@mhart](https://github.com/mhart).
+images created by `@mhart <https://github.com/mhart>`__.
 
 
 .. raw:: html
 
    <!-- Links -->
 
-.. |Build Status| image:: https://travis-ci.org/awslabs/aws-sam-local.svg?branch=develop
+.. |Build Status| image:: https://travis-ci.org/awslabs/aws-sam-cli.svg?branch=develop
 .. |Apache-2.0| image:: https://img.shields.io/npm/l/aws-sam-local.svg?maxAge=2592000
-.. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-local.svg?maxAge=2592000
-.. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-local.svg?maxAge=2592000
+.. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg?maxAge=2592000
+.. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?maxAge=2592000
 .. |PyPI version| image:: https://badge.fury.io/py/aws-sam-cli.svg
 
