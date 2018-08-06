@@ -47,6 +47,7 @@ Main features
 -  Get started with boilerplate Serverless Service in your chosen Lambda
    Runtime ``sam init``
    
+
 Get Started
 -----------
 

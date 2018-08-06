@@ -92,10 +92,6 @@ class LocalLambdaInvokeService(BaseLocalService):
             LOG.debug("Query parameters are in the request but not supported")
             return LambdaErrorResponses.invalid_request_content("Query Parameters are not supported")
 
-        if flask_request.content_type and flask_request.content_type.lower() != "application/json":
-            LOG.debug("%s media type is not supported. Must be application/json", flask_request.content_type)
-            return LambdaErrorResponses.unsupported_media_type(flask_request.content_type)
-
         request_headers = CaseInsensitiveDict(flask_request.headers)
 
         log_type = request_headers.get('X-Amz-Log-Type', 'None')
