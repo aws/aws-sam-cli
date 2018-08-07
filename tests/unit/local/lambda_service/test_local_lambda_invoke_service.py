@@ -207,23 +207,6 @@ class TestValidateRequestHandling(TestCase):
 
     @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
     @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
-    def test_request_with_content_type_not_application_json(self, flask_request, lambda_error_responses_mock):
-        flask_request.get_data.return_value = None
-        flask_request.headers = {}
-        flask_request.content_type = 'image/gif'
-        flask_request.args = {}
-
-        lambda_error_responses_mock.unsupported_media_type.return_value = "UnsupportedMediaType"
-
-        response = LocalLambdaInvokeService.validate_request()
-
-        self.assertEquals(response, "UnsupportedMediaType")
-
-        lambda_error_responses_mock.unsupported_media_type.assert_called_once_with(
-            "image/gif")
-
-    @patch('samcli.local.lambda_service.local_lambda_invoke_service.LambdaErrorResponses')
-    @patch('samcli.local.lambda_service.local_lambda_invoke_service.request')
     def test_request_log_type_not_None(self, flask_request, lambda_error_responses_mock):
         flask_request.get_data.return_value = None
         flask_request.headers = {'X-Amz-Log-Type': 'Tail'}

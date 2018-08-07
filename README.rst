@@ -86,7 +86,7 @@ Main features
 -  Develop and test your Lambda functions locally with ``sam local`` and
    Docker
 -  Invoke functions from known event sources such as Amazon S3, Amazon
-   DynamoDB, Amazon Kinesis, etc.
+   DynamoDB, Amazon Kinesis Streams, etc.
 -  Start local API Gateway from a SAM template, and quickly iterate over
    your functions with hot-reloading
 -  Validate SAM templates
@@ -374,7 +374,7 @@ To make local development and testing of Lambda functions easier, you
 can generate mock/sample event payloads for the following services:
 
 -  S3
--  Kinesis
+-  Kinesis Streams
 -  DynamoDB
 -  Cloudwatch Scheduled Event
 -  API Gateway
@@ -400,7 +400,7 @@ Run API Gateway locally
 
 ``sam local start-api`` spawns a local API Gateway to test HTTP
 request/response functionality. Features hot-reloading to allow you to
-quickly develop, and iterate over your functions.
+quickly develop and iterate over your functions.
 
 .. figure:: media/sam-start-api.gif
    :alt: SAM CLI Start API
