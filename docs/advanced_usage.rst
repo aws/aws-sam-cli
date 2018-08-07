@@ -2,7 +2,19 @@
 ==============
 Advanced Usage
 ==============
+-  `Compiled Languages <#compiled-languages>`__
+-  `IAM Credentials <#iam-credentials>`__
+-  `Lambda Environment Variables <#lambda-environment-variables>`__
 
+   -  `Environment Variable file <#environment-variable-file>`__
+   -  `Shell environment <#shell-environment>`__
+   -  `Combination of Shell and Environment Variable file <#combination-of-shell-and-environment-variable-file>`__
+   
+-  `Identifying local execution from Lambda function
+   code <#identifying-local-execution-from-lambda-function-code>`__
+-  `Static Assets <#static-assets>`__
+-  `Local Logging <#local-logging>`__
+-  `Remote Docker <#remote-docker>`__
 
 Compiled Languages
 ------------------
@@ -252,6 +264,6 @@ host machine.
 Learn More
 ==========
 
--  `Project Overview <README.rst>`__
+-  `Project Overview <../README.rst>`__
 -  `Installation <installation.rst>`__
 -  `Usage <usage.rst>`__

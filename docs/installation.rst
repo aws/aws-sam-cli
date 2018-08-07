@@ -29,7 +29,7 @@ containers – SAM CLI will do it automatically as required.
 Using PIP
 ---------
 
-Step 1.  Verify Python Version is 2.7 or 3.6.
+**Step 1.**  Verify Python Version is 2.7 or 3.6.
 
 
 .. code:: bash
@@ -38,7 +38,7 @@ Step 1.  Verify Python Version is 2.7 or 3.6.
  
 If not installed, go `download python and install <https://www.python.org/downloads/>`_
 
-Step 2. Verify Pip is installed. 
+**Step 2.** Verify Pip is installed. 
 
 The easiest way to install ``sam`` is to use
 `PIP <https://pypi.org/>`__.
@@ -49,13 +49,13 @@ The easiest way to install ``sam`` is to use
 
 If not installed, `download and install pip <https://pip.pypa.io/en/stable/installing/>`_
 
-Step 3. Install aws-sam-cli
+**Step 3.** Install aws-sam-cli
 
 .. code:: bash
 
    $ pip install --user aws-sam-cli
 
-Step 4. **Adjust your PATH** to include Python scripts installed under User's directory.
+**Step 4.** **Adjust your PATH** to include Python scripts installed under User's directory.
 
 macOS & Linux
 ^^^^^^^^^^^^^
@@ -106,7 +106,7 @@ Under **System variables**, select **Path**.
 
 Select **New** and enter the file path to the Python Scripts folder. 
 
-Step 5. Verify that sam is installed
+**Step 5.** Verify that sam is installed
 
 Restart or Open up a new terminal and verify that the installation worked:
 
@@ -203,6 +203,6 @@ Once installed then repeat the `Installation process <#windows-linux-macos-with-
 Learn More
 ==========
 
--  `Project Overview <README.rst>`__
+-  `Project Overview <../README.rst>`__
 -  `Usage <usage.rst>`__
 -  `Advanced <advanced_usage.rst>`__

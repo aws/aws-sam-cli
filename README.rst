@@ -26,9 +26,9 @@ Lambda Runtime.
 
 -  `SAM CLI (Beta) <#sam-cli-beta>`__
 -  `Main features <#main-features>`__
--  `Installation <installation.rst>`__
--  `Usage <usage.rst>`__
--  `Advanced <advanced_usage.rst>`__
+-  `Installation <docs/installation.rst>`__
+-  `Usage <docs/usage.rst>`__
+-  `Advanced <docs/advanced_usage.rst>`__
 -  `Project Status <#project-status>`__
 -  `Contributing <#contributing>`__
 -  `A special thank you <#a-special-thank-you>`__
@@ -53,9 +53,9 @@ Get Started
 
 Learn how to get started using the SAM CLI with these guides:
 
-   -  `Installation <installation.rst>`__
-   -  `Usage <usage.rst>`__
-   -  `Advanced <advanced_usage.rst>`__
+-  `Installation <docs/installation.rst>`__
+-  `Usage <docs/usage.rst>`__
+-  `Advanced <docs/advanced_usage.rst>`__
 
 
 

@@ -11,23 +11,23 @@ If no template is specified ``template.yaml`` will be used instead.
 Alternatively, you can find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
 
 
-      -  `Invoke functions locally <#invoke-functions-locally>`__
-      -  `Run automated tests for your Lambda functions locally <#run-automated-tests-for-your-lambda-functions-locally>`__
-      -  `Generate sample event source
-         payloads <#generate-sample-event-source-payloads>`__
-      -  `Run API Gateway locally <#run-api-gateway-locally>`__
-      -  `Debugging Applications <#debugging-applications>`__
+-  `Invoke functions locally <#invoke-functions-locally>`__
+-  `Run automated tests for your Lambda functions locally <#run-automated-tests-for-your-lambda-functions-locally>`__
+-  `Generate sample event source
+   payloads <#generate-sample-event-source-payloads>`__
+-  `Run API Gateway locally <#run-api-gateway-locally>`__
+-  `Debugging Applications <#debugging-applications>`__
 
-         -  `Debugging Python functions <#debugging-python-functions>`__
-      -  `Fetch, tail, and filter Lambda function logs <#fetch-tail-and-filter-lambda-function-logs>`__
-      -  `Validate SAM templates <#validate-sam-templates>`__
-      -  `Package and Deploy to
-         Lambda <#package-and-deploy-to-lambda>`__
+   -  `Debugging Python functions <#debugging-python-functions>`__
+-  `Fetch, tail, and filter Lambda function logs <#fetch-tail-and-filter-lambda-function-logs>`__
+-  `Validate SAM templates <#validate-sam-templates>`__
+-  `Package and Deploy to
+   Lambda <#package-and-deploy-to-lambda>`__
 
 Invoke functions locally
 ------------------------
 
-.. figure:: media/sam-invoke.gif
+.. figure:: ../media/sam-invoke.gif
    :alt: SAM CLI Invoke Sample
 
    SAM CLI Invoke Sample
@@ -191,7 +191,7 @@ Run API Gateway locally
 request/response functionality. Features hot-reloading to allow you to
 quickly develop and iterate over your functions.
 
-.. figure:: media/sam-start-api.gif
+.. figure:: ../media/sam-start-api.gif
    :alt: SAM CLI Start API
 
    SAM CLI Start API
@@ -280,7 +280,7 @@ connect.
 Here is an example showing how to debug a NodeJS function with Microsoft
 Visual Studio Code:
 
-.. figure:: media/sam-debug.gif
+.. figure:: ../media/sam-debug.gif
    :alt: SAM Local debugging example
 
    SAM Local debugging example
@@ -545,6 +545,6 @@ Example:
 Learn More
 ==========
 
--  `Project Overview <README.rst>`__
+-  `Project Overview <../README.rst>`__
 -  `Installation <installation.rst>`__
 -  `Advanced <advanced_usage.rst>`__
