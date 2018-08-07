@@ -54,7 +54,10 @@ Get Started
 Learn how to get started using the SAM CLI with these guides:
 
 -  `Installation <docs/installation.rst>`__
+-  `Getting started with SAM and the SAM CLI <docs/getting_started.rst>`__
 -  `Usage <docs/usage.rst>`__
+-  `Packaging and deploying your application <docs/deploying_serverless_applications.rst>`__
+-  `Running and debugging serverless applications locally <docs/running_and_debugging_serverless_applications_locally.rst>`__
 -  `Advanced <docs/advanced_usage.rst>`__
 
 
@@ -121,3 +124,4 @@ images created by `@mhart <https://github.com/mhart>`__.
 .. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?maxAge=2592000
 .. |PyPI version| image:: https://badge.fury.io/py/aws-sam-cli.svg
 
+=======

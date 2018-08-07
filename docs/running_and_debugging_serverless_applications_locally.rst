@@ -110,4 +110,14 @@ You can use SAM CLI to validate your template against the official AWS Serverles
 
     $ sam validate
     template.yaml is a valid SAM Template
+    
+Learn More
+==========
+
+-  `Project Overview <../README.rst>`__
+-  `Installation <installation.rst>`__
+-  `Getting started with SAM and the SAM CLI <getting_started.rst>`__
+-  `Usage <usage.rst>`__
+-  `Packaging and deploying your application <deploying_serverless_applications.rst>`__
+-  `Advanced <advanced_usage.rst>`__
 

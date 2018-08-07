@@ -325,6 +325,7 @@ class TestEnvironmentVariables_stringify_value(TestCase):
         (False, "false"),
         (1234, "1234"),
         (3.14, "3.14"),
+        (u"mystring\xe0", u"mystring\xe0"),
         ("mystring", "mystring"),
     ])
     def test_must_stringify(self, input, expected):
