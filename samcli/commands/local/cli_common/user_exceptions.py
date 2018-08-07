@@ -24,3 +24,10 @@ class SamTemplateNotFoundException(UserException):
     The SAM Template provided could not be found
     """
     pass
+
+
+class DebugContextException(UserException):
+    """
+    Something went wrong when creating the DebugContext
+    """
+    pass

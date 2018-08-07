@@ -17,7 +17,7 @@ Resources:
         Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
         Properties:
             CodeUri: hello_world/
-            Handler: app.lambda_handler
+            Handler: app.lambdaHandler
             {%- if cookiecutter.runtime == 'nodejs6.10' %}
             Runtime: nodejs6.10
             {%- elif cookiecutter.runtime =='nodejs4.3' %}

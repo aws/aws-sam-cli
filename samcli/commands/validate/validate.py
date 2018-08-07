@@ -4,11 +4,12 @@ CLI Command for Validating a SAM Template
 import os
 
 import boto3
+from botocore.exceptions import NoCredentialsError
 import click
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
-
-from samcli.cli.main import pass_context, common_options as cli_framework_options
+from samcli.commands.exceptions import UserException
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import template_common_option as template_option
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
@@ -19,6 +20,7 @@ from .lib.sam_template_validator import SamTemplateValidator
 @click.command("validate",
                short_help="Validate an AWS SAM template.")
 @template_option
+@aws_creds_options
 @cli_framework_options
 @pass_context
 def cli(ctx, template):
@@ -43,6 +45,8 @@ def do_cli(ctx, template):
     except InvalidSamDocumentException as e:
         click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg='red')
         raise InvalidSamTemplateException(str(e))
+    except NoCredentialsError as e:
+        raise UserException("AWS Credentials are required. Please configure your credentials.")
 
     click.secho("{} is a valid SAM Template".format(template), fg='green')
 

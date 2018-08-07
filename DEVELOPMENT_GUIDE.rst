@@ -19,6 +19,8 @@ Follow the idioms from this `excellent cheatsheet`_ to make sure your code is co
 Our CI/CD pipeline is setup to run unit tests against both Python versions. So make sure you test it with both
 versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup multiple Python versions.
 
+    Note: For Windows, type ``export PATH="/c/Users/<user>/.pyenv/libexec:$PATH"`` to add pyenv to your path.    
+
 #. Install PyEnv - ``curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash``
 #. ``pyenv install 2.7.14``
 #. ``pyenv install 3.6.4``

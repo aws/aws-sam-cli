@@ -620,7 +620,7 @@ def make_service(list_of_routes, function_provider, cwd):
     service = LocalApigwService(list_of_routes, lambda_runner, port=port)
 
     scheme = "http"
-    url = '{}://0.0.0.0:{}'.format(scheme, port)
+    url = '{}://127.0.0.1:{}'.format(scheme, port)
     return service, port, url, scheme
 
 
@@ -647,7 +647,7 @@ def make_service_response(port, method, scheme, resourcePath, resolvedResourcePa
     for header, value in headers.items():
         response["headers"][header] = value
 
-    response["headers"]["Host"] = "0.0.0.0:{}".format(port)
+    response["headers"]["Host"] = "127.0.0.1:{}".format(port)
     response["headers"]["X-Forwarded-Port"] = str(port)
     response["headers"]["X-Forwarded-Proto"] = scheme
 
