@@ -53,5 +53,4 @@ Learn More
 -  `Installation <installation.rst>`__
 -  `Getting started with SAM and the SAM CLI <getting_started.rst>`__
 -  `Usage <usage.rst>`__
--  `Running and debugging serverless applications locally <running_and_debugging_serverless_applications_locally.rst>`__
 -  `Advanced <advanced_usage.rst>`__
