@@ -42,7 +42,7 @@ def do_cli(ctx, region, partition, sequence, data):
     """
 
     # base64 encode the data
-    date_base64 = base64.urlsafe_b64encode(data.encode('utf8'))
+    date_base64 = base64.urlsafe_b64encode(data.encode('utf8')).decode('utf-8')
     event_dict = generate_kinesis_event(region, partition, sequence, date_base64)
     event = json.dumps(event_dict, indent=4)
     click.echo(event)

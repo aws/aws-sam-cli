@@ -17,7 +17,7 @@ class TestCli(TestCase):
         sequence = "sequence"
         data = "data"
 
-        data_base64 = b"ZGF0YQ=="
+        data_base64 = b"ZGF0YQ==".decode("utf-8")
 
         kinesis_cli(ctx=None, region=region, partition=partition, sequence=sequence, data=data)
 
