@@ -55,10 +55,10 @@ Learn how to get started using the SAM CLI with these guides:
 
 -  `Installation <docs/installation.rst>`__
 -  `Getting started with SAM and the SAM CLI <docs/getting_started.rst>`__
--  `Usage <docs/usage.rst>`__
+-  `Set up and use SAM CLI locally <docs/usage.rst>`__
 -  `Packaging and deploying your application <docs/deploying_serverless_applications.rst>`__
 -  `Running and debugging serverless applications locally <docs/running_and_debugging_serverless_applications_locally.rst>`__
--  `Advanced <docs/advanced_usage.rst>`__
+-  `Other tips and tricks for advanced users <docs/advanced_usage.rst>`__
 
 
 
