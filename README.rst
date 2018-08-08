@@ -6,6 +6,16 @@
 
    </p>
 
+-  `SAM CLI (Beta) <#sam-cli-beta>`__
+-  `Main features <#main-features>`__
+-  `Installation <docs/installation.rst>`__
+-  `Usage <docs/usage.rst>`__: Describes how to use SAM CLI for invoking Lambda functions locally, running automated tests, fetching logs, and debugging applications
+-  `Advanced <docs/advanced_usage.rst>`__: Learn how to work with compiled languages (such as Java and .NET), configure IAM credentials, provide environment variables, and more.
+-  `Project Status <#project-status>`__
+-  `Contributing <#contributing>`__
+-  `A special thank you <#a-special-thank-you>`__
+-  `Examples <#examples>`__
+
 ==============
 SAM CLI (Beta)
 ==============
@@ -24,15 +34,7 @@ from a SAM template, validate a SAM template, fetch logs, generate sample payloa
 for various event sources, and generate a SAM project in your favorite
 Lambda Runtime.
 
--  `SAM CLI (Beta) <#sam-cli-beta>`__
--  `Main features <#main-features>`__
--  `Installation <docs/installation.rst>`__
--  `Usage <docs/usage.rst>`__: Describes how to use SAM CLI for invoking Lambda functions locally, running automated tests, fetching logs, and debugging applications
--  `Advanced <docs/advanced_usage.rst>`__: Learn how to work with compiled languages (such as Java and .NET), configure IAM credentials, provide environment variables, and more.
--  `Project Status <#project-status>`__
--  `Contributing <#contributing>`__
--  `A special thank you <#a-special-thank-you>`__
--  `Examples <#examples>`__
+
 
 Main features
 -------------
