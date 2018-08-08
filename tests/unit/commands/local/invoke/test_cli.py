@@ -20,6 +20,7 @@ class TestCli(TestCase):
         self.eventfile = "eventfile"
         self.env_vars = "env-vars"
         self.debug_port = 123
+        self.no_args = False
         self.debug_args = "args"
         self.debugger_path = "/test/path"
         self.docker_volume_basedir = "basedir"
@@ -43,6 +44,7 @@ class TestCli(TestCase):
                    template=self.template,
                    event=self.eventfile,
                    env_vars=self.env_vars,
+                   no_args=self.no_args,
                    debug_port=self.debug_port,
                    debug_args=self.debug_args,
                    debugger_path=self.debugger_path,
@@ -72,6 +74,49 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_cli_must_not_wait_stdin_when_no_args(self, get_event_mock, InvokeContextMock):
+        # Set No-Args Flag
+        self.no_args = True
+
+        # Mock the __enter__ method to return a object inside a context manager
+        context_mock = Mock()
+        InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+        invoke_cli(ctx=None,
+                   function_identifier=self.function_id,
+                   template=self.template,
+                   event=self.eventfile,
+                   env_vars=self.env_vars,
+                   no_args=self.no_args,
+                   debug_port=self.debug_port,
+                   debug_args=self.debug_args,
+                   debugger_path=self.debugger_path,
+                   docker_volume_basedir=self.docker_volume_basedir,
+                   docker_network=self.docker_network,
+                   log_file=self.log_file,
+                   skip_pull_image=self.skip_pull_image,
+                   profile=self.profile)
+
+        InvokeContextMock.assert_called_with(template_file=self.template,
+                                             function_identifier=self.function_id,
+                                             env_vars_file=self.env_vars,
+                                             docker_volume_basedir=self.docker_volume_basedir,
+                                             docker_network=self.docker_network,
+                                             log_file=self.log_file,
+                                             skip_pull_image=self.skip_pull_image,
+                                             aws_profile=self.profile,
+                                             debug_port=self.debug_port,
+                                             debug_args=self.debug_args,
+                                             debugger_path=self.debugger_path)
+
+        context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
+                                                                   event="{}",
+                                                                   stdout=context_mock.stdout,
+                                                                   stderr=context_mock.stderr)
+        get_event_mock.assert_not_called()
+
+    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_function_not_found(self, get_event_mock, InvokeContextMock):
         event_data = "data"
         get_event_mock.return_value = event_data
@@ -89,6 +134,7 @@ class TestCli(TestCase):
                        template=self.template,
                        event=self.eventfile,
                        env_vars=self.env_vars,
+                       no_args=self.no_args,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
                        debugger_path=self.debugger_path,
@@ -116,6 +162,7 @@ class TestCli(TestCase):
                        template=self.template,
                        event=self.eventfile,
                        env_vars=self.env_vars,
+                       no_args=self.no_args,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
                        debugger_path=self.debugger_path,
