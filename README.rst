@@ -840,9 +840,10 @@ For example, consider the SAM template snippet:
 Environment Variable file
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use ``--env-vars`` argument of ``invoke`` or ``start-api`` commands to
-provide a JSON file that contains values for environment variables
-defined in your function. The file should be structured as follows:
+Use the ``--env-vars`` argument of ``invoke`` or ``start-api`` commands to
+provide a JSON file that contains values to override the environment
+variables already defined in your function template. The file should be
+structured as follows:
 
 .. code:: json
 
