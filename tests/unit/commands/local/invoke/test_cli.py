@@ -29,7 +29,7 @@ class TestCli(TestCase):
         self.log_file = "logfile"
         self.skip_pull_image = True
         self.profile = "profile"
-        self.no_args = False
+        self.no_event = False
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -45,7 +45,7 @@ class TestCli(TestCase):
                    function_identifier=self.function_id,
                    template=self.template,
                    event=self.eventfile,
-                   no_args=self.no_args,
+                   no_event=self.no_event,
                    env_vars=self.env_vars,
                    debug_port=self.debug_port,
                    debug_args=self.debug_args,
@@ -76,8 +76,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_cli_must_invoke_with_no_args(self, get_event_mock, InvokeContextMock):
-        self.no_args = True
+    def test_cli_must_invoke_with_no_event(self, get_event_mock, InvokeContextMock):
+        self.no_event = True
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
@@ -85,7 +85,7 @@ class TestCli(TestCase):
                    function_identifier=self.function_id,
                    template=self.template,
                    event=STDIN_FILE_NAME,
-                   no_args=self.no_args,
+                   no_event=self.no_event,
                    env_vars=self.env_vars,
                    debug_port=self.debug_port,
                    debug_args=self.debug_args,
@@ -116,8 +116,8 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_must_raise_user_exception_on_no_args_and_event(self, get_event_mock, InvokeContextMock):
-        self.no_args = True
+    def test_must_raise_user_exception_on_no_event_and_event(self, get_event_mock, InvokeContextMock):
+        self.no_event = True
 
         with self.assertRaises(UserException) as ex_ctx:
 
@@ -125,7 +125,7 @@ class TestCli(TestCase):
                        function_identifier=self.function_id,
                        template=self.template,
                        event=self.eventfile,
-                       no_args=self.no_args,
+                       no_event=self.no_event,
                        env_vars=self.env_vars,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
@@ -157,7 +157,7 @@ class TestCli(TestCase):
                        function_identifier=self.function_id,
                        template=self.template,
                        event=self.eventfile,
-                       no_args=self.no_args,
+                       no_event=self.no_event,
                        env_vars=self.env_vars,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,
@@ -185,7 +185,7 @@ class TestCli(TestCase):
                        function_identifier=self.function_id,
                        template=self.template,
                        event=self.eventfile,
-                       no_args=self.no_args,
+                       no_event=self.no_event,
                        env_vars=self.env_vars,
                        debug_port=self.debug_port,
                        debug_args=self.debug_args,

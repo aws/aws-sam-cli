@@ -35,21 +35,21 @@ STDIN_FILE_NAME = "-"
               default=STDIN_FILE_NAME,  # Defaults to stdin
               help="JSON file containing event data passed to the Lambda function during invoke. If this option "
                    "is not specified, we will default to reading JSON from stdin")
-@click.option("--no-args", is_flag=True, default=False, help="Invoke Function without parameters")
+@click.option("--no-event", is_flag=True, default=False, help="Invoke Function with an empty event")
 @invoke_common_options
 @cli_framework_options
 @click.argument('function_identifier', required=False)
 @pass_context
-def cli(ctx, function_identifier, template, event, no_args, env_vars, debug_port, debug_args, debugger_path,
+def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
         docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, function_identifier, template, event, no_args, env_vars, debug_port, debug_args, debugger_path,
+    do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
            docker_volume_basedir, docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
 
 
-def do_cli(ctx, function_identifier, template, event, no_args, env_vars, debug_port,  # pylint: disable=R0914
+def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port,  # pylint: disable=R0914
            debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -60,11 +60,11 @@ def do_cli(ctx, function_identifier, template, event, no_args, env_vars, debug_p
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
     try:
-        if no_args and event == STDIN_FILE_NAME:
+        if no_event and event == STDIN_FILE_NAME:
             event_data = "{}"
-        elif no_args and event != STDIN_FILE_NAME:
-            # Do not know what the user wants. no_args and event both passed in.
-            raise UserException("no_args and event both given. Do not know what to do")
+        elif no_event and event != STDIN_FILE_NAME:
+            # Do not know what the user wants. no_event and event both passed in.
+            raise UserException("no_event and event cannot be used together. Please provide only one.")
         else:
             event_data = _get_event(event)
 

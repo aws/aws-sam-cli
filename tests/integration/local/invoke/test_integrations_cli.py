@@ -95,13 +95,24 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode('utf-8'))
 
+    def test_invoke_returns_expected_result_when_no_event_given(self):
+        command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
+        command_list.append("--no-event")
+        process = Popen(command_list, stdout=PIPE)
+        return_code = process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+
+        self.assertEquals(return_code, 0)
+        self.assertEquals("{}", process_stdout.decode('utf-8'))
+
     def test_invoke_raises_exception_with_noargs_and_event(self):
         command_list = self.get_command_list("HelloWorldLambdaFunction",
                                              template_path=self.template_path,
                                              event_path=self.event_path)
-        command_list.append("--no-args")
+        command_list.append("--no-event")
         process = Popen(command_list, stderr=PIPE)
         process.wait()
 
         process_stderr = b"".join(process.stderr.readlines()).strip()
-        self.assertIn("no_args and event both given. Do not know what to do", process_stderr.decode('utf-8'))
+        error_output = process_stderr.decode('utf-8')
+        self.assertIn("no_event and event cannot be used together. Please provide only one.", error_output)
