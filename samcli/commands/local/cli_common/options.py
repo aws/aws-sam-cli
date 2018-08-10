@@ -138,6 +138,9 @@ def invoke_common_options(f):
         click.option('--profile',
                      help="Specify which AWS credentials profile to use."),
 
+        click.option('--region',
+                     help="Specify which AWS region to use."),
+
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help
