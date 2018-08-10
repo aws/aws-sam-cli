@@ -25,5 +25,5 @@ class TestCliBase(TestCase):
     def test_cli_with_debug(self):
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["local", "generate-event", "s3", "--debug"])
+        result = runner.invoke(cli, ["local", "generate-event", "s3", "put", "--debug"])
         self.assertEquals(result.exit_code, 0)
