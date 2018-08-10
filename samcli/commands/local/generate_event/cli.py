@@ -1,16 +1,11 @@
 """
-Command group for "generate-event" suite for commands.
+Sets up the cli for generate-event
 """
 
 import click
 
-from .s3.cli import cli as s3_cli
-from .api.cli import cli as api_cli
-from .dynamodb.cli import cli as dynamodb_cli
-from .kinesis.cli import cli as kinesis_cli
-from .schedule.cli import cli as schedule_cli
-from .sns.cli import cli as sns_cli
-
+from samcli.cli.main import pass_context
+from samcli.commands.local.generate_event.event_generation import GenerateEventCommand
 
 HELP_TEXT = """
 You can use this command to generate sample payloads from different event sources
@@ -18,22 +13,23 @@ such as S3, API Gateway, and SNS. These payloads contain the information that th
 event sources send to your Lambda functions.\n
 \b
 Generate the event that S3 sends to your Lambda function when a new object is uploaded
-$ sam local generate-event s3 --bucket <bucket> --key <key>\n
+$ sam local generate-event s3 [put/delete]\n
+\b
+You can even customize the event by adding parameter flags. To find which flags apply to your command,
+run:\n
+$ sam local generate-event s3 [put/delete] --help\n
+Then you can add in those flags that you wish to customize using\n
+$ sam local generate-event s3 [put/delete] --bucket <bucket> --key <key>\n
 \b
 After you generate a sample event, you can use it to test your Lambda function locally
-$ sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <function logical id>
+$ sam local generate-event s3 [put/delete] --bucket <bucket> --key <key> | sam local invoke <function logical id>
 """
 
 
-@click.group("generate-event", help=HELP_TEXT)
-def cli():
+@click.command(name="generate-event", cls=GenerateEventCommand, help=HELP_TEXT)
+@pass_context
+def cli(self):
+    """
+    Generate an event for one of the services listed below:
+    """
     pass  # pragma: no cover
-
-
-# Add individual commands under this group
-cli.add_command(s3_cli)
-cli.add_command(api_cli)
-cli.add_command(dynamodb_cli)
-cli.add_command(kinesis_cli)
-cli.add_command(schedule_cli)
-cli.add_command(sns_cli)
