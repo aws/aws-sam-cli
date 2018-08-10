@@ -250,6 +250,12 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.json(), {'hello': 'world'})
 
+    def test_api_stage_included_in_event(self):
+        response = requests.get(self.url + "/echoeventbody2")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json().get("requestContext").get("stage"), "Dev")
+
     def test_lambda_function_resource_is_reachable(self):
         response = requests.get(self.url + "/nonserverlessfunction")
 

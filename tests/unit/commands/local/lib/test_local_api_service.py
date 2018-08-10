@@ -104,9 +104,9 @@ class TestLocalApiService_make_routing_list(TestCase):
     def test_must_return_routing_list_from_apis(self):
         api_provider = Mock()
         apis = [
-            Api(path="/1", method="GET1", function_name="name1", cors="CORS1"),
-            Api(path="/2", method="GET2", function_name="name2", cors="CORS2"),
-            Api(path="/3", method="GET3", function_name="name3", cors="CORS3"),
+            Api(path="/1", method="GET1", function_name="name1", cors="CORS1", stage_name=None),
+            Api(path="/2", method="GET2", function_name="name2", cors="CORS2", stage_name=None),
+            Api(path="/3", method="GET3", function_name="name3", cors="CORS3", stage_name=None),
         ]
         expected = [
             Route(path="/1", methods=["GET1"], function_name="name1"),
@@ -130,11 +130,11 @@ class TestLocalApiService_print_routes(TestCase):
 
         api_provider = Mock()
         apis = [
-            Api(path="/1", method="GET", function_name="name1", cors="CORS1"),
-            Api(path="/1", method="POST", function_name="name1", cors="CORS1"),
-            Api(path="/1", method="DELETE", function_name="othername1", cors="CORS1"),
-            Api(path="/2", method="GET2", function_name="name2", cors="CORS2"),
-            Api(path="/3", method="GET3", function_name="name3", cors="CORS3"),
+            Api(path="/1", method="GET", function_name="name1", cors="CORS1", stage_name=None),
+            Api(path="/1", method="POST", function_name="name1", cors="CORS1", stage_name=None),
+            Api(path="/1", method="DELETE", function_name="othername1", cors="CORS1", stage_name=None),
+            Api(path="/2", method="GET2", function_name="name2", cors="CORS2", stage_name=None),
+            Api(path="/3", method="GET3", function_name="name3", cors="CORS3", stage_name=None),
         ]
         api_provider.get_all.return_value = apis
 

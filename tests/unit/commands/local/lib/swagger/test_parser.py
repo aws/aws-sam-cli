@@ -31,7 +31,7 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [Api(path="/path1", method="get", function_name=function_name, cors=None)]
+        expected = [Api(path="/path1", method="get", function_name=function_name, cors=None, stage_name=None)]
         result = parser.get_apis()
 
         self.assertEquals(expected, result)
@@ -77,9 +77,9 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name.return_value = function_name
 
         expected = {
-            Api(path="/path1", method="get", function_name=function_name, cors=None),
-            Api(path="/path1", method="delete", function_name=function_name, cors=None),
-            Api(path="/path2", method="post", function_name=function_name, cors=None),
+            Api(path="/path1", method="get", function_name=function_name, cors=None, stage_name=None),
+            Api(path="/path1", method="delete", function_name=function_name, cors=None, stage_name=None),
+            Api(path="/path2", method="post", function_name=function_name, cors=None, stage_name=None),
         }
         result = parser.get_apis()
 
@@ -104,7 +104,7 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [Api(path="/path1", method="ANY", function_name=function_name, cors=None)]
+        expected = [Api(path="/path1", method="ANY", function_name=function_name, cors=None, stage_name=None)]
         result = parser.get_apis()
 
         self.assertEquals(expected, result)

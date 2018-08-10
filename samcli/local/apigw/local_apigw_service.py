@@ -17,17 +17,19 @@ LOG = logging.getLogger(__name__)
 
 class Route(object):
 
-    def __init__(self, methods, function_name, path, binary_types=None):
+    def __init__(self, methods, function_name, path, stage_name=None, binary_types=None):
         """
         Creates an ApiGatewayRoute
 
         :param list(str) methods: List of HTTP Methods
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
+        :param str stage_name: Name of the API stage
         """
         self.methods = methods
         self.function_name = function_name
         self.path = path
+        self.stage_name = stage_name
         self.binary_types = binary_types or []
 
 
@@ -35,6 +37,7 @@ class LocalApigwService(BaseLocalService):
 
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
+    _DEFAULT_STAGE = 'Prod'
 
     def __init__(self, routing_list, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
         """
@@ -130,7 +133,7 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types)
+            event = self._construct_event(request, self.port, route.binary_types, route.stage_name)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -240,18 +243,18 @@ class LocalApigwService(BaseLocalService):
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types):
+    def _construct_event(flask_request, port, binary_types, stage_name=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
         :param request flask_request: Flask Request
+        :param str stage_name: Name of the stage
         :return: String representing the event
         """
 
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
-        method = flask_request.method
 
         request_data = flask_request.get_data()
 
@@ -267,9 +270,12 @@ class LocalApigwService(BaseLocalService):
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode('utf-8')
 
+        if not stage_name:
+            stage_name = LocalApigwService._DEFAULT_STAGE
+
         context = RequestContext(resource_path=endpoint,
-                                 http_method=method,
-                                 stage="prod",
+                                 http_method=flask_request.method,
+                                 stage=stage_name,
                                  identity=identity,
                                  path=endpoint)
 
@@ -282,7 +288,7 @@ class LocalApigwService(BaseLocalService):
         # with APIGW
         query_string_dict = LocalApigwService._query_string_params(flask_request)
 
-        event = ApiGatewayLambdaEvent(http_method=method,
+        event = ApiGatewayLambdaEvent(http_method=flask_request.method,
                                       body=request_data,
                                       resource=endpoint,
                                       request_context=context,

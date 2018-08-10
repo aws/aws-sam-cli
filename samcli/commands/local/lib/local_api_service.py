@@ -98,7 +98,7 @@ class LocalApiService(object):
         routes = []
         for api in api_provider.get_all():
             route = Route(methods=[api.method], function_name=api.function_name, path=api.path,
-                          binary_types=api.binary_media_types)
+                          binary_types=api.binary_media_types, stage_name=api.stage_name)
             routes.append(route)
 
         return routes

@@ -86,7 +86,7 @@ class SwaggerParser(object):
                     method = self._ANY_METHOD
 
                 api = Api(path=full_path, method=method, function_name=function_name, cors=None,
-                          binary_media_types=binary_media_types)
+                          binary_media_types=binary_media_types, stage_name=None)
                 result.append(api)
 
         return result

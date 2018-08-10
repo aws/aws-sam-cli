@@ -395,7 +395,7 @@ class TestService_construct_event(TestCase):
                    '"queryStringParameters": {"query": "params"}, "resource": ' \
                    '"endpoint", "requestContext": {"httpMethod": "GET", "requestId": ' \
                    '"c6af9ac6-7b61-11e6-9a41-93e8deadbeef", "path": "endpoint", "extendedRequestId": null, ' \
-                   '"resourceId": "123456", "apiId": "1234567890", "stage": "prod", "resourcePath": "endpoint", ' \
+                   '"resourceId": "123456", "apiId": "1234567890", "stage": "Prod", "resourcePath": "endpoint", ' \
                    '"identity": {"accountId": null, "apiKey": null, "userArn": null, ' \
                    '"cognitoAuthenticationProvider": null, "cognitoIdentityPoolId": null, "userAgent": ' \
                    '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": ' \

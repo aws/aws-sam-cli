@@ -140,9 +140,15 @@ class SamApiProvider(ApiProvider):
         swagger = reader.read()
         parser = SwaggerParser(swagger)
         apis = parser.get_apis()
+
         LOG.debug("Found '%s' APIs in resource '%s'", len(apis), logical_id)
 
-        collector.add_apis(logical_id, apis)
+        apis_with_stage = list()
+        # Add the stage name to the apis
+        for api in apis:
+            apis_with_stage.append(api._replace(stage_name=properties.get("StageName")))
+
+        collector.add_apis(logical_id, apis_with_stage)
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
 
@@ -174,6 +180,7 @@ class SamApiProvider(ApiProvider):
             if logical_id == SamApiProvider._IMPLICIT_API_RESOURCE_ID:
                 implicit_apis.extend(apis)
             else:
+                apis = SamApiProvider._normalize_api_stage(apis)
                 explicit_apis.extend(apis)
 
         # We will use "path+method" combination as key to this dictionary and store the Api config for this combination.
@@ -196,6 +203,40 @@ class SamApiProvider(ApiProvider):
                   len(explicit_apis), len(implicit_apis), len(result))
 
         return list(result)
+
+    @staticmethod
+    def _normalize_api_stage(apis):
+        """
+        Explicit APIs are required to have a stage name.
+        Functions with events that reference an explicit API need to use the same stage name as the API
+
+        Parameters
+        ----------
+        apis : list of samcli.commands.local.lib.provider.Api
+            list of APIs that should have the same stage name
+
+        Returns
+        -------
+        list of samcli.commands.local.lib.provider.Api
+            List of normalized APIs
+
+        """
+
+        result = list()
+        stage_name = None
+
+        # Find the stage name
+        for api in apis:
+            if api.stage_name:
+                stage_name = api.stage_name
+                break
+
+        # Apply the stage name to all APIs under this logical id
+        for api in apis:
+            if not api.stage_name:
+                api = api._replace(stage_name=stage_name)
+            result.append(api)
+        return result
 
     @staticmethod
     def _normalize_apis(apis):
@@ -280,6 +321,7 @@ class SamApiProvider(ApiProvider):
         """
         path = event_properties.get(SamApiProvider._EVENT_PATH)
         method = event_properties.get(SamApiProvider._EVENT_METHOD)
+        stage_name = event_properties.get("StageName")
 
         # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
         # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
@@ -295,7 +337,7 @@ class SamApiProvider(ApiProvider):
                                               "It should either be a LogicalId string or a Ref of a Logical Id string"
                                               .format(lambda_logical_id))
 
-        return api_resource_id, Api(path=path, method=method, function_name=lambda_logical_id)
+        return api_resource_id, Api(path=path, method=method, function_name=lambda_logical_id, stage_name=stage_name)
 
     @staticmethod
     def _normalize_http_methods(http_method):

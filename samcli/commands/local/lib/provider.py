@@ -69,6 +69,9 @@ _ApiTuple = namedtuple("Api", [
     # String. Name of the Function this API connects to
     "function_name",
 
+    # String. Stage name of this API
+    "stage_name",
+
     # Optional Dictionary containing CORS configuration on this path+method
     # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this path and
     # respond with appropriate CORS headers based on configuration.
