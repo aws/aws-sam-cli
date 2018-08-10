@@ -86,7 +86,7 @@ Main features
 -  Develop and test your Lambda functions locally with ``sam local`` and
    Docker
 -  Invoke functions from known event sources such as Amazon S3, Amazon
-   DynamoDB, Amazon Kinesis, etc.
+   DynamoDB, Amazon Kinesis Streams, etc.
 -  Start local API Gateway from a SAM template, and quickly iterate over
    your functions with hot-reloading
 -  Validate SAM templates
@@ -101,6 +101,7 @@ Prerequisites
 
 - Docker
 - Python2.7 or Python3.6
+- `The AWS CLI <https://aws.amazon.com/cli/>`__
 
 Running Serverless projects and functions locally with SAM CLI requires
 Docker to be installed and running. SAM CLI will use the ``DOCKER_HOST``
@@ -122,24 +123,40 @@ containers – SAM CLI will do it automatically as required.
 Windows, Linux, macOS with PIP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Verify Python Version is 2.7 or 3.6.
+Step 1.  Verify Python Version is 2.7 or 3.6.
 
 .. code:: bash
 
     $ python --version
+ 
+If not installed, go `download python and install <https://www.python.org/downloads/>`_
+
+Step 2. Verify Pip is installed. 
 
 The easiest way to install ``sam`` is to use
 `PIP <https://pypi.org/>`__.
 
 .. code:: bash
 
+    $ pip --version
+
+If not installed, `download and install pip <https://pip.pypa.io/en/stable/installing/>`_
+
+Step 3. Install aws-sam-cli
+
+.. code:: bash
+
    $ pip install --user aws-sam-cli
 
-**Adjust your PATH** to include Python scripts installed under User's directory.
+Step 4. **Adjust your PATH** to include Python scripts installed under User's directory.
 
-**NOTE**: As explained in the `Python Developer's Guide <https://www.python.org/dev/peps/pep-0370/#specification>`__, the User's directory where the scripts are installed is ``~/.local/bin`` for Unix/Mac and ``%APPDATA%\Python\Scripts`` for Windows.
+macOS & Linux
+^^^^^^^^^^^^^
 
-The Python command can help to detect the correct path. However, in Unix/Mac systems the command ``python -m site --user-base`` typically print ``~/.local`` path, so that you'll need to add ``/bin`` to obtain the script path, while in Windows systems the command ``py -m site --user-site`` typically print ``%APPDATA%\Roaming\Python<VERSION>\site-packages``, so you'll need to remove the last ``\site-packages`` folder and replace it with the ``\Scripts`` one.
+In Unix/Mac systems the command ``python -m site --user-base`` typically print ``~/.local`` path, so that you'll need to add ``/bin`` to obtain the script path
+
+**NOTE**: As explained in the `Python Developer's Guide <https://www.python.org/dev/peps/pep-0370/#specification>`__, the User's directory where the scripts are installed is ``~/.local/bin`` for Unix/Mac.
+
 
 .. code:: bash
 
@@ -158,6 +175,39 @@ Restart or Open up a new terminal and verify that the installation worked:
    # Restart current shell
    $ exec "$SHELL"
    $ sam --version
+   
+Windows
+^^^^^^^
+
+In Windows systems the command ``py -m site --user-site`` typically print ``%APPDATA%\Roaming\Python<VERSION>\site-packages``, so you'll need to remove the last ``\site-packages`` folder and replace it with the ``\Scripts`` one.
+
+.. code:: bash
+
+   $ python -m site --user-base
+   
+Using file explorer, go to the folder indicated in the output, and look for the ``Scripts`` folder. Visually confirm that sam Application is inside this folder. 
+
+Copy the File Path.
+
+**NOTE**: As explained in the `Python Developer's Guide <https://www.python.org/dev/peps/pep-0370/#specification>`__, the User's directory where the scripts are installed is ``%APPDATA%\Python\Scripts`` for Windows.
+
+Seach Windows for ``Edit the system environment variables``.
+
+Select **Enviromental Variables**.
+
+Under **System variables**, select **Path**.
+
+Select **New** and enter the file path to the Python Scripts folder. 
+
+Step 5. Verify that sam is installed
+
+Restart or Open up a new terminal and verify that the installation worked:
+
+.. code:: bash
+
+   # Restart current shell
+   $ sam --version
+
 
 Upgrading
 ~~~~~~~~~~
@@ -324,7 +374,7 @@ To make local development and testing of Lambda functions easier, you
 can generate mock/sample event payloads for the following services:
 
 -  S3
--  Kinesis
+-  Kinesis Streams
 -  DynamoDB
 -  Cloudwatch Scheduled Event
 -  API Gateway
@@ -350,7 +400,7 @@ Run API Gateway locally
 
 ``sam local start-api`` spawns a local API Gateway to test HTTP
 request/response functionality. Features hot-reloading to allow you to
-quickly develop, and iterate over your functions.
+quickly develop and iterate over your functions.
 
 .. figure:: media/sam-start-api.gif
    :alt: SAM CLI Start API
