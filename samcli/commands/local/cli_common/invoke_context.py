@@ -55,7 +55,8 @@ class InvokeContext(object):
                  aws_profile=None,
                  debug_port=None,
                  debug_args=None,
-                 debugger_path=None):
+                 debugger_path=None,
+                 aws_region=None):
         """
         Initialize the context
 
@@ -93,6 +94,7 @@ class InvokeContext(object):
         self._log_file = log_file
         self._skip_pull_image = skip_pull_image
         self._aws_profile = aws_profile
+        self._aws_region = aws_region
         self._debug_port = debug_port
         self._debug_args = debug_args
         self._debugger_path = debugger_path
@@ -178,7 +180,8 @@ class InvokeContext(object):
                                  cwd=self.get_cwd(),
                                  env_vars_values=self._env_vars_value,
                                  debug_context=self._debug_context,
-                                 aws_profile=self._aws_profile)
+                                 aws_profile=self._aws_profile,
+                                 aws_region=self._aws_region)
 
     @property
     def stdout(self):
