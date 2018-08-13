@@ -97,7 +97,8 @@ class TestCli(TestCase):
                    docker_network=self.docker_network,
                    log_file=self.log_file,
                    skip_pull_image=self.skip_pull_image,
-                   profile=self.profile)
+                   profile=self.profile,
+                   region=self.region)
 
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
@@ -109,7 +110,8 @@ class TestCli(TestCase):
                                              aws_profile=self.profile,
                                              debug_port=self.debug_port,
                                              debug_args=self.debug_args,
-                                             debugger_path=self.debugger_path)
+                                             debugger_path=self.debugger_path,
+                                             aws_region=self.region)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event="{}",
@@ -137,7 +139,8 @@ class TestCli(TestCase):
                        docker_network=self.docker_network,
                        log_file=self.log_file,
                        skip_pull_image=self.skip_pull_image,
-                       profile=self.profile)
+                       profile=self.profile,
+                       region=self.region)
 
         msg = str(ex_ctx.exception)
         print(msg)
