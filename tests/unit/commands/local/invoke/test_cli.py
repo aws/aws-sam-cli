@@ -143,7 +143,7 @@ class TestCli(TestCase):
                        region=self.region)
 
         msg = str(ex_ctx.exception)
-        print(msg)
+        self.assertEquals(msg, "no_event and event cannot be used together. Please provide only one.")
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")

@@ -58,17 +58,18 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
 
     LOG.debug("local invoke command is called")
 
+    if no_event and event != STDIN_FILE_NAME:
+        # Do not know what the user wants. no_event and event both passed in.
+        raise UserException("no_event and event cannot be used together. Please provide only one.")
+
+    if no_event:
+        event_data = "{}"
+    else:
+        event_data = _get_event(event)
+
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
     try:
-        if no_event and event == STDIN_FILE_NAME:
-            event_data = "{}"
-        elif no_event and event != STDIN_FILE_NAME:
-            # Do not know what the user wants. no_event and event both passed in.
-            raise UserException("no_event and event cannot be used together. Please provide only one.")
-        else:
-            event_data = _get_event(event)
-
         with InvokeContext(template_file=template,
                            function_identifier=function_identifier,
                            env_vars_file=env_vars,
