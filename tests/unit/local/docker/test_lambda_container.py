@@ -6,9 +6,11 @@ from unittest import TestCase
 from mock import patch
 from parameterized import parameterized, param
 
+from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 
 RUNTIMES_WITH_ENTRYPOINT = [Runtime.java8.value,
+                            Runtime.go1x.value,
                             Runtime.nodejs.value,
                             Runtime.nodejs43.value,
                             Runtime.nodejs610.value,
@@ -27,33 +29,39 @@ class TestLambdaContainer_init(TestCase):
         self.code_dir = "codedir"
         self.env_var = {"var": "value"}
         self.memory_mb = 1024
-        self.debug_port = 1235
-        self.debug_arg = "a=b c=d e=f"
+        self.debug_options = DebugContext(debug_args="a=b c=d e=f", debug_port=1235)
 
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
     @patch.object(LambdaContainer, "_get_entry_point")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
     def test_must_configure_container_properly(self,
+                                               get_additional_volumes_mock,
+                                               get_additional_options_mock,
                                                get_entry_point_mock,
                                                get_exposed_ports_mock,
                                                get_image_mock):
 
         image = "image"
         ports = {"a": "b"}
+        addtl_options = {}
+        addtl_volumes = {}
         entry = [1, 2, 3]
         expected_cmd = [self.handler]
 
         get_image_mock.return_value = image
         get_exposed_ports_mock.return_value = ports
         get_entry_point_mock.return_value = entry
+        get_additional_options_mock.return_value = addtl_options
+        get_additional_volumes_mock.return_value = addtl_volumes
 
         container = LambdaContainer(self.runtime,
                                     self.handler,
                                     self.code_dir,
                                     env_vars=self.env_var,
                                     memory_mb=self.memory_mb,
-                                    debug_port=self.debug_port,
-                                    debug_args=self.debug_arg)
+                                    debug_options=self.debug_options)
 
         self.assertEquals(image, container._image)
         self.assertEquals(expected_cmd, container._cmd)
@@ -65,8 +73,10 @@ class TestLambdaContainer_init(TestCase):
         self.assertEquals(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(self.runtime)
-        get_exposed_ports_mock.assert_called_with(self.debug_port)
-        get_entry_point_mock.assert_called_with(self.runtime, self.debug_port, self.debug_arg)
+        get_exposed_ports_mock.assert_called_with(self.debug_options)
+        get_entry_point_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.debug_options)
 
     def test_must_fail_for_unsupported_runtime(self):
 
@@ -82,9 +92,9 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
 
     def test_must_map_same_port_on_host_and_container(self):
 
-        port = 12345
-        expected = {port: port}
-        result = LambdaContainer._get_exposed_ports(port)
+        debug_options = DebugContext(debug_port=12345)
+        expected = {debug_options.debug_port: debug_options.debug_port}
+        result = LambdaContainer._get_exposed_ports(debug_options)
 
         self.assertEquals(expected, result)
 
@@ -109,15 +119,16 @@ class TestLambdaContainer_get_entry_point(TestCase):
 
         self.debug_port = 1235
         self.debug_args = "a=b c=d e=f"
+        self.debug_options = DebugContext(debug_port=1235, debug_args="a=b c=d e=f")
 
     def test_must_skip_if_debug_port_is_not_specified(self):
-        self.assertIsNone(LambdaContainer._get_entry_point("runtime", None, self.debug_args),
+        self.assertIsNone(LambdaContainer._get_entry_point("runtime", None),
                           "Must not provide entrypoint if debug port is not given")
 
     @parameterized.expand([param(r) for r in ALL_RUNTIMES])
     def test_must_provide_entrypoint_for_certain_runtimes_only(self, runtime):
 
-        result = LambdaContainer._get_entry_point(runtime, self.debug_port, self.debug_args)
+        result = LambdaContainer._get_entry_point(runtime, self.debug_options)
 
         if runtime in RUNTIMES_WITH_ENTRYPOINT:
             self.assertIsNotNone(result, "{} runtime must provide entrypoint".format(runtime))
@@ -130,14 +141,62 @@ class TestLambdaContainer_get_entry_point(TestCase):
         Debug args list is appended starting at second position in the array
         """
         expected_debug_args = ["a=b", "c=d", "e=f"]
-        result = LambdaContainer._get_entry_point(runtime, self.debug_port, self.debug_args)
+        result = LambdaContainer._get_entry_point(runtime, self.debug_options)
         actual = result[1:4]
 
         self.assertEquals(actual, expected_debug_args)
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
     def test_must_provide_entrypoint_even_without_debug_args(self, runtime):
-
-        result = LambdaContainer._get_entry_point(runtime, self.debug_port)
+        debug_options = DebugContext(debug_port=1235, debug_args=None)
+        result = LambdaContainer._get_entry_point(runtime, debug_options)
 
         self.assertIsNotNone(result)
+
+
+class TestLambdaContainer_get_additional_options(TestCase):
+
+    def test_no_additional_options_when_debug_options_is_none(self):
+        debug_options = DebugContext(debug_port=None)
+
+        result = LambdaContainer._get_additional_options('runtime', debug_options)
+        self.assertIsNone(result)
+
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if not r.startswith('go')])
+    def test_default_value_returned_for_non_go_runtimes(self, runtime):
+        debug_options = DebugContext(debug_port=1235)
+
+        result = LambdaContainer._get_additional_options(runtime, debug_options)
+        self.assertEquals(result, {})
+
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith('go')])
+    def test_go_runtime_returns_additional_options(self, runtime):
+        expected = {"security_opt": ["seccomp:unconfined"], "cap_add": ["SYS_PTRACE"]}
+
+        debug_options = DebugContext(debug_port=1235)
+
+        result = LambdaContainer._get_additional_options(runtime, debug_options)
+        self.assertEquals(result, expected)
+
+
+class TestLambdaContainer_get_additional_volumes(TestCase):
+
+    def test_no_additional_volumes_when_debug_options_is_none(self):
+        debug_options = DebugContext(debug_port=None)
+
+        result = LambdaContainer._get_additional_volumes(debug_options)
+        self.assertIsNone(result)
+
+    def test_no_additional_volumes_when_debuggr_path_is_none(self):
+        debug_options = DebugContext(debug_port=1234)
+
+        result = LambdaContainer._get_additional_volumes(debug_options)
+        self.assertIsNone(result)
+
+    def test_additional_volumes_returns_volume_with_debugger_path_is_set(self):
+        expected = {'/somepath': {"bind": "/tmp/lambci_debug_files", "mode": "ro"}}
+
+        debug_options = DebugContext(debug_port=1234, debugger_path='/somepath')
+
+        result = LambdaContainer._get_additional_volumes(debug_options)
+        self.assertEquals(result, expected)

@@ -56,3 +56,11 @@ To use 'sam init', nagivate to a directory where where you want the serverless a
   [*] Project initialization is now complete
 This will create a folder in the current directory titled sam-app. This folder will contain an `AWS  SAM template <https://github.com/awslabs/serverless-application-model>`__, along with your function code file and a README file that provides further guidance on how to proceed with your SAM application. The SAM template defines the AWS Resources that your application will need to run in the AWS Cloud.
 
+Learn More
+==========
+
+-  `Project Overview <../README.rst>`__
+-  `Installation <installation.rst>`__
+-  `Usage <usage.rst>`__
+-  `Packaging and deploying your application <deploying_serverless_applications.rst>`__
+-  `Advanced <advanced_usage.rst>`__

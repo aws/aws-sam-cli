@@ -110,4 +110,4 @@ You can use SAM CLI to validate your template against the official AWS Serverles
 
     $ sam validate
     template.yaml is a valid SAM Template
-
+    

@@ -19,16 +19,16 @@ class LocalLambdaRunner(object):
     of actually running the function on a Docker container.
     """
     PRESENT_DIR = "."
+    MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
 
     def __init__(self,
                  local_runtime,
                  function_provider,
                  cwd,
                  env_vars_values=None,
-                 debug_port=None,
-                 debug_args=None,
-                 aws_profile=None
-                 ):
+                 aws_profile=None,
+                 debug_context=None,
+                 aws_region=None):
         """
         Initializes the class
 
@@ -40,15 +40,16 @@ class LocalLambdaRunner(object):
         :param integer debug_port: Optional. Port to bind the debugger to
         :param string debug_args: Optional. Additional arguments passed to the debugger
         :param string aws_profile: Optional. AWS Credentials profile to use
+        :param string aws_region: Optional. AWS region to use
         """
 
         self.local_runtime = local_runtime
         self.provider = function_provider
         self.cwd = cwd
         self.env_vars_values = env_vars_values or {}
-        self.debug_port = debug_port
-        self.debug_args = debug_args
         self.aws_profile = aws_profile
+        self.aws_region = aws_region
+        self.debug_context = debug_context
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
         """
@@ -76,8 +77,7 @@ class LocalLambdaRunner(object):
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_port=self.debug_port, debug_args=self.debug_args,
-                                  stdout=stdout, stderr=stderr)
+        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
 
     def is_debugging(self):
         """
@@ -89,7 +89,7 @@ class LocalLambdaRunner(object):
             True, if we are debugging the invoke ie. the Docker container will break into the debugger and wait for
             attach
         """
-        return bool(self.debug_port)
+        return bool(self.debug_context)
 
     def _get_invoke_config(self, function):
         """
@@ -104,12 +104,20 @@ class LocalLambdaRunner(object):
 
         LOG.debug("Resolved absolute path to code is %s", code_abs_path)
 
+        function_timeout = function.timeout
+
+        # The Runtime container handles timeout inside the container. When debugging with short timeouts, this can
+        # cause the container execution to stop. When in debug mode, we set the timeout in the container to a max 10
+        # hours. This will ensure the container doesn't unexpectedly stop while debugging function code
+        if self.is_debugging():
+            function_timeout = self.MAX_DEBUG_TIMEOUT
+
         return FunctionConfig(name=function.name,
                               runtime=function.runtime,
                               handler=function.handler,
                               code_abs_path=code_abs_path,
                               memory=function.memory,
-                              timeout=function.timeout,
+                              timeout=function_timeout,
                               env_vars=env_vars)
 
     def _make_env_vars(self, function):
@@ -190,7 +198,9 @@ class LocalLambdaRunner(object):
         result = {}
 
         LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
-        session = boto3.session.Session(profile_name=self.aws_profile)
+        # TODO: Consider changing it to use boto3 default session. We already have an annotation
+        # to pass command line arguments for region & profile to setup boto3 default session
+        session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
 
         if not session:
             return result
