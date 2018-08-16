@@ -181,9 +181,9 @@ class LambdaContainer(Container):
                    + debug_args_list \
                    + [
                         "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=" + str(debug_port),
-                        "-XX:MaxHeapSize=1336935k",
-                        "-XX:MaxMetaspaceSize=157286k",
-                        "-XX:ReservedCodeCacheSize=78643k",
+                        "-XX:MaxHeapSize=2834432k",
+                        "-XX:MaxMetaspaceSize=163840k",
+                        "-XX:ReservedCodeCacheSize=81920k",
                         "-XX:+UseSerialGC",
                         # "-Xshare:on", doesn't work in conjunction with the debug options
                         "-XX:-TieredCompilation",

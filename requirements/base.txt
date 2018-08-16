@@ -10,3 +10,5 @@ docker>=3.3.0
 dateparser~=0.7
 python-dateutil~=2.6
 pathlib2~=2.3.2; python_version<"3.4"
+pystache~=0.5
+
