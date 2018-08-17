@@ -22,7 +22,7 @@ Next, open a command prompt and type the following:
 .. code:: bash
 
     sam package \
-        --template-file file path/template.yaml \
+        --template-file path/template.yaml \
         --output-template-file packaged.yaml \
         --s3-bucket s3-bucket-name
 
