@@ -29,15 +29,15 @@ Lambda Runtime.
 Main features
 -------------
 
--  Develop and test your Lambda functions locally with ``sam local`` and
-   Docker
--  Invoke functions from known event sources such as Amazon S3, Amazon
-   DynamoDB, Amazon Kinesis Streams, etc.
--  Start local API Gateway from a SAM template, and quickly iterate over
-   your functions with hot-reloading
--  Validate SAM templates
--  Get started with boilerplate Serverless Service in your chosen Lambda
-   Runtime ``sam init``
+- Develop and test your Lambda functions locally with ``sam local`` and
+  Docker
+- Invoke functions from known event sources such as Amazon S3, Amazon
+  DynamoDB, Amazon Kinesis Streams, etc.
+- Start local API Gateway from a SAM template, and quickly iterate over
+  your functions with hot-reloading
+- Validate SAM templates
+- Get started with boilerplate Serverless Service in your chosen Lambda
+  Runtime ``sam init``
    
 
 Get Started
@@ -45,50 +45,50 @@ Get Started
 
 Learn how to get started using the SAM CLI with these guides:
 
--  `Installation <docs/installation.rst>`__: Set up your MacOs, Linux or Windows Machine to run serverless projects with SAM CLI.
--  `Introduction to SAM and SAM CLI <docs/getting_started.rst>`__ What is SAM and SAM CLI, and how can you use it to make a simple hello-world app. 
--  `Running and debugging serverless applications locally <docs/usage.rst>`__: Describes how to use SAM CLI for invoking Lambda functions locally, running automated tests, fetching logs, and debugging applications
--  `Packaging and deploying your application <docs/deploying_serverless_applications.rst>`__: Deploy your local application using an S3 bucket, and AWS CloudFormation.
--  `Advanced <docs/advanced_usage.rst>`__: Learn how to work with compiled languages (such as Java and .NET), configure IAM credentials, provide environment variables, and more.
--  `Examples <#examples>`__
+- `Installation <docs/installation.rst>`__: Set up your MacOs, Linux or Windows Machine to run serverless projects with SAM CLI.
+- `Introduction to SAM and SAM CLI <docs/getting_started.rst>`__ What is SAM and SAM CLI, and how can you use it to make a simple hello-world app. 
+- `Running and debugging serverless applications locally <docs/usage.rst>`__: Describes how to use SAM CLI for invoking Lambda functions locally, running automated tests, fetching logs, and debugging applications
+- `Packaging and deploying your application <docs/deploying_serverless_applications.rst>`__: Deploy your local application using an S3 bucket, and AWS CloudFormation.
+- `Advanced <docs/advanced_usage.rst>`__: Learn how to work with compiled languages (such as Java and .NET), configure IAM credentials, provide environment variables, and more.
+- `Examples <#examples>`__
 
 
 Project Status
 --------------
 
--  [ ] Python Versions support
+- [ ] Python Versions support
 
-   -  [x] Python 2.7
-   -  [x] Python 3.6
+   * [x] Python 2.7
+   * [x] Python 3.6
 
--  [ ] Supported AWS Lambda Runtimes
+- [ ] Supported AWS Lambda Runtimes
 
-   -  [x] ``nodejs``
-   -  [x] ``nodejs4.3``
-   -  [x] ``nodejs6.10``
-   -  [x] ``nodejs8.10``
-   -  [x] ``java8``
-   -  [x] ``python2.7``
-   -  [x] ``python3.6``
-   -  [ ] ``dotnetcore1.0``
-   -  [x] ``dotnetcore2.0``
-   -  [x] ``dotnetcore2.1``
+   * [x] ``nodejs``
+   * [x] ``nodejs4.3``
+   * [x] ``nodejs6.10``
+   * [x] ``nodejs8.10``
+   * [x] ``java8``
+   * [x] ``python2.7``
+   * [x] ``python3.6``
+   * [ ] ``dotnetcore1.0``
+   * [x] ``dotnetcore2.0``
+   * [x] ``dotnetcore2.1``
 
--  [x] AWS credential support
--  [x] Debugging support
--  [x] Inline Swagger support within SAM templates
--  [x] Validating SAM templates locally
--  [x] Generating boilerplate templates
+- [x] AWS credential support
+- [x] Debugging support
+- [x] Inline Swagger support within SAM templates
+- [x] Validating SAM templates locally
+- [x] Generating boilerplate templates
 
-   -  [x] ``nodejs``
-   -  [x] ``nodejs4.3``
-   -  [x] ``nodejs6.10``
-   -  [x] ``nodejs8.10``
-   -  [x] ``java8``
-   -  [x] ``python2.7``
-   -  [x] ``python3.6``
-   -  [x] ``dotnetcore1.0``
-   -  [x] ``dotnetcore2.0``
+   * [x] ``nodejs``
+   * [x] ``nodejs4.3``
+   * [x] ``nodejs6.10``
+   * [x] ``nodejs8.10``
+   * [x] ``java8``
+   * [x] ``python2.7``
+   * [x] ``python3.6``
+   * [x] ``dotnetcore1.0``
+   * [x] ``dotnetcore2.0``
 
 Contributing
 ------------
