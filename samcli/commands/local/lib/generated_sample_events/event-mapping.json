@@ -475,10 +475,15 @@
       }
     }
   },
-  "events": {
+  "cloudwatch": {
+    "logs": {
+      "filename": "CloudwatchLogs",
+      "help": "Generates an Amazon Cloudwatch Logs Event",
+      "tags": {}
+    },
     "scheduled-event": {
       "filename": "ScheduledEvent",
-      "help": "Generates an Amazon CloudWatch Scheduled Event",
+      "help": "Generates an Amazon CloudWatch Events Scheduled Event",
       "tags": {
         "account-id": {
           "default": "123456789012"
@@ -610,13 +615,6 @@
     "order-flowers": {
       "filename": "LexOrderFlowers",
       "help": "Generates an Amazon Lex Order Flowers Event",
-      "tags": {}
-    }
-  },
-  "logs": {
-    "cloudwatch-logs": {
-      "filename": "CloudwatchLogs",
-      "help": "Generates an Amazon Cloudwatch Logs Event",
       "tags": {}
     }
   },
