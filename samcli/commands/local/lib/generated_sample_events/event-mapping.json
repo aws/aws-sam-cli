@@ -356,9 +356,9 @@
     }
   },
   "codecommit": {
-    "codecommit": {
+    "repository": {
       "filename": "CodeCommit",
-      "help": "Generates an AWS CodeCommit Event",
+      "help": "Generates an AWS CodeCommit Repository Event ",
       "tags": {
         "account-id": {
           "default": "123456789012"
