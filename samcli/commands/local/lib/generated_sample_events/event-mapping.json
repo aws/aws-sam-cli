@@ -494,9 +494,9 @@
     }
   },
   "kinesis": {
-    "kinesis": {
+    "get-records": {
       "filename": "Kinesis",
-      "help": "Generates an Amazon Kinesis Event",
+      "help": "Generates an Amazon Kinesis Data Stream Event",
       "tags": {
         "region": {
           "default": "us-east-1"
