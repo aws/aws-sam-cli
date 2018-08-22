@@ -691,9 +691,9 @@
     }
   },
   "sns": {
-    "notifications": {
+    "notification": {
       "filename": "Sns",
-      "help": "Generates an Amazon SNS Topic Notifications Event",
+      "help": "Generates an Amazon SNS Topic Notification Event",
       "tags": {
         "account-id": {
           "default": "123456789012"
