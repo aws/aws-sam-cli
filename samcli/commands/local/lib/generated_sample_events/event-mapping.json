@@ -38,7 +38,7 @@
     },
     "intent-getnewfact": {
       "filename": "AlexaIntentGetNewFact",
-      "help" : "Generates an Amazon Alexa Intent GetNewFact Event",
+      "help": "Generates an Amazon Alexa Intent GetNewFact Event",
       "tags": {
         "session-id": {
           "default": "123456789012"
@@ -54,9 +54,9 @@
         }
       }
     },
-    "intent-mycoloris" : {
+    "intent-mycoloris": {
       "filename": "AlexaIntentMyColorIs",
-      "help" : "Generates an Amazon Alexa Intent MyColorIs Event",
+      "help": "Generates an Amazon Alexa Intent MyColorIs Event",
       "tags": {
         "session-id": {
           "default": "123456789012"
@@ -72,9 +72,9 @@
         }
       }
     },
-    "intent-recipe" : {
+    "intent-recipe": {
       "filename": "AlexaIntentRecipe",
-      "help" : "Generates an Amazon Alexa Intent Recipe Event",
+      "help": "Generates an Amazon Alexa Intent Recipe Event",
       "tags": {
         "session-id": {
           "default": "123456789012"
@@ -90,9 +90,9 @@
         }
       }
     },
-    "start-session" : {
+    "start-session": {
       "filename": "AlexaStartSession",
-      "help" : "Generates an Amazon Alexa Start Session Event",
+      "help": "Generates an Amazon Alexa Start Session Event",
       "tags": {
         "session-id": {
           "default": "123456789012"
@@ -109,27 +109,27 @@
       }
     }
   },
-  "alexa-smart-home" : {
+  "alexa-smart-home": {
     "smart-home-control-turn-off-request": {
       "filename": "AlexaSmartHomeControlTurnOffRequest",
-      "help" : "Generates an Amazon Alexa Smart Home Control Turn Off Request Event",
+      "help": "Generates an Amazon Alexa Smart Home Control Turn Off Request Event",
       "tags": {}
     },
-    "smart-home-control-turn-on-request" : {
+    "smart-home-control-turn-on-request": {
       "filename": "AlexaSmartHomeControlTurnOnRequest",
-      "help" : "Generates an Amazon Alexa Smart Home Control Turn On Request Event",
+      "help": "Generates an Amazon Alexa Smart Home Control Turn On Request Event",
       "tags": {}
     },
-    "smart-home-discovery-request" : {
+    "smart-home-discovery-request": {
       "filename": "AlexaSmartHomeDiscoveryRequest",
-      "help" : "Generates an Amazon Alexa Smart Home Discovery Request Event",
+      "help": "Generates an Amazon Alexa Smart Home Discovery Request Event",
       "tags": {}
     }
   },
   "apigateway": {
-    "authorizer" : {
+    "authorizer": {
       "filename": "ApiGatewayAuthorizer",
-      "help" : "Generates an Amazon API Gateway Authorizer Event",
+      "help": "Generates an Amazon API Gateway Authorizer Event",
       "tags": {
         "account-id": {
           "default": "123456789012"
@@ -155,9 +155,9 @@
         }
       }
     },
-    "aws-proxy" : {
+    "aws-proxy": {
       "filename": "AwsProxy",
-      "help" : "Generates an Amazon API Gateway AWS Proxy Event",
+      "help": "Generates an Amazon API Gateway AWS Proxy Event",
       "tags": {
         "body": {
           "type": "string",
@@ -189,19 +189,19 @@
   "batch": {
     "get-job": {
       "filename": "BatchGetJob",
-      "help" : "Generates an AWS Batch Get Job Event",
+      "help": "Generates an AWS Batch Get Job Event",
       "tags": {}
     },
-    "submit-job" : {
+    "submit-job": {
       "filename": "BatchSubmitJob",
-      "help" : "Generates an AWS Batch Submit Job Event",
+      "help": "Generates an AWS Batch Submit Job Event",
       "tags": {}
     }
   },
   "cloudformation": {
     "create-request": {
       "filename": "CfnCreateRequest",
-      "help" : "Generates an AWS CloudFormation Create Request Event",
+      "help": "Generates an AWS CloudFormation Create Request Event",
       "tags": {
         "account-id": {
           "default": "123456789012"
@@ -219,7 +219,7 @@
   "cloudfront": {
     "ab-test": {
       "filename": "CloudFrontABTest",
-      "help" : "Generates an Amazon CloudFront A/B Test Event",
+      "help": "Generates an Amazon CloudFront A/B Test Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -231,7 +231,7 @@
     },
     "access-request-in-response": {
       "filename": "CloudFrontAccessRequestInResponse",
-      "help" : "Generates an Amazon CloudFront Access Request in Response Event",
+      "help": "Generates an Amazon CloudFront Access Request in Response Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -243,7 +243,7 @@
     },
     "http-redirect": {
       "filename": "CloudFrontHttpRedirect",
-      "help" : "Generates an Amazon CloudFront HTTP Redirect Event",
+      "help": "Generates an Amazon CloudFront HTTP Redirect Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -253,9 +253,9 @@
         }
       }
     },
-    "modify-querystring" : {
+    "modify-querystring": {
       "filename": "CloudFrontModifyQueryString",
-      "help" : "Generates an Amazon CloudFront Modify QueryString Event",
+      "help": "Generates an Amazon CloudFront Modify QueryString Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -267,12 +267,12 @@
     },
     "modify-response-header": {
       "filename": "CloudFrontModifyResponseHeader",
-      "help" : "Generates an Amazon CloudFront Modify Response Header Event",
+      "help": "Generates an Amazon CloudFront Modify Response Header Event",
       "tags": {}
     },
     "multiple-remote-calls-aggregate-response": {
       "filename": "CloudFrontMultipleRemoteCallsAggregateResponse",
-      "help" : "Generates an Amazon CloudFront Multiple Remote Calls Aggregate Response Event",
+      "help": "Generates an Amazon CloudFront Multiple Remote Calls Aggregate Response Event",
       "tags": {
         "uri": {
           "default": "/forecast/Seattle:NewYork:Chicago:SanFrancisco"
@@ -284,7 +284,7 @@
     },
     "normalize-querystring-to-improve-cache-hit": {
       "filename": "CloudFrontNormalizeQuerystringToImproveCacheHit",
-      "help" : "Generates an Amazon CloudFront Normalize Querystring Event",
+      "help": "Generates an Amazon CloudFront Normalize Querystring Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -296,7 +296,7 @@
     },
     "redirect-on-viewer-country": {
       "filename": "CloudFrontRedirectOnViewerCountry",
-      "help" : "Generates an Amazon CloudFront Redirect on Viewer Country Event",
+      "help": "Generates an Amazon CloudFront Redirect on Viewer Country Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -308,7 +308,7 @@
     },
     "redirect-unauthenticated-users": {
       "filename": "CloudFrontRedirectUnauthenticatedUsers",
-      "help" : "Generates an Amazon CloudFront Redirect Unauthenticated Users Event",
+      "help": "Generates an Amazon CloudFront Redirect Unauthenticated Users Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -320,7 +320,7 @@
     },
     "response-generation": {
       "filename": "CloudFrontResponseGeneration",
-      "help" : "Generates an Amazon CloudFront Response Generation Event",
+      "help": "Generates an Amazon CloudFront Response Generation Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -332,7 +332,7 @@
     },
     "serve-object-on-viewer-device": {
       "filename": "CloudFrontServeObjectOnViewerDevice",
-      "help" : "Generates an Amazon CloudFront Serve Object on Viewer Device Event",
+      "help": "Generates an Amazon CloudFront Serve Object on Viewer Device Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -344,7 +344,7 @@
     },
     "simple-remote-call": {
       "filename": "CloudFrontSimpleRemoteCall",
-      "help" : "Generates an Amazon CloudFront Simple Remote Call Event",
+      "help": "Generates an Amazon CloudFront Simple Remote Call Event",
       "tags": {
         "uri": {
           "default": "/test"
@@ -356,9 +356,9 @@
     }
   },
   "codecommit": {
-    "codecommit": {
+    "repository": {
       "filename": "CodeCommit",
-      "help" : "Generates an AWS CodeCommit Event",
+      "help": "Generates an AWS CodeCommit Repository Event ",
       "tags": {
         "account-id": {
           "default": "123456789012"
@@ -381,8 +381,8 @@
       }
     }
   },
-  "codepipeline" : {
-    "job" : {
+  "codepipeline": {
+    "job": {
       "filename": "CodePipeline",
       "help": "Generates an AWS CodePipeline Job Event",
       "tags": {
@@ -411,7 +411,7 @@
   "cognito": {
     "sync-trigger": {
       "filename": "CognitoSyncTrigger",
-      "help" : "Generates an Amazon Cognito Sync Trigger Event",
+      "help": "Generates an Amazon Cognito Sync Trigger Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -420,9 +420,9 @@
     }
   },
   "config": {
-    "item-change-notification" : {
+    "item-change-notification": {
       "filename": "ConfigurationItemChangeNotification",
-      "help" : "Generates an AWS Config Configuration Item Change Notification Event",
+      "help": "Generates an AWS Config Configuration Item Change Notification Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -434,7 +434,7 @@
     },
     "oversized-item-change-notification": {
       "filename": "OversizedConfigurationItemChangeNotification",
-      "help" : "Generates an AWS Config Oversized Configuration Item Change Notification Event",
+      "help": "Generates an AWS Config Oversized Configuration Item Change Notification Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -446,7 +446,7 @@
     },
     "periodic-rule": {
       "filename": "PeriodicRule",
-      "help" : "Generates an AWS Config Periodic Rule Event",
+      "help": "Generates an AWS Config Periodic Rule Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -460,7 +460,7 @@
   "dynamodb": {
     "update": {
       "filename": "DynamoDBUpdate",
-      "help" : "Generates an Amazon DynamoDB Update Event",
+      "help": "Generates an Amazon DynamoDB Update Event",
       "tags": {
         "account-id": {
           "default": "123456789012"
@@ -475,10 +475,15 @@
       }
     }
   },
-  "events": {
+  "cloudwatch": {
+    "logs": {
+      "filename": "CloudwatchLogs",
+      "help": "Generates an Amazon Cloudwatch Logs Event",
+      "tags": {}
+    },
     "scheduled-event": {
       "filename": "ScheduledEvent",
-      "help" : "Generates an Amazon CloudWatch Scheduled Event",
+      "help": "Generates an Amazon CloudWatch Events Scheduled Event",
       "tags": {
         "account-id": {
           "default": "123456789012"
@@ -494,9 +499,9 @@
     }
   },
   "kinesis": {
-    "kinesis": {
+    "get-records": {
       "filename": "Kinesis",
-      "help" : "Generates an Amazon Kinesis Event",
+      "help": "Generates an Amazon Kinesis Data Stream Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -518,7 +523,7 @@
     },
     "kinesis-firehose": {
       "filename": "KinesisFirehose",
-      "help" : "Generates an Amazon Kinesis Data Firehose Event",
+      "help": "Generates an Amazon Kinesis Data Firehose Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -534,7 +539,7 @@
     },
     "apachelog": {
       "filename": "KinesisFirehoseApachelog",
-      "help" : "Generates an Amazon Kinesis Data Firehose Apachelog Event",
+      "help": "Generates an Amazon Kinesis Data Firehose Apachelog Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -546,7 +551,7 @@
     },
     "cloudwatch-logs-processor": {
       "filename": "KinesisFirehoseCloudwatchLogsProcessor",
-      "help" : "Generates an Amazon Kinesis Data Firehose Cloudwatch Logs Processor Event",
+      "help": "Generates an Amazon Kinesis Data Firehose Cloudwatch Logs Processor Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -556,9 +561,9 @@
         }
       }
     },
-    "streams-as-source" : {
+    "streams-as-source": {
       "filename": "KinesisFirehoseStreamsAsSource",
-      "help" : "Generates an Amazon Kinesis Data Firehose Streams as Source Event",
+      "help": "Generates an Amazon Kinesis Data Firehose Streams as Source Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -579,7 +584,7 @@
     },
     "syslog": {
       "filename": "KinesisFirehoseSyslog",
-      "help" : "Generates an Amazon Kinesis Data Firehose Syslog Event",
+      "help": "Generates an Amazon Kinesis Data Firehose Syslog Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -594,36 +599,29 @@
   "lex": {
     "book-car": {
       "filename": "LexBookCar",
-      "help" : "Generates an Amazon Lex Book Car Event",
+      "help": "Generates an Amazon Lex Book Car Event",
       "tags": {}
     },
     "book-hotel": {
       "filename": "LexBookHotel",
-      "help" : "Generates an Amazon Lex Book Hotel Event",
+      "help": "Generates an Amazon Lex Book Hotel Event",
       "tags": {}
     },
     "make-appointment": {
       "filename": "LexMakeAppointment",
-      "help" : "Generates an Amazon Lex Make Appointment Event",
+      "help": "Generates an Amazon Lex Make Appointment Event",
       "tags": {}
     },
     "order-flowers": {
       "filename": "LexOrderFlowers",
-      "help" : "Generates an Amazon Lex Order Flowers Event",
-      "tags": {}
-    }
-  },
-  "logs": {
-    "cloudwatch-logs": {
-      "filename": "CloudwatchLogs",
-      "help" : "Generates an Amazon Cloudwatch Logs Event",
+      "help": "Generates an Amazon Lex Order Flowers Event",
       "tags": {}
     }
   },
   "rekognition": {
     "s3-request": {
       "filename": "RekognitionS3Request",
-      "help" : "Generates an Amazon Rekognition S3 Request Event",
+      "help": "Generates an Amazon Rekognition S3 Request Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -643,7 +641,7 @@
   "s3": {
     "delete": {
       "filename": "S3Delete",
-      "help" : "Generates an Amazon S3 Delete Event",
+      "help": "Generates an Amazon S3 Delete Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -661,7 +659,7 @@
     },
     "put": {
       "filename": "S3Put",
-      "help" : "Generates an Amazon S3 Put Event",
+      "help": "Generates an Amazon S3 Put Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -681,7 +679,7 @@
   "ses": {
     "email-receiving": {
       "filename": "SesEmailReceiving",
-      "help" : "Generates an Amazon SES Email Receiving Event",
+      "help": "Generates an Amazon SES Email Receiving Event",
       "tags": {
         "region": {
           "default": "us-east-1"
@@ -693,9 +691,9 @@
     }
   },
   "sns": {
-    "sns": {
+    "notification": {
       "filename": "Sns",
-      "help" : "Generates an Amazon SNS Event",
+      "help": "Generates an Amazon SNS Topic Notification Event",
       "tags": {
         "account-id": {
           "default": "123456789012"
@@ -719,7 +717,7 @@
     }
   },
   "sqs": {
-    "sqs": {
+    "receive-message": {
       "filename": "Sqs",
       "help": "Generates an Amazon SQS Event",
       "tags": {
@@ -742,7 +740,7 @@
   "stepfunctions": {
     "error": {
       "filename": "StepFunctionsError",
-      "help" : "Generates an AWS StepFunctions Error Event",
+      "help": "Generates an AWS StepFunctions Error Event",
       "tags": {}
     }
   }
