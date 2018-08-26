@@ -70,6 +70,7 @@ Project Status
    -  [x] ``java8``
    -  [x] ``python2.7``
    -  [x] ``python3.6``
+   -  [ ] ``go1.x``
    -  [ ] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
    -  [x] ``dotnetcore2.1``
@@ -87,6 +88,7 @@ Project Status
    -  [x] ``java8``
    -  [x] ``python2.7``
    -  [x] ``python3.6``
+   -  [ ] ``go1.x``
    -  [x] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
 
