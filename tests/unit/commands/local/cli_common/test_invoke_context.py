@@ -1,15 +1,15 @@
 """
 Tests the InvokeContext class
 """
-
+import errno
 import os
 import sys
 import yaml
-import docker
 
+import docker
 import requests
 
-from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
+from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
 from unittest import TestCase
@@ -32,13 +32,15 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context = InvokeContext(template_file=template_file,
                                        function_identifier="id",
                                        env_vars_file=env_vars_file,
-                                       debug_port=123,
-                                       debug_args="args",
                                        docker_volume_basedir="volumedir",
                                        docker_network="network",
                                        log_file=log_file,
                                        skip_pull_image=True,
-                                       aws_profile="profile")
+                                       aws_profile="profile",
+                                       debug_port=1111,
+                                       debugger_path="path-to-debugger",
+                                       debug_args='args',
+                                       aws_region="region")
 
         template_dict = "template_dict"
         invoke_context._get_template_data = Mock()
@@ -52,6 +54,10 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._setup_log_file = Mock()
         invoke_context._setup_log_file.return_value = log_file_handle
 
+        debug_context_mock = Mock()
+        invoke_context._get_debug_context = Mock()
+        invoke_context._get_debug_context.return_value = debug_context_mock
+
         invoke_context._check_docker_connectivity = Mock()
 
         # Call Enter method manually for testing purposes
@@ -62,11 +68,13 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEquals(invoke_context._function_provider, function_provider)
         self.assertEquals(invoke_context._env_vars_value, env_vars_value)
         self.assertEquals(invoke_context._log_file_handle, log_file_handle)
+        self.assertEquals(invoke_context._debug_context, debug_context_mock)
 
         invoke_context._get_template_data.assert_called_with(template_file)
         SamFunctionProviderMock.assert_called_with(template_dict)
         invoke_context._get_env_vars_value.assert_called_with(env_vars_file)
         invoke_context._setup_log_file.assert_called_with(log_file)
+        invoke_context._get_debug_context.assert_called_once_with(1111, "args", "path-to-debugger")
         invoke_context._check_docker_connectivity.assert_called_with()
 
 
@@ -105,13 +113,15 @@ class TestInvokeContextAsContextManager(TestCase):
         with InvokeContext(template_file="template_file",
                            function_identifier="id",
                            env_vars_file="env_vars_file",
-                           debug_port=123,
-                           debug_args="args",
                            docker_volume_basedir="volumedir",
                            docker_network="network",
                            log_file="log_file",
                            skip_pull_image=True,
-                           aws_profile="profile") as context:
+                           aws_profile="profile",
+                           debug_port=1111,
+                           debugger_path="path-to-debugger",
+                           debug_args='args',
+                           aws_region="region") as context:
             self.assertEquals(context_obj, context)
 
         EnterMock.assert_called_with()
@@ -152,13 +162,15 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context = InvokeContext(template_file="template_file",
                                      function_identifier="id",
                                      env_vars_file="env_vars_file",
-                                     debug_port=123,
-                                     debug_args="args",
                                      docker_volume_basedir="volumedir",
                                      docker_network="network",
                                      log_file="log_file",
                                      skip_pull_image=True,
-                                     aws_profile="profile")
+                                     aws_profile="profile",
+                                     debug_port=1111,
+                                     debugger_path="path-to-debugger",
+                                     debug_args='args',
+                                     aws_region="region")
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
@@ -187,10 +199,10 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
                                            function_provider=ANY,
                                            cwd=cwd,
+                                           debug_context=None,
                                            env_vars_values=ANY,
-                                           debug_port=123,
-                                           debug_args="args",
-                                           aws_profile="profile")
+                                           aws_profile="profile",
+                                           aws_region="region")
 
 
 class TestInvokeContext_stdout_property(TestCase):
@@ -364,6 +376,75 @@ class TestInvokeContext_setup_log_file(TestCase):
             InvokeContext._setup_log_file(filename)
 
         m.assert_called_with(filename, 'wb')
+
+
+class TestInvokeContext_get_debug_context(TestCase):
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debugger_path_not_found(self, pathlib_mock):
+        error = OSError()
+        error.errno = errno.ENOENT
+        pathlib_mock.side_effect = error
+
+        with self.assertRaises(DebugContextException):
+            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path='somepath')
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debugger_path_not_dir(self, pathlib_mock):
+        pathlib_path_mock = Mock()
+        resolve_path_mock = Mock()
+        pathlib_path_mock.resolve.return_value = resolve_path_mock
+        resolve_path_mock.is_dir.return_value = False
+        pathlib_mock.return_value = pathlib_path_mock
+
+        with self.assertRaises(DebugContextException):
+            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path='somepath')
+
+    def test_no_debug_port(self):
+        debug_context = InvokeContext._get_debug_context(None, None, None)
+
+        self.assertEquals(debug_context.debugger_path, None)
+        self.assertEquals(debug_context.debug_port, None)
+        self.assertEquals(debug_context.debug_args, None)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_non_path_not_found_oserror_is_thrown(self, pathlib_mock):
+        pathlib_mock.side_effect = OSError()
+
+        with self.assertRaises(OSError):
+            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path='somepath')
+
+    @patch("samcli.commands.local.cli_common.invoke_context.DebugContext")
+    def test_debug_port_given_without_debugger_path(self, debug_context_mock):
+        debug_context_mock.return_value = "I am the DebugContext"
+
+        debug_context = InvokeContext._get_debug_context(1111, None, None)
+
+        self.assertEquals(debug_context, "I am the DebugContext")
+
+        debug_context_mock.assert_called_once_with(debug_port=1111, debug_args=None, debugger_path=None)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.DebugContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debugger_path_resolves(self, pathlib_mock, debug_context_mock):
+        pathlib_path_mock = Mock()
+        resolve_path_mock = Mock()
+        pathlib_path_mock.resolve.return_value = resolve_path_mock
+        resolve_path_mock.is_dir.return_value = True
+        resolve_path_mock.__str__ = Mock()
+        resolve_path_mock.__str__.return_value = "full/path"
+        pathlib_mock.return_value = pathlib_path_mock
+
+        debug_context_mock.return_value = "I am the DebugContext"
+
+        debug_context = InvokeContext._get_debug_context(1111, "args", "./path")
+
+        self.assertEquals(debug_context, "I am the DebugContext")
+
+        debug_context_mock.assert_called_once_with(debug_port=1111, debug_args="args", debugger_path="full/path")
+        resolve_path_mock.is_dir.assert_called_once()
+        pathlib_path_mock.resolve.assert_called_once_with(strict=True)
+        pathlib_mock.assert_called_once_with("./path")
 
 
 class TestInvokeContext_check_docker_connectivity(TestCase):

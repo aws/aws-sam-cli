@@ -108,6 +108,9 @@ def invoke_common_options(f):
                           "port on localhost.",
                      envvar="SAM_DEBUG_PORT"),
 
+        click.option('--debugger-path',
+                     help="Host path to a debugger that will be mounted into the Lambda container."),
+
         click.option('--debug-args',
                      help="Additional arguments to be passed to the debugger.",
                      envvar="DEBUGGER_ARGS"),
@@ -134,6 +137,9 @@ def invoke_common_options(f):
 
         click.option('--profile',
                      help="Specify which AWS credentials profile to use."),
+
+        click.option('--region',
+                     help="Specify which AWS region to use."),
 
     ]
 

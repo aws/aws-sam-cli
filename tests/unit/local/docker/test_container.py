@@ -58,6 +58,8 @@ class TestContainer_create(TestCase):
         self.exposed_ports = {123: 123}
         self.entrypoint = ["a", "b", "c"]
         self.env_vars = {"key": "value"}
+        self.container_opts = {"container": "opts"}
+        self.additional_volumes = {'/somepath': {"blah": "blah value"}}
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
@@ -108,7 +110,8 @@ class TestContainer_create(TestCase):
             self.host_dir: {
                 "bind": self.working_dir,
                 "mode": "ro"
-            }
+            },
+            '/somepath': {"blah": "blah value"}
         }
         expected_memory = "{}m".format(self.memory_mb)
 
@@ -124,7 +127,10 @@ class TestContainer_create(TestCase):
                               exposed_ports=self.exposed_ports,
                               entrypoint=self.entrypoint,
                               env_vars=self.env_vars,
-                              docker_client=self.mock_docker_client)
+                              docker_client=self.mock_docker_client,
+                              container_opts=self.container_opts,
+                              additional_volumes=self.additional_volumes
+                              )
 
         container_id = container.create()
         self.assertEquals(container_id, generated_id)
@@ -138,7 +144,9 @@ class TestContainer_create(TestCase):
                                                                      environment=self.env_vars,
                                                                      ports=self.exposed_ports,
                                                                      entrypoint=self.entrypoint,
-                                                                     mem_limit=expected_memory)
+                                                                     mem_limit=expected_memory,
+                                                                     container='opts'
+                                                                     )
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_connect_to_network_on_create(self):

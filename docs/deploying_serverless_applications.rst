@@ -22,7 +22,7 @@ Next, open a command prompt and type the following:
 .. code:: bash
 
     sam package \
-        --template-file file path/template.yaml \
+        --template-file path/template.yaml \
         --output-template-file packaged.yaml \
         --s3-bucket s3-bucket-name
 
@@ -46,3 +46,11 @@ When you run the aws sam deploy command, it creates an AWS CloudFormation Change
 
 To verify your results, open the AWS CloudFormation console to view the newly created AWS CloudFormation stack and the Lambda console to view your function.
 
+Learn More
+==========
+
+-  `Project Overview <../README.rst>`__
+-  `Installation <installation.rst>`__
+-  `Getting started with SAM and the SAM CLI <getting_started.rst>`__
+-  `Usage <usage.rst>`__
+-  `Advanced <advanced_usage.rst>`__
