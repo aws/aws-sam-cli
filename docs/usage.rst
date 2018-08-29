@@ -182,16 +182,22 @@ can generate and customize event payloads for the following services:
 - AWS Step Functions
 
 **Syntax**
+
 .. code:: bash
+
   $ sam local generate-event <service> <event>
 
 You can generate multiple types of events from each service. For example,
 to generate the event from S3 when a new object is created, use:
+
 .. code:: bash
+
   $ sam local generate-event s3 put
 
 To generate the event from S3 when an object is deleted, you can use:
+
 .. code:: bash
+
   $ sam local generate-event s3 delete
 
 For more options, see ``sam local generate-event --help``.
