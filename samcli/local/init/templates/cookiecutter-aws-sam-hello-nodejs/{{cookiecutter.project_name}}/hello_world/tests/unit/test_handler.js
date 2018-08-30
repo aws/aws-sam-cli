@@ -8,7 +8,7 @@ var event, context;
 {% if cookiecutter.runtime == 'nodejs6.10' or cookiecutter.runtime == 'nodejs4.3' %}
 describe('Tests Handler', function () {
     it('verifies successful response', function (done) {
-        app.lambda_handler(event, context, function (err, result) {
+        app.lambdaHandler(event, context, function (err, result) {
             try {
                 expect(result).to.be.an('object');
                 expect(result.statusCode).to.equal(200);
@@ -29,7 +29,7 @@ describe('Tests Handler', function () {
 {% else %}
 describe('Tests index', function () {
     it('verifies successful response', async () => {
-        const result = await app.lambda_handler(event, context, (err, result) => {
+        const result = await app.lambdaHandler(event, context, (err, result) => {
             expect(result).to.be.an('object');
             expect(result.statusCode).to.equal(200);
             expect(result.body).to.be.an('string');
