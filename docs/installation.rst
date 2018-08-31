@@ -176,6 +176,28 @@ Install with PyEnv
     # Verify your installation worked
     $ sam –-version
 
+Updating SAM CLI on AWS Cloud9
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your AWS Cloud9 environment has a SAM CLI version < 0.3.0 installed there are a few extra steps you must do to upgrade to newer versions:
+
+.. code:: bash
+
+    # Uninstall the older version of SAM Local
+    $ npm uninstall -g aws-sam-local
+   
+    # Remove the symlink 
+    $ rm -rf $(which sam)
+   
+    # Install the CLI
+    $ pip install --user aws-sam-cli
+   
+    # Create new symlink
+    $ ln -sf $(which sam) ~/.c9/bin/sam
+   
+    # Verify your installation worked
+    $ sam –-version
+
 Troubleshooting
 ---------------
 
