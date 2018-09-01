@@ -5,7 +5,7 @@ Common CLI options for invoke command
 import os
 import click
 
-_TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
+_TEMPLATE_OPTION_DEFAULT_VALUE = "(template.[yaml|yml])|(sam.[yaml|yml])"
 
 
 def get_or_default_template_file_name(ctx, param, provided_value):
@@ -21,13 +21,14 @@ def get_or_default_template_file_name(ctx, param, provided_value):
     """
 
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
-        # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
-        # .yml is the default, even if it does not exist.
+        # Default value was used. Value can either be template.yaml, template.yml, sam.yaml, or sam.yml. Decide based
+        # on which file exists .yml is the default, even if it does not exist.
         provided_value = "template.yml"
 
-        option = "template.yaml"
-        if os.path.exists(option):
-            provided_value = option
+        options = ["template.yaml", "sam.yml", "sam.yaml"]
+        for option in options:
+            if os.path.exists(option):
+                provided_value = option
 
     return os.path.abspath(provided_value)
 
