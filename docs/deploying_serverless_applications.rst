@@ -23,7 +23,7 @@ Next, open a command prompt and type the following:
 
     sam package \
         --template-file path/template.yaml \
-        --output-template-file packaged.yaml \
+        --output-template-file serverless-output.yaml \
         --s3-bucket s3-bucket-name
 
 The package command returns an AWS SAM template named serverless-output.yaml that contains the CodeUri that points to the deployment zip in the Amazon S3 bucket that you specified. This template represents your serverless application. You are now ready to deploy it.
@@ -36,7 +36,7 @@ To deploy the application, run the following command:
 .. code:: bash
 
     sam deploy \
-        --template-file serverless-template.yaml \
+        --template-file serverless-output.yaml \
         --stack-name new-stack-name \
         --capabilities CAPABILITY_IAM
 
