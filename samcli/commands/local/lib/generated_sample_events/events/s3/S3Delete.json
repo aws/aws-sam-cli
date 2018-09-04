@@ -24,7 +24,7 @@
           "ownerIdentity": {
             "principalId": "EXAMPLE"
           },
-          "arn": "arn:aws:s3:::{{bucket}}"
+          "arn": "arn:{{partition}}:s3:::{{bucket}}"
         },
         "object": {
           "key": "{{key}}",
