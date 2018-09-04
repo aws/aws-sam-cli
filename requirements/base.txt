@@ -2,7 +2,7 @@ six~=1.11.0
 click~=6.7
 enum34~=1.1.6
 Flask~=1.0.2
-boto3~=1.5
+boto3~=1.8
 PyYAML~=3.12
 cookiecutter~=1.6.0
 aws-sam-translator==1.6.0
