@@ -222,6 +222,18 @@ homebrew and try again:
 
 Once installed then repeat the `Installation process <#windows-linux-macos-with-pip>`_
 
+DistributionNotFound with botocore/boto3
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If after installing/upgrading SAM CLI or AWS CLI, you receive an error something similar to:
+
+::
+
+   pkg_resources.DistributionNotFound: The 'botocore<1.11.0,>=1.10.62' distribution was not found and is required by boto3
+
+then you will need to upgrade the other CLI. For example, you already had SAM CLI installed and upgraded AWS CLI. You
+received the message above and would need to upgrade SAM CLI.
+
 Learn More
 ==========
 
