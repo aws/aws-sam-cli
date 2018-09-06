@@ -23,7 +23,7 @@ class SamFunctionProvider(FunctionProvider):
     _LAMBDA_FUNCTION = "AWS::Lambda::Function"
     _DEFAULT_CODEURI = "."
 
-    def __init__(self, template_dict):
+    def __init__(self, template_dict, parameter_overrides=None):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -35,9 +35,11 @@ class SamFunctionProvider(FunctionProvider):
         You need to explicitly update the class with new template, if necessary.
 
         :param dict template_dict: SAM Template as a dictionary
+        :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
+            to get substituted within the template
         """
 
-        self.template_dict = SamBaseProvider.get_template(template_dict)
+        self.template_dict = SamBaseProvider.get_template(template_dict, parameter_overrides)
         self.resources = self.template_dict.get("Resources", {})
 
         LOG.debug("%d resources found in the template", len(self.resources))
