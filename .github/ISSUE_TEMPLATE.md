@@ -5,12 +5,13 @@ searching the issues list. If there is a duplicate, re-open or add a comment to 
 existing issue instead of creating a new one. If you are reporting a bug,
 make sure to include relevant information asked below to help with debugging.
 
-## GENERAL HELP QUESTIONS ##
-Github Issues is for bug reports and feature requests. If you have general support
-questions, the following locations are a good place:
+# Need general help?
+
+GitHub issues are for bug reports and feature requests. If you have general support
+questions, the following resources are a good place to start:
 
 - Slack channel (#samdev): https://awssamopensource.splashthat.com/
-- Post a question in StackOverflow  with "aws-sam-cli" tag
+- Post a question on Stack Overflow with the tag `aws-sam-local`
 
 -->
 
@@ -19,6 +20,7 @@ questions, the following locations are a good place:
 <!-- Briefly describe the problem you are facing -->
 
 **Steps to reproduce the issue:**
+
 1.
 2.
 3.
@@ -27,10 +29,14 @@ questions, the following locations are a good place:
 
 **Expected result:**
 
-**Additional environment details (Ex: Windows, Mac, Amazon Linux etc)**
+**SAM CLI version:**
 
-**Output of `sam --version`**:
+<!-- Use `sam --version` to see which version you're using -->
 
-**Optional Debug logs**:
+**Additional environment details:**
 
-`Add --debug flag to command you are running`
+<!-- For example, Windows, Mac, or Amazon Linux -->
+
+**Debug logs (optional)**:
+
+<!-- Add the `--debug` flag to the command you're running to output logs -->
