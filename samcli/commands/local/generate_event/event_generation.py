@@ -149,7 +149,7 @@ class EventTypeSubCommand(click.MultiCommand):
                                              self.top_level_cmd_name,
                                              cmd_name)
         cmd = click.Command(name=cmd_name,
-                            help=self.subcmd_definition[cmd_name]["help"],
+                            short_help=self.subcmd_definition[cmd_name]["help"],
                             params=parameters,
                             callback=command_callback)
 
