@@ -27,7 +27,7 @@
             },
             {
               "name": "Received",
-              "value": "from mailer.example.com (mailer.example.com [203.0.113.1]) by inbound-smtp.{{region}}.amazonaws.com with SMTP id o3vrnil0e2ic28trm7dfhrc2v0cnbeccl4nbp0g1 for johndoe@example.com; Wed, 07 Oct 2015 12:34:56 +0000 (UTC)"
+              "value": "from mailer.example.com (mailer.example.com [203.0.113.1]) by inbound-smtp.{{dns_suffix}} with SMTP id o3vrnil0e2ic28trm7dfhrc2v0cnbeccl4nbp0g1 for johndoe@example.com; Wed, 07 Oct 2015 12:34:56 +0000 (UTC)"
             },
             {
               "name": "DKIM-Signature",
@@ -69,7 +69,7 @@
         },
         "receipt": {
           "action": {
-            "functionArn": "arn:aws:lambda:{{region}}:{{account_id}}:function:Example",
+            "functionArn": "arn:{{partition}}:lambda:{{region}}:{{account_id}}:function:Example",
             "invocationType": "Event",
             "type": "Lambda"
           },
