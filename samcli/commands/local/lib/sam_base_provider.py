@@ -58,6 +58,22 @@ class SamBaseProvider(object):
 
     @staticmethod
     def _resolve_parameters(template_dict, parameter_overrides):
+        """
+        In the given template, apply parameter values to resolve intrinsic functions
+
+        Parameters
+        ----------
+        template_dict : dict
+            SAM Template
+
+        parameter_overrides : dict
+            Values for template parameters provided by user
+
+        Returns
+        -------
+        dict
+            Resolved SAM template
+        """
 
         parameter_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
 
@@ -94,7 +110,7 @@ class SamBaseProvider(object):
         parameter_values = {}
         parameter_values.update(SamBaseProvider._DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(default_values)
-        parameter_values.update(parameter_overrides)
+        parameter_values.update(parameter_overrides or {})
 
         return parameter_values
 
