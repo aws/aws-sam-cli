@@ -6,7 +6,7 @@
   "time": "1970-01-01T00:00:00Z",
   "region": "{{region}}",
   "resources": [
-    "arn:aws:events:{{region}}:{{account_id}}:rule/{{rule}}"
+    "arn:{{partition}}:events:{{region}}:{{account_id}}:rule/{{rule}}"
   ],
   "detail": {}
 }
