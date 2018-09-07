@@ -58,17 +58,17 @@ def cli(ctx,
         host, port,
 
         # Common Options for Lambda Invoke
-        template, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile
+        template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
+        docker_network, log_file, skip_pull_image, profile, region
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, host, port, template, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
+    do_cli(ctx, host, port, template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
+           docker_network, log_file, skip_pull_image, profile, region)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile):
+           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -82,13 +82,15 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
         with InvokeContext(template_file=template,
                            function_identifier=None,  # Don't scope to one particular function
                            env_vars_file=env_vars,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
                            docker_volume_basedir=docker_volume_basedir,
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile) as invoke_context:
+                           aws_profile=profile,
+                           debug_port=debug_port,
+                           debug_args=debug_args,
+                           debugger_path=debugger_path,
+                           aws_region=region) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context,
                                          port=port,

@@ -26,51 +26,62 @@ $ sam local invoke "HelloWorldFunction" -e event.json\n
 Invoking a Lambda function using input from stdin
 $ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction" \n
 """
+STDIN_FILE_NAME = "-"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
 @click.option("--event", '-e',
               type=click.Path(),
-              default="-",  # Defaults to stdin
+              default=STDIN_FILE_NAME,  # Defaults to stdin
               help="JSON file containing event data passed to the Lambda function during invoke. If this option "
                    "is not specified, we will default to reading JSON from stdin")
+@click.option("--no-event", is_flag=True, default=False, help="Invoke Function with an empty event")
 @invoke_common_options
 @cli_framework_options
 @click.argument('function_identifier', required=False)
 @pass_context
-def cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile):
+def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
+        docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile)  # pragma: no cover
+    do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region)  # pragma: no cover
 
 
-def do_cli(ctx, function_identifier, template, event, env_vars, debug_port, debug_args, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile):
+def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port,  # pylint: disable=R0914
+           debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile,
+           region):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
 
     LOG.debug("local invoke command is called")
 
-    event_data = _get_event(event)
+    if no_event and event != STDIN_FILE_NAME:
+        # Do not know what the user wants. no_event and event both passed in.
+        raise UserException("no_event and event cannot be used together. Please provide only one.")
+
+    if no_event:
+        event_data = "{}"
+    else:
+        event_data = _get_event(event)
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
     try:
-
         with InvokeContext(template_file=template,
                            function_identifier=function_identifier,
                            env_vars_file=env_vars,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
                            docker_volume_basedir=docker_volume_basedir,
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile) as context:
+                           aws_profile=profile,
+                           debug_port=debug_port,
+                           debug_args=debug_args,
+                           debugger_path=debugger_path,
+                           aws_region=region) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(context.function_name,
@@ -92,7 +103,7 @@ def _get_event(event_file_name):
     :return string: Contents of the event file or stdin
     """
 
-    if event_file_name == "-":
+    if event_file_name == STDIN_FILE_NAME:
         # If event is empty, listen to stdin for event data until EOF
         LOG.info("Reading invoke payload from stdin (you can also pass it from file with --event)")
 

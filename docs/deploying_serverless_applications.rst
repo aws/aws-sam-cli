@@ -22,8 +22,8 @@ Next, open a command prompt and type the following:
 .. code:: bash
 
     sam package \
-        --template-file file path/template.yaml \
-        --output-template-file packaged.yaml \
+        --template-file path/template.yaml \
+        --output-template-file serverless-output.yaml \
         --s3-bucket s3-bucket-name
 
 The package command returns an AWS SAM template named serverless-output.yaml that contains the CodeUri that points to the deployment zip in the Amazon S3 bucket that you specified. This template represents your serverless application. You are now ready to deploy it.
@@ -36,7 +36,7 @@ To deploy the application, run the following command:
 .. code:: bash
 
     sam deploy \
-        --template-file serverless-template.yaml \
+        --template-file serverless-output.yaml \
         --stack-name new-stack-name \
         --capabilities CAPABILITY_IAM
 
@@ -46,3 +46,11 @@ When you run the aws sam deploy command, it creates an AWS CloudFormation Change
 
 To verify your results, open the AWS CloudFormation console to view the newly created AWS CloudFormation stack and the Lambda console to view your function.
 
+Learn More
+==========
+
+-  `Project Overview <../README.rst>`__
+-  `Installation <installation.rst>`__
+-  `Getting started with SAM and the SAM CLI <getting_started.rst>`__
+-  `Usage <usage.rst>`__
+-  `Advanced <advanced_usage.rst>`__

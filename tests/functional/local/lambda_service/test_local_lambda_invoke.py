@@ -152,6 +152,16 @@ class TestLocalEchoLambdaService(TestCase):
         self.assertEquals(actual, expected)
         self.assertEquals(response.status_code, 200)
 
+    def test_binary_octet_stream_format(self):
+        expected = {"key1": "value1"}
+
+        response = requests.post(self.url + '/2015-03-31/functions/HelloWorld/invocations', json={"key1": "value1"}, headers={"Content-Type":"binary/octet-stream"})
+
+        actual = response.json()
+
+        self.assertEquals(actual, expected)
+        self.assertEquals(response.status_code, 200)
+
     def test_function_executed_when_no_data_provided(self):
         expected = {}
 
@@ -272,19 +282,6 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
         self.assertEquals(response.status_code, 501)
         self.assertEquals(response.headers.get('Content-Type'), 'application/json')
         self.assertEquals(response.headers.get('x-amzn-errortype'), 'NotImplemented')
-
-    def test_media_type_is_not_application_json(self):
-        expected = {"Type": "User",
-                    "Message": 'Unsupported content type: image/gif'}
-
-        response = requests.post(self.url + '/2015-03-31/functions/HelloWorld/invocations', headers={'Content-Type':'image/gif'})
-
-        actual = response.json()
-
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 415)
-        self.assertEquals(response.headers.get('x-amzn-errortype'), 'UnsupportedMediaType')
-        self.assertEquals(response.headers.get('Content-Type'), 'application/json')
 
     def test_generic_404_error_when_request_to_nonexisting_endpoint(self):
         expected_data = {'Type': 'LocalService', 'Message': 'PathNotFoundException'}

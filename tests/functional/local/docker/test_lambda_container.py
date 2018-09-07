@@ -11,6 +11,7 @@ import six
 from contextlib import contextmanager
 from unittest import TestCase
 
+from samcli.commands.local.lib.debug_context import DebugContext
 from tests.functional.function_code import nodejs_lambda
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.local.docker.manager import ContainerManager
@@ -47,6 +48,9 @@ class TestLambdaContainer(TestCase):
         self.expected_docker_image = self.IMAGE_NAME
         self.handler = "index.handler"
         self.debug_port = _rand_port()
+        self.debug_context = DebugContext(debug_port=self.debug_port,
+                                          debugger_path=None,
+                                          debug_args=None)
         self.code_dir = nodejs_lambda(self.HELLO_WORLD_CODE)
         self.network_prefix = "sam_cli_test_network"
 
@@ -79,7 +83,7 @@ class TestLambdaContainer(TestCase):
 
     def test_debug_port_is_created_on_host(self):
 
-        container = LambdaContainer(self.runtime, self.handler, self.code_dir, debug_port=self.debug_port)
+        container = LambdaContainer(self.runtime, self.handler, self.code_dir, debug_options=self.debug_context)
 
         with self._create(container):
 

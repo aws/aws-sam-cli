@@ -25,7 +25,7 @@ public class App implements RequestHandler<Object, Object> {
             String output = String.format("{ \"message\": \"hello world\", \"location\": \"%s\" }", pageContents);
             return new GatewayResponse(output, headers, 200);
         } catch (IOException e) {
-            return new GatewayResponse("{}", headers, 400);
+            return new GatewayResponse("{}", headers, 500);
         }
     }
 
