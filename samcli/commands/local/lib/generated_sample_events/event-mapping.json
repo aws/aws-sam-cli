@@ -134,6 +134,9 @@
         "account-id": {
           "default": "123456789012"
         },
+        "partition": {
+          "default": "aws"
+        },
         "region": {
           "default": "us-east-1"
         },
@@ -182,6 +185,9 @@
         },
         "account-id": {
           "default": "123456789012"
+        },
+        "dns-suffix": {
+          "default": "us-east-1.amazonaws.com"
         }
       }
     }
@@ -205,6 +211,9 @@
       "tags": {
         "account-id": {
           "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
         },
         "region": {
           "default": "us-east-1"
@@ -363,6 +372,9 @@
         "account-id": {
           "default": "123456789012"
         },
+        "partition": {
+          "default": "aws"
+        },
         "region": {
           "default": "us-east-1"
         },
@@ -427,6 +439,9 @@
         "region": {
           "default": "us-east-1"
         },
+        "partition": {
+          "default": "aws"
+        },
         "account-id": {
           "default": "123456789012"
         }
@@ -439,6 +454,9 @@
         "region": {
           "default": "us-east-1"
         },
+        "partition": {
+          "default": "aws"
+        },
         "account-id": {
           "default": "123456789012"
         }
@@ -450,6 +468,9 @@
       "tags": {
         "region": {
           "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
         },
         "account-id": {
           "default": "123456789012"
@@ -464,6 +485,9 @@
       "tags": {
         "account-id": {
           "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
         },
         "region": {
           "default": "us-east-1"
@@ -488,6 +512,9 @@
         "account-id": {
           "default": "123456789012"
         },
+        "partition": {
+          "default": "aws"
+        },
         "region": {
           "default": "us-east-1"
         },
@@ -506,6 +533,9 @@
         "region": {
           "default": "us-east-1"
         },
+        "partition": {
+          "default": "aws"
+        },
         "sequence": {
           "type": "string",
           "default": "49545115243490985018280067714973144582180062593244200961"
@@ -515,7 +545,7 @@
           "default": "Hello, this is a test 123.",
           "encoding": "base64"
         },
-        "partition": {
+        "partition-key": {
           "type": "string",
           "default": "partitionKey-03"
         }
@@ -525,15 +555,14 @@
       "filename": "KinesisFirehose",
       "help": "Generates an Amazon Kinesis Data Firehose Event",
       "tags": {
+        "partition": {
+          "default": "aws"
+        },
         "region": {
           "default": "us-east-1"
         },
         "data": {
           "default": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IDEyMy4="
-        },
-        "partition": {
-          "type": "string",
-          "default": "partitionKey-03"
         }
       }
     },
@@ -556,6 +585,9 @@
         "region": {
           "default": "us-east-1"
         },
+        "partition": {
+          "default": "aws"
+        },
         "account-id": {
           "default": "123456789012"
         }
@@ -565,10 +597,13 @@
       "filename": "KinesisFirehoseStreamsAsSource",
       "help": "Generates an Amazon Kinesis Data Firehose Streams as Source Event",
       "tags": {
+        "partition": {
+          "default": "aws"
+        },
         "region": {
           "default": "us-east-1"
         },
-        "partition": {
+        "partition-key": {
           "type": "string",
           "default": "partitionKey-03"
         },
@@ -626,6 +661,9 @@
         "region": {
           "default": "us-east-1"
         },
+        "partition": {
+          "default": "aws"
+        },
         "bucket": {
           "type": "string",
           "default": "example-bucket"
@@ -646,6 +684,9 @@
         "region": {
           "default": "us-east-1"
         },
+        "partition": {
+          "default": "aws"
+        },
         "bucket": {
           "type": "string",
           "default": "example-bucket"
@@ -663,6 +704,9 @@
       "tags": {
         "region": {
           "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
         },
         "bucket": {
           "type": "string",
@@ -684,8 +728,14 @@
         "region": {
           "default": "us-east-1"
         },
+        "partition": {
+          "default": "aws"
+        },
         "account-id": {
           "default": "123456789012"
+        },
+        "dns-suffix": {
+          "default": "us-east-1.amazonaws.com"
         }
       }
     }
@@ -697,6 +747,9 @@
       "tags": {
         "account-id": {
           "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
         },
         "region": {
           "default": "us-east-1"
@@ -721,6 +774,9 @@
       "filename": "Sqs",
       "help": "Generates an Amazon SQS Event",
       "tags": {
+        "partition": {
+          "default": "aws"
+        },
         "region": {
           "type": "string",
           "default": "us-east-1"
@@ -730,9 +786,6 @@
         },
         "queue-name": {
           "default": "MyQueue"
-        },
-        "partition": {
-          "default": "partitionKey-03"
         }
       }
     }
