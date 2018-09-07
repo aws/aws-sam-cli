@@ -2,7 +2,7 @@
   "Records": [
     {
       "kinesis": {
-        "partitionKey": "{{partition}}",
+        "partitionKey": "{{partition_key}}",
         "kinesisSchemaVersion": "1.0",
         "data": "{{data}}",
         "sequenceNumber": "{{sequence}}",
@@ -10,10 +10,10 @@
       },
       "eventSource": "aws:kinesis",
       "eventID": "shardId-000000000000:{{sequence}}",
-      "invokeIdentityArn": "arn:aws:iam::EXAMPLE",
+      "invokeIdentityArn": "arn:{{partition}}:iam::EXAMPLE",
       "eventVersion": "1.0",
       "eventName": "aws:kinesis:record",
-      "eventSourceARN": "arn:aws:kinesis:EXAMPLE",
+      "eventSourceARN": "arn:{{partition}}:kinesis:EXAMPLE",
       "awsRegion": "{{region}}"
     }
   ]
