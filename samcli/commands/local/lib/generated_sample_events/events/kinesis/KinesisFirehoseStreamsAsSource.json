@@ -9,7 +9,7 @@
             "kinesisRecordMetadata": {
                 "sequenceNumber": "{{sequence}}",
                 "subsequenceNumber": "123456",
-                "partitionKey": "{{partition}}",
+                "partitionKey": "{{partition_key}}",
                 "shardId": "shardId-000000000000",
                 "approximateArrivalTimestamp": 1495072949453
             },
