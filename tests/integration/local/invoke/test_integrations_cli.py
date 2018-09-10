@@ -163,5 +163,3 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(environ["Partition"], "aws")
         self.assertEquals(environ["Timeout"], "100")
         self.assertEquals(environ["MyRuntimeVersion"], "v0")
-
-

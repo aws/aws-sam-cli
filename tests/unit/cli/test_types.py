@@ -38,7 +38,6 @@ class TestCfnParameterOverridesType(TestCase):
 
         self.param_type.fail.assert_called_with(ANY, "param", "ctx")
 
-
     @parameterized.expand([
         (
             "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro",
@@ -98,4 +97,3 @@ class TestCfnParameterOverridesType(TestCase):
         print(input)
         print(result)
         self.assertEquals(result, expected, msg="Failed with Input = " + input)
-

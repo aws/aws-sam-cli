@@ -39,9 +39,10 @@ STDIN_FILE_NAME = "-"
 @invoke_common_options
 @cli_framework_options
 @click.argument('function_identifier', required=False)
-@pass_context
-def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
-        docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region, parameter_overrides):
+@pass_context  # pylint: disable=R0914
+def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port,
+        debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
+        parameter_overrides):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 

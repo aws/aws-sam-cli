@@ -33,14 +33,14 @@ class CfnParameterOverridesType(click.ParamType):
             )
 
         # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
-        for key, value in groups:
-            result[self._unquote(key)] = self._unquote(value)
+        for key, param_value in groups:
+            result[self._unquote(key)] = self._unquote(param_value)
 
         return result
 
     @staticmethod
     def _unquote(value):
-        """
+        r"""
         Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
         value thru shell.
 
@@ -62,4 +62,3 @@ class CfnParameterOverridesType(click.ParamType):
             value = value.strip('"')
 
         return value.replace("\\ ", " ").replace('\\"', '"')
-

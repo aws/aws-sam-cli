@@ -38,7 +38,7 @@ and point SAM to the directory or file containing build artifacts.
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
                    "will be presented at /")
 @invoke_common_options
-@cli_framework_options
+@cli_framework_options  # pylint: disable=R0914
 @pass_context
 def cli(ctx,
         # start-api Specific Options
