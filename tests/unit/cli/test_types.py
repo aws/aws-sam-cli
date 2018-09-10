@@ -86,6 +86,11 @@ class TestCfnParameterOverridesType(TestCase):
             {"Key1230": '{"a":"b"}'},
         ),
 
+        (
+            # Must ignore empty inputs
+            "",
+            {}
+        )
 
     ])
     def test_successful_parsing(self, input, expected):

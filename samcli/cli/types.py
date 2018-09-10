@@ -57,7 +57,7 @@ class CfnParameterOverridesType(click.ParamType):
         -------
         Unquoted string
         """
-        if value[0] == value[-1] == '"':
+        if value and (value[0] == value[-1] == '"'):
             # Remove quotes only if the string is wrapped in quotes
             value = value.strip('"')
 
