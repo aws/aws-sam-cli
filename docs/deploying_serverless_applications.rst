@@ -46,6 +46,23 @@ When you run the aws sam deploy command, it creates an AWS CloudFormation Change
 
 To verify your results, open the AWS CloudFormation console to view the newly created AWS CloudFormation stack and the Lambda console to view your function.
 
+Cleaning up the bucket
+~~~~~~~~~~~~~~~~~~~~~~
+
+As you modify your lambda function and use the package command, your S3 will fill up with useless objects. Use these commands to clean up the S3.
+
+.. code:: bash
+
+    mybucketname=s3-bucket-name
+    objects=$(aws s3api list-objects-v2 --bucket $mybucketname --query Contents | jq -r 'sort_by(.LastModified) | map(.Key) | .[0:length-1] | .[]')
+    for row in $objects; do
+      aws s3 rm --dryrun s3://${mybucketname}/${row}
+    done
+
+If you're uploading multiple Lambda functions to your bucket, use --force-upload with your package command and modify the slice function, i.e. .[0:length-numberOfLambdas].
+
+Remove the --dryrun once you're happy with the behavior.
+
 Learn More
 ==========
 
