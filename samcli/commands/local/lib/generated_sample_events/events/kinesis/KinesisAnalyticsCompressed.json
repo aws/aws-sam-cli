@@ -1,0 +1,15 @@
+{
+  "invocationId": "invocationIdExample",
+  "applicationArn": "arn:{{partition}}:kinesisanalytics:{{region}}:{{account_id}}:application/{{application}}",
+  "streamArn": "arn:{{partition}}:kinesis:{{region}}:{{account_id}}:stream/{{stream}}",
+  "records": [
+    {
+      "recordId": "49571347871967966406409637155186850213682522142927749122",
+      "data": "H4sIAAAAAAAA/6vmUspLzE1VslLKTsxNzFHS4VJKTEkpSi0uBgol5SRmKHHVAgDd1tysJAAAAA=="
+    },
+    {
+      "recordId": "49571347871967966406409637141563465152445265354688561154",
+      "data": "H4sIAAAAAAAA/6vmUlBQSs7PKc3NM1RSsFJQKkvMKU01VNJBiBshxI2UuGoB2VhGIDIAAAA="
+    }
+  ]
+}

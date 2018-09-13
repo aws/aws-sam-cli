@@ -566,6 +566,98 @@
         }
       }
     },
+    "analytics": {
+      "filename": "KinesisAnalytics",
+      "help": "Generates an Amazon Kinesis Data Analytics Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        }
+      }
+    },
+    "analytics-compressed": {
+      "filename": "KinesisAnalyticsCompressed",
+      "help": "Generates an Amazon Kinesis Data Analytics Compressed Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        }
+      }
+    },
+    "analytics-dynamodb": {
+      "filename": "KinesisAnalyticsDynamodb",
+      "help": "Generates an Amazon Kinesis Data Analytics DynamoDB Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        }
+      }
+    },
+    "analytics-kpl": {
+      "filename": "KinesisAnalyticsKpl",
+      "help": "Generates an Amazon Kinesis Data Analytics KPL Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        }
+      }
+    },
     "apachelog": {
       "filename": "KinesisFirehoseApachelog",
       "help": "Generates an Amazon Kinesis Data Firehose Apachelog Event",
