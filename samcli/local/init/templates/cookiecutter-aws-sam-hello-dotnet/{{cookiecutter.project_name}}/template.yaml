@@ -16,7 +16,11 @@ Resources:
         Properties:
             CodeUri: src/HelloWorld/bin/Debug/netcoreapp2.0/publish
             Handler: HelloWorld::HelloWorld.Function::FunctionHandler
+            {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
             Runtime: dotnetcore2.0
+            {%- else %}
+            Runtime: dotnetcore2.1
+            {%- endif %}
             Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
                 Variables:
                     PARAM1: VALUE
