@@ -18,7 +18,32 @@ environment variable to contact the docker daemon.
 -  **Windows**: `Docker
    For Windows (create an account & follow through to download from the Docker Store) <https://www.docker.com/docker-windows>`__
 -  **Linux**: Check your distro’s package manager (e.g. yum install docker)
+      *** for Centos 7.5 System requirements are::
+         yum install gcc zip py-pip py-setuptools ca-certificates groff  python-dev g++ make docker epel-release python-pip python-devel\
+                     python-tools
+          **run post install of above**
+          pip install --upgrade pip
+          pip install --upgrade setuptools
+          pip install --upgrade aws-sam-cli
+        *** if you want to use the lambda-local option(without running it as root) you will need to add your user to the docker group ***
+         usermod -a -G Docker yourUserName
+      ***Docker if you would like to run SAM-CLI in a docker container (lambda-local will probably act weird)***
+         DOCKERFILE:
+         FROM alpine:latest
 
+         # Versions: https://pypi.python.org/pypi/awscli#downloads
+         #ENV AWS_CLI_VERSION 1.14.16
+   
+         RUN apk --no-cache update
+         RUN apk --no-cache add python py-pip py-setuptools ca-certificates groff less python-dev g++ make
+         RUN pip install --upgrade pip
+         RUN pip --no-cache-dir install  --upgrade awscli 
+         RUN pip --no-cache-dir install --upgrade  aws-sam-cli 
+
+         RUN rm -rf /var/cache/apk/*
+
+         WORKDIR /awscli
+         ***end DOCKERFILE***
 **Note for macOS and Windows users**: SAM CLI requires that the project directory
 (or any parent directory) is listed in `Docker file sharing options <https://docs.docker.com/docker-for-mac/osxfs/>`__.
 
