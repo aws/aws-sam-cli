@@ -3,7 +3,7 @@
   <PropertyGroup>
     {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    {%- else %}
+    {%- elif cookiecutter.runtime == 'dotnetcore2.1' or cookiecutter.runtime == 'dotnet' %}
     <TargetFramework>netcoreapp2.1</TargetFramework>
     {%- endif %}
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
