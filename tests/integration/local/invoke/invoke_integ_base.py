@@ -29,7 +29,7 @@ class InvokeIntegBase(TestCase):
         return command
 
     def get_command_list(self, function_to_invoke, template_path=None, event_path=None, env_var_path=None,
-                         parameter_overrides=None):
+                         parameter_overrides=None, region=None):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
         if template_path:
@@ -46,5 +46,8 @@ class InvokeIntegBase(TestCase):
                 "ParameterKey={},ParameterValue={}".format(key, value) for key, value in parameter_overrides.items()
             ])
             command_list = command_list + ["--parameter-overrides", arg_value]
+
+        if region:
+            command_list = command_list + ["--region", region]
 
         return command_list

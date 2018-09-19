@@ -94,6 +94,4 @@ class TestCfnParameterOverridesType(TestCase):
     ])
     def test_successful_parsing(self, input, expected):
         result = self.param_type.convert(input, None, None)
-        print(input)
-        print(result)
         self.assertEquals(result, expected, msg="Failed with Input = " + input)

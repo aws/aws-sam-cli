@@ -2,9 +2,14 @@
 Base class for SAM Template providers
 """
 
+import logging
+
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samtranslator.intrinsics.resolver import IntrinsicsResolver
 from samtranslator.intrinsics.actions import RefAction
+
+
+LOG = logging.getLogger(__name__)
 
 
 class SamBaseProvider(object):
@@ -17,7 +22,8 @@ class SamBaseProvider(object):
         "AWS::Partition": "aws",
 
         # There is not much value in inferring actual AWS region here. These values are just placeholders to help
-        # local testing and not representative of any environment.
+        # local testing and not representative of any environment. However, caller of this method can always override
+        # this value if they choose to.
         "AWS::Region": "us-east-1",
 
         "AWS::StackName": "local",
@@ -141,10 +147,12 @@ class SamBaseProvider(object):
 
         parameter_definition = sam_template.get("Parameters", None)
         if not parameter_definition or not isinstance(parameter_definition, dict):
+            LOG.debug("No Parameters detected in the template")
             return default_values
 
         for param_name, value in parameter_definition.items():
             if isinstance(value, dict) and "Default" in value:
                 default_values[param_name] = value["Default"]
 
+        LOG.debug("Collected default values for parameters: %s", default_values)
         return default_values

@@ -106,7 +106,7 @@ def invoke_common_options(f):
 
         click.option("--parameter-overrides",
                      type=CfnParameterOverridesType(),
-                     help="Optional. A string that contains CloudFormation parameter overrides encoded as key-value "
+                     help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
                           "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
                           "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'"),
 
