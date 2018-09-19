@@ -586,11 +586,16 @@
         "stream": {
           "type": "string",
           "default": "example-stream"
+        },
+        "data": {
+          "type": "string",
+          "default": "This is a test from Kinesis Analytics",
+          "encoding": "base64"
         }
       }
     },
     "analytics-compressed": {
-      "filename": "KinesisAnalyticsCompressed",
+      "filename": "KinesisAnalytics",
       "help": "Generates an Amazon Kinesis Data Analytics Compressed Event",
       "tags": {
         "partition": {
@@ -609,11 +614,15 @@
         "stream": {
           "type": "string",
           "default": "example-stream"
+        },
+        "data": {
+          "type": "string",
+          "default": "H4sIAAAAAAAA/6vmUspLzE1VslLKTsxNzFHS4VJKTEkpSi0uBgol5SRmKHHVAgDd1tysJAAAAA=="
         }
       }
     },
     "analytics-dynamodb": {
-      "filename": "KinesisAnalyticsDynamodb",
+      "filename": "KinesisAnalytics",
       "help": "Generates an Amazon Kinesis Data Analytics DynamoDB Event",
       "tags": {
         "partition": {
@@ -632,6 +641,11 @@
         "stream": {
           "type": "string",
           "default": "example-stream"
+        },
+        "data": {
+          "type": "string",
+          "default": "{\"ROWTIME_TIMESTAMP\":\"2017-12-15 01:09:50.000\",\"VEHICLEID\":\"5\",\"VEHICLECOUNT\":18}",
+          "encoding": "base64"
         }
       }
     },
