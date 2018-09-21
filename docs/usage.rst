@@ -363,21 +363,21 @@ is run in headless mode, listening on the debug port.
 
 When debugging, you must compile your function in debug mode:
 
-`GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o <output path> <path to code directory>
+``GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o <output path> <path to code directory>``
 
 You must compile `delve` to run in the container and provide its local path
 via the `--debugger-path` argument. Build delve locally as follows:
 
-`GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv`
+``GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv``
 
 NOTE: The output path needs to end in `/dlv`. The docker container will expect the dlv binary to be in the <delve folder path>
 and will cause mounting issue otherwise.
 
 Then invoke `sam` similar to the following:
 
-`sam local start-api -d 5986 --debugger-path <delve folder path>`
+``sam local start-api -d 5986 --debugger-path <delve folder path>``
 
-NOTE: The `--debugger-path` is the path to the directory that contains the `dlv` binary compiled from the above.
+NOTE: The ``--debugger-path`` is the path to the directory that contains the `dlv` binary compiled from the above.
 
 The following is an example launch configuration for Visual Studio Code to
 attach to a debug session.
