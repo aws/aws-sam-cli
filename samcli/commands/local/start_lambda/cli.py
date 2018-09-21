@@ -11,6 +11,8 @@ from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
+
 
 LOG = logging.getLogger(__name__)
 
@@ -99,5 +101,5 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
                                          host=host)
             service.start()
 
-    except InvalidSamDocumentException as ex:
+    except (InvalidSamDocumentException, OverridesNotWellDefined) as ex:
         raise UserException(str(ex))

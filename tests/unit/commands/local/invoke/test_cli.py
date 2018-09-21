@@ -10,6 +10,8 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
+
 
 STDIN_FILE_NAME = "-"
 
@@ -215,6 +217,34 @@ class TestCli(TestCase):
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad template")
 
+    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_must_raise_user_exception_on_invalid_env_vars(self, get_event_mock, InvokeContextMock):
+        event_data = "data"
+        get_event_mock.return_value = event_data
+
+        InvokeContextMock.side_effect = OverridesNotWellDefined("bad env vars")
+
+        with self.assertRaises(UserException) as ex_ctx:
+
+            invoke_cli(ctx=None,
+                       function_identifier=self.function_id,
+                       template=self.template,
+                       event=self.eventfile,
+                       no_event=self.no_event,
+                       env_vars=self.env_vars,
+                       debug_port=self.debug_port,
+                       debug_args=self.debug_args,
+                       debugger_path=self.debugger_path,
+                       docker_volume_basedir=self.docker_volume_basedir,
+                       docker_network=self.docker_network,
+                       log_file=self.log_file,
+                       skip_pull_image=self.skip_pull_image,
+                       profile=self.profile,
+                       region=self.region)
+
+        msg = str(ex_ctx.exception)
+        self.assertEquals(msg, "bad env vars")
 
 class TestGetEvent(TestCase):
 

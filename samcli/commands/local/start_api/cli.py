@@ -12,6 +12,7 @@ from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.local_api_service import LocalApiService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
 
 LOG = logging.getLogger(__name__)
 
@@ -90,5 +91,5 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
 
     except NoApisDefined:
         raise UserException("Template does not have any APIs connected to Lambda functions")
-    except InvalidSamDocumentException as ex:
+    except (InvalidSamDocumentException, OverridesNotWellDefined) as ex:
         raise UserException(str(ex))

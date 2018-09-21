@@ -9,6 +9,7 @@ from samcli.commands.local.start_api.cli import do_cli as start_api_cli
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
 
 
 class TestCli(TestCase):
@@ -94,6 +95,17 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = "bad template"
+        self.assertEquals(msg, expected)
+
+    @patch("samcli.commands.local.start_api.cli.InvokeContext")
+    def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
+        invoke_context_mock.side_effect = OverridesNotWellDefined("bad env vars")
+
+        with self.assertRaises(UserException) as context:
+            self.call_cli()
+
+        msg = str(context.exception)
+        expected = "bad env vars"
         self.assertEquals(msg, expected)
 
     def call_cli(self):
