@@ -17,13 +17,13 @@ class SamBaseProvider(object):
     Base class for SAM Template providers
     """
 
+    # There is not much benefit in infering real values for these parameters in local development context. These values
+    # are usually representative of an AWS environment and stack, but in local development scenario they don't make
+    # sense. If customers choose to, they can always override this value through the CLI interface.
     _DEFAULT_PSEUDO_PARAM_VALUES = {
         "AWS::AccountId": "123456789012",
         "AWS::Partition": "aws",
 
-        # There is not much value in inferring actual AWS region here. These values are just placeholders to help
-        # local testing and not representative of any environment. However, caller of this method can always override
-        # this value if they choose to.
         "AWS::Region": "us-east-1",
 
         "AWS::StackName": "local",
