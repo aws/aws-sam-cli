@@ -40,7 +40,8 @@ class TestInvokeContext__enter__(TestCase):
                                        debug_port=1111,
                                        debugger_path="path-to-debugger",
                                        debug_args='args',
-                                       aws_region="region")
+                                       aws_region="region",
+                                       parameter_overrides={})
 
         template_dict = "template_dict"
         invoke_context._get_template_data = Mock()
@@ -71,7 +72,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEquals(invoke_context._debug_context, debug_context_mock)
 
         invoke_context._get_template_data.assert_called_with(template_file)
-        SamFunctionProviderMock.assert_called_with(template_dict)
+        SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
         invoke_context._get_env_vars_value.assert_called_with(env_vars_file)
         invoke_context._setup_log_file.assert_called_with(log_file)
         invoke_context._get_debug_context.assert_called_once_with(1111, "args", "path-to-debugger")
