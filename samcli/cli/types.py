@@ -44,9 +44,13 @@ class CfnParameterOverridesType(click.ParamType):
         Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
         value thru shell.
 
-        Ex:
-            val\ ue => value
-            "hel\ lo" => hello
+        Examples
+        --------
+        >>> _unquote('val\ ue')
+        value
+
+        >>> _unquote("hel\ lo")
+        hello
 
         Parameters
         ----------
