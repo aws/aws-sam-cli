@@ -70,7 +70,6 @@ class TestCli(TestCase):
         expected = "bad template"
         self.assertEquals(msg, expected)
 
-
     @patch("samcli.commands.local.start_lambda.cli.InvokeContext")
     def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
         invoke_context_mock.side_effect = OverridesNotWellDefined("bad env vars")

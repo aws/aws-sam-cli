@@ -246,6 +246,7 @@ class TestCli(TestCase):
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad env vars")
 
+
 class TestGetEvent(TestCase):
 
     @parameterized.expand([
