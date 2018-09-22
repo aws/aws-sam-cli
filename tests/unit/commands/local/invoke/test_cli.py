@@ -241,7 +241,8 @@ class TestCli(TestCase):
                        log_file=self.log_file,
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
-                       region=self.region)
+                       region=self.region,
+                       parameter_overrides=self.parameter_overrides)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad env vars")
