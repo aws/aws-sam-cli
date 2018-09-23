@@ -92,7 +92,7 @@ class Container(object):
                     # https://docs.docker.com/storage/bind-mounts
                     # Mount the host directory as "read only" inside container
                     "bind": self._working_dir,
-                    "mode": "ro"
+                    "mode": "ro,Z"
                 }
             },
             # We are not running an interactive shell here.
