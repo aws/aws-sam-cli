@@ -4,7 +4,7 @@ from mock import patch, Mock
 from samcli.commands.local.start_lambda.cli import do_cli as start_lambda_cli
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 
 
 class TestCli(TestCase):
@@ -72,7 +72,7 @@ class TestCli(TestCase):
 
     @patch("samcli.commands.local.start_lambda.cli.InvokeContext")
     def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
-        invoke_context_mock.side_effect = OverridesNotWellDefined("bad env vars")
+        invoke_context_mock.side_effect = OverridesNotWellDefinedError("bad env vars")
 
         with self.assertRaises(UserException) as context:
             self.call_cli()

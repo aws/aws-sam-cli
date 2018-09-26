@@ -9,7 +9,7 @@ import boto3
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 
 LOG = logging.getLogger(__name__)
 
@@ -146,7 +146,7 @@ class LocalLambdaRunner(object):
         for fn in self.env_vars_values:
             if not isinstance(self.env_vars_values.get(fn), dict):
                 LOG.debug("Environment variables overrides data is not in a recognized format")
-                raise OverridesNotWellDefined("Environment variables overrides data is not in a recognized format")
+                raise OverridesNotWellDefinedError("Environment variables overrides data is not in a recognized format")
 
         if "Parameters" in self.env_vars_values:
             LOG.debug("Environment variables overrides data is in CloudFormation parameter file format")

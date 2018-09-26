@@ -10,7 +10,7 @@ from parameterized import parameterized, param
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.provider import Function
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 
 
 class TestLocalLambda_get_aws_creds(TestCase):
@@ -331,11 +331,11 @@ class TestLocalLambda_make_env_vars(TestCase):
 
     @parameterized.expand([
         # Using a invalid file format
-        ({"a": "b"}, OverridesNotWellDefined),
+        ({"a": "b"}, OverridesNotWellDefinedError),
 
-        ({"a": False}, OverridesNotWellDefined),
+        ({"a": False}, OverridesNotWellDefinedError),
 
-        ({"a": [True, False]}, OverridesNotWellDefined)
+        ({"a": [True, False]}, OverridesNotWellDefinedError)
     ])
     @patch("samcli.commands.local.lib.local_lambda.os")
     def test_must_not_work_with_invalid_override_values(self, env_vars_values, expected_exception, os_mock):

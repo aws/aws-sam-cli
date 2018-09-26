@@ -10,7 +10,7 @@ class NoApisDefined(Exception):
     pass
 
 
-class OverridesNotWellDefined(Exception):
+class OverridesNotWellDefinedError(Exception):
     """
     Raised when the overrides file is invalid
     """

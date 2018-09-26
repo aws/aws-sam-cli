@@ -10,7 +10,7 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefined
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 
 
 STDIN_FILE_NAME = "-"
@@ -223,7 +223,7 @@ class TestCli(TestCase):
         event_data = "data"
         get_event_mock.return_value = event_data
 
-        InvokeContextMock.side_effect = OverridesNotWellDefined("bad env vars")
+        InvokeContextMock.side_effect = OverridesNotWellDefinedError("bad env vars")
 
         with self.assertRaises(UserException) as ex_ctx:
 
