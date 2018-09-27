@@ -58,7 +58,9 @@ class TestLocalApiService_start(TestCase):
         local_service.start()
 
         # Make sure the right methods are called
-        SamApiProviderMock.assert_called_with(self.template, cwd=self.cwd)
+        SamApiProviderMock.assert_called_with(self.template,
+                                              cwd=self.cwd,
+                                              parameter_overrides=self.lambda_invoke_context_mock.parameter_overrides)
 
         make_routing_list_mock.assert_called_with(self.api_provider_mock)
         log_routes_mock.assert_called_with(self.api_provider_mock, self.host, self.port)

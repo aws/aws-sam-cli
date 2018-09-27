@@ -1,6 +1,15 @@
 AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: A hello world application.
+
+Parameters:
+  DefaultTimeout:
+    Default: 5
+    Type: Number
+
+  MyRuntimeVersion:
+    Type: String
+
 Resources:
   HelloWorldServerlessFunction:
     Type: AWS::Serverless::Function
@@ -36,7 +45,7 @@ Resources:
   EchoCustomEnvVarFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: main.env_var_echo_hanler
+      Handler: main.custom_env_var_echo_hanler
       Runtime: python3.6
       CodeUri: .
       Environment:
@@ -70,3 +79,30 @@ Resources:
       Handler: main.raise_exception
       Runtime: python3.6
       CodeUri: .
+
+  TimeoutFunctionWithParameter:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout:
+        Ref: DefaultTimeout
+
+  EchoEnvWithParameters:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.env_var_echo_hanler
+      Runtime: python3.6
+      CodeUri: .
+      Environment:
+        Variables:
+          Region: !Ref "AWS::Region"
+          AccountId: !Ref "AWS::AccountId"
+          Partition: !Ref "AWS::Partition"
+          StackName: !Ref "AWS::StackName"
+          StackId: !Ref "AWS::StackId"
+          URLSuffix: !Ref "AWS::URLSuffix"
+          Timeout: !Ref DefaultTimeout
+          MyRuntimeVersion: !Ref MyRuntimeVersion
+
