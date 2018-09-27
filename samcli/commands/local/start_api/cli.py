@@ -38,7 +38,7 @@ and point SAM to the directory or file containing build artifacts.
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
                    "will be presented at /")
 @invoke_common_options
-@cli_framework_options
+@cli_framework_options  # pylint: disable=R0914
 @pass_context
 def cli(ctx,
         # start-api Specific Options
@@ -46,16 +46,18 @@ def cli(ctx,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile, region
+        docker_network, log_file, skip_pull_image, profile, region, parameter_overrides
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, debugger_path,
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region)  # pragma: no cover
+           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
+           parameter_overrides)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region):
+           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
+           parameter_overrides):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -77,7 +79,8 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
                            debug_port=debug_port,
                            debug_args=debug_args,
                            debugger_path=debugger_path,
-                           aws_region=region) as invoke_context:
+                           aws_region=region,
+                           parameter_overrides=parameter_overrides) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context,
                                       port=port,

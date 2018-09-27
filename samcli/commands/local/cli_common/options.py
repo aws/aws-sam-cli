@@ -4,6 +4,7 @@ Common CLI options for invoke command
 
 import os
 import click
+from samcli.cli.types import CfnParameterOverridesType
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 
@@ -102,6 +103,12 @@ def invoke_common_options(f):
         click.option('--env-vars', '-n',
                      type=click.Path(exists=True),
                      help="JSON file containing values for Lambda function's environment variables."),
+
+        click.option("--parameter-overrides",
+                     type=CfnParameterOverridesType(),
+                     help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
+                          "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
+                          "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'"),
 
         click.option('--debug-port', '-d',
                      help="When specified, Lambda function container will start in debug mode and will expose this "

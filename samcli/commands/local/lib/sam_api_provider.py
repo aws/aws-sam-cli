@@ -34,7 +34,7 @@ class SamApiProvider(ApiProvider):
                          "OPTIONS",
                          "PATCH"]
 
-    def __init__(self, template_dict, cwd=None):
+    def __init__(self, template_dict, parameter_overrides=None, cwd=None):
         """
         Initialize the class with SAM template data. The template_dict (SAM Templated) is assumed
         to be valid, normalized and a dictionary. template_dict should be normalized by running any and all
@@ -52,7 +52,7 @@ class SamApiProvider(ApiProvider):
             Optional working directory with respect to which we will resolve relative path to Swagger file
         """
 
-        self.template_dict = SamBaseProvider.get_template(template_dict)
+        self.template_dict = SamBaseProvider.get_template(template_dict, parameter_overrides)
         self.resources = self.template_dict.get("Resources", {})
 
         LOG.debug("%d resources found in the template", len(self.resources))
