@@ -154,8 +154,8 @@ class LocalLambdaRunner(object):
         # Standard format is {FunctionName: {key:value}, FunctionName: {key:value}}
         # CloudFormation parameter file is {"Parameters": {key:value}}
 
-        for fn in self.env_vars_values:
-            if not isinstance(self.env_vars_values.get(fn), dict):
+        for env_var_value in self.env_vars_values.values():
+            if not isinstance(env_var_value, dict):
                 LOG.debug("Environment variables overrides data is not in a recognized format")
                 raise OverridesNotWellDefinedError("Environment variables overrides data is not in a recognized format")
 
