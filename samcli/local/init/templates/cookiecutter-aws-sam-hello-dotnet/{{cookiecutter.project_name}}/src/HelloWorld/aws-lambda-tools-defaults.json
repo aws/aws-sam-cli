@@ -8,8 +8,13 @@
   "profile": "default",
   "region": "us-east-2",
   "configuration": "Release",
+  {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
   "framework": "netcoreapp2.0",
-  "function-runtime": "dotnetcore2.0",
+  "function-runtime": "{{ cookiecutter.runtime }}",
+  {%- elif cookiecutter.runtime == 'dotnetcore2.1' or cookiecutter.runtime == 'dotnet' %}
+  "function-runtime": "dotnetcore2.1",
+  "framework": "netcoreapp2.1",
+  {%- endif %}
   "function-memory-size": 256,
   "function-timeout": 30,
   "function-handler": "HelloWorld::HelloWorld.Function::FunctionHandler"
