@@ -21,7 +21,7 @@ class LocalLambdaRunner(object):
     """
     PRESENT_DIR = "."
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
-
+ 
     def __init__(self,
                  local_runtime,
                  function_provider,
@@ -156,8 +156,12 @@ class LocalLambdaRunner(object):
 
         for env_var_value in self.env_vars_values.values():
             if not isinstance(env_var_value, dict):
-                LOG.debug("Environment variables overrides data is not in a recognized format")
-                raise OverridesNotWellDefinedError("Environment variables overrides data is not in a recognized format")
+                reason = """
+                            Environment variables must be in either CloudFormation parameter file 
+                            format or in {FunctionName: {key:value}} JSON pairs
+                            """
+                LOG.debug(reason)
+                raise OverridesNotWellDefinedError(reason)
 
         if "Parameters" in self.env_vars_values:
             LOG.debug("Environment variables overrides data is in CloudFormation parameter file format")
