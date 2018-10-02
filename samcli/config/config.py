@@ -84,7 +84,7 @@ class Config(object):
         self.__user_config_file = Path.home().joinpath('.samrc')
         self.__project_config_file = Path.cwd().joinpath('.samrc')
 
-        if (self.__has_user_config() and self.__has_project_config()):
+        if self.__has_user_config() and self.__has_project_config():
             self.config_file = (self.__project_config_file,
                                 self.__user_config_file)
         elif self.__has_project_config():
