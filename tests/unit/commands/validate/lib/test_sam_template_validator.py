@@ -45,7 +45,8 @@ class TestSamTemplateValidator(TestCase):
         sam_parser.Parser.return_value = parser
 
         translate_mock = Mock()
-        translate_mock.translate.side_effect = InvalidDocumentException([InvalidResourceException('LogicalId', 'message')])
+        translate_mock.translate.side_effect = InvalidDocumentException(
+            [InvalidResourceException('LogicalId', 'message')])
         sam_translator.return_value = translate_mock
 
         validator = SamTemplateValidator(template, managed_policy_mock)
