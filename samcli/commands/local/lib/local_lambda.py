@@ -21,7 +21,7 @@ class LocalLambdaRunner(object):
     """
     PRESENT_DIR = "."
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
- 
+
     def __init__(self,
                  local_runtime,
                  function_provider,
@@ -157,7 +157,7 @@ class LocalLambdaRunner(object):
         for env_var_value in self.env_vars_values.values():
             if not isinstance(env_var_value, dict):
                 reason = """
-                            Environment variables must be in either CloudFormation parameter file 
+                            Environment variables must be in either CloudFormation parameter file
                             format or in {FunctionName: {key:value}} JSON pairs
                             """
                 LOG.debug(reason)
