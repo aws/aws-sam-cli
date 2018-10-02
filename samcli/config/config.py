@@ -43,10 +43,10 @@ class Config(object):
     """
 
     def __init__(self):
-        self.__user_config_file = ""
-        self.__project_config_file = ""
-        self.config_file = ()
-        self.config = {}
+        self.__user_config_file = None
+        self.__project_config_file = None
+        self.config_file = None
+        self.config = None
 
     def load(self):
         """Load configuration file and expose as a dictionary
@@ -58,12 +58,12 @@ class Config(object):
         """
 
         possible_configs = self.__find_config()
-
-        if isinstance(possible_configs, tuple):
+        if (possible_configs is not None and
+                isinstance(possible_configs, tuple)):
             config_to_be_merged = [self.__read_config(config)
                                    for config in possible_configs]
             self.config = self.merge_config(*config_to_be_merged)
-        else:
+        elif possible_configs is not None:
             self.config = self.__read_config(possible_configs)
 
         return self.config
@@ -84,8 +84,9 @@ class Config(object):
         self.__user_config_file = Path.home().joinpath('.samrc')
         self.__project_config_file = Path.cwd().joinpath('.samrc')
 
-        if self.__has_user_config() and self.__has_project_config():
-            self.config_file = self.__project_config_file, self.__user_config_file
+        if (self.__has_user_config() and self.__has_project_config()):
+            self.config_file = (self.__project_config_file,
+                                self.__user_config_file)
         elif self.__has_project_config():
             self.config_file = self.__project_config_file
         elif self.__has_user_config():
@@ -145,10 +146,9 @@ class Config(object):
         Dict
             Parsed YAML configuration as dictionary
         """
+        config = Path(config)
 
-        _config = Path(config)
-
-        return yaml.safe_load(_config.read_text())
+        return yaml.safe_load(config.read_text())
 
 
 samrc = Config().load()

@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from samcli.config.config import Config, samrc
+from samcli.config.config import Config
 
 # This is an attempt to do a controlled import. pathlib is in the
 # Python standard library starting at 3.4. This will import pathlib2,
@@ -17,21 +17,28 @@ class TestConfig(TestCase):
 
     def setUp(self):
         self.config = Config()
-        self.samrc_valid_sample = """
+        self.samrc_user_level = """
         aws_region: 'eu-west-1'
         aws_profile: 'demo'
         default_port: 8080
         debug_port: 8080
         template: 'template.yaml'
         """
+        self.samrc_project_level = """
+        default_port: 4040
+        """
         self.project_config = Path.cwd().joinpath('.samrc')
         self.user_config = Path.home().joinpath('.samrc')
 
         with self.project_config.open(mode='w') as f:
-            f.write(self.samrc_valid_sample)
+            f.write(self.samrc_project_level)
+
+        with self.user_config.open(mode='w') as f:
+            f.write(self.samrc_user_level)
 
     def tearDown(self):
         self.project_config.unlink()
+        self.user_config.unlink()
 
     def test_merge_config(self):
         # GIVEN two dictionaries were given
@@ -45,45 +52,49 @@ class TestConfig(TestCase):
         self.assertEqual(config['key'], 'val2')
 
     def test_load(self):
-        with self.project_config.open(mode='w') as f:
-            f.write(self.samrc_valid_sample)
-
-        # GIVEN a project configuration file exists but user config
-        # WHEN config is to be loaded
+        # GIVEN a project and user configuration file exist
+        # WHEN config is loaded
         loaded_config = self.config.load()
-        project_config = yaml.safe_load(self.project_config.read_text())
+
+        expected_config = yaml.safe_load(self.samrc_user_level)
+        expected_config['default_port'] = 4040
 
         # THEN loaded configuration should be equals to project config
-        self.assertEqual(loaded_config, project_config)
+        # self.assertEqual(loaded_config, project_config)
+        self.assertDictContainsSubset(loaded_config, expected_config)
 
-    def test_load_config_override(self):
-        # If user's config exist don't override
-        # As developer may have .samrc already in place
-        if not self.user_config.is_file():
-            with self.user_config.open(mode='w') as f:
-                f.write(self.samrc_valid_sample)
+    def test_load_project_config_only(self):
+        # GIVEN a project configuration file exist but user
+        self.user_config.rename(
+            Path.home().joinpath('.samrc.backup'))
 
-        # GIVEN both project and user configuration exist
-        # WHEN config is to be loaded
-
-        with self.project_config.open(mode='w') as f:
-            project_has_custom_port = """
-            default_port: 4040
-            """
-            f.write(project_has_custom_port)
-
+        # WHEN config is loaded
         loaded_config = self.config.load()
 
-        # THEN any duplicated keys
-        # should be overriden by project's config values
-        self.assertEqual(loaded_config['default_port'], 4040)
+        expected_config = yaml.safe_load(self.samrc_project_level)
 
-    def test_samrc_singleton(self):
+        # THEN loaded configuration should be equals to project config
+        # self.assertEqual(loaded_config, project_config)
+        self.assertDictContainsSubset(loaded_config, expected_config)
 
+        # Rename it backwards
+        Path.home().joinpath('.samrc.backup').rename(self.user_config)
+
+    def test_load_user_config_only(self):
+        # GIVEN an user configuration exist but project
+        # Rename project config instead of deleting it
+        self.project_config.rename(
+            Path.cwd().joinpath('.samrc.backup'))
+
+        # WHEN config is loaded
         loaded_config = self.config.load()
-        loaded_samrc = samrc
+        user_config = yaml.safe_load(self.user_config.read_text())
 
-        self.assertEqual(loaded_config, loaded_samrc)
+        # THEN user configuration should be loaded
+        self.assertEqual(loaded_config, user_config)
+
+        # Rename it backwards
+        Path.cwd().joinpath('.samrc.backup').rename(self.project_config)
 
     def test_validate_config(self):
         loaded_config = self.config.load()
@@ -91,3 +102,21 @@ class TestConfig(TestCase):
 
         with self.assertRaisesRegexp(Exception, "Not implemented yet"):
             self.config.validate_config(loaded_config, config_schema)
+
+    def test_no_config(self):
+        # GIVEN no configuration is found
+        # WHEN config is loaded
+
+        self.project_config.rename(
+            Path.cwd().joinpath('.samrc.backup'))
+
+        self.user_config.rename(
+            Path.home().joinpath('.samrc.backup'))
+
+        # THEN config should be None
+        loaded_config = self.config.load()
+        self.assertFalse(loaded_config)
+
+        # Rename it backwards
+        Path.cwd().joinpath('.samrc.backup').rename(self.project_config)
+        Path.home().joinpath('.samrc.backup').rename(self.user_config)
