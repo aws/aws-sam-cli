@@ -3,6 +3,9 @@ Config module that reads .samrc definition
 """
 
 import logging
+import json
+
+import jsonschema
 import yaml
 
 # This is an attempt to do a controlled import. pathlib is in the
@@ -49,11 +52,7 @@ class Config(object):
     config: dict
         SAMRC configuration
     schema: dict
-        Schema for Configuration validation
-        {
-            "field_name": type
-            "required": ["field_name"]
-        }
+        JSONSchema for Configuration validation
     """
 
     def __init__(self, *schema):
@@ -61,14 +60,8 @@ class Config(object):
         self.__project_config_file = None
         self.config_file = None
         self.config = None
-        self.default_schema = {
-            "aws_region": str,
-            "aws_profile": str,
-            "default_port": int,
-            "debug_port": int,
-            "template": str,
-            "required": []
-        }
+        self.default_schema_file = Path(__file__).parent.joinpath('schema.json')
+        self.default_schema = json.load(Path.open(self.default_schema_file))
         self.schema = self.default_schema if not schema else schema
 
     def load(self):
@@ -84,7 +77,7 @@ class Config(object):
         possible_configs = self.__find_config()
         if possible_configs is not None and isinstance(possible_configs, tuple):
             config_to_be_merged = [self.__read_config(config) for config in possible_configs]
-            LOG.debug("Found more than one SAMRC")
+            LOG.debug("Found more than one SAMRC; Merging...")
             LOG.debug("%s", possible_configs)
             self.config = self.merge_config(*config_to_be_merged)
         elif possible_configs is not None:
@@ -108,7 +101,7 @@ class Config(object):
         config : dict
             SAMRC configuration
         schema : dict
-            Schema to validate against
+            JSONSchema to validate against
 
         Returns
         -------
@@ -116,66 +109,12 @@ class Config(object):
         """
 
         if schema is not None and isinstance(schema, dict):
-            if not self.__has_required_config(config, schema):
-                return False
-            if not self.__has_correct_values(config, schema):
-                return False
+            LOG.debug("Validating SAMRC config with given JSONSchema")
+            jsonschema.validate(config, schema)
 
-        LOG.debug("SAMRC looks valid based on schema provided")
-        LOG.debug("Schema: %s", schema)
-
-        return True
-
-    def __has_correct_values(self, config, schema):
-        """Recursively check config against schema
-
-        Parameters
-        ----------
-        config : dict
-            SAMRC configuration
-        schema : dict
-            Schema to validate against
-
-        Returns
-        -------
-        Boolean
-        """
-        LOG.debug("Ensuring SAMRC has values defined by schema provided")
-        for key, value in schema.items():
-            if isinstance(value, dict):  # if nested check on recursion
-                return self.__has_correct_values(config[key], value)
-            else:
-                if key in config:  # Only check for value for those available
-                    if not isinstance(config[key], value):
-                        # Check for best course of action (ERR message upstream,custom Exception formatting, etc.)
-                        LOG.debug("[!] SAMRC key %s has value %s. Expected %s", key, config[key], value)
-                        return False
-
-        return True
-
-    def __has_required_config(self, config, schema):
-        """Ensure explicit keys exist in configuration
-
-        Parameters
-        ----------
-        config : dict
-            SAMRC configuration
-        schema : dict
-            Schema to validate against
-
-        Returns
-        -------
-        Boolean
-        """
-
-        LOG.debug("Confirming whether required configuration is in SAMRC")
-        if 'required' in schema and schema['required']:
-            required = schema.pop('required')
-            if isinstance(required, list):
-                for field in required:
-                    if field not in config:
-                        LOG.debug("[!] SAMRC key %s is missing and it is required.", field)
-                        return False
+        LOG.debug("SAMRC looks valid!")
+        LOG.debug("Schema used: %s", schema)
+        LOG.debug("Config used: %s", config)
 
         return True
 
@@ -259,3 +198,5 @@ class Config(object):
 
 
 samrc = Config().load()
+app_folder = Path.home()
+app_folder_project = Path.cwd()

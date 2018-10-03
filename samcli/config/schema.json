@@ -1,0 +1,27 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://github.com/awslabs/aws-sam-cli/blob/master/samcli/config/schema.json",
+    "title": "SAMRC JSON Schema",
+    "description": "SAMRC configuration schema",
+    "type": "object",
+    "properties": {
+        "default": {
+            "description": "Default settings that will be shared across commands",
+            "type": "object",
+            "properties": {
+                "aws_region": {
+                    "type": "string"
+                },
+                "aws_profile": {
+                    "type": "string"
+                },
+                "default_port": {
+                    "type": "integer"
+                },
+                "template": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
