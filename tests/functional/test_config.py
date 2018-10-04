@@ -64,6 +64,8 @@ default:
         self.valid_samrc_project_level = """
 default:
     default_port: 4040
+future_proof_section:
+    something: else
         """
 
         with self.project_config.open(mode='w') as f:
