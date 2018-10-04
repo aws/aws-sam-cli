@@ -6,7 +6,7 @@ It is important to note that you should not try to `git clone` this project but 
 
 ## Requirements
 
-Install `cookiecutter` command line: 
+Install `cookiecutter` command line:
 
 **Pip users**:
 
@@ -24,7 +24,7 @@ Install `cookiecutter` command line:
 
 ## Usage
 
-Generate a new SAM based Serverless App: `cookiecutter gh:aws-samples/cookiecutter-aws-sam-hello-python`. 
+Generate a new SAM based Serverless App: `cookiecutter gh:aws-samples/cookiecutter-aws-sam-python`.
 
 You'll be prompted a few questions to help this cookiecutter template to scaffold this project and after its completed you should see a new folder at your current path with the name of the project you gave as input.
 
