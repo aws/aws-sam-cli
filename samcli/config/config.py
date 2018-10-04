@@ -2,7 +2,6 @@
 Config module that reads .samrc definition
 """
 
-import copy
 import logging
 import json
 
