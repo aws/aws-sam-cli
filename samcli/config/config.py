@@ -190,7 +190,7 @@ class Config(object):
         # Project may have unique config we need to copy over too
         # so that we can have user+project config available as one
         for key in project_config:
-            if not key in user_config:
+            if key not in user_config:
                 user_config[key] = project_config[key]
 
         return user_config
