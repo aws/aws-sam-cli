@@ -41,11 +41,15 @@ class TestConfig(TestCase):
     def tearDownClass(cls):
         if cls.project_config.exists():
             cls.project_config.unlink()
-        cls.project_config_backup.rename(cls.project_config)
+
+        if cls.project_config_backup.exists():
+            cls.project_config_backup.rename(cls.project_config)
 
         if cls.user_config.exists():
             cls.user_config.unlink()
-        cls.user_config_backup.rename(cls.user_config)
+
+        if cls.user_config_backup.exists():
+            cls.user_config_backup.rename(cls.user_config)
 
     def setUp(self):
         self.config = Config()
