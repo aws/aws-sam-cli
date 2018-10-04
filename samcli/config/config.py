@@ -11,9 +11,9 @@ import yaml
 # This is an attempt to do a controlled import. pathlib is in the
 # Python standard library starting at 3.4. This will import pathlib2,
 # which is a backport of the Python Standard Library pathlib
-try:
+try:  # pragma: no cover
     from pathlib import Path
-except ImportError:
+except ImportError:  # pragma: no cover
     from pathlib2 import Path
 
 LOG = logging.getLogger(__name__)
