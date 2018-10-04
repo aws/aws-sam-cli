@@ -3,7 +3,6 @@
     "$id": "https://github.com/awslabs/aws-sam-cli/blob/master/samcli/config/schema.json",
     "title": "SAMRC JSON Schema",
     "description": "SAMRC configuration schema",
-    "type": "object",
     "properties": {
         "default": {
             "description": "Default settings that will be shared across commands",
@@ -16,6 +15,9 @@
                     "type": "string"
                 },
                 "default_port": {
+                    "type": "integer"
+                },
+                "debug_port": {
                     "type": "integer"
                 },
                 "template": {

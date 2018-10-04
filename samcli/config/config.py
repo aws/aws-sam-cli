@@ -2,6 +2,7 @@
 Config module that reads .samrc definition
 """
 
+import copy
 import logging
 import json
 
@@ -53,9 +54,13 @@ class Config(object):
         SAMRC configuration
     schema: dict
         JSONSchema for Configuration validation
+    default_schema_file: Path
+        Path to default SAMRC JSONSchema file
+    default_schema: Dict
+        Default JSONSchema for SAMRC validation
     """
 
-    def __init__(self, *schema):
+    def __init__(self, schema=None):
         self.__user_config_file = None
         self.__project_config_file = None
         self.config_file = None
@@ -74,22 +79,27 @@ class Config(object):
         """
 
         LOG.debug("Looking for SAMRC before attempting to load")
-        possible_configs = self.__find_config()
-        if possible_configs is not None and isinstance(possible_configs, tuple):
-            config_to_be_merged = [self.__read_config(config) for config in possible_configs]
-            LOG.debug("Found more than one SAMRC; Merging...")
-            LOG.debug("%s", possible_configs)
-            self.config = self.merge_config(*config_to_be_merged)
-        elif possible_configs is not None:
-            LOG.debug("Found one SAMRC")
-            LOG.debug("%s", possible_configs)
-            self.config = self.__read_config(possible_configs)
+        user_config, project_config = self.__find_config()
 
-        if self.config is not None:
-            LOG.debug("SAMRC is ready to be validated")
-            LOG.debug("%s", self.config)
-            if not self.validate_config(self.config, self.schema):
-                raise ValueError("[!] Configuration is invalid!!")
+        if user_config is not None and project_config is not None:
+            LOG.debug("Found more than one SAMRC; Merging...")
+            LOG.debug("%s", user_config)
+            LOG.debug("%s", project_config)
+            user_config = self.__read_config(user_config)
+            project_config = self.__read_config(project_config)
+            self.config = self.merge_config(user_config, project_config)
+        elif user_config is not None and project_config is None:
+            LOG.debug("Found one SAMRC -- User specific")
+            LOG.debug("%s", user_config)
+            self.config = self.__read_config(user_config)
+        elif project_config is not None and user_config is None:
+            LOG.debug("Found one SAMRC -- Project specific")
+            LOG.debug("%s", project_config)
+            self.config = self.__read_config(project_config)
+
+        LOG.debug("SAMRC is ready to be validated")
+        LOG.debug("%s", self.config)
+        self.validate_config(self.config, self.schema)
 
         return self.config
 
@@ -108,9 +118,8 @@ class Config(object):
         Boolean
         """
 
-        if schema is not None and isinstance(schema, dict):
-            LOG.debug("Validating SAMRC config with given JSONSchema")
-            jsonschema.validate(config, schema)
+        LOG.debug("Validating SAMRC config with given JSONSchema")
+        jsonschema.validate(config, schema)
 
         LOG.debug("SAMRC looks valid!")
         LOG.debug("Schema used: %s", schema)
@@ -123,46 +132,69 @@ class Config(object):
 
         Returns
         -------
-        [Tuple, String]
-            Tuple if multiple config files are found otherwise a String
+        Tuple
+            Tuple with both configs and whether they were found
+
+        Example
+        -------
+            > user_config, project_config = self.__find_config()
         """
 
         self.__user_config_file = Path.home().joinpath('.samrc')
         self.__project_config_file = Path.cwd().joinpath('.samrc')
 
         if self.__has_user_config() and self.__has_project_config():
-            self.config_file = (self.__project_config_file,
-                                self.__user_config_file)
+            self.config_file = (self.__user_config_file,
+                                self.__project_config_file)
         elif self.__has_project_config():
-            self.config_file = self.__project_config_file
+            self.config_file = None, self.__project_config_file
         elif self.__has_user_config():
-            self.config_file = self.__user_config_file
+            self.config_file = self.__user_config_file, None
+        else:
+            self.config_file = None, None
 
         return self.config_file
 
-    def merge_config(self, project_config, user_config):
+    def merge_config(self, user_config, project_config):
         """Merge project and user configuration into a single dictionary
 
         Creates a new configuration with both configuration merged
         it favours project level over user configuration if keys are duplicated
 
+        NOTE
+        ----
+            It takes any number of nested dicts
+            but it doesn't take lists into account
+
         Parameters
         ----------
-        project_config : Dict
-            Project configuration (.samrc) found at current directory
         user_config : Dict
             User configuration (~/.samrc) found at user's home directory
+        project_config : Dict
+            Project configuration (.samrc) found at current directory
 
         Returns
         -------
         Dict
             Merged configuration
         """
+        # Recursively override User config with Project config
+        for key in user_config:
+            if key in project_config:
+                # If both keys are the same, let's check whether they have nested keys
+                if isinstance(user_config[key], dict) and isinstance(project_config[key], dict):
+                    self.merge_config(user_config[key], project_config[key])
+                else:
+                    user_config[key] = project_config[key]
+                    LOG.debug("Overriding User's key %s with Project's specific value %s.", key, project_config[key])
 
-        new_config = user_config.copy()
-        new_config.update(project_config)
+        # Project may have unique config we need to copy over too
+        # so that we can have user+project config available as one
+        for key in project_config:
+            if not key in user_config:
+                user_config[key] = project_config[key]
 
-        return new_config
+        return user_config
 
     def __has_user_config(self):
         """Confirm whether user configuration exists
