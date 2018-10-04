@@ -1,7 +1,6 @@
 from unittest import TestCase
-from mock import mock, patch, MagicMock
+from mock import patch
 
-import samcli
 from samcli.config import config
 
 
@@ -111,7 +110,8 @@ class TestInit(TestCase):
     @patch.object(config.Config, '_Config__has_user_config', return_value=True)
     @patch.object(config.Config, '_Config__has_project_config', return_value=True)
     def test_merge_config(self, has_user_patch, has_project_patch, find_config_patch):
-        with patch.object(config.Config, '_Config__read_config', side_effect=[self.valid_samrc_user_level, self.valid_samrc_project_level]):
+        with patch.object(config.Config, '_Config__read_config',
+                          side_effect=[self.valid_samrc_user_level, self.valid_samrc_project_level]):
             self.config = config.Config()
             merged_config = self.config.load()
             self.assertIn('future_proof_section', merged_config)
