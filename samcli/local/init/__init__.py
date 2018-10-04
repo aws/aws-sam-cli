@@ -22,6 +22,7 @@ RUNTIME_TEMPLATE_MAPPING = {
     "nodejs4.3": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
     "nodejs": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
     "dotnetcore2.0": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
+    "dotnetcore2.1": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
     "dotnetcore1.0": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
     "dotnetcore": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
     "dotnet": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
