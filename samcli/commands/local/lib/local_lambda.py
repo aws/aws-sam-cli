@@ -9,6 +9,7 @@ import boto3
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 
 LOG = logging.getLogger(__name__)
 
@@ -121,12 +122,23 @@ class LocalLambdaRunner(object):
                               env_vars=env_vars)
 
     def _make_env_vars(self, function):
-        """
-        Returns the environment variables configuration for this function
+        """Returns the environment variables configuration for this function
 
-        :param samcli.commands.local.lib.provider.Function function: Lambda function to generate the configuration for
-        :return samcli.local.lambdafn.env_vars.EnvironmentVariables: Environment variable configuration for this
-            function
+        Parameters
+        ----------
+        function : samcli.commands.local.lib.provider.Function
+            Lambda function to generate the configuration for
+
+        Returns
+        -------
+        samcli.local.lambdafn.env_vars.EnvironmentVariables
+            Environment variable configuration for this function
+
+        Raises
+        ------
+        samcli.commands.local.lib.exceptions.OverridesNotWellDefinedError
+            If the environment dict is in the wrong format to process environment vars
+
         """
 
         name = function.name
@@ -141,6 +153,16 @@ class LocalLambdaRunner(object):
         #
         # Standard format is {FunctionName: {key:value}, FunctionName: {key:value}}
         # CloudFormation parameter file is {"Parameters": {key:value}}
+
+        for env_var_value in self.env_vars_values.values():
+            if not isinstance(env_var_value, dict):
+                reason = """
+                            Environment variables must be in either CloudFormation parameter file
+                            format or in {FunctionName: {key:value}} JSON pairs
+                            """
+                LOG.debug(reason)
+                raise OverridesNotWellDefinedError(reason)
+
         if "Parameters" in self.env_vars_values:
             LOG.debug("Environment variables overrides data is in CloudFormation parameter file format")
             # CloudFormation parameter file format
