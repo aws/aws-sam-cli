@@ -308,21 +308,23 @@ the following launch configuration:
 
 .. code:: json
 
-   {
-       "version": "0.2.0",
-       "configurations": [
-           {
-               "name": "Attach to SAM CLI",
-               "type": "node",
-               "request": "attach",
-               "address": "localhost",
-               "port": 5858,
-               "localRoot": "${workspaceRoot}",
-               "remoteRoot": "/var/task",
-               "protocol": "legacy"
-           }
-       ]
-   }
+	{
+		"version": "0.2.0",
+		"configurations": [{
+	        "name": "Attach to SAM CLI",
+	        "type": "node",
+	        "request": "attach",
+	        "address": "localhost",
+	        "port": 5858,
+	        "localRoot": "${workspaceRoot}",
+	        "sourceMapPathOverrides": {
+	            "${workspaceRoot}/runtime": "${remoteRoot}"
+			    },
+	        "remoteRoot": "/var/task",
+	        "protocol": "inspector",
+	        "stopOnEntry": false
+		}]
+	}
 
 Note: Node.js versions --below-- 7 (e.g. Node.js 4.3 and Node.js 6.10)
 use the ``legacy`` protocol, while Node.js versions including and above
