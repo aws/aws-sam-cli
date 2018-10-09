@@ -114,7 +114,7 @@ aws cloudformation describe-stacks \
 
 ## Testing
 
-We use **Pytest** for testing our code and you can install it using pip: ``pip install pytest`` 
+We use **Pytest** and **pytest-mock** for testing our code and you can install it using pip: ``pip install pytest pytest-mock`` 
 
 Next, we run `pytest` against our `tests` folder to run our initial unit tests:
 
