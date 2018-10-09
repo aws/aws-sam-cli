@@ -6,8 +6,9 @@ This is a sample template for {{ cookiecutter.project_name }}
 
 * AWS CLI already configured with at least PowerUser permission
 * [Docker installed](https://www.docker.com/community-edition)
-* [SAM Local installed](https://github.com/awslabs/aws-sam-cli)
+* [SAM CLI installed](https://github.com/awslabs/aws-sam-cli)
 * [DotNet Core installed](https://www.microsoft.com/net/download)
+* [.NET Core Global Tools for AWS](https://aws.amazon.com/blogs/developer/net-core-global-tools-for-aws/) See appendix for setup instructions.
 
 ## Setup process
 
@@ -135,6 +136,16 @@ aws cloudformation deploy \
 aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
 ```
+
+## Installing .NET Core Global Tools for AWS
+
+To install a Global Tool, use the dotnet command line. Here is an example of installing the Lambda Global Tool.
+
+`dotnet tool install -g Amazon.Lambda.Tools`
+
+Here is an example of updating to the latest version of the Global Tool.
+
+`dotnet tool update -g Amazon.Lambda.Tools`
 
 ## Bringing to the next level
 
