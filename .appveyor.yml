@@ -1,4 +1,4 @@
 version: 1.0.{build}
 image: Visual Studio 2017
 build: 
-- sh: docker run hello-world:linux
+- "docker run hello-world:linux"
