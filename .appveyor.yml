@@ -5,7 +5,7 @@ image: Visual Studio 2017
 #    - PYTHON: "C:\\Python36-x64"
 #      PYTHON_VERSION: "3.6.6"
 #      PYTHON_ARCH: "64"
-#install:
-#- "%PYTHON%\\python.exe -m pip install '.[dev]'"
+install:
+- "%PYTHON%\\python.exe --version"
 test_script:
 - "docker run hello-world:linux"
