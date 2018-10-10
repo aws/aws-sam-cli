@@ -1,11 +1,5 @@
 version: 1.0.{build}
 image: Visual Studio 2017
-environment:
-  matrix:
-    - PYTHON: "C:\\Python36-x64"
-      PYTHON_VERSION: "3.6.6"
-      PYTHON_ARCH: "64"
-install:
-- "%PYTHON%\\python.exe --version"
+build: off
 test_script:
-- "docker run hello-world:linux"
+- sh: docker run hello-world:linux
