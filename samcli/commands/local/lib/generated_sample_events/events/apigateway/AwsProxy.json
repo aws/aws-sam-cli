@@ -3,7 +3,7 @@
   "resource": "{{resource}}",
   "path": "/{{path}}",
   "httpMethod": "{{method}}",
-  "isBase64Encoded": false,
+  "isBase64Encoded": true,
   "queryStringParameters": {
     "foo": "bar"
   },
