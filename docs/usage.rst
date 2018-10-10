@@ -377,7 +377,6 @@ the following launch configuration:
                   {
                       "localRoot": "${workspaceFolder}/hello_world/build",
                       "remoteRoot": "/var/task"
-                      // "stopOnEntry": true,
                   }
               ]
           }
@@ -385,7 +384,7 @@ the following launch configuration:
     }
 
 For VS Code, the property **localRoot** under **pathMappings** key is really important.
-This has to be where your function and dependencies (including ptvsd). This means you'll need one debugger configuration per path.
+This has to be where your function and dependencies (including ptvsd) are. This means you'll need one debugger configuration per path.
 
 Once complete with VS Code Debugger configuration you can run SAM CLI to invoke your function and start the debugger within VS Code:
 
