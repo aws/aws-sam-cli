@@ -6,6 +6,6 @@ environment:
       PYTHON_VERSION: "3.6.6"
       PYTHON_ARCH: "64"
 install:
-- "%PYTHON%\\python.exe -m pip -e install '.[dev]'"
+- "%PYTHON%\\python.exe -m pip install '.[dev]'"
 test_script:
 - "%PYTHON%\\pytest tests\\unit"
