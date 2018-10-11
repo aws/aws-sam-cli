@@ -412,7 +412,11 @@ For VS Code, the property **localRoot** under **pathMappings** key is really imp
 
 If you opened VS Code in a different location other than `python-debugging/` you need to replace it with the absolute path where `python-debugging/` is.
 
-Once complete with VS Code Debugger configuration you can run SAM CLI to invoke your function and start the debugger within VS Code:
+Once complete with VS Code Debugger configuration, make sure to add a breakpoint anywhere you like in `hello_world/build/app.py` and then proceed as follows:
+
+1. Run SAM CLI to invoke your function
+2. Hit the URL to invoke the function and initialize ptvsd code execution
+3. Start the debugger within VS Code
 
 .. code:: bash
 
