@@ -35,7 +35,7 @@ a different virtualenv for each project. `pyenv`_ comes with a handy plugin that
 
 Depending on the python version, the following commands would change to be the appropriate python version.
 
-#. ``pyenv virtualenv 3.7.0 samcli36``
+#. ``pyenv virtualenv 3.7.0 samcli37``
 #. ``pyenv activate samcli37`` for Python3.7
 
 
