@@ -279,7 +279,7 @@ Both ``sam local invoke`` and ``sam local start-api`` support local
 debugging of your functions.
 
 To run SAM Local with debugging support enabled, just specify
-``--debug-port`` or ``-d`` on the command line.
+``--debug-port`` or ``-d`` on the command line. SAM CLI debug port option ``--debug-port`` or ``-d`` will map that port to the local Lambda container execution your IDE needs to connect to.
 
 .. code:: bash
 
@@ -288,6 +288,7 @@ To run SAM Local with debugging support enabled, just specify
 
    # Start local API Gateway in debug mode on port 5858
    $ sam local start-api -d 5858
+
 
 Note: If using ``sam local start-api``, the local API Gateway will
 expose all of your Lambda functions but, since you can specify a single
@@ -337,7 +338,6 @@ Python debugging requires you to enable remote debugging in your Lambda function
 
 1. Install `ptvsd https://pypi.org/project/ptvsd/`__ library and enable within your code
 2. Configure your IDE to connect to the debugger you configured for your function
-  - SAM CLI debug port option ``--debug-port`` or ``-d`` will map that port to the local Lambda container execution your IDE needs to connect to
 
 As this may be your first time using SAM CLI, let's start with a boilerplate Python app and install both app's dependencies and ptvsd:
 
@@ -378,6 +378,7 @@ Visual Studio Code
 Now that we have both dependencies and ptvsd enabled within our code we configure Visual Studio Code (VS Code) Debugging - Assuming you're still in the application folder and have code command in your path, let's open up VS Code:
 
 .. code:: bash
+
     code .
 
 ``NOTE``: If you don't have code in your Path, please open up a new instance of VS Code from ``python-debugging/`` folder we created earlier.
