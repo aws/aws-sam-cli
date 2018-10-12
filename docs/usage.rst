@@ -14,7 +14,7 @@ Alternatively, you can find other sample SAM Templates by visiting `SAM <https:/
 -  `Invoke functions locally <#invoke-functions-locally>`__
 -  `Run automated tests for your Lambda functions locally <#run-automated-tests-for-your-lambda-functions-locally>`__
 -  `Generate sample event source
-   payloads <#generate-sample-event-source-payloads>`__
+   payloads <#generate-sample-event-payloads>`__
 -  `Run API Gateway locally <#run-api-gateway-locally>`__
 -  `Debugging Applications <#debugging-applications>`__
 
