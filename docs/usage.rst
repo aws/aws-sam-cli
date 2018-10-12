@@ -335,9 +335,9 @@ Debugging Python functions
 
 Python debugging requires you to enable remote debugging in your Lambda function code, therefore it's a 2-step process:
 
-1. Install ptvsd library and enable within your code
+1. Install `ptvsd https://pypi.org/project/ptvsd/`__ library and enable within your code
 2. Configure your IDE to connect to the debugger you configured for your function
-  - SAM CLI debug port option ``--debug-port`` or `-d` will map that port to the local Lambda container execution your IDE needs to connect to
+  - SAM CLI debug port option ``--debug-port`` or ``-d`` will map that port to the local Lambda container execution your IDE needs to connect to
 
 As this may be your first time using SAM CLI, let's start with a boilerplate Python app and install both app's dependencies and ptvsd:
 
@@ -345,18 +345,19 @@ As this may be your first time using SAM CLI, let's start with a boilerplate Pyt
 
     sam init --runtime python3.6 --name python-debugging
     cd python-debugging/
+    
     # Install dependencies of our boilerplate app
     pip install -r requirements.txt -t hello_world/build/
+    
     # Install ptvsd library for step through debugging
     pip install ptvsd -t hello_world/build/
+    
     cp hello_world/app.py hello_world/build/
 
 Ptvsd configuration
 ^^^^^^^^^^^^^^^^^^^
 
-As we installed ptvsd library in the previous step, we need to enable ptvsd within our code, therefore open up `hello_world/build/app.py` and add the following ptvsd specifics:
-
-Provided that your source code has ptvsd available for your Lambda function you can do the following to enable the debugger:
+As we installed ptvsd library in the previous step, we need to enable ptvsd within our code, therefore open up ``hello_world/build/app.py`` and add the following ptvsd specifics.
 
 .. code:: python
 
@@ -374,14 +375,14 @@ Provided that your source code has ptvsd available for your Lambda function you 
 Visual Studio Code
 ^^^^^^^^^^^^^^^^^^
 
-Now that we have both dependencies and ptvsd enabled within our code we configure VS Code Debugging - Assuming you're still in the application folder and have code command in your path, let's open up VS Code:
+Now that we have both dependencies and ptvsd enabled within our code we configure Visual Studio Code (VS Code) Debugging - Assuming you're still in the application folder and have code command in your path, let's open up VS Code:
 
 .. code:: bash
     code .
 
-NOTE: If you don't have code in your Path, please open up a new instance of VS Code from `python-debugging/` folder we created earlier.
+``NOTE``: If you don't have code in your Path, please open up a new instance of VS Code from ``python-debugging/`` folder we created earlier.
 
-In order to setup Visual Studio Code (VS Code) for debugging with AWS SAM CLI, use
+In order to setup VS Code for debugging with AWS SAM CLI, use
 the following launch configuration:
 
 .. code:: json
@@ -410,9 +411,9 @@ For VS Code, the property **localRoot** under **pathMappings** key is really imp
 1. **localRoot**: This path will be mounted in the Docker Container and needs to have both application and dependencies at the root level
 2. **workspaceFolder**: This path is the absolute path where VS Code instance was opened
 
-If you opened VS Code in a different location other than `python-debugging/` you need to replace it with the absolute path where `python-debugging/` is.
+If you opened VS Code in a different location other than ``python-debugging/`` you need to replace it with the absolute path where ``python-debugging/`` is.
 
-Once complete with VS Code Debugger configuration, make sure to add a breakpoint anywhere you like in `hello_world/build/app.py` and then proceed as follows:
+Once complete with VS Code Debugger configuration, make sure to add a breakpoint anywhere you like in ``hello_world/build/app.py`` and then proceed as follows:
 
 1. Run SAM CLI to invoke your function
 2. Hit the URL to invoke the function and initialize ptvsd code execution
