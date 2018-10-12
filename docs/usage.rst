@@ -336,7 +336,7 @@ Debugging Python functions
 
 Python debugging requires you to enable remote debugging in your Lambda function code, therefore it's a 2-step process:
 
-1. Install `ptvsd https://pypi.org/project/ptvsd/`__ library and enable within your code
+1. Install `ptvsd <https://pypi.org/project/ptvsd/>`__ library and enable within your code
 2. Configure your IDE to connect to the debugger you configured for your function
 
 As this may be your first time using SAM CLI, let's start with a boilerplate Python app and install both app's dependencies and ptvsd:
@@ -641,7 +641,7 @@ Example:
    $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities CAPABILITY_IAM
 
 Learn More
-==========
+----------
 
 -  `Project Overview <../README.rst>`__
 -  `Installation <installation.rst>`__
