@@ -36,7 +36,7 @@ sam local start-api
 ```yaml
 ...
 Events:
-    {{cookiecutter.project_name}}:
+    HelloWorldFunction:
         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
         Properties:
             Path: /hello
@@ -52,10 +52,10 @@ AWS Lambda C# runtime requires a flat folder with all dependencies including the
 
 ```yaml
 ...
-    FirstFunction:
+    HelloWorldFunction:
         Type: AWS::Serverless::Function
         Properties:
-            CodeUri: src/HelloWorld/bin/Debug/netcoreapp2.0/publish            
+            CodeUri: artifacts/HelloWorld.zip            
             ...
 ```
 

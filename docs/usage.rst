@@ -14,7 +14,7 @@ Alternatively, you can find other sample SAM Templates by visiting `SAM <https:/
 -  `Invoke functions locally <#invoke-functions-locally>`__
 -  `Run automated tests for your Lambda functions locally <#run-automated-tests-for-your-lambda-functions-locally>`__
 -  `Generate sample event source
-   payloads <#generate-sample-event-source-payloads>`__
+   payloads <#generate-sample-event-payloads>`__
 -  `Run API Gateway locally <#run-api-gateway-locally>`__
 -  `Debugging Applications <#debugging-applications>`__
 
@@ -279,7 +279,7 @@ Both ``sam local invoke`` and ``sam local start-api`` support local
 debugging of your functions.
 
 To run SAM Local with debugging support enabled, just specify
-``--debug-port`` or ``-d`` on the command line.
+``--debug-port`` or ``-d`` on the command line. SAM CLI debug port option ``--debug-port`` or ``-d`` will map that port to the local Lambda container execution your IDE needs to connect to.
 
 .. code:: bash
 
@@ -288,6 +288,7 @@ To run SAM Local with debugging support enabled, just specify
 
    # Start local API Gateway in debug mode on port 5858
    $ sam local start-api -d 5858
+
 
 Note: If using ``sam local start-api``, the local API Gateway will
 expose all of your Lambda functions but, since you can specify a single
@@ -304,11 +305,12 @@ Visual Studio Code:
    SAM Local debugging example
 
 In order to setup Visual Studio Code for debugging with AWS SAM CLI, use
-the following launch configuration:
+the following launch configuration after setting directory where the template.yaml is present
+as workspace root in Visual Studio Code:
 
 .. code:: json
 
-   {
+  {
        "version": "0.2.0",
        "configurations": [
            {
@@ -317,41 +319,124 @@ the following launch configuration:
                "request": "attach",
                "address": "localhost",
                "port": 5858,
-               "localRoot": "${workspaceRoot}",
+               // From the sam init example, it would be "${workspaceRoot}/hello_world"
+               "localRoot": "${workspaceRoot}/{directory of node app}",
                "remoteRoot": "/var/task",
-               "protocol": "legacy"
+               "protocol": "inspector",
+               "stopOnEntry": false
            }
        ]
    }
+
+Note: localRoot is set based on what the CodeUri points at template.yaml,
+if there are nested directories within the CodeUri, that needs to be
+reflected in localRoot.
 
 Note: Node.js versions --below-- 7 (e.g. Node.js 4.3 and Node.js 6.10)
 use the ``legacy`` protocol, while Node.js versions including and above
 7 (e.g. Node.js 8.10) use the ``inspector`` protocol. Be sure to specify
 the corresponding protocol in the ``protocol`` entry of your launch
-configuration.
+configuration. This was tested with VS code version 1.26, 1.27 and 1.28
+for ``legacy`` and ``inspector`` protocol.
 
 Debugging Python functions
 --------------------------
 
-Unlike Node.JS and Java, Python requires you to enable remote debugging
-in your Lambda function code. If you enable debugging with
-``--debug-port`` or ``-d`` for a function that uses one of the Python
-runtimes, SAM CLI will just map through that port from your host machine
-through to the Lambda runtime container. You will need to enable remote
-debugging in your function code. To do this, use a python package such
-as `remote-pdb <https://pypi.python.org/pypi/remote-pdb>`__. When
-configuring the host the debugger listens on in your code, make sure to
-use ``0.0.0.0`` not ``127.0.0.1`` to allow Docker to map through the
-port to your host machine.
+Python debugging requires you to enable remote debugging in your Lambda function code, therefore it's a 2-step process:
 
-   Please note, due to a `open
-   bug <https://github.com/Microsoft/vscode-python/issues/71>`__ with
-   Visual Studio Code, you may get a
-   ``Debug adapter process has terminated unexpectedly`` error when
-   attempting to debug Python applications with this IDE. Please track
-   the `GitHub
-   issue <https://github.com/Microsoft/vscode-python/issues/71>`__ for
-   updates.
+1. Install `ptvsd <https://pypi.org/project/ptvsd/>`__ library and enable within your code
+2. Configure your IDE to connect to the debugger you configured for your function
+
+As this may be your first time using SAM CLI, let's start with a boilerplate Python app and install both app's dependencies and ptvsd:
+
+.. code:: bash
+
+    sam init --runtime python3.6 --name python-debugging
+    cd python-debugging/
+    
+    # Install dependencies of our boilerplate app
+    pip install -r requirements.txt -t hello_world/build/
+    
+    # Install ptvsd library for step through debugging
+    pip install ptvsd -t hello_world/build/
+    
+    cp hello_world/app.py hello_world/build/
+
+Ptvsd configuration
+^^^^^^^^^^^^^^^^^^^
+
+As we installed ptvsd library in the previous step, we need to enable ptvsd within our code, therefore open up ``hello_world/build/app.py`` and add the following ptvsd specifics.
+
+.. code:: python
+
+  import ptvsd
+  
+  # Enable ptvsd on 0.0.0.0 address and on port 5890 that we'll connect later with our IDE
+  ptvsd.enable_attach(address=('0.0.0.0', 5890), redirect_output=True)
+  ptvsd.wait_for_attach()
+
+**0.0.0.0** instead of **localhost** for listening across all network interfaces and **5890** is the debugging port of your preference.
+
+Visual Studio Code
+^^^^^^^^^^^^^^^^^^
+
+Now that we have both dependencies and ptvsd enabled within our code we configure Visual Studio Code (VS Code) Debugging - Assuming you're still in the application folder and have code command in your path, let's open up VS Code:
+
+.. code:: bash
+
+    code .
+
+``NOTE``: If you don't have code in your Path, please open up a new instance of VS Code from ``python-debugging/`` folder we created earlier.
+
+In order to setup VS Code for debugging with AWS SAM CLI, use
+the following launch configuration:
+
+.. code:: json
+
+   {
+       "version": "0.2.0",
+       "configurations": [
+           {
+              "name": "SAM CLI Python Hello World",
+              "type": "python",
+              "request": "attach",
+              "port": 5890,
+              "host": "localhost",
+              "pathMappings": [
+                  {
+                      "localRoot": "${workspaceFolder}/hello_world/build",
+                      "remoteRoot": "/var/task"
+                  }
+              ]
+          }
+      ]
+    }
+
+For VS Code, the property **localRoot** under **pathMappings** key is really important and there are 2 aspects you should know as to why this is setup this way:
+
+1. **localRoot**: This path will be mounted in the Docker Container and needs to have both application and dependencies at the root level
+2. **workspaceFolder**: This path is the absolute path where VS Code instance was opened
+
+If you opened VS Code in a different location other than ``python-debugging/`` you need to replace it with the absolute path where ``python-debugging/`` is.
+
+Once complete with VS Code Debugger configuration, make sure to add a breakpoint anywhere you like in ``hello_world/build/app.py`` and then proceed as follows:
+
+1. Run SAM CLI to invoke your function
+2. Hit the URL to invoke the function and initialize ptvsd code execution
+3. Start the debugger within VS Code
+
+.. code:: bash
+
+  # Remember to hit the URL before starting the debugger in VS Code
+
+  sam local start-api -d 5890
+
+  # OR 
+
+  # Change HelloWorldFunction to reflect the logical name found in template.yaml
+
+  sam local generate-event apigateway aws-proxy | sam local invoke HelloWorldFunction -d 5890
+
 
 Debugging Golang functions
 --------------------------
@@ -561,7 +646,7 @@ Example:
    $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities CAPABILITY_IAM
 
 Learn More
-==========
+----------
 
 -  `Project Overview <../README.rst>`__
 -  `Installation <installation.rst>`__

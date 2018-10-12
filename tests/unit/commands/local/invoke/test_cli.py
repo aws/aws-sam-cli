@@ -10,6 +10,8 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+
 
 STDIN_FILE_NAME = "-"
 
@@ -31,6 +33,7 @@ class TestCli(TestCase):
         self.profile = "profile"
         self.no_event = False
         self.region = "region"
+        self.parameter_overrides = {}
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -56,7 +59,8 @@ class TestCli(TestCase):
                    log_file=self.log_file,
                    skip_pull_image=self.skip_pull_image,
                    profile=self.profile,
-                   region=self.region)
+                   region=self.region,
+                   parameter_overrides=self.parameter_overrides)
 
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
@@ -69,7 +73,8 @@ class TestCli(TestCase):
                                              debug_port=self.debug_port,
                                              debug_args=self.debug_args,
                                              debugger_path=self.debugger_path,
-                                             aws_region=self.region)
+                                             aws_region=self.region,
+                                             parameter_overrides=self.parameter_overrides)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event=event_data,
@@ -98,7 +103,8 @@ class TestCli(TestCase):
                    log_file=self.log_file,
                    skip_pull_image=self.skip_pull_image,
                    profile=self.profile,
-                   region=self.region)
+                   region=self.region,
+                   parameter_overrides=self.parameter_overrides)
 
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
@@ -111,7 +117,8 @@ class TestCli(TestCase):
                                              debug_port=self.debug_port,
                                              debug_args=self.debug_args,
                                              debugger_path=self.debugger_path,
-                                             aws_region=self.region)
+                                             aws_region=self.region,
+                                             parameter_overrides=self.parameter_overrides)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event="{}",
@@ -140,7 +147,8 @@ class TestCli(TestCase):
                        log_file=self.log_file,
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
-                       region=self.region)
+                       region=self.region,
+                       parameter_overrides=self.parameter_overrides)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "no_event and event cannot be used together. Please provide only one.")
@@ -173,7 +181,8 @@ class TestCli(TestCase):
                        log_file=self.log_file,
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
-                       region=self.region)
+                       region=self.region,
+                       parameter_overrides=self.parameter_overrides)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "Function {} not found in template".format(self.function_id))
@@ -202,10 +211,41 @@ class TestCli(TestCase):
                        log_file=self.log_file,
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
-                       region=self.region)
+                       region=self.region,
+                       parameter_overrides=self.parameter_overrides)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad template")
+
+    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_must_raise_user_exception_on_invalid_env_vars(self, get_event_mock, InvokeContextMock):
+        event_data = "data"
+        get_event_mock.return_value = event_data
+
+        InvokeContextMock.side_effect = OverridesNotWellDefinedError("bad env vars")
+
+        with self.assertRaises(UserException) as ex_ctx:
+
+            invoke_cli(ctx=None,
+                       function_identifier=self.function_id,
+                       template=self.template,
+                       event=self.eventfile,
+                       no_event=self.no_event,
+                       env_vars=self.env_vars,
+                       debug_port=self.debug_port,
+                       debug_args=self.debug_args,
+                       debugger_path=self.debugger_path,
+                       docker_volume_basedir=self.docker_volume_basedir,
+                       docker_network=self.docker_network,
+                       log_file=self.log_file,
+                       skip_pull_image=self.skip_pull_image,
+                       profile=self.profile,
+                       region=self.region,
+                       parameter_overrides=self.parameter_overrides)
+
+        msg = str(ex_ctx.exception)
+        self.assertEquals(msg, "bad env vars")
 
 
 class TestGetEvent(TestCase):

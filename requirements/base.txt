@@ -1,14 +1,14 @@
 six~=1.11.0
+chevron~=0.12
 click~=6.7
-enum34~=1.1.6
+enum34~=1.1.6; python_version<"3.4"
 Flask~=1.0.2
 boto3~=1.5
 PyYAML~=3.12
 cookiecutter~=1.6.0
-aws-sam-translator==1.6.0
+aws-sam-translator==1.7.0
 docker>=3.3.0
 dateparser~=0.7
 python-dateutil~=2.6
 pathlib2~=2.3.2; python_version<"3.4"
-pystache~=0.5
 

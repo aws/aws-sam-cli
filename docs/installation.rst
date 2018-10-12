@@ -203,6 +203,9 @@ If your AWS Cloud9 environment has a SAM CLI version < 0.3.0 installed there are
    
     # Create new symlink
     $ ln -sf $(which sam) ~/.c9/bin/sam
+    
+    # Reset the bash cache
+    $ hash -r
    
     # Verify your installation worked
     $ sam –-version
