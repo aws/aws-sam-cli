@@ -305,11 +305,12 @@ Visual Studio Code:
    SAM Local debugging example
 
 In order to setup Visual Studio Code for debugging with AWS SAM CLI, use
-the following launch configuration:
+the following launch configuration after setting directory where the template.yaml is present
+as workspace root in Visual Studio Code:
 
 .. code:: json
 
-   {
+  {
        "version": "0.2.0",
        "configurations": [
            {
@@ -318,18 +319,25 @@ the following launch configuration:
                "request": "attach",
                "address": "localhost",
                "port": 5858,
-               "localRoot": "${workspaceRoot}",
+               // From the sam init example, it would be "${workspaceRoot}/hello_world"
+               "localRoot": "${workspaceRoot}/{directory of node app}",
                "remoteRoot": "/var/task",
-               "protocol": "legacy"
+               "protocol": "inspector",
+               "stopOnEntry": false
            }
        ]
    }
+
+Note: localRoot is set based on what the CodeUri points at template.yaml,
+if there are nested directories within the CodeUri, that needs to be
+reflected in localRoot.
 
 Note: Node.js versions --below-- 7 (e.g. Node.js 4.3 and Node.js 6.10)
 use the ``legacy`` protocol, while Node.js versions including and above
 7 (e.g. Node.js 8.10) use the ``inspector`` protocol. Be sure to specify
 the corresponding protocol in the ``protocol`` entry of your launch
-configuration.
+configuration. This was tested with VS code version 1.26, 1.27 and 1.28
+for ``legacy`` and ``inspector`` protocol.
 
 Debugging Python functions
 --------------------------
