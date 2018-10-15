@@ -3,7 +3,6 @@ Entry point for the CLI
 """
 
 import logging
-import os
 import click
 
 from samcli import __version__
@@ -37,18 +36,7 @@ def aws_creds_options(f):
     return f
 
 
-def unbuffered_streams(f):
-    """
-    Force the stdout and stderr streams to be unbuffered.
-    :param f: Callback function passed by Click
-    :return: Callback function
-    """
-    os.environ["PYTHONUNBUFFERED"] = "1"
-    return f
-
-
 @click.command(cls=BaseCommand)
-@unbuffered_streams
 @common_options
 @click.version_option(version=__version__, prog_name="SAM CLI")
 @pass_context
