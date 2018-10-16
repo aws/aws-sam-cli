@@ -1,8 +1,7 @@
 version: 1.0.{build}
-image: Visual Studio 2017
+image: ubuntu
 install:
 - docker version
 - docker info
 build_script:
-- docker run --platform linux hello-world:linux
-- docker image hello-world
+- docker run hello-world:linux
