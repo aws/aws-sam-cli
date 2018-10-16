@@ -1,6 +1,7 @@
 version: 1.0.{build}
 image: ubuntu
 stack: python 3.7.0
+build: off
 install:
 - pip install -e '.[dev]'
 test_script:
