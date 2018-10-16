@@ -119,11 +119,11 @@ class Config(object):
         """
 
         LOG.debug("Validating SAMRC config with given JSONSchema")
-        jsonschema.validate(config, schema)
-
-        LOG.debug("SAMRC looks valid!")
         LOG.debug("Schema used: %s", schema)
         LOG.debug("Config used: %s", config)
+
+        jsonschema.validate(config, schema)
+        LOG.debug("SAMRC looks valid!")
 
     def __find_config(self):
         """Looks up for user and project level config
