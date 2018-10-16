@@ -112,9 +112,10 @@ class Config(object):
         schema : dict
             JSONSchema to validate against
 
-        Returns
+        Raises
         -------
-        Boolean
+        jsonschema.exceptions.ValidationError
+            Returned when samrc doesn't match schema provided
         """
 
         LOG.debug("Validating SAMRC config with given JSONSchema")
@@ -123,8 +124,6 @@ class Config(object):
         LOG.debug("SAMRC looks valid!")
         LOG.debug("Schema used: %s", schema)
         LOG.debug("Config used: %s", config)
-
-        return True
 
     def __find_config(self):
         """Looks up for user and project level config
