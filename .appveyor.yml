@@ -1,7 +1,8 @@
 version: 1.0.{build}
 image: ubuntu
+stack: python 3.7.0
 install:
-- docker version
-- docker info
-build_script:
-- docker run hello-world:linux
+- pip install -e '.[dev]'
+test_script:
+- pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
+- pytest tests/integration
