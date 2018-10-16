@@ -19,7 +19,7 @@ sh build.sh --target=Package
 
 ### Windows (Powershell)
 
-```powershellx
+```powershell
 build.ps1 --target=Package
 ```
 
