@@ -80,25 +80,21 @@ class Config(object):
         LOG.debug("Looking for SAMRC before attempting to load")
         user_config, project_config = self.__find_config()
 
-        if user_config is not None and project_config is not None:
-            LOG.debug("Found more than one SAMRC; Merging...")
-            LOG.debug("%s", user_config)
-            LOG.debug("%s", project_config)
-            user_config = self.__read_config(user_config)
-            project_config = self.__read_config(project_config)
-            self.config = self.merge_config(user_config, project_config)
-        elif user_config is not None and project_config is None:
-            LOG.debug("Found one SAMRC -- User specific")
-            LOG.debug("%s", user_config)
-            self.config = self.__read_config(user_config)
-        elif project_config is not None and user_config is None:
-            LOG.debug("Found one SAMRC -- Project specific")
-            LOG.debug("%s", project_config)
-            self.config = self.__read_config(project_config)
+        user_config = self.__read_config(user_config)
+        LOG.debug("Validating User SAMRC")
+        user_config = self.validate_config(user_config, self.schema)
 
-        LOG.debug("SAMRC is ready to be validated")
-        LOG.debug("%s", self.config)
-        self.validate_config(self.config, self.schema)
+        project_config = self.__read_config(project_config)
+        LOG.debug("Validating Project SAMRC")
+        project_config = self.validate_config(project_config, self.schema)
+
+        LOG.debug("User configuration loaded as")
+        LOG.debug("%s", user_config)
+        LOG.debug("Project configuration loaded as")
+        LOG.debug("%s", project_config)
+
+        LOG.debug("Merging configurations...")
+        self.config = self.merge_config(user_config, project_config)
 
         return self.config
 
@@ -124,6 +120,8 @@ class Config(object):
 
         jsonschema.validate(config, schema)
         LOG.debug("SAMRC looks valid!")
+
+        return config
 
     def __find_config(self):
         """Looks up for user and project level config
@@ -223,8 +221,15 @@ class Config(object):
             Parsed YAML configuration as dictionary
         """
         config = Path(config)
+        config_template = None
 
-        return yaml.safe_load(config.read_text())
+        if config.exists():
+            config_template = yaml.safe_load(config.read_text())
+
+        if not config_template:
+            config_template = {}
+
+        return config_template
 
 
 samrc = Config().load()
