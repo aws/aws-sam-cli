@@ -108,6 +108,11 @@ class Config(object):
         schema : dict
             JSONSchema to validate against
 
+        Returns
+        -------
+        Dict
+            SAMRC configuration
+
         Raises
         -------
         jsonschema.exceptions.ValidationError
