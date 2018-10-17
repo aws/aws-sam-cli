@@ -18,7 +18,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ## Requirements
 
-* AWS CLI already configured with at least PowerUser permission
+* [AWS CLI installed](https://aws.amazon.com/cli/)
 {%- if cookiecutter.runtime == 'python3.6' %}
 * [Python 3 installed](https://www.python.org/downloads/)
 {%- else %}

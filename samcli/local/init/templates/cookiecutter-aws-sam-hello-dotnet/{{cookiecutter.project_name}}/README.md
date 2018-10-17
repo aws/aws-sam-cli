@@ -4,7 +4,7 @@ This is a sample template for {{ cookiecutter.project_name }}
 
 ## Requirements
 
-* AWS CLI already configured with at least PowerUser permission
+* [AWS CLI installed](https://aws.amazon.com/cli/)
 * [Docker installed](https://www.docker.com/community-edition)
 * [SAM Local installed](https://github.com/awslabs/aws-sam-cli)
 * [DotNet Core installed](https://www.microsoft.com/net/download)

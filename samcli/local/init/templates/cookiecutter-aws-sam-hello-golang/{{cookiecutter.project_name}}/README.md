@@ -14,7 +14,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ## Requirements
 
-* AWS CLI already configured with at least PowerUser permission
+* [AWS CLI installed](https://aws.amazon.com/cli/)
 * [Docker installed](https://www.docker.com/community-edition)
 * [Golang](https://golang.org)
 
