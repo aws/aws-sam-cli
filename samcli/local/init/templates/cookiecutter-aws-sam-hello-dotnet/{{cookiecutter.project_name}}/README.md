@@ -7,7 +7,16 @@ This is a sample template for {{ cookiecutter.project_name }}
 * AWS CLI already configured with at least PowerUser permission
 * [Docker installed](https://www.docker.com/community-edition)
 * [SAM CLI installed](https://github.com/awslabs/aws-sam-cli)
-* [DotNet Core installed](https://www.microsoft.com/net/download)
+* [.NET Core installed](https://www.microsoft.com/net/download)
+
+Please see the [currently supported patch of each major version of .NET Core](https://github.com/aws/aws-lambda-dotnet#version-status) to ensure your functions are compatible with the AWS Lambda runtime.
+
+## Recommended Tools for Visual Studio / Visual Studio Code Users
+
+* [AWS Toolkit for Visual Studio](https://aws.amazon.com/visualstudio/)
+* [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) which are AWS extensions to the .NET CLI focused on building .NET Core and ASP.NET Core applications and deploying them to AWS services including Amazon Elastic Container Service, AWS Elastic Beanstalk and AWS Lambda.
+
+> **Note: this project uses [Cake Build](https://cakebuild.net/) for build, test and packaging requirements. You do not need to have the [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) installed, but are free to do so if you which to use them. Version 3 of the Amazon.Lambda.Tools does require .NET Core 2.1 for installation, but can be used to deploy older versions of .NET Core.**
 
 ## Setup process
 
@@ -42,7 +51,6 @@ Events:
             Path: /hello
             Method: get
 ```
-
 
 If the previous command run successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
 
@@ -92,6 +100,7 @@ aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
     --query 'Stacks[].Outputs'
 ```
+
 ## Testing
 
 For testing our code, we use XUnit and you can use `dotnet test` to run tests defined under `test/`
@@ -118,7 +127,7 @@ build.ps1 --target=Test
 
 ## AWS CLI commands
 
-AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack:
+AWS CLI commands to package, deploy and describe outputs defined within the AWS CloudFormation stack:
 
 ```bash
 aws cloudformation package \
@@ -134,6 +143,20 @@ aws cloudformation deploy \
 
 aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
+```
+
+## Next Steps
+
+Create your own .NET Core solution template to use with SAM CLI. [Cookiecutter for AWS SAM and .NET](https://github.com/aws-samples/cookiecutter-aws-sam-dotnet) provides you with a sample implementation how to use cookiecutter templating library to standardise how you initialise your Serverless projects.
+
+``` bash
+ sam init --location gh:aws-samples/cookiecutter-aws-sam-dotnet
+```
+
+For more information and examples of how to use `sam init` run 
+
+``` bash
+sam init --help
 ```
 
 ## Bringing to the next level
