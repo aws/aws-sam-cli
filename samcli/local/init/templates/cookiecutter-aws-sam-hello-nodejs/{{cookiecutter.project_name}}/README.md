@@ -16,7 +16,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ## Requirements
 
-* AWS CLI already configured with at least PowerUser permission
+* AWS CLI already configured with Administrator permission
 {%- if cookiecutter.runtime == 'nodejs6.10' %}
 * [NodeJS 6.10 installed](https://nodejs.org/en/download/releases/)
 {%- elif cookiecutter.runtime =='nodejs4.3' %}
