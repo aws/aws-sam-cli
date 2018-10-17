@@ -162,7 +162,7 @@ class Config(object):
         NOTE
         ----
             It takes any number of nested dicts
-            but it doesn't take lists into account
+            It overrides lists found in user_config with project_config
 
         Parameters
         ----------
