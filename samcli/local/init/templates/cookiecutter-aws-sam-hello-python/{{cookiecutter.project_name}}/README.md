@@ -18,7 +18,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ## Requirements
 
-* AWS CLI already configured with at least PowerUser permission
+* AWS CLI already configured with Administrator permission
 {%- if cookiecutter.runtime == 'python3.6' %}
 * [Python 3 installed](https://www.python.org/downloads/)
 {%- else %}
@@ -114,7 +114,7 @@ aws cloudformation describe-stacks \
 
 ## Testing
 
-We use **Pytest** for testing our code and you can install it using pip: ``pip install pytest`` 
+We use **Pytest** and **pytest-mock** for testing our code and you can install it using pip: ``pip install pytest pytest-mock`` 
 
 Next, we run `pytest` against our `tests` folder to run our initial unit tests:
 
