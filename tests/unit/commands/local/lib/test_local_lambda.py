@@ -10,6 +10,7 @@ from parameterized import parameterized, param
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.provider import Function
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 
 
 class TestLocalLambda_get_aws_creds(TestCase):
@@ -298,7 +299,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         ({"otherfunction": {"c": "d"}}, None),
 
         # Using a CloudFormation parameter file format
-        ({"Parameters": {"p1": "v1"}}, {"p1": "v1"}),
+        ({"Parameters": {"p1": "v1"}}, {"p1": "v1"})
     ])
     @patch("samcli.commands.local.lib.local_lambda.EnvironmentVariables")
     @patch("samcli.commands.local.lib.local_lambda.os")
@@ -327,6 +328,33 @@ class TestLocalLambda_make_env_vars(TestCase):
                                                     shell_env_values=os_environ,
                                                     override_values=expected_override_value,
                                                     aws_creds=self.aws_creds)
+
+    @parameterized.expand([
+        # Using a invalid file format
+        ({"a": "b"}, OverridesNotWellDefinedError),
+
+        ({"a": False}, OverridesNotWellDefinedError),
+
+        ({"a": [True, False]}, OverridesNotWellDefinedError)
+    ])
+    @patch("samcli.commands.local.lib.local_lambda.os")
+    def test_must_not_work_with_invalid_override_values(self, env_vars_values, expected_exception, os_mock):
+        os_environ = {"some": "value"}
+        os_mock.environ = os_environ
+
+        function = Function(name="function_name",
+                            runtime="runtime",
+                            memory=1234,
+                            timeout=12,
+                            handler="handler",
+                            codeuri="codeuri",
+                            environment=self.environ,
+                            rolearn=None)
+
+        self.local_lambda.env_vars_values = env_vars_values
+
+        with self.assertRaises(expected_exception):
+            self.local_lambda._make_env_vars(function)
 
     @parameterized.expand([
         param({"a": "b"}),  # Does not have the "Variables" Key
