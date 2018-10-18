@@ -21,7 +21,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ## Requirements
 
-* AWS CLI already configured with at least PowerUser permission
+* AWS CLI already configured with Administrator permission
 * [Java SE Development Kit 8 installed](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 * [Docker installed](https://www.docker.com/community-edition)
 * [Maven](https://maven.apache.org/install.html)
