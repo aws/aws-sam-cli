@@ -142,9 +142,11 @@ class Config(object):
         project_config_path = ""
 
         if self._has_file(self.__user_config_file):
+            LOG.debug("Found User SAMRC")
             user_config_path = self.__user_config_file
 
         if self._has_file(self.__project_config_file):
+            LOG.debug("Found Project level SAMRC")
             project_config_path = self.__project_config_file
 
         return user_config_path, project_config_path
