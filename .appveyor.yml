@@ -1,0 +1,11 @@
+version: 1.0.{build}
+image: ubuntu
+stack: python 3.7.0
+build: off
+environment:
+  AWS_DEFAULT_REGION: us-east-1
+install:
+- pip install -e '.[dev]'
+test_script:
+- pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
+- pytest tests/integration
