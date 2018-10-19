@@ -82,11 +82,11 @@ class Config(object):
 
         user_config = self.__read_config(user_config)
         LOG.debug("Validating User SAMRC")
-        user_config = self.validate_config(user_config, self.schema)
+        self.validate_config(user_config, self.schema)
 
         project_config = self.__read_config(project_config)
         LOG.debug("Validating Project SAMRC")
-        project_config = self.validate_config(project_config, self.schema)
+        self.validate_config(project_config, self.schema)
 
         LOG.debug("User configuration loaded as")
         LOG.debug("%s", user_config)
@@ -108,11 +108,6 @@ class Config(object):
         schema : dict
             JSONSchema to validate against
 
-        Returns
-        -------
-        Dict
-            SAMRC configuration
-
         Raises
         -------
         jsonschema.exceptions.ValidationError
@@ -125,8 +120,6 @@ class Config(object):
 
         jsonschema.validate(config, schema)
         LOG.debug("SAMRC looks valid!")
-
-        return config
 
     def __find_config(self):
         """Looks up for user and project level config
