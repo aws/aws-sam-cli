@@ -127,6 +127,7 @@ class Config(object):
         Returns
         -------
         Tuple
+            (Path, Path)
             Tuple with both configs and whether they were found
 
         Example
@@ -137,17 +138,16 @@ class Config(object):
         self.__user_config_file = Path.home().joinpath('.samrc')
         self.__project_config_file = Path.cwd().joinpath('.samrc')
 
-        if self.__has_user_config() and self.__has_project_config():
-            self.config_file = (self.__user_config_file,
-                                self.__project_config_file)
-        elif self.__has_project_config():
-            self.config_file = None, self.__project_config_file
-        elif self.__has_user_config():
-            self.config_file = self.__user_config_file, None
-        else:
-            self.config_file = None, None
+        user_config_path = ""
+        project_config_path = ""
 
-        return self.config_file
+        if self._has_file(self.__user_config_file):
+            user_config_path = self.__user_config_file
+
+        if self._has_file(self.__project_config_file):
+            project_config_path = self.__project_config_file
+
+        return user_config_path, project_config_path
 
     def merge_config(self, user_config, project_config):
         """Merge project and user configuration into a single dictionary
@@ -190,25 +190,20 @@ class Config(object):
 
         return user_config
 
-    def __has_user_config(self):
-        """Confirm whether user configuration exists
+    def _has_file(self, file):
+        """Confirm whether file exists
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
 
         Returns
         -------
         Boolean
         """
 
-        return Path(self.__user_config_file).is_file()
-
-    def __has_project_config(self):
-        """Confirm whether project configuration exists
-
-        Returns
-        -------
-        Boolean
-        """
-
-        return Path(self.__project_config_file).is_file()
+        return Path(file).is_file()
 
     def __read_config(self, config):
         """Parse given YAML configuration
@@ -221,7 +216,7 @@ class Config(object):
         config = Path(config)
         config_template = None
 
-        if config.exists():
+        if config.is_file():
             config_template = yaml.safe_load(config.read_text())
 
         if not config_template:
