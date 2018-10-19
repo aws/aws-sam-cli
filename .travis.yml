@@ -1,6 +1,9 @@
 # Enable container based builds
-sudo: false
+sudo: required
 language: python
+
+services:
+  - docker
 
 python:
   - "2.7"
@@ -21,4 +24,4 @@ install:
 
 script:
   # Runs unit tests
-  - make pr
+  - make integ-test
