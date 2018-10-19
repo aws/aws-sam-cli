@@ -4,7 +4,7 @@ This is a sample template for {{ cookiecutter.project_name }}
 
 ## Requirements
 
-* AWS CLI already configured with at least PowerUser permission
+* AWS CLI already configured with Administrator permission
 * [Docker installed](https://www.docker.com/community-edition)
 * [SAM Local installed](https://github.com/awslabs/aws-sam-cli)
 * [DotNet Core installed](https://www.microsoft.com/net/download)
@@ -36,7 +36,7 @@ sam local start-api
 ```yaml
 ...
 Events:
-    {{cookiecutter.project_name}}:
+    HelloWorldFunction:
         Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
         Properties:
             Path: /hello
@@ -52,10 +52,10 @@ AWS Lambda C# runtime requires a flat folder with all dependencies including the
 
 ```yaml
 ...
-    FirstFunction:
+    HelloWorldFunction:
         Type: AWS::Serverless::Function
         Properties:
-            CodeUri: src/HelloWorld/bin/Debug/netcoreapp2.0/publish            
+            CodeUri: artifacts/HelloWorld.zip            
             ...
 ```
 

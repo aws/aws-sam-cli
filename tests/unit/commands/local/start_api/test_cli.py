@@ -9,6 +9,7 @@ from samcli.commands.local.start_api.cli import do_cli as start_api_cli
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 
 
 class TestCli(TestCase):
@@ -25,6 +26,7 @@ class TestCli(TestCase):
         self.skip_pull_image = True
         self.profile = "profile"
         self.region = "region"
+        self.parameter_overrides = {}
 
         self.host = "host"
         self.port = 123
@@ -54,7 +56,8 @@ class TestCli(TestCase):
                                                debug_port=self.debug_port,
                                                debug_args=self.debug_args,
                                                debugger_path=self.debugger_path,
-                                               aws_region=self.region)
+                                               aws_region=self.region,
+                                               parameter_overrides=self.parameter_overrides)
 
         local_api_service_mock.assert_called_with(lambda_invoke_context=context_mock,
                                                   port=self.port,
@@ -94,6 +97,17 @@ class TestCli(TestCase):
         expected = "bad template"
         self.assertEquals(msg, expected)
 
+    @patch("samcli.commands.local.start_api.cli.InvokeContext")
+    def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
+        invoke_context_mock.side_effect = OverridesNotWellDefinedError("bad env vars")
+
+        with self.assertRaises(UserException) as context:
+            self.call_cli()
+
+        msg = str(context.exception)
+        expected = "bad env vars"
+        self.assertEquals(msg, expected)
+
     def call_cli(self):
         start_api_cli(ctx=None,
                       host=self.host,
@@ -109,4 +123,5 @@ class TestCli(TestCase):
                       log_file=self.log_file,
                       skip_pull_image=self.skip_pull_image,
                       profile=self.profile,
-                      region=self.region)
+                      region=self.region,
+                      parameter_overrides=self.parameter_overrides)

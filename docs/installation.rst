@@ -18,7 +18,16 @@ environment variable to contact the docker daemon.
 -  **Windows**: `Docker
    For Windows (create an account & follow through to download from the Docker Store) <https://www.docker.com/docker-windows>`__
 -  **Linux**: Check your distro’s package manager (e.g. yum install docker)
-
+      *** for Centos 7.5 System requirements are::
+         yum install gcc zip py-pip py-setuptools ca-certificates groff  python-dev g++ make docker epel-release python-pip python-devel\
+                     python-tools
+          **run post install of above**
+          pip install --upgrade pip
+          pip install --upgrade setuptools
+          pip install --upgrade aws-sam-cli
+        *** if you want to use the lambda-local option(without running it as root) you will need to add your user to the docker group ***
+         usermod -a -G Docker yourUserName
+     
 **Note for macOS and Windows users**: SAM CLI requires that the project directory
 (or any parent directory) is listed in `Docker file sharing options <https://docs.docker.com/docker-for-mac/osxfs/>`__.
 
@@ -173,6 +182,31 @@ Install with PyEnv
     # Install the CLI
     $ pip install --user aws-sam-cli
 
+    # Verify your installation worked
+    $ sam –-version
+
+Updating SAM CLI on AWS Cloud9
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your AWS Cloud9 environment has a SAM CLI version < 0.3.0 installed there are a few extra steps you must do to upgrade to newer versions:
+
+.. code:: bash
+
+    # Uninstall the older version of SAM Local
+    $ npm uninstall -g aws-sam-local
+   
+    # Remove the symlink 
+    $ rm -rf $(which sam)
+   
+    # Install the CLI
+    $ pip install --user aws-sam-cli
+   
+    # Create new symlink
+    $ ln -sf $(which sam) ~/.c9/bin/sam
+    
+    # Reset the bash cache
+    $ hash -r
+   
     # Verify your installation worked
     $ sam –-version
 

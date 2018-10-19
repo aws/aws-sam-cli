@@ -11,6 +11,8 @@ from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+
 
 LOG = logging.getLogger(__name__)
 
@@ -59,16 +61,17 @@ def cli(ctx,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile, region
+        docker_network, log_file, skip_pull_image, profile, region, parameter_overrides
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, host, port, template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile, region)  # pragma: no cover
+           docker_network, log_file, skip_pull_image, profile, region, parameter_overrides)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region):
+           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
+           parameter_overrides):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -90,12 +93,13 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
                            debug_port=debug_port,
                            debug_args=debug_args,
                            debugger_path=debugger_path,
-                           aws_region=region) as invoke_context:
+                           aws_region=region,
+                           parameter_overrides=parameter_overrides) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context,
                                          port=port,
                                          host=host)
             service.start()
 
-    except InvalidSamDocumentException as ex:
+    except (InvalidSamDocumentException, OverridesNotWellDefinedError) as ex:
         raise UserException(str(ex))

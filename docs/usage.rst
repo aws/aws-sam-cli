@@ -14,7 +14,7 @@ Alternatively, you can find other sample SAM Templates by visiting `SAM <https:/
 -  `Invoke functions locally <#invoke-functions-locally>`__
 -  `Run automated tests for your Lambda functions locally <#run-automated-tests-for-your-lambda-functions-locally>`__
 -  `Generate sample event source
-   payloads <#generate-sample-event-source-payloads>`__
+   payloads <#generate-sample-event-payloads>`__
 -  `Run API Gateway locally <#run-api-gateway-locally>`__
 -  `Debugging Applications <#debugging-applications>`__
 
@@ -59,7 +59,7 @@ an event too.
 
 Run automated tests for your Lambda functions locally
 -----------------------------------------------------
-You can use the ``sam local invoke`` command to manually test your code 
+You can use the ``sam local invoke`` command to manually test your code
 by running Lambda function locally. With SAM CLI, you can easily
 author automated integration tests by
 first running tests against local Lambda functions before deploying to the
@@ -103,10 +103,10 @@ configurations):
 
    import boto3
    import botocore
-   
+
    # Set "running_locally" flag if you are running the integration test locally
    running_locally = True
-   
+
    if running_locally:
 
        # Create Lambda SDK client to connect to appropriate Lambda endpoint
@@ -123,13 +123,13 @@ configurations):
        )
    else:
        lambda_client = boto3.client('lambda')
-                                           
 
-   # Invoke your Lambda function as you normally usually do. The function will run 
+
+   # Invoke your Lambda function as you normally usually do. The function will run
    # locally if it is configured to do so
    response = lambda_client.invoke(FunctionName="HelloWorldFunction")
 
-   # Verify the response 
+   # Verify the response
    assert response == "Hello World"
 
 This code can run without modifications against a Lambda function which
@@ -156,31 +156,49 @@ wish to connect to.
    $ sam local start-api --docker-network b91847306671 -d 5858
 
 
-Generate sample event source payloads
--------------------------------------
+Generate sample event payloads
+------------------------------
 
 To make local development and testing of Lambda functions easier, you
-can generate mock/sample event payloads for the following services:
+can generate and customize event payloads for the following services:
 
--  S3
--  Kinesis Streams
--  DynamoDB
--  Cloudwatch Scheduled Event
--  API Gateway
--  SNS
+- Amazon Alexa
+- Amazon API Gateway
+- AWS Batch
+- AWS CloudFormation
+- Amazon CloudFront
+- AWS CodeCommit
+- AWS CodePipeline
+- Amazon Cognito
+- AWS Config
+- Amazon DynamoDB
+- Amazon Kinesis
+- Amazon Lex
+- Amazon Rekognition
+- Amazon S3
+- Amazon SES
+- Amazon SNS
+- Amazon SQS
+- AWS Step Functions
 
 **Syntax**
 
 .. code:: bash
 
-   $ sam local generate-event <service>
+  $ sam local generate-event <service> <event>
 
-Also, you can invoke an individual lambda function locally from a sample
-event payload - Here’s an example using S3:
+You can generate multiple types of events from each service. For example,
+to generate the event from S3 when a new object is created, use:
 
 .. code:: bash
 
-   $ sam local generate-event s3 --bucket <bucket> --key <key> | sam local invoke <function logical id>
+  $ sam local generate-event s3 put
+
+To generate the event from S3 when an object is deleted, you can use:
+
+.. code:: bash
+
+  $ sam local generate-event s3 delete
 
 For more options, see ``sam local generate-event --help``.
 
@@ -261,7 +279,7 @@ Both ``sam local invoke`` and ``sam local start-api`` support local
 debugging of your functions.
 
 To run SAM Local with debugging support enabled, just specify
-``--debug-port`` or ``-d`` on the command line.
+``--debug-port`` or ``-d`` on the command line. SAM CLI debug port option ``--debug-port`` or ``-d`` will map that port to the local Lambda container execution your IDE needs to connect to.
 
 .. code:: bash
 
@@ -270,6 +288,7 @@ To run SAM Local with debugging support enabled, just specify
 
    # Start local API Gateway in debug mode on port 5858
    $ sam local start-api -d 5858
+
 
 Note: If using ``sam local start-api``, the local API Gateway will
 expose all of your Lambda functions but, since you can specify a single
@@ -286,11 +305,12 @@ Visual Studio Code:
    SAM Local debugging example
 
 In order to setup Visual Studio Code for debugging with AWS SAM CLI, use
-the following launch configuration:
+the following launch configuration after setting directory where the template.yaml is present
+as workspace root in Visual Studio Code:
 
 .. code:: json
 
-   {
+  {
        "version": "0.2.0",
        "configurations": [
            {
@@ -299,41 +319,124 @@ the following launch configuration:
                "request": "attach",
                "address": "localhost",
                "port": 5858,
-               "localRoot": "${workspaceRoot}",
+               // From the sam init example, it would be "${workspaceRoot}/hello_world"
+               "localRoot": "${workspaceRoot}/{directory of node app}",
                "remoteRoot": "/var/task",
-               "protocol": "legacy"
+               "protocol": "inspector",
+               "stopOnEntry": false
            }
        ]
    }
+
+Note: localRoot is set based on what the CodeUri points at template.yaml,
+if there are nested directories within the CodeUri, that needs to be
+reflected in localRoot.
 
 Note: Node.js versions --below-- 7 (e.g. Node.js 4.3 and Node.js 6.10)
 use the ``legacy`` protocol, while Node.js versions including and above
 7 (e.g. Node.js 8.10) use the ``inspector`` protocol. Be sure to specify
 the corresponding protocol in the ``protocol`` entry of your launch
-configuration.
+configuration. This was tested with VS code version 1.26, 1.27 and 1.28
+for ``legacy`` and ``inspector`` protocol.
 
 Debugging Python functions
 --------------------------
 
-Unlike Node.JS and Java, Python requires you to enable remote debugging
-in your Lambda function code. If you enable debugging with
-``--debug-port`` or ``-d`` for a function that uses one of the Python
-runtimes, SAM CLI will just map through that port from your host machine
-through to the Lambda runtime container. You will need to enable remote
-debugging in your function code. To do this, use a python package such
-as `remote-pdb <https://pypi.python.org/pypi/remote-pdb>`__. When
-configuring the host the debugger listens on in your code, make sure to
-use ``0.0.0.0`` not ``127.0.0.1`` to allow Docker to map through the
-port to your host machine.
+Python debugging requires you to enable remote debugging in your Lambda function code, therefore it's a 2-step process:
 
-   Please note, due to a `open
-   bug <https://github.com/Microsoft/vscode-python/issues/71>`__ with
-   Visual Studio Code, you may get a
-   ``Debug adapter process has terminated unexpectedly`` error when
-   attempting to debug Python applications with this IDE. Please track
-   the `GitHub
-   issue <https://github.com/Microsoft/vscode-python/issues/71>`__ for
-   updates.
+1. Install `ptvsd <https://pypi.org/project/ptvsd/>`__ library and enable within your code
+2. Configure your IDE to connect to the debugger you configured for your function
+
+As this may be your first time using SAM CLI, let's start with a boilerplate Python app and install both app's dependencies and ptvsd:
+
+.. code:: bash
+
+    sam init --runtime python3.6 --name python-debugging
+    cd python-debugging/
+    
+    # Install dependencies of our boilerplate app
+    pip install -r requirements.txt -t hello_world/build/
+    
+    # Install ptvsd library for step through debugging
+    pip install ptvsd -t hello_world/build/
+    
+    cp hello_world/app.py hello_world/build/
+
+Ptvsd configuration
+^^^^^^^^^^^^^^^^^^^
+
+As we installed ptvsd library in the previous step, we need to enable ptvsd within our code, therefore open up ``hello_world/build/app.py`` and add the following ptvsd specifics.
+
+.. code:: python
+
+  import ptvsd
+  
+  # Enable ptvsd on 0.0.0.0 address and on port 5890 that we'll connect later with our IDE
+  ptvsd.enable_attach(address=('0.0.0.0', 5890), redirect_output=True)
+  ptvsd.wait_for_attach()
+
+**0.0.0.0** instead of **localhost** for listening across all network interfaces and **5890** is the debugging port of your preference.
+
+Visual Studio Code
+^^^^^^^^^^^^^^^^^^
+
+Now that we have both dependencies and ptvsd enabled within our code we configure Visual Studio Code (VS Code) Debugging - Assuming you're still in the application folder and have code command in your path, let's open up VS Code:
+
+.. code:: bash
+
+    code .
+
+``NOTE``: If you don't have code in your Path, please open up a new instance of VS Code from ``python-debugging/`` folder we created earlier.
+
+In order to setup VS Code for debugging with AWS SAM CLI, use
+the following launch configuration:
+
+.. code:: json
+
+   {
+       "version": "0.2.0",
+       "configurations": [
+           {
+              "name": "SAM CLI Python Hello World",
+              "type": "python",
+              "request": "attach",
+              "port": 5890,
+              "host": "localhost",
+              "pathMappings": [
+                  {
+                      "localRoot": "${workspaceFolder}/hello_world/build",
+                      "remoteRoot": "/var/task"
+                  }
+              ]
+          }
+      ]
+    }
+
+For VS Code, the property **localRoot** under **pathMappings** key is really important and there are 2 aspects you should know as to why this is setup this way:
+
+1. **localRoot**: This path will be mounted in the Docker Container and needs to have both application and dependencies at the root level
+2. **workspaceFolder**: This path is the absolute path where VS Code instance was opened
+
+If you opened VS Code in a different location other than ``python-debugging/`` you need to replace it with the absolute path where ``python-debugging/`` is.
+
+Once complete with VS Code Debugger configuration, make sure to add a breakpoint anywhere you like in ``hello_world/build/app.py`` and then proceed as follows:
+
+1. Run SAM CLI to invoke your function
+2. Hit the URL to invoke the function and initialize ptvsd code execution
+3. Start the debugger within VS Code
+
+.. code:: bash
+
+  # Remember to hit the URL before starting the debugger in VS Code
+
+  sam local start-api -d 5890
+
+  # OR 
+
+  # Change HelloWorldFunction to reflect the logical name found in template.yaml
+
+  sam local generate-event apigateway aws-proxy | sam local invoke HelloWorldFunction -d 5890
+
 
 Debugging Golang functions
 --------------------------
@@ -345,21 +448,21 @@ is run in headless mode, listening on the debug port.
 
 When debugging, you must compile your function in debug mode:
 
-`GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o <output path> <path to code directory>
+``GOARCH=amd64 GOOS=linux go build -gcflags='-N -l' -o <output path> <path to code directory>``
 
 You must compile `delve` to run in the container and provide its local path
 via the `--debugger-path` argument. Build delve locally as follows:
 
-`GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv`
+``GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv``
 
 NOTE: The output path needs to end in `/dlv`. The docker container will expect the dlv binary to be in the <delve folder path>
 and will cause mounting issue otherwise.
 
 Then invoke `sam` similar to the following:
 
-`sam local start-api -d 5986 --debugger-path <delve folder path>`
+``sam local start-api -d 5986 --debugger-path <delve folder path>``
 
-NOTE: The `--debugger-path` is the path to the directory that contains the `dlv` binary compiled from the above.
+NOTE: The ``--debugger-path`` is the path to the directory that contains the `dlv` binary compiled from the above.
 
 The following is an example launch configuration for Visual Studio Code to
 attach to a debug session.
@@ -415,16 +518,16 @@ just the ones you deploy using SAM.
 
 Fetch, tail, and filter Lambda function logs
 --------------------------------------------
-To simplify troubleshooting, SAM CLI has a command called ``sam logs``. 
+To simplify troubleshooting, SAM CLI has a command called ``sam logs``.
 ``sam logs`` lets you fetch logs generated by your Lambda
 function from the command line. In addition to printing the logs on the
 terminal, this command has several nifty features to help you quickly
-find the bug. 
+find the bug.
 
 Note: This command works for all AWS Lambda functions; not
 just the ones you deploy using SAM.
 
-**Basic Usage: Using CloudFormation Stack** 
+**Basic Usage: Using CloudFormation Stack**
 
 When your function is a part
 of a CloudFormation stack, you can fetch logs using the function's
@@ -434,7 +537,7 @@ LogicalID:
 
    sam logs -n HelloWorldFunction --stack-name mystack
 
-**Basic Usage: Using Lambda Function name** 
+**Basic Usage: Using Lambda Function name**
 
 Or, you can fetch logs using the function's name
 
@@ -442,7 +545,7 @@ Or, you can fetch logs using the function's name
 
    sam logs -n mystack-HelloWorldFunction-1FJ8PD
 
-**Tail Logs** 
+**Tail Logs**
 
 Add ``--tail`` option to wait for new logs and see them as
 they arrive. This is very handy during deployment or when
@@ -452,14 +555,14 @@ troubleshooting a production issue.
 
    sam logs -n HelloWorldFunction --stack-name mystack --tail
 
-**View logs for specific time range** 
+**View logs for specific time range**
 You can view logs for specific time range using the ``-s`` and ``-e`` options
 
 .. code:: bash
 
    sam logs -n HelloWorldFunction --stack-name mystack -s '10min ago' -e '2min ago'
 
-**Filter Logs** 
+**Filter Logs**
 
 Use the ``--filter`` option to quickly find logs that
 match terms, phrases or values in your log events
@@ -472,7 +575,7 @@ In the output, SAM CLI will underline all occurrences of the word
 “error” so you can easily locate the filter keyword within the log
 output.
 
-**Error Highlighting** 
+**Error Highlighting**
 
 When your Lambda function crashes or times out,
 SAM CLI will highlight the timeout message in red. This will help you
@@ -483,7 +586,7 @@ stream of log output.
    :alt: SAM CLI Logs Error Highlighting
 
 
-**JSON pretty printing** 
+**JSON pretty printing**
 
 If your log messages print JSON strings, SAM
 CLI will automatically pretty print the JSON to help you visually parse
@@ -543,11 +646,10 @@ Example:
    $ sam deploy --template-file ./packaged.yaml --stack-name mystack --capabilities CAPABILITY_IAM
 
 Learn More
-==========
+----------
 
 -  `Project Overview <../README.rst>`__
 -  `Installation <installation.rst>`__
 -  `Getting started with SAM and the SAM CLI <getting_started.rst>`__
 -  `Packaging and deploying your application <deploying_serverless_applications.rst>`__
 -  `Advanced <advanced_usage.rst>`__
-

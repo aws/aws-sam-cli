@@ -14,7 +14,7 @@ Environment Setup
 
 1. Install Python Versions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-We support both Python 2.7 and 3.6 versions.
+We support Python 2.7, 3.6 and 3.7 versions.
 Follow the idioms from this `excellent cheatsheet`_ to make sure your code is compatible with both Python versions.
 Our CI/CD pipeline is setup to run unit tests against both Python versions. So make sure you test it with both
 versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup multiple Python versions.
@@ -24,7 +24,8 @@ versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup
 #. Install PyEnv - ``curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash``
 #. ``pyenv install 2.7.14``
 #. ``pyenv install 3.6.4``
-#. Make both Python versions available in the project: ``pyenv local 3.6.4 2.7.14``
+#. ``pyenv install 3.7.0``
+#. Make Python versions available in the project: ``pyenv local 3.6.4 2.7.14 3.7.0``
 
 
 2. Activate Virtualenv
@@ -32,8 +33,10 @@ versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup
 Virtualenv allows you to install required libraries outside of the Python installation. A good practice is to setup
 a different virtualenv for each project. `pyenv`_ comes with a handy plugin that can create virtualenv.
 
-#. Create new virtualenv if it does not exist: ``pyenv virtualenv 2.7.14 samcli27`` and ``pyenv virtualenv 3.6.4 samcli36``
-#. ``pyenv activate samcli27`` for Python2.7 or ``pyenv activate samcli36`` for Python3.6
+Depending on the python version, the following commands would change to be the appropriate python version.
+
+#. ``pyenv virtualenv 3.7.0 samcli37``
+#. ``pyenv activate samcli37`` for Python3.7
 
 
 3. Install dev version of SAM CLI
@@ -42,7 +45,7 @@ We will install a development version of SAM CLI from source into the virtualenv
 make changes. We will install in a command called ``samdev`` to keep it separate from a global SAM CLI installation,
 if any.
 
-#. Activate Virtualenv: ``pyenv activate samcli27`` or ``pyenv activate samcli36``
+#. Activate Virtualenv: ``pyenv activate samcli37``
 #. Install dev CLI: ``make init``
 #. Make sure installation succeeded: ``which samdev``
 

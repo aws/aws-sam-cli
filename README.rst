@@ -45,7 +45,7 @@ Get Started
 
 Learn how to get started using the SAM CLI with these guides:
 
--  `Installation <docs/installation.rst>`__: Set up your MacOs, Linux or Windows Machine to run serverless projects with SAM CLI.
+-  `Installation <docs/installation.rst>`__: Set up your macOS, Linux or Windows Machine to run serverless projects with SAM CLI.
 -  `Introduction to SAM and SAM CLI <docs/getting_started.rst>`__ What is SAM and SAM CLI, and how can you use it to make a simple hello-world app.
 -  `Running and debugging serverless applications locally <docs/usage.rst>`__: Describes how to use SAM CLI for invoking Lambda functions locally, running automated tests, fetching logs, and debugging applications
 -  `Packaging and deploying your application <docs/deploying_serverless_applications.rst>`__: Deploy your local application using an S3 bucket, and AWS CloudFormation.

@@ -19,8 +19,12 @@ def sleep_handler(event, context):
     return "Slept for 10s"
 
 
-def env_var_echo_hanler(event, context):
+def custom_env_var_echo_hanler(event, context):
     return os.environ.get("CustomEnvVar")
+
+
+def env_var_echo_hanler(event, context):
+    return dict(os.environ)
 
 
 def write_to_stderr(event, context):

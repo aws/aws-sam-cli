@@ -51,8 +51,6 @@ def cli(ctx, location, runtime, output_dir, name, no_input):
         $ sam init --location git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git
         \b
         $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name
-        \b
-        $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name
 
         \b
         Initializes a new SAM project using custom template in a Zipfile

@@ -102,7 +102,7 @@ class TestContainer_create(TestCase):
 
     def test_must_create_container_including_all_optional_values(self):
         """
-        Create a container with only required values. Optional values are not provided
+        Create a container with required and optional values.
         :return:
         """
 
@@ -140,6 +140,71 @@ class TestContainer_create(TestCase):
                                                                      command=self.cmd,
                                                                      working_dir=self.working_dir,
                                                                      volumes=expected_volumes,
+                                                                     tty=False,
+                                                                     environment=self.env_vars,
+                                                                     ports=self.exposed_ports,
+                                                                     entrypoint=self.entrypoint,
+                                                                     mem_limit=expected_memory,
+                                                                     container='opts'
+                                                                     )
+        self.mock_docker_client.networks.get.assert_not_called()
+
+    @patch("samcli.local.docker.utils.os")
+    def test_must_create_container_translate_volume_path(self, os_mock):
+        """
+        Create a container with required and optional values, with windows style volume mount.
+        :return:
+        """
+
+        os_mock.name = "nt"
+        host_dir = "C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1337"
+        additional_volumes = {
+            "C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1338": {
+                "blah": "blah value"
+            }
+        }
+
+        translated_volumes = {
+            "/c/Users/Username/AppData/Local/Temp/tmp1337": {
+                "bind": self.working_dir,
+                "mode": "ro"
+            }
+        }
+
+        translated_additional_volumes = {
+            "/c/Users/Username/AppData/Local/Temp/tmp1338": {
+                "blah": "blah value"
+            }
+        }
+
+        translated_volumes.update(translated_additional_volumes)
+        expected_memory = "{}m".format(self.memory_mb)
+
+        generated_id = "fooobar"
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = generated_id
+
+        container = Container(self.image,
+                              self.cmd,
+                              self.working_dir,
+                              host_dir,
+                              memory_limit_mb=self.memory_mb,
+                              exposed_ports=self.exposed_ports,
+                              entrypoint=self.entrypoint,
+                              env_vars=self.env_vars,
+                              docker_client=self.mock_docker_client,
+                              container_opts=self.container_opts,
+                              additional_volumes=additional_volumes
+                              )
+
+        container_id = container.create()
+        self.assertEquals(container_id, generated_id)
+        self.assertEquals(container.id, generated_id)
+
+        self.mock_docker_client.containers.create.assert_called_with(self.image,
+                                                                     command=self.cmd,
+                                                                     working_dir=self.working_dir,
+                                                                     volumes=translated_volumes,
                                                                      tty=False,
                                                                      environment=self.env_vars,
                                                                      ports=self.exposed_ports,

@@ -56,7 +56,8 @@ class InvokeContext(object):
                  debug_port=None,
                  debug_args=None,
                  debugger_path=None,
-                 aws_region=None):
+                 aws_region=None,
+                 parameter_overrides=None):
         """
         Initialize the context
 
@@ -85,6 +86,13 @@ class InvokeContext(object):
             Additional arguments passed to the debugger
         debugger_path str
             Path to the directory of the debugger to mount on Docker
+        aws_profile str
+            AWS Credential profile to use
+        aws_region str
+            AWS region to use
+        parameter_overrides dict
+            Values for the template parameters
+
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -98,6 +106,7 @@ class InvokeContext(object):
         self._debug_port = debug_port
         self._debug_args = debug_args
         self._debugger_path = debugger_path
+        self._parameter_overrides = parameter_overrides or {}
 
         self._template_dict = None
         self._function_provider = None
@@ -114,7 +123,7 @@ class InvokeContext(object):
 
         # Grab template from file and create a provider
         self._template_dict = self._get_template_data(self._template_file)
-        self._function_provider = SamFunctionProvider(self._template_dict)
+        self._function_provider = SamFunctionProvider(self._template_dict, self.parameter_overrides)
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
@@ -247,6 +256,14 @@ class InvokeContext(object):
             cwd = self._docker_volume_basedir
 
         return cwd
+
+    @property
+    def parameter_overrides(self):
+        # Override certain CloudFormation pseudo-parameters based on values provided by customer
+        if self._aws_region:
+            self._parameter_overrides["AWS::Region"] = self._aws_region
+
+        return self._parameter_overrides
 
     @staticmethod
     def _get_template_data(template_file):

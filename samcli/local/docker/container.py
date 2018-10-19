@@ -6,6 +6,7 @@ import logging
 import docker
 
 from samcli.local.docker.attach_api import attach
+from .utils import to_posix_path
 
 LOG = logging.getLogger(__name__)
 
@@ -103,6 +104,9 @@ class Container(object):
 
         if self._additional_volumes:
             kwargs["volumes"].update(self._additional_volumes)
+
+        # Make sure all mounts are of posix path style.
+        kwargs["volumes"] = {to_posix_path(host_dir): mount for host_dir, mount in kwargs["volumes"].items()}
 
         if self._env_vars:
             kwargs["environment"] = self._env_vars

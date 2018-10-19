@@ -7,7 +7,7 @@ import json
 import base64
 from requests.utils import quote
 
-import pystache
+from chevron import renderer
 
 
 class Events(object):
@@ -126,5 +126,4 @@ class Events(object):
         data = json.dumps(data, indent=2)
 
         # return the substituted file
-        renderer = pystache.Renderer()
         return renderer.render(data, values_to_sub)

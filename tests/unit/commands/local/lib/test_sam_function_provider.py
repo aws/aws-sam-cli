@@ -67,7 +67,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
     EXPECTED_FUNCTIONS = ["SamFunc1", "SamFunc2", "SamFunc3", "LambdaFunc1"]
 
     def setUp(self):
-        self.provider = SamFunctionProvider(self.TEMPLATE)
+        self.parameter_overrides = {}
+        self.provider = SamFunctionProvider(self.TEMPLATE, parameter_overrides=self.parameter_overrides)
 
     @parameterized.expand([
         ("SamFunc1", Function(
@@ -126,6 +127,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
 
 class TestSamFunctionProvider_init(TestCase):
 
+    def setUp(self):
+        self.parameter_overrides = {}
+
     @patch.object(SamFunctionProvider, "_extract_functions")
     @patch("samcli.commands.local.lib.sam_function_provider.SamBaseProvider")
     def test_must_extract_functions(self, SamBaseProviderMock, extract_mock):
@@ -134,10 +138,10 @@ class TestSamFunctionProvider_init(TestCase):
 
         template = {"Resources": {"a": "b"}}
         SamBaseProviderMock.get_template.return_value = template
-        provider = SamFunctionProvider(template)
+        provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
         extract_mock.assert_called_with({"a": "b"})
-        SamBaseProviderMock.get_template.assert_called_with(template)
+        SamBaseProviderMock.get_template.assert_called_with(template, self.parameter_overrides)
         self.assertEquals(provider.functions, extract_result)
 
     @patch.object(SamFunctionProvider, "_extract_functions")
@@ -148,7 +152,7 @@ class TestSamFunctionProvider_init(TestCase):
 
         template = {"a": "b"}  # Template does *not* have 'Resources' key
         SamBaseProviderMock.get_template.return_value = template
-        provider = SamFunctionProvider(template)
+        provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
         extract_mock.assert_called_with({})  # Empty Resources value must be passed
         self.assertEquals(provider.functions, extract_result)
