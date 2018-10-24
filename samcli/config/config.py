@@ -75,13 +75,13 @@ class Config(object):
         """
 
         LOG.debug("Looking for SAMRC before attempting to load")
-        user_config, project_config = self.__find_config()
+        user_config, project_config = self._find_config()
 
-        user_config = self.__read_config(user_config)
+        user_config = self._read_config(user_config)
         LOG.debug("Validating User SAMRC")
         self.validate_config(user_config, self.schema)
 
-        project_config = self.__read_config(project_config)
+        project_config = self._read_config(project_config)
         LOG.debug("Validating Project SAMRC")
         self.validate_config(project_config, self.schema)
 
@@ -118,7 +118,7 @@ class Config(object):
         jsonschema.validate(config, schema)
         LOG.debug("SAMRC looks valid!")
 
-    def __find_config(self):
+    def _find_config(self):
         """Looks up for user and project level config
 
         Returns
@@ -129,7 +129,7 @@ class Config(object):
 
         Example
         -------
-            > user_config, project_config = self.__find_config()
+            > user_config, project_config = self._find_config()
         """
 
         self.__user_config_file = Path.home().joinpath('.samrc')
@@ -204,7 +204,7 @@ class Config(object):
 
         return Path(file).is_file()
 
-    def __read_config(self, config):
+    def _read_config(self, config):
         """Parse given YAML configuration
 
         Returns
@@ -216,6 +216,7 @@ class Config(object):
         config_template = None
 
         if config.is_file():
+            LOG.debug("Parsing SAMRC")
             config_template = yaml.safe_load(config.read_text())
 
         if not config_template:
