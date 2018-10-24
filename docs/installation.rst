@@ -26,7 +26,7 @@ environment variable to contact the docker daemon.
           pip install --upgrade setuptools
           pip install --upgrade aws-sam-cli
         *** if you want to use the lambda-local option(without running it as root) you will need to add your user to the docker group ***
-         usermod -a -G Docker yourUserName
+         usermod -a -G docker yourUserName
      
 **Note for macOS and Windows users**: SAM CLI requires that the project directory
 (or any parent directory) is listed in `Docker file sharing options <https://docs.docker.com/docker-for-mac/osxfs/>`__.
