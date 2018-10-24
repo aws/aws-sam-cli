@@ -47,22 +47,19 @@ class Config(object):
         User configuration file path (.samrc).
     __project_config_file : Path
         Project configuration file path (current dir/.samrc).
-    config_file : dict
-        Path to configuration file chosen.
     config: dict
         SAMRC configuration
-    schema: dict
-        JSONSchema for Configuration validation
     default_schema_file: Path
         Path to default SAMRC JSONSchema file
     default_schema: Dict
         Default JSONSchema for SAMRC validation
+    schema: dict
+        JSONSchema for Configuration validation
     """
 
     def __init__(self, schema=None):
         self.__user_config_file = None
         self.__project_config_file = None
-        self.config_file = None
         self.config = None
         self.default_schema_file = Path(__file__).parent.joinpath('schema.json')
         self.default_schema = json.load(Path.open(self.default_schema_file))
