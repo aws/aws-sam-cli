@@ -49,6 +49,32 @@ if any.
 #. Install dev CLI: ``make init``
 #. Make sure installation succeeded: ``which samdev``
 
+4. (Optional) Install development version of SAM Transformer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you want to run the latest version of [SAM Transformer](https://github.com/awslabs/serverless-application-model/), you can clone it locally and install it in your pyenv. This is useful if you want to validate your templates against any new, unreleased SAM features ahead of time.
+
+This step is optional and will use the specified version of aws-sam-transformer from PyPi by default.
+
+```bash
+# cd into the directory where you usually place projects and clone the latest SAM Transformer
+cd ~/projects
+git clone https://github.com/awslabs/serverless-application-model/
+
+# cd into the new directory and checkout the relevant branch
+cd serverless-application-model
+git checkout develop
+
+# Install the SAM Transformer in editable mode so that all changes you make to
+# the SAM Transformer locally are immediately picked up for SAM CLI.
+pip install -e .
+
+# Move back to your SAM CLI directory and re-run init
+# If necessary: open requirements/base.txt and replace the version number of aws-sam-translator with the
+# version number specified in your local version of serverless-application-model/samtranslator/__init__.py
+cd ../aws-sam-cli
+make init
+```
 
 Running Tests
 -------------
