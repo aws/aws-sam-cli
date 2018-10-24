@@ -44,7 +44,7 @@ class LambdaContainer(Container):
     _DEFAULT_CONTAINER_DBG_GO_PATH = _DEBUGGER_VOLUME_MOUNT_PATH + "/dlv"
 
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
-    _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
+    _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro,Z"}
 
     def __init__(self,
                  runtime,

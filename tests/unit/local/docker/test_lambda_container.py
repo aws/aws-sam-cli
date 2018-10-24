@@ -194,7 +194,7 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
         self.assertIsNone(result)
 
     def test_additional_volumes_returns_volume_with_debugger_path_is_set(self):
-        expected = {'/somepath': {"bind": "/tmp/lambci_debug_files", "mode": "ro"}}
+        expected = {'/somepath': {"bind": "/tmp/lambci_debug_files", "mode": "ro,Z"}}
 
         debug_options = DebugContext(debug_port=1234, debugger_path='/somepath')
 
