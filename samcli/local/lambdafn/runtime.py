@@ -108,6 +108,12 @@ class LambdaRuntime(object):
                     timer.cancel()
                 self._container_manager.stop(container)
 
+                # Flush stdout and stderr streams so that logs from the invocation are written out
+                if stdout:
+                    stdout.flush()
+                if stderr:
+                    stderr.flush()
+
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
         """
         When a Lambda function is executing, we setup certain interrupt handlers to stop the execution.

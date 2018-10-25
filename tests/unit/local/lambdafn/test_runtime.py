@@ -34,8 +34,8 @@ class LambdaRuntime_invoke(TestCase):
     def test_must_run_container_and_wait_for_logs(self, LambdaContainerMock):
         event = "event"
         code_dir = "some code dir"
-        stdout = "stdout"
-        stderr = "stderr"
+        stdout = Mock()
+        stderr = Mock()
         container = Mock()
         timer = Mock()
         debug_options = Mock()
@@ -81,12 +81,16 @@ class LambdaRuntime_invoke(TestCase):
         timer.cancel.assert_called_with()
         self.manager_mock.stop.assert_called_with(container)
 
+        # Flush streams
+        stdout.flush.assert_called()
+        stderr.flush.assert_called()
+
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_exception_from_run_must_trigger_cleanup(self, LambdaContainerMock):
         event = "event"
         code_dir = "some code dir"
-        stdout = "stdout"
-        stderr = "stderr"
+        stdout = Mock()
+        stderr = Mock()
         container = Mock()
         timer = Mock()
 
@@ -119,13 +123,16 @@ class LambdaRuntime_invoke(TestCase):
         timer.cancel.assert_not_called()
         # In any case, stop the container
         self.manager_mock.stop.assert_called_with(container)
+        # Flush streams
+        stdout.flush.assert_called()
+        stderr.flush.assert_called()
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_exception_from_wait_for_logs_must_trigger_cleanup(self, LambdaContainerMock):
         event = "event"
         code_dir = "some code dir"
-        stdout = "stdout"
-        stderr = "stderr"
+        stdout = Mock()
+        stderr = Mock()
         container = Mock()
         timer = Mock()
         debug_options = Mock()
@@ -159,13 +166,16 @@ class LambdaRuntime_invoke(TestCase):
         timer.cancel.assert_called_with()
         # In any case, stop the container
         self.manager_mock.stop.assert_called_with(container)
+        # Flush streams
+        stdout.flush.assert_called()
+        stderr.flush.assert_called()
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_keyboard_interrupt_must_not_raise(self, LambdaContainerMock):
         event = "event"
         code_dir = "some code dir"
-        stdout = "stdout"
-        stderr = "stderr"
+        stdout = Mock()
+        stderr = Mock()
         container = Mock()
 
         self.runtime = LambdaRuntime(self.manager_mock)
@@ -191,6 +201,9 @@ class LambdaRuntime_invoke(TestCase):
 
         # Finally block must be called
         self.manager_mock.stop.assert_called_with(container)
+        # Flush streams
+        stdout.flush.assert_called()
+        stderr.flush.assert_called()
 
 
 class TestLambdaRuntime_configure_interrupt(TestCase):
