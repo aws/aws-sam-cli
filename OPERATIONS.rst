@@ -4,10 +4,10 @@ PROJECT OPERATIONS
 
 What is AWS SAM CLI
 -------------------
-``sam`` is the AWS CLI tool for managing Serverless applications written with AWS Serverless Application Model (SAM). 
-SAM CLI can be used to test functions locally, start a local API Gateway from a SAM template, validate a SAM 
-template, fetch logs, generate sample payloads for various event sources, and generate a SAM project in your 
-favorite Lambda Runtime.
+``sam`` is the AWS CLI tool for managing Serverless applications. SAM CLI supports you through your entire 
+workflow of developing a serverless app. It allows you to quickly getting started, develop, test, and debug 
+your application locally, build, package, deploy to the cloud, and monitor and troubleshoot a deployed 
+application. It supports applications defined using AWS Serverless Application Model (SAM). 
 
 Contributors
 ------------
