@@ -9,36 +9,42 @@ workflow of developing a serverless app. It allows you to quickly getting starte
 your application locally, build, package, deploy to the cloud, and monitor and troubleshoot a deployed 
 application. It supports applications defined using AWS Serverless Application Model (SAM). 
 
+
+Core Team
+---------
+SAM CLI project is still small enough that we don't have a official team structure or governance. Therefore "Core Team" simply consists of developers who have commit access to the this Github Repository. They know most about the source code and work on it every day. 
+
+
 Contributors
 ------------
-
-
+We are actively looking for contributors to join the project. You could help us fix bugs, write features, improve documentation or even do Marketing/PR activities. Read the DEVELOPMENT_GUIDE.rst file for information on how to get started. 
 
 
 Communication
 =============
 
-* All communications about AWS SAM CLI Development go on slack channel #samdev
-
 
 Slack
 -----
+All communications about AWS SAM CLI Development go on slack channel #samdev. `Join the SAM developers channel (#samdev) on Slack <https://awssamopensource.splashthat.com/>`__ to collaborate with us.
 
 Meetings
 --------
 
 Structure
+~~~~~~~~~
+Every week the core team (a fixed time slot every week) engages in a slack meeting that discusses the following
 
-* Every week the sam cli team (a fixed time slot every week) engages in a slack meeting that discusses the following
-    * What features are currently being worked on? What is the progress?
-    * How are we tracking against next release?
-    * Discuss action items from previous meetings
-    * Capture minutes of the current meeting and store in the repo.
+* What features are currently being worked on? What is the progress?
+* How are we tracking against next release?
+* Discuss action items from previous meetings
+* Capture minutes of the current meeting and store in the repo.
 
 Logistics
+~~~~~~~~~
 
-* A sam slack bot starts and stops the meeting in another slack channel #sammeeting and puts out a message on #samdev that a meeting is currently taking place.
-* A different member of the sam cli core orchestrates the meeting every week on a rotation basis.
+* A Slack bot starts and stops the meeting in another slack channel #sammeeting and puts out a message on #samdev that a meeting is currently taking place.
+* A different member of the core team orchestrates the meeting every week on a rotation basis.
 
 Process
 =======
