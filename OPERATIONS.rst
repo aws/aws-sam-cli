@@ -14,8 +14,12 @@ Contributors
 
 
 
+
 Communication
 =============
+
+* All communications about AWS SAM CLI Development go on slack channel #samdev
+
 
 Slack
 -----
@@ -23,7 +27,18 @@ Slack
 Meetings
 --------
 
+Structure
 
+* Every week the sam cli team (a fixed time slot every week) engages in a slack meeting that discusses the following
+    * What features are currently being worked on? What is the progress?
+    * How are we tracking against next release?
+    * Discuss action items from previous meetings
+    * Capture minutes of the current meeting and store in the repo.
+
+Logistics
+
+* A sam slack bot starts and stops the meeting in another slack channel #sammeeting and puts out a message on #samdev that a meeting is currently taking place.
+* A different member of the sam cli core orchestrates the meeting every week on a rotation basis.
 
 Process
 =======
@@ -50,3 +65,11 @@ Releases
 
 Development
 ===========
+
+Design Docs
+------------
+
+* All design docs for major features are setup as pull requests that follow below spec:
+    * Breakdown of design tasks into separately tagged github isssues that are then referenced in the design doc directly.
+    * These issues should be in an ordered checklist, that can be ticked off as when a pull request addressing a particular github issue in the design doc is merged.
+    * Issues should be granular enough in isolation to be picked up and worked on in parallel.
