@@ -6,12 +6,6 @@ from samcli.config import config
 
 class TestInit(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.samrc_patch = patch.object(config, 'samrc')
-        cls.path_patch = patch.object(config, 'Path')
-        cls.json_patch = patch.object(config.json, 'load')
-
     def setUp(self):
         self.config = None
         self.valid_samrc_user_level = {
@@ -32,87 +26,38 @@ class TestInit(TestCase):
             }
         }
 
-    @patch.object(config.Config, '_Config__find_config', return_value=('/home/user/.samrc', None))
-    @patch.object(config.Config, '_Config__read_config')
-    def test_load_user_config_only(self, read_config_patch, find_config_patch):
-        self.config = config.Config()
+    @patch('samcli.config.config.Config.merge_config')
+    @patch('samcli.config.config.Config.validate_config')
+    @patch('samcli.config.config.Config._read_config')
+    @patch('samcli.config.config.Config._find_config')
+    def test_load_config(self, find_config_patch, read_config_patch, validate_patch, merge_config_patch):
+        find_config_patch.return_value = ('/home/user/.samrc', '')
+        merge_config_patch.return_value = self.valid_samrc_user_level
 
-        self.config.load()
-
-        find_config_patch.assert_called_once()
-        read_config_patch.assert_called_with('/home/user/.samrc')
-
-    @patch.object(config.Config, '_Config__find_config', return_value=(None, '.samrc'))
-    @patch.object(config.Config, '_Config__read_config')
-    def test_load_project_config_only(self, read_config_patch, find_config_patch):
-        self.config = config.Config()
-
-        self.config.load()
-
-        find_config_patch.assert_called_once()
-        read_config_patch.assert_called_with('.samrc')
-
-    @patch.object(config.Config, '_Config__find_config', return_value=('/home/user/.samrc', '.samrc'))
-    @patch.object(config.Config, '_Config__read_config')
-    def test_load_both_configs(self, read_config_patch, find_config_patch):
-        self.config = config.Config()
-
-        self.config.load()
+        self.config = config.Config().load()
 
         find_config_patch.assert_called_once()
         self.assertEqual(read_config_patch.call_count, 2)
+        self.assertEqual(validate_patch.call_count, 2)
 
-    @patch.object(config.Config, '_Config__has_user_config', return_value=True)
-    @patch.object(config.Config, '_Config__has_project_config', return_value=False)
-    @patch.object(config.Config, '_Config__read_config')
-    def test_find_user_config(self, read_config_patch, has_project_patch, has_user_patch):
-        self.config = config.Config()
+        merge_config_patch.assert_called_once()
 
-        self.config.load()
+        self.assertEqual(self.config, self.valid_samrc_user_level)
 
-        self.assertEqual(has_project_patch.call_count, 2)
-        self.assertEqual(has_user_patch.call_count, 2)
+    @patch('samcli.config.config.json.load')
+    @patch('samcli.config.config.Path')
+    @patch('samcli.config.config.yaml.safe_load')
+    @patch('samcli.config.config.Config._has_file')
+    @patch('samcli.config.config.Config.validate_config')
+    def test_merge_configs(self, validate_config_patch, has_file_patch, yaml_safe_load_patch, path_patch, json_patch):
+        has_file_patch.return_value = True
+        yaml_safe_load_patch.side_effect = [self.valid_samrc_user_level, self.valid_samrc_project_level]
 
-    @patch.object(config.Config, '_Config__has_user_config', return_value=False)
-    @patch.object(config.Config, '_Config__has_project_config', return_value=True)
-    @patch.object(config.Config, '_Config__read_config')
-    def test_find_project_config(self, read_config_patch, has_project_patch, has_user_patch):
-        self.config = config.Config()
+        self.config = config.Config().load()
 
-        self.config.load()
+        json_patch.assert_called_once()
+        self.assertEqual(yaml_safe_load_patch.call_count, 2)
+        self.assertEqual(has_file_patch.call_count, 2)
 
-        has_user_patch.assert_called_once()
-        has_project_patch.assert_called_once()
-
-    @patch.object(config.Config, '_Config__has_user_config', return_value=True)
-    @patch.object(config.Config, '_Config__has_project_config', return_value=True)
-    @patch.object(config.Config, '_Config__read_config')
-    def test_find_both_configs(self, read_config_patch, has_project_patch, has_user_patch):
-        self.config = config.Config()
-
-        self.config.load()
-
-        has_user_patch.assert_called_once()
-        has_project_patch.assert_called_once()
-
-    @patch.object(config.yaml, 'safe_load')
-    @patch.object(config.Path, 'read_text')
-    @patch.object(config.Config, '_Config__find_config', return_value=(None, '.samrc'))
-    @patch.object(config.Config, '_Config__has_project_config', return_value=True)
-    def test_read_config(self, has_project_patch, find_config_patch, path_read_text_patch, yaml_patch):
-        self.config = config.Config()
-        self.config.load()
-
-        path_read_text_patch.assert_called_once()
-        yaml_patch.assert_called_once()
-
-    @patch.object(config.Config, '_Config__find_config', return_value=('/home/user/.samrc', '.samrc'))
-    @patch.object(config.Config, '_Config__has_user_config', return_value=True)
-    @patch.object(config.Config, '_Config__has_project_config', return_value=True)
-    def test_merge_config(self, has_user_patch, has_project_patch, find_config_patch):
-        with patch.object(config.Config, '_Config__read_config',
-                          side_effect=[self.valid_samrc_user_level, self.valid_samrc_project_level]):
-            self.config = config.Config()
-            merged_config = self.config.load()
-            self.assertIn('future_proof_section', merged_config)
-            self.assertEqual(merged_config['default']['debug_port'], 4040)
+        self.assertEqual(self.config['default']['debug_port'], 4040)
+        self.assertEqual(self.config['future_proof_section']['something'], 'else')
