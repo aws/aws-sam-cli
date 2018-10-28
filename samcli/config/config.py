@@ -189,12 +189,12 @@ class Config(object):
 
         return user_config
 
-    def _has_file(self, file):
+    def _has_file(self, filename):
         """Confirm whether file exists
 
         Parameters
         ----------
-        file : str
+        filename : str
             Path to a file
 
         Returns
@@ -202,7 +202,7 @@ class Config(object):
         Boolean
         """
 
-        return Path(file).is_file()
+        return Path(filename).is_file()
 
     def _read_config(self, config):
         """Parse given YAML configuration
