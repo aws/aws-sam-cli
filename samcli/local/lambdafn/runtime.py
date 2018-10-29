@@ -180,6 +180,9 @@ class LambdaRuntime(object):
             if decompressed_dir:
                 shutil.rmtree(decompressed_dir)
 
+    def get_container_manager(self):
+        return self._container_manager
+
 
 def _unzip_file(filepath):
     """
