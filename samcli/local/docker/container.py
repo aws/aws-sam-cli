@@ -32,7 +32,7 @@ class Container(object):
                  image,
                  cmd,
                  working_dir,
-                 host_dir,
+                 host_dir=None,
                  memory_limit_mb=None,
                  exposed_ports=None,
                  entrypoint=None,
@@ -89,7 +89,12 @@ class Container(object):
         kwargs = {
             "command": self._cmd,
             "working_dir": self._working_dir,
-            "volumes": {
+            "volumes": {},
+            # We are not running an interactive shell here.
+            "tty": False
+        }
+        if self._host_dir:
+            kwargs["volumes"].update({
                 self._host_dir: {
                     # Mount the host directory as "read only" directory inside container at working_dir
                     # https://docs.docker.com/storage/bind-mounts
@@ -97,10 +102,7 @@ class Container(object):
                     "bind": self._working_dir,
                     "mode": "ro"
                 }
-            },
-            # We are not running an interactive shell here.
-            "tty": False
-        }
+            })
 
         if self._container_opts:
             kwargs.update(self._container_opts)
