@@ -9,19 +9,24 @@
             "type": "object",
             "properties": {
                 "aws_region": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Default AWS Region to use"
                 },
                 "aws_profile": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Default AWS Profile to use"
                 },
                 "default_port": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Default local listening port"
                 },
                 "debug_port": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Default debug listening port"
                 },
                 "template": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Default SAM template filename"
                 }
             }
         }
