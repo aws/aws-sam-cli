@@ -35,6 +35,10 @@ CLI Changes
 -----------
 *Explain the changes to command line interface, including adding new commands, modifying arguments etc*
 
+Breaking Change
+~~~~~~~~~~~~~~~
+*Are there any breaking changes to CLI interface? Explain*
+
 Design
 ------
 *Explain how this feature will be implemented. Highlight the components of your implementation, relationships*
