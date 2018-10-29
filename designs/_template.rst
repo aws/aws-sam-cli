@@ -1,0 +1,75 @@
+Title: Template for design documents
+====================================
+
+Use this as a template to write a design document when adding new commands or major features to SAM CLI. It helps
+other developers understand the scope of the project, validate technical complexity and feasibility. It also
+serves as a public documentation of how the feature actually works.
+
+What is the problem?
+--------------------
+
+What will be changed?
+---------------------
+
+Success criteria for the change
+-------------------------------
+
+Out-of-Scope
+------------
+
+User Experience
+---------------
+
+
+Implementation
+==============
+
+CLI Changes
+-----------
+*Explain the changes to command line interface, including adding new commands, modifying arguments etc*
+
+Design
+------
+*Explain how this feature will be implemented. Highlight the components of your implementation, relationships*
+*between components, constraints, etc.*
+
+
+``.samrc`` Changes
+------------------
+*Explain the new configuration entries, if any, you want to add to .samrc*
+
+
+Security
+--------
+
+*Tip: How does this change impact security? Answer the following questions to help answer this question better:*
+
+**What new dependencies (libraries/cli) does this change require?**
+
+**What other Docker container images are you using?**
+
+**Are you creating a new HTTP endpoint? If so explain how it will be created & used**
+
+**Are you connecting to a remote API? If so explain how is this connection secured**
+
+**Are you reading/writing to a temporary folder? If so, what is this used for and when do you clean up?**
+
+**How do you validate new .samrc configuration?**
+
+
+Documentation Changes
+---------------------
+
+Open Issues
+-----------
+
+Task Breakdown
+--------------
+- [x] Send a Pull Request with this design document (PR #123)
+- [ ] Build the command line interface (Issue #124)
+- [ ] Build the underlying library (Issue #125)
+- [ ] Unit tests
+- [ ] Functional Tests
+- [ ] Integration tests
+- [ ] Run all tests on Windows
+- [ ] Update documentation
