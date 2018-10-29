@@ -11,6 +11,7 @@ from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.local.xray.xray_lambda import XrayLambdaIntegration
 
 LOG = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ class LocalLambdaRunner(object):
         self.cwd = cwd
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
+        self._xray_lambda_integration = None
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
         """
@@ -68,11 +70,17 @@ class LocalLambdaRunner(object):
 
         LOG.debug("Found one Lambda function with name '%s'", function_name)
 
+        if self._xray_lambda_integration:
+            self._xray_lambda_integration.begin_lambda_segment(function_name)
+
         LOG.info("Invoking %s (%s)", function.handler, function.runtime)
         config = self._get_invoke_config(function)
 
         # Invoke the function
         self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+
+        if self._xray_lambda_integration:
+            self._xray_lambda_integration.end_lambda_segment()
 
     def is_debugging(self):
         """
@@ -170,6 +178,9 @@ class LocalLambdaRunner(object):
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
 
+        if self._xray_lambda_integration:
+            variables.update(self._xray_lambda_integration.get_lambda_envs())
+
         return EnvironmentVariables(function.memory,
                                     function.timeout,
                                     function.handler,
@@ -222,3 +233,19 @@ class LocalLambdaRunner(object):
             result["sessiontoken"] = creds.token
 
         return result
+
+    def enable_xray(self, xray_daemon_address):
+        """
+        Enables X-Ray Lambda Integration. Once enabled, invokations will emit replica Lambda X-Ray segments
+        to AWS and the 'AWS::Lambda::Function' segment will be available for use inside the Lambda's function code.
+        Furthermore, X-Ray specific environment variables will be included/updated for Lambda's runtime.
+
+        :param string xray_daemon_address: The docker's network IP address of X-Ray daemon docker container.
+        :return bool: True if X-Ray Lambda Integration was enabled.
+        """
+        if xray_daemon_address:
+            self._xray_lambda_integration = XrayLambdaIntegration(xray_daemon_address)
+            return True
+
+        LOG.debug("Failed to enable Lambda's X-Ray integration due to missing daemon address.")
+        return False
