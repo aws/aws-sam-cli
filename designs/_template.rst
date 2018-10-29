@@ -5,6 +5,13 @@ Use this as a template to write a design document when adding new commands or ma
 other developers understand the scope of the project, validate technical complexity and feasibility. It also
 serves as a public documentation of how the feature actually works.
 
+**Process:**
+1. Copy this template to another file in the ``designs`` folder
+1. Fill out the sections in the template
+1. Send a "Work In Progress" Pull Request with your design document. We can discuss the designs in more detail and
+iterate on the requirements. Feel free to start implementing a prototype if you think it will help flush out design.
+1. Once the PR is approved, create Github Issues for each task listed in the document and start implementing them.
+
 What is the problem?
 --------------------
 
