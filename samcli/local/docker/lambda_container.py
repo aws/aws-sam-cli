@@ -17,7 +17,8 @@ class LambdaContainer(Container):
     is provided by the base class
     """
 
-    _IMAGE_REPO_NAME = "lambci/lambda"
+    # _IMAGE_REPO_NAME = "lambci/lambda"
+    _IMAGE_REPO_NAME = "tanbouz/docker-lambda"  # TODO Temp fix for X-Ray trace id for testing.
     _WORKING_DIR = "/var/task"
 
     # The Volume Mount path for debug files in docker
