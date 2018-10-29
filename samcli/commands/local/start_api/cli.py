@@ -39,13 +39,17 @@ and point SAM to the directory or file containing build artifacts.
               default="public",
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
                    "will be presented at /")
+@click.option("--xray", "-x",
+              is_flag=True,
+              envvar="SAM_ENABLE_XRAY",
+              help="Run X-Ray daemon and replicate Lambda X-Ray service integrations.")
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
 @pass_context
 def cli(ctx,
         # start-api Specific Options
-        host, port, static_dir,
+        host, port, static_dir, xray,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
@@ -54,12 +58,12 @@ def cli(ctx,
 
     do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, debugger_path,
            docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
-           parameter_overrides)  # pragma: no cover
+           parameter_overrides, xray)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
            debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image,
-           force_image_build, parameter_overrides):
+           force_image_build, parameter_overrides, xray):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -88,7 +92,8 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
             service = LocalApiService(lambda_invoke_context=invoke_context,
                                       port=port,
                                       host=host,
-                                      static_dir=static_dir)
+                                      static_dir=static_dir,
+                                      xray_enable=xray)
             service.start()
 
     except NoApisDefined:

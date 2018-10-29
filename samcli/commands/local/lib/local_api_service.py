@@ -6,6 +6,7 @@ import os
 import logging
 
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
+from samcli.local.xray.local_xray_daemon_service import LocalXrayDaemonService
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 
@@ -22,7 +23,8 @@ class LocalApiService(object):
                  lambda_invoke_context,
                  port,
                  host,
-                 static_dir):
+                 static_dir,
+                 xray_enable=False):
         """
         Initialize the local API service.
 
@@ -31,11 +33,13 @@ class LocalApiService(object):
         :param int port: Port to listen on
         :param string host: Local hostname or IP address to bind to
         :param string static_dir: Optional, directory from which static files will be mounted
+        :param bool xray_enable: Optional, whether X-Ray service is enabled or not.
         """
 
         self.port = port
         self.host = host
         self.static_dir = static_dir
+        self.xray_enabled = xray_enable
 
         self.cwd = lambda_invoke_context.get_cwd()
         self.api_provider = SamApiProvider(lambda_invoke_context.template,
@@ -71,6 +75,14 @@ class LocalApiService(object):
                                     host=self.host,
                                     stderr=self.stderr_stream)
 
+        # (Optional) Run AWS X-ray daemon service in a docker container.
+        # And enable Lambda's X-Ray integration.
+        xray_daemon_service = None
+        if self.xray_enabled:
+            xray_daemon_service = self._create_xray_service()
+            xray_daemon_service.run()
+            self.lambda_runner.enable_xray(xray_daemon_service.get_daemon_address())
+
         service.create()
 
         # Print out the list of routes that will be mounted
@@ -81,6 +93,9 @@ class LocalApiService(object):
                  "SAM CLI if you update your AWS SAM template")
 
         service.run()
+
+        if xray_daemon_service:
+            xray_daemon_service.stop()
 
     @staticmethod
     def _make_routing_list(api_provider):
@@ -168,3 +183,26 @@ class LocalApiService(object):
         if os.path.exists(static_dir_path):
             LOG.info("Mounting static files from %s at /", static_dir_path)
             return static_dir_path
+
+    def _create_xray_service(self):
+        """
+        This method initilizes and creates X-Ray daemon but does not actually run
+        the X-Ray docker container.
+        It will use the active docker container mananger to run the X-Ray daemon
+        on the same Docker network hosting the invoked Lambda functions.
+
+        :return samcli.local.xray.local_xray_daemon_service.LocalXrayDaemonService
+        """
+        container_manager = self.lambda_runner.local_runtime.get_container_manager()
+        xray_daemon_service = LocalXrayDaemonService(container_manager)
+
+        aws_creds = self.lambda_runner.get_aws_creds()
+        region = None or self.lambda_runner.aws_region
+        if 'region' in aws_creds:  # Prefer aws creds region
+            region = aws_creds['region']
+
+        xray_daemon_service.create(key=aws_creds['key'],
+                                   secret=aws_creds['secret'],
+                                   region=region)
+
+        return xray_daemon_service
