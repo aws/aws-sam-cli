@@ -254,22 +254,131 @@ is important, refer to Debian's guide on `reproducible builds <https://reproduci
 
 SAM CLI does the following to produce stable builds:
 
+#. Clean build folder on every run
 #. Include metadata when coping files and folders
 #. Run build actions with minimal information passed from the environment
-
-Arbitrary Build Commands
-~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 Built-in Build Actions
 ~~~~~~~~~~~~~~~~~~~~~~
+Build actions natively supported by SAM CLI follow a standard workflow:
 
-Python using PIP
-^^^^^^^^^^^^^^^^
+#. Search for a supported dependency manifest file. If a known manifest is not present, we will abort the build.
+#. Setup: Create build folder
+#. Resolve: Install dependencies
+#. Compile: Optionally, compile the code if necessary
+#. Copy Source: Optionally, Copy Lambda function code to the build folder
+
+Setup step is shared among all runtimes. Other steps in the workflow are implemented differently for each runtime.
 
 Javascript using NPM
 ^^^^^^^^^^^^^^^^^^^^
 
+Install dependencies specified by ``package.json`` and copy source files
+
+**Manifest Name**: ``package.json``
+
++-------------+--------------------------------------+
+| Action      | Command                              |
++=============+======================================+
+| Resolve     | ``npm install``                      |
++-------------+--------------------------------------+
+| Compile     | No Op                                |
++-------------+--------------------------------------+
+| Copy Source | Copy files and exclude node_modules  |
++-------------+--------------------------------------+
+
+
+Java using Maven
+^^^^^^^^^^^^^^^^
+
+Let Maven take care of everything
+
+**Manifest Name**: ``pom.xml``
+
++-------------+-----------------+
+| Action      | Command         |
++=============+=================+
+| Resolve     | No Op           |
++-------------+-----------------+
+| Compile     | ``mvn package`` |
++-------------+-----------------+
+| Copy Source | No Op           |
++-------------+-----------------+
+
+Golang using Go CLI
+^^^^^^^^^^^^^^^^^^^
+
+Go's CLI will build the binary.
+
+**Manifest Name**: ``Gopkg.toml``
+
++-------------+---------------------------------------------------+
+| Action      | Command                                           |
++=============+===================================================+
+| Resolve     | ``dep ensure -v``                                 |
++-------------+---------------------------------------------------+
+| Compile     | ``GOOS=linux go build  -ldflags="-s -w" main.go`` |
++-------------+---------------------------------------------------+
+| Copy Source | No Op                                             |
++-------------+---------------------------------------------------+
+
+
+Dotnet using Dotnet CLI
+^^^^^^^^^^^^^^^^^^^^^^^
+
+**Manifest Name**: ``*.csproj``
+
++-------------+----------------------------------------------------------------------------------------+
+| Action      | Command                                                                                |
++=============+========================================================================================+
+| Resolve     | No Op                                                                                  |
++-------------+----------------------------------------------------------------------------------------+
+| Compile     | ``dotnet lambda package --configuration release --output-package $BUILD/package.zip``  |
++-------------+----------------------------------------------------------------------------------------+
+| Copy Source | No Op                                                                                  |
++-------------+----------------------------------------------------------------------------------------+
+
+
+Python using PIP
+^^^^^^^^^^^^^^^^
+
++-------------+---------------------------------------------------------------------------------------+
+| Action      | Command                                                                               |
++=============+=======================================================================================+
+| Resolve     | ``pip install --isolated --disable-pip-version-check -r requirements.txt -t $BUILD``  |
++-------------+---------------------------------------------------------------------------------------+
+| Compile     | No Op                                                                                 |
++-------------+---------------------------------------------------------------------------------------+
+| Copy Source | Copy all files                                                                        |
++-------------+---------------------------------------------------------------------------------------+
+
+
+Custom Build Commands
+~~~~~~~~~~~~~~~~~~~~~
+
+Users can provide custom build command for each runtime via ``.samrc`` that will be run instead of the default build
+action provided by SAM CLI. SAM CLI will invoke this command for every resource that uses this runtime. This can be any
+arbitrary program that is accessible (via ``PATH`` resolution). The program will be invoked by setting three
+environment variables:
+
+#. ``__SOURCE_DIR`` - Folder where the source files are located
+#. ``__BUILD_DIR`` - Folder where the built artifacts should be written to
+#. ``__RUNTIME`` - AWS Lambda function runtime
+#. ``__TEMPLATE`` - Path to SAM Template
+#. Current Working Directory - Same directory where ``sam build`` command was invoked from
+
+This command is supposed to return an exit code of ``zero`` to indicate success. Non-zero exit codes indicate failure.
+
+Building Native Binaries
+~~~~~~~~~~~~~~~~~~~~~~~~
+To build native binaries, we need to run on an architecture and operating system that is similar to AWS Lambda. We use
+the Docker containers provided by `Docker Lambda <https://github.com/lambci/docker-lambda>`_ project to run the same
+set of commands described above on this container. We will mount source code folder and build folder into the container
+so the commands have access to necessary files.
+
+If the user specified a custom build command, we will attempt to run the command as-is within the Docker Container.
+But it is possible that the command might not be available inside the container.
 
 ``.samrc`` Changes
 ------------------
