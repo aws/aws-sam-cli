@@ -360,7 +360,9 @@ class LocalApigwService(BaseLocalService):
                                       resource=endpoint,
                                       request_context=context,
                                       query_string_params=query_string_dict,
+                                      multi_value_query_string_params=flask_request.args,
                                       headers=event_headers,
+                                      multi_value_headers=LocalApigwService._multi_value_headers(event_headers),
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
                                       is_base_64_encoded=is_base_64)
@@ -399,6 +401,29 @@ class LocalApigwService(BaseLocalService):
                 query_string_dict[query_string_key] = query_string_list[-1]
 
         return query_string_dict
+
+    @staticmethod
+    def _multi_value_headers(event_headers):
+        """
+        Constructs an APIGW equivalent multi-value header dictionary
+
+        Parameters
+        ----------
+        event_headers event headers
+            Request Headers
+
+        Returns dict (str: list of str)
+        -------
+            Returns a dictionary of key to list of strings
+
+        """
+        header_dict = {}
+
+        # Multi-value request headers is not really supported by Flask.
+        # See https://github.com/pallets/flask/issues/850
+        for header_key, header_value in event_headers.items():
+            header_dict[header_key] = [header_value]
+        return header_dict
 
     @staticmethod
     def _should_base64_encode(binary_types, request_mimetype):

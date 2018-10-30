@@ -9,6 +9,8 @@ from werkzeug.datastructures import Headers
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
+from werkzeug.datastructures import MultiDict, ImmutableMultiDict
+
 
 class TestApiGatewayService(TestCase):
 
@@ -462,14 +464,14 @@ class TestService_construct_event(TestCase):
         self.request_mock.method = "GET"
         self.request_mock.remote_addr = "190.0.0.0"
         self.request_mock.get_data.return_value = b"DATA!!!!"
-        query_param_args_mock = Mock()
-        query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
+        query_param_args_mock = ImmutableMultiDict(MultiDict({"query": ["params"]}))
         self.request_mock.args = query_param_args_mock
         self.request_mock.headers = {"Content-Type": "application/json", "X-Test": "Value"}
         self.request_mock.view_args = {"path": "params"}
         self.request_mock.scheme = "http"
 
         expected = '{"body": "DATA!!!!", "httpMethod": "GET", ' \
+                   '"multiValueQueryStringParameters": {"query": ["params"]}, ' \
                    '"queryStringParameters": {"query": "params"}, "resource": ' \
                    '"endpoint", "requestContext": {"httpMethod": "GET", "requestId": ' \
                    '"c6af9ac6-7b61-11e6-9a41-93e8deadbeef", "path": "endpoint", "extendedRequestId": null, ' \
@@ -479,6 +481,8 @@ class TestService_construct_event(TestCase):
                    '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": ' \
                    '"190.0.0.0", "user": null}, "accountId": "123456789012"}, "headers": {"Content-Type": ' \
                    '"application/json", "X-Test": "Value", "X-Forwarded-Port": "3000", "X-Forwarded-Proto": "http"}, ' \
+                   '"multiValueHeaders": {"Content-Type": ["application/json"], "X-Test": ["Value"], '\
+                   '"X-Forwarded-Port": ["3000"], "X-Forwarded-Proto": ["http"]}, ' \
                    '"stageVariables": null, "path": "path", "pathParameters": {"path": "params"}, ' \
                    '"isBase64Encoded": false}'
 
