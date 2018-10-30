@@ -384,6 +384,18 @@ But it is possible that the command might not be available inside the container.
 ------------------
 *Explain the new configuration entries, if any, you want to add to .samrc*
 
+We will add a new section to ``.samrc`` where customers can provide custom build actions. This section will look like:
+
+.. code-block:: json
+
+    {
+        "build": {
+            "actions": {
+                "java8": "gradle build",
+                "dotnetcore2.1": "./build.sh"
+            }
+        }
+    }
 
 Security
 --------
