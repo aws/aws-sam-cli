@@ -1,17 +1,30 @@
 # Enable container based builds
-sudo: false
+sudo: required
 language: python
+
+services:
+  - docker
 
 python:
   - "2.7"
   - "3.6"
 
+env:
+  global:
+    - AWS_DEFAULT_REGION=us-east-1
+
+# Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
+matrix:
+  include:
+    - python: 3.7
+      dist: xenial
+      sudo: true
+
 install:
   # Install the code requirements
   - make init
 
-# Install Docs requirements
-
 script:
   # Runs unit tests
   - make pr
+  - make integ-test
