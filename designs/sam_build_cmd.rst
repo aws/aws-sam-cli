@@ -74,21 +74,26 @@ User Experience Walkthrough
 ---------------------------
 Let's assume customers has the following SAM template:
 
+    **NOTE**: Currently we advice customers to set *CodeUri* to a folder containing built artifacts that can be readily
+    packaged by ``sam package`` command. But to use with *build* command, customers need to set *CodeUri* to the folder
+    containing source code and not built artifacts.
+
 .. code-block:: yaml
 
     MyFunction1:
         Type: AWS::Lambda::Function
         Properties:
             ...
-            Code: ./code1
+            Code: ./source-code1
             ...
 
     MyFunction2:
         Type: AWS::Serverless::Function
         Properties:
             ...
-            Code: ./code2
+            Code: ./source-code2
             ...
+
 
 To build, package and deploy this app, customers would do the following:
 
@@ -145,32 +150,125 @@ Other Usecases
    within the code folder always overrides manifest at the root.
 #. **Arbitrary build commands**: Override build commands per-runtime by specifying full path to the command in
    ``.samrc``.
+#. **Build & Run Locally**: Use the ``--template`` property of ``sam local`` suite of commands to specify the
+   template produced by *build* command (ex: ``build-template.yaml``)
 
 Implementation
 ==============
 
-Tenets
-------
-* Ability to add build action to any resource types (ex: not just Lambda functions). Initially we will start with
-  ``AWS::Serverless::Function`` and ``AWS::Lambda::Function`` resources, but the architecture will not prevent us to
-  expand to other resource types
-
 CLI Changes
 -----------
 *Explain the changes to command line interface, including adding new commands, modifying arguments etc*
+
+#. Adding a new top-level command called ``sam build``.
+#. Add ``built-template.yaml`` to list of default template names searched by ``sam local`` commands
 
 
 Breaking Change
 ~~~~~~~~~~~~~~~
 *Are there any breaking changes to CLI interface? Explain*
 
+No Breaking Change to CLI interface
+
 Design
 ------
 *Explain how this feature will be implemented. Highlight the components of your implementation, relationships*
 *between components, constraints, etc.*
 
+Build library provides the ability to execute build actions on each registered resource. A build action is either
+a built-in functionality or a custom build command provided by user. At a high level, the algorithm looks like this:
+
+.. code-block:: python
+
+    for resource in sam_template:
+        # Find the appropriate builder
+        builder = get_builder(resource.Type)
+
+        # Do the build
+        output_folder = make_build_folder(resource)
+        builder.build(resource.Code, resource.runtime, output_folder)
+
+
+We will keep the implementation of build agnostic of the resource type. This opens up the future possibility of adding
+build actions to any resource types, not just Lambda functions. Initially we will start by supporting only the
+resource types ``AWS::Serverless::Function`` and ``AWS::Lambda::Function``.
+
+Build Folder
+~~~~~~~~~~~~
+Default Location: ``$PKG_ROOT/build/``
+
+By default, we will create a folder called ``build`` right next to where the SAM template is located.
+This will contain the built artifacts for each resource. Customers can always override this folder location.
+
+Built artifacts for each resource will be stored within a folder named with the LogicalID of the resource.
+This allows us to build separate zip files for each Lambda, so users can update one Lambda without triggering an update
+on another. The same model will work for building other non-Lambda resources.
+
+*Advantages:*
+
+* Extensible to other resource types
+* Supports parallel builds for each resource
+* Aligned with a CloudFormation stack
+
+*Disadvantages:*
+
+* Too many build folders, and hence zip files, to manage.
+* Difficult to share code between all Lambdas.
+
+::
+
+    $PKG_ROOT/build/
+        artifacts.json (not for MVP)
+        MyFunction1/
+             .... <build artifacts>
+
+          MyFunction2/
+             ... <build artifacts>
+
+          MyApiGw/
+            ... <build artifacts>
+
+          MyECRContainer/
+             ... <build artifacts>
+
+
+Future Extensions
+^^^^^^^^^^^^^^^^^
+In the future, we will change the limitation around each folder being named after the resource's LogicalID.
+Instead, we will support an artifacts.json file that will map Lambda function resource's LogicalId to the path to a
+folder that contains built artifacts for this function. This allows us to support custom build systems that use
+different folder layout.
+
+A well-known folder structure also helps “sam local” and “sam package” commands to automatically discover the
+built artifacts for each Lambda function and package it.
+
 Stable Builds
 ~~~~~~~~~~~~~
+A build is defined to be stable if the built artifacts changes if and only if the contents or metadata
+(ex: timestamp, ownership) on source files changes. This is an important attribute of a build system. Since SAM CLI
+relies on 3rd party package managers like NPM to do the heavy lifting, we can only provide a "best effort" service here.
+By running ``sam build`` on a build system that creates a new environment from scratch
+(ex: Travis/CircleCI/CodeBuild/Jenkins etc), you can achieve truly stable builds. For more information on why this
+is important, refer to Debian's guide on `reproducible builds <https://reproducible-builds.org/>`_.
+
+
+SAM CLI does the following to produce stable builds:
+
+#. Include metadata when coping files and folders
+#. Run build actions with minimal information passed from the environment
+
+Arbitrary Build Commands
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Built-in Build Actions
+~~~~~~~~~~~~~~~~~~~~~~
+
+Python using PIP
+^^^^^^^^^^^^^^^^
+
+Javascript using NPM
+^^^^^^^^^^^^^^^^^^^^
 
 
 ``.samrc`` Changes
@@ -198,16 +296,22 @@ Security
 
 Documentation Changes
 ---------------------
+TBD
 
-Open Issues
------------
+Open Questions
+--------------
+
+#. Should we support ``artifacts.json`` now to be future-proof?
+#. Should we create the default ``build`` folder within a ``.sam`` folder inside the project to provide a home for
+   other scratch files if necessary?
 
 
 Task Breakdown
 --------------
-- [x] Send a Pull Request with this design document (PR #123)
-- [ ] Build the command line interface (Issue #124)
-- [ ] Build the underlying library (Issue #125)
+- [x] Send a Pull Request with this design document
+- [ ] Build the command line interface
+- [ ] Add ``built-template.yaml`` to list of default template names searched by ``sam local`` commands
+- [ ] Build the underlying library
 - [ ] Unit tests
 - [ ] Functional Tests
 - [ ] Integration tests
