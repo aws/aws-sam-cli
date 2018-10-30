@@ -19,11 +19,11 @@ their own build scripts or adopt other's scripts from the internet. This is wher
 
 What will be changed?
 ---------------------
-In this proposal, we will be providing a new command,``sam build``, to build Lambda functions for all programming
+In this proposal, we will be providing a new command, ``sam build``, to build Lambda functions for all programming
 languages that AWS Lambda supports. The cardinality of the problem is number of programming languages (N) times the
 number of package managers (M) per language. Hence is it is nearly impossible to natively support each combination.
 Instead, ``sam build`` will support an opinionated set of package managers for all programming languages. We will
-provide an option for customers to bring their own build scripts or override the default for any programming language.
+provide an option for customers to bring their own build commands or override the default for any programming language.
 SAM CLI will still take care of the grunt work of iterating through every function in the SAM template, figuring out
 the source code location, creating temporary folders to store built artifacts, running the build command and
 move artifacts to right location.
@@ -46,7 +46,7 @@ Success criteria for the change
 
 #. Built artifacts should "just work" with ``sam local`` and ``sam package`` suite of commands
 
-#. Ability to provide arbitrary build scripts for each Lambda Function runtime. This will either override the built-in
+#. Ability to provide arbitrary build commands for each Lambda Function runtime. This will either override the built-in
    default or add build support for languages/tools that SAM CLI does not support (ex: java+gradle).
 
 #. Opt-in to building native dependencies that can run on AWS Lambda using Docker.
@@ -55,29 +55,110 @@ Success criteria for the change
 
 #. Support out-of-source builds: ie. source code of Lambda function is outside the directory containing SAM template.
 
+#. Integrate build action with ``sam local/package/deploy`` commands so the Lambda functions will be automatically
+   built as part of the command without explicitly running the build command.
+
 
 Out-of-Scope
 ------------
 #. Supports adding data files ie. files that are not referenced by the package manager (ex: images, css etc)
 #. Support to exclude certain files from the built artifact (ex: using .gitignore or using regex)
-#. Integrate build action with ``sam local/package/deploy`` commands so the Lambda functions will be automatically
-   built as part of the command without explicitly running the build command.
 #. If the app contains a ``buildspec.yaml``, automatically run it using CodeBuild Local.
 #. Watch for file changes and build automatically (ex: ``sam build --watch``)
 #. Support other build systems by default Webpack, Yarn or Gradle.
 #. Support in AWS CLI, ``aws cloudformation``, suite of commands
 #. Support for fine-grained hooks (ex: hooks that run pre-build, post-build, etc)
 
-User Experience
----------------
 
+User Experience Walkthrough
+---------------------------
+Let's assume customers has the following SAM template:
+
+.. code-block:: yaml
+
+    MyFunction1:
+        Type: AWS::Lambda::Function
+        Properties:
+            ...
+            Code: ./code1
+            ...
+
+    MyFunction2:
+        Type: AWS::Serverless::Function
+        Properties:
+            ...
+            Code: ./code2
+            ...
+
+To build, package and deploy this app, customers would do the following:
+
+**1. Build:** Run the following command to build all functions in the template and output a SAM template that can be run through
+the package command:
+
+.. code-block:: bash
+
+    # Build the code and write artifacts to ./build folder
+    $ sam build -t template.yaml -b ./build -o built-template.yaml
+
+
+Output of the *sam build* command is a SAM template where CodeUri is pointing to the built artifacts. Note the values of
+Code properties in following output:
+
+.. code-block:: bash
+
+    $ cat built-template.yaml
+    MyFunction1:
+        Type: AWS::Lambda::Function
+        Properties:
+            ...
+            Code: ./build/MyFunction1
+            ...
+
+    MyFunction2:
+        Type: AWS::Serverless::Function
+        Properties:
+            ...
+            CodeUri: ./build/MyFunction2
+            ...
+
+**2. Package and Deploy:** Package the built artifacts by running the *package* command on the template output
+by *build* command
+
+.. code-block:: bash
+
+    # Package the code
+    $ sam package --template-file built-template.yaml --s3-bucket mybucket --output-template-file packaged-template.yaml
+
+    # Deploy the app
+    $ sam deploy --template-file packaged-template.yaml --stack-name mystack
+
+Other Usecases
+~~~~~~~~~~~~~~~
+
+#. **Build Native Dependencies**: Pass the ``--native`` flag to the *build* command
+#. **Out-of-Source Builds**: In this scenario, Lambda function code is present in a folder outside the folder containing
+   the SAM template. Absolute path to these folders are determined at runtime in a build machine. Set the
+   ``--root=/my/folder`` flag to absolute path to the folder relative to which we will resolve relative *CodeUri* paths.
+#. **Inherited dependency manifest**: By default, we will look for a dependency manifest (ex: package.json) at same
+   folder containing SAM template. If a ``--root`` flag is set, we will look for manifest at this folder. If neither
+   locations have a manifest, we will look for a manifest within the folder containing function code. Manifest present
+   within the code folder always overrides manifest at the root.
+#. **Arbitrary build commands**: Override build commands per-runtime by specifying full path to the command in
+   ``.samrc``.
 
 Implementation
 ==============
 
+Tenets
+------
+* Ability to add build action to any resource types (ex: not just Lambda functions). Initially we will start with
+  ``AWS::Serverless::Function`` and ``AWS::Lambda::Function`` resources, but the architecture will not prevent us to
+  expand to other resource types
+
 CLI Changes
 -----------
 *Explain the changes to command line interface, including adding new commands, modifying arguments etc*
+
 
 Breaking Change
 ~~~~~~~~~~~~~~~
@@ -88,6 +169,8 @@ Design
 *Explain how this feature will be implemented. Highlight the components of your implementation, relationships*
 *between components, constraints, etc.*
 
+Stable Builds
+~~~~~~~~~~~~~
 
 
 ``.samrc`` Changes
@@ -118,6 +201,7 @@ Documentation Changes
 
 Open Issues
 -----------
+
 
 Task Breakdown
 --------------

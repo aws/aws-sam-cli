@@ -24,8 +24,8 @@ Success criteria for the change
 Out-of-Scope
 ------------
 
-User Experience
----------------
+User Experience Walkthrough
+---------------------------
 
 
 Implementation
