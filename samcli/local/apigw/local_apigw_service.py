@@ -360,7 +360,7 @@ class LocalApigwService(BaseLocalService):
                                       resource=endpoint,
                                       request_context=context,
                                       query_string_params=query_string_dict,
-                                      multi_value_query_string_params=flask_request.args,
+                                      multi_value_query_string_params=flask_request.args.to_dict(False),
                                       headers=event_headers,
                                       multi_value_headers=LocalApigwService._multi_value_headers(event_headers),
                                       path_parameters=flask_request.view_args,
