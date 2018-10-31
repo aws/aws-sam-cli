@@ -7,6 +7,8 @@ import base64
 from flask import Flask, request
 
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
+from samcli.local.velocity.render import VelocityTemplateRenderer
+from samcli.local.velocity.mapping_models import ApiGatewayRequestModel
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 from .service_error_responses import ServiceErrorResponses
@@ -17,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 class Route(object):
 
-    def __init__(self, methods, function_name, path, binary_types=None):
+    def __init__(self, methods, function_name, path, binary_types=None, request_template=None):
         """
         Creates an ApiGatewayRoute
 
@@ -29,6 +31,7 @@ class Route(object):
         self.function_name = function_name
         self.path = path
         self.binary_types = binary_types or []
+        self.request_template = request_template
 
 
 class LocalApigwService(BaseLocalService):
@@ -130,7 +133,7 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types)
+            event = self._construct_event(request, self.port, route.binary_types, route.request_template)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -240,7 +243,7 @@ class LocalApigwService(BaseLocalService):
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types):
+    def _construct_event(flask_request, port, binary_types, request_template):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -292,7 +295,7 @@ class LocalApigwService(BaseLocalService):
                                       path=flask_request.path,
                                       is_base_64_encoded=is_base_64)
 
-        event_str = json.dumps(event.to_dict())
+        event_str = LocalApigwService._transform_event(event, request_template)
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
         return event_str
 
@@ -345,3 +348,25 @@ class LocalApigwService(BaseLocalService):
 
         """
         return request_mimetype in binary_types or "*/*" in binary_types
+
+    @staticmethod
+    def _transform_event(event, request_template):
+        """
+        Transform event using a velocity template.
+
+        Parameters
+        ----------
+        request_template str
+            Valid velocity template
+
+        Returns
+        -------
+            Event if request_template null otherwise event transformed using velocity template string
+        """
+
+        if request_template:
+            LOG.debug("Using request mapping template: %s", request_template)
+            return VelocityTemplateRenderer.render(request_template, ApiGatewayRequestModel(event))
+
+        LOG.debug("No request mapping template found, returning event as-is")
+        return json.dumps(event.to_dict())

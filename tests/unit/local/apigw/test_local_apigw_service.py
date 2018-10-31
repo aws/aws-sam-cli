@@ -409,14 +409,16 @@ class TestService_construct_event(TestCase):
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
-        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000,
+                                                              binary_types=[], request_template=None)
         self.assertEquals(json.loads(actual_event_str), self.expected_dict)
 
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
         self.expected_dict["body"] = None
 
-        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000,
+                                                              binary_types=[], request_template=None)
         self.assertEquals(json.loads(actual_event_str), self.expected_dict)
 
     @patch('samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_encode')
@@ -430,7 +432,8 @@ class TestService_construct_event(TestCase):
         self.expected_dict["body"] = base64_body
         self.expected_dict["isBase64Encoded"] = True
 
-        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000,
+                                                              binary_types=[], request_template=None)
         self.assertEquals(json.loads(actual_event_str), self.expected_dict)
 
     def test_query_string_params_with_empty_params(self):

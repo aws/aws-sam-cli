@@ -106,13 +106,13 @@ class TestLocalApiService_make_routing_list(TestCase):
     def test_must_return_routing_list_from_apis(self):
         api_provider = Mock()
         apis = [
-            Api(path="/1", method="GET1", function_name="name1", cors="CORS1"),
-            Api(path="/2", method="GET2", function_name="name2", cors="CORS2"),
+            Api(path="/1", method="GET1", function_name="name1", cors="CORS1", request_template="TEMPLATE1"),
+            Api(path="/2", method="GET2", function_name="name2", cors="CORS2", request_template="TEMPLATE2"),
             Api(path="/3", method="GET3", function_name="name3", cors="CORS3"),
         ]
         expected = [
-            Route(path="/1", methods=["GET1"], function_name="name1"),
-            Route(path="/2", methods=["GET2"], function_name="name2"),
+            Route(path="/1", methods=["GET1"], function_name="name1", request_template="TEMPLATE1"),
+            Route(path="/2", methods=["GET2"], function_name="name2", request_template="TEMPLATE2"),
             Route(path="/3", methods=["GET3"], function_name="name3")
         ]
 

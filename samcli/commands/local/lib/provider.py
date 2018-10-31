@@ -75,10 +75,16 @@ _ApiTuple = namedtuple("Api", [
     "cors",
 
     # List(Str). List of the binary media types the API
-    "binary_media_types"
+    "binary_media_types",
+
+    # String. Optional velocity template.
+    # If this configuration is set, then the event passed to the function
+    # will be transformed using Velocity templating language.
+    "request_template"
 ])
 _ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
-                                  []     # binary_media_types is optional and defaults to empty
+                                  [],    # binary_media_types is optional and defaults to empty
+                                  None   # request_template is optional and defaults to None
                                   )
 
 

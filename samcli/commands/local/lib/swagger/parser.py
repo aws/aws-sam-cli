@@ -85,8 +85,10 @@ class SwaggerParser(object):
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
 
-                api = Api(path=full_path, method=method, function_name=function_name, cors=None,
-                          binary_media_types=binary_media_types)
+                request_template = self._get_integration_req_template(method_config)
+
+                api = Api(path=full_path, method=method, function_name=function_name, request_template=request_template,
+                          cors=None, binary_media_types=binary_media_types)
                 result.append(api)
 
         return result
@@ -119,3 +121,30 @@ class SwaggerParser(object):
                 and integration.get("type") == IntegrationType.aws_proxy.value:
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("uri"))
+
+    def _get_integration_req_template(self, method_config):
+        """
+        Tries to parse the request template from the Integration defined in the metjod configuration.
+        Integration configuration is defined under the special "x-amazon-apigateway-integration" key. We care only
+        about Lambda integrations, which are of type aws_proxy and have request templates for application/json
+        MIME types. We ignore the rest. If no request template is defined return None.
+
+        Parameters
+        ----------
+        method_config : dict
+            Dictionary containing the method configuration which might contain integration settings
+
+        Returns
+        -------
+        string or None
+            Velocity mapping template for request payload
+        """
+        if not isinstance(method_config, dict) or self._INTEGRATION_KEY not in method_config:
+            return None
+
+        integration = method_config[self._INTEGRATION_KEY]
+
+        if integration \
+                and isinstance(integration, dict):
+            # Request template must be "application/json" otherwise we don't care about it
+            return integration.get("requestTemplates", {}).get("application/json")
