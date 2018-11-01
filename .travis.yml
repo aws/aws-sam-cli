@@ -27,4 +27,4 @@ install:
 script:
   # Runs unit tests
   - make pr
-  - travis_wait SAM_CLI_DEV=1 pytest -vv tests/integration
+  - SAM_CLI_DEV=1 travis_wait pytest -vv tests/integration
