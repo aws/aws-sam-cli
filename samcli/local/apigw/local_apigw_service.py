@@ -324,13 +324,10 @@ class LocalApigwService(BaseLocalService):
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
-        method = flask_request.method
 
         request_data = flask_request.get_data()
 
-        request_mimetype = flask_request.mimetype
-
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, flask_request.mimetype)
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -341,28 +338,23 @@ class LocalApigwService(BaseLocalService):
             request_data = request_data.decode('utf-8')
 
         context = RequestContext(resource_path=endpoint,
-                                 http_method=method,
+                                 http_method=flask_request.method,
                                  stage="prod",
                                  identity=identity,
                                  path=endpoint)
 
-        event_headers = dict(flask_request.headers)
-        event_headers["X-Forwarded-Proto"] = flask_request.scheme
-        event_headers["X-Forwarded-Port"] = str(port)
+        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
 
-        # APIGW does not support duplicate query parameters. Flask gives query params as a list so
-        # we need to convert only grab the first item unless many were given, were we grab the last to be consistent
-        # with APIGW
-        query_string_dict = LocalApigwService._query_string_params(flask_request)
+        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
 
-        event = ApiGatewayLambdaEvent(http_method=method,
+        event = ApiGatewayLambdaEvent(http_method=flask_request.method,
                                       body=request_data,
                                       resource=endpoint,
                                       request_context=context,
                                       query_string_params=query_string_dict,
-                                      multi_value_query_string_params=flask_request.args.to_dict(False),
-                                      headers=event_headers,
-                                      multi_value_headers=LocalApigwService._multi_value_headers(event_headers),
+                                      multi_value_query_string_params=multi_value_query_string_dict,
+                                      headers=headers_dict,
+                                      multi_value_headers=multi_value_headers_dict,
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
                                       is_base_64_encoded=is_base_64)
@@ -381,49 +373,60 @@ class LocalApigwService(BaseLocalService):
         flask_request request
             Request from Flask
 
-        Returns dict (str: str)
+        Returns dict (str: str), dict (str: list of str)
         -------
             Empty dict if no query params where in the request otherwise returns a dictionary of key to value
 
         """
         query_string_dict = {}
+        multi_value_query_string_dict = {}
 
         # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
         # a dict(str: list) then iterate over
-        for query_string_key, query_string_list in flask_request.args.lists():
+        for query_string_key, query_string_list in flask_request.args.to_dict(False):
             query_string_value_length = len(query_string_list)
 
             # if the list is empty, default to empty string
             if not query_string_value_length:
                 query_string_dict[query_string_key] = ""
+                multi_value_query_string_dict[query_string_key] = [""]
             else:
-                # APIGW doesn't handle duplicate query string keys, picking the last one in the list
                 query_string_dict[query_string_key] = query_string_list[-1]
+                multi_value_query_string_dict[query_string_key] = query_string_list
 
-        return query_string_dict
+        return query_string_dict, multi_value_query_string_dict
 
     @staticmethod
-    def _multi_value_headers(event_headers):
+    def _event_headers(flask_request, port):
         """
-        Constructs an APIGW equivalent multi-value header dictionary
+        Constructs an APIGW equivalent headers dictionary
 
         Parameters
         ----------
         event_headers event headers
             Request Headers
 
-        Returns dict (str: list of str)
+        Returns dict (str: str), dict (str: list of str)
         -------
             Returns a dictionary of key to list of strings
 
         """
-        header_dict = {}
+        headers_dict = {}
+        multi_value_headers_dict = {}
 
         # Multi-value request headers is not really supported by Flask.
         # See https://github.com/pallets/flask/issues/850
-        for header_key, header_value in event_headers.items():
-            header_dict[header_key] = [header_value]
-        return header_dict
+        for header_key in flask_request.headers.keys():
+            headers_dict[header_key] = flask_request.headers.get(header_key)
+            multi_value_headers_dict[header_key] = flask_request.headers.getlist(header_key)
+
+        headers_dict["X-Forwarded-Proto"] = flask_request.scheme
+        multi_value_headers_dict["X-Forwarded-Proto"] = [flask_request.scheme]
+
+        headers_dict["X-Forwarded-Port"] = str(port)
+        multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
+
+        return headers_dict, multi_value_headers_dict
 
     @staticmethod
     def _should_base64_encode(binary_types, request_mimetype):
