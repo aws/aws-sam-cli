@@ -446,6 +446,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value2"})
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value", "value2"]})
 
     def test_request_with_path_params(self):
         """
@@ -480,4 +481,6 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Proto"), "http")
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"])
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Port"), self.port)
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
