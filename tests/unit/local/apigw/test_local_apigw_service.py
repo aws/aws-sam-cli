@@ -463,7 +463,7 @@ class TestService_construct_event(TestCase):
         self.request_mock.remote_addr = "190.0.0.0"
         self.request_mock.get_data.return_value = b"DATA!!!!"
         query_param_args_mock = Mock()
-        query_param_args_mock.to_dict.return_value = {"query": ["params"]}.items()
+        query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
         self.request_mock.args = query_param_args_mock
         headers_mock = Mock()
         headers_mock.keys.return_value = ["Content-Type", "X-Test"]
@@ -546,7 +546,7 @@ class TestService_construct_event(TestCase):
     def test_query_string_params_with_empty_params(self):
         request_mock = Mock()
         query_param_args_mock = Mock()
-        query_param_args_mock.to_dict.return_value = {}.items()
+        query_param_args_mock.lists.return_value = {}.items()
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
@@ -555,7 +555,7 @@ class TestService_construct_event(TestCase):
     def test_query_string_params_with_param_value_being_empty_list(self):
         request_mock = Mock()
         query_param_args_mock = Mock()
-        query_param_args_mock.to_dict.return_value = {"param": []}.items()
+        query_param_args_mock.lists.return_value = {"param": []}.items()
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
@@ -564,7 +564,7 @@ class TestService_construct_event(TestCase):
     def test_query_string_params_with_param_value_being_non_empty_list(self):
         request_mock = Mock()
         query_param_args_mock = Mock()
-        query_param_args_mock.to_dict.return_value = {"param": ["a", "b"]}.items()
+        query_param_args_mock.lists.return_value = {"param": ["a", "b"]}.items()
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
