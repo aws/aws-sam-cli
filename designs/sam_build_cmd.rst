@@ -103,6 +103,7 @@ the package command:
 .. code-block:: bash
 
     # Build the code and write artifacts to ./build folder
+    # NOTE: All arguments will have sensible defaults so users can just use `sam build`
     $ sam build -t template.yaml -b ./build -o built-template.yaml
 
 
@@ -368,7 +369,7 @@ environment variables:
 #. ``__TEMPLATE`` - Path to SAM Template
 #. Current Working Directory - Same directory where ``sam build`` command was invoked from
 
-This command is supposed to return an exit code of ``zero`` to indicate success. Non-zero exit codes indicate failure.
+This command is expected to return an exit code of ``zero`` to indicate success. Non-zero exit codes indicate failure.
 
 Building Native Binaries
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -433,6 +434,7 @@ Task Breakdown
 - [ ] Build the command line interface
 - [ ] Add ``built-template.yaml`` to list of default template names searched by ``sam local`` commands
 - [ ] Build the underlying library
+- [ ] Update ``sam init`` templates to include `sam build` in the README
 - [ ] Unit tests
 - [ ] Functional Tests
 - [ ] Integration tests
