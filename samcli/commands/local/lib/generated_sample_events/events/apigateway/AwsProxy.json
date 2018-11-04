@@ -70,7 +70,7 @@
       "US"
     ],
     "Host": [
-      "1234567890.execute-api.{{dns_suffix}}"
+      "0123456789.execute-api.{{dns_suffix}}"
     ],
     "Upgrade-Insecure-Requests": [
       "1"
