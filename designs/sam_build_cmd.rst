@@ -22,11 +22,11 @@ What will be changed?
 In this proposal, we will be providing a new command, ``sam build``, to build Lambda functions for all programming
 languages that AWS Lambda supports. The cardinality of the problem is number of programming languages (N) times the
 number of package managers (M) per language. Hence is it is nearly impossible to natively support each combination.
-Instead, ``sam build`` will support an opinionated set of package managers for all programming languages. We will
-provide an option for customers to bring their own build commands or override the default for any programming language.
-SAM CLI will still take care of the grunt work of iterating through every function in the SAM template, figuring out
-the source code location, creating temporary folders to store built artifacts, running the build command and
-move artifacts to right location.
+Instead, ``sam build`` will support an opinionated set of package managers for all programming languages. In the future,
+we will provide an option for customers to bring their own build commands or override the default for any programming
+language. SAM CLI will still take care of the grunt work of iterating through every function in the SAM template,
+figuring out the source code location, creating temporary folders to store built artifacts, running the build command
+and move artifacts to right location.
 
 
 Success criteria for the change
@@ -46,12 +46,9 @@ Success criteria for the change
 
 #. Built artifacts should "just work" with ``sam local`` and ``sam package`` suite of commands
 
-#. Ability to provide arbitrary build commands for each Lambda Function runtime. This will either override the built-in
-   default or add build support for languages/tools that SAM CLI does not support (ex: java+gradle).
-
 #. Opt-in to building native dependencies that can run on AWS Lambda using Docker.
 
-#. Support one dependency manifest (ex: package.json) entire app or one per each Lambda function.
+#. Support one dependency manifest (ex: package.json) per each Lambda function.
 
 #. Support out-of-source builds: ie. source code of Lambda function is outside the directory containing SAM template.
 
@@ -61,13 +58,19 @@ Success criteria for the change
 
 Out-of-Scope
 ------------
+#. Ability to provide arbitrary build commands for each Lambda Function runtime. This will either override the built-in
+   default or add build support for languages/tools that SAM CLI does not support (ex: java+gradle).
 #. Supports adding data files ie. files that are not referenced by the package manager (ex: images, css etc)
 #. Support to exclude certain files from the built artifact (ex: using .gitignore or using regex)
+#. Support for building the app for debugging locally with debug symbols (ex: Golang)
+#. Support caching dependencies & re-installing them only when the dependency manifest changes
+   (ex: by maintaining hash of package.json)
 #. If the app contains a ``buildspec.yaml``, automatically run it using CodeBuild Local.
 #. Watch for file changes and build automatically (ex: ``sam build --watch``)
 #. Support other build systems by default Webpack, Yarn or Gradle.
 #. Support in AWS CLI, ``aws cloudformation``, suite of commands
 #. Support for fine-grained hooks (ex: hooks that run pre-build, post-build, etc)
+#. Support one dependency manifest per app, shared by all the Lambda functions (this is usually against best practices)
 
 
 User Experience Walkthrough
@@ -141,7 +144,8 @@ by *build* command
 Other Usecases
 ~~~~~~~~~~~~~~~
 
-#. **Build Native Dependencies**: Pass the ``--native`` flag to the *build* command
+#. **Build Native Dependencies**: Pass the ``--native`` flag to the *build* command. This will run the build inside
+   a Docker container.
 #. **Out-of-Source Builds**: In this scenario, Lambda function code is present in a folder outside the folder containing
    the SAM template. Absolute path to these folders are determined at runtime in a build machine. Set the
    ``--root=/my/folder`` flag to absolute path to the folder relative to which we will resolve relative *CodeUri* paths.
@@ -279,6 +283,8 @@ Install dependencies specified by ``package.json`` and copy source files
 
 **Manifest Name**: ``package.json``
 
+**Files Excluded From Copy Source**: ``node_modules/*``
+
 +-------------+--------------------------------------+
 | Action      | Command                              |
 +=============+======================================+
@@ -297,6 +303,8 @@ Let Maven take care of everything
 
 **Manifest Name**: ``pom.xml``
 
+**Files Excluded From Copy Source**: N/A
+
 +-------------+-----------------+
 | Action      | Command         |
 +=============+=================+
@@ -314,6 +322,8 @@ Go's CLI will build the binary.
 
 **Manifest Name**: ``Gopkg.toml``
 
+**Files Excluded From Copy Source**: N/A
+
 +-------------+---------------------------------------------------+
 | Action      | Command                                           |
 +=============+===================================================+
@@ -330,6 +340,8 @@ Dotnet using Dotnet CLI
 
 **Manifest Name**: ``*.csproj``
 
+**Files Excluded From Copy Source**: N/A
+
 +-------------+----------------------------------------------------------------------------------------+
 | Action      | Command                                                                                |
 +=============+========================================================================================+
@@ -344,6 +356,10 @@ Dotnet using Dotnet CLI
 Python using PIP
 ^^^^^^^^^^^^^^^^
 
+**Manifest Name**: ``requirements.txt``
+
+**Files Excluded From Copy Source**:  ``*.pyc, __pycache__``
+
 +-------------+---------------------------------------------------------------------------------------+
 | Action      | Command                                                                               |
 +=============+=======================================================================================+
@@ -354,22 +370,75 @@ Python using PIP
 | Copy Source | Copy all files                                                                        |
 +-------------+---------------------------------------------------------------------------------------+
 
+Implementation of Build Actions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Custom Build Commands
-~~~~~~~~~~~~~~~~~~~~~
+Some of the built-in build actions are implemented in the programming language that the actions supports. For example,
+the Nodejs build action will be implemented in Javascript to take advantage of language-specific libraries. These
+modules are called **builders``. This is a reasonable implementation choice because customers building Nodejs apps are
+expected to have Node installed on their system. For languages like Golang, we will delegate entire functionality
+to ``go`` tool by invoking it as a subprocess. The SAM CLI distribution will now bundle Javascript code within a Python
+package, which even though seems odd, carries value.
 
-Users can provide custom build command for each runtime via ``.samrc`` that will be run instead of the default build
-action provided by SAM CLI. SAM CLI will invoke this command for every resource that uses this runtime. This can be any
-arbitrary program that is accessible (via ``PATH`` resolution). The program will be invoked by setting three
-environment variables:
 
-#. ``__SOURCE_DIR`` - Folder where the source files are located
-#. ``__BUILD_DIR`` - Folder where the built artifacts should be written to
-#. ``__RUNTIME`` - AWS Lambda function runtime
-#. ``__TEMPLATE`` - Path to SAM Template
-#. Current Working Directory - Same directory where ``sam build`` command was invoked from
+**Pros:**
 
-This command is expected to return an exit code of ``zero`` to indicate success. Non-zero exit codes indicate failure.
+- Easy to lift & shift
+- Easy to use language specific libraries that can support deeper integrations in future like webpack build or
+  running gulp scripts
+- Sets precedence for other runtimes like Java which might need reflexion to create the package
+- Easier to get help from JS community who is more familiar with building JS packages.
+
+**Cons:**
+
+- Vending JS files in Python package
+- Might take dependency on certain version of Node. We can't enforce that customers have this version of Node on their system.
+- Might have to webpack all dependencies, minify and vend one file that we just run using node pack.js.
+- Could become a tech debt if this approach doesn't scale.
+
+Builder Interface
+^^^^^^^^^^^^^^^^^
+
+In this implementation model, some steps in the build action are implemented natively in Python and some in a separate
+programming language. To complete a build operation, SAM CLI reads SAM template, prepares necessary folder structure,
+and invokes the appropriate builder process/command by passing necessary information through stdin as JSON-RPC. SAM CLI
+waits for a JSON-RPC response back through stdout of the process and depending on the status, either fails the build
+or proceeds to next step.
+
+**Input:**
+
+.. code-block:: json
+
+    {
+        "jsonrpc": "2.0",
+
+        "id": "42",
+
+        // Only supported method is `resolve-dependencies`
+        "method": "resolve-dependencies",
+        "params": {
+            "source_dir": "/folder/where/source/files/located",
+            "build_dir": "/directory/for/builder/artifacts",
+            "runtime": "aws lambda function runtime ex. node8.10",
+            "template_path": "/path/to/sam/template"
+        }
+    }
+
+
+**Output:**
+
+.. code-block:: json
+
+    {
+        "jsonrpc": "2.0",
+
+        "id": "42",
+
+        "result": {
+            // No result expected for successful execution
+        }
+    }
+
 
 Building Native Binaries
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -378,11 +447,8 @@ the Docker containers provided by `Docker Lambda <https://github.com/lambci/dock
 set of commands described above on this container. We will mount source code folder and build folder into the container
 so the commands have access to necessary files.
 
-If the user specified a custom build command, we will attempt to run the command as-is within the Docker Container.
-But it is possible that the command might not be available inside the container.
-
-``.samrc`` Changes
-------------------
+``.samrc`` Changes (Out-of-Scope)
+---------------------------------
 *Explain the new configuration entries, if any, you want to add to .samrc*
 
 We will add a new section to ``.samrc`` where customers can provide custom build actions. This section will look like:
@@ -423,9 +489,9 @@ TBD
 Open Questions
 --------------
 
-#. Should we support ``artifacts.json`` now to be future-proof?
+#. Should we support ``artifacts.json`` now to be future-proof? **Answer: NO**
 #. Should we create the default ``build`` folder within a ``.sam`` folder inside the project to provide a home for
-   other scratch files if necessary?
+   other scratch files if necessary? **Answer: Out of Scope for current implementation**
 
 
 Task Breakdown
@@ -434,9 +500,11 @@ Task Breakdown
 - [ ] Build the command line interface
 - [ ] Add ``built-template.yaml`` to list of default template names searched by ``sam local`` commands
 - [ ] Build the underlying library
-- [ ] Update ``sam init`` templates to include `sam build` in the README
+- [ ] Update ``sam init`` templates to include ``sam build`` in the README
 - [ ] Unit tests
 - [ ] Functional Tests
 - [ ] Integration tests
 - [ ] Run all tests on Windows
 - [ ] Update documentation
+
+
