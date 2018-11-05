@@ -1,4 +1,4 @@
-.. contents:: Table of Contents
+.. contents:: **Table of Contents**
    :depth: 2
    :local:
 
@@ -379,7 +379,7 @@ Implementation of Build Actions
 
 Some of the built-in build actions are implemented in the programming language that the actions supports. For example,
 the Nodejs build action will be implemented in Javascript to take advantage of language-specific libraries. These
-modules are called **builders``. This is a reasonable implementation choice because customers building Nodejs apps are
+modules are called **builders**. This is a reasonable implementation choice because customers building Nodejs apps are
 expected to have Node installed on their system. For languages like Golang, we will delegate entire functionality
 to ``go`` tool by invoking it as a subprocess. The SAM CLI distribution will now bundle Javascript code within a Python
 package, which even though seems odd, carries value.
