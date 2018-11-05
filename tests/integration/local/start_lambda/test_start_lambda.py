@@ -95,7 +95,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
 
     def test_invoke_with_invocation_type_not_RequestResponse(self):
         expected_error_message = "An error occurred (NotImplemented) when calling the Invoke operation: " \
-                                 "invocation-type: DryRun is not supported. RequestResponse is only supported."
+                                 "invocation-type: DryRun is not supported. Supported types: Event, RequestResponse."
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="DryRun")

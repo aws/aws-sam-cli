@@ -3,7 +3,9 @@
 import json
 import logging
 import io
+import threading
 
+from uuid import uuid4
 from flask import Flask, request
 
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -101,10 +103,12 @@ class LocalLambdaInvokeService(BaseLocalService):
                 "log-type: {} is not supported. None is only supported.".format(log_type))
 
         invocation_type = request_headers.get('X-Amz-Invocation-Type', 'RequestResponse')
-        if invocation_type != 'RequestResponse':
-            LOG.warning("invocation-type: %s is not supported. RequestResponse is only supported.", invocation_type)
+        if invocation_type not in ['Event', 'RequestResponse']:
+            LOG.warning("invocation-type: %s is not supported. Supported types: Event, RequestResponse.",
+                        invocation_type)
             return LambdaErrorResponses.not_implemented_locally(
-                "invocation-type: {} is not supported. RequestResponse is only supported.".format(invocation_type))
+                ("invocation-type: {} is not supported. " +
+                 "Supported types: Event, RequestResponse.").format(invocation_type))
 
     def _construct_error_handling(self):
         """
@@ -115,10 +119,95 @@ class LocalLambdaInvokeService(BaseLocalService):
         self._app.register_error_handler(404, LambdaErrorResponses.generic_path_not_found)
         self._app.register_error_handler(405, LambdaErrorResponses.generic_method_not_allowed)
 
+    def _invoke_async_request(self, function_name, request_data, stdout, stderr):
+        """
+        Asynchronous Request Handler for the Local Lambda Invoke path. Flask response is returned immediately while the
+        lambda function is run in a separate thread.
+
+        Parameters
+        ----------
+        function_name str
+            Name of function to invoke
+
+        request_data str
+            Parameters to pass to lambda function
+
+        stdout io.BaseIO
+            Output stream that stdout should be written to
+
+        stderr io.BaseIO
+            Output stream that stderr should be written to
+
+        Returns
+        -------
+        A flask Response response object as if it was returned from Lambda
+        """
+        request_id = uuid4()
+
+        thread = threading.Thread(target=self._invoke_sync_request,
+                                  args=(function_name, request_data),
+                                  kwargs={'stdout': stdout, 'stderr': stderr})
+        thread.daemon = True
+        thread.start()
+
+        LOG.debug('Async invocation: %s, requestId=%s', function_name, request_id)
+        return self.service_response(None,
+                                     {'x-amzn-requestid': request_id},
+                                     202)
+
+    def _invoke_sync_request(self, function_name, request_data, stdout, stderr):
+        """
+        Synchronous Request Handler for the Local Lambda Invoke path.
+
+        stdout_stream = io.BytesIO()
+        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
+
+        try:
+            self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
+        Parameters
+        ----------
+        function_name str
+            Name of function to invoke
+
+        request_data str
+            Parameters to pass to lambda function
+
+        stdout io.BaseIO
+            Output stream that stdout should be written to
+
+        stderr io.BaseIO
+            Output stream that stderr should be written to
+
+        Returns
+        -------
+        A flask Response response object as if it was returned from Lambda
+        """
+
+        try:
+            self.lambda_runner.invoke(function_name, request_data, stdout=stdout, stderr=stderr)
+        except FunctionNotFound:
+            LOG.debug('%s was not found to invoke.', function_name)
+            return LambdaErrorResponses.resource_not_found(function_name)
+
+        lambda_response, lambda_logs, is_lambda_user_error_response = \
+            LambdaOutputParser.get_lambda_output(stdout)
+
+        if stderr and lambda_logs:
+            # Write the logs to stderr if available.
+            stderr.write(lambda_logs)
+
+        if is_lambda_user_error_response:
+            LOG.debug('Lambda error response: %s', lambda_response)
+            return self.service_response(lambda_response,
+                                         {'Content-Type': 'application/json', 'x-amz-function-error': 'Unhandled'},
+                                         200)
+
+        LOG.debug('Lambda returned success: %s', lambda_response)
+        return self.service_response(lambda_response, {'Content-Type': 'application/json'}, 200)
+
     def _invoke_request_handler(self, function_name):
         """
-        Request Handler for the Local Lambda Invoke path. This method is responsible for understanding the incoming
-        request and invoking the Local Lambda Function
+        Determines what type of reuest handler should be used to invoke the Local Lambda.
 
         Parameters
         ----------
@@ -132,6 +221,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         flask_request = request
 
         request_data = flask_request.get_data()
+        invocation_type = flask_request.headers.get('X-Amz-Invocation-Type', 'RequestResponse')
 
         if not request_data:
             request_data = b'{}'
@@ -139,24 +229,8 @@ class LocalLambdaInvokeService(BaseLocalService):
         request_data = request_data.decode('utf-8')
 
         stdout_stream = io.BytesIO()
-        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
-        try:
-            self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
-        except FunctionNotFound:
-            LOG.debug('%s was not found to invoke.', function_name)
-            return LambdaErrorResponses.resource_not_found(function_name)
+        if invocation_type == 'Event':
+            return self._invoke_async_request(function_name, request_data, stdout_stream, self.stderr)
 
-        lambda_response, lambda_logs, is_lambda_user_error_response = \
-            LambdaOutputParser.get_lambda_output(stdout_stream)
-
-        if self.stderr and lambda_logs:
-            # Write the logs to stderr if available.
-            self.stderr.write(lambda_logs)
-
-        if is_lambda_user_error_response:
-            return self.service_response(lambda_response,
-                                         {'Content-Type': 'application/json', 'x-amz-function-error': 'Unhandled'},
-                                         200)
-
-        return self.service_response(lambda_response, {'Content-Type': 'application/json'}, 200)
+        return self._invoke_sync_request(function_name, request_data, stdout_stream, self.stderr)
