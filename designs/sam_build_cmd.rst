@@ -1,3 +1,6 @@
+.. toctree::
+   :maxdepth: 2
+
 ``sam build`` command
 =====================
 This is the design for a command to **build** a Lambda function. **Build** is the operation of converting the function's
