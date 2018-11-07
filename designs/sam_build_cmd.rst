@@ -502,8 +502,9 @@ Task Breakdown
 --------------
 - [x] Send a Pull Request with this design document
 - [ ] Build the command line interface
+- [ ] Wire up SAM provider to discover function to build
+- [ ] Library to build Python functions for MVP (others languages will follow next)
 - [ ] Add ``built-template.yaml`` to list of default template names searched by ``sam local`` commands
-- [ ] Build the underlying library
 - [ ] Update ``sam init`` templates to include ``sam build`` in the README
 - [ ] Unit tests
 - [ ] Functional Tests
