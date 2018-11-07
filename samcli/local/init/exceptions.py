@@ -14,4 +14,4 @@ class InitErrorException(Exception):
 
 class GenerateProjectFailedError(InitErrorException):
     fmt = \
-        ("An error ocurred while generating this {project}: {provider_error}")
+        ("An error occurred while generating this {project}: {provider_error}")

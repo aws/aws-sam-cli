@@ -50,7 +50,7 @@ Learn how to get started using the SAM CLI with these guides:
 -  `Running and debugging serverless applications locally <docs/usage.rst>`__: Describes how to use SAM CLI for invoking Lambda functions locally, running automated tests, fetching logs, and debugging applications
 -  `Packaging and deploying your application <docs/deploying_serverless_applications.rst>`__: Deploy your local application using an S3 bucket, and AWS CloudFormation.
 -  `Advanced <docs/advanced_usage.rst>`__: Learn how to work with compiled languages (such as Java and .NET), configure IAM credentials, provide environment variables, and more.
--  `Examples <#examples>`__
+-  `Examples <https://github.com/awslabs/serverless-application-model/tree/master/examples/apps>`__
 
 
 Project Status
