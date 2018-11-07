@@ -164,3 +164,14 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         environ = json.loads(process_stdout.decode('utf-8'))
 
         self.assertEquals(environ["Region"], custom_region)
+
+    def test_invoke_with_docker_network_of_host(self):
+        command_list = self.get_command_list("HelloWorldServerlessFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path,
+                                             docker_network='host')
+
+        process = Popen(command_list, stdout=PIPE)
+        return_code = process.wait()
+
+        self.assertEquals(return_code, 0)
