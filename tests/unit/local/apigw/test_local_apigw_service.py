@@ -386,7 +386,9 @@ class TestService_construct_event(TestCase):
         self.request_mock.method = "GET"
         self.request_mock.remote_addr = "190.0.0.0"
         self.request_mock.get_data.return_value = b"DATA!!!!"
-        self.request_mock.args = {"query": ["params"]}
+        query_param_args_mock = Mock()
+        query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
+        self.request_mock.args = query_param_args_mock
         self.request_mock.headers = {"Content-Type": "application/json", "X-Test": "Value"}
         self.request_mock.view_args = {"path": "params"}
         self.request_mock.scheme = "http"
@@ -433,21 +435,27 @@ class TestService_construct_event(TestCase):
 
     def test_query_string_params_with_empty_params(self):
         request_mock = Mock()
-        request_mock.args = {}
+        query_param_args_mock = Mock()
+        query_param_args_mock.lists.return_value = {}.items()
+        request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
         self.assertEquals(actual_query_string, {})
 
     def test_query_string_params_with_param_value_being_empty_list(self):
         request_mock = Mock()
-        request_mock.args = {"param": []}
+        query_param_args_mock = Mock()
+        query_param_args_mock.lists.return_value = {"param": []}.items()
+        request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
         self.assertEquals(actual_query_string, {"param": ""})
 
     def test_query_string_params_with_param_value_being_non_empty_list(self):
         request_mock = Mock()
-        request_mock.args = {"param": ["a", "b"]}
+        query_param_args_mock = Mock()
+        query_param_args_mock.lists.return_value = {"param": ["a", "b"]}.items()
+        request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
         self.assertEquals(actual_query_string, {"param": "b"})
