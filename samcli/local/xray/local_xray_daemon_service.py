@@ -30,7 +30,7 @@ class LocalXrayDaemonService(object):
         :param string secret: AWS secret access key.
         :param string region: AWS region where X-Ray segments will be emitted to.
 
-        :raises UserException: If AWS region is missing.
+        :raises UserException: If the AWS region or AWS credentials are missing.
         """
         xray_daemon_envs = {
             'AWS_ACCESS_KEY_ID': key,
@@ -39,7 +39,9 @@ class LocalXrayDaemonService(object):
         }
 
         if not region:
-            raise UserException("X-Ray requires an AWS region to be specified using --region or an AWS profile.")
+            raise UserException("X-Ray option requires an AWS region. Please configure your credentials with a region or specify a region using --region.")
+        if not key and not secret:
+            raise UserException("X-Ray option requires AWS credentials. Please configure your credentials.")
 
         self._xray_container = XrayContainer(env_vars=xray_daemon_envs)
 

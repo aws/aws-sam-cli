@@ -196,13 +196,20 @@ class LocalApiService(object):
         container_manager = self.lambda_runner.local_runtime.get_container_manager()
         xray_daemon_service = LocalXrayDaemonService(container_manager)
 
-        aws_creds = self.lambda_runner.get_aws_creds()
         region = None or self.lambda_runner.aws_region
+        key = None
+        secret = None
+        aws_creds = self.lambda_runner.get_aws_creds()
+
         if 'region' in aws_creds:  # Prefer aws creds region
             region = aws_creds['region']
 
-        xray_daemon_service.create(key=aws_creds['key'],
-                                   secret=aws_creds['secret'],
+        if 'key' in aws_creds and 'secret' in aws_creds:
+            key = aws_creds['key']
+            secret = aws_creds['secret']
+
+        xray_daemon_service.create(key=key,
+                                   secret=secret,
                                    region=region)
 
         return xray_daemon_service
