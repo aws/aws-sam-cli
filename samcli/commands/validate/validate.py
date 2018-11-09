@@ -10,7 +10,7 @@ from samtranslator.translator.managed_policy_translator import ManagedPolicyLoad
 
 from samcli.commands.exceptions import UserException
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands.local.cli_common.options import template_common_option as template_option
+from samcli.commands._utils.options import template_common_option as template_option
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
 from .lib.exceptions import InvalidSamDocumentException

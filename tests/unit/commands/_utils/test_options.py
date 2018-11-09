@@ -1,12 +1,12 @@
 """
-Test the common CLI options for invoke
+Test the common CLI options
 """
 
 import os
 
 from unittest import TestCase
 from mock import patch
-from samcli.commands.local.cli_common.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
+from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
 
 
 class TestGetOrDefaultTemplateFileName(TestCase):
@@ -18,7 +18,7 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         result = get_or_default_template_file_name(None, None, filename)
         self.assertEquals(result, expected)
 
-    @patch("samcli.commands.local.cli_common.options.os")
+    @patch("samcli.commands._utils.options.os")
     def test_must_return_yml_extension(self, os_mock):
         expected = "template.yml"
 
@@ -29,7 +29,7 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         self.assertEquals(result, "absPath")
         os_mock.path.abspath.assert_called_with(expected)
 
-    @patch("samcli.commands.local.cli_common.options.os")
+    @patch("samcli.commands._utils.options.os")
     def test_must_return_yaml_extension(self, os_mock):
         expected = "template.yaml"
 
