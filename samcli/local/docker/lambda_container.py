@@ -1,10 +1,10 @@
 """
 Represents Lambda runtime containers.
 """
+import six
 from enum import Enum
 
 from .container import Container
-
 
 class Runtime(Enum):
     nodejs = "nodejs"
@@ -17,6 +17,14 @@ class Runtime(Enum):
     go1x = "go1.x"
     dotnetcore20 = "dotnetcore2.0"
     dotnetcore21 = "dotnetcore2.1"
+
+    def __eq__(self, other):
+        if (isinstance(other, Runtime)):
+            return self.value == other.value
+        elif (isinstance(other, six.string_types)):
+            return self.value == other
+        else:
+            return False
 
     @classmethod
     def has_value(cls, value):
@@ -115,7 +123,9 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
-        opts = {}
+        opts = { 
+                "name": "debugger"
+               }
 
         if runtime == Runtime.go1x.value:
             # These options are required for delve to function properly inside a docker container on docker < 1.12
@@ -148,7 +158,8 @@ class LambdaContainer(Container):
         :param string runtime: Name of the runtime
         :return: Name of Docker Image for the given runtime
         """
-        return "{}:{}".format(LambdaContainer._IMAGE_REPO_NAME, runtime)
+        #return "{}:{}".format(LambdaContainer._IMAGE_REPO_NAME, runtime)
+        return "me/lambci-dotnetcore:2.0" if runtime == Runtime.dotnetcore20 else "me/lambci-dotnetcore:2.1"
 
     @staticmethod
     def _get_entry_point(runtime, debug_options=None):
@@ -175,7 +186,7 @@ class LambdaContainer(Container):
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
         entrypoint = None
-        if runtime == Runtime.java8.value:
+        if runtime == Runtime.java8:
 
             entrypoint = ["/usr/bin/java"] \
                    + debug_args_list \
@@ -192,7 +203,7 @@ class LambdaContainer(Container):
                         "/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
                    ]
 
-        elif runtime == Runtime.go1x.value:
+        elif runtime == Runtime.go1x:
             entrypoint = ["/var/runtime/aws-lambda-go"] \
                 + debug_args_list \
                 + [
@@ -201,7 +212,15 @@ class LambdaContainer(Container):
                     "-delvePath=" + LambdaContainer._DEFAULT_CONTAINER_DBG_GO_PATH,
                   ]
 
-        elif runtime == Runtime.nodejs.value:
+        elif runtime in (Runtime.dotnetcore20, Runtime.dotnetcore21):
+            entrypoint = ["/var/lang/bin/dotnet"] \
+                + debug_args_list \
+                + [
+                    "/var/runtime/MockBootstraps.dll",
+                    "-d"
+                  ]
+
+        elif runtime == Runtime.nodejs:
 
             entrypoint = ["/usr/bin/node"] \
                    + debug_args_list \
@@ -215,7 +234,7 @@ class LambdaContainer(Container):
                        "/var/runtime/node_modules/awslambda/bin/awslambda",
                    ]
 
-        elif runtime == Runtime.nodejs43.value:
+        elif runtime == Runtime.nodejs43:
 
             entrypoint = ["/usr/local/lib64/node-v4.3.x/bin/node"] \
                    + debug_args_list \
@@ -229,7 +248,7 @@ class LambdaContainer(Container):
                        "/var/runtime/node_modules/awslambda/index.js",
                    ]
 
-        elif runtime == Runtime.nodejs610.value:
+        elif runtime == Runtime.nodejs610:
 
             entrypoint = ["/var/lang/bin/node"] \
                    + debug_args_list \
@@ -243,7 +262,7 @@ class LambdaContainer(Container):
                        "/var/runtime/node_modules/awslambda/index.js",
                    ]
 
-        elif runtime == Runtime.nodejs810.value:
+        elif runtime == Runtime.nodejs810:
 
             entrypoint = ["/var/lang/bin/node"] \
                     + debug_args_list \
@@ -258,7 +277,7 @@ class LambdaContainer(Container):
                         "/var/runtime/node_modules/awslambda/index.js",
                     ]
 
-        elif runtime == Runtime.python27.value:
+        elif runtime == Runtime.python27:
 
             entrypoint = ["/usr/bin/python2.7"] \
                    + debug_args_list \
@@ -266,7 +285,7 @@ class LambdaContainer(Container):
                        "/var/runtime/awslambda/bootstrap.py"
                    ]
 
-        elif runtime == Runtime.python36.value:
+        elif runtime == Runtime.python36:
 
             entrypoint = ["/var/lang/bin/python3.6"] \
                    + debug_args_list \
