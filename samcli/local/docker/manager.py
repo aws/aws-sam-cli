@@ -4,6 +4,7 @@ Provides classes that interface with Docker to create, execute and manage contai
 
 import logging
 import sys
+
 import docker
 
 LOG = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class ContainerManager(object):
         :param input_data: Optional. Input data sent to the container through container's stdin.
         :param bool warm: Indicates if an existing container can be reused. Defaults False ie. a new container will
             be created for every request.
-        :raises DockerImageNotFoundException: If the Docker image was not available in the server
+        :raises DockerImagePullFailedException: If the Docker image was not available in the server
         """
 
         if warm:
@@ -48,9 +49,18 @@ class ContainerManager(object):
 
         image_name = container.image
 
-        # Pull a new image if: a) Image is not available OR b) We are not asked to skip pulling the image
-        if not self.has_image(image_name) or not self.skip_pull_image:
-            self.pull_image(image_name)
+        is_image_local = self.has_image(image_name)
+
+        if not is_image_local or not self.skip_pull_image:
+            try:
+                self.pull_image(image_name)
+            except DockerImagePullFailedException:
+                if not is_image_local:
+                    raise DockerImagePullFailedException(
+                        "Could not find {} image locally and failed to pull it from docker.".format(image_name))
+
+                LOG.info(
+                    "Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
         else:
             LOG.info("Requested to skip pulling images ...\n")
 
@@ -76,13 +86,14 @@ class ContainerManager(object):
 
         :param string image_name: Name of the image
         :param stream: Optional stream to write output to. Defaults to stderr
-        :raises DockerImageNotFoundException: If the Docker image was not available in the server
+        :raises DockerImagePullFailedException: If the Docker image was not available in the server
         """
         stream = stream or sys.stderr
         try:
             result_itr = self.docker_client.api.pull(image_name, stream=True, decode=True)
-        except docker.errors.ImageNotFound as ex:
-            raise DockerImageNotFoundException(str(ex))
+        except docker.errors.APIError as ex:
+            LOG.debug("Failed to download image with name %s", image_name)
+            raise DockerImagePullFailedException(str(ex))
 
         # io streams, especially StringIO, work only with unicode strings
         stream.write(u"\nFetching {} Docker container image...".format(image_name))
@@ -111,5 +122,5 @@ class ContainerManager(object):
             return False
 
 
-class DockerImageNotFoundException(Exception):
+class DockerImagePullFailedException(Exception):
     pass
