@@ -4,23 +4,23 @@ This is a design for the .NET Core 2.0 and 2.1 missing debugging feature.
 
 ### What is the problem
 
-Currently SAM CLI does not provide debugging support for .NET Core 2.0 and 2.1 because `dotnet` command does **not** provide either _start and wait for the debugger_ out of the box. Apart from that .NET remote debugger ([vsdbg](https://aka.ms/getvsdbgsh)) could not attach via port, but instead only by PID of the running program from within the **target** machine (Docker container). To debug the app, customer can use `docker` pipe, and for that we need the exact container name (which must be the same for each run or predefined for the customer) to attach to, or some mechanism to provide piping support via proxy and expose the port (requires much more effort and additional investigation). 
+Currently SAM CLI does not provide debugging support for .NET Core 2.0 and 2.1 because `dotnet` command does **not** provide _start and wait for the debugger_ out of the box and neither does current AWS Lambda runner has debugging support flag or anything. Apart from that .NET remote debugger ([vsdbg](https://aka.ms/getvsdbgsh)) could not attach via port, but instead only by PID of the running program from within the **target** machine (Docker container). To debug the app, customer can use `docker` pipe, and for that we need the exact container name (which must be the same for each run or predefined for the customer) to attach to, or some mechanism to provide piping support via proxy and expose the port (requires much more effort and additional investigation). 
 
-And lets' break it down to the checklist
+And let's break it down to the checklist
 
 * Put the `vsdbg` on the Docker container;
-* Add _"wait for the debugger"_ flag in runner program and implement corresponding functionality
+* Add _"wait for the debugger"_ flag in runner program and implement corresponding functionality;
 * Implement corresponding container entry point override in SAM to support invoking the runner with this flag **on**.
 * Provide instructions for the customer of how to configure VS Code and VS to attach.
 
 ### What will be changed
 
-Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support waiting for the debugger to attach. Already have [PR](https://github.com/lambci/docker-lambda/pull/127) (guys and @mhart - reviewers wanted :)). I think we should provide new `sam local` flag  `--container-name` which will assign desired name to the container with the Lambda runtime. 
+Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support waiting for the debugger to attach. Already have [PR](https://github.com/lambci/docker-lambda/pull/127) (guys and @mhart - reviewers wanted :)). I think we should provide new `sam local` flag  `--container-name` which will assign desired name to the container with the Lambda runtime to simplify `docker exec` experience from VS Code later.
 
 ### Success Criteria
 
-1. Provide handy script to get the `vsdbg` via downloading it to the .NET Lambda runtime container, installing it and getting through the mounting for providing it to SAM via `--debugger-path`.  Or manual instructions to achieve the above results.
-2. Provide ready-to-go `launch.json` configuration for attaching to the Lambda function via VSCode.
+1. Provide handy script to get the `vsdbg` via downloading it to the .NET Lambda runtime container, installing it and getting through the mounting (or manual instructions to achieve the above results). After that user would be able to provide it to SAM via `--debugger-path`;
+2. Provide ready-to-go `launch.json` configuration for attaching to the Lambda function via VSCode;
 3. Customer should be able to easily debug .NET Core 2.0 and 2.1 apps on VS Code (minimal requirement).
 
 ### Out-of-Scope
@@ -31,7 +31,7 @@ Visual Studio 2017 (can be a target, but it has some other very different Docker
 
 ##### 1. Getting the debugger locally
 
-At first user should be able to get and install `vsdbg` on their machine easily. For this we should provide the script for them to invoke which will effectively run the .NET Lambda runtime Docker container with mounted via bind path to get the debugger into which will invoke `curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg` to get and install the required debugger (specifically built for this container). Later SAM will mount the folder with the debugger to the target running container. 
+At first, user should be able to get and install `vsdbg` on their machine easily. For this we should provide the script for them to invoke, which will effectively run the .NET Lambda runtime Docker container with mounted via `bind` path to get the debugger on the **host** machine. In this container following: `curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg`  should be run to get and install required debugger (specifically built for this container). Later SAM will mount this same folder with the debugger to the target running container. 
 
 Instead of script we can certainly provide manual instructions of how to do the above stuff step-by-step as it is now done for golang debugger. _Feedback appreciated_.
 
@@ -39,7 +39,7 @@ Customer should go through this step **only once** to set up the debugger.
 
 ##### 2. Publishing the code
 
-Customer should be informed, that in order to have the best debugging experience he should publish the app in `Debug` configuration by supplying `-c Debug` flag for `dotnet publish` command. 
+Customer should be informed, that in order to have the best debugging experience app must be published in `Debug` configuration by supplying `-c Debug` flag for `dotnet publish` command. 
 
 _For example:_
 
@@ -52,7 +52,7 @@ docker run --rm --mount src=$(pwd),dst=/var/task,type=bind lambci/lambda:build-d
 
 ##### 3. Attaching
 
-Customer will use our ready-to-go `launch.json` debug task for VS Code, fill in the container name for the `docker exec` and supply this name to SAM.
+Customer will use ready-to-go `launch.json` debug configuration for VS Code, fill in the container name for the `docker exec` and supply this name to SAM.
 
 _For example:_
 
@@ -79,37 +79,50 @@ The only change I am proposing is to add `--container-name` to specify the exact
 
 ##### Supplying debugger
 
-We will have pretty similar approach to what GO is now doing. Customer will get the `vsdbg` on their machine and supply it to SAM via `--debugger-path` . So the first step is already implemented and we will happily reuse that mechanism.
+We will have pretty similar approach to what GO is now doing. Customer will get the `vsdbg` on their machine and supply it to SAM via `--debugger-path` . So everything for the first step is already implemented and we will happily reuse that mechanism.
 
 ##### Runner with debugging support
 
-As for the debugging support for the runner, unfortunately `dotnet` command does not support _"start and wait"_ configuration out of the box. Neither does C# provide any event which notifies, that debugger was attached. Therefore we will implement our own mechanism for that. 
+As for the debugging support for the runner, unfortunately `dotnet` command does not support _"start and wait"_ configuration out of the box. Neither does C# provide any event which notifies, that debugger was attached. Therefore we will implement custom mechanism for that. 
 
-During the discussion in this related [issue](https://github.com/awslabs/aws-sam-cli/issues/568) it was decided to go with infinite loop approach. It means that program will query [Debugger.IsAttached](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.isattached?view=netcore-2.0) property with some interval (for now it is 50ms - which will ), also we have timeout for this loop which is 10 minutes for now (thanks for shaping that out, @mikemorain, @sanathkr). Interval and timeout are **open** for suggestions and edits.
+During the discussion in this related [issue](https://github.com/awslabs/aws-sam-cli/issues/568) it was decided to go with infinite loop approach. It means that program will query [Debugger.IsAttached](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.isattached?view=netcore-2.0) property with some interval (for now it is 50ms - which seems instantaneous for the user), also we have timeout for this loop which is 10 minutes for now (thanks for shaping that out, @mikemorain, @sanathkr). Interval and timeout are **open** for suggestions and edits.
 
 _Examine the code from open [PR](https://github.com/lambci/docker-lambda/pull/127/files):_
 
 ```c#
 public static bool TryWaitForAttaching(TimeSpan queryInterval, TimeSpan timeout)
+{
+	var stopwatch = Stopwatch.StartNew();
+    
+    while (!Debugger.IsAttached)
+    {
+    	if (stopwatch.Elapsed > timeout)
         {
-            var stopwatch = Stopwatch.StartNew();
-             while (!Debugger.IsAttached)
-            {
-                if (stopwatch.Elapsed > timeout)
-                {
-                    return false;
-                }
-                 Task.Delay(queryInterval).Wait();
-            }
-             return true;
+        	return false;
         }
+        
+        Task.Delay(queryInterval).Wait();
+    }
+    
+    return true;
+}
 ```
 
 Also for this program `-d` flag was added along with `_SHOULD_WAIT_FOR_DEBUGGER` additional environment variable, so if either of those set, the runner will wait for the debugger to attach.
 
 ##### Attaching
 
-Now, as our runner supports waiting for the debugger to attach, the only thing left to do is actually attach to the `dotnet` process with our Lambda **inside** the Docker container. For that I suggest using remote `dotnet` [debugging support](https://github.com/OmniSharp/omnisharp-vscode/wiki/Attaching-to-remote-processes) from VS Code C# extension. We will take advantage of its `pipeTransport` feature. Set `pipeProgram` to `docker`, use `exec <container name>` as `pipeArgs` to step inside the running container, specify `debuggerPath` as **"/tmp/lambci_debug_files/vsdbg"**, set `quoteArgs` to let the Docker accept args correctly  and finally set the processId to 1 as Docker always assigns PID 1 to entry point executables.
+Now, as our runner supports waiting for the debugger to attach, the only thing left to do is actually attach to the `dotnet` process with our Lambda **inside** the Docker container. For that I suggest using remote `dotnet` [debugging support](https://github.com/OmniSharp/omnisharp-vscode/wiki/Attaching-to-remote-processes) from VS Code C# extension. We will take advantage of its `pipeTransport` feature. 
+
+Configuration process goes like that: 
+
+1. Set `request: attach` since we are attaching to already running .NET application;
+2. Set `pipeProgram` to `docker` (no need for SSH luckily);
+3. Use `exec -i <container name>` as `pipeArgs` to step inside the running container;
+4. Specify `debuggerPath` as **"/tmp/lambci_debug_files/vsdbg"** (this path reflects current mounting point for `--debugger-path` , refer to this [PR](https://github.com/awslabs/aws-sam-cli/pull/565/files) for more details);
+5. Set `quoteArgs` to `False` and let the Docker accept arguments correctly (without the need for `sh`);
+6. Set `processId` to 1 as Docker always assigns PID 1 to entry point executables.
+7. `sourceFileMap` is used for mapping breakpoints. `/var/task` is the place, where customer's code is being mounted to.
 
 _Examine sample launch.json configuration_
 
@@ -140,7 +153,7 @@ _Examine sample launch.json configuration_
 
 ##### Container name caveat
 
-With this `launch.json` in place the only caveat left is the container name to step into. As for now, SAM will not assign consistent names for the started containers, and neither it provides the way for the user to supply that name. So my proposal is to create new flag for `sam local` command -  `--container-name` which will provide the user the way to specify the name for the container when it runs. This is a required configuration since user needs consistent naming to have smooth attaching experience. SAM will use provided name and add it to `container.start()` configuration.
+With this `launch.json` in place the only caveat left is the container name to step into. As for now, SAM will not assign consistent names for started containers, and neither it provides the way for the user to supply that name. So my proposal is to create _new flag_ for `sam local` command -  `--container-name` which will provide the user a way to specify the name for the container when it runs. This is a required configuration since user needs consistent naming to have usable attaching experience. SAM will use provided name and add it to `container.start()` configuration.
 
 ### Open questions
 
@@ -175,4 +188,9 @@ With this `launch.json` in place the only caveat left is the container name to s
 
 ### Tasks breakdown
 
-Coming soon...
+- [x] Submit PR with the design doc;
+- [x] Submit PR with runner program improvements. Track [here](https://github.com/lambci/docker-lambda/pull/127);
+- [ ] Close the question with `--container-name` option. **WIP**;
+- [ ] Implement required changes in SAM. **WIP**;
+- [ ] Write tests;
+- [ ] Submit PR with this changes to SAM repo.

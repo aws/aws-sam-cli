@@ -218,7 +218,6 @@ class Container(object):
 
         # Iterator returns a tuple of (frame_type, data) where the frame type determines which stream we write output
         # to
-
         for frame_type, data in output_itr:
             if frame_type == Container._STDOUT_FRAME_TYPE and stdout:
                 # Frame type 1 is stdout data.
