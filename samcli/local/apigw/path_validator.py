@@ -17,6 +17,7 @@ ALLOWED_PATH_CHARS = r"[A-Za-z0-9\_\-\{\}\/\.\+]*$"
 
 PATH_VALIDATOR_REGEX = re.compile(ALLOWED_PATH_CHARS)
 
+
 class PathValidator(object):
 
     @staticmethod

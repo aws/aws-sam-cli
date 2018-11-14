@@ -16,18 +16,15 @@ class TestPathValidator(TestCase):
                            ("/something/{dynamic}"),
                            ("/strange-chars/H3ll0_World.1234")
                            ])
-
     def test_is_valid_path(self, path):
         is_valid = PathValidator.is_valid(path)
 
         self.assertTrue(is_valid)
 
-
     @parameterized.expand([("/~route-with-tilde"),
                            ("/path/to/~route"),
                            ("/~path/{id}")
                            ])
-                           
     def test_is_not_valid_path(self, path):
         is_valid = PathValidator.is_valid(path)
 
