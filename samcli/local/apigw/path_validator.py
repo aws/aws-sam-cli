@@ -13,22 +13,22 @@ import re
 # Note that this message refers to a specific resource, therefore the curly braces rule
 # (the specific restriction of having them at the beginning and end) shouldn't apply to the
 # path (which is a composition of resources).
-ALLOWED_PATH_CHARS = r"[A-Za-z0-9_-{}\/\.]*$"
+ALLOWED_PATH_CHARS = r"[A-Za-z0-9\_\-\{\}\/\.\+]*$"
 
 PATH_VALIDATOR_REGEX = re.compile(ALLOWED_PATH_CHARS)
 
 class PathValidator(object):
 
-  @staticmethod
-  def is_valid(path):
-    """
-    Validates the Api Gateway Path is valid (only includes a-zA-Z0-9._- and curly braces)
+    @staticmethod
+    def is_valid(path):
+        """
+        Validates the Api Gateway Path is valid (only includes a-zA-Z0-9._-+ and curly braces)
 
-    Examples:
+        Examples:
 
-    '/path/to/something' => true
-    '/path/to/~something' => false
-    """
+        '/path/to/something' => true
+        '/path/to/~something' => false
+        """
 
-    return bool(PATH_VALIDATOR_REGEX.match(path))
+        return bool(PATH_VALIDATOR_REGEX.match(path))
             
