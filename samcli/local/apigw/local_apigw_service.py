@@ -6,6 +6,7 @@ import base64
 
 from flask import Flask, request
 
+from samcli.commands.exceptions import UserException
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
@@ -72,9 +73,9 @@ class LocalApigwService(BaseLocalService):
         for api_gateway_route in self.routing_list:
 
             if not PathValidator.is_valid(api_gateway_route.path):
-                message = 'Api\'s Event source\'s Path parameter only allow a-zA-Z0-9._- and curly braces.\nInvalid Path: "{}")'.format(api_gateway_route.path )
-                LOG.error(message)
-                raise TypeError(message)
+                message = ("Api's Event source's Path parameter only allow a-zA-Z0-9._-+ and curly braces."
+                           "\nInvalid Path: \"{}\"".format(api_gateway_route.path))
+                raise UserException(message)
 
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods,
