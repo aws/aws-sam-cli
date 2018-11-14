@@ -4,6 +4,7 @@ Builds the application
 
 import os
 import shutil
+from aws_lambda_builders.builder import LambdaBuilder
 
 
 class ApplicationBuilder(object):
@@ -12,6 +13,21 @@ class ApplicationBuilder(object):
     is stopping this class from supporting other resource types. Building in context of Lambda functions refer to
     converting source code into artifacts that can be run on AWS Lambda
     """
+
+    _builder_capabilities = {
+        "python2.7": {
+            "language": "python",
+            "dependency_manager": "pip",
+            "application_framework": None,
+            "manifest_name": "requirements.txt"
+        },
+        "python3.6": {
+           "language": "python",
+           "dependency_manager": "pip",
+           "application_framework": None,
+           "manifest_name": "requirements.txt"
+        }
+    }
 
     def __init__(self, function_provider, build_dir, source_root, use_container=False, parallel=False):
         """
@@ -95,18 +111,27 @@ class ApplicationBuilder(object):
 
     def _build_function(self, function_name, codeuri, runtime):
 
-        code_dir = os.path.normpath(os.path.join(self.source_root, codeuri))
+        capability = self._builder_capabilities[runtime]
 
+        # Create the arguments to pass to the builder
+        code_dir = os.path.normpath(os.path.join(self.source_root, codeuri))
         # artifacts directory will be created by the builder
         artifacts_dir = os.path.join(self.build_dir, function_name)
 
-        self._mock_build(code_dir, artifacts_dir)
+        # TODO: Create this
+        scratch_dir = None
+
+        # TODO: how do we let customers specify where the manifests are? Or change the name of the file?
+        manifest_path = os.path.join(code_dir, capability["manifest_name"])
+
+        builder = LambdaBuilder(language=capability["language"],
+                                dependency_manager=capability["dependency_manager"],
+                                application_framework=capability["application_framework"])
+
+        builder.build(code_dir,
+                      artifacts_dir,
+                      scratch_dir,
+                      manifest_path,
+                      runtime=runtime)
 
         return artifacts_dir
-
-    def _mock_build(self, code_dir, artifacts_dir):
-        """
-        Mock build for testing purposes. Simply copies all files from source to destination directory
-        """
-        ignore_files = ('*.pyc', '.git', '__pycache__', ".DS_Store", "*.egg-info", "*.egg", "pip-log.txt")
-        shutil.copytree(code_dir, artifacts_dir, ignore=shutil.ignore_patterns(*ignore_files))
