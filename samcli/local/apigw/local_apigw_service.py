@@ -11,6 +11,7 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 from .service_error_responses import ServiceErrorResponses
 from .path_converter import PathConverter
+from .path_validator import PathValidator
 
 LOG = logging.getLogger(__name__)
 
@@ -69,6 +70,12 @@ class LocalApigwService(BaseLocalService):
                           )
 
         for api_gateway_route in self.routing_list:
+
+            if not PathValidator.is_valid(api_gateway_route.path):
+                message = 'Api\'s Event source\'s Path parameter only allow a-zA-Z0-9._- and curly braces.\nInvalid Path: "{}")'.format(api_gateway_route.path )
+                LOG.error(message)
+                raise TypeError(message)
+
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods,
                                                        path):
