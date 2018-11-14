@@ -31,4 +31,3 @@ class PathValidator(object):
         """
 
         return bool(PATH_VALIDATOR_REGEX.match(path))
-            
