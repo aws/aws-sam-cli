@@ -1,16 +1,13 @@
 
 import os
 import click
+from functools import partial
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
-_TEMPLATE_SEARCH_PATHS = [
-    os.path.join(".sam", "build", "template.yaml"),
-    "template.yaml",
-    "template.yml",
-]
 
 
-def get_or_default_template_file_name(ctx, param, provided_value):
+
+def get_or_default_template_file_name(ctx, param, provided_value, include_build=True):
     """
     Default value for the template file name option is more complex than what Click can handle.
     This method either returns user provided file name or one of the two default options (template.yaml/template.yml)
@@ -22,12 +19,20 @@ def get_or_default_template_file_name(ctx, param, provided_value):
     :return: Actual value to be used in the CLI
     """
 
+    search_paths = [
+        "template.yaml",
+        "template.yml",
+    ]
+
+    if include_build:
+        search_paths.insert(0, os.path.join(".sam", "build", "template.yaml"))
+
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
         # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
         # .yml is the default, even if it does not exist.
         provided_value = "template.yml"
 
-        for option in _TEMPLATE_SEARCH_PATHS:
+        for option in search_paths:
             if os.path.exists(option):
                 provided_value = option
                 break
@@ -45,7 +50,17 @@ def template_common_option(f):
     return template_click_option()(f)
 
 
-def template_click_option():
+def template_option_without_build(f):
+    """
+    Common ClI option for template
+
+    :param f: Callback passed by Click
+    :return: Callback
+    """
+    return template_click_option(include_build=False)(f)
+
+
+def template_click_option(include_build=True):
     """
     Click Option for template option
     """
@@ -53,7 +68,7 @@ def template_click_option():
                         default=_TEMPLATE_OPTION_DEFAULT_VALUE,
                         type=click.Path(),
                         envvar="SAM_TEMPLATE_FILE",
-                        callback=get_or_default_template_file_name,
+                        callback=partial(get_or_default_template_file_name, include_build=include_build),
                         show_default=True,
                         help="AWS SAM template file")
 

@@ -11,7 +11,7 @@ from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
 class BuildContext(object):
 
     def __init__(self, template_file,
-                 source_root,
+                 base_dir,
                  build_dir,
                  clean=False,
                  use_container=False,
@@ -19,7 +19,7 @@ class BuildContext(object):
                  skip_pull_image=False):
 
         self._template_file = template_file
-        self._source_root = source_root
+        self._base_dir = base_dir
         self._build_dir = build_dir
         self._clean = clean
         self._use_container = use_container
@@ -63,8 +63,8 @@ class BuildContext(object):
         return self._build_dir
 
     @property
-    def source_root(self):
-        return self._source_root
+    def base_dir(self):
+        return self._base_dir
 
     @property
     def use_container(self):
