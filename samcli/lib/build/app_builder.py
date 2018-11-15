@@ -3,8 +3,15 @@ Builds the application
 """
 
 import os
-import shutil
+import io
+import json
+import logging
+
+from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
+
+
+LOG = logging.getLogger(__name__)
 
 
 class ApplicationBuilder(object):
@@ -29,7 +36,12 @@ class ApplicationBuilder(object):
         }
     }
 
-    def __init__(self, function_provider, build_dir, source_root, use_container=False, parallel=False):
+    def __init__(self,
+                 function_provider,
+                 build_dir,
+                 source_root,
+                 container_manager=None,
+                 parallel=False):
         """
         Initialize the class
 
@@ -44,8 +56,8 @@ class ApplicationBuilder(object):
         source_root : str
             Path to a folder. Use this folder as the root to resolve relative source code paths against
 
-        use_container : bool
-            Optional. Set to True if you want to run the builds on an container that simulates AWS Lambda environment
+        container_manager : samcli.local.docker.manager.ContainerManager
+            Optional. If provided, we will attempt to build inside a Docker Container
 
         parallel : bool
             Optional. Set to True to build each function in parallel to improve performance
@@ -54,7 +66,7 @@ class ApplicationBuilder(object):
         self.build_dir = build_dir
         self.source_root = source_root
 
-        self.use_container = use_container
+        self.container_manager = container_manager
         self.parallel = parallel
 
     def build(self):
@@ -76,7 +88,7 @@ class ApplicationBuilder(object):
 
         return result
 
-    def update_template(self, template_dict, built_artifacts):
+    def update_template(self, template_dict, target_template_path, built_artifacts):
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
@@ -94,18 +106,25 @@ class ApplicationBuilder(object):
         """
         # TODO: Move this method to a "build provider" or some other class. It doesn't really fit within here.
 
+        target_dir = os.path.dirname(target_template_path)
+
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
             if logical_id not in built_artifacts:
                 # this resource was not built. So skip it
                 continue
 
+            # Artifacts are written relative to the output template because it makes the template portability
+            #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
+            #   package stage running on a different machine
+            artifact_relative_path = os.path.relpath(built_artifacts[logical_id], target_dir)
+
             resource_type = resource.get("Type")
             if resource_type == "AWS::Serverless::Function":
-                template_dict["Resources"][logical_id]["Properties"]["CodeUri"] = built_artifacts[logical_id]
+                template_dict["Resources"][logical_id]["Properties"]["CodeUri"] = artifact_relative_path
 
             if resource_type == "AWS::Lambda::Function":
-                template_dict["Resources"][logical_id]["Properties"]["Code"] = built_artifacts[logical_id]
+                template_dict["Resources"][logical_id]["Properties"]["Code"] = artifact_relative_path
 
         return template_dict
 
@@ -124,14 +143,67 @@ class ApplicationBuilder(object):
         # TODO: how do we let customers specify where the manifests are? Or change the name of the file?
         manifest_path = os.path.join(code_dir, capability["manifest_name"])
 
-        builder = LambdaBuilder(language=capability["language"],
-                                dependency_manager=capability["dependency_manager"],
-                                application_framework=capability["application_framework"])
+        if self.container_manager:
+            return self._build_function_on_container(capability,
+                                                     code_dir,
+                                                     artifacts_dir,
+                                                     manifest_path,
+                                                     runtime)
+        else:
+            builder = LambdaBuilder(language=capability["language"],
+                                    dependency_manager=capability["dependency_manager"],
+                                    application_framework=capability["application_framework"])
 
-        builder.build(code_dir,
-                      artifacts_dir,
-                      scratch_dir,
-                      manifest_path,
-                      runtime=runtime)
+            # TODO: Add try-catch and raise an internal exception if Workflow failed
+            builder.build(code_dir,
+                          artifacts_dir,
+                          scratch_dir,
+                          manifest_path,
+                          runtime=runtime)
 
+            return artifacts_dir
+
+    def _build_function_on_container(self,
+                                     capability,
+                                     source_dir,
+                                     artifacts_dir,
+                                     manifest_path,
+                                     runtime):
+
+        # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
+        log_level = LOG.getEffectiveLevel()
+
+        container = LambdaBuildContainer(capability["language"],
+                                         capability["dependency_manager"],
+                                         capability["application_framework"],
+                                         source_dir,
+                                         manifest_path,
+                                         runtime,
+                                         log_level=log_level)
+
+        self.container_manager.run(container)
+
+        stdout_stream = io.BytesIO()
+        stderr_stream = io.BytesIO()
+        container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
+
+        stdout_data = stdout_stream.getvalue().decode('utf-8')
+        logs = stderr_stream.getvalue().decode('utf-8')
+        if logs:
+            LOG.info("%s", logs)
+
+        # TODO: Add a try-catch and raise if build failed
+        response = json.loads(stdout_data)
+        LOG.debug("Build inside container returned response %s", response)
+
+        if "error" in response or "result" not in response:
+            # TODO: Raise a proper exception and remove the error print from here
+            LOG.error("Build failed %s", response)
+            raise ValueError(response["error"]["message"])
+
+        # "/." is a Docker thing that instructions the copy command to download contents of the folder only
+        result_dir_in_container = response["result"]["artifacts_dir"] + "/."
+        container.copy(result_dir_in_container, artifacts_dir)
+
+        LOG.debug("Build inside container succeeded")
         return artifacts_dir

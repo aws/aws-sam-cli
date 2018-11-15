@@ -50,3 +50,26 @@ def template_click_option():
                         callback=get_or_default_template_file_name,
                         show_default=True,
                         help="AWS SAM template file")
+
+
+def docker_common_options(f):
+    for option in reversed(docker_click_options()):
+        option(f)
+
+    return f
+
+
+def docker_click_options():
+
+    return [
+        click.option('--skip-pull-image',
+                     is_flag=True,
+                     help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
+                     envvar="SAM_SKIP_PULL_IMAGE"),
+
+        click.option('--docker-network',
+                     envvar="SAM_DOCKER_NETWORK",
+                     help="Specifies the name or id of an existing docker network to lambda docker "
+                          "containers should connect to, along with the default bridge network. If not specified, "
+                          "the Lambda containers will only connect to the default bridge docker network."),
+    ]

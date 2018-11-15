@@ -3,7 +3,7 @@ Common CLI options for invoke command
 """
 
 import click
-from samcli.commands._utils.options import template_click_option
+from samcli.commands._utils.options import template_click_option, docker_click_options
 from samcli.cli.types import CfnParameterOverridesType
 
 
@@ -79,19 +79,10 @@ def invoke_common_options(f):
                           "a remote machine, you must mount the path where the SAM file exists on the docker machine "
                           "and modify this value to match the remote machine."),
 
-        click.option('--docker-network',
-                     envvar="SAM_DOCKER_NETWORK",
-                     help="Specifies the name or id of an existing docker network to lambda docker "
-                          "containers should connect to, along with the default bridge network. If not specified, "
-                          "the Lambda containers will only connect to the default bridge docker network."),
-
         click.option('--log-file', '-l',
                      help="logfile to send runtime logs to."),
 
-        click.option('--skip-pull-image',
-                     is_flag=True,
-                     help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
-                     envvar="SAM_SKIP_PULL_IMAGE"),
+    ] + docker_click_options() + [
 
         click.option('--profile',
                      help="Specify which AWS credentials profile to use."),

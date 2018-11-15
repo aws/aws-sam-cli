@@ -4,6 +4,8 @@ Representation of a generic Docker container
 
 import logging
 import docker
+import tempfile
+import tarfile
 
 from samcli.local.docker.attach_api import attach
 from .utils import to_posix_path
@@ -201,6 +203,25 @@ class Container(object):
                           logs=True)
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
+
+    def copy(self, from_container_path, to_host_path):
+
+        if not self.is_created():
+            raise RuntimeError("Container does not exist. Cannot get logs for this container")
+
+        real_container = self.docker_client.containers.get(self.id)
+
+        LOG.debug("Copying from container: %s -> %s", from_container_path, to_host_path)
+        with tempfile.NamedTemporaryFile() as fp:
+            tar_stream, stats = real_container.get_archive(from_container_path)
+            for data in tar_stream:
+                fp.write(data)
+
+            # Seek the handle back to start of file for tarfile to use
+            fp.seek(0)
+
+            with tarfile.open(fileobj=fp, mode='r') as tar:
+                tar.extractall(path=to_host_path)
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):

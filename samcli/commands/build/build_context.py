@@ -4,21 +4,32 @@ import shutil
 import yaml
 
 from samcli.yamlhelper import yaml_parse
+from samcli.local.docker.manager import ContainerManager
 from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
 
 
 class BuildContext(object):
 
-    def __init__(self, template_file, source_root, build_dir, clean=False, use_container=False):
+    def __init__(self, template_file,
+                 source_root,
+                 build_dir,
+                 clean=False,
+                 use_container=False,
+                 docker_network=None,
+                 skip_pull_image=False):
+
         self._template_file = template_file
         self._source_root = source_root
         self._build_dir = build_dir
         self._clean = clean
         self._use_container = use_container
+        self._docker_network = docker_network
+        self._skip_pull_image = skip_pull_image
 
         self._function_provider = None
         self._template_dict = None
         self._app_builder = None
+        self._container_manager = None
 
     def __enter__(self):
         self._template_dict = self._get_template_data(self._template_file)
@@ -26,10 +37,18 @@ class BuildContext(object):
 
         self._build_dir = self._setup_build_dir()
 
+        if self._use_container:
+            self._container_manager = ContainerManager(docker_network_id=self._docker_network,
+                                                       skip_pull_image=self._skip_pull_image)
+
         return self
 
     def __exit__(self, *args):
         pass
+
+    @property
+    def container_manager(self):
+        return self._container_manager
 
     @property
     def function_provider(self):
