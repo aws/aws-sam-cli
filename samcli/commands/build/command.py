@@ -21,7 +21,7 @@ Use this command to build your Lambda function source code and generate artifact
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @click.option('--build-dir', '-b',
-              default="build",
+              default=os.path.join(".sam", "build"),
               type=click.Path(),
               help="Path to a folder where the built artifacts will be stored")
 @click.option("--source-root", "-s",

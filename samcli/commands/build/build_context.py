@@ -72,7 +72,7 @@ class BuildContext(object):
 
     @property
     def output_template_path(self):
-        return os.path.join(self._build_dir, "built-template.yaml")
+        return os.path.join(self._build_dir, "template.yaml")
 
     def _setup_build_dir(self):
 
@@ -81,7 +81,7 @@ class BuildContext(object):
 
         if not os.path.exists(self._build_dir):
             # TODO: What permissions should I apply to this directory?
-            os.mkdir(self._build_dir)
+            os.makedirs(self._build_dir)
 
         if os.listdir(self._build_dir) and self._clean:
             # Build folder contains something inside. Clear everything.
