@@ -3,6 +3,11 @@ import os
 import click
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
+_TEMPLATE_SEARCH_PATHS = [
+    os.path.join(".sam", "build", "template.yaml"),
+    "template.yaml",
+    "template.yml",
+]
 
 
 def get_or_default_template_file_name(ctx, param, provided_value):
@@ -22,9 +27,10 @@ def get_or_default_template_file_name(ctx, param, provided_value):
         # .yml is the default, even if it does not exist.
         provided_value = "template.yml"
 
-        option = "template.yaml"
-        if os.path.exists(option):
-            provided_value = option
+        for option in _TEMPLATE_SEARCH_PATHS:
+            if os.path.exists(option):
+                provided_value = option
+                break
 
     return os.path.abspath(provided_value)
 
