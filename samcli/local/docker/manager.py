@@ -5,6 +5,7 @@ Provides classes that interface with Docker to create, execute and manage contai
 import logging
 import sys
 import docker
+import re
 
 LOG = logging.getLogger(__name__)
 
@@ -16,9 +17,11 @@ class ContainerManager(object):
     serve requests faster. It is also thread-safe.
     """
 
+    _container_name_pattern = re.compile('[a-zA-Z0-9][a-zA-Z0-9_.-]+')
+
     def __init__(self,
-                 docker_network_id=None,
                  docker_client=None,
+                 docker_network_id=None,
                  skip_pull_image=False):
         """
         Instantiate the container manager
@@ -31,6 +34,42 @@ class ContainerManager(object):
         self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
         self.docker_client = docker_client or docker.from_env()
+
+    @staticmethod
+    def is_valid_container_name(name):
+        """
+        Checks if a given name is a valid Docker container name
+
+        :return bool: True, if name is a valid Docker container name, False otherwise
+        """
+        
+        return True if ContainerManager._container_name_pattern.match(name) else False
+
+    def check_connectivity(self):
+        """
+        Checks if Docker daemon is running. This is required for us to invoke the function locally
+
+        :return bool: True, if Docker is available, False otherwise
+        """
+
+        try:
+            self.docker_client.ping()
+            return True
+        
+        # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
+        except (docker.errors.APIError, requests.exceptions.ConnectionError):
+            return False
+
+    def is_container_name_taken(self, name):
+        """
+        Checks if a given name is taken by another Docker container
+
+        :return bool: True, if name is already taken by another Docker container, False otherwise
+        """
+
+        containers = self.docker_client.containers.list(all=True, filters={ "name": name })
+
+        return len(containers) > 0
 
     def run(self, container, input_data=None, warm=False):
         """
@@ -108,7 +147,7 @@ class ContainerManager(object):
             self.docker_client.images.get(image_name)
             return True
         except docker.errors.ImageNotFound:
-            return False
+            return False    
 
 
 class DockerImageNotFoundException(Exception):

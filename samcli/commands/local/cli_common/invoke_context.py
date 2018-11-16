@@ -57,7 +57,8 @@ class InvokeContext(object):
                  debug_args=None,
                  debugger_path=None,
                  aws_region=None,
-                 parameter_overrides=None):
+                 parameter_overrides=None,
+                 container_name=None):
         """
         Initialize the context
 
@@ -92,6 +93,8 @@ class InvokeContext(object):
             AWS region to use
         parameter_overrides dict
             Values for the template parameters
+        container_name str
+            Docker container name
 
         """
         self._template_file = template_file
@@ -107,6 +110,7 @@ class InvokeContext(object):
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._parameter_overrides = parameter_overrides or {}
+        self._container_name = container_name
 
         self._template_dict = None
         self._function_provider = None
@@ -132,7 +136,20 @@ class InvokeContext(object):
                                                       self._debug_args,
                                                       self._debugger_path)
 
-        self._check_docker_connectivity()
+        container_manager = ContainerManager(docker_network_id=self._docker_network,
+                                             skip_pull_image=self._skip_pull_image)
+        
+        if (not container_manager.check_connectivity()):
+            raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")            
+
+        if (self._container_name):
+            if (not container_manager.is_valid_container_name(self._container_name)):
+                raise InvokeContextException("'{}' is not a valid Docker container name, only [a-zA-Z0-9][a-zA-Z0-9_.-] are allowed.".format(self._container_name))
+            
+            if (container_manager.is_container_name_taken(self._container_name)):
+                raise InvokeContextException("'{}' Docker container name is already taken".format(self._container_name))
+
+        self._container_manager = container_manager
 
         return self
 
@@ -180,13 +197,11 @@ class InvokeContext(object):
             locally
         """
 
-        container_manager = ContainerManager(docker_network_id=self._docker_network,
-                                             skip_pull_image=self._skip_pull_image)
-
-        lambda_runtime = LambdaRuntime(container_manager)
+        lambda_runtime = LambdaRuntime(self._container_manager)
         return LocalLambdaRunner(local_runtime=lambda_runtime,
                                  function_provider=self._function_provider,
                                  cwd=self.get_cwd(),
+                                 container_name=self._container_name,
                                  env_vars_values=self._env_vars_value,
                                  debug_context=self._debug_context,
                                  aws_profile=self._aws_profile,
@@ -264,7 +279,7 @@ class InvokeContext(object):
             self._parameter_overrides["AWS::Region"] = self._aws_region
 
         return self._parameter_overrides
-
+    
     @staticmethod
     def _get_template_data(template_file):
         """
@@ -360,21 +375,3 @@ class InvokeContext(object):
             debugger_path = str(debugger)
 
         return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
-
-    @staticmethod
-    def _check_docker_connectivity(docker_client=None):
-        """
-        Checks if Docker daemon is running. This is required for us to invoke the function locally
-
-        :param docker_client: Instance of Docker client
-        :return bool: True, if Docker is available
-        :raises InvokeContextException: If Docker is not available
-        """
-
-        docker_client = docker_client or docker.from_env()
-
-        try:
-            docker_client.ping()
-        # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-        except (docker.errors.APIError, requests.exceptions.ConnectionError):
-            raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")

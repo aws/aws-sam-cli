@@ -26,6 +26,7 @@ class LocalLambdaRunner(object):
                  local_runtime,
                  function_provider,
                  cwd,
+                 container_name=None,
                  env_vars_values=None,
                  aws_profile=None,
                  debug_context=None,
@@ -37,9 +38,9 @@ class LocalLambdaRunner(object):
         :param samcli.commands.local.lib.provider.FunctionProvider function_provider: Provider that can return a
             Lambda function
         :param string cwd: Current working directory. We will resolve all function CodeURIs relative to this directory.
+        :param string container_name: Optional. Name for the Docker container to use
         :param dict env_vars_values: Optional. Dictionary containing values of environment variables
-        :param integer debug_port: Optional. Port to bind the debugger to
-        :param string debug_args: Optional. Additional arguments passed to the debugger
+        :param DebugContext debug_context: Optional. Contains debugging info (port, debugger path)
         :param string aws_profile: Optional. AWS Credentials profile to use
         :param string aws_region: Optional. AWS region to use
         """
@@ -47,6 +48,7 @@ class LocalLambdaRunner(object):
         self.local_runtime = local_runtime
         self.provider = function_provider
         self.cwd = cwd
+        self.container_name = container_name
         self.env_vars_values = env_vars_values or {}
         self.aws_profile = aws_profile
         self.aws_region = aws_region
@@ -78,7 +80,8 @@ class LocalLambdaRunner(object):
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        self.local_runtime.invoke(config, event, debug_context=self.debug_context,
+                                  container_name=self.container_name, stdout=stdout, stderr=stderr)
 
     def is_debugging(self):
         """
