@@ -3,9 +3,10 @@ Provides classes that interface with Docker to create, execute and manage contai
 """
 
 import logging
-import sys
-import docker
 import re
+import sys
+import requests
+import docker
 from samcli.commands.exceptions import UserException
 
 LOG = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ class ContainerManager(object):
     run multiple containers in parallel, and also comes with the ability to reuse existing containers in order to
     serve requests faster. It is also thread-safe.
     """
-    
+
     _container_name_pattern = re.compile('[a-zA-Z0-9][a-zA-Z0-9_.-]+')
 
     def __init__(self,
@@ -41,22 +42,34 @@ class ContainerManager(object):
         """
         Checks if a given name is a valid Docker container name
 
-        :return bool: True, if name is a valid Docker container name, False otherwise
+        Parameters
+        ----------
+        name str
+            Docker container name to check
+
+        Returns
+        -------
+        bool
+            True, if name is a valid Docker container name, False otherwise
         """
-        
+
         return True if ContainerManager._container_name_pattern.match(name) else False
 
     def check_connectivity(self):
+
         """
         Checks if Docker daemon is running. This is required for us to invoke the function locally
 
-        :return bool: True, if Docker is available, False otherwise
+        Returns
+        -------
+        bool
+            True, if Docker is available, False otherwise
         """
 
         try:
             self.docker_client.ping()
             return True
-        
+
         # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
         except (docker.errors.APIError, requests.exceptions.ConnectionError):
             return False
@@ -65,10 +78,18 @@ class ContainerManager(object):
         """
         Checks if a given name is taken by another Docker container
 
-        :return bool: True, if name is already taken by another Docker container, False otherwise
+        Parameters
+        ----------
+        name str
+            Docker container name to check
+
+        Returns
+        -------
+        bool
+            True, if name is already taken by another Docker container, False otherwise
         """
 
-        containers = self.docker_client.containers.list(all=True, filters={ "name": name })
+        containers = self.docker_client.containers.list(all=True, filters={"name": name})
 
         return len(containers) > 0
 
@@ -103,8 +124,10 @@ class ContainerManager(object):
 
             container.start(input_data=input_data)
         except docker.errors.APIError as api_error:
-            if api_error.status_code == 409: raise DockerContainerException("'{}' Docker container name is already taken".format(container.name))
-            if api_error.is_server_error: raise DockerContainerException("Something went wrong on the Docker server")
+            if api_error.status_code == 409:
+                raise DockerContainerException("'{}' Docker container name is already taken".format(container.name))
+            if api_error.is_server_error:
+                raise DockerContainerException("Something went wrong on the Docker server")
             raise
 
     def stop(self, container):
@@ -153,14 +176,15 @@ class ContainerManager(object):
             self.docker_client.images.get(image_name)
             return True
         except docker.errors.ImageNotFound:
-            return False    
+            return False
 
 
 class DockerImageNotFoundException(Exception):
     pass
 
+
 class DockerContainerException(UserException):
     """
-    Something went wrong when creating a Docker container
+    Something went wrong during Docker container creation
     """
     pass

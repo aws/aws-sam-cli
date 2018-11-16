@@ -129,7 +129,7 @@ class Container(object):
 
         if self.network_id == 'host':
             kwargs["network_mode"] = self.network_id
-        
+
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 

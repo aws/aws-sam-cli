@@ -8,9 +8,6 @@ import sys
 import os
 import yaml
 
-import docker
-import requests
-
 from samcli.yamlhelper import yaml_parse
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
@@ -44,7 +41,7 @@ class InvokeContext(object):
     This class sets up some resources that need to be cleaned up after the context object is used.
     """
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=R0914
                  template_file,
                  function_identifier=None,
                  env_vars_file=None,
@@ -117,6 +114,7 @@ class InvokeContext(object):
         self._env_vars_value = None
         self._log_file_handle = None
         self._debug_context = None
+        self._container_manager = None
 
     def __enter__(self):
         """
@@ -136,17 +134,17 @@ class InvokeContext(object):
                                                       self._debug_args,
                                                       self._debugger_path)
 
-        container_manager = ContainerManager(docker_network_id=self._docker_network,
-                                             skip_pull_image=self._skip_pull_image)
-        
-        if (not container_manager.check_connectivity()):
-            raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")            
+        container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
 
-        if (self._container_name):
-            if (not container_manager.is_valid_container_name(self._container_name)):
-                raise InvokeContextException("'{}' is not a valid Docker container name, only [a-zA-Z0-9][a-zA-Z0-9_.-] are allowed.".format(self._container_name))
-            
-            if (container_manager.is_container_name_taken(self._container_name)):
+        if not container_manager.check_connectivity():
+            raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")
+
+        if self._container_name:
+            if not container_manager.is_valid_container_name(self._container_name):
+                raise InvokeContextException("'{}' is not a valid Docker container name"
+                                             "only [a-zA-Z0-9][a-zA-Z0-9_.-] are allowed.".format(self._container_name))
+
+            if container_manager.is_container_name_taken(self._container_name):
                 raise InvokeContextException("'{}' Docker container name is already taken".format(self._container_name))
 
         self._container_manager = container_manager
@@ -279,7 +277,7 @@ class InvokeContext(object):
             self._parameter_overrides["AWS::Region"] = self._aws_region
 
         return self._parameter_overrides
-    
+
     @staticmethod
     def _get_template_data(template_file):
         """
@@ -335,6 +333,25 @@ class InvokeContext(object):
             return None
 
         return open(log_file, 'wb')
+
+    @staticmethod
+    def _get_container_manager(docker_network, skip_pull_image):
+        """
+        Creates a ContainerManager
+
+        Parameters
+        ----------
+        docker_network str
+            Docker network identifier
+        skip_pull_image bool
+            Should the manager skip pulling the image
+
+        Returns
+        -------
+        samcli.local.docker.manager.ContainerManager
+            Object representing Docker container manager
+        """
+        return ContainerManager(docker_network_id=docker_network, skip_pull_image=skip_pull_image)
 
     @staticmethod
     def _get_debug_context(debug_port, debug_args, debugger_path):

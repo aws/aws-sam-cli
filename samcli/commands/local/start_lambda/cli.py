@@ -55,7 +55,7 @@ Here is a Python example:
 @invoke_common_options
 @cli_framework_options
 @pass_context
-def cli(ctx,
+def cli(ctx,  # pylint: disable=R0914
         # start-lambda Specific Options
         host, port,
 
