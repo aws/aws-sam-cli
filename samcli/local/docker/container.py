@@ -129,7 +129,7 @@ class Container(object):
 
         if self.network_id == 'host':
             kwargs["network_mode"] = self.network_id
-
+        
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
@@ -239,6 +239,13 @@ class Container(object):
                 # Either an unsupported frame type or stream for this frame type is not configured
                 LOG.debug("Dropping Docker container output because of unconfigured frame type. "
                           "Frame Type: %s. Data: %s", frame_type, data)
+
+    @property
+    def name(self):
+        """
+        Gets the name of the container
+        """
+        return self._name
 
     @property
     def network_id(self):

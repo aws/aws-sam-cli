@@ -6,6 +6,7 @@ import logging
 import sys
 import docker
 import re
+from samcli.commands.exceptions import UserException
 
 LOG = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class ContainerManager(object):
     run multiple containers in parallel, and also comes with the ability to reuse existing containers in order to
     serve requests faster. It is also thread-safe.
     """
-
+    
     _container_name_pattern = re.compile('[a-zA-Z0-9][a-zA-Z0-9_.-]+')
 
     def __init__(self,
@@ -93,13 +94,18 @@ class ContainerManager(object):
         else:
             LOG.info("Requested to skip pulling images ...\n")
 
-        if not container.is_created():
-            # Create the container first before running.
-            # Create the container in appropriate Docker network
-            container.network_id = self.docker_network_id
-            container.create()
+        try:
+            if not container.is_created():
+                # Create the container first before running.
+                # Create the container in appropriate Docker network
+                container.network_id = self.docker_network_id
+                container.create()
 
-        container.start(input_data=input_data)
+            container.start(input_data=input_data)
+        except docker.errors.APIError as api_error:
+            if api_error.status_code == 409: raise DockerContainerException("'{}' Docker container name is already taken".format(container.name))
+            if api_error.is_server_error: raise DockerContainerException("Something went wrong on the Docker server")
+            raise
 
     def stop(self, container):
         """
@@ -151,4 +157,10 @@ class ContainerManager(object):
 
 
 class DockerImageNotFoundException(Exception):
+    pass
+
+class DockerContainerException(UserException):
+    """
+    Something went wrong when creating a Docker container
+    """
     pass
