@@ -210,14 +210,20 @@ class ApplicationBuilder(object):
         if logs:
             LOG.info("%s", logs)
 
-        # TODO: Add a try-catch and raise if build failed
+        LOG.debug("Build inside container returned response %s", stdout_data)
         response = json.loads(stdout_data)
-        LOG.debug("Build inside container returned response %s", response)
 
-        if "error" in response or "result" not in response:
-            # TODO: Raise a proper exception and remove the error print from here
-            LOG.error("Build failed %s", response)
-            raise ValueError(response["error"]["message"])
+        if "error" in response:
+
+            err_code = response["error"]["code"]
+            if err_code == 400:
+                # Like HTTP 4xx - customer error
+                raise BuildError(response["error"]["message"])
+            else:
+                LOG.debug("Builder crashed")
+                raise ValueError(response["error"]["message"])
+
+        # Request is successful. Now copy the artifacts back to the host
 
         # "/." is a Docker thing that instructions the copy command to download contents of the folder only
         result_dir_in_container = response["result"]["artifacts_dir"] + "/."

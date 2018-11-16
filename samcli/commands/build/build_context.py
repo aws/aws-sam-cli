@@ -78,7 +78,10 @@ class BuildContext(object):
 
     @property
     def manifest_path_override(self):
-        return os.path.abspath(self._manifest_path)
+        if self._manifest_path:
+            return os.path.abspath(self._manifest_path)
+
+        return None
 
     def _setup_build_dir(self):
 

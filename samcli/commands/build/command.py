@@ -86,5 +86,8 @@ def do_cli(template, base_dir, build_dir, clean, use_container, manifest_path, d
             with open(ctx.output_template_path, "w") as fp:
                 fp.write(yaml_dump(modified_template))
 
+            click.secho("Build Succeeded", fg="green")
+
         except (UnsupportedRuntimeException, BuildError) as ex:
+            click.secho("Build Failed", fg="red")
             raise UserException(str(ex))
