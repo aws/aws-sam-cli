@@ -13,6 +13,7 @@ class BuildContext(object):
     def __init__(self, template_file,
                  base_dir,
                  build_dir,
+                 manifest_path=None,
                  clean=False,
                  use_container=False,
                  docker_network=None,
@@ -21,6 +22,7 @@ class BuildContext(object):
         self._template_file = template_file
         self._base_dir = base_dir
         self._build_dir = build_dir
+        self._manifest_path = manifest_path
         self._clean = clean
         self._use_container = use_container
         self._docker_network = docker_network
@@ -73,6 +75,10 @@ class BuildContext(object):
     @property
     def output_template_path(self):
         return os.path.join(self._build_dir, "template.yaml")
+
+    @property
+    def manifest_path_override(self):
+        return os.path.abspath(self._manifest_path)
 
     def _setup_build_dir(self):
 

@@ -1,10 +1,13 @@
 
 import os
 import click
+import logging
 from functools import partial
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 
+
+LOG = logging.getLogger(__name__)
 
 
 def get_or_default_template_file_name(ctx, param, provided_value, include_build=True):
@@ -37,7 +40,9 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build=
                 provided_value = option
                 break
 
-    return os.path.abspath(provided_value)
+    result = os.path.abspath(provided_value)
+    LOG.debug("Using SAM Template at %s", result)
+    return result
 
 
 def template_common_option(f):

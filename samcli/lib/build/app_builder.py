@@ -9,9 +9,18 @@ import logging
 
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
+from aws_lambda_builders.exceptions import LambdaBuilderError
 
 
 LOG = logging.getLogger(__name__)
+
+
+class UnsupportedRuntimeException(Exception):
+    pass
+
+
+class BuildError(Exception):
+    pass
 
 
 class ApplicationBuilder(object):
@@ -39,7 +48,8 @@ class ApplicationBuilder(object):
     def __init__(self,
                  function_provider,
                  build_dir,
-                 source_root,
+                 base_dir,
+                 manifest_path_override=None,
                  container_manager=None,
                  parallel=False):
         """
@@ -53,7 +63,7 @@ class ApplicationBuilder(object):
         build_dir : str
             Path to the directory where we will be storing built artifacts
 
-        source_root : str
+        base_dir : str
             Path to a folder. Use this folder as the root to resolve relative source code paths against
 
         container_manager : samcli.local.docker.manager.ContainerManager
@@ -64,7 +74,8 @@ class ApplicationBuilder(object):
         """
         self.function_provider = function_provider
         self.build_dir = build_dir
-        self.source_root = source_root
+        self.base_dir = base_dir
+        self.manifest_path_override = manifest_path_override
 
         self.container_manager = container_manager
         self.parallel = parallel
@@ -82,6 +93,10 @@ class ApplicationBuilder(object):
         result = {}
 
         for lambda_function in self.function_provider.get_all():
+
+            if lambda_function.runtime not in self._builder_capabilities:
+                raise UnsupportedRuntimeException("'%s' runtime is not supported".format(lambda_function.runtime))
+
             result[lambda_function.name] = self._build_function(lambda_function.name,
                                                                 lambda_function.codeuri,
                                                                 lambda_function.runtime)
@@ -133,7 +148,7 @@ class ApplicationBuilder(object):
         capability = self._builder_capabilities[runtime]
 
         # Create the arguments to pass to the builder
-        code_dir = os.path.normpath(os.path.join(self.source_root, codeuri))
+        code_dir = os.path.normpath(os.path.join(self.base_dir, codeuri))
         # artifacts directory will be created by the builder
         artifacts_dir = os.path.join(self.build_dir, function_name)
 
@@ -141,7 +156,7 @@ class ApplicationBuilder(object):
         scratch_dir = None
 
         # TODO: how do we let customers specify where the manifests are? Or change the name of the file?
-        manifest_path = os.path.join(code_dir, capability["manifest_name"])
+        manifest_path = self.manifest_path_override or os.path.join(code_dir, capability["manifest_name"])
 
         if self.container_manager:
             return self._build_function_on_container(capability,
@@ -155,11 +170,14 @@ class ApplicationBuilder(object):
                                     application_framework=capability["application_framework"])
 
             # TODO: Add try-catch and raise an internal exception if Workflow failed
-            builder.build(code_dir,
-                          artifacts_dir,
-                          scratch_dir,
-                          manifest_path,
-                          runtime=runtime)
+            try:
+                builder.build(code_dir,
+                              artifacts_dir,
+                              scratch_dir,
+                              manifest_path,
+                              runtime=runtime)
+            except LambdaBuilderError as ex:
+                raise BuildError(str(ex))
 
             return artifacts_dir
 
