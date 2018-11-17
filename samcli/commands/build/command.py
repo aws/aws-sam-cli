@@ -15,6 +15,7 @@ from samcli.lib.build.app_builder import ApplicationBuilder, UnsupportedRuntimeE
 
 LOG = logging.getLogger(__name__)
 
+
 HELP_TEXT = """
 Use this command to build your Lambda function source code and generate artifacts that can be deployed to AWS Lambda 
 """
@@ -22,21 +23,22 @@ Use this command to build your Lambda function source code and generate artifact
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @click.option('--build-dir', '-b',
-              default=os.path.join(".sam", "build"),
-              type=click.Path(),
+              default=os.path.join(".aws-sam", "build"),
+              type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
               help="Path to a folder where the built artifacts will be stored")
 @click.option("--base-dir", "-s",
-              default=os.getcwd(),
-              type=click.Path(),
+              default=None,
+              type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
               help="Resolve relative paths to function's source code with respect to this folder. Use this if "
-                   "SAM template and your source code are not in same enclosing folder")
-@click.option("--container", "-n",
+                   "SAM template and your source code are not in same enclosing folder. By default, relative paths to"
+                   "are resolved with respect to the SAM template's location")
+@click.option("--use-container", "-n",
               is_flag=True,
-              help="Run the builds inside a AWS Lambda like Docker container")
+              help="Run the builds inside a Docker container that simulates an AWS Lambda like environment")
 @click.option("--manifest", "-m",
               default=None,
               type=click.Path(),
-              help="Path to a dependency manifest (ex: requirements.txt) to use instead of the default one")
+              help="Path to a custom dependency manifest (ex: package.json) to use instead of the default one")
 @template_option_without_build
 @docker_common_options
 @cli_framework_options
@@ -46,21 +48,31 @@ def cli(ctx,
         template,
         base_dir,
         build_dir,
-        container,
+        use_container,
         manifest,
         docker_network,
         skip_pull_image):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(template, base_dir, build_dir, True, container, manifest, docker_network, skip_pull_image)  # pragma: no cover
+    do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network, skip_pull_image)  # pragma: no cover
 
 
-def do_cli(template, base_dir, build_dir, clean, use_container, manifest_path, docker_network, skip_pull_image):
+def do_cli(template,
+           base_dir,
+           build_dir,
+           clean,
+           use_container,
+           manifest_path,
+           docker_network,
+           skip_pull_image):
     """
     Implementation of the ``cli`` method
     """
 
     LOG.debug("'build' command is called")
+
+    if use_container:
+        LOG.info("Starting Build inside a container")
 
     with BuildContext(template,
                       base_dir,

@@ -1,16 +1,24 @@
 
 import os
 import shutil
-import yaml
 
-from samcli.yamlhelper import yaml_parse
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
+
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
+from samcli.commands._utils.template import get_template_data
+from samcli.commands.exceptions import UserException
 
 
 class BuildContext(object):
 
-    def __init__(self, template_file,
+    _BUILD_DIR_PERMISSIONS = 0o755
+
+    def __init__(self,
+                 template_file,
                  base_dir,
                  build_dir,
                  manifest_path=None,
@@ -34,8 +42,16 @@ class BuildContext(object):
         self._container_manager = None
 
     def __enter__(self):
-        self._template_dict = self._get_template_data(self._template_file)
+        try:
+            self._template_dict = get_template_data(self._template_file)
+        except ValueError as ex:
+            raise UserException(str(ex))
+
         self._function_provider = SamFunctionProvider(self._template_dict)
+
+        if not self._base_dir:
+            # Base directory, if not provided, is the directory containing the template
+            self._base_dir = str(pathlib.Path(self._template_file).resolve().parent)
 
         self._build_dir = self._setup_build_dir()
 
@@ -86,37 +102,18 @@ class BuildContext(object):
     def _setup_build_dir(self):
 
         # Get absolute path
-        self._build_dir = os.path.abspath(self._build_dir)
+        self._build_dir = str(pathlib.Path(self._build_dir).resolve())
 
-        if not os.path.exists(self._build_dir):
-            # TODO: What permissions should I apply to this directory?
-            os.makedirs(self._build_dir)
+        if not pathlib.Path(self._build_dir).exists():
+            # Build directory does not exist. Create the directory and all intermediate paths
+            os.makedirs(self._build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
 
         if os.listdir(self._build_dir) and self._clean:
             # Build folder contains something inside. Clear everything.
             shutil.rmtree(self._build_dir)
             # this would have cleared the parent folder as well. So recreate it.
-            os.mkdir(self._build_dir)
+            os.mkdir(self._build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
 
         return self._build_dir
 
-    @staticmethod
-    def _get_template_data(template_file):
-        """
-        Read the template file, parse it as JSON/YAML and return the template as a dictionary.
-
-        :param string template_file: Path to the template to read
-        :return dict: Template data as a dictionary
-        :raises InvokeContextException: If template file was not found or the data was not a JSON/YAML
-        """
-        # TODO: This method was copied from InvokeContext. Move it into a common folder
-
-        if not os.path.exists(template_file):
-            raise ValueError("Template file not found at {}".format(template_file))
-
-        with open(template_file, 'r') as fp:
-            try:
-                return yaml_parse(fp.read())
-            except (ValueError, yaml.YAMLError) as ex:
-                raise ValueError("Failed to parse template: {}".format(str(ex)))
 

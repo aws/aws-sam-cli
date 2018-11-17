@@ -16,6 +16,7 @@ from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.manager import ContainerManager
+from samcli.commands._utils.template import get_template_data
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
 
@@ -275,14 +276,10 @@ class InvokeContext(object):
         :raises InvokeContextException: If template file was not found or the data was not a JSON/YAML
         """
 
-        if not os.path.exists(template_file):
-            raise InvokeContextException("Template file not found at {}".format(template_file))
-
-        with open(template_file, 'r') as fp:
-            try:
-                return yaml_parse(fp.read())
-            except (ValueError, yaml.YAMLError) as ex:
-                raise InvokeContextException("Failed to parse template: {}".format(str(ex)))
+        try:
+            get_template_data(template_file)
+        except ValueError as ex:
+            raise InvokeContextException(str(ex))
 
     @staticmethod
     def _get_env_vars_value(filename):

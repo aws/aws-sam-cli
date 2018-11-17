@@ -22,6 +22,7 @@ class LambdaBuildContainer(Container):
     _BUILDERS_EXECUTABLE = "lambda-builders"
 
     def __init__(self,
+                 protocol_version,
                  language,
                  dependency_manager,
                  application_framework,
@@ -37,7 +38,8 @@ class LambdaBuildContainer(Container):
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
 
-        request_json = self._make_request(language,
+        request_json = self._make_request(protocol_version,
+                                          language,
                                           dependency_manager,
                                           application_framework,
                                           container_dirs,
@@ -75,7 +77,8 @@ class LambdaBuildContainer(Container):
             env_vars=env_vars)
 
     @staticmethod
-    def _make_request(language,
+    def _make_request(protocol_version,
+                      language,
                       dependency_manager,
                       application_framework,
                       container_dirs,
@@ -87,7 +90,9 @@ class LambdaBuildContainer(Container):
         return json.dumps({
             "jsonschema": "2.0",
             "id": 1,
+            "method": "LambdaBuilder.build",
             "params": {
+                "__protocol_version": protocol_version,
                 "capability": {
                     "language": language,
                     "dependency_manager": dependency_manager,
