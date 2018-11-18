@@ -4,7 +4,6 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 
 import errno
 import json
-import sys
 import os
 
 import docker
@@ -260,7 +259,7 @@ class InvokeContext(object):
         """
 
         try:
-            get_template_data(template_file)
+            return get_template_data(template_file)
         except ValueError as ex:
             raise InvokeContextException(str(ex))
 

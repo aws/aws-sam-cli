@@ -12,7 +12,8 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
-    def test_must_setup_context(self, ContainerManagerMock, pathlib_mock, SamFunctionProviderMock, get_template_data_mock):
+    def test_must_setup_context(self, ContainerManagerMock, pathlib_mock, SamFunctionProviderMock,
+                                get_template_data_mock):
 
         template_dict = get_template_data_mock.return_value = "template dict"
         funcprovider = SamFunctionProviderMock.return_value = "funcprovider"
@@ -50,4 +51,3 @@ class TestBuildContext__enter__(TestCase):
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network",
                                                      skip_pull_image=True)
-

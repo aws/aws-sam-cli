@@ -1,3 +1,7 @@
+"""
+Utilities to manipulate template
+"""
+
 import yaml
 
 try:

@@ -64,4 +64,3 @@ class TestDoCli(TestCase):
                    "manifest_path", "docker_network", "skip_pull")
 
         self.assertEquals(str(ctx.exception), str(exception))
-

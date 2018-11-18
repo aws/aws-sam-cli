@@ -1,3 +1,6 @@
+"""
+Context object used by build command
+"""
 
 import os
 import shutil
@@ -116,4 +119,3 @@ class BuildContext(object):
             return os.path.abspath(self._manifest_path)
 
         return None
-

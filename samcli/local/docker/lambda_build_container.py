@@ -25,7 +25,7 @@ class LambdaBuildContainer(Container):
     _IMAGE_REPO_NAME = "lambci/lambda"
     _BUILDERS_EXECUTABLE = "lambda-builders"
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=too-many-locals
                  protocol_version,
                  language,
                  dependency_manager,

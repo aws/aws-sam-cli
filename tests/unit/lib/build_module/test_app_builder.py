@@ -4,7 +4,7 @@ import docker
 import json
 
 from unittest import TestCase
-from mock import Mock, call, patch, ANY
+from mock import Mock, call, patch
 from parameterized import parameterized
 
 from samcli.lib.build.app_builder import ApplicationBuilder, _get_workflow_config,\
@@ -202,13 +202,13 @@ class TestApplicationBuilder_build_function(TestCase):
                                                                      manifest_path,
                                                                      runtime)
 
+
 class TestApplicationBuilder_build_function_in_process(TestCase):
 
     def setUp(self):
         self.builder = ApplicationBuilder(Mock(),
                                           "/build/dir",
                                           "/base/dir")
-
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_use_lambda_builder(self, lambda_builder_mock):
@@ -256,7 +256,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
                                           "/build/dir",
                                           "/base/dir",
                                           container_manager=self.container_manager)
-        self.builder._get_builder_response_from_container = Mock()
+        self.builder._parse_builder_response = Mock()
 
     @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
     @patch("samcli.lib.build.app_builder.lambda_builders_protocol_version")
@@ -279,7 +279,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         # Wire all mocks correctly
         container_mock = LambdaBuildContainerMock.return_value = Mock()
         container_mock.wait_for_logs = mock_wait_for_logs
-        self.builder._get_builder_response_from_container.return_value = response
+        self.builder._parse_builder_response.return_value = response
 
         result = self.builder._build_function_on_container(config,
                                                            "source_dir",
@@ -301,7 +301,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
                                                          options=None)
 
         self.container_manager.run.assert_called_with(container_mock)
-        self.builder._get_builder_response_from_container.assert_called_once_with(stdout_data)
+        self.builder._parse_builder_response.assert_called_once_with(stdout_data, container_mock.image)
         container_mock.copy.assert_called_with(response["result"]["artifacts_dir"] + "/.",
                                                "artifacts_dir")
 
@@ -331,7 +331,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         self.assertEquals(str(ctx.exception), msg)
 
 
-class TestApplicationBuilder_get_builder_response_from_container(TestCase):
+class TestApplicationBuilder_parse_builder_response(TestCase):
 
     def setUp(self):
         self.image_name = "name"
@@ -342,21 +342,21 @@ class TestApplicationBuilder_get_builder_response_from_container(TestCase):
     def test_must_parse_json(self):
         data = {"valid": "json"}
 
-        result = self.builder._get_builder_response_from_container(json.dumps(data), self.image_name)
+        result = self.builder._parse_builder_response(json.dumps(data), self.image_name)
         self.assertEquals(result, data)
 
     def test_must_fail_on_invalid_json(self):
         data = "{invalid: json}"
 
         with self.assertRaises(ValueError):
-            self.builder._get_builder_response_from_container(data, self.image_name)
+            self.builder._parse_builder_response(data, self.image_name)
 
     def test_must_raise_on_user_error(self):
         msg = "invalid params"
         data = {"error": {"code": 488, "message": msg}}
 
         with self.assertRaises(BuildError) as ctx:
-            self.builder._get_builder_response_from_container(json.dumps(data), self.image_name)
+            self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         self.assertEquals(str(ctx.exception), msg)
 
@@ -365,7 +365,7 @@ class TestApplicationBuilder_get_builder_response_from_container(TestCase):
         data = {"error": {"code": 505, "message": msg}}
 
         with self.assertRaises(UnsupportedBuilderLibraryVersionError) as ctx:
-            self.builder._get_builder_response_from_container(json.dumps(data), self.image_name)
+            self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         expected = str(UnsupportedBuilderLibraryVersionError(self.image_name, msg))
         self.assertEquals(str(ctx.exception), expected)
@@ -375,7 +375,7 @@ class TestApplicationBuilder_get_builder_response_from_container(TestCase):
         data = {"error": {"code": -32601, "message": msg}}
 
         with self.assertRaises(UnsupportedBuilderLibraryVersionError) as ctx:
-            self.builder._get_builder_response_from_container(json.dumps(data), self.image_name)
+            self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         expected = str(UnsupportedBuilderLibraryVersionError(self.image_name, msg))
         self.assertEquals(str(ctx.exception), expected)
@@ -385,7 +385,6 @@ class TestApplicationBuilder_get_builder_response_from_container(TestCase):
         data = {"error": {"code": 1, "message": msg}}
 
         with self.assertRaises(ValueError) as ctx:
-            self.builder._get_builder_response_from_container(json.dumps(data), self.image_name)
+            self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         self.assertEquals(str(ctx.exception), msg)
-

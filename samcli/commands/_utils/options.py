@@ -1,8 +1,12 @@
+"""
+Common CLI options shared by various commands
+"""
 
 import os
-import click
 import logging
 from functools import partial
+
+import click
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 

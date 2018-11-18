@@ -39,7 +39,6 @@ class TestInvokeContext_get_template_data(TestCase):
         m.assert_called_with(filename, 'r')
         yaml_parse_mock.assert_called_with(file_data)
 
-
     @parameterized.expand([
         param(ValueError()),
         param(yaml.YAMLError())

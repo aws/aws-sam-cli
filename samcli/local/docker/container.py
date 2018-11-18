@@ -3,9 +3,10 @@ Representation of a generic Docker container
 """
 
 import logging
-import docker
 import tarfile
 import tempfile
+
+import docker
 
 from samcli.local.docker.attach_api import attach
 from .utils import to_posix_path

@@ -9,7 +9,7 @@ import click
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import yaml_dump
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands._utils.options import template_option_without_build,  docker_common_options
+from samcli.commands._utils.options import template_option_without_build, docker_common_options
 from samcli.commands.build.build_context import BuildContext
 from samcli.lib.build.app_builder import ApplicationBuilder, UnsupportedRuntimeException, \
     BuildError, UnsupportedBuilderLibraryVersionError
@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 
 
 HELP_TEXT = """
-Use this command to build your Lambda function source code and generate artifacts that can be deployed to AWS Lambda 
+Use this command to build your Lambda function source code and generate artifacts that can be deployed to AWS Lambda
 """
 
 
@@ -55,7 +55,8 @@ def cli(ctx,
         skip_pull_image):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network, skip_pull_image)  # pragma: no cover
+    do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network,
+           skip_pull_image)  # pragma: no cover
 
 
 def do_cli(template,

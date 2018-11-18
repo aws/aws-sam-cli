@@ -2,19 +2,18 @@
 Builds the application
 """
 
-import sys
 import os
 import io
 import json
 import logging
-import docker
+from collections import namedtuple
 
 try:
     import pathlib
 except ImportError:
     import pathlib2 as pathlib
 
-from collections import namedtuple
+import docker
 
 import samcli.lib.utils.osutils as osutils
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
@@ -44,10 +43,10 @@ class BuildError(Exception):
 
 def _get_workflow_config(runtime):
 
-    Config = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name"])
+    config = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name"])
 
     if runtime.startswith("python"):
-        return Config(
+        return config(
             language="python",
             dependency_manager="pip",
             application_framework=None,
@@ -237,8 +236,7 @@ class ApplicationBuilder(object):
         try:
             self._container_manager.run(container)
         except docker.errors.APIError as ex:
-            msg = str(ex)
-            if "executable file not found in $PATH" in msg:
+            if "executable file not found in $PATH" in str(ex):
                 raise UnsupportedBuilderLibraryVersionError(container.image,
                                                             "{} executable not found in container"
                                                             .format(container.executable_name))
@@ -253,7 +251,7 @@ class ApplicationBuilder(object):
         stdout_data = stdout_stream.getvalue().decode('utf-8')
         LOG.debug("Build inside container returned response %s", stdout_data)
 
-        response = self._get_builder_response_from_container(stdout_data)
+        response = self._parse_builder_response(stdout_data, container.image)
 
         # Request is successful. Now copy the artifacts back to the host
         LOG.debug("Build inside container was successful. Copying artifacts from container to host")
@@ -266,7 +264,7 @@ class ApplicationBuilder(object):
         return artifacts_dir
 
     @staticmethod
-    def _get_builder_response_from_container(stdout_data, image_name):
+    def _parse_builder_response(stdout_data, image_name):
 
         try:
             response = json.loads(stdout_data)

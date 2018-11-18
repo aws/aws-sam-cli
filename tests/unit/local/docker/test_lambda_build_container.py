@@ -5,7 +5,7 @@ Unit test for Lambda Build Container management
 import json
 
 from unittest import TestCase
-from mock import Mock, patch
+from mock import patch
 
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 
@@ -111,6 +111,7 @@ class TestLambdaBuildContainer_make_request(TestCase):
             }
         })
 
+
 class TestLambdaBuildContainer_get_container_dirs(TestCase):
 
     def test_must_return_dirs(self):
@@ -141,6 +142,7 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
             "artifacts_dir": "/tmp/samcli/artifacts",
             "scratch_dir": "/tmp/samcli/scratch",
         })
+
 
 class TestLambdaBuildContainer_get_image(TestCase):
 

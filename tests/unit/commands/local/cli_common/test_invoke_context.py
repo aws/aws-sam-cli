@@ -4,7 +4,6 @@ Tests the InvokeContext class
 import errno
 import os
 import sys
-import yaml
 
 import docker
 import requests

@@ -5,11 +5,6 @@ Tests OSUtils file
 import os
 import sys
 
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
-
 from unittest import TestCase
 import samcli.lib.utils.osutils as osutils
 
@@ -53,4 +48,3 @@ class Test_stdout(TestCase):
             expected_stdout = sys.stdout.buffer
 
         self.assertEquals(expected_stdout, osutils.stdout())
-
