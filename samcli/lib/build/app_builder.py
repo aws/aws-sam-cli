@@ -7,7 +7,7 @@ import os
 import io
 import json
 import logging
-import tempfile
+import docker
 
 try:
     import pathlib
@@ -31,7 +31,11 @@ class UnsupportedRuntimeException(Exception):
 
 
 class UnsupportedBuilderLibraryVersionError(Exception):
-    pass
+
+    def __init__(self, container_name, error_msg):
+        msg = "You are running an outdated version of Docker container '{container_name}' that is not compatible with" \
+              "this version of SAM CLI. Please upgrade to continue to continue with build. Reason: '{error_msg}'"
+        Exception.__init__(self, msg.format(container_name=container_name, error_msg=error_msg))
 
 
 class BuildError(Exception):
@@ -227,7 +231,14 @@ class ApplicationBuilder(object):
                                          optimizations=None,
                                          options=None)
 
-        self.container_manager.run(container)
+        try:
+            self.container_manager.run(container)
+        except docker.errors.APIError as ex:
+            msg = str(ex)
+            if "executable file not found in $PATH" in msg:
+                raise UnsupportedBuilderLibraryVersionError(container.image,
+                                                            "{} executable not found in container"
+                                                            .format(container.executable_name))
 
         # Container's output provides status of whether the build succeeded or failed
         # stdout contains the result of JSON-RPC call
@@ -262,14 +273,14 @@ class ApplicationBuilder(object):
                 # not compatible with the version of protocol expected SAM CLI installation supports.
                 # This can happen when customers have a newer container image or an older SAM CLI version.
                 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/505
-                raise UnsupportedBuilderLibraryVersionError(msg)
+                raise UnsupportedBuilderLibraryVersionError(container.image, msg)
 
             if err_code == -32601:
                 # Default JSON Rpc Code for Method Unavailable https://www.jsonrpc.org/specification
                 # This can happen if customers are using an incompatible version of builder library within the
                 # container
                 LOG.debug("Builder library does not support the supplied method")
-                raise UnsupportedBuilderLibraryVersionError(msg)
+                raise UnsupportedBuilderLibraryVersionError(container.image, msg)
 
             else:
                 LOG.debug("Builder crashed")

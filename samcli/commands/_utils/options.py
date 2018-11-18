@@ -10,7 +10,7 @@ _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 LOG = logging.getLogger(__name__)
 
 
-def get_or_default_template_file_name(ctx, param, provided_value, include_build=True):
+def get_or_default_template_file_name(ctx, param, provided_value, include_build):
     """
     Default value for the template file name option is more complex than what Click can handle.
     This method either returns user provided file name or one of the two default options (template.yaml/template.yml)
@@ -28,7 +28,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build=
     ]
 
     if include_build:
-        search_paths.insert(0, os.path.join(".sam", "build", "template.yaml"))
+        search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
 
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
         # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists

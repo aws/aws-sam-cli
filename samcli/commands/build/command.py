@@ -11,7 +11,8 @@ from samcli.yamlhelper import yaml_dump
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_option_without_build,  docker_common_options
 from samcli.commands.build.build_context import BuildContext
-from samcli.lib.build.app_builder import ApplicationBuilder, UnsupportedRuntimeException, BuildError
+from samcli.lib.build.app_builder import ApplicationBuilder, UnsupportedRuntimeException, \
+    BuildError, UnsupportedBuilderLibraryVersionError
 
 LOG = logging.getLogger(__name__)
 
@@ -98,8 +99,19 @@ def do_cli(template,
             with open(ctx.output_template_path, "w") as fp:
                 fp.write(yaml_dump(modified_template))
 
-            click.secho("Build Succeeded", fg="green")
+            msg = """\nBuild Artifacts Available At: {artifacts_dir}
 
-        except (UnsupportedRuntimeException, BuildError) as ex:
+Next Steps
+==========
+[*] Invoke Function: sam local invoke -t {template}
+[*] Package: sam package --template-file {template}
+            """.format(artifacts_dir=os.path.relpath(ctx.build_dir),
+                       template=os.path.relpath(ctx.output_template_path))
+
+            click.secho("\nBuild Succeeded", fg="green")
+
+            click.secho(msg, fg="yellow")
+
+        except (UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError) as ex:
             click.secho("Build Failed", fg="red")
             raise UserException(str(ex))

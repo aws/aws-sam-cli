@@ -76,6 +76,10 @@ class LambdaBuildContainer(Container):
             entrypoint=entry,
             env_vars=env_vars)
 
+    @property
+    def executable_name(self):
+        return LambdaBuildContainer._BUILDERS_EXECUTABLE
+
     @staticmethod
     def _make_request(protocol_version,
                       language,
