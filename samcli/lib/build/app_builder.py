@@ -53,7 +53,7 @@ def _get_workflow_config(runtime):
             application_framework=None,
             manifest_name="requirements.txt")
     else:
-        raise UnsupportedRuntimeException("'%s' runtime is not supported".format(runtime))
+        raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 
 
 class ApplicationBuilder(object):
@@ -90,13 +90,13 @@ class ApplicationBuilder(object):
         parallel : bool
             Optional. Set to True to build each function in parallel to improve performance
         """
-        self.function_provider = function_provider
-        self.build_dir = build_dir
-        self.base_dir = base_dir
-        self.manifest_path_override = manifest_path_override
+        self._function_provider = function_provider
+        self._build_dir = build_dir
+        self._base_dir = base_dir
+        self._manifest_path_override = manifest_path_override
 
-        self.container_manager = container_manager
-        self.parallel = parallel
+        self._container_manager = container_manager
+        self._parallel = parallel
 
     def build(self):
         """
@@ -110,7 +110,7 @@ class ApplicationBuilder(object):
 
         result = {}
 
-        for lambda_function in self.function_provider.get_all():
+        for lambda_function in self._function_provider.get_all():
 
             LOG.info("Building resource '%s'", lambda_function.name)
             result[lambda_function.name] = self._build_function(lambda_function.name,
@@ -127,6 +127,9 @@ class ApplicationBuilder(object):
         Parameters
         ----------
         template_dict
+        target_template_path : str
+            Path where the template file will be written to
+
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
 
@@ -135,7 +138,6 @@ class ApplicationBuilder(object):
         dict
             Updated template
         """
-        # TODO: Move this method to a "build provider" or some other class. It doesn't really fit within here.
 
         target_dir = os.path.dirname(target_template_path)
 
@@ -151,11 +153,12 @@ class ApplicationBuilder(object):
             artifact_relative_path = os.path.relpath(built_artifacts[logical_id], target_dir)
 
             resource_type = resource.get("Type")
+            properties = resource.setdefault("Properties", {})
             if resource_type == "AWS::Serverless::Function":
-                template_dict["Resources"][logical_id]["Properties"]["CodeUri"] = artifact_relative_path
+                properties["CodeUri"] = artifact_relative_path
 
             if resource_type == "AWS::Lambda::Function":
-                template_dict["Resources"][logical_id]["Properties"]["Code"] = artifact_relative_path
+                properties["Code"] = artifact_relative_path
 
         return template_dict
 
@@ -166,17 +169,17 @@ class ApplicationBuilder(object):
         # Create the arguments to pass to the builder
 
         # Code is always relative to the given base directory.
-        code_dir = str(pathlib.Path(self.base_dir, codeuri).resolve())
+        code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
         # artifacts directory will be created by the builder
-        artifacts_dir = str(pathlib.Path(self.build_dir, function_name))
+        artifacts_dir = str(pathlib.Path(self._build_dir, function_name))
 
         with osutils.mkdir_temp() as scratch_dir:
-            manifest_path = self.manifest_path_override or os.path.join(code_dir, config.manifest_name)
+            manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
             # By default prefer to build in-process for speed
             build_method = self._build_function_in_process
-            if self.container_manager:
+            if self._container_manager:
                 build_method = self._build_function_on_container
 
             return build_method(config,
@@ -232,7 +235,7 @@ class ApplicationBuilder(object):
                                          options=None)
 
         try:
-            self.container_manager.run(container)
+            self._container_manager.run(container)
         except docker.errors.APIError as ex:
             msg = str(ex)
             if "executable file not found in $PATH" in msg:
@@ -243,12 +246,27 @@ class ApplicationBuilder(object):
         # Container's output provides status of whether the build succeeded or failed
         # stdout contains the result of JSON-RPC call
         stdout_stream = io.BytesIO()
-        # stderr contains logs printed by the builder
-        stderr_stream = sys.stderr.buffer if sys.version_info.major > 2 else sys.stderr  # pylint: disable=no-member
+        # stderr contains logs printed by the builder. Stream it directly to terminal
+        stderr_stream = osutils.stderr()
         container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
 
         stdout_data = stdout_stream.getvalue().decode('utf-8')
         LOG.debug("Build inside container returned response %s", stdout_data)
+
+        response = self._get_builder_response_from_container(stdout_data)
+
+        # Request is successful. Now copy the artifacts back to the host
+        LOG.debug("Build inside container was successful. Copying artifacts from container to host")
+
+        # "/." is a Docker thing that instructions the copy command to download contents of the folder only
+        result_dir_in_container = response["result"]["artifacts_dir"] + "/."
+        container.copy(result_dir_in_container, artifacts_dir)
+
+        LOG.debug("Build inside container succeeded")
+        return artifacts_dir
+
+    @staticmethod
+    def _get_builder_response_from_container(stdout_data, image_name):
 
         try:
             response = json.loads(stdout_data)
@@ -273,25 +291,17 @@ class ApplicationBuilder(object):
                 # not compatible with the version of protocol expected SAM CLI installation supports.
                 # This can happen when customers have a newer container image or an older SAM CLI version.
                 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/505
-                raise UnsupportedBuilderLibraryVersionError(container.image, msg)
+                raise UnsupportedBuilderLibraryVersionError(image_name, msg)
 
             if err_code == -32601:
                 # Default JSON Rpc Code for Method Unavailable https://www.jsonrpc.org/specification
                 # This can happen if customers are using an incompatible version of builder library within the
                 # container
                 LOG.debug("Builder library does not support the supplied method")
-                raise UnsupportedBuilderLibraryVersionError(container.image, msg)
+                raise UnsupportedBuilderLibraryVersionError(image_name, msg)
 
             else:
                 LOG.debug("Builder crashed")
                 raise ValueError(msg)
 
-        # Request is successful. Now copy the artifacts back to the host
-        LOG.debug("Build inside container was successful. Copying artifacts from container to host")
-
-        # "/." is a Docker thing that instructions the copy command to download contents of the folder only
-        result_dir_in_container = response["result"]["artifacts_dir"] + "/."
-        container.copy(result_dir_in_container, artifacts_dir)
-
-        LOG.debug("Build inside container succeeded")
-        return artifacts_dir
+        return response

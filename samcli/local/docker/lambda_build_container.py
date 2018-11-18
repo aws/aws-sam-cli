@@ -3,8 +3,12 @@ Represents Lambda Build Containers.
 """
 
 import json
-import os
 import logging
+
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
 
 from .container import Container
 
@@ -31,10 +35,13 @@ class LambdaBuildContainer(Container):
                  runtime,
                  optimizations=None,
                  options=None,
-                 log_level=False):
+                 log_level=None):
 
-        manifest_file_name = os.path.basename(manifest_path)
-        manifest_dir = os.path.dirname(manifest_path)
+        abs_manifest_path = pathlib.Path(manifest_path).resolve()
+        manifest_file_name = abs_manifest_path.name
+        manifest_dir = str(abs_manifest_path.parent)
+
+        source_dir = str(pathlib.Path(source_dir).resolve())
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
 
@@ -121,6 +128,22 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _get_container_dirs(source_dir, manifest_dir):
+        """
+        Provides paths to directories within the container that is required by the builder
+
+        Parameters
+        ----------
+        source_dir : str
+            Path to the function source code
+
+        manifest_dir : str
+            Path to the directory containing manifest
+
+        Returns
+        -------
+        dict
+            Contains paths to source, artifacts, scratch & manifest directories
+        """
         base = "/tmp/samcli"
         result = {
             "source_dir": "{}/source".format(base),
@@ -129,7 +152,7 @@ class LambdaBuildContainer(Container):
             "manifest_dir": "{}/manifest".format(base)
         }
 
-        if os.path.normcase(source_dir) == os.path.normpath(manifest_dir):
+        if pathlib.PurePath(source_dir) == pathlib.PurePath(manifest_dir):
             # It is possible that the manifest resides within the source. In that case, we won't mount the manifest
             # directory separately.
             result["manifest_dir"] = result["source_dir"]

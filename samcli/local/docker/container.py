@@ -4,8 +4,8 @@ Representation of a generic Docker container
 
 import logging
 import docker
-import tempfile
 import tarfile
+import tempfile
 
 from samcli.local.docker.attach_api import attach
 from .utils import to_posix_path
@@ -213,7 +213,7 @@ class Container(object):
 
         LOG.debug("Copying from container: %s -> %s", from_container_path, to_host_path)
         with tempfile.NamedTemporaryFile() as fp:
-            tar_stream, stats = real_container.get_archive(from_container_path)
+            tar_stream, _ = real_container.get_archive(from_container_path)
             for data in tar_stream:
                 fp.write(data)
 

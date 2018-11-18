@@ -53,7 +53,7 @@ class BuildContext(object):
             # Base directory, if not provided, is the directory containing the template
             self._base_dir = str(pathlib.Path(self._template_file).resolve().parent)
 
-        self._build_dir = self._setup_build_dir()
+        self._build_dir = self._setup_build_dir(self._build_dir, self._clean)
 
         if self._use_container:
             self._container_manager = ContainerManager(docker_network_id=self._docker_network,
@@ -63,6 +63,24 @@ class BuildContext(object):
 
     def __exit__(self, *args):
         pass
+
+    @staticmethod
+    def _setup_build_dir(build_dir, clean):
+
+        # Get absolute path
+        build_dir = str(pathlib.Path(build_dir).resolve())
+
+        if not pathlib.Path(build_dir).exists():
+            # Build directory does not exist. Create the directory and all intermediate paths
+            os.makedirs(build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
+
+        if os.listdir(build_dir) and clean:
+            # Build folder contains something inside. Clear everything.
+            shutil.rmtree(build_dir)
+            # this would have cleared the parent folder as well. So recreate it.
+            os.mkdir(build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
+
+        return build_dir
 
     @property
     def container_manager(self):
@@ -98,22 +116,4 @@ class BuildContext(object):
             return os.path.abspath(self._manifest_path)
 
         return None
-
-    def _setup_build_dir(self):
-
-        # Get absolute path
-        self._build_dir = str(pathlib.Path(self._build_dir).resolve())
-
-        if not pathlib.Path(self._build_dir).exists():
-            # Build directory does not exist. Create the directory and all intermediate paths
-            os.makedirs(self._build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
-
-        if os.listdir(self._build_dir) and self._clean:
-            # Build folder contains something inside. Clear everything.
-            shutil.rmtree(self._build_dir)
-            # this would have cleared the parent folder as well. So recreate it.
-            os.mkdir(self._build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
-
-        return self._build_dir
-
 

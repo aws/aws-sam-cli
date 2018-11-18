@@ -6,12 +6,11 @@ import errno
 import json
 import sys
 import os
-import yaml
 
 import docker
 import requests
 
-from samcli.yamlhelper import yaml_parse
+import samcli.lib.utils.osutils as osutils
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -203,15 +202,7 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        # We write all of the data to stdout with bytes, typically io.BytesIO. stdout in Python2
-        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
-        # this consistent, we leave Python2 the same and get the .buffer attribute on stdout in Python3
-        byte_stdout = sys.stdout
-
-        if sys.version_info.major > 2:
-            byte_stdout = sys.stdout.buffer  # pylint: disable=no-member
-
-        return byte_stdout
+        return osutils.stdout()
 
     @property
     def stderr(self):
@@ -223,15 +214,7 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        # We write all of the data to stdout with bytes, typically io.BytesIO. stderr in Python2
-        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
-        # this consistent, we leave Python2 the same and get the .buffer attribute on stderr in Python3
-        byte_stderr = sys.stderr
-
-        if sys.version_info.major > 2:
-            byte_stderr = sys.stderr.buffer  # pylint: disable=no-member
-
-        return byte_stderr
+        return osutils.stderr()
 
     @property
     def template(self):
