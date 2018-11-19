@@ -27,7 +27,7 @@ class TestDoCli(TestCase):
 
         with patch("samcli.commands.build.command.open", m):
             do_cli("template", "base_dir", "build_dir", "clean", "use_container",
-                   "manifest_path", "docker_network", "skip_pull")
+                   "manifest_path", "docker_network", "skip_pull", "parameter_overrides")
 
         ApplicationBuilderMock.assert_called_once_with(ctx_mock.function_provider,
                                                        ctx_mock.build_dir,
@@ -61,6 +61,6 @@ class TestDoCli(TestCase):
 
         with self.assertRaises(UserException) as ctx:
             do_cli("template", "base_dir", "build_dir", "clean", "use_container",
-                   "manifest_path", "docker_network", "skip_pull")
+                   "manifest_path", "docker_network", "skip_pull", "parameteroverrides")
 
         self.assertEquals(str(ctx.exception), str(exception))

@@ -27,6 +27,7 @@ class TestBuildContext__enter__(TestCase):
                                clean=True,
                                use_container=True,
                                docker_network="network",
+                               parameter_overrides="overrides",
                                skip_pull_image=True)
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
@@ -46,7 +47,7 @@ class TestBuildContext__enter__(TestCase):
         self.assertEquals(context.manifest_path_override, os.path.abspath("manifest_path"))
 
         get_template_data_mock.assert_called_once_with("template_file")
-        SamFunctionProviderMock.assert_called_once_with(template_dict)
+        SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network",
