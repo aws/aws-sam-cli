@@ -15,6 +15,7 @@ class TestContainer_init(TestCase):
         self.cmd = "cmd"
         self.working_dir = "working_dir"
         self.host_dir = "host_dir"
+        self.container_name = "container_name"
         self.memory_mb = 123
         self.exposed_ports = {123: 123}
         self.entrypoint = ["a", "b", "c"]
@@ -28,23 +29,25 @@ class TestContainer_init(TestCase):
                               self.cmd,
                               self.working_dir,
                               self.host_dir,
+                              self.container_name,
                               self.memory_mb,
                               self.exposed_ports,
                               self.entrypoint,
                               self.env_vars,
                               self.mock_docker_client)
 
-        self.assertEquals(self.image, container._image)
-        self.assertEquals(self.cmd, container._cmd)
-        self.assertEquals(self.working_dir, container._working_dir)
-        self.assertEquals(self.host_dir, container._host_dir)
-        self.assertEquals(self.exposed_ports, container._exposed_ports)
-        self.assertEquals(self.entrypoint, container._entrypoint)
-        self.assertEquals(self.env_vars, container._env_vars)
-        self.assertEquals(self.memory_mb, container._memory_limit_mb)
-        self.assertEquals(None, container._network_id)
-        self.assertEquals(None, container.id)
-        self.assertEquals(self.mock_docker_client, container.docker_client)
+        self.assertEqual(self.image, container._image)
+        self.assertEqual(self.cmd, container._cmd)
+        self.assertEqual(self.working_dir, container._working_dir)
+        self.assertEqual(self.host_dir, container._host_dir)
+        self.assertEqual(self.container_name, container.name)
+        self.assertEqual(self.exposed_ports, container._exposed_ports)
+        self.assertEqual(self.entrypoint, container._entrypoint)
+        self.assertEqual(self.env_vars, container._env_vars)
+        self.assertEqual(self.memory_mb, container._memory_limit_mb)
+        self.assertEqual(None, container._network_id)
+        self.assertEqual(None, container.id)
+        self.assertEqual(self.mock_docker_client, container.docker_client)
 
 
 class TestContainer_create(TestCase):

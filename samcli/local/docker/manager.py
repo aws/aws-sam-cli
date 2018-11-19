@@ -55,8 +55,7 @@ class ContainerManager(object):
 
         return True if ContainerManager._container_name_pattern.match(name) else False
 
-    def check_connectivity(self):
-
+    def is_docker_reachable(self):
         """
         Checks if Docker daemon is running. This is required for us to invoke the function locally
 
@@ -126,7 +125,7 @@ class ContainerManager(object):
         except docker.errors.APIError as api_error:
             if api_error.status_code == 409:
                 raise DockerContainerException("'{}' Docker container name is already taken".format(container.name))
-            if api_error.is_server_error:
+            if api_error.is_server_error():
                 raise DockerContainerException("Something went wrong on the Docker server")
             raise
 
