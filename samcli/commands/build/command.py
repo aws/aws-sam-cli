@@ -19,7 +19,35 @@ LOG = logging.getLogger(__name__)
 
 
 HELP_TEXT = """
-Use this command to build your Lambda function source code and generate artifacts that can be deployed to AWS Lambda
+Use this command to build your AWS Lambda Functions source code to generate artifacts that can run on AWS Lambda.\n
+\b
+Supported Resource Types
+------------------------
+1. AWS::Serverless::Function\n
+2.AWS::Lambda::Function\n
+\b
+Supported Runtimes
+------------------
+1. Python2.7\n
+2. Python3.6\n
+\b
+Usage
+-----
+In your SAM template, specify the path to your function's source code
+in the resource's Code or CodeUri property.
+\b
+To build on your workstation, run this command in folder containing
+SAM template. Built artifacts will be written to .aws-sam/build folder
+$ sam build\n
+\b
+To build inside a AWS Lambda like Docker container
+$ sam build --use-container
+\b
+To build & run your functions locally
+$ sam build && sam local invoke
+\b
+To build and package for deployment
+$ sam build && sam package
 """
 
 
@@ -37,10 +65,6 @@ Use this command to build your Lambda function source code and generate artifact
 @click.option("--use-container",
               is_flag=True,
               help="Run the builds inside a Docker container that simulates an AWS Lambda like environment")
-@click.option("--manifest", "-m",
-              default=None,
-              type=click.Path(),
-              help="Path to a custom dependency manifest (ex: package.json) to use instead of the default one")
 @click.option("--manifest", "-m",
               default=None,
               type=click.Path(),
@@ -66,7 +90,7 @@ def cli(ctx,
            skip_pull_image, parameter_overrides)  # pragma: no cover
 
 
-def do_cli(template,
+def do_cli(template,  # pylint: disable=too-many-locals
            base_dir,
            build_dir,
            clean,

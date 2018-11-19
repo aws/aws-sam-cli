@@ -6,11 +6,6 @@ import logging
 
 from parameterized import parameterized
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
-
 from samcli.yamlhelper import yaml_parse
 from .build_integ_base import BuildIntegBase
 
