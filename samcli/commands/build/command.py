@@ -17,9 +17,11 @@ from samcli.lib.build.app_builder import ApplicationBuilder, UnsupportedRuntimeE
 
 LOG = logging.getLogger(__name__)
 
+DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
 
 HELP_TEXT = """
-Use this command to build your AWS Lambda Functions source code to generate artifacts that can run on AWS Lambda.\n
+Use this command to build your AWS Lambda Functions source code to generate artifacts that target AWS Lambda's
+execution environment.\n
 \b
 Supported Resource Types
 ------------------------
@@ -31,10 +33,10 @@ Supported Runtimes
 1. Python2.7\n
 2. Python3.6\n
 \b
-Usage
------
-In your SAM template, specify the path to your function's source code
-in the resource's Code or CodeUri property.
+Examples
+--------
+To use this command, update your SAM template to specify the path
+to your function's source code in the resource's Code or CodeUri property.
 \b
 To build on your workstation, run this command in folder containing
 SAM template. Built artifacts will be written to .aws-sam/build folder
@@ -47,24 +49,25 @@ To build & run your functions locally
 $ sam build && sam local invoke
 \b
 To build and package for deployment
-$ sam build && sam package
+$ sam build && sam package --s3-bucket <bucketname>
 """
 
 
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @click.option('--build-dir', '-b',
-              default=os.path.join(".aws-sam", "build"),
+              default=DEFAULT_BUILD_DIR,
               type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
               help="Path to a folder where the built artifacts will be stored")
 @click.option("--base-dir", "-s",
               default=None,
               type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
               help="Resolve relative paths to function's source code with respect to this folder. Use this if "
-                   "SAM template and your source code are not in same enclosing folder. By default, relative paths to"
+                   "SAM template and your source code are not in same enclosing folder. By default, relative paths "
                    "are resolved with respect to the SAM template's location")
-@click.option("--use-container",
+@click.option("--use-container", "-u",
               is_flag=True,
-              help="Run the builds inside a Docker container that simulates an AWS Lambda like environment")
+              help="If your functions depend on packages that have natively compiled dependencies, use this flag "
+                   "to build your function inside an AWS Lambda-like Docker container")
 @click.option("--manifest", "-m",
               default=None,
               type=click.Path(),
@@ -133,19 +136,39 @@ def do_cli(template,  # pylint: disable=too-many-locals
             with open(ctx.output_template_path, "w") as fp:
                 fp.write(yaml_dump(modified_template))
 
-            msg = """\nBuild Artifacts Available At: {artifacts_dir}
-
-Next Steps
-==========
-[*] Invoke Function: sam local invoke -t {template}
-[*] Package: sam package --template-file {template}
-            """.format(artifacts_dir=os.path.relpath(ctx.build_dir),
-                       template=os.path.relpath(ctx.output_template_path))
-
             click.secho("\nBuild Succeeded", fg="green")
+
+            msg = gen_success_msg(os.path.relpath(ctx.build_dir),
+                                  os.path.relpath(ctx.output_template_path),
+                                  os.path.abspath(ctx.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR))
 
             click.secho(msg, fg="yellow")
 
         except (UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError) as ex:
             click.secho("Build Failed", fg="red")
             raise UserException(str(ex))
+
+
+def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):
+
+    invoke_cmd = "sam local invoke"
+    if not is_default_build_dir:
+        invoke_cmd += " -t {}".format(output_template_path)
+
+    package_cmd = "sam package --s3-bucket <yourbucket>"
+    if not is_default_build_dir:
+        package_cmd += " --template-file {}".format(output_template_path)
+
+    msg = """\nBuilt Artifacts  : {artifacts_dir}
+Built Template   : {template}
+
+Commands you can use next
+=========================
+[*] Invoke Function: {invokecmd}
+[*] Package: {packagecmd}
+    """.format(invokecmd=invoke_cmd,
+               packagecmd=package_cmd,
+               artifacts_dir=artifacts_dir,
+               template=output_template_path)
+
+    return msg

@@ -16,18 +16,18 @@ LOG = logging.getLogger(__name__)
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
-    EXPECTED_FILES_PROJECT_MANIFEST = {'__init__.py', 'main.py', 'numpy', 'cryptography', "jinja2",
+    EXPECTED_FILES_PROJECT_MANIFEST = {'__init__.py', 'main.py', 'numpy',
+                                       # 'cryptography',
+                                       "jinja2",
                                        'requirements.txt'}
 
     FUNCTION_LOGICAL_ID = "PythonFunction"
 
     @parameterized.expand([
         ("python2.7", False),
-        ("python3.6", False)
-
-        # FIXME: Turning off Container build tests until official Docker Container is published
-        # ("python2.7", "use_container"),
-        # ("python3.6", "use_container"),
+        ("python3.6", False),
+        ("python2.7", "use_container"),
+        ("python3.6", "use_container"),
     ])
     def test_with_default_requirements(self, runtime, use_container):
 
