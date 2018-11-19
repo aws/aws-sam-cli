@@ -18,6 +18,8 @@ from samcli.commands.exceptions import UserException
 
 class BuildContext(object):
 
+    # Build directories need not be world writable.
+    # This is usually a optimal permission for directories
     _BUILD_DIR_PERMISSIONS = 0o755
 
     def __init__(self,
