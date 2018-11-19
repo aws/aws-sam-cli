@@ -567,3 +567,40 @@ class TestContainer_image(TestCase):
         container = Container(image, "cmd", "dir", "dir")
 
         self.assertEquals(image, container.image)
+
+
+class TestContainer_copy(TestCase):
+
+    def setUp(self):
+        self.mock_client = Mock()
+        self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
+        self.container.id = "containerid"
+
+    @patch('samcli.local.docker.container.tempfile')
+    @patch('samcli.local.docker.container.tarfile')
+    def test_must_copy_files_from_container(self, tarfile_mock, tempfile_mock):
+        source = "source"
+        dest = "dest"
+
+        tar_stream = [1, 2, 3]
+        real_container_mock = self.mock_client.containers.get.return_value = Mock()
+        real_container_mock.get_archive.return_value = (tar_stream, "ignored")
+
+        tempfile_ctxmgr = tempfile_mock.NamedTemporaryFile.return_value = Mock()
+        fp_mock = Mock()
+        tempfile_ctxmgr.__enter__ = Mock(return_value=fp_mock)
+        tempfile_ctxmgr.__exit__ = Mock()
+
+        tarfile_ctxmgr = tarfile_mock.open.return_value = Mock()
+        tar_mock = Mock()
+        tarfile_ctxmgr.return_value.__enter__ = Mock(return_value=tar_mock)
+        tarfile_ctxmgr.return_value.__exit__ = Mock()
+
+        self.container.copy(source, dest)
+
+        # Make sure archive data is written to the file
+        fp_mock.write.assert_has_calls([call(x) for x in tar_stream], any_order=False)
+
+        # Make sure we open the tarfile right and extract to right location
+        tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode='r')
+        tar_mock.extractall(path=dest)

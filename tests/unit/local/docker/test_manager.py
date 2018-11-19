@@ -10,7 +10,7 @@ from mock import PropertyMock, Mock, patch
 from docker.errors import ImageNotFound, APIError
 
 from samcli.local.docker.manager import (
-    ContainerManager, DockerImageNotFoundException, DockerContainerException, DockerImagePullFailedException)
+    ContainerManager, DockerContainerException, DockerImagePullFailedException)
 
 from parameterized import parameterized
 

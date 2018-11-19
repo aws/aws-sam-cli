@@ -4,14 +4,12 @@ Tests the InvokeContext class
 import errno
 import os
 import sys
-import yaml
 
 from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
 from unittest import TestCase
 from mock import Mock, patch, ANY, mock_open
-from parameterized import parameterized, param
 
 
 class TestInvokeContext__enter__(TestCase):
@@ -381,61 +379,6 @@ class TestInvokeContextget_cwd(TestCase):
 
         result = context.get_cwd()
         self.assertEquals(result, "basedir")
-
-
-class TestInvokeContext_get_template_data(TestCase):
-
-    def test_must_raise_if_file_does_not_exist(self):
-        filename = "filename"
-
-        with self.assertRaises(InvokeContextException) as exception_ctx:
-            InvokeContext._get_template_data(filename)
-
-        ex = exception_ctx.exception
-        self.assertEquals(str(ex), "Template file not found at {}".format(filename))
-
-    @patch("samcli.commands.local.cli_common.invoke_context.yaml_parse")
-    @patch("samcli.commands.local.cli_common.invoke_context.os")
-    def test_must_read_file_and_parse(self, os_mock, yaml_parse_mock):
-        filename = "filename"
-        file_data = "contents of the file"
-        parse_result = "parse result"
-
-        os_mock.patch.exists.return_value = True  # Fake that the file exists
-
-        m = mock_open(read_data=file_data)
-        yaml_parse_mock.return_value = parse_result
-
-        with patch("samcli.commands.local.cli_common.invoke_context.open", m):
-            result = InvokeContext._get_template_data(filename)
-
-            self.assertEquals(result, parse_result)
-
-        m.assert_called_with(filename, 'r')
-        yaml_parse_mock.assert_called_with(file_data)
-
-    @parameterized.expand([
-        param(ValueError()),
-        param(yaml.YAMLError())
-    ])
-    @patch("samcli.commands.local.cli_common.invoke_context.yaml_parse")
-    @patch("samcli.commands.local.cli_common.invoke_context.os")
-    def test_must_raise_on_parse_errors(self, exception, os_mock, yaml_parse_mock):
-        filename = "filename"
-        file_data = "contents of the file"
-
-        os_mock.patch.exists.return_value = True  # Fake that the file exists
-
-        m = mock_open(read_data=file_data)
-        yaml_parse_mock.side_effect = exception
-
-        with patch("samcli.commands.local.cli_common.invoke_context.open", m):
-
-            with self.assertRaises(InvokeContextException) as ex_ctx:
-                InvokeContext._get_template_data(filename)
-
-            actual_exception = ex_ctx.exception
-            self.assertTrue(str(actual_exception).startswith("Failed to parse template: "))
 
 
 class TestInvokeContext_get_env_vars_value(TestCase):
