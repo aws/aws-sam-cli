@@ -30,6 +30,7 @@ class Container(object):
                  cmd,
                  working_dir,
                  host_dir,
+                 name=None,
                  memory_limit_mb=None,
                  exposed_ports=None,
                  entrypoint=None,
@@ -49,12 +50,14 @@ class Container(object):
         :param dict exposed_ports: Optional. Dict of ports to expose
         :param list entrypoint: Optional. Entry point process for the container. Defaults to the value in Dockerfile
         :param dict env_vars: Optional. Dict of environment variables to setup in the container
+        :param string name: Optional. Name, that will be asssigned to the container, when it starts
         """
 
         self._image = image
         self._cmd = cmd
         self._working_dir = working_dir
         self._host_dir = host_dir
+        self._name = name
         self._exposed_ports = exposed_ports
         self._entrypoint = entrypoint
         self._env_vars = env_vars
@@ -116,6 +119,9 @@ class Container(object):
 
         if self._entrypoint:
             kwargs["entrypoint"] = self._entrypoint
+
+        if self._name:
+            kwargs["name"] = self._name
 
         if self._memory_limit_mb:
             # Ex: 128m => 128MB
@@ -233,6 +239,13 @@ class Container(object):
                 # Either an unsupported frame type or stream for this frame type is not configured
                 LOG.debug("Dropping Docker container output because of unconfigured frame type. "
                           "Frame Type: %s. Data: %s", frame_type, data)
+
+    @property
+    def name(self):
+        """
+        Gets the name of the container
+        """
+        return self._name
 
     @property
     def network_id(self):

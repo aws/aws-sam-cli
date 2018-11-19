@@ -22,6 +22,7 @@ class TestCli(TestCase):
         self.profile = "profile"
         self.region = "region"
         self.parameter_overrides = {}
+        self.container_name = "container-name"
 
         self.host = "host"
         self.port = 123
@@ -51,7 +52,8 @@ class TestCli(TestCase):
                                                debug_args=self.debug_args,
                                                debugger_path=self.debugger_path,
                                                aws_region=self.region,
-                                               parameter_overrides=self.parameter_overrides)
+                                               parameter_overrides=self.parameter_overrides,
+                                               container_name=self.container_name)
 
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock,
                                                      port=self.port,
@@ -96,4 +98,5 @@ class TestCli(TestCase):
                          skip_pull_image=self.skip_pull_image,
                          profile=self.profile,
                          region=self.region,
-                         parameter_overrides=self.parameter_overrides)
+                         parameter_overrides=self.parameter_overrides,
+                         container_name=self.container_name)

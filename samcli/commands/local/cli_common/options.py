@@ -110,6 +110,10 @@ def invoke_common_options(f):
                           "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
                           "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'"),
 
+        click.option('--container-name',
+                     help="When specified, Lambda function container will start with this name.",
+                     envvar="SAM_DOCKER_CONTAINER_NAME"),
+
         click.option('--debug-port', '-d',
                      help="When specified, Lambda function container will start in debug mode and will expose this "
                           "port on localhost.",

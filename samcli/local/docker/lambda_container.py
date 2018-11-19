@@ -50,6 +50,7 @@ class LambdaContainer(Container):
                  runtime,
                  handler,
                  code_dir,
+                 name=None,
                  memory_mb=128,
                  env_vars=None,
                  debug_options=None):
@@ -63,6 +64,7 @@ class LambdaContainer(Container):
         :param int memory_mb: Optional. Max limit of memory in MegaBytes this Lambda function can use.
         :param dict env_vars: Optional. Dictionary containing environment variables passed to container
         :param DebugContext debug_options: Optional. Contains container debugging info (port, debugger path)
+        :param string name: Optional. Name, that will be asssigned to the container, when it starts
         """
 
         if not Runtime.has_value(runtime):
@@ -79,6 +81,7 @@ class LambdaContainer(Container):
                                               cmd,
                                               self._WORKING_DIR,
                                               code_dir,
+                                              name=name,
                                               memory_limit_mb=memory_mb,
                                               exposed_ports=ports,
                                               entrypoint=entry,

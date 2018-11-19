@@ -34,6 +34,7 @@ class TestCli(TestCase):
         self.no_event = False
         self.region = "region"
         self.parameter_overrides = {}
+        self.container_name = "container-name"
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -60,7 +61,8 @@ class TestCli(TestCase):
                    skip_pull_image=self.skip_pull_image,
                    profile=self.profile,
                    region=self.region,
-                   parameter_overrides=self.parameter_overrides)
+                   parameter_overrides=self.parameter_overrides,
+                   container_name=self.container_name)
 
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
@@ -74,7 +76,8 @@ class TestCli(TestCase):
                                              debug_args=self.debug_args,
                                              debugger_path=self.debugger_path,
                                              aws_region=self.region,
-                                             parameter_overrides=self.parameter_overrides)
+                                             parameter_overrides=self.parameter_overrides,
+                                             container_name=self.container_name)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event=event_data,
@@ -104,7 +107,8 @@ class TestCli(TestCase):
                    skip_pull_image=self.skip_pull_image,
                    profile=self.profile,
                    region=self.region,
-                   parameter_overrides=self.parameter_overrides)
+                   parameter_overrides=self.parameter_overrides,
+                   container_name=self.container_name)
 
         InvokeContextMock.assert_called_with(template_file=self.template,
                                              function_identifier=self.function_id,
@@ -118,7 +122,8 @@ class TestCli(TestCase):
                                              debug_args=self.debug_args,
                                              debugger_path=self.debugger_path,
                                              aws_region=self.region,
-                                             parameter_overrides=self.parameter_overrides)
+                                             parameter_overrides=self.parameter_overrides,
+                                             container_name=self.container_name)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event="{}",
@@ -148,7 +153,8 @@ class TestCli(TestCase):
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
                        region=self.region,
-                       parameter_overrides=self.parameter_overrides)
+                       parameter_overrides=self.parameter_overrides,
+                       container_name=self.container_name)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "no_event and event cannot be used together. Please provide only one.")
@@ -182,7 +188,8 @@ class TestCli(TestCase):
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
                        region=self.region,
-                       parameter_overrides=self.parameter_overrides)
+                       parameter_overrides=self.parameter_overrides,
+                       container_name=self.container_name)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "Function {} not found in template".format(self.function_id))
@@ -212,7 +219,8 @@ class TestCli(TestCase):
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
                        region=self.region,
-                       parameter_overrides=self.parameter_overrides)
+                       parameter_overrides=self.parameter_overrides,
+                       container_name=self.container_name)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad template")
@@ -242,7 +250,8 @@ class TestCli(TestCase):
                        skip_pull_image=self.skip_pull_image,
                        profile=self.profile,
                        region=self.region,
-                       parameter_overrides=self.parameter_overrides)
+                       parameter_overrides=self.parameter_overrides,
+                       container_name=self.container_name)
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad env vars")
