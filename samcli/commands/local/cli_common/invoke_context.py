@@ -4,18 +4,17 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 
 import errno
 import json
-import sys
 import os
-import yaml
 
 import docker
 import requests
 
-from samcli.yamlhelper import yaml_parse
+import samcli.lib.utils.osutils as osutils
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.manager import ContainerManager
+from samcli.commands._utils.template import get_template_data
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
 
@@ -202,15 +201,7 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        # We write all of the data to stdout with bytes, typically io.BytesIO. stdout in Python2
-        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
-        # this consistent, we leave Python2 the same and get the .buffer attribute on stdout in Python3
-        byte_stdout = sys.stdout
-
-        if sys.version_info.major > 2:
-            byte_stdout = sys.stdout.buffer  # pylint: disable=no-member
-
-        return byte_stdout
+        return osutils.stdout()
 
     @property
     def stderr(self):
@@ -222,15 +213,7 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        # We write all of the data to stdout with bytes, typically io.BytesIO. stderr in Python2
-        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
-        # this consistent, we leave Python2 the same and get the .buffer attribute on stderr in Python3
-        byte_stderr = sys.stderr
-
-        if sys.version_info.major > 2:
-            byte_stderr = sys.stderr.buffer  # pylint: disable=no-member
-
-        return byte_stderr
+        return osutils.stderr()
 
     @property
     def template(self):
@@ -275,14 +258,10 @@ class InvokeContext(object):
         :raises InvokeContextException: If template file was not found or the data was not a JSON/YAML
         """
 
-        if not os.path.exists(template_file):
-            raise InvokeContextException("Template file not found at {}".format(template_file))
-
-        with open(template_file, 'r') as fp:
-            try:
-                return yaml_parse(fp.read())
-            except (ValueError, yaml.YAMLError) as ex:
-                raise InvokeContextException("Failed to parse template: {}".format(str(ex)))
+        try:
+            return get_template_data(template_file)
+        except ValueError as ex:
+            raise InvokeContextException(str(ex))
 
     @staticmethod
     def _get_env_vars_value(filename):
