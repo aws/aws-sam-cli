@@ -1,0 +1,5 @@
+# These are some hard packages to build. Using them here helps us verify that building works on various platforms
+
+numpy~=1.15
+cryptography~=2.4
+Jinja2~=2.10

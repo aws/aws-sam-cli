@@ -27,6 +27,7 @@ class BuildContext(object):
                  manifest_path=None,
                  clean=False,
                  use_container=False,
+                 parameter_overrides=None,
                  docker_network=None,
                  skip_pull_image=False):
 
@@ -36,6 +37,7 @@ class BuildContext(object):
         self._manifest_path = manifest_path
         self._clean = clean
         self._use_container = use_container
+        self._parameter_overrides = parameter_overrides
         self._docker_network = docker_network
         self._skip_pull_image = skip_pull_image
 
@@ -50,7 +52,7 @@ class BuildContext(object):
         except ValueError as ex:
             raise UserException(str(ex))
 
-        self._function_provider = SamFunctionProvider(self._template_dict)
+        self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template

@@ -7,6 +7,7 @@ import logging
 from functools import partial
 
 import click
+from samcli.cli.types import CfnParameterOverridesType
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 
@@ -103,3 +104,15 @@ def docker_click_options():
                           "containers should connect to, along with the default bridge network. If not specified, "
                           "the Lambda containers will only connect to the default bridge docker network."),
     ]
+
+
+def parameter_override_click_option():
+    return click.option("--parameter-overrides",
+                        type=CfnParameterOverridesType(),
+                        help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
+                             "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
+                             "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'")
+
+
+def parameter_override_option(f):
+    return parameter_override_click_option()(f)
