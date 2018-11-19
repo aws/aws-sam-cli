@@ -19,7 +19,8 @@ class ContainerManager(object):
     serve requests faster. It is also thread-safe.
     """
 
-    _container_name_pattern = re.compile('[a-zA-Z0-9][a-zA-Z0-9_.-]+')
+    _CONTAINER_NAME_PATTERN = '[a-zA-Z0-9][a-zA-Z0-9_.-]+'
+    _container_name_regex = re.compile(_CONTAINER_NAME_PATTERN)
 
     def __init__(self,
                  docker_client=None,
@@ -53,8 +54,9 @@ class ContainerManager(object):
             True, if name is a valid Docker container name, False otherwise
         """
 
-        return True if ContainerManager._container_name_pattern.match(name) else False
+        return True if ContainerManager._container_name_regex.match(name) else False
 
+    @property
     def is_docker_reachable(self):
         """
         Checks if Docker daemon is running. This is required for us to invoke the function locally

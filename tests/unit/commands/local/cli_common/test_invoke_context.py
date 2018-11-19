@@ -51,7 +51,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._setup_log_file.return_value = log_file_handle
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_docker_reachable = True
         container_manager_mock.is_valid_container_name.return_value = True
         container_manager_mock.is_container_name_taken.return_value = False
         invoke_context._get_container_manager = Mock()
@@ -80,24 +80,6 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.assert_called_once_with(1111, "args", "path-to-debugger")
 
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_use_container_manager_to_verify_docker_reachable(self, SamFunctionProviderMock):
-        invoke_context = InvokeContext("template-file")
-
-        invoke_context._get_template_data = Mock()
-        invoke_context._get_env_vars_value = Mock()
-        invoke_context._setup_log_file = Mock()
-        invoke_context._get_debug_context = Mock()
-
-        container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable.return_value = True
-        invoke_context._get_container_manager = Mock()
-        invoke_context._get_container_manager.return_value = container_manager_mock
-
-        invoke_context.__enter__()
-
-        container_manager_mock.is_docker_reachable.assert_called_once_with()
-
-    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_raise_if_docker_is_not_reachable(self, SamFunctionProviderMock):
         invoke_context = InvokeContext("template-file")
 
@@ -107,13 +89,12 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context = Mock()
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable.return_value = False
+        container_manager_mock.is_docker_reachable = False
         invoke_context._get_container_manager = Mock()
         invoke_context._get_container_manager.return_value = container_manager_mock
 
         with self.assertRaises(InvokeContextException):
             invoke_context.__enter__()
-        container_manager_mock.is_docker_reachable.assert_called_once_with()
 
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_use_container_manager_to_check_name(self, SamFunctionProviderMock):
@@ -127,7 +108,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context = Mock()
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_docker_reachable = True
         container_manager_mock.is_valid_container_name.return_value = True
         container_manager_mock.is_container_name_taken.return_value = False
 
@@ -151,7 +132,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context = Mock()
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_docker_reachable = True
         container_manager_mock.is_valid_container_name.return_value = False
         container_manager_mock.is_container_name_taken.return_value = False
 
@@ -160,8 +141,6 @@ class TestInvokeContext__enter__(TestCase):
 
         with self.assertRaises(InvokeContextException):
             invoke_context.__enter__()
-
-        container_manager_mock.is_valid_container_name.assert_called_once_with(container_name)
 
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_raise_if_container_name_is_taken(self, SamFunctionProviderMock):
@@ -175,7 +154,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context = Mock()
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_docker_reachable = True
         container_manager_mock.is_valid_container_name.return_value = True
         container_manager_mock.is_container_name_taken.return_value = True
 
@@ -184,8 +163,6 @@ class TestInvokeContext__enter__(TestCase):
 
         with self.assertRaises(InvokeContextException):
             invoke_context.__enter__()
-
-        container_manager_mock.is_container_name_taken.assert_called_once_with(container_name)
 
 
 class TestInvokeContext__exit__(TestCase):
