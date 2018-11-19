@@ -16,5 +16,5 @@ class TestCli(TestCase):
     @patch("samcli.commands.package.execute_command")
     def test_package_must_pass_args(self, execute_command_mock):
         execute_command_mock.return_value = True
-        package_cli(self.args)
-        execute_command_mock.assert_called_with("package", self.args)
+        package_cli(self.args, "template_file")
+        execute_command_mock.assert_called_with("package", self.args, "template_file")

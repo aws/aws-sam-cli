@@ -17,4 +17,4 @@ class TestCli(TestCase):
     def test_deploy_must_pass_args(self, execute_command_mock):
         execute_command_mock.return_value = True
         deploy_cli(self.args)
-        execute_command_mock.assert_called_with("deploy", self.args)
+        execute_command_mock.assert_called_with("deploy", self.args, template_file=None)

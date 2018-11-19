@@ -23,4 +23,4 @@ def cli(ctx, args):
 
 
 def do_cli(args):
-    execute_command("deploy", args)
+    execute_command("deploy", args, template_file=None)
