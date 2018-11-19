@@ -54,7 +54,7 @@ class BuildIntegBase(TestCase):
     def get_command_list(self, build_dir=None, base_dir=None, manifest_path=None, use_container=None,
                          parameter_overrides=None):
 
-        command_list = [self.cmd, "build", "-t", self.template_path, "--skip-pull-image"]
+        command_list = [self.cmd, "build", "-t", self.template_path]
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
