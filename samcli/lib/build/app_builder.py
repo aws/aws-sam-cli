@@ -211,7 +211,7 @@ class ApplicationBuilder(object):
 
         return artifacts_dir
 
-    def _build_function_on_container(self,
+    def _build_function_on_container(self,  # pylint: disable=too-many-locals
                                      config,
                                      source_dir,
                                      artifacts_dir,

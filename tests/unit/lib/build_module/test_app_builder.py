@@ -274,7 +274,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         }
 
         def mock_wait_for_logs(stdout, stderr):
-            stdout.write(stdout_data)
+            stdout.write(stdout_data.encode('utf-8'))
 
         # Wire all mocks correctly
         container_mock = LambdaBuildContainerMock.return_value = Mock()
