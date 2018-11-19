@@ -11,6 +11,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.local.docker.manager import DockerImagePullFailedException
 
 
 STDIN_FILE_NAME = "-"
@@ -153,9 +154,17 @@ class TestCli(TestCase):
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "no_event and event cannot be used together. Please provide only one.")
 
+    @parameterized.expand([
+        param(FunctionNotFound("not found"), "Function id not found in template"),
+        param(DockerImagePullFailedException("Failed to pull image"), "Failed to pull image")
+    ])
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_must_raise_user_exception_on_function_not_found(self, get_event_mock, InvokeContextMock):
+    def test_must_raise_user_exception_on_function_not_found(self,
+                                                             side_effect_exception,
+                                                             expected_exectpion_message,
+                                                             get_event_mock,
+                                                             InvokeContextMock):
         event_data = "data"
         get_event_mock.return_value = event_data
 
@@ -163,7 +172,7 @@ class TestCli(TestCase):
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
 
-        context_mock.local_lambda_runner.invoke.side_effect = FunctionNotFound("not found")
+        context_mock.local_lambda_runner.invoke.side_effect = side_effect_exception
 
         with self.assertRaises(UserException) as ex_ctx:
 
@@ -185,7 +194,7 @@ class TestCli(TestCase):
                        parameter_overrides=self.parameter_overrides)
 
         msg = str(ex_ctx.exception)
-        self.assertEquals(msg, "Function {} not found in template".format(self.function_id))
+        self.assertEquals(msg, expected_exectpion_message)
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
