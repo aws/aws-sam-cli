@@ -23,11 +23,9 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     @parameterized.expand([
         ("python2.7", False),
-        ("python3.6", False)
-
-        # FIXME: Turning off Container build tests until official Docker Container is published
-        # ("python2.7", "use_container"),
-        # ("python3.6", "use_container"),
+        ("python3.6", False),
+        ("python2.7", "use_container"),
+        ("python3.6", "use_container"),
     ])
     def test_with_default_requirements(self, runtime, use_container):
 
