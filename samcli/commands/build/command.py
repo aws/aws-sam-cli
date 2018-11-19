@@ -24,7 +24,7 @@ Use this command to build your AWS Lambda Functions source code to generate arti
 Supported Resource Types
 ------------------------
 1. AWS::Serverless::Function\n
-2.AWS::Lambda::Function\n
+2. AWS::Lambda::Function\n
 \b
 Supported Runtimes
 ------------------
