@@ -39,6 +39,7 @@ class LambdaRuntime_invoke(TestCase):
         container = Mock()
         timer = Mock()
         debug_options = Mock()
+        container_name = "container-name"
 
         self.runtime = LambdaRuntime(self.manager_mock)
 
@@ -54,6 +55,7 @@ class LambdaRuntime_invoke(TestCase):
 
         self.runtime.invoke(self.func_config,
                             event,
+                            container_name=container_name,
                             debug_context=debug_options,
                             stdout=stdout,
                             stderr=stderr)
@@ -69,8 +71,8 @@ class LambdaRuntime_invoke(TestCase):
 
         # Make sure the container is created with proper values
         LambdaContainerMock.assert_called_with(self.lang, self.handler, code_dir,
-                                               memory_mb=self.DEFAULT_MEMORY, env_vars=self.env_var_value,
-                                               debug_options=debug_options)
+                                               name=container_name, memory_mb=self.DEFAULT_MEMORY,
+                                               env_vars=self.env_var_value, debug_options=debug_options)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)

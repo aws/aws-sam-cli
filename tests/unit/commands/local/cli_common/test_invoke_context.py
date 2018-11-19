@@ -6,9 +6,6 @@ import os
 import sys
 import yaml
 
-import docker
-import requests
-
 from samcli.commands.local.cli_common.user_exceptions import InvokeContextException, DebugContextException
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
@@ -55,11 +52,16 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._setup_log_file = Mock()
         invoke_context._setup_log_file.return_value = log_file_handle
 
+        container_manager_mock = Mock()
+        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_valid_container_name.return_value = True
+        container_manager_mock.is_container_name_taken.return_value = False
+        invoke_context._get_container_manager = Mock()
+        invoke_context._get_container_manager.return_value = container_manager_mock
+
         debug_context_mock = Mock()
         invoke_context._get_debug_context = Mock()
         invoke_context._get_debug_context.return_value = debug_context_mock
-
-        invoke_context._check_docker_connectivity = Mock()
 
         # Call Enter method manually for testing purposes
         result = invoke_context.__enter__()
@@ -69,14 +71,123 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEquals(invoke_context._function_provider, function_provider)
         self.assertEquals(invoke_context._env_vars_value, env_vars_value)
         self.assertEquals(invoke_context._log_file_handle, log_file_handle)
+        self.assertEquals(invoke_context._container_manager, container_manager_mock)
         self.assertEquals(invoke_context._debug_context, debug_context_mock)
 
         invoke_context._get_template_data.assert_called_with(template_file)
         SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
         invoke_context._get_env_vars_value.assert_called_with(env_vars_file)
         invoke_context._setup_log_file.assert_called_with(log_file)
+        invoke_context._get_container_manager.assert_called_with("network", True)
         invoke_context._get_debug_context.assert_called_once_with(1111, "args", "path-to-debugger")
-        invoke_context._check_docker_connectivity.assert_called_with()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_must_use_container_manager_to_verify_docker_reachable(self, SamFunctionProviderMock):
+        invoke_context = InvokeContext("template-file")
+
+        invoke_context._get_template_data = Mock()
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        container_manager_mock = Mock()
+        container_manager_mock.is_docker_reachable.return_value = True
+        invoke_context._get_container_manager = Mock()
+        invoke_context._get_container_manager.return_value = container_manager_mock
+
+        invoke_context.__enter__()
+
+        container_manager_mock.is_docker_reachable.assert_called_once_with()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_must_raise_if_docker_is_not_reachable(self, SamFunctionProviderMock):
+        invoke_context = InvokeContext("template-file")
+
+        invoke_context._get_template_data = Mock()
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        container_manager_mock = Mock()
+        container_manager_mock.is_docker_reachable.return_value = False
+        invoke_context._get_container_manager = Mock()
+        invoke_context._get_container_manager.return_value = container_manager_mock
+
+        with self.assertRaises(InvokeContextException):
+            invoke_context.__enter__()
+        container_manager_mock.is_docker_reachable.assert_called_once_with()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_must_use_container_manager_to_check_name(self, SamFunctionProviderMock):
+        container_name = "test-container_name"
+
+        invoke_context = InvokeContext("template-file", container_name=container_name)
+
+        invoke_context._get_template_data = Mock()
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        container_manager_mock = Mock()
+        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_valid_container_name.return_value = True
+        container_manager_mock.is_container_name_taken.return_value = False
+
+        invoke_context._get_container_manager = Mock()
+        invoke_context._get_container_manager.return_value = container_manager_mock
+
+        invoke_context.__enter__()
+
+        container_manager_mock.is_valid_container_name.assert_called_once_with(container_name)
+        container_manager_mock.is_container_name_taken.assert_called_once_with(container_name)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_must_raise_if_container_name_is_invalid(self, SamFunctionProviderMock):
+        container_name = "c*nt@!ner~n@^^e"
+
+        invoke_context = InvokeContext("template-file", container_name=container_name)
+
+        invoke_context._get_template_data = Mock()
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        container_manager_mock = Mock()
+        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_valid_container_name.return_value = False
+        container_manager_mock.is_container_name_taken.return_value = False
+
+        invoke_context._get_container_manager = Mock()
+        invoke_context._get_container_manager.return_value = container_manager_mock
+
+        with self.assertRaises(InvokeContextException):
+            invoke_context.__enter__()
+
+        container_manager_mock.is_valid_container_name.assert_called_once_with(container_name)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_must_raise_if_container_name_is_taken(self, SamFunctionProviderMock):
+        container_name = "taken_container_name"
+
+        invoke_context = InvokeContext("template-file", container_name=container_name)
+
+        invoke_context._get_template_data = Mock()
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        container_manager_mock = Mock()
+        container_manager_mock.is_docker_reachable.return_value = True
+        container_manager_mock.is_valid_container_name.return_value = True
+        container_manager_mock.is_container_name_taken.return_value = True
+
+        invoke_context._get_container_manager = Mock()
+        invoke_context._get_container_manager.return_value = container_manager_mock
+
+        with self.assertRaises(InvokeContextException):
+            invoke_context.__enter__()
+
+        container_manager_mock.is_container_name_taken.assert_called_once_with(container_name)
 
 
 class TestInvokeContext__exit__(TestCase):
@@ -173,13 +284,14 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                                      debug_args='args',
                                      aws_region="region")
 
-    @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
-    def test_must_create_runner(self, LocalLambdaMock, LambdaRuntimeMock, ContainerManagerMock):
+    @patch.object(InvokeContext, "__enter__")
+    @patch.object(InvokeContext, "__exit__")
+    def test_must_create_runner(self, ExitMock, EnterMock, LocalLambdaMock, LambdaRuntimeMock):
 
-        container_mock = Mock()
-        ContainerManagerMock.return_value = container_mock
+        container_manager_mock = Mock()
+        self.context._get_container_manager.return_value = container_manager_mock
 
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
@@ -191,19 +303,18 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
 
-        result = self.context.local_lambda_runner
-        self.assertEquals(result, runner_mock)
+        with self.context as context:
+            result = context.local_lambda_runner
+            self.assertEquals(result, runner_mock)
 
-        ContainerManagerMock.assert_called_with(docker_network_id="network",
-                                                skip_pull_image=True)
-        LambdaRuntimeMock.assert_called_with(container_mock)
-        LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
-                                           function_provider=ANY,
-                                           cwd=cwd,
-                                           debug_context=None,
-                                           env_vars_values=ANY,
-                                           aws_profile="profile",
-                                           aws_region="region")
+            LambdaRuntimeMock.assert_called_with(container_manager_mock)
+            LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
+                                               function_provider=ANY,
+                                               cwd=cwd,
+                                               debug_context=None,
+                                               env_vars_values=ANY,
+                                               aws_profile="profile",
+                                               aws_region="region")
 
 
 class TestInvokeContext_stdout_property(TestCase):
@@ -446,34 +557,3 @@ class TestInvokeContext_get_debug_context(TestCase):
         resolve_path_mock.is_dir.assert_called_once()
         pathlib_path_mock.resolve.assert_called_once_with(strict=True)
         pathlib_mock.assert_called_once_with("./path")
-
-
-class TestInvokeContext_check_docker_connectivity(TestCase):
-
-    def test_must_call_ping(self):
-        client = Mock()
-        InvokeContext._check_docker_connectivity(client)
-        client.ping.assert_called_with()
-
-    @patch("samcli.commands.local.cli_common.invoke_context.docker")
-    def test_must_call_ping_with_docker_client_from_env(self, docker_mock):
-        client = Mock()
-        docker_mock.from_env.return_value = client
-
-        InvokeContext._check_docker_connectivity()
-        client.ping.assert_called_with()
-
-    @parameterized.expand([
-        param("Docker APIError thrown", docker.errors.APIError("error")),
-        param("Requests ConnectionError thrown", requests.exceptions.ConnectionError("error"))
-    ])
-    def test_must_raise_if_docker_not_found(self, test_name, error_docker_throws):
-        client = Mock()
-
-        client.ping.side_effect = error_docker_throws
-
-        with self.assertRaises(InvokeContextException) as ex_ctx:
-            InvokeContext._check_docker_connectivity(client)
-
-        msg = str(ex_ctx.exception)
-        self.assertEquals(msg, "Running AWS SAM projects locally requires Docker. Have you got it installed?")

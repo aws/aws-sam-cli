@@ -38,6 +38,7 @@ class LambdaRuntime(object):
                function_config,
                event,
                debug_context=None,
+               container_name=None,
                stdout=None,
                stderr=None):
         """
@@ -69,6 +70,7 @@ class LambdaRuntime(object):
             container = LambdaContainer(function_config.runtime,
                                         function_config.handler,
                                         code_dir,
+                                        name=container_name,
                                         memory_mb=function_config.memory,
                                         env_vars=env_vars,
                                         debug_options=debug_context)

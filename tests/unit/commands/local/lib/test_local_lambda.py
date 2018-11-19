@@ -492,6 +492,7 @@ class TestLocalLambda_invoke(TestCase):
         self.function_provider_mock = Mock()
         self.cwd = "/my/current/working/directory"
         self.debug_context = None
+        self.container_name = "container-name"
         self.aws_profile = "myprofile"
         self.aws_region = "region"
         self.env_vars_values = {}
@@ -502,6 +503,7 @@ class TestLocalLambda_invoke(TestCase):
                                               env_vars_values=self.env_vars_values,
                                               aws_profile=self.aws_profile,
                                               debug_context=self.debug_context,
+                                              container_name=self.container_name,
                                               aws_region=self.aws_region)
 
     def test_must_work(self):
@@ -520,6 +522,7 @@ class TestLocalLambda_invoke(TestCase):
 
         self.runtime_mock.invoke.assert_called_with(invoke_config, event,
                                                     debug_context=None,
+                                                    container_name=self.container_name,
                                                     stdout=stdout, stderr=stderr)
 
     def test_must_raise_if_function_not_found(self):
