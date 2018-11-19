@@ -26,7 +26,7 @@ execution environment.\n
 Supported Resource Types
 ------------------------
 1. AWS::Serverless::Function\n
-2.AWS::Lambda::Function\n
+2. AWS::Lambda::Function\n
 \b
 Supported Runtimes
 ------------------

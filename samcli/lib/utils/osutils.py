@@ -19,7 +19,7 @@ def mkdir_temp(mode=0o755):
     Parameters
     ----------
     mode : octal
-        Permissions to apply to the directory
+        Permissions to apply to the directory. Defaults to '755' because don't want directories world writable
 
     Returns
     -------
