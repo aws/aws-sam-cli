@@ -76,9 +76,9 @@ Open Issues
 
 Task Breakdown
 --------------
-- [x] Send a Pull Request with this design document (PR #123)
-- [ ] Build the command line interface (Issue #124)
-- [ ] Build the underlying library (Issue #125)
+- [x] Send a Pull Request with this design document 
+- [ ] Build the command line interface 
+- [ ] Build the underlying library
 - [ ] Unit tests
 - [ ] Functional Tests
 - [ ] Integration tests

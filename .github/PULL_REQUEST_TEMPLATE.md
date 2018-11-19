@@ -6,6 +6,7 @@
 
 - [ ] Write Design Document ([Do I need to write a design document?](https://github.com/awslabs/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.rst#design-document))
 - [ ] Write unit tests
+- [ ] Write/update functional tests
 - [ ] Write/update integration tests
 - [ ] `make pr` passes
 - [ ] Write documentation
