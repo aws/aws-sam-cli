@@ -189,8 +189,10 @@ With this `launch.json` in place the only caveat left is the container name to s
 ### Tasks breakdown
 
 - [x] Submit PR with the design doc;
-- [x] Submit PR with runner program improvements. Track [here](https://github.com/lambci/docker-lambda/pull/127);
-- [ ] Close the question with `--container-name` option. **WIP**;
-- [ ] Implement required changes in SAM. **WIP**;
-- [ ] Write tests;
-- [ ] Submit PR with this changes to SAM repo.
+- [x] Submit PR with runner program improvements;
+- [x] Close the question with `--container-name` option;
+- [x] Implement required changes in SAM;
+- [x] Write tests;
+- [x] Submit PR with this changes to SAM repo.
+- [ ] Merge [PR](https://github.com/lambci/docker-lambda/pull/127) to lambci/docker-lambda [repo](https://github.com/lambci/docker-lambda) **WIP** 🚨 blocker;
+- [ ] Merge [PR](https://github.com/awslabs/aws-sam-cli/pull/774) to SAM repo **WIP**.

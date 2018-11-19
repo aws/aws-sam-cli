@@ -1,10 +1,13 @@
 """
 Represents Lambda runtime containers.
+
 """
-import six
+
 from enum import Enum
+import six
 
 from .container import Container
+
 
 class Runtime(Enum):
     nodejs = "nodejs"
@@ -19,12 +22,11 @@ class Runtime(Enum):
     dotnetcore21 = "dotnetcore2.1"
 
     def __eq__(self, other):
-        if (isinstance(other, Runtime)):
+        if isinstance(other, Runtime):
             return self.value == other.value
-        elif (isinstance(other, six.string_types)):
+        elif isinstance(other, six.string_types):
             return self.value == other
-        else:
-            return False
+        return False
 
     @classmethod
     def has_value(cls, value):
@@ -123,9 +125,7 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
-        opts = { 
-                "name": "debugger"
-               }
+        opts = {}
 
         if runtime == Runtime.go1x.value:
             # These options are required for delve to function properly inside a docker container on docker < 1.12
@@ -158,8 +158,7 @@ class LambdaContainer(Container):
         :param string runtime: Name of the runtime
         :return: Name of Docker Image for the given runtime
         """
-        #return "{}:{}".format(LambdaContainer._IMAGE_REPO_NAME, runtime)
-        return "me/lambci-dotnetcore:2.0" if runtime == Runtime.dotnetcore20 else "me/lambci-dotnetcore:2.1"
+        return "{}:{}".format(LambdaContainer._IMAGE_REPO_NAME, runtime)
 
     @staticmethod
     def _get_entry_point(runtime, debug_options=None):
