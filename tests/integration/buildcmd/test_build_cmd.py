@@ -16,7 +16,9 @@ LOG = logging.getLogger(__name__)
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
-    EXPECTED_FILES_PROJECT_MANIFEST = {'__init__.py', 'main.py', 'numpy', 'cryptography', "jinja2",
+    EXPECTED_FILES_PROJECT_MANIFEST = {'__init__.py', 'main.py', 'numpy',
+                                       # 'cryptography',
+                                       "jinja2",
                                        'requirements.txt'}
 
     FUNCTION_LOGICAL_ID = "PythonFunction"

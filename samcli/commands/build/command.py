@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
 
 HELP_TEXT = """
-Use this command to build your AWS Lambda Functions source code to generate artifacts that target AWS Lambda's 
+Use this command to build your AWS Lambda Functions source code to generate artifacts that target AWS Lambda's
 execution environment.\n
 \b
 Supported Resource Types
@@ -35,7 +35,7 @@ Supported Runtimes
 \b
 Examples
 --------
-To use this command, update your SAM template to specify the path 
+To use this command, update your SAM template to specify the path
 to your function's source code in the resource's Code or CodeUri property.
 \b
 To build on your workstation, run this command in folder containing
@@ -160,7 +160,7 @@ def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):
         package_cmd += " --template-file {}".format(output_template_path)
 
     msg = """\nBuilt Artifacts  : {artifacts_dir}
-Built Template   : {template} 
+Built Template   : {template}
 
 Commands you can use next
 =========================
