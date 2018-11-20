@@ -13,7 +13,7 @@ LOG = logging.getLogger(__name__)
 def execute_command(command, args, template_file):
     LOG.debug("%s command is called", command)
     try:
-        aws_cmd = find_command("aws")
+        aws_cmd = find_executable("aws")
 
         args = list(args)
         if template_file:
@@ -28,19 +28,24 @@ def execute_command(command, args, template_file):
         sys.exit(e.returncode)
 
 
-def find_command(cmdname):
+def find_executable(execname):
 
-    options = [cmdname]
     if platform.system().lower() == 'windows':
-        options = ["{}.cmd".format(cmdname), "{}.exe".format(cmdname)]
+        options = [
+            "{}.cmd".format(execname),
+            "{}.exe".format(execname),
+            execname
+        ]
+    else:
+        options = [execname]
 
-    for cmd in options:
+    for name in options:
         try:
-            subprocess.check_call([cmd])
+            subprocess.Popen([name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             # No exception. Let's pick this
-            return cmd
+            return name
         except OSError as ex:
-            LOG.debug("Unable to find command %s", cmd, exc_info=ex)
+            LOG.debug("Unable to find executable %s", name, exc_info=ex)
             pass
 
     raise OSError("Unable to find AWS CLI installation under following names: {}".format(options))
