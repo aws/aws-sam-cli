@@ -183,6 +183,7 @@ class Container(object):
         real_container.start()
 
     def wait_for_logs(self, stdout=None, stderr=None):
+
         # Return instantly if we don't have to fetch any logs
         if not stdout and not stderr:
             return
@@ -219,15 +220,14 @@ class Container(object):
         # Iterator returns a tuple of (frame_type, data) where the frame type determines which stream we write output
         # to
         for frame_type, data in output_itr:
+
             if frame_type == Container._STDOUT_FRAME_TYPE and stdout:
                 # Frame type 1 is stdout data.
                 stdout.write(data)
-                stdout.flush()
 
             elif frame_type == Container._STDERR_FRAME_TYPE and stderr:
                 # Frame type 2 is stderr data.
                 stderr.write(data)
-                stderr.flush()
 
             else:
                 # Either an unsupported frame type or stream for this frame type is not configured

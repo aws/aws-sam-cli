@@ -15,7 +15,7 @@ And let's break it down to the checklist
 
 ### What will be changed
 
-Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support waiting for the debugger to attach. Already have [PR](https://github.com/lambci/docker-lambda/pull/127) (guys and @mhart - reviewers wanted :)). I think we should provide new `sam local` flag  `--container-name` which will assign desired name to the container with the Lambda runtime to simplify `docker exec` experience from VS Code later.
+Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support waiting for the debugger to attach. Already have [PR](https://github.com/lambci/docker-lambda/pull/130) (guys and @mhart - reviewers wanted :)). I think we should provide new `sam local` flag  `--container-name` which will assign desired name to the container with the Lambda runtime to simplify `docker exec` experience from VS Code later.
 
 ### Success Criteria
 
@@ -87,7 +87,7 @@ As for the debugging support for the runner, unfortunately `dotnet` command does
 
 During the discussion in this related [issue](https://github.com/awslabs/aws-sam-cli/issues/568) it was decided to go with infinite loop approach. It means that program will query [Debugger.IsAttached](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.isattached?view=netcore-2.0) property with some interval (for now it is 50ms - which seems instantaneous for the user), also we have timeout for this loop which is 10 minutes for now (thanks for shaping that out, @mikemorain, @sanathkr). Interval and timeout are **open** for suggestions and edits.
 
-_Examine the code from open [PR](https://github.com/lambci/docker-lambda/pull/127/files):_
+_Examine the code from open [PR](https://github.com/lambci/docker-lambda/pull/130/files):_
 
 ```c#
 public static bool TryWaitForAttaching(TimeSpan queryInterval, TimeSpan timeout)
@@ -194,5 +194,5 @@ With this `launch.json` in place the only caveat left is the container name to s
 - [x] Implement required changes in SAM;
 - [x] Write tests;
 - [x] Submit PR with this changes to SAM repo.
-- [ ] Merge [PR](https://github.com/lambci/docker-lambda/pull/127) to lambci/docker-lambda [repo](https://github.com/lambci/docker-lambda) **WIP** 🚨 blocker;
+- [ ] Merge [PR](https://github.com/lambci/docker-lambda/pull/130) to lambci/docker-lambda [repo](https://github.com/lambci/docker-lambda) **WIP** 🚨 blocker;
 - [ ] Merge [PR](https://github.com/awslabs/aws-sam-cli/pull/774) to SAM repo **WIP**.
