@@ -46,6 +46,5 @@ def find_executable(execname):
             return name
         except OSError as ex:
             LOG.debug("Unable to find executable %s", name, exc_info=ex)
-            pass
 
     raise OSError("Unable to find AWS CLI installation under following names: {}".format(options))
