@@ -5,7 +5,7 @@ Usage
 **Create a sample app with sam init command**: ``sam init`` or ``sam init --runtime <favourite-runtime>``
 
 ``sam`` requires a SAM template in order to know how to invoke your
-function locally, and it’s also true for spawning API Gateway locally -
+function locally. This is also true for spawning API Gateway locally.
 If no template is specified ``template.yaml`` will be used instead.
 
 Alternatively, you can find other sample SAM Templates by visiting `SAM <https://github.com/awslabs/serverless-application-model>`__ official repository.
@@ -60,7 +60,7 @@ an event too.
 Run automated tests for your Lambda functions locally
 -----------------------------------------------------
 You can use the ``sam local invoke`` command to manually test your code
-by running Lambda function locally. With SAM CLI, you can easily
+by running Lambda functions locally. With SAM CLI, you can easily
 author automated integration tests by
 first running tests against local Lambda functions before deploying to the
 cloud. The ``sam local start-lambda`` command starts a local
@@ -92,11 +92,11 @@ function specified in the request and return a response.
 
 In your integration test, you can use AWS SDK to invoke your Lambda function
 with test data, wait for response, and assert that the response what you
-expect. To run the integration test locally, you should configure AWS
-SDK to send Lambda Invoke API call to local Lambda endpoint started in
+expect. To run the integration test locally, you should configure the AWS
+SDK to send Lambda Invoke API call to the local Lambda endpoint started in
 previous step.
 
-Here is an Python example (AWS SDK for other languages have similar
+Here is a Python example (the AWS SDKs for other languages have similar
 configurations):
 
 .. code:: python
@@ -134,13 +134,13 @@ configurations):
 
 This code can run without modifications against a Lambda function which
 is deployed. To do so, set the ``running_locally`` flag to ``False`` .
-This will setup AWS SDK to connect to AWS Lambda service on the cloud.
+This will setup the AWS SDK to connect to AWS Lambda service in the cloud.
 
 Connecting to docker network
 ----------------------------
 
 Both ``sam local invoke`` and ``sam local start-api`` support connecting
-the create lambda docker containers to an existing docker network.
+the created lambda docker containers to an existing docker network.
 
 To connect the containers to an existing docker network, you can use the
 ``--docker-network`` command-line argument or the ``SAM_DOCKER_NETWORK``
@@ -152,7 +152,7 @@ wish to connect to.
    # Invoke a function locally and connect to a docker network
    $ sam local invoke --docker-network my-custom-network <function logical id>
 
-   # Start local API Gateway and connect all containers to a docker network
+   # Start a local API Gateway and connect all containers to a docker network
    $ sam local start-api --docker-network b91847306671 -d 5858
 
 
@@ -187,7 +187,7 @@ can generate and customize event payloads for the following services:
 
   $ sam local generate-event <service> <event>
 
-You can generate multiple types of events from each service. For example,
+You can generate multiple types of events for each service. For example,
 to generate the event from S3 when a new object is created, use:
 
 .. code:: bash
@@ -290,7 +290,7 @@ To run SAM Local with debugging support enabled, just specify
    $ sam local start-api -d 5858
 
 
-Note: If using ``sam local start-api``, the local API Gateway will
+Note: If you are using ``sam local start-api``, the local API Gateway will
 expose all of your Lambda functions but, since you can specify a single
 debug port, you can only debug one function at a time. You will need to
 hit your API before SAM CLI binds to the port allowing the debugger to
