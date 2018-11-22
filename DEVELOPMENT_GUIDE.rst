@@ -154,4 +154,4 @@ document to proceed with implementation.
 .. _tox: http://tox.readthedocs.io/en/latest/
 .. _numpy docstring: https://numpydoc.readthedocs.io/en/latest/format.html
 .. _pipenv: https://docs.pipenv.org/
-.. _design document template: ./design/_template.rst
+.. _design document template: ./designs/_template.rst
