@@ -6,6 +6,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options
 from samcli.lib.samlib.cloudformation_command import execute_command
+from samcli.commands.exceptions import UserException
 
 
 SHORT_HELP = "Deploy an AWS SAM application. This is an alias for 'aws cloudformation deploy'."
@@ -23,4 +24,7 @@ def cli(ctx, args):
 
 
 def do_cli(args):
-    execute_command("deploy", args)
+    try:
+        execute_command("deploy", args, template_file=None)
+    except OSError as ex:
+        raise UserException(str(ex))
