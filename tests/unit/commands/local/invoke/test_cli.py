@@ -11,7 +11,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-from samcli.local.docker.manager import DockerImagePullFailedException
+from samcli.local.docker.manager import DockerImagePullFailedException, DockerContainerException
 
 
 STDIN_FILE_NAME = "-"
@@ -233,6 +233,38 @@ class TestCli(TestCase):
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad template")
+
+    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.invoke.cli._get_event")
+    def test_must_raise_user_exception_on_DockerContainerException(self, get_event_mock, InvokeContextMock):
+        get_event_mock.return_value = "event_data"
+
+        context_mock = Mock()
+        InvokeContextMock.return_value.__enter__.return_value = context_mock
+
+        context_mock.local_lambda_runner.invoke.side_effect = DockerContainerException("error")
+
+        with self.assertRaises(UserException) as ex_ctx:
+
+            invoke_cli(ctx=None,
+                       function_identifier=self.function_id,
+                       template=self.template,
+                       event=self.eventfile,
+                       no_event=self.no_event,
+                       env_vars=self.env_vars,
+                       debug_port=self.debug_port,
+                       debug_args=self.debug_args,
+                       debugger_path=self.debugger_path,
+                       docker_volume_basedir=self.docker_volume_basedir,
+                       docker_network=self.docker_network,
+                       log_file=self.log_file,
+                       skip_pull_image=self.skip_pull_image,
+                       profile=self.profile,
+                       region=self.region,
+                       parameter_overrides=self.parameter_overrides,
+                       container_name=self.container_name)
+
+        self.assertEqual("error", str(ex_ctx.exception))
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")

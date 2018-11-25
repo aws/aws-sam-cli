@@ -5,6 +5,8 @@ Common CLI options for invoke command
 import click
 from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
 
+from samcli.local.docker.manager import ContainerManager
+
 
 def service_common_options(port):
     def construct_options(f):
@@ -47,6 +49,12 @@ def invoke_common_options(f):
     :param f: Callback passed by Click
     """
 
+    def validate_container_name(ctx, param, container_name):
+        if container_name and not ContainerManager.is_valid_container_name(container_name):
+            raise click.BadParameter("({}), only [a-zA-Z0-9][a-zA-Z0-9_.-] are allowed."
+                                     .format(container_name))
+        return container_name
+
     invoke_options = [
         template_click_option(),
 
@@ -58,7 +66,8 @@ def invoke_common_options(f):
 
         click.option('--container-name',
                      help="When specified, Lambda function container will start with this name.",
-                     envvar="SAM_DOCKER_CONTAINER_NAME"),
+                     envvar="SAM_DOCKER_CONTAINER_NAME",
+                     callback=validate_container_name),
 
         click.option('--debug-port', '-d',
                      help="When specified, Lambda function container will start in debug mode and will expose this "

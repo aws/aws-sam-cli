@@ -133,20 +133,10 @@ class InvokeContext(object):
                                                       self._debug_args,
                                                       self._debugger_path)
 
-        container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
+        self._container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
 
-        if not container_manager.is_docker_reachable:
+        if not self._container_manager.is_docker_reachable:
             raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")
-
-        if self._container_name:
-            if not container_manager.is_valid_container_name(self._container_name):
-                raise InvokeContextException("'{}' is not a valid Docker container name"
-                                             "only [a-zA-Z0-9][a-zA-Z0-9_.-] are allowed.".format(self._container_name))
-
-            if container_manager.is_container_name_taken(self._container_name):
-                raise InvokeContextException("'{}' Docker container name is already taken".format(self._container_name))
-
-        self._container_manager = container_manager
 
         return self
 

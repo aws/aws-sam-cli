@@ -12,7 +12,7 @@ from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-from samcli.local.docker.manager import DockerImagePullFailedException
+from samcli.local.docker.manager import DockerImagePullFailedException, DockerContainerException
 
 
 LOG = logging.getLogger(__name__)
@@ -101,6 +101,8 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
     except (InvalidSamDocumentException, OverridesNotWellDefinedError) as ex:
         raise UserException(str(ex))
     except DockerImagePullFailedException as ex:
+        raise UserException(str(ex))
+    except DockerContainerException as ex:
         raise UserException(str(ex))
 
 

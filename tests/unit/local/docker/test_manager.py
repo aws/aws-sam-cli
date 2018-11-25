@@ -6,13 +6,13 @@ import io
 
 from unittest import TestCase
 import requests
-from mock import PropertyMock, Mock, patch
+from mock import Mock
 from docker.errors import ImageNotFound, APIError
 
 from samcli.local.docker.manager import (
     ContainerManager, DockerContainerException, DockerImagePullFailedException)
 
-from parameterized import parameterized
+from parameterized import param, parameterized
 
 
 class TestContainerManager_init(TestCase):
@@ -153,17 +153,8 @@ class TestContainerManager_run(TestCase):
         # Container should be created
         self.container_mock.create.assert_not_called()
 
-    @parameterized.expand([
-        ("Create raises error", "create"),
-        ("Start raises error", "start")
-    ])
-    @patch("docker.errors.APIError.status_code", new_callable=PropertyMock)
-    def test_must_raise_DockerContainerException_if_container_raises_conflict_error(
-            self, test_name, failing_method, status_code_mock):
-        conflict_api_error = APIError("conflict")
-
-        status_code_mock.return_value = 409
-        conflict_api_error.is_server_error = Mock(return_value=False)
+    def test_must_raise_DockerContainerException_if_container_create_raises_APIError(self):
+        api_error = APIError("error")
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
@@ -171,59 +162,26 @@ class TestContainerManager_run(TestCase):
         self.manager.has_image.return_value = False
 
         self.container_mock.is_created.return_value = False
+        self.container_mock.create.side_effect = api_error
 
-        with patch.object(self.container_mock, failing_method, create=True) as failing_method_mock:
-            failing_method_mock.side_effect = conflict_api_error
-            with self.assertRaises(DockerContainerException):
-                self.manager.run(self.container_mock)
+        with self.assertRaises(DockerContainerException) as ex_ctx:
+            self.manager.run(self.container_mock)
+            self.assertEqual("[From Docker]\n{}".format(api_error), str(ex_ctx.exception))
 
-    @parameterized.expand([
-        ("Create raises error", "create"),
-        ("Start raises error", "start")
-    ])
-    @patch("docker.errors.APIError.status_code", new_callable=PropertyMock)
-    def test_must_raise_DockerContainerException_if_container_raises_server_error(
-            self, test_name, failing_method, status_code_mock):
-        conflict_api_error = APIError("server error")
-
-        status_code_mock.return_value = 500
-        conflict_api_error.is_server_error = Mock(return_value=True)
+    def test_must_raise_DockerContainerException_if_container_start_raises_APIError(self):
+        api_error = APIError("error")
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
 
         self.manager.has_image.return_value = False
 
-        self.container_mock.is_created.return_value = False
+        self.container_mock.is_created.return_value = True
+        self.container_mock.start.side_effect = api_error
 
-        with patch.object(self.container_mock, failing_method, create=True) as failing_method_mock:
-            failing_method_mock.side_effect = conflict_api_error
-            with self.assertRaises(DockerContainerException):
-                self.manager.run(self.container_mock)
-
-    @parameterized.expand([
-        ("Create raises error", "create"),
-        ("Start raises error", "start")
-    ])
-    @patch("docker.errors.APIError.status_code", new_callable=PropertyMock)
-    def test_must_bubble_error_if_container_raises_unhandled_error(
-            self, test_name, failing_method, status_code_mock):
-        conflict_api_error = APIError("unhandled")
-
-        status_code_mock.return_value = 400
-        conflict_api_error.is_server_error = Mock(return_value=False)
-
-        self.manager.has_image = Mock()
-        self.manager.pull_image = Mock()
-
-        self.manager.has_image.return_value = False
-
-        self.container_mock.is_created.return_value = False
-
-        with patch.object(self.container_mock, failing_method, create=True) as failing_method_mock:
-            failing_method_mock.side_effect = conflict_api_error
-            with self.assertRaises(APIError):
-                self.manager.run(self.container_mock)
+        with self.assertRaises(DockerContainerException) as ex_ctx:
+            self.manager.run(self.container_mock)
+            self.assertEqual("[From Docker]\n{}".format(api_error), str(ex_ctx.exception))
 
 
 class TestContainerManager_is_valid_container_name(TestCase):
@@ -238,13 +196,14 @@ class TestContainerManager_is_valid_container_name(TestCase):
         self.assertTrue(ContainerManager.is_valid_container_name(container_name))
 
     @parameterized.expand([
-        ("Wrong length", "n"),
-        ("Invalid as first character _", "_container-name"),
-        ("Invalid as first character .", ".container-name"),
-        ("Invalid as first character -", "-container-name"),
-        ("Invalid name", "c*nt@!ner~n@^^e"),
+        param("Wrong length", "n"),
+        param("Invalid as first character _", "_container-name"),
+        param("Invalid as first character .", ".container-name"),
+        param("Invalid as first character -", "-container-name"),
+        param("Invalid name", "-."),
+        param("Invalid name", "c*nt@!ner~n@^^e"),
     ])
-    def test_must_identify_invalid_name(self, test_name, container_name):
+    def test_must_identify_invalid_name(self, test_case_name, container_name):
         self.assertFalse(ContainerManager.is_valid_container_name(container_name))
 
 
@@ -281,48 +240,6 @@ class TestContainerManager_is_docker_reachable(TestCase):
         is_reachable = self.manager.is_docker_reachable
 
         self.assertFalse(is_reachable)
-
-
-class TestContainerManager_is_container_name_taken(TestCase):
-
-    def setUp(self):
-        self.containers_list_mock = Mock()
-
-        docker_client_mock = Mock()
-        docker_client_mock.containers.list = self.containers_list_mock
-
-        self.manager = ContainerManager(docker_client=docker_client_mock)
-
-    def test_must_use_docker_client_list_with_filter(self):
-        container_name = "container-name"
-
-        self.containers_list_mock.return_value = []
-
-        self.manager.is_container_name_taken(container_name)
-
-        self.containers_list_mock.assert_called_once_with(
-            all=True, filters={"name": container_name}
-        )
-
-    def test_must_return_false_if_no_container_with_this_name_exists(self):
-        container_name = "container-name"
-
-        self.containers_list_mock.return_value = []
-
-        is_name_taken = self.manager.is_container_name_taken(container_name)
-
-        self.assertFalse(is_name_taken)
-
-    def test_must_return_true_if_any_container_with_this_name_exists(self):
-        container_name = "container_name"
-
-        self.containers_list_mock.return_value = [
-            Mock(),
-        ]
-
-        is_name_taken = self.manager.is_container_name_taken(container_name)
-
-        self.assertTrue(is_name_taken)
 
 
 class TestContainerManager_pull_image(TestCase):
