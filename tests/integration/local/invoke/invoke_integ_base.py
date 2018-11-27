@@ -29,7 +29,7 @@ class InvokeIntegBase(TestCase):
         return command
 
     def get_command_list(self, function_to_invoke, template_path=None, event_path=None, env_var_path=None,
-                         parameter_overrides=None, region=None, docker_network=None):
+                         parameter_overrides=None, region=None, docker_network=None, container_name=None):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
         if template_path:
@@ -43,6 +43,9 @@ class InvokeIntegBase(TestCase):
 
         if docker_network:
             command_list = command_list + ["--docker-network", docker_network]
+
+        if container_name:
+            command_list = command_list + ["--container-name", container_name]
 
         if parameter_overrides:
             arg_value = " ".join([

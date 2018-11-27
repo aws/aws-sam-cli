@@ -1,13 +1,18 @@
 import json
 
-from nose_parameterized import parameterized
+from nose_parameterized import param, parameterized
 from subprocess import Popen, PIPE
 from timeit import default_timer as timer
+from uuid import uuid4
 
 from .invoke_integ_base import InvokeIntegBase
 
 
 class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
+
+    @staticmethod
+    def _get_random_container_name():
+        return uuid4().hex
 
     def test_invoke_returncode_is_zero(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
@@ -175,3 +180,42 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         return_code = process.wait()
 
         self.assertEquals(return_code, 0)
+
+    def test_invoke_with_container_name(self):
+        container_name = self._get_random_container_name()
+
+        command_list = self.get_command_list("HelloWorldServerlessFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path,
+                                             container_name=container_name)
+
+        process = Popen(command_list, stderr=PIPE)
+        return_code = process.wait()
+
+        self.assertEqual(return_code, 0)
+
+    @parameterized.expand([
+        param("Wrong length", "n"),
+        param("Invalid as first character _", "_container-name"),
+        param("Invalid as first character .", ".container-name"),
+        param("Invalid as first character -", "-container-name"),
+        param("Invalid name", "-."),
+        param("Invalid name", "c*nt@!ner~n@^^e"),
+    ])
+    def test_invoke_raises_exception_if_container_name_is_invalid(
+            self, test_case_name, container_name):
+
+        command_list = self.get_command_list("HelloWorldServerlessFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path,
+                                             container_name=container_name)
+
+        process = Popen(command_list, stderr=PIPE)
+        process.wait()
+
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+        error_output = process_stderr.decode('utf-8')
+
+        self.assertIn(
+            "({}), only [a-zA-Z0-9][a-zA-Z0-9_.-] are allowed.".format(container_name),
+            error_output)

@@ -7,6 +7,7 @@ import random
 import shutil
 import docker
 import six
+import uuid
 
 from contextlib import contextmanager
 from unittest import TestCase
@@ -113,6 +114,18 @@ class TestLambdaContainer(TestCase):
                 self.assertEquals(1, len(network.containers))
                 self.assertEquals(container.id, network.containers[0].id)
 
+    def test_container_gets_name(self):
+        container_name = _rand_container_name()
+
+        container = LambdaContainer(self.runtime,
+                                    self.handler, self.code_dir, name=container_name)
+
+        with self._create(container):
+            container.start()
+
+            real_container = self.docker_client.containers.get(container_name)
+            self.assertEqual(container_name, real_container.name)
+
     def test_function_result_is_available_in_stdout_and_logs_in_stderr(self):
 
         # This is the JSON result from Lambda function
@@ -168,3 +181,5 @@ class TestLambdaContainer(TestCase):
 def _rand_port():
     return random.randint(30000, 40000)
 
+def _rand_container_name():
+    return uuid.uuid4().hex
