@@ -96,7 +96,8 @@ def docker_click_options():
         click.option('--skip-pull-image',
                      is_flag=True,
                      help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
-                     envvar="SAM_SKIP_PULL_IMAGE"),
+                     envvar="SAM_SKIP_PULL_IMAGE",
+                     default=False),
 
         click.option('--docker-network',
                      envvar="SAM_DOCKER_NETWORK",

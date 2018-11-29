@@ -7,13 +7,13 @@ import logging
 import click
 
 from samcli.commands.exceptions import UserException
-from samcli.yamlhelper import yaml_dump
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_option_without_build, docker_common_options, \
     parameter_override_option
 from samcli.commands.build.build_context import BuildContext
 from samcli.lib.build.app_builder import ApplicationBuilder, UnsupportedRuntimeException, \
     BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.commands._utils.template import move_template
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ Supported Runtimes
 ------------------
 1. Python2.7\n
 2. Python3.6\n
+3. Python3.7\n
 \b
 Examples
 --------
@@ -130,11 +131,12 @@ def do_cli(template,  # pylint: disable=too-many-locals
         try:
             artifacts = builder.build()
             modified_template = builder.update_template(ctx.template_dict,
-                                                        ctx.output_template_path,
+                                                        ctx.original_template_path,
                                                         artifacts)
 
-            with open(ctx.output_template_path, "w") as fp:
-                fp.write(yaml_dump(modified_template))
+            move_template(ctx.original_template_path,
+                          ctx.output_template_path,
+                          modified_template)
 
             click.secho("\nBuild Succeeded", fg="green")
 
