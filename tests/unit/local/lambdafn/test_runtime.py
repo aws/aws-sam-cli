@@ -23,7 +23,8 @@ class LambdaRuntime_invoke(TestCase):
         self.lang = "runtime"
         self.handler = "handler"
         self.code_path = "code-path"
-        self.func_config = FunctionConfig(self.name, self.lang, self.handler, self.code_path)
+        self.layers = []
+        self.func_config = FunctionConfig(self.name, self.lang, self.handler, self.code_path, self.layers)
 
         self.env_vars = Mock()
         self.func_config.env_vars = self.env_vars
@@ -39,8 +40,9 @@ class LambdaRuntime_invoke(TestCase):
         container = Mock()
         timer = Mock()
         debug_options = Mock()
+        lambda_image_mock = Mock()
 
-        self.runtime = LambdaRuntime(self.manager_mock)
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -68,7 +70,7 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._get_code_dir.assert_called_with(self.code_path)
 
         # Make sure the container is created with proper values
-        LambdaContainerMock.assert_called_with(self.lang, self.handler, code_dir,
+        LambdaContainerMock.assert_called_with(self.lang, self.handler, code_dir, self.layers, lambda_image_mock,
                                                memory_mb=self.DEFAULT_MEMORY, env_vars=self.env_var_value,
                                                debug_options=debug_options)
 
@@ -89,8 +91,9 @@ class LambdaRuntime_invoke(TestCase):
         stderr = "stderr"
         container = Mock()
         timer = Mock()
+        layer_downloader = Mock()
 
-        self.runtime = LambdaRuntime(self.manager_mock)
+        self.runtime = LambdaRuntime(self.manager_mock, layer_downloader)
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -129,8 +132,9 @@ class LambdaRuntime_invoke(TestCase):
         container = Mock()
         timer = Mock()
         debug_options = Mock()
+        layer_downloader = Mock()
 
-        self.runtime = LambdaRuntime(self.manager_mock)
+        self.runtime = LambdaRuntime(self.manager_mock, layer_downloader)
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -167,8 +171,9 @@ class LambdaRuntime_invoke(TestCase):
         stdout = "stdout"
         stderr = "stderr"
         container = Mock()
+        layer_downloader = Mock()
 
-        self.runtime = LambdaRuntime(self.manager_mock)
+        self.runtime = LambdaRuntime(self.manager_mock, layer_downloader)
 
         # Using MagicMock to mock the context manager
         self.runtime._get_code_dir = MagicMock()
@@ -201,7 +206,8 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
         self.container = Mock()
 
         self.manager_mock = Mock()
-        self.runtime = LambdaRuntime(self.manager_mock)
+        self.layer_downloader = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, self.layer_downloader)
 
     @patch("samcli.local.lambdafn.runtime.threading")
     @patch("samcli.local.lambdafn.runtime.signal")
@@ -274,7 +280,8 @@ class TestLambdaRuntime_get_code_dir(TestCase):
 
     def setUp(self):
         self.manager_mock = Mock()
-        self.runtime = LambdaRuntime(self.manager_mock)
+        self.layer_downloader = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, self.layer_downloader)
 
     @parameterized.expand([
         (".zip"),

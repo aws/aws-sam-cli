@@ -15,6 +15,8 @@ from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands.local.lib.local_api_service import LocalApiService
+from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.local.docker.lambda_image import LambdaImage
 
 from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT
 from unittest import TestCase
@@ -49,7 +51,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.function = provider.Function(name=self.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                           handler="index.handler", codeuri=self.code_uri,
                                           environment={},
-                                          rolearn=None)
+                                          rolearn=None, layers=[])
         self.mock_function_provider = Mock()
         self.mock_function_provider.get.return_value = self.function
 
@@ -64,9 +66,11 @@ class TestFunctionalLocalLambda(TestCase):
         # Now wire up the Lambda invoker and pass it through the context
         self.lambda_invoke_context_mock = Mock()
         manager = ContainerManager()
-        local_runtime = LambdaRuntime(manager)
+        layer_downloader = LayerDownloader("./", "./")
+        lambda_image = LambdaImage(layer_downloader, False)
+        local_runtime = LambdaRuntime(manager, lambda_image)
         lambda_runner = LocalLambdaRunner(local_runtime, self.mock_function_provider, self.cwd, env_vars_values=None,
-                                          debug_context=None, aws_profile=None)
+                                          debug_context=None)
         self.lambda_invoke_context_mock.local_lambda_runner = lambda_runner
         self.lambda_invoke_context_mock.get_cwd.return_value = self.cwd
 

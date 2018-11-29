@@ -1,6 +1,6 @@
 
 from unittest import TestCase
-from mock import Mock, patch, mock_open
+from mock import Mock, patch
 from parameterized import parameterized
 
 from samcli.commands.build.command import do_cli
@@ -12,9 +12,13 @@ class TestDoCli(TestCase):
 
     @patch("samcli.commands.build.command.BuildContext")
     @patch("samcli.commands.build.command.ApplicationBuilder")
-    @patch("samcli.commands.build.command.yaml_dump")
+    @patch("samcli.commands.build.command.move_template")
     @patch("samcli.commands.build.command.os")
-    def test_must_succeed_build(self, os_mock, yaml_dump_mock, ApplicationBuilderMock, BuildContextMock):
+    def test_must_succeed_build(self,
+                                os_mock,
+                                move_template_mock,
+                                ApplicationBuilderMock,
+                                BuildContextMock):
 
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__ = Mock()
@@ -22,12 +26,9 @@ class TestDoCli(TestCase):
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = builder_mock.build.return_value = "artifacts"
         modified_template = builder_mock.update_template.return_value = "modified template"
-        dumped_yaml = yaml_dump_mock.return_value = "dumped yaml"
-        m = mock_open()
 
-        with patch("samcli.commands.build.command.open", m):
-            do_cli("template", "base_dir", "build_dir", "clean", "use_container",
-                   "manifest_path", "docker_network", "skip_pull", "parameter_overrides")
+        do_cli("template", "base_dir", "build_dir", "clean", "use_container",
+               "manifest_path", "docker_network", "skip_pull", "parameter_overrides")
 
         ApplicationBuilderMock.assert_called_once_with(ctx_mock.function_provider,
                                                        ctx_mock.build_dir,
@@ -36,12 +37,11 @@ class TestDoCli(TestCase):
                                                        container_manager=ctx_mock.container_manager)
         builder_mock.build.assert_called_once()
         builder_mock.update_template.assert_called_once_with(ctx_mock.template_dict,
-                                                             ctx_mock.output_template_path,
+                                                             ctx_mock.original_template_path,
                                                              artifacts)
-
-        yaml_dump_mock.assert_called_with(modified_template)
-        m.assert_called_with(ctx_mock.output_template_path, 'w')
-        m.return_value.write.assert_called_with(dumped_yaml)
+        move_template_mock.assert_called_once_with(ctx_mock.original_template_path,
+                                                   ctx_mock.output_template_path,
+                                                   modified_template)
 
     @parameterized.expand([
         (UnsupportedRuntimeException(), ),
