@@ -56,4 +56,4 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
 
         self.assertEquals(return_code, 0)
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode('utf-8'), '{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')
+        self.assertEquals(process_stdout.decode('utf-8'), u'{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')
