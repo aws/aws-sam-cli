@@ -48,6 +48,14 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
                                     self.EXPECTED_FILES_PROJECT_MANIFEST)
 
+        self._verify_resource_property(str(self.built_template),
+                                       "OtherRelativePathResource",
+                                       "BodyS3Location",
+                                       os.path.relpath(
+                                           os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                                           str(self.default_build_dir))
+                                       )
+
         expected = {
             "pi": "3.14",
             "jinja": "Hello World"

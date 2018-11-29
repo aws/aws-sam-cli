@@ -14,6 +14,8 @@ from tests.functional.function_code import nodejs_lambda, make_zip, ECHO_CODE, S
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.lambdafn.config import FunctionConfig
+from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.local.docker.lambda_image import LambdaImage
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,7 +38,9 @@ class TestLambdaRuntime(TestCase):
         }
 
         self.container_manager = ContainerManager()
-        self.runtime = LambdaRuntime(self.container_manager)
+        layer_downloader = LayerDownloader("./", "./")
+        self.lambda_image = LambdaImage(layer_downloader, False)
+        self.runtime = LambdaRuntime(self.container_manager, self.lambda_image)
 
     def tearDown(self):
         for _, dir in self.code_dir.items():
@@ -51,6 +55,7 @@ class TestLambdaRuntime(TestCase):
                                 runtime=RUNTIME,
                                 handler=HANDLER,
                                 code_abs_path=self.code_dir["echo"],
+                                layers=[],
                                 timeout=timeout)
 
         stdout_stream = io.BytesIO()
@@ -71,6 +76,7 @@ class TestLambdaRuntime(TestCase):
                                 runtime=RUNTIME,
                                 handler=HANDLER,
                                 code_abs_path=self.code_dir["sleep"],
+                                layers=[],
                                 timeout=timeout)
 
         # Measure the actual duration of execution
@@ -108,6 +114,7 @@ class TestLambdaRuntime(TestCase):
                                     runtime=RUNTIME,
                                     handler=HANDLER,
                                     code_abs_path=code_zip_path,
+                                    layers=[],
                                     timeout=timeout)
 
             stdout_stream = io.BytesIO()
@@ -144,6 +151,7 @@ class TestLambdaRuntime(TestCase):
                                 runtime=RUNTIME,
                                 handler=HANDLER,
                                 code_abs_path=self.code_dir["envvar"],
+                                layers=[],
                                 memory=MEMORY,
                                 timeout=timeout)
 
@@ -181,7 +189,9 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
         random.shuffle(self.inputs)
 
         container_manager = ContainerManager()
-        self.runtime = LambdaRuntime(container_manager)
+        layer_downloader = LayerDownloader("./", "./")
+        self.lambda_image = LambdaImage(layer_downloader, False)
+        self.runtime = LambdaRuntime(container_manager, self.lambda_image)
 
     def tearDown(self):
         shutil.rmtree(self.code_dir)
@@ -196,6 +206,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
                                     runtime=RUNTIME,
                                     handler=HANDLER,
                                     code_abs_path=self.code_dir,
+                                    layers=[],
                                     memory=1024,
                                     timeout=timeout)
 

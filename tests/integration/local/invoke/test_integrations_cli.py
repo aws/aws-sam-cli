@@ -1,13 +1,24 @@
 import json
+import shutil
+import os
 
 from nose_parameterized import parameterized
 from subprocess import Popen, PIPE
 from timeit import default_timer as timer
 
+import docker
+
+from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
+
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
 
 
 class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
+    template = Path("template.yml")
 
     def test_invoke_returncode_is_zero(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
@@ -175,3 +186,205 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         return_code = process.wait()
 
         self.assertEquals(return_code, 0)
+
+
+class TestLayerVersion(InvokeIntegBase):
+    template = Path("layers", "layer-template.yml")
+    region = 'us-west-2'
+    layer_utils = LayerUtils(region=region)
+
+    def setUp(self):
+        self.layer_cache = Path().home().joinpath("integ_layer_cache")
+        self.layer_cache.mkdir(parents=True, exist_ok=True)
+
+    def tearDown(self):
+        docker_client = docker.from_env()
+        samcli_images = docker_client.images.list(name='samcli/lambda')
+        for image in samcli_images:
+            docker_client.images.remove(image.id)
+
+        shutil.rmtree(str(self.layer_cache))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerTwoArn", "layer2.zip")
+        super(TestLayerVersion, cls).setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.layer_utils.delete_layers()
+        super(TestLayerVersion, cls).tearDownClass()
+
+    @parameterized.expand([
+        ("ReferenceServerlessLayerVersionServerlessFunction"),
+        ("ReferenceLambdaLayerVersionServerlessFunction"),
+        ("ReferenceServerlessLayerVersionLambdaFunction"),
+        ("ReferenceLambdaLayerVersionLambdaFunction"),
+        ("ReferenceServerlessLayerVersionServerlessFunction")
+    ])
+    def test_reference_of_layer_version(self, function_logical_id):
+        command_list = self.get_command_list(function_logical_id,
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             layer_cache=str(self.layer_cache),
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+
+        expected_output = '"This is a Layer Ping from simple_python"'
+
+        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+
+    @parameterized.expand([
+        ("OneLayerVersionServerlessFunction"),
+        ("OneLayerVersionLambdaFunction")
+    ])
+    def test_download_one_layer(self, function_logical_id):
+        command_list = self.get_command_list(function_logical_id,
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             layer_cache=str(self.layer_cache),
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
+        expected_output = '"Layer1"'
+
+        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+
+    @parameterized.expand([
+        ("ChangedLayerVersionServerlessFunction"),
+        ("ChangedLayerVersionLambdaFunction")
+    ])
+    def test_publish_changed_download_layer(self, function_logical_id):
+        layer_name = self.layer_utils.generate_layer_name()
+        self.layer_utils.upsert_layer(layer_name=layer_name,
+                                      ref_layer_name="ChangedLayerArn",
+                                      layer_zip="layer1.zip")
+
+        command_list = self.get_command_list(function_logical_id,
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             layer_cache=str(self.layer_cache),
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
+        expected_output = '"Layer1"'
+
+        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+
+        self.layer_utils.upsert_layer(layer_name=layer_name,
+                                      ref_layer_name="ChangedLayerArn",
+                                      layer_zip="changedlayer1.zip")
+
+        command_list = self.get_command_list(function_logical_id,
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             layer_cache=str(self.layer_cache),
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
+        expected_output = '"Changed_Layer_1"'
+
+        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+
+    @parameterized.expand([
+        ("TwoLayerVersionServerlessFunction"),
+        ("TwoLayerVersionLambdaFunction")
+    ])
+    def test_download_two_layers(self, function_logical_id):
+
+        command_list = self.get_command_list(function_logical_id,
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             layer_cache=str(self.layer_cache),
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        stdout = process.stdout.readlines()
+
+        process_stdout = b"".join(stdout[-1:]).strip()
+        expected_output = '"Layer2"'
+
+        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+
+    def test_caching_two_layers(self):
+
+        command_list = self.get_command_list("TwoLayerVersionServerlessFunction",
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             layer_cache=str(self.layer_cache),
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
+
+    def test_layer_does_not_exist(self):
+
+        non_existent_layer_arn = self.layer_utils.parameters_overrides["LayerOneArn"].replace(
+            self.layer_utils.layers_meta[0].layer_name, 'non_existent_layer')
+
+        command_list = self.get_command_list("LayerVersionDoesNotExistFunction",
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             parameter_overrides={
+                                                 'NonExistentLayerArn': non_existent_layer_arn
+                                             }
+                                             )
+
+        process = Popen(command_list, stderr=PIPE)
+        process.wait()
+
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+        error_output = process_stderr.decode('utf-8')
+
+        expected_error_output = "{} was not found.".format(non_existent_layer_arn)
+
+        self.assertIn(expected_error_output, error_output)
+
+    def test_account_does_not_exist_for_layer(self):
+        command_list = self.get_command_list("LayerVersionAccountDoesNotExistFunction",
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region
+                                             )
+
+        process = Popen(command_list, stderr=PIPE)
+        process.wait()
+
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+        error_output = process_stderr.decode('utf-8')
+
+        expected_error_output = "Credentials provided are missing lambda:Getlayerversion policy that is needed to " \
+                                "download the layer or you do not have permission to download the layer"
+
+        self.assertIn(expected_error_output, error_output)

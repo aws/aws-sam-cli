@@ -104,6 +104,10 @@ class SamTemplateValidator(object):
 
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 
+            if resource_type == "AWS::Serverless::LayerVersion":
+
+                SamTemplateValidator._update_to_s3_uri("ContentUri", resource_dict)
+
             if resource_type == "AWS::Serverless::Api":
                 if "DefinitionBody" not in resource_dict:
                     SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
