@@ -1,6 +1,7 @@
 import json
 import shutil
 import os
+import copy
 
 from nose_parameterized import parameterized
 from subprocess import Popen, PIPE
@@ -175,6 +176,34 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         environ = json.loads(process_stdout.decode('utf-8'))
 
         self.assertEquals(environ["Region"], custom_region)
+
+    def test_invoke_with_env_with_aws_creds(self):
+        custom_region = "my-custom-region"
+        key = "key"
+        secret = "secret"
+        session = "session"
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = copy.deepcopy(dict(os.environ))
+        env["AWS_DEFAULT_REGION"] = custom_region
+        env["AWS_REGION"] = custom_region
+        env["AWS_ACCESS_KEY_ID"] = key
+        env["AWS_SECRET_ACCESS_KEY"] = secret
+        env["AWS_SESSION_TOKEN"] = session
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], custom_region)
+        self.assertEquals(environ["AWS_REGION"], custom_region)
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], key)
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], secret)
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], session)
 
     def test_invoke_with_docker_network_of_host(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",

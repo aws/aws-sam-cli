@@ -41,7 +41,6 @@ def region_option(f):
     return click.option('--region',
                         expose_value=False,
                         help='Set the AWS Region of the service (e.g. us-east-1).',
-                        default='us-east-1',
                         callback=callback)(f)
 
 
