@@ -26,6 +26,7 @@ RUNTIME_TEMPLATE_MAPPING = {
     "dotnetcore1.0": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
     "dotnetcore": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
     "dotnet": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
+    "powershell": os.path.join(_templates, "cookiecutter-aws-sam-hello-powershell"),
     "go1.x": os.path.join(_templates, "cookiecutter-aws-sam-hello-golang"),
     "go": os.path.join(_templates, "cookiecutter-aws-sam-hello-golang"),
     "java8": os.path.join(_templates, "cookiecutter-aws-sam-hello-java"),
