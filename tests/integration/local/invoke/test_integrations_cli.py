@@ -187,7 +187,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
                                              template_path=self.template_path,
                                              event_path=self.event_path)
 
-        env = copy.deepcopy(os.environ)
+        env = copy.deepcopy(dict(os.environ))
         env["AWS_DEFAULT_REGION"] = custom_region
         env["AWS_REGION"] = custom_region
         env["AWS_ACCESS_KEY_ID"] = key
