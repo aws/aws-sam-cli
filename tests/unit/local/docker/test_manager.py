@@ -74,6 +74,25 @@ class TestContainerManager_run(TestCase):
         self.manager.pull_image.assert_called_with(self.image_name)
         self.container_mock.start.assert_called_with(input_data=input_data)
 
+    def test_must_not_pull_image_if_image_is_samcli_lambda_image(self):
+        input_data = "input data"
+
+        self.manager.has_image = Mock()
+        self.manager.pull_image = Mock()
+
+        # Assume the image exist.
+        self.manager.has_image.return_value = True
+        # And, don't skip pulling => Pull again
+        self.manager.skip_pull_image = False
+
+        self.container_mock.image = "samcli/lambda"
+
+        self.manager.run(self.container_mock, input_data)
+
+        self.manager.has_image.assert_called_with("samcli/lambda")
+        self.manager.pull_image.assert_not_called()
+        self.container_mock.start.assert_called_with(input_data=input_data)
+
     def test_must_not_pull_image_if_asked_to_skip(self):
         input_data = "input data"
 

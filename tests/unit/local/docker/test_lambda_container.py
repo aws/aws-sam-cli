@@ -3,11 +3,11 @@ Unit test for Lambda container management
 """
 
 from unittest import TestCase
-from mock import patch
+from mock import patch, Mock
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.debug_context import DebugContext
-from samcli.local.docker.lambda_container import LambdaContainer, Runtime
+from samcli.local.docker.lambda_container import LambdaContainer, Runtime, DebuggingNotSupported
 
 RUNTIMES_WITH_ENTRYPOINT = [Runtime.java8.value,
                             Runtime.go1x.value,
@@ -56,9 +56,13 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.return_value = addtl_options
         get_additional_volumes_mock.return_value = addtl_volumes
 
+        image_builder_mock = Mock()
+
         container = LambdaContainer(self.runtime,
                                     self.handler,
                                     self.code_dir,
+                                    layers=[],
+                                    image_builder=image_builder_mock,
                                     env_vars=self.env_var,
                                     memory_mb=self.memory_mb,
                                     debug_options=self.debug_options)
@@ -72,7 +76,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEquals(self.env_var, container._env_vars)
         self.assertEquals(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(self.runtime)
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_entry_point_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -82,8 +86,10 @@ class TestLambdaContainer_init(TestCase):
 
         runtime = "foo"
 
+        image_builder_mock = Mock()
+
         with self.assertRaises(ValueError) as context:
-            LambdaContainer(runtime, self.handler, self.code_dir)
+            LambdaContainer(runtime, self.handler, self.code_dir, [], image_builder_mock)
 
         self.assertEquals(str(context.exception), "Unsupported Lambda runtime foo")
 
@@ -107,10 +113,12 @@ class TestLambdaContainer_get_image(TestCase):
 
     def test_must_return_lambci_image(self):
 
-        runtime = "foo"
         expected = "lambci/lambda:foo"
 
-        self.assertEquals(LambdaContainer._get_image(runtime), expected)
+        image_builder = Mock()
+        image_builder.build.return_value = expected
+
+        self.assertEquals(LambdaContainer._get_image(image_builder, 'foo', []), expected)
 
 
 class TestLambdaContainer_get_entry_point(TestCase):
@@ -128,12 +136,12 @@ class TestLambdaContainer_get_entry_point(TestCase):
     @parameterized.expand([param(r) for r in ALL_RUNTIMES])
     def test_must_provide_entrypoint_for_certain_runtimes_only(self, runtime):
 
-        result = LambdaContainer._get_entry_point(runtime, self.debug_options)
-
         if runtime in RUNTIMES_WITH_ENTRYPOINT:
+            result = LambdaContainer._get_entry_point(runtime, self.debug_options)
             self.assertIsNotNone(result, "{} runtime must provide entrypoint".format(runtime))
         else:
-            self.assertIsNone(result, "{} runtime must NOT provide entrypoint".format(runtime))
+            with self.assertRaises(DebuggingNotSupported):
+                LambdaContainer._get_entry_point(runtime, self.debug_options)
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):

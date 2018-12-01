@@ -4,8 +4,37 @@ Common CLI options for invoke command
 
 import click
 from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
-
 from samcli.local.docker.manager import ContainerManager
+
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
+
+
+def get_application_dir():
+    """
+
+    Returns
+    -------
+    Path
+        Path representing the application config directory
+    """
+    return Path(click.get_app_dir('AWS SAM', force_posix=True))
+
+
+def get_default_layer_cache_dir():
+    """
+    Default the layer cache directory
+
+    Returns
+    -------
+    str
+        String representing the layer cache directory
+    """
+    layer_cache_dir = get_application_dir().joinpath('layers-pkg')
+
+    return str(layer_cache_dir)
 
 
 def service_common_options(port):
@@ -90,13 +119,19 @@ def invoke_common_options(f):
         click.option('--log-file', '-l',
                      help="logfile to send runtime logs to."),
 
+        click.option('--layer-cache-basedir',
+                     type=click.Path(exists=False, file_okay=False),
+                     envvar="SAM_LAYER_CACHE_BASEDIR",
+                     help="Specifies the location basedir where the Layers your template uses will be downloaded to.",
+                     default=get_default_layer_cache_dir()),
+
     ] + docker_click_options() + [
 
-        click.option('--profile',
-                     help="Specify which AWS credentials profile to use."),
-
-        click.option('--region',
-                     help="Specify which AWS region to use."),
+        click.option('--force-image-build',
+                     is_flag=True,
+                     help='Specify whether CLI should rebuild the image used for invoking functions with layers.',
+                     envvar='SAM_FORCE_IMAGE_BUILD',
+                     default=False),
 
     ]
 

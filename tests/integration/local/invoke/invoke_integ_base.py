@@ -8,17 +8,19 @@ except ImportError:
 
 
 class InvokeIntegBase(TestCase):
+    template = None
 
     @classmethod
     def setUpClass(cls):
         cls.cmd = cls.base_command()
+        cls.test_data_path = cls.get_integ_dir().joinpath("testdata")
+        cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
+        cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
+        cls.env_var_path = str(cls.test_data_path.joinpath("invoke", "vars.json"))
 
-        integration_dir = str(Path(__file__).resolve().parents[2])
-
-        cls.test_data_path = os.path.join(integration_dir, "testdata")
-        cls.template_path = os.path.join(cls.test_data_path, "invoke", "template.yml")
-        cls.event_path = os.path.join(cls.test_data_path, "invoke", "event.json")
-        cls.env_var_path = os.path.join(cls.test_data_path, "invoke", "vars.json")
+    @staticmethod
+    def get_integ_dir():
+        return Path(__file__).resolve().parents[2]
 
     @classmethod
     def base_command(cls):
@@ -29,7 +31,8 @@ class InvokeIntegBase(TestCase):
         return command
 
     def get_command_list(self, function_to_invoke, template_path=None, event_path=None, env_var_path=None,
-                         parameter_overrides=None, region=None, docker_network=None, container_name=None):
+                         parameter_overrides=None, region=None, no_event=None, profile=None, layer_cache=None,
+                         docker_network=None, container_name=None):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
         if template_path:
@@ -40,6 +43,15 @@ class InvokeIntegBase(TestCase):
 
         if env_var_path:
             command_list = command_list + ["-n", env_var_path]
+
+        if no_event:
+            command_list = command_list + ["--no-event"]
+
+        if profile:
+            command_list = command_list + ["--profile", profile]
+
+        if layer_cache:
+            command_list = command_list + ["--layer-cache-basedir", layer_cache]
 
         if docker_network:
             command_list = command_list + ["--docker-network", docker_network]

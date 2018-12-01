@@ -9,7 +9,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvokeContextExcept
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
 from unittest import TestCase
-from mock import Mock, patch, ANY, mock_open
+from mock import Mock, patch, mock_open
 
 
 class TestInvokeContext__enter__(TestCase):
@@ -31,12 +31,11 @@ class TestInvokeContext__enter__(TestCase):
                                        docker_network="network",
                                        log_file=log_file,
                                        skip_pull_image=True,
-                                       aws_profile="profile",
                                        debug_port=1111,
                                        debugger_path="path-to-debugger",
                                        debug_args='args',
-                                       aws_region="region",
-                                       parameter_overrides={})
+                                       parameter_overrides={},
+                                       aws_region="region")
 
         template_dict = "template_dict"
         invoke_context._get_template_data = Mock()
@@ -51,7 +50,6 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._setup_log_file.return_value = log_file_handle
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = True
         invoke_context._get_container_manager = Mock()
         invoke_context._get_container_manager.return_value = container_manager_mock
 
@@ -134,11 +132,9 @@ class TestInvokeContextAsContextManager(TestCase):
                            docker_network="network",
                            log_file="log_file",
                            skip_pull_image=True,
-                           aws_profile="profile",
                            debug_port=1111,
                            debugger_path="path-to-debugger",
-                           debug_args='args',
-                           aws_region="region") as context:
+                           debug_args='args') as context:
             self.assertEquals(context_obj, context)
 
         EnterMock.assert_called_with()
@@ -183,20 +179,25 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                                      docker_network="network",
                                      log_file="log_file",
                                      skip_pull_image=True,
-                                     aws_profile="profile",
+                                     force_image_build=True,
                                      debug_port=1111,
                                      debugger_path="path-to-debugger",
-                                     debug_args='args',
-                                     aws_region="region")
+                                     debug_args='args')
 
+    @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
+    @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
-    @patch.object(InvokeContext, "__enter__")
-    @patch.object(InvokeContext, "__exit__")
-    def test_must_create_runner(self, ExitMock, EnterMock, LocalLambdaMock, LambdaRuntimeMock):
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    def test_must_create_runner(self,
+                                SamFunctionProviderMock,
+                                LocalLambdaMock,
+                                LambdaRuntimeMock,
+                                download_layers_mock,
+                                lambda_image_patch):
 
-        container_manager_mock = Mock()
-        self.context._get_container_manager.return_value = container_manager_mock
+        function_provider_mock = Mock()
+        SamFunctionProviderMock.return_value = function_provider_mock
 
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
@@ -204,22 +205,40 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         runner_mock = Mock()
         LocalLambdaMock.return_value = runner_mock
 
+        download_mock = Mock()
+        download_layers_mock.return_value = download_mock
+
+        image_mock = Mock()
+        lambda_image_patch.return_value = image_mock
+
+        self.context._get_template_data = Mock()
+
+        env_vars_value_mock = Mock()
+        self.context._get_env_vars_value = Mock(return_value=env_vars_value_mock)
+
+        debug_context_mock = Mock()
+        self.context._get_debug_context = Mock(return_value=debug_context_mock)
+
+        container_manager_mock = Mock()
+        container_manager_mock.is_docker_reachable = True
+        self.context._get_container_manager = Mock(return_value=container_manager_mock)
+
         cwd = "cwd"
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
 
-        with self.context as context:
-            result = context.local_lambda_runner
-            self.assertEquals(result, runner_mock)
+        with self.context:
+            result = self.context.local_lambda_runner
+            self.assertEqual(result, runner_mock)
 
-            LambdaRuntimeMock.assert_called_with(container_manager_mock)
+            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
+            lambda_image_patch.assert_called_once_with(download_mock, True, True)
             LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
-                                               function_provider=ANY,
+                                               function_provider=function_provider_mock,
                                                cwd=cwd,
-                                               debug_context=None,
-                                               env_vars_values=ANY,
-                                               aws_profile="profile",
-                                               aws_region="region")
+                                               container_name=None,
+                                               debug_context=debug_context_mock,
+                                               env_vars_values=env_vars_value_mock)
 
 
 class TestInvokeContext_stdout_property(TestCase):

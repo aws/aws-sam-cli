@@ -97,7 +97,7 @@ class TestApplicationBuilder_update_template(TestCase):
         }
 
     def test_must_write_relative_build_artifacts_path(self):
-        target_template_path = "/path/to/tempate.txt"
+        original_template_path = "/path/to/tempate.txt"
         built_artifacts = {
             "MyFunction1": "/path/to/build/MyFunction1",
             "MyFunction2": "/path/to/build/MyFunction2"
@@ -126,7 +126,7 @@ class TestApplicationBuilder_update_template(TestCase):
             }
         }
 
-        actual = self.builder.update_template(self.template_dict, target_template_path, built_artifacts)
+        actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
         self.assertEquals(actual, expected_result)
 
     def test_must_skip_if_no_artifacts(self):

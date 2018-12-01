@@ -1,32 +1,13 @@
 """
 Represents Lambda runtime containers.
 """
-from enum import Enum
+import logging
 
 from .container import Container
+from .lambda_image import Runtime
 
 
-class Runtime(Enum):
-    nodejs = "nodejs"
-    nodejs43 = "nodejs4.3"
-    nodejs610 = "nodejs6.10"
-    nodejs810 = "nodejs8.10"
-    python27 = "python2.7"
-    python36 = "python3.6"
-    java8 = "java8"
-    go1x = "go1.x"
-    dotnetcore20 = "dotnetcore2.0"
-    dotnetcore21 = "dotnetcore2.1"
-
-    @classmethod
-    def has_value(cls, value):
-        """
-        Checks if the enum has this value
-
-        :param string value: Value to check
-        :return bool: True, if enum has the value
-        """
-        return any(value == item.value for item in cls)
+LOG = logging.getLogger(__name__)
 
 
 class LambdaContainer(Container):
@@ -46,10 +27,12 @@ class LambdaContainer(Container):
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
     _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=R0914
                  runtime,
                  handler,
                  code_dir,
+                 layers,
+                 image_builder,
                  name=None,
                  memory_mb=128,
                  env_vars=None,
@@ -57,20 +40,33 @@ class LambdaContainer(Container):
         """
         Initializes the class
 
-        :param string runtime: Name of the Lambda runtime
-        :param string handler: Handler of the function to run
-        :param string code_dir: Directory where the Lambda function code is present. This directory will be mounted
+        Parameters
+        ----------
+        runtime str
+            Name of the Lambda runtime
+        handler str
+            Handler of the function to run
+        code_dir str
+            Directory where the Lambda function code is present. This directory will be mounted
             to the container to execute
-        :param int memory_mb: Optional. Max limit of memory in MegaBytes this Lambda function can use.
-        :param dict env_vars: Optional. Dictionary containing environment variables passed to container
-        :param DebugContext debug_options: Optional. Contains container debugging info (port, debugger path)
-        :param string name: Optional. Name, that will be asssigned to the container, when it starts
+        layers list(str)
+            List of layers
+        image_builder samcli.local.docker.lambda_image.LambdaImage
+            LambdaImage that can be used to build the image needed for starting the container
+        name str
+            Optional. Name, that will be asssigned to the container, when it starts
+        memory_mb int
+            Optional. Max limit of memory in MegaBytes this Lambda function can use.
+        env_vars dict
+            Optional. Dictionary containing environment variables passed to container
+        debug_options DebugContext
+            Optional. Contains container debugging info (port, debugger path)
         """
 
         if not Runtime.has_value(runtime):
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
-        image = LambdaContainer._get_image(runtime)
+        image = LambdaContainer._get_image(image_builder, runtime, layers)
         ports = LambdaContainer._get_exposed_ports(debug_options)
         entry = LambdaContainer._get_entry_point(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
@@ -144,14 +140,25 @@ class LambdaContainer(Container):
         }
 
     @staticmethod
-    def _get_image(runtime):
+    def _get_image(image_builder, runtime, layers):
         """
         Returns the name of Docker Image for the given runtime
 
-        :param string runtime: Name of the runtime
-        :return: Name of Docker Image for the given runtime
+        Parameters
+        ----------
+        image_builder samcli.local.docker.lambda_image.LambdaImage
+            LambdaImage that can be used to build the image needed for starting the container
+        runtime str
+            Name of the Lambda runtime
+        layers list(str)
+            List of layers
+
+        Returns
+        -------
+        str
+            Name of Docker Image for the given runtime
         """
-        return "{}:{}".format(LambdaContainer._IMAGE_REPO_NAME, runtime)
+        return image_builder.build(runtime, layers)
 
     @staticmethod
     def _get_entry_point(runtime, debug_options=None):
@@ -170,8 +177,13 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
+        if runtime not in LambdaContainer._supported_runtimes():
+            raise DebuggingNotSupported(
+                "Debugging is not currently supported for {}".format(runtime))
+
         debug_port = debug_options.debug_port
         debug_args_list = []
+
         if debug_options.debug_args:
             debug_args_list = debug_options.debug_args.split(" ")
 
@@ -278,3 +290,12 @@ class LambdaContainer(Container):
                    ]
 
         return entrypoint
+
+    @staticmethod
+    def _supported_runtimes():
+        return {Runtime.java8.value, Runtime.go1x.value, Runtime.nodejs.value, Runtime.nodejs43.value,
+                Runtime.nodejs610.value, Runtime.nodejs810.value, Runtime.python27.value, Runtime.python36.value}
+
+
+class DebuggingNotSupported(Exception):
+    pass

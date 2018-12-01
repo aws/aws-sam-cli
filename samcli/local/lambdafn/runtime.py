@@ -25,14 +25,19 @@ class LambdaRuntime(object):
 
     SUPPORTED_ARCHIVE_EXTENSIONS = (".zip", ".jar", ".ZIP", ".JAR")
 
-    def __init__(self, container_manager):
+    def __init__(self, container_manager, image_builder):
         """
         Initialize the Local Lambda runtime
 
-        :param samcli.local.docker.manager.ContainerManager container_manager: Instance of the ContainerManager class
-            that can run a local Docker container
+        Parameters
+        ----------
+        container_manager samcli.local.docker.manager.ContainerManager
+            Instance of the ContainerManager class that can run a local Docker container
+        image_builder samcli.local.docker.lambda_image.LambdaImage
+            Instance of the LambdaImage class that can create am image
         """
         self._container_manager = container_manager
+        self._image_builder = image_builder
 
     def invoke(self,
                function_config,
@@ -70,6 +75,8 @@ class LambdaRuntime(object):
             container = LambdaContainer(function_config.runtime,
                                         function_config.handler,
                                         code_dir,
+                                        function_config.layers,
+                                        self._image_builder,
                                         name=container_name,
                                         memory_mb=function_config.memory,
                                         env_vars=env_vars,

@@ -81,6 +81,28 @@ class TestValidate(TestCase):
         # Should not throw an exception
         validator.is_valid()
 
+    def test_valid_template_with_local_code_for_layer_version(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessLayerVersion": {
+                    "Type": "AWS::Serverless::LayerVersion",
+                    "Properties": {
+                        "ContentUri": "./"
+                        }
+                    }
+                }
+            }
+
+        managed_policy_mock = Mock()
+        managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        # Should not throw an exception
+        validator.is_valid()
+
     def test_valid_template_with_local_code_for_api(self):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",

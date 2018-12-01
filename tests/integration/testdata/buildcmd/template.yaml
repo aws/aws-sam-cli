@@ -15,4 +15,7 @@ Resources:
       CodeUri: Python
       Timeout: 600
 
-
+  OtherRelativePathResource:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      BodyS3Location: SomeRelativePath

@@ -5,13 +5,15 @@ CLI command for "local start-lambda" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.commands.local.cli_common.user_exceptions import UserException
+from samcli.commands.local.lib.exceptions import InvalidLayerReference
 from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.local.docker.lambda_container import DebuggingNotSupported
 
 
 LOG = logging.getLogger(__name__)
@@ -54,6 +56,7 @@ Here is a Python example:
 @service_common_options(3001)
 @invoke_common_options
 @cli_framework_options
+@aws_creds_options
 @pass_context
 def cli(ctx,  # pylint: disable=R0914
         # start-lambda Specific Options
@@ -61,18 +64,18 @@ def cli(ctx,  # pylint: disable=R0914
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile, region, parameter_overrides,
-        container_name):
+        docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
+        parameter_overrides, container_name):  # pylint: disable=R0914
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, host, port, template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-           docker_network, log_file, skip_pull_image, profile, region, parameter_overrides,
-           container_name)  # pragma: no cover
+           docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
+           parameter_overrides, container_name)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
-           parameter_overrides, container_name):
+           debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image,
+           force_image_build, parameter_overrides, container_name):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -90,18 +93,22 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile,
                            debug_port=debug_port,
                            debug_args=debug_args,
                            debugger_path=debugger_path,
-                           aws_region=region,
                            parameter_overrides=parameter_overrides,
-                           container_name=container_name) as invoke_context:
+                           container_name=container_name,
+                           layer_cache_basedir=layer_cache_basedir,
+                           force_image_build=force_image_build,
+                           aws_region=ctx.region) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context,
                                          port=port,
                                          host=host)
             service.start()
 
-    except (InvalidSamDocumentException, OverridesNotWellDefinedError) as ex:
+    except (InvalidSamDocumentException,
+            OverridesNotWellDefinedError,
+            InvalidLayerReference,
+            DebuggingNotSupported) as ex:
         raise UserException(str(ex))

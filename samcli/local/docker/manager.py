@@ -94,7 +94,11 @@ class ContainerManager(object):
 
         is_image_local = self.has_image(image_name)
 
-        if not is_image_local or not self.skip_pull_image:
+        # Skip Pulling a new image if: a) Image name is samcli/lambda OR b) Image is available AND
+        # c) We are asked to skip pulling the image
+        if (is_image_local and self.skip_pull_image) or image_name.startswith('samcli/lambda'):
+            LOG.info("Requested to skip pulling images ...\n")
+        else:
             try:
                 self.pull_image(image_name)
             except DockerImagePullFailedException:
@@ -104,8 +108,6 @@ class ContainerManager(object):
 
                 LOG.info(
                     "Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
-        else:
-            LOG.info("Requested to skip pulling images ...\n")
 
         try:
             if not container.is_created():
