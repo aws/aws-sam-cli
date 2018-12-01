@@ -4,18 +4,19 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 
 import errno
 import json
-import sys
 import os
-import yaml
 
 import docker
 import requests
 
-from samcli.yamlhelper import yaml_parse
+import samcli.lib.utils.osutils as osutils
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
+from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
+from samcli.commands._utils.template import get_template_data
+from samcli.local.layers.layer_downloader import LayerDownloader
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
 
@@ -44,7 +45,7 @@ class InvokeContext(object):
     This class sets up some resources that need to be cleaned up after the context object is used.
     """
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=R0914
                  template_file,
                  function_identifier=None,
                  env_vars_file=None,
@@ -52,12 +53,13 @@ class InvokeContext(object):
                  docker_network=None,
                  log_file=None,
                  skip_pull_image=None,
-                 aws_profile=None,
                  debug_port=None,
                  debug_args=None,
                  debugger_path=None,
-                 aws_region=None,
-                 parameter_overrides=None):
+                 parameter_overrides=None,
+                 layer_cache_basedir=None,
+                 force_image_build=None,
+                 aws_region=None):
         """
         Initialize the context
 
@@ -86,13 +88,14 @@ class InvokeContext(object):
             Additional arguments passed to the debugger
         debugger_path str
             Path to the directory of the debugger to mount on Docker
-        aws_profile str
-            AWS Credential profile to use
-        aws_region str
-            AWS region to use
         parameter_overrides dict
             Values for the template parameters
-
+        layer_cache_basedir str
+            String representing the path to the layer cache directory
+        force_image_build bool
+            Whether or not to force build the image
+        aws_region str
+            AWS region to use
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -101,18 +104,20 @@ class InvokeContext(object):
         self._docker_network = docker_network
         self._log_file = log_file
         self._skip_pull_image = skip_pull_image
-        self._aws_profile = aws_profile
-        self._aws_region = aws_region
         self._debug_port = debug_port
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._parameter_overrides = parameter_overrides or {}
+        self._layer_cache_basedir = layer_cache_basedir
+        self._force_image_build = force_image_build
+        self._aws_region = aws_region
 
         self._template_dict = None
         self._function_provider = None
         self._env_vars_value = None
         self._log_file_handle = None
         self._debug_context = None
+        self._layers_downloader = None
 
     def __enter__(self):
         """
@@ -183,14 +188,17 @@ class InvokeContext(object):
         container_manager = ContainerManager(docker_network_id=self._docker_network,
                                              skip_pull_image=self._skip_pull_image)
 
-        lambda_runtime = LambdaRuntime(container_manager)
+        layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
+        image_builder = LambdaImage(layer_downloader,
+                                    self._skip_pull_image,
+                                    self._force_image_build)
+
+        lambda_runtime = LambdaRuntime(container_manager, image_builder)
         return LocalLambdaRunner(local_runtime=lambda_runtime,
                                  function_provider=self._function_provider,
                                  cwd=self.get_cwd(),
                                  env_vars_values=self._env_vars_value,
-                                 debug_context=self._debug_context,
-                                 aws_profile=self._aws_profile,
-                                 aws_region=self._aws_region)
+                                 debug_context=self._debug_context)
 
     @property
     def stdout(self):
@@ -202,15 +210,7 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        # We write all of the data to stdout with bytes, typically io.BytesIO. stdout in Python2
-        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
-        # this consistent, we leave Python2 the same and get the .buffer attribute on stdout in Python3
-        byte_stdout = sys.stdout
-
-        if sys.version_info.major > 2:
-            byte_stdout = sys.stdout.buffer  # pylint: disable=no-member
-
-        return byte_stdout
+        return osutils.stdout()
 
     @property
     def stderr(self):
@@ -222,15 +222,7 @@ class InvokeContext(object):
         if self._log_file_handle:
             return self._log_file_handle
 
-        # We write all of the data to stdout with bytes, typically io.BytesIO. stderr in Python2
-        # accepts bytes but Python3 does not. This is due to a type change on the attribute. To keep
-        # this consistent, we leave Python2 the same and get the .buffer attribute on stderr in Python3
-        byte_stderr = sys.stderr
-
-        if sys.version_info.major > 2:
-            byte_stderr = sys.stderr.buffer  # pylint: disable=no-member
-
-        return byte_stderr
+        return osutils.stderr()
 
     @property
     def template(self):
@@ -275,14 +267,10 @@ class InvokeContext(object):
         :raises InvokeContextException: If template file was not found or the data was not a JSON/YAML
         """
 
-        if not os.path.exists(template_file):
-            raise InvokeContextException("Template file not found at {}".format(template_file))
-
-        with open(template_file, 'r') as fp:
-            try:
-                return yaml_parse(fp.read())
-            except (ValueError, yaml.YAMLError) as ex:
-                raise InvokeContextException("Failed to parse template: {}".format(str(ex)))
+        try:
+            return get_template_data(template_file)
+        except ValueError as ex:
+            raise InvokeContextException(str(ex))
 
     @staticmethod
     def _get_env_vars_value(filename):

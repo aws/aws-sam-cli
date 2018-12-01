@@ -1,8 +1,6 @@
 """
 Testing local lambda runner
 """
-import os
-
 from unittest import TestCase
 from mock import Mock, patch
 from parameterized import parameterized, param
@@ -33,9 +31,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
                                               self.function_provider_mock,
                                               self.cwd,
                                               env_vars_values=self.env_vars_values,
-                                              debug_context=self.debug_context,
-                                              aws_profile=self.aws_profile,
-                                              aws_region=self.aws_region)
+                                              debug_context=self.debug_context)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_get_from_boto_session(self, boto3_mock):
@@ -47,7 +43,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         mock_session.region_name = self.region
 
-        boto3_mock.session.Session.return_value = mock_session
+        boto3_mock.DEFAULT_SESSION = mock_session
         mock_session.get_credentials.return_value = creds
 
         expected = {
@@ -59,8 +55,6 @@ class TestLocalLambda_get_aws_creds(TestCase):
 
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
-
-        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_region_name(self, boto3_mock):
@@ -72,6 +66,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         del mock_session.region_name   # Ask mock to return AttributeError when 'region_name' is accessed
 
+        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
@@ -84,7 +79,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
+        boto3_mock.session.Session.assert_called_with()
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_access_key(self, boto3_mock):
@@ -96,6 +91,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         mock_session.region_name = self.region
 
+        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
@@ -108,7 +104,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
+        boto3_mock.session.Session.assert_called_with()
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_secret_key(self, boto3_mock):
@@ -120,6 +116,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         mock_session.region_name = self.region
 
+        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
@@ -132,7 +129,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
+        boto3_mock.session.Session.assert_called_with()
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_session_token(self, boto3_mock):
@@ -144,6 +141,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         mock_session.region_name = self.region
 
+        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
@@ -156,10 +154,11 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
+        boto3_mock.session.Session.assert_called()
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_credentials(self, boto3_mock):
+        boto3_mock.DEFAULT_SESSION = None
         mock_session = Mock()
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = None
@@ -168,98 +167,18 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
+        boto3_mock.session.Session.assert_called()
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_session(self, boto3_mock):
+        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = None
 
         expected = {}
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
-
-
-class TestLocalLambda_get_code_path(TestCase):
-
-    def setUp(self):
-        self.runtime_mock = Mock()
-        self.function_provider_mock = Mock()
-        self.cwd = "/my/current/working/directory"
-        self.env_vars_values = {}
-        self.debug_context = None
-        self.aws_profile = "myprofile"
-        self.aws_region = "region"
-
-        self.relative_codeuri = "./my/path"
-        self.absolute_codeuri = "/home/foo/bar"  # Some absolute path to use
-        self.os_cwd = os.getcwd()
-
-        self.local_lambda = LocalLambdaRunner(self.runtime_mock,
-                                              self.function_provider_mock,
-                                              self.cwd,
-                                              env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context,
-                                              aws_region=self.aws_region)
-
-    @parameterized.expand([
-        ("."),
-        ("")
-    ])
-    def test_must_resolve_present_cwd(self, cwd_path):
-
-        self.local_lambda.cwd = cwd_path
-        codeuri = self.relative_codeuri
-        expected = os.path.normpath(os.path.join(self.os_cwd, codeuri))
-
-        actual = self.local_lambda._get_code_path(codeuri)
-        self.assertEquals(expected, actual)
-        self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
-
-    @parameterized.expand([
-        ("var/task"),
-        ("some/dir")
-    ])
-    def test_must_resolve_relative_cwd(self, cwd_path):
-
-        self.local_lambda.cwd = cwd_path
-        codeuri = self.relative_codeuri
-
-        abs_cwd = os.path.abspath(cwd_path)
-        expected = os.path.normpath(os.path.join(abs_cwd, codeuri))
-
-        actual = self.local_lambda._get_code_path(codeuri)
-        self.assertEquals(expected, actual)
-        self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
-
-    @parameterized.expand([
-        (""),
-        ("."),
-        ("hello"),
-        ("a/b/c/d"),
-        ("../../c/d/e")
-    ])
-    def test_must_resolve_relative_codeuri(self, codeuri):
-
-        expected = os.path.normpath(os.path.join(self.cwd, codeuri))
-
-        actual = self.local_lambda._get_code_path(codeuri)
-        self.assertEquals(expected, actual)
-        self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
-
-    @parameterized.expand([
-        ("/a/b/c"),
-        ("/")
-    ])
-    def test_must_resolve_absolute_codeuri(self, codeuri):
-
-        expected = codeuri  # CodeUri must be return as is for absolute paths
-
-        actual = self.local_lambda._get_code_path(codeuri)
-        self.assertEquals(expected, actual)
-        self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
+        boto3_mock.session.Session.assert_called()
 
 
 class TestLocalLambda_make_env_vars(TestCase):
@@ -283,9 +202,7 @@ class TestLocalLambda_make_env_vars(TestCase):
                                               self.function_provider_mock,
                                               self.cwd,
                                               env_vars_values=self.env_vars_values,
-                                              debug_context=self.debug_context,
-                                              aws_profile=self.aws_profile,
-                                              aws_region=self.aws_region)
+                                              debug_context=self.debug_context)
 
         self.aws_creds = {"key": "key"}
         self.local_lambda.get_aws_creds = Mock()
@@ -315,7 +232,8 @@ class TestLocalLambda_make_env_vars(TestCase):
                             handler="handler",
                             codeuri="codeuri",
                             environment=self.environ,
-                            rolearn=None)
+                            rolearn=None,
+                            layers=[])
 
         self.local_lambda.env_vars_values = env_vars_values
 
@@ -349,7 +267,8 @@ class TestLocalLambda_make_env_vars(TestCase):
                             handler="handler",
                             codeuri="codeuri",
                             environment=self.environ,
-                            rolearn=None)
+                            rolearn=None,
+                            layers=[])
 
         self.local_lambda.env_vars_values = env_vars_values
 
@@ -374,7 +293,8 @@ class TestLocalLambda_make_env_vars(TestCase):
                             handler="handler",
                             codeuri="codeuri",
                             environment=environment_variable,
-                            rolearn=None)
+                            rolearn=None,
+                            layers=[])
 
         self.local_lambda.env_vars_values = {}
 
@@ -404,13 +324,12 @@ class TestLocalLambda_get_invoke_config(TestCase):
                                               self.function_provider_mock,
                                               self.cwd,
                                               env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context,
-                                              aws_region=self.aws_region)
+                                              debug_context=self.debug_context)
 
+    @patch('samcli.commands.local.lib.local_lambda.resolve_code_path')
     @patch('samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging')
     @patch('samcli.commands.local.lib.local_lambda.FunctionConfig')
-    def test_must_work(self, FunctionConfigMock, is_debugging_mock):
+    def test_must_work(self, FunctionConfigMock, is_debugging_mock, resolve_code_path_patch):
         is_debugging_mock.return_value = False
 
         env_vars = "envvars"
@@ -418,8 +337,9 @@ class TestLocalLambda_get_invoke_config(TestCase):
         self.local_lambda._make_env_vars.return_value = env_vars
 
         codepath = "codepath"
-        self.local_lambda._get_code_path = Mock()
-        self.local_lambda._get_code_path.return_value = codepath
+        resolve_code_path_patch.return_value = codepath
+
+        layers = ['layer1', 'layer2']
 
         function = Function(name="function_name",
                             runtime="runtime",
@@ -428,7 +348,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
                             handler="handler",
                             codeuri="codeuri",
                             environment=None,
-                            rolearn=None)
+                            rolearn=None,
+                            layers=layers)
 
         config = "someconfig"
         FunctionConfigMock.return_value = config
@@ -439,16 +360,18 @@ class TestLocalLambda_get_invoke_config(TestCase):
                                               runtime=function.runtime,
                                               handler=function.handler,
                                               code_abs_path=codepath,
+                                              layers=layers,
                                               memory=function.memory,
                                               timeout=function.timeout,
                                               env_vars=env_vars)
 
-        self.local_lambda._get_code_path.assert_called_with(function.codeuri)
+        resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
         self.local_lambda._make_env_vars.assert_called_with(function)
 
+    @patch('samcli.commands.local.lib.local_lambda.resolve_code_path')
     @patch('samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging')
     @patch('samcli.commands.local.lib.local_lambda.FunctionConfig')
-    def test_timeout_set_to_max_during_debugging(self, FunctionConfigMock, is_debugging_mock):
+    def test_timeout_set_to_max_during_debugging(self, FunctionConfigMock, is_debugging_mock, resolve_code_path_patch):
         is_debugging_mock.return_value = True
 
         env_vars = "envvars"
@@ -456,8 +379,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         self.local_lambda._make_env_vars.return_value = env_vars
 
         codepath = "codepath"
-        self.local_lambda._get_code_path = Mock()
-        self.local_lambda._get_code_path.return_value = codepath
+        resolve_code_path_patch.return_value = codepath
 
         function = Function(name="function_name",
                             runtime="runtime",
@@ -466,7 +388,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
                             handler="handler",
                             codeuri="codeuri",
                             environment=None,
-                            rolearn=None)
+                            rolearn=None,
+                            layers=[])
 
         config = "someconfig"
         FunctionConfigMock.return_value = config
@@ -477,11 +400,12 @@ class TestLocalLambda_get_invoke_config(TestCase):
                                               runtime=function.runtime,
                                               handler=function.handler,
                                               code_abs_path=codepath,
+                                              layers=[],
                                               memory=function.memory,
                                               timeout=function.timeout,
                                               env_vars=env_vars)
 
-        self.local_lambda._get_code_path.assert_called_with(function.codeuri)
+        resolve_code_path_patch.assert_called_with(self.cwd, function.codeuri)
         self.local_lambda._make_env_vars.assert_called_with(function)
 
 
@@ -500,9 +424,7 @@ class TestLocalLambda_invoke(TestCase):
                                               self.function_provider_mock,
                                               self.cwd,
                                               env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context,
-                                              aws_region=self.aws_region)
+                                              debug_context=self.debug_context)
 
     def test_must_work(self):
         name = "name"
@@ -544,9 +466,7 @@ class TestLocalLambda_is_debugging(TestCase):
                                               self.function_provider_mock,
                                               self.cwd,
                                               env_vars_values=self.env_vars_values,
-                                              aws_profile=self.aws_profile,
-                                              debug_context=self.debug_context,
-                                              aws_region=self.aws_region)
+                                              debug_context=self.debug_context)
 
     def test_must_be_on(self):
         self.assertTrue(self.local_lambda.is_debugging())
@@ -557,8 +477,6 @@ class TestLocalLambda_is_debugging(TestCase):
                                               self.function_provider_mock,
                                               self.cwd,
                                               env_vars_values=self.env_vars_values,
-                                              debug_context=None,
-                                              aws_profile=self.aws_profile,
-                                              aws_region=self.aws_region)
+                                              debug_context=None)
 
         self.assertFalse(self.local_lambda.is_debugging())

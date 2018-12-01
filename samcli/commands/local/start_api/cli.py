@@ -5,14 +5,15 @@ CLI command for "local start-api" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
-from samcli.commands.local.lib.exceptions import NoApisDefined
+from samcli.commands.local.lib.exceptions import NoApisDefined, InvalidLayerReference
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.local_api_service import LocalApiService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.local.docker.lambda_container import DebuggingNotSupported
 
 LOG = logging.getLogger(__name__)
 
@@ -39,7 +40,8 @@ and point SAM to the directory or file containing build artifacts.
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
                    "will be presented at /")
 @invoke_common_options
-@cli_framework_options  # pylint: disable=R0914
+@cli_framework_options
+@aws_creds_options  # pylint: disable=R0914
 @pass_context
 def cli(ctx,
         # start-api Specific Options
@@ -47,18 +49,17 @@ def cli(ctx,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-        docker_network, log_file, skip_pull_image, profile, region, parameter_overrides
-        ):
+        docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build, parameter_overrides):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, debugger_path,
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
+           docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
            parameter_overrides)  # pragma: no cover
 
 
 def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
-           parameter_overrides):
+           debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image,
+           force_image_build, parameter_overrides):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -76,12 +77,13 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile,
                            debug_port=debug_port,
                            debug_args=debug_args,
                            debugger_path=debugger_path,
-                           aws_region=region,
-                           parameter_overrides=parameter_overrides) as invoke_context:
+                           parameter_overrides=parameter_overrides,
+                           layer_cache_basedir=layer_cache_basedir,
+                           force_image_build=force_image_build,
+                           aws_region=ctx.region) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context,
                                       port=port,
@@ -91,5 +93,8 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
 
     except NoApisDefined:
         raise UserException("Template does not have any APIs connected to Lambda functions")
-    except (InvalidSamDocumentException, OverridesNotWellDefinedError) as ex:
+    except (InvalidSamDocumentException,
+            OverridesNotWellDefinedError,
+            InvalidLayerReference,
+            DebuggingNotSupported) as ex:
         raise UserException(str(ex))

@@ -24,7 +24,6 @@ Resources:
     Properties:
       Handler: main.handler
       Runtime: python3.6
-      CodeUri: .
 
   TimeoutFunction:
     Type: AWS::Serverless::Function
@@ -105,4 +104,5 @@ Resources:
           URLSuffix: !Ref "AWS::URLSuffix"
           Timeout: !Ref DefaultTimeout
           MyRuntimeVersion: !Ref MyRuntimeVersion
+
 
