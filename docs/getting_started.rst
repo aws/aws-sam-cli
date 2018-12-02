@@ -46,7 +46,7 @@ Creating a hello-world app (init)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To get started with a project in SAM, you can use the 'sam init' command provided by the SAM CLI to get a fully deployable boilerplate serverless application in any of the supported runtimes.  SAM init provides a quick way for customers to get started with creating a Lambda-based application and allow them to grow their idea into a production application by using other commands in the SAM CLI.
 
-To use 'sam init', nagivate to a directory where where you want the serverless application to be created. Using the SAM CLI, run the following command (using the runtime of your choice. The following example uses Python for demonstration purposes.):
+To use 'sam init', navigate to a directory where where you want the serverless application to be created. Using the SAM CLI, run the following command (using the runtime of your choice. The following example uses Python for demonstration purposes.):
 
 .. code::
 
