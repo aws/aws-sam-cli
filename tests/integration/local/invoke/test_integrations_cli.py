@@ -224,7 +224,6 @@ class TestLayerVersion(InvokeIntegBase):
 
     def setUp(self):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
-        self.layer_cache.mkdir(parents=True, exist_ok=True)
 
     def tearDown(self):
         docker_client = docker.from_env()
@@ -376,8 +375,23 @@ class TestLayerVersion(InvokeIntegBase):
 
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
 
-    def test_layer_does_not_exist(self):
 
+class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
+    template = Path("layers", "layer-template.yml")
+    region = 'us-west-2'
+    layer_utils = LayerUtils(region=region)
+
+    def setUp(self):
+        self.layer_cache = Path().home().joinpath("integ_layer_cache")
+
+    def tearDown(self):
+        docker_client = docker.from_env()
+        samcli_images = docker_client.images.list(name='samcli/lambda')
+        for image in samcli_images:
+            docker_client.images.remove(image.id)
+
+    def test_layer_does_not_exist(self):
+        self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         non_existent_layer_arn = self.layer_utils.parameters_overrides["LayerOneArn"].replace(
             self.layer_utils.layers_meta[0].layer_name, 'non_existent_layer')
 
@@ -399,6 +413,7 @@ class TestLayerVersion(InvokeIntegBase):
         expected_error_output = "{} was not found.".format(non_existent_layer_arn)
 
         self.assertIn(expected_error_output, error_output)
+        self.layer_utils.delete_layers()
 
     def test_account_does_not_exist_for_layer(self):
         command_list = self.get_command_list("LayerVersionAccountDoesNotExistFunction",
