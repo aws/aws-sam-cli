@@ -4,48 +4,55 @@ This is a design for the .NET Core 2.0 and 2.1 missing debugging feature.
 
 ### What is the problem
 
-Currently SAM CLI does not provide debugging support for .NET Core 2.0 and 2.1 because `dotnet` command does **not** provide _start and wait for the debugger_ feature out of the box and neither does current AWS Lambda runner ([2.0](https://github.com/lambci/docker-lambda/tree/master/dotnetcore2.0) / [2.1](https://github.com/lambci/docker-lambda/tree/master/dotnetcore2.1)) has debugging support flag or anything. Apart from that, .NET Core remote debugger -  [vsdbg](https://aka.ms/getvsdbgsh) does not support http based communication, but instead only piping `stdin/stdout` through some transport program from host to the **target** machine (Docker container) could enable debugging.  For that C# VS Code *extension* has support for configuring `pipeTransport`. Customers could use this mechanism to remotely attach to the running Lambda container with their function. Our goal is to provide them `launch.json` configuration sample  capable of doing so, and enable debugging support on the **runner side**.
+Currently SAM CLI does not provide debugging support for .NET Core 2.0 and 2.1 because `dotnet` command does **not** support _start and wait for the debugger_ configuration out of the box and neither does current AWS Lambda runner ([2.0](https://github.com/lambci/docker-lambda/tree/master/dotnetcore2.0) / [2.1](https://github.com/lambci/docker-lambda/tree/master/dotnetcore2.1)) has debugging support flag or anything.
+
+Apart from that, .NET Core remote debugger - [vsdbg](https://aka.ms/getvsdbgsh) does not support http based communication, but instead only piping `stdin/stdout` through some transport program from host to the **target** machine (Docker container) could enable debugging. For that C# VS Code *extension* [has support](https://github.com/OmniSharp/omnisharp-vscode/wiki/Attaching-to-remote-processes) for configuring `pipeTransport`. Customers could use this mechanism to remotely attach to the running Lambda container with their function. Our goal is to provide  `launch.json` configuration capable of doing so to the users, and enable debugging support on the **runner side**.
 
 And let's break it down to the checklist
 
-* Put the `vsdbg` on the Docker container;
-* Add _"wait for the debugger"_ flag in runner program and implement corresponding functionality;
-* Implement corresponding container entry point override in SAM to support invoking the runner with this flag **on**.
+* Get and build `vsdbg` for the Lambda container.
+* Mount `vsdbg` to the running Docker container.
+* Add _"wait for the debugger"_ flag to the runner program and implement corresponding functionality.
+* Implement corresponding container entry point override in SAM CLI to support invoking the runner with this flag **on**.
 * Provide instructions for the customer of how to configure VS Code and VS to attach.
 
 ### What will be changed
 
-Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support waiting for the debugger to attach. I've  filed [PR](https://github.com/lambci/docker-lambda/pull/130) with only required changes already (guys and @mhart - reviewers wanted 😁). 
+Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support *waiting for the debugger* to attach. I've filed [PR](https://github.com/lambci/docker-lambda/pull/130) with only required changes already (guys and @mhart - reviewers wanted 😁). 
 
 The good part is that no new commands or parameters on SAM CLI side are required.
 
 ### Success Criteria
 
-1. Provide handy script to get the `vsdbg` via downloading it to the .NET Lambda runtime container, installing it and getting through the mounting (or manual instructions to achieve the above results). After that user would be able to provide it to SAM via `--debugger-path`;
-2. Provide ready-to-go `launch.json` configuration for attaching to the Lambda function via VSCode;
+1. Provide handy script to get the `vsdbg` via downloading it to the .NET Lambda runtime container, installing it and getting through the mounting (or manual instructions to achieve the above results). After that user would be able to provide it to SAM CLI via `--debugger-path`.
+2. Provide ready-to-go `launch.json` configuration for attaching to the Lambda function via VS Code.
 3. Customer should be able to easily debug .NET Core 2.0 and 2.1 apps on VS Code (minimal requirement).
 
 ### Out-of-Scope
 
 Visual Studio 2017 (can be a target, but it has some other very different Docker container debugging support - needs additional investigation). But some trick with `launch.json` [might be possible](https://github.com/Microsoft/MIEngine/wiki/Offroad-Debugging-of-.NET-Core-on-Linux---OSX-from-Visual-Studio). Help on this area is highly appreciated.
 
-Rider support also needs separate investigation, as it does not support `vsdbg` by any means (licensing [issue](https://github.com/dotnet/core/issues/505)) and therefore they have [their own](https://blog.jetbrains.com/dotnet/2017/02/23/rider-eap-18-coreclr-debugging-back-windows/) debugger implementation and  possibly UX around .NET Core remote debugging. If support is required - I think we should open another issue. 
+Rider support also needs separate investigation, as it does not support `vsdbg` by any means (licensing [issue](https://github.com/dotnet/core/issues/505)) and therefore they have [their own](https://blog.jetbrains.com/dotnet/2017/02/23/rider-eap-18-coreclr-debugging-back-windows/) debugger implementation and possibly UX around .NET Core remote debugging. If support is required - I think we should open another issue. 
 
 ### User Experience Walkthrough
 
 ##### 1. Getting the debugger locally
 
-At first, user should be able to get and install `vsdbg` on their machine easily. For this we should provide instruction (like it was done for go  debugger  installation) for them to follow, which will effectively run the .NET Lambda runtime Docker container with mounted via `bind` path to get the debugger on the **host** machine. In this container following: `curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg`  should be run to get and install required debugger (specifically built for this container). Later SAM will mount this same folder with the debugger to the target running container. 
+At first, user should be able to get and install `vsdbg` on their machine easily. For this we should provide instruction (like it was done for `golang` debugger installation) for them to follow, which will effectively spin up .NET Lambda runtime Docker container with mounted via `bind` path to get the debugger on the **host** machine.
 
-Commands below are taken from my prepared [POC](https://github.com/ndobryanskyy/dotnetcore-aws-local-debugging-poc) and meet the above requirements:
+In this container following: `curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg` should be run to get and install required debugger (specifically built for this container). Later SAM will mount this same folder with the debugger to the target running container. 
+
+Commands below (compatible with `powershell` and `bash`) are taken from my prepared [POC](https://github.com/ndobryanskyy/dotnetcore-aws-local-debugging-poc) and meet all of the above requirements:
 
 ```sh
 # Create directory to store debugger locally
-mkdir ~/vsdbg
+mkdir $HOME/vsdbg
 
 # Mount this to get built vsdbg for AWS Lambda runtime container on host machine
-docker run --rm --mount type=bind,src=~/vsdbg,dst=/vsdbg --entrypoint bash lambci/lambda:dotnetcore2.0 -c "curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg"
+docker run --rm --mount type=bind,src=$HOME/vsdbg,dst=/vsdbg --entrypoint bash lambci/lambda:dotnetcore2.0 -c "curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg"
 ```
+
+*Note: we are building on* `:dotnetcore2.0` *just to ensure the support of minimal version. As for now, it makes no difference which image to choose.*
 
 ##### 2. Publishing the code
 
@@ -57,12 +64,12 @@ _For example:_
 dotnet publish -c Debug -o out
 
 # Or via container
-docker run --rm --mount src=$(pwd),dst=/var/task,type=bind lambci/lambda:build-dotnetcore2.1 dotnet publish -c Debug -o out
+docker run --rm --mount src=$(PWD),dst=/var/task,type=bind lambci/lambda:build-dotnetcore2.1 dotnet publish -c Debug -o out
 ```
 
 ##### 3. Attaching
 
-Customer will use ready-to-go `launch.json` (example could be found [here](https://github.com/ndobryanskyy/dotnetcore-aws-local-debugging-poc/blob/master/Lambda/.vscode/launch.json)) debug configuration for VS Code, fill in `debugger_port` container name for the `docker ps` and supply this port to SAM CLI while invoking.
+Customer will use ready-to-go `launch.json` (example could be found [here](https://github.com/ndobryanskyy/dotnetcore-aws-local-debugging-poc/blob/master/Lambda/.vscode/launch.json)) debug configuration for VS Code, fill in `debugger_port` for the `docker ps` and supply this port to SAM CLI while invoking.
 
 _For example:_
 
@@ -82,7 +89,7 @@ After that user should just conveniently click the _start debugging_ button with
 
 ### CLI Changes
 
-None required. We would happily use `debugger_port` like for other runtimes.
+None required. We would happily use `debugger_port` and `debugger_path` like other runtimes.
 
 ### Design 
 
@@ -102,18 +109,18 @@ _Examine the code from open [PR](https://github.com/lambci/docker-lambda/pull/13
 public static bool TryWaitForAttaching(TimeSpan queryInterval, TimeSpan timeout)
 {
 	var stopwatch = Stopwatch.StartNew();
-    
-    while (!Debugger.IsAttached)
+  
+  while (!Debugger.IsAttached)
+  {
+  	if (stopwatch.Elapsed > timeout)
     {
-    	if (stopwatch.Elapsed > timeout)
-        {
-        	return false;
-        }
-        
-        Task.Delay(queryInterval).Wait();
+    	return false;
     }
     
-    return true;
+    Task.Delay(queryInterval).Wait();
+  }
+  
+  return true;
 }
 ```
 
@@ -127,7 +134,7 @@ Now, as our runner supports waiting for the debugger to attach, the only thing l
 
 SAM CLI internally uses *published port* to provide debugging support for all of its runtimes. But .NET Core debugger is not capable of running in http mode. That is why VS Code C# extension provides `pipeTransport` configuration section to enable remote .NET debugging. User must provide `pipeProgram` which will let VS Code to talk to `vsdbg` located under `debuggerPath` on **target** machine (Docker container in our case).
 
-I've chosen `docker` to serve as `pipeProgram` via its `exec` command. By supplying `-i` flag we keep the `stdin` open to let VS Code perform its communication via `stdin/stdout`. The only unsolved part in this equation is how do we know `container name` or `container id` to perform `exec` on, because SAM CLI does not specifically set those. And the answer is  - use `docker ps` with filter! 🎉
+I've chosen `docker` to serve as `pipeProgram` via its `exec` command. By supplying `-i` flag we keep the `stdin` open to let VS Code perform its communication via `stdin/stdout`. The only unsolved part in this equation is how do we know `container name` or `container id` to perform `exec` on, because SAM CLI does not specifically set those. And the answer is - use `docker ps` with filter! 🎉
 
 ```
 docker ps -q -f publish=<debugger_port>
@@ -139,41 +146,41 @@ _Examine sample launch.json configuration_
 
 ```
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": ".NET Core Docker Attach",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "1",
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Core Docker Attach",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "1",
 
-            "pipeTransport": {
-                "pipeProgram": "sh",
-                "pipeArgs": [ 
-                    "-c",
-                    "docker exec -i $(docker ps -q -f publish=6000)"
-                ],
-                "debuggerPath": "/vsdbg/vsdbg",
-                "pipeCwd": "${workspaceFolder}",
-            },
+      "pipeTransport": {
+        "pipeProgram": "sh",
+        "pipeArgs": [ 
+          "-c",
+          "docker exec -i $(docker ps -q -f publish=<debugger_port>) ${debuggerCommand}"
+        ],
+        "debuggerPath": "/vsdbg/vsdbg",
+        "pipeCwd": "${workspaceFolder}",
+      },
 
-            "windows": {
-                "pipeTransport": {
-                    "pipeProgram": "powershell",
-                    "pipeArgs": [ 
-                        "-c",
-                        "docker exec -i $(docker ps -q -f publish=6000)"
-                    ],
-                    "debuggerPath": "/vsdbg/vsdbg",
-                    "pipeCwd": "${workspaceFolder}",
-                }
-            },
-
-            "sourceFileMap": {
-                "/var/task": "${workspaceFolder}"
-            }
+      "windows": {
+        "pipeTransport": {
+          "pipeProgram": "powershell",
+          "pipeArgs": [ 
+            "-c",
+            "docker exec -i $(docker ps -q -f publish=<debugger_port>) ${debuggerCommand}"
+          ],
+          "debuggerPath": "/vsdbg/vsdbg",
+          "pipeCwd": "${workspaceFolder}",
         }
-    ]
+      },
+
+      "sourceFileMap": {
+        "/var/task": "${workspaceFolder}"
+      }
+    }
+  ]
 }
 ```
 
@@ -181,29 +188,29 @@ As for the `processId` - luckily entry point program always gets PID of 1 in a r
 
 ### Open questions
 
-1. A bit off-topic, but still, has someone else encountered the problem with python 3.7.1 ? As it now does not flush the `stdout` and `stderr` from the running container immediately but rather after SAM ends the invocation, and user does not see _"waiting for the debugger to attach..."_ message.  Which leads to  bad debugging experience.
+1. A bit off-topic, but still, has someone else encountered the problem with python 3.7.1 ? As it now does not flush the `stdout` and `stderr` from the running container immediately but rather after SAM ends the invocation, and user does not see _"waiting for the debugger to attach..."_ message. Which leads to bad debugging experience.
 
    _From SAM code - container.py:_
 
    ```python
     for frame_type, data in output_itr:
-               #LOG.debug("Next frame")
-               if frame_type == Container._STDOUT_FRAME_TYPE and stdout:
-                   # Frame type 1 is stdout data.
-                   stdout.write(data)
-                   # with this in place, everything works fine
-                   stdout.flush()
+         #LOG.debug("Next frame")
+         if frame_type == Container._STDOUT_FRAME_TYPE and stdout:
+           # Frame type 1 is stdout data.
+           stdout.write(data)
+           # with this in place, everything works fine
+           stdout.flush()
    
-               elif frame_type == Container._STDERR_FRAME_TYPE and stderr:
-                   # Frame type 2 is stderr data.
-                   stderr.write(data)
-                   # with this in place, everything works fine
-                   stderr.flush()
+         elif frame_type == Container._STDERR_FRAME_TYPE and stderr:
+           # Frame type 2 is stderr data.
+           stderr.write(data)
+           # with this in place, everything works fine
+           stderr.flush()
    ```
 
    As you see above with flush, everything works. Without it all is buffered, help needed, maybe this [link](https://docs.python.org/3/using/cmdline.html#cmdoption-u) will give something (see note for python 3.7). 
 
-   **UPD:**  this behavior is also reproduced on any python version on Windows. And I see some correlation with this [issue](https://github.com/awslabs/aws-sam-cli/pull/729). I've tested and the issue is certainly on Python side, as auto flushing is enabled on .NET by default;
+   **UPD:** this behavior is also reproduced on any python version on Windows. And I see some correlation with this [issue](https://github.com/awslabs/aws-sam-cli/pull/729). I've tested and the issue is certainly on Python side, as auto flushing is enabled on .NET by default;
 
 2. Help needed in investigation of how to adopt that approach for VS 2017. See this [link](https://github.com/Microsoft/MIEngine/wiki/Offroad-Debugging-of-.NET-Core-on-Linux---OSX-from-Visual-Studio) for some information. Maybe we can try to use Docker as a pipe there too;
 
@@ -212,6 +219,8 @@ As for the `processId` - luckily entry point program always gets PID of 1 in a r
 4. VS Code .NET debugger adapter from C# extension `vsdbg-ui` reports _"The pipe program 'docker' exited unexpectedly with code 137."_ after debugger session ends. It seems, that 137 (*128+9*) is **killed** exit code, which seems a bit strange. I could not track the issue to the core because `vsdbg` is not open source actually.
 
    I've investigated this issue and it turned out, that this behavior is observed (on my Windows machine) for any remote .NET debugging inside Docker container. I will reach out to `csharp` extension team to get their thoughts on that.
+
+   **UPD**: Just the same behavior is observed on Mac machine.
 
 
 
