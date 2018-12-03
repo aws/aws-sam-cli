@@ -74,6 +74,7 @@ Project Status
    -  [ ] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
    -  [x] ``dotnetcore2.1``
+   -  [x] ``ruby2.5``
 
 -  [x] AWS credential support
 -  [x] Debugging support
@@ -91,6 +92,7 @@ Project Status
    -  [x] ``go1.x``
    -  [x] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
+   -  [x] ``ruby2.5``
 
 Contributing
 ------------
