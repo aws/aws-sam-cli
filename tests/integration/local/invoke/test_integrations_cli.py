@@ -2,6 +2,7 @@ import json
 import shutil
 import os
 import copy
+from unittest import skipIf
 
 from nose_parameterized import parameterized
 from subprocess import Popen, PIPE
@@ -217,6 +218,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(return_code, 0)
 
 
+@skipIf(os.environ.get("TRAVIS", False), "Skip layers tests in Travis only")
 class TestLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'
@@ -376,6 +378,7 @@ class TestLayerVersion(InvokeIntegBase):
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
 
 
+@skipIf(os.environ.get("TRAVIS", False), "Skip layers tests in Travis only")
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'
