@@ -433,6 +433,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value"})
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value"]})
 
     def test_request_with_list_of_query_params(self):
         """

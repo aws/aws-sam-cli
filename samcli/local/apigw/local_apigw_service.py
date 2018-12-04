@@ -324,10 +324,13 @@ class LocalApigwService(BaseLocalService):
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
+        method = flask_request.method
 
         request_data = flask_request.get_data()
 
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, flask_request.mimetype)
+        request_mimetype = flask_request.mimetype
+
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -338,7 +341,7 @@ class LocalApigwService(BaseLocalService):
             request_data = request_data.decode('utf-8')
 
         context = RequestContext(resource_path=endpoint,
-                                 http_method=flask_request.method,
+                                 http_method=method,
                                  stage="prod",
                                  identity=identity,
                                  path=endpoint)
@@ -347,7 +350,7 @@ class LocalApigwService(BaseLocalService):
 
         query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
 
-        event = ApiGatewayLambdaEvent(http_method=flask_request.method,
+        event = ApiGatewayLambdaEvent(http_method=method,
                                       body=request_data,
                                       resource=endpoint,
                                       request_context=context,
@@ -403,8 +406,10 @@ class LocalApigwService(BaseLocalService):
 
         Parameters
         ----------
-        event_headers event headers
-            Request Headers
+        flask_request request
+            Request from Flask
+        int port
+            Forwarded Port
 
         Returns dict (str: str), dict (str: list of str)
         -------
