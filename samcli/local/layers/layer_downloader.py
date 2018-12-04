@@ -34,9 +34,22 @@ class LayerDownloader(object):
         lambda_client boto3.client('lambda')
             Boto3 Client for AWS Lambda
         """
-        self.layer_cache = layer_cache
+        self._layer_cache = layer_cache
         self.cwd = cwd
         self.lambda_client = lambda_client or boto3.client('lambda')
+
+    @property
+    def layer_cache(self):
+        """
+        Layer Cache property. This will always return a cache that exists on the system.
+
+        Returns
+        -------
+        str
+            Path to the Layer Cache
+        """
+        self._create_cache(self._layer_cache)
+        return self._layer_cache
 
     def download_all(self, layers, force=False):
         """
@@ -80,8 +93,6 @@ class LayerDownloader(object):
             LOG.info("%s is a local Layer in the template", layer.name)
             layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)
             return layer
-
-        LayerDownloader._create_cache(self.layer_cache)
 
         # disabling no-member due to https://github.com/PyCQA/pylint/issues/1660
         layer_path = Path(self.layer_cache).joinpath(layer.name).resolve()  # pylint: disable=no-member
