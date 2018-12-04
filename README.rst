@@ -13,7 +13,7 @@ SAM CLI (Beta)
 |Build Status| |Apache-2.0| |Contributers| |GitHub-release| |PyPI version|
 
 `Join the SAM developers channel (#samdev) on
-Slack <https://awssamopensource.splashthat.com/>`__ to collaborate with
+Slack <https://join.slack.com/t/awsdevelopers/shared_invite/enQtMzg3NTc5OTM2MzcxLTdjYTdhYWE3OTQyYTU4Njk1ZWY4Y2ZjYjBhMTUxNGYzNDg5MWQ1ZTc5MTRlOGY0OTI4NTdlZTMwNmI5YTgwOGM/>`__ to collaborate with
 fellow community members and the AWS SAM team.
 
 ``sam`` is the AWS CLI tool for managing Serverless applications
