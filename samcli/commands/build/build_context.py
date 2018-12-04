@@ -118,6 +118,10 @@ class BuildContext(object):
         return os.path.join(self._build_dir, "template.yaml")
 
     @property
+    def original_template_path(self):
+        return os.path.abspath(self._template_file)
+
+    @property
     def manifest_path_override(self):
         if self._manifest_path:
             return os.path.abspath(self._manifest_path)

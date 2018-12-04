@@ -15,6 +15,8 @@ from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.local.docker.lambda_image import LambdaImage
 
 
 class TestLocalLambdaService(TestCase):
@@ -46,13 +48,14 @@ class TestLocalLambdaService(TestCase):
 
         cls.hello_world_function = provider.Function(name=cls.hello_world_function_name, runtime="nodejs4.3",
                                                      memory=256, timeout=5, handler="index.handler",
-                                                     codeuri=cls.code_uri, environment=None, rolearn=None)
+                                                     codeuri=cls.code_uri, environment=None, rolearn=None, layers=[])
 
         cls.throw_error_function_name = "ThrowError"
 
         cls.throw_error_function = provider.Function(name=cls.throw_error_function_name, runtime="nodejs4.3",
                                                      memory=256, timeout=5, handler="index.handler",
-                                                     codeuri=cls.code_uri_for_throw_error, environment=None, rolearn=None)
+                                                     codeuri=cls.code_uri_for_throw_error, environment=None,
+                                                     rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.side_effect = cls.mocked_function_provider
@@ -122,7 +125,7 @@ class TestLocalEchoLambdaService(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -186,7 +189,7 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -310,7 +313,9 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 def make_service(function_provider, cwd):
     port = random_port()
     manager = ContainerManager()
-    local_runtime = LambdaRuntime(manager)
+    layer_downloader = LayerDownloader("./", "./")
+    image_builder = LambdaImage(layer_downloader, False)
+    local_runtime = LambdaRuntime(manager, image_builder)
     lambda_runner = LocalLambdaRunner(local_runtime=local_runtime,
                                       function_provider=function_provider,
                                       cwd=cwd)

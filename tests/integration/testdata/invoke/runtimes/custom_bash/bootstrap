@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -euo pipefail
+
+# Uncomment the next line to log the executed commands
+# set -x
+
+# echo "Starting sample bash runtime."
+
+# Load the script that contains the handler function.
+#
+# Handler format: <script_name>.<function_name>
+# The script file <script_name>.sh  must be located in
+# the same directory as the bootstrap executable.
+source $(dirname "$0")/"$(echo $_HANDLER | cut -d. -f1).sh"
+
+# Enter request processing loop
+while true
+do
+    # Request the next event from the Lambda Runtime
+    HEADERS="$(mktemp)"
+    EVENT_DATA=$(curl -sS  -LD "$HEADERS"  -X GET  "http://${AWS_LAMBDA_RUNTIME_API}/2018-06-01/runtime/invocation/next")
+    INVOCATION_ID=$(grep -Fi Lambda-Runtime-Aws-Request-Id "$HEADERS" | tr -d '[:space:]' | cut -d: -f2)
+
+#    echo "Invoke received. Request ID: $INVOCATION_ID"
+
+    # Execute the handler function from the script
+    RESPONSE=$($(echo "$_HANDLER" | cut -d. -f2) "$EVENT_DATA")
+
+    # Send the response to Lambda Runtime
+    IGNORE=$(curl -sS  -X POST  "http://${AWS_LAMBDA_RUNTIME_API}/2018-06-01/runtime/invocation/$INVOCATION_ID/response"  -d "$RESPONSE")
+done

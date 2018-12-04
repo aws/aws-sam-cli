@@ -13,8 +13,10 @@ import samcli.lib.utils.osutils as osutils
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
+from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands._utils.template import get_template_data
+from samcli.local.layers.layer_downloader import LayerDownloader
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
 
@@ -43,7 +45,7 @@ class InvokeContext(object):
     This class sets up some resources that need to be cleaned up after the context object is used.
     """
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=R0914
                  template_file,
                  function_identifier=None,
                  env_vars_file=None,
@@ -51,12 +53,13 @@ class InvokeContext(object):
                  docker_network=None,
                  log_file=None,
                  skip_pull_image=None,
-                 aws_profile=None,
                  debug_port=None,
                  debug_args=None,
                  debugger_path=None,
-                 aws_region=None,
-                 parameter_overrides=None):
+                 parameter_overrides=None,
+                 layer_cache_basedir=None,
+                 force_image_build=None,
+                 aws_region=None):
         """
         Initialize the context
 
@@ -85,13 +88,14 @@ class InvokeContext(object):
             Additional arguments passed to the debugger
         debugger_path str
             Path to the directory of the debugger to mount on Docker
-        aws_profile str
-            AWS Credential profile to use
-        aws_region str
-            AWS region to use
         parameter_overrides dict
             Values for the template parameters
-
+        layer_cache_basedir str
+            String representing the path to the layer cache directory
+        force_image_build bool
+            Whether or not to force build the image
+        aws_region str
+            AWS region to use
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -100,18 +104,20 @@ class InvokeContext(object):
         self._docker_network = docker_network
         self._log_file = log_file
         self._skip_pull_image = skip_pull_image
-        self._aws_profile = aws_profile
-        self._aws_region = aws_region
         self._debug_port = debug_port
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._parameter_overrides = parameter_overrides or {}
+        self._layer_cache_basedir = layer_cache_basedir
+        self._force_image_build = force_image_build
+        self._aws_region = aws_region
 
         self._template_dict = None
         self._function_provider = None
         self._env_vars_value = None
         self._log_file_handle = None
         self._debug_context = None
+        self._layers_downloader = None
 
     def __enter__(self):
         """
@@ -182,14 +188,17 @@ class InvokeContext(object):
         container_manager = ContainerManager(docker_network_id=self._docker_network,
                                              skip_pull_image=self._skip_pull_image)
 
-        lambda_runtime = LambdaRuntime(container_manager)
+        layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
+        image_builder = LambdaImage(layer_downloader,
+                                    self._skip_pull_image,
+                                    self._force_image_build)
+
+        lambda_runtime = LambdaRuntime(container_manager, image_builder)
         return LocalLambdaRunner(local_runtime=lambda_runtime,
                                  function_provider=self._function_provider,
                                  cwd=self.get_cwd(),
                                  env_vars_values=self._env_vars_value,
-                                 debug_context=self._debug_context,
-                                 aws_profile=self._aws_profile,
-                                 aws_region=self._aws_region)
+                                 debug_context=self._debug_context)
 
     @property
     def stdout(self):
