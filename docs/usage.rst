@@ -487,6 +487,7 @@ attach to a debug session.
     ]
   }
 
+
 Debugging .NET Core 2.1 / 2.0 Functions
 ---------------------------------------
 
@@ -499,13 +500,13 @@ Either locally using .NET SDK
 
 .. code:: bash
 
-    ``dotnet publish -c Debug -o <output path>``
+    dotnet publish -c Debug -o <output path>
 
 Or via Docker
 
 .. code:: bash
 
-    ``docker run --rm --mount type=bind,src=$PWD,dst=/var/task lambci/lambda:build-dotnetcore<target-runtime> dotnet publish -c Debug -o <output path relative to $PWD>``
+    docker run --rm --mount type=bind,src=$PWD,dst=/var/task lambci/lambda:build-dotnetcore<target-runtime> dotnet publish -c Debug -o <output path relative to $PWD>
 
 **NOTE: both of these commands should be run from the directory with .csproj file**
 
