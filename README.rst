@@ -70,10 +70,13 @@ Project Status
    -  [x] ``java8``
    -  [x] ``python2.7``
    -  [x] ``python3.6``
+   -  [x] ``python3.7``
    -  [x] ``go1.x``
    -  [ ] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
    -  [x] ``dotnetcore2.1``
+   -  [x] ``ruby2.5``
+   -  [x] ``Provided``
 
 -  [x] AWS credential support
 -  [x] Debugging support
@@ -88,9 +91,12 @@ Project Status
    -  [x] ``java8``
    -  [x] ``python2.7``
    -  [x] ``python3.6``
+   -  [x] ``python3.7``
    -  [x] ``go1.x``
    -  [x] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
+   -  [x] ``ruby2.5``
+   -  [ ] ``Provided``
 
 Contributing
 ------------
