@@ -496,15 +496,21 @@ machine to later provide it to SAM CLI. VS Code will launch debugger inside Lamb
 When debugging, you must compile your function in debug mode:
 
 Either locally using .NET SDK
-``dotnet publish -c Debug -o <output path>``
+
+.. code:: bash
+
+    ``dotnet publish -c Debug -o <output path>``
 
 Or via Docker
-``docker run --rm --mount type=bind,src=$PWD,dst=/var/task lambci/lambda:build-dotnetcore<target-runtime> dotnet publish -c Debug -o <output path relative to $PWD>``
+
+.. code:: bash
+
+    ``docker run --rm --mount type=bind,src=$PWD,dst=/var/task lambci/lambda:build-dotnetcore<target-runtime> dotnet publish -c Debug -o <output path relative to $PWD>``
 
 **NOTE: both of these commands should be run from the directory with .csproj file**
 
 You must get ``vsdbg`` built for AWS Lambda runtime container on your host machine and provide its local path
-via the `--debugger-path` argument. Get compatible debugger version as follows:
+via the ``--debugger-path`` argument. Get compatible debugger version as follows:
 
 .. code:: bash
 
