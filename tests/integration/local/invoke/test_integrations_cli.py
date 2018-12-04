@@ -13,6 +13,10 @@ import docker
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
 
+# Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
+# This is to restrict layers tests to run outside of Travis and when the branch is not master.
+SKIP_LAYERS_TESTS = os.environ.get("TRAVIS", False) and os.environ.get("TRAVIS_BRANCH", "master") != "master"
+
 try:
     from pathlib import Path
 except ImportError:
@@ -218,7 +222,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(return_code, 0)
 
 
-@skipIf(os.environ.get("TRAVIS", False), "Skip layers tests in Travis only")
+@skipIf(SKIP_LAYERS_TESTS,
+        "Skip layers tests in Travis only")
 class TestLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'
@@ -378,7 +383,8 @@ class TestLayerVersion(InvokeIntegBase):
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
 
 
-@skipIf(os.environ.get("TRAVIS", False), "Skip layers tests in Travis only")
+@skipIf(SKIP_LAYERS_TESTS,
+        "Skip layers tests in Travis only")
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'
