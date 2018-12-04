@@ -487,6 +487,81 @@ attach to a debug session.
     ]
   }
 
+Debugging .NET Core 2.1 / 2.0 Functions
+---------------------------------------
+
+.NET Core function debugging is similiar to golang function debugging and requires you to have ``vsdbg`` available on your
+machine to later provide it to SAM CLI. VS Code will launch debugger inside Lambda container and talk to it using ``pipeTransport`` configuration.
+
+When debugging, you must compile your function in debug mode:
+
+Either locally using .NET SDK
+``dotnet publish -c Debug -o <output path>``
+
+Or via Docker
+``docker run --rm --mount type=bind,src=$PWD,dst=/var/task lambci/lambda:build-dotnetcore<target-runtime> dotnet publish -c Debug -o <output path relative to $PWD>``
+
+**NOTE: both of these commands should be run from the directory with .csproj file**
+
+You must get ``vsdbg`` built for AWS Lambda runtime container on your host machine and provide its local path
+via the `--debugger-path` argument. Get compatible debugger version as follows:
+
+.. code:: bash
+
+    # Create directory to store vsdbg
+    mkdir <vsdbg folder path>
+
+    # Get and install vsdbg on runtime container. Mounted folder will let you have it under <vsdbg folder path> on your machine too
+    docker run --rm --mount type=bind,src=<vsdbg folder path>,dst=/vsdbg --entrypoint bash lambci/lambda:dotnetcore2.0 -c "curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /vsdbg"
+
+Then invoke ``sam`` similar to the following:
+
+``sam local start-api -d <debug port> --debugger-path <vsdbg folder path>``
+
+NOTE: The ``--debugger-path`` is the path to the directory that contains the ``vsdbg`` binary installed from the above.
+
+The following is an example launch configuration for Visual Studio Code to attach to a debug session.
+
+.. code:: json
+
+  {
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Docker Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "1",
+
+            "pipeTransport": {
+                "pipeProgram": "sh",
+                "pipeArgs": [ 
+                    "-c",
+                    "docker exec -i $(docker ps -q -f publish=<debug port>) ${debuggerCommand}"
+                ],
+                "debuggerPath": "/tmp/lambci_debug_files/vsdbg",
+                "pipeCwd": "${workspaceFolder}",
+            },
+
+            "windows": {
+                "pipeTransport": {
+                "pipeProgram": "powershell",
+                "pipeArgs": [
+                    "-c",
+                    "docker exec -i $(docker ps -q -f publish=<debug port>) ${debuggerCommand}"
+                ],
+                    "debuggerPath": "/tmp/lambci_debug_files/vsdbg",
+                    "pipeCwd": "${workspaceFolder}",
+                }
+            },
+
+            "sourceFileMap": {
+                "/var/task": "${workspaceFolder}"
+            }
+        }
+    ]
+  }
+
 
 Passing Additional Runtime Debug Arguments
 ------------------------------------------

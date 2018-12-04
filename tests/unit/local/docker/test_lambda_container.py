@@ -10,6 +10,8 @@ from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime, DebuggingNotSupported
 
 RUNTIMES_WITH_ENTRYPOINT = [Runtime.java8.value,
+                            Runtime.dotnetcore20.value,
+                            Runtime.dotnetcore21.value,
                             Runtime.go1x.value,
                             Runtime.nodejs.value,
                             Runtime.nodejs43.value,
