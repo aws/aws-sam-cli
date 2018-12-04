@@ -26,7 +26,7 @@ What will be changed?
 In this proposal, we will be providing a new command, ``sam publish app``, which takes a SAM template as input and publishes
 an application to AWS Serverless Application Repository using applicaiton metadata specified in the template. Customers just
 need to provide application metadata information in the template, then ``sam publish app`` will handle uploading local files
-to S3 and creating the app. We will also provde sharing options to set application permission policies. This command will
+to S3 and creating the app. We will also provide sharing options to set application permission policies. This command will
 greatly simplify the exsiting publishing experience.
 
 
@@ -53,13 +53,11 @@ Out-of-Scope
 
 #. Manage application permission separately without publishing/updating the app.
 
-#. Specify type of `application permission`_ in sharing options.
+#. Specify granular permission types as defined in `application permission`_ when sharing the application.
 
-#. Recursively publish nested apps in the template.
+#. Recursively publish nested apps in the template (SAR CreateApplication API doesn't support yet).
 
 #. Run through CI/CD pipeline for the application before publishing.
-
-#. Support downloading an app to edite/republish it.
 
 #. Publish to other repositories besides SAR.
 
@@ -105,7 +103,8 @@ Create new application in SAR
   created as 1.0.0. The app will be created as private by default.
 
 Create new version of an existing SAR application
-  Modify the existing template, give a different SemanticVersion value, and run ``sam publish app -t ./packaged.yaml``.
+  Modify the existing template, give a different SemanticVersion value, and run ``sam publish app -t ./packaged.yaml``. If
+  customers try to publish the same version again, the command will fail with an error message that the version already exists.
 
 Crete application/version and set application permission
   Run ``sam publish app -t ./packaged.yaml --make-public`` to publish the app and share it publicly. If ``--make-private``
@@ -144,8 +143,6 @@ CLI Changes
   --help                   Show this message and exit.
 
 2. Update ``sam package`` command to support uploading locally referenced readme and license files to S3.
-
-3. Update ``sam init`` command to support generating AWS::ServerlessRepo::Application section in the sample app template.
 
 Breaking Change
 ~~~~~~~~~~~~~~~
@@ -196,7 +193,15 @@ N/A
 
 **Are you connecting to a remote API? If so explain how is this connection secured**
 
-N/A
+Will be connecting to boto3 serverlessrepo `create_application`_, `update_application`_, `create_application_version`_, and `put_application_policy`_
+APIs through the `aws-serverlessrepo-python <https://github.com/awslabs/aws-serverlessrepo-python>`_ library. The connection is secured by requiring
+AWS credentials to connect to boto3.
+
+.. _create_application : https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.create_application
+.. _update_application : https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.update_application
+.. _create_application_version: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.create_application_version
+.. _put_application_policy: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.put_application_policy
+
 
 **Are you reading/writing to a temporary folder? If so, what is this used for and when do you clean up?**
 
