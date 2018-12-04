@@ -6,9 +6,6 @@ import errno
 import json
 import os
 
-import docker
-import requests
-
 import samcli.lib.utils.osutils as osutils
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
@@ -118,6 +115,7 @@ class InvokeContext(object):
         self._log_file_handle = None
         self._debug_context = None
         self._layers_downloader = None
+        self._container_manager = None
 
     def __enter__(self):
         """
@@ -137,7 +135,11 @@ class InvokeContext(object):
                                                       self._debug_args,
                                                       self._debugger_path)
 
-        self._check_docker_connectivity()
+        self._container_manager = self._get_container_manager(self._docker_network,
+                                                              self._skip_pull_image)
+
+        if not self._container_manager.is_docker_reachable:
+            raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")
 
         return self
 
@@ -185,15 +187,12 @@ class InvokeContext(object):
             locally
         """
 
-        container_manager = ContainerManager(docker_network_id=self._docker_network,
-                                             skip_pull_image=self._skip_pull_image)
-
         layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
         image_builder = LambdaImage(layer_downloader,
                                     self._skip_pull_image,
                                     self._force_image_build)
 
-        lambda_runtime = LambdaRuntime(container_manager, image_builder)
+        lambda_runtime = LambdaRuntime(self._container_manager, image_builder)
         return LocalLambdaRunner(local_runtime=lambda_runtime,
                                  function_provider=self._function_provider,
                                  cwd=self.get_cwd(),
@@ -350,19 +349,21 @@ class InvokeContext(object):
         return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
 
     @staticmethod
-    def _check_docker_connectivity(docker_client=None):
+    def _get_container_manager(docker_network, skip_pull_image):
         """
-        Checks if Docker daemon is running. This is required for us to invoke the function locally
+        Creates a ContainerManager with specified options
 
-        :param docker_client: Instance of Docker client
-        :return bool: True, if Docker is available
-        :raises InvokeContextException: If Docker is not available
+        Parameters
+        ----------
+        docker_network str
+            Docker network identifier
+        skip_pull_image bool
+            Should the manager skip pulling the image
+
+        Returns
+        -------
+        samcli.local.docker.manager.ContainerManager
+            Object representing Docker container manager
         """
 
-        docker_client = docker_client or docker.from_env()
-
-        try:
-            docker_client.ping()
-        # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-        except (docker.errors.APIError, requests.exceptions.ConnectionError):
-            raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")
+        return ContainerManager(docker_network_id=docker_network, skip_pull_image=skip_pull_image)
