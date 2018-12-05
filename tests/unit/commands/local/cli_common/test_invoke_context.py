@@ -4,7 +4,6 @@ Tests the InvokeContext class
 import errno
 import os
 import sys
-import yaml
 
 import docker
 import requests
@@ -36,12 +35,11 @@ class TestInvokeContext__enter__(TestCase):
                                        docker_network="network",
                                        log_file=log_file,
                                        skip_pull_image=True,
-                                       aws_profile="profile",
                                        debug_port=1111,
                                        debugger_path="path-to-debugger",
                                        debug_args='args',
-                                       aws_region="region",
-                                       parameter_overrides={})
+                                       parameter_overrides={},
+                                       aws_region="region")
 
         template_dict = "template_dict"
         invoke_context._get_template_data = Mock()
@@ -118,11 +116,9 @@ class TestInvokeContextAsContextManager(TestCase):
                            docker_network="network",
                            log_file="log_file",
                            skip_pull_image=True,
-                           aws_profile="profile",
                            debug_port=1111,
                            debugger_path="path-to-debugger",
-                           debug_args='args',
-                           aws_region="region") as context:
+                           debug_args='args') as context:
             self.assertEquals(context_obj, context)
 
         EnterMock.assert_called_with()
@@ -167,16 +163,22 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                                      docker_network="network",
                                      log_file="log_file",
                                      skip_pull_image=True,
-                                     aws_profile="profile",
+                                     force_image_build=True,
                                      debug_port=1111,
                                      debugger_path="path-to-debugger",
-                                     debug_args='args',
-                                     aws_region="region")
+                                     debug_args='args')
 
+    @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
+    @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
-    def test_must_create_runner(self, LocalLambdaMock, LambdaRuntimeMock, ContainerManagerMock):
+    def test_must_create_runner(self,
+                                LocalLambdaMock,
+                                LambdaRuntimeMock,
+                                ContainerManagerMock,
+                                download_layers_mock,
+                                lambda_image_patch):
 
         container_mock = Mock()
         ContainerManagerMock.return_value = container_mock
@@ -187,6 +189,12 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         runner_mock = Mock()
         LocalLambdaMock.return_value = runner_mock
 
+        download_mock = Mock()
+        download_layers_mock.return_value = download_mock
+
+        image_mock = Mock()
+        lambda_image_patch.return_value = image_mock
+
         cwd = "cwd"
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
@@ -196,14 +204,13 @@ class TestInvokeContext_local_lambda_runner(TestCase):
 
         ContainerManagerMock.assert_called_with(docker_network_id="network",
                                                 skip_pull_image=True)
-        LambdaRuntimeMock.assert_called_with(container_mock)
+        LambdaRuntimeMock.assert_called_with(container_mock, image_mock)
+        lambda_image_patch.assert_called_once_with(download_mock, True, True)
         LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
                                            function_provider=ANY,
                                            cwd=cwd,
                                            debug_context=None,
-                                           env_vars_values=ANY,
-                                           aws_profile="profile",
-                                           aws_region="region")
+                                           env_vars_values=ANY)
 
 
 class TestInvokeContext_stdout_property(TestCase):
@@ -270,61 +277,6 @@ class TestInvokeContextget_cwd(TestCase):
 
         result = context.get_cwd()
         self.assertEquals(result, "basedir")
-
-
-class TestInvokeContext_get_template_data(TestCase):
-
-    def test_must_raise_if_file_does_not_exist(self):
-        filename = "filename"
-
-        with self.assertRaises(InvokeContextException) as exception_ctx:
-            InvokeContext._get_template_data(filename)
-
-        ex = exception_ctx.exception
-        self.assertEquals(str(ex), "Template file not found at {}".format(filename))
-
-    @patch("samcli.commands.local.cli_common.invoke_context.yaml_parse")
-    @patch("samcli.commands.local.cli_common.invoke_context.os")
-    def test_must_read_file_and_parse(self, os_mock, yaml_parse_mock):
-        filename = "filename"
-        file_data = "contents of the file"
-        parse_result = "parse result"
-
-        os_mock.patch.exists.return_value = True  # Fake that the file exists
-
-        m = mock_open(read_data=file_data)
-        yaml_parse_mock.return_value = parse_result
-
-        with patch("samcli.commands.local.cli_common.invoke_context.open", m):
-            result = InvokeContext._get_template_data(filename)
-
-            self.assertEquals(result, parse_result)
-
-        m.assert_called_with(filename, 'r')
-        yaml_parse_mock.assert_called_with(file_data)
-
-    @parameterized.expand([
-        param(ValueError()),
-        param(yaml.YAMLError())
-    ])
-    @patch("samcli.commands.local.cli_common.invoke_context.yaml_parse")
-    @patch("samcli.commands.local.cli_common.invoke_context.os")
-    def test_must_raise_on_parse_errors(self, exception, os_mock, yaml_parse_mock):
-        filename = "filename"
-        file_data = "contents of the file"
-
-        os_mock.patch.exists.return_value = True  # Fake that the file exists
-
-        m = mock_open(read_data=file_data)
-        yaml_parse_mock.side_effect = exception
-
-        with patch("samcli.commands.local.cli_common.invoke_context.open", m):
-
-            with self.assertRaises(InvokeContextException) as ex_ctx:
-                InvokeContext._get_template_data(filename)
-
-            actual_exception = ex_ctx.exception
-            self.assertTrue(str(actual_exception).startswith("Failed to parse template: "))
 
 
 class TestInvokeContext_get_env_vars_value(TestCase):

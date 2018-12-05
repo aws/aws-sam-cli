@@ -19,7 +19,7 @@ Follow the idioms from this `excellent cheatsheet`_ to make sure your code is co
 Our CI/CD pipeline is setup to run unit tests against both Python versions. So make sure you test it with both
 versions before sending a Pull Request. `pyenv`_ is a great tool to easily setup multiple Python versions.
 
-    Note: For Windows, type ``export PATH="/c/Users/<user>/.pyenv/libexec:$PATH"`` to add pyenv to your path.    
+    Note: For Windows, type ``export PATH="/c/Users/<user>/.pyenv/libexec:$PATH"`` to add pyenv to your path.
 
 #. Install PyEnv - ``curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash``
 #. ``pyenv install 2.7.14``
@@ -133,9 +133,25 @@ best practices that we have learnt over time.
 - Do not catch the broader ``Exception``, unless you have a really strong reason to do. You must explain the reason
   in great detail in comments.
 
+Design Document
+---------------
+
+A design document is a written description of the feature/capability you are building. We have a
+`design document template`_ to help you quickly fill in the blanks and get you working quickly. We encourage you to
+write a design document for any feature you write, but for some types of features we definitely require a design
+document to proceed with implementation.
+
+**When do you need a design document?**
+
+- Adding a new command
+- Making a breaking change to CLI interface
+- Refactoring code that alters the design of certain components
+- Experimental features
+
 
 .. _excellent cheatsheet: http://python-future.org/compatible_idioms.html
 .. _pyenv: https://github.com/pyenv/pyenv
 .. _tox: http://tox.readthedocs.io/en/latest/
 .. _numpy docstring: https://numpydoc.readthedocs.io/en/latest/format.html
 .. _pipenv: https://docs.pipenv.org/
+.. _design document template: ./designs/_template.rst
