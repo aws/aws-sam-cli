@@ -17,9 +17,10 @@ class TestCli(TestCase):
         self.no_input = False
         self.cookiecutter_dir = tempfile.mkdtemp()
         self.project_folder = os.path.abspath(
-                                os.path.join(self.output_dir, self.name))
+            os.path.join(self.output_dir, self.name))
         self.custom_location_folder = os.path.abspath(
-                                        os.path.join(self.output_dir, 'Name of the project'))
+            os.path.join(self.output_dir, 'Name of the project'))
+        self.extra_context = {}
 
     def tearDown(self):
         leftover_folders = (self.output_dir, self.cookiecutter_dir)
@@ -33,7 +34,7 @@ class TestCli(TestCase):
         # WHEN a project name has been passed
         init_cli(
             ctx=None, location=self.location, runtime=self.runtime, output_dir=self.output_dir,
-            name=self.name, no_input=self.no_input)
+            name=self.name, no_input=self.no_input, extra_context=self.extra_context)
 
         # THEN we should see a new project created and a successful return
         self.assertTrue(os.path.isdir(self.project_folder))
@@ -46,9 +47,9 @@ class TestCli(TestCase):
 
         init_cli(
             ctx=None, location=self.location, runtime=self.runtime, output_dir=self.output_dir,
-            name=self.name, no_input=True)
+            name=self.name, no_input=True, extra_context=self.extra_context)
 
         # THEN we should see a new project created and a successful return
         # and this new folder should be named 'name-of-the-project'
         # which is the default value for this custom template
-        self.assertTrue(os.path.isdir(self.custom_location_folder))
+        self.assertTrue(os.path.isdir(self.output_dir + '/' + self.name))
