@@ -23,9 +23,10 @@ SUPPORTED_RUNTIME = [r for r in RUNTIME_TEMPLATE_MAPPING]
 @click.option('-n', '--name', default="sam-app", help="Name of your project to be generated as a folder")
 @click.option('--no-input', is_flag=True, default=False,
               help="Disable prompting and accept default values defined template config")
+@click.option('-e', '--extra-context', multiple=True, help="Extra context in key=value format for custom templates")
 @common_options
 @pass_context
-def cli(ctx, location, runtime, output_dir, name, no_input):
+def cli(ctx, location, runtime, output_dir, name, no_input, extra_context):
     """ \b
         Initialize a serverless application with a SAM template, folder
         structure for your Lambda functions, connected to an event source such as APIs,
@@ -67,10 +68,10 @@ def cli(ctx, location, runtime, output_dir, name, no_input):
     """
     # All logic must be implemented in the `do_cli` method. This helps ease unit tests
     do_cli(ctx, location, runtime, output_dir,
-           name, no_input)  # pragma: no cover
+           name, no_input, extra_context)  # pragma: no cover
 
 
-def do_cli(ctx, location, runtime, output_dir, name, no_input):
+def do_cli(ctx, location, runtime, output_dir, name, no_input, extra_context):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -79,7 +80,6 @@ def do_cli(ctx, location, runtime, output_dir, name, no_input):
 
     no_build_msg = """
 Project generated: {output_dir}/{name}
-
 Steps you can take next within the project folder
 ===================================================
 [*] Invoke Function: sam local invoke HelloWorldFunction --event event.json
@@ -88,7 +88,6 @@ Steps you can take next within the project folder
 
     build_msg = """
 Project generated: {output_dir}/{name}
-
 Steps you can take next within the project folder
 ===================================================
 [*] Install dependencies
@@ -100,8 +99,13 @@ Steps you can take next within the project folder
         "python", "python3.7", "python3.6", "python2.7", "nodejs", "nodejs4.3", "nodejs6.10", "nodejs8.10", "ruby2.5")
     next_step_msg = no_build_msg if runtime in no_build_step_required else build_msg
 
+    # Break up given extra context into dict(key:value); else use a sane default empty dict
+    options = (opts.split('=') for opts in extra_context)
+    context = {name: value for name, value in options}
+
     try:
-        generate_project(location, runtime, output_dir, name, no_input)
+        generate_project(location, runtime, output_dir, name, no_input, extra_context=context)
+        # Custom templates can implement their own visual cues so let's not repeat the message
         if not location:
             click.secho(next_step_msg, bold=True)
             click.secho("Read {name}/README.md for further instructions\n".format(name=name), bold=True)
