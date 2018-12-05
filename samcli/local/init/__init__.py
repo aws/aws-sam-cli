@@ -73,11 +73,13 @@ def generate_project(
         "extra_context": extra_context
     }
 
+    params['extra_context'].update({'project_name': name})
+
     LOG.debug("Parameters dict created with input given")
     LOG.debug("%s", params)
 
-    if not location and name is not None:
-        params['extra_context'] = {'project_name': name, 'runtime': runtime}
+    if not location:
+        params['extra_context'] = {'runtime': runtime}
         params['no_input'] = True
         LOG.debug("Parameters dict updated with project name as extra_context")
         LOG.debug("%s", params)
