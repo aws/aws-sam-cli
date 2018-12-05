@@ -36,7 +36,7 @@ RUNTIME_TEMPLATE_MAPPING = {
 
 def generate_project(
         location=None, runtime="nodejs", output_dir=".",
-        name='sam-sample-app', no_input=False, extra_context={}):
+        name='sam-sample-app', no_input=False, extra_context=None):
     """Generates project using cookiecutter and options given
 
     Generate project scaffolds a project using default templates if user
@@ -70,7 +70,7 @@ def generate_project(
         "template": location if location else RUNTIME_TEMPLATE_MAPPING[runtime],
         "output_dir": output_dir,
         "no_input": no_input,
-        "extra_context": extra_context
+        "extra_context": extra_context if extra_context else dict()
     }
 
     params['extra_context'].update({'project_name': name})
