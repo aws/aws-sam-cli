@@ -20,7 +20,7 @@ flake:
 	flake8 tests/unit tests/integration
 
 lint:
-	# Liner performs static analysis to catch latent bugs
+	# Linter performs static analysis to catch latent bugs
 	pylint --rcfile .pylintrc samcli
 
 # Command to run everytime you make changes to verify everything works

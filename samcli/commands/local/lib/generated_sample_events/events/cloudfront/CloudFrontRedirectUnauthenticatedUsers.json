@@ -6,8 +6,8 @@
           "distributionId": "EXAMPLE"
         },
         "request": {
-          "uri": "{{uri}}",
-          "method": "{{method}}",
+          "uri": "{{{uri}}}",
+          "method": "{{{method}}}",
           "querystring": "foo=bar",
           "headers": {
             "host": [

@@ -203,6 +203,14 @@ class LambdaContainer(Container):
                         "/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
                    ]
 
+        elif runtime in (Runtime.dotnetcore20.value, Runtime.dotnetcore21.value):
+            entrypoint = ["/var/lang/bin/dotnet"] \
+                + debug_args_list \
+                + [
+                    "/var/runtime/MockBootstraps.dll",
+                    "--debugger-spin-wait"
+                  ]
+
         elif runtime == Runtime.go1x.value:
             entrypoint = ["/var/runtime/aws-lambda-go"] \
                 + debug_args_list \
@@ -289,8 +297,9 @@ class LambdaContainer(Container):
 
     @staticmethod
     def _supported_runtimes():
-        return {Runtime.java8.value, Runtime.go1x.value, Runtime.nodejs.value, Runtime.nodejs43.value,
-                Runtime.nodejs610.value, Runtime.nodejs810.value, Runtime.python27.value, Runtime.python36.value}
+        return {Runtime.java8.value, Runtime.dotnetcore20.value, Runtime.dotnetcore21.value, Runtime.go1x.value,
+                Runtime.nodejs.value, Runtime.nodejs43.value, Runtime.nodejs610.value, Runtime.nodejs810.value,
+                Runtime.python27.value, Runtime.python36.value}
 
 
 class DebuggingNotSupported(Exception):
