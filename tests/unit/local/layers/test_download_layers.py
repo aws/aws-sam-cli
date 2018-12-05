@@ -9,10 +9,14 @@ from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired
 
 class TestDownloadLayers(TestCase):
 
-    def test_initialization(self):
+    @patch("samcli.local.layers.layer_downloader.LayerDownloader._create_cache")
+    def test_initialization(self, create_cache_patch):
+        create_cache_patch.return_value = None
+
         download_layers = LayerDownloader("/some/path", ".")
 
         self.assertEquals(download_layers.layer_cache, "/some/path")
+        create_cache_patch.assert_called_with("/some/path")
 
     @patch("samcli.local.layers.layer_downloader.LayerDownloader.download")
     def test_download_all_without_force(self, download_patch):
