@@ -1,7 +1,7 @@
 {
   "Records": [
     {
-      "awsRegion": "{{region}}",
+      "awsRegion": "{{{region}}}",
       "codecommit": {
         "references": [
           {
@@ -10,18 +10,18 @@
           }
         ]
       },
-      "customData": "{{custom_data}}",
+      "customData": "{{{custom_data}}}",
       "eventId": "5a824061-17ca-46a9-bbf9-114edeadbeef",
       "eventName": "TriggerEventTest",
       "eventPartNumber": 1,
       "eventSource": "aws:codecommit",
-      "eventSourceARN": "arn:{{partition}}:codecommit:{{region}}:{{account_id}}:{{repository}}",
+      "eventSourceARN": "arn:{{{partition}}}:codecommit:{{{region}}}:{{{account_id}}}:{{{repository}}}",
       "eventTime": "2016-01-01T23:59:59.000+0000",
       "eventTotalParts": 1,
       "eventTriggerConfigId": "5a824061-17ca-46a9-bbf9-114edeadbeef",
-      "eventTriggerName": "{{trigger}}",
+      "eventTriggerName": "{{{trigger}}}",
       "eventVersion": "1.0",
-      "userIdentityARN": "arn:{{partition}}:iam::{{account_id}}:root"
+      "userIdentityARN": "arn:{{{partition}}}:iam::{{{account_id}}}:root"
     }
   ]
 }
