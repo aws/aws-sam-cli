@@ -65,6 +65,12 @@ def cli(ctx, location, runtime, output_dir, name, no_input, extra_context):
         \b
         $ sam init --location /path/to/template/folder
 
+        \b
+        Initializes a new SAM project using custom template with additional known context
+        \b
+        # Add multiple -e for multiple context to be added (-e some=Value -e other=Value)
+        $ sam init --location gh:aws-samples/cookiecutter-aws-sam-python -e project_short_description=Oi
+
     """
     # All logic must be implemented in the `do_cli` method. This helps ease unit tests
     do_cli(ctx, location, runtime, output_dir,
