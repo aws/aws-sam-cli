@@ -2,6 +2,7 @@ import json
 import shutil
 import os
 import copy
+from unittest import skipIf
 
 from nose_parameterized import parameterized
 from subprocess import Popen, PIPE
@@ -11,6 +12,10 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
+
+# Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
+# This is to restrict layers tests to run outside of Travis and when the branch is not master.
+SKIP_LAYERS_TESTS = os.environ.get("TRAVIS", False) and os.environ.get("TRAVIS_BRANCH", "master") != "master"
 
 try:
     from pathlib import Path
@@ -217,6 +222,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(return_code, 0)
 
 
+@skipIf(SKIP_LAYERS_TESTS,
+        "Skip layers tests in Travis only")
 class TestLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'
@@ -224,7 +231,6 @@ class TestLayerVersion(InvokeIntegBase):
 
     def setUp(self):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
-        self.layer_cache.mkdir(parents=True, exist_ok=True)
 
     def tearDown(self):
         docker_client = docker.from_env()
@@ -376,8 +382,25 @@ class TestLayerVersion(InvokeIntegBase):
 
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
 
-    def test_layer_does_not_exist(self):
 
+@skipIf(SKIP_LAYERS_TESTS,
+        "Skip layers tests in Travis only")
+class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
+    template = Path("layers", "layer-template.yml")
+    region = 'us-west-2'
+    layer_utils = LayerUtils(region=region)
+
+    def setUp(self):
+        self.layer_cache = Path().home().joinpath("integ_layer_cache")
+
+    def tearDown(self):
+        docker_client = docker.from_env()
+        samcli_images = docker_client.images.list(name='samcli/lambda')
+        for image in samcli_images:
+            docker_client.images.remove(image.id)
+
+    def test_layer_does_not_exist(self):
+        self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         non_existent_layer_arn = self.layer_utils.parameters_overrides["LayerOneArn"].replace(
             self.layer_utils.layers_meta[0].layer_name, 'non_existent_layer')
 
@@ -399,6 +422,7 @@ class TestLayerVersion(InvokeIntegBase):
         expected_error_output = "{} was not found.".format(non_existent_layer_arn)
 
         self.assertIn(expected_error_output, error_output)
+        self.layer_utils.delete_layers()
 
     def test_account_does_not_exist_for_layer(self):
         command_list = self.get_command_list("LayerVersionAccountDoesNotExistFunction",
