@@ -15,6 +15,7 @@ class TestCli(TestCase):
         self.output_dir = "."
         self.name = "testing project"
         self.no_input = False
+        self.extra_context = {}
 
     @patch("samcli.commands.init.generate_project")
     def test_init_cli(self, generate_project_patch):
@@ -22,28 +23,28 @@ class TestCli(TestCase):
         # WHEN a project name has been passed
         init_cli(
             ctx=self.ctx, location=self.location, runtime=self.runtime, output_dir=self.output_dir,
-            name=self.name, no_input=self.no_input)
+            name=self.name, no_input=self.no_input, extra_context=self.extra_context)
 
         # THEN we should receive no errors
         generate_project_patch.assert_called_once_with(
-                self.location, self.runtime,
-                self.output_dir, self.name, self.no_input)
+            self.location, self.runtime,
+            self.output_dir, self.name, self.no_input, extra_context=self.extra_context)
 
     @patch("samcli.commands.init.generate_project")
     def test_init_cli_generate_project_fails(self, generate_project_patch):
 
         # GIVEN generate_project fails to create a project
         generate_project_patch.side_effect = GenerateProjectFailedError(
-                project=self.name, provider_error="Something wrong happened"
+            project=self.name, provider_error="Something wrong happened"
         )
 
         # WHEN generate_project returns an error
         # THEN we should receive a GenerateProjectFailedError Exception
         with self.assertRaises(UserException):
             init_cli(
-                    self.ctx, location="self.location", runtime=self.runtime,
-                    output_dir=self.output_dir, name=self.name, no_input=self.no_input)
+                self.ctx, location="self.location", runtime=self.runtime,
+                output_dir=self.output_dir, name=self.name, no_input=self.no_input, extra_context=self.extra_context)
 
             generate_project_patch.assert_called_with(
-                    self.location, self.runtime,
-                    self.output_dir, self.name, self.no_input)
+                self.location, self.runtime,
+                self.output_dir, self.name, self.no_input, extra_context=self.extra_context)
