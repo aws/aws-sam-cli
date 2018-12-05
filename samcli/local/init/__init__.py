@@ -79,7 +79,7 @@ def generate_project(
     LOG.debug("%s", params)
 
     if not location:
-        params['extra_context'] = {'runtime': runtime}
+        params['extra_context'].update({'runtime': runtime})
         params['no_input'] = True
         LOG.debug("Parameters dict updated with project name as extra_context")
         LOG.debug("%s", params)
