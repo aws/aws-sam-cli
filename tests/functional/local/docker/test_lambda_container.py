@@ -69,7 +69,7 @@ class TestLambdaContainer(TestCase):
         A docker container must be successfully created
         """
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder)
 
         self.assertIsNone(container.id, "Container must not have ID before creation")
@@ -87,7 +87,7 @@ class TestLambdaContainer(TestCase):
     def test_debug_port_is_created_on_host(self):
 
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder, debug_options=self.debug_context)
 
         with self._create(container):
@@ -102,7 +102,7 @@ class TestLambdaContainer(TestCase):
 
     def test_container_is_attached_to_network(self):
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder)
 
         with self._network_create() as network:
@@ -128,7 +128,7 @@ class TestLambdaContainer(TestCase):
         expected_stderr = b"**This string is printed from Lambda function**"
 
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder)
         stdout_stream = io.BytesIO()
         stderr_stream = io.BytesIO()

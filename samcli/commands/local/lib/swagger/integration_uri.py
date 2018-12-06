@@ -168,6 +168,7 @@ class LambdaUri(object):
         # Some unknown format
         LOG.debug("Ignoring integration ARN. Unable to parse Function Name from function arn %s",
                   function_arn)
+        return None
 
     @staticmethod
     def _resolve_fn_sub(uri_data):

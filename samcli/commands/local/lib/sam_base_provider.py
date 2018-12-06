@@ -4,9 +4,10 @@ Base class for SAM Template providers
 
 import logging
 
-from samcli.lib.samlib.wrapper import SamTranslatorWrapper
-from samtranslator.intrinsics.resolver import IntrinsicsResolver
 from samtranslator.intrinsics.actions import RefAction
+from samtranslator.intrinsics.resolver import IntrinsicsResolver
+
+from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 
 
 LOG = logging.getLogger(__name__)

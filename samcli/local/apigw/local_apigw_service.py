@@ -191,7 +191,7 @@ class LocalApigwService(BaseLocalService):
         json_output = json.loads(lambda_output)
 
         if not isinstance(json_output, dict):
-            raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
+            raise TypeError("Lambda returned {} instead of dict".format(type(json_output)))
 
         status_code = json_output.get("statusCode") or 200
         headers = CaseInsensitiveDict(json_output.get("headers") or {})

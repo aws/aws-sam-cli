@@ -196,7 +196,7 @@ class EnvironmentVariables(object):
         # do not stringify unicode in Py2, Py3 str supports unicode
         elif sys.version_info.major > 2:
             result = str(value)
-        elif not isinstance(value, unicode):  # noqa: F821 pylint: disable=undefined-variable
+        elif not isinstance(value, unicode):
             result = str(value)
         else:
             result = value

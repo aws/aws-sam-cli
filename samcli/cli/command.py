@@ -41,7 +41,7 @@ class BaseCommand(click.MultiCommand):
     will produce a command name "baz".
     """
 
-    def __init__(self, cmd_packages=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Initializes the class, optionally with a list of available commands
 
@@ -49,6 +49,8 @@ class BaseCommand(click.MultiCommand):
         :param args: Other Arguments passed to super class
         :param kwargs: Other Arguments passed to super class
         """
+        cmd_packages = kwargs.pop("cmd_packages", None)
+
         super(BaseCommand, self).__init__(*args, **kwargs)
 
         if not cmd_packages:
@@ -94,7 +96,7 @@ class BaseCommand(click.MultiCommand):
         """
         if cmd_name not in self._commands:
             logger.error("Command %s not available", cmd_name)
-            return
+            return None
 
         pkg_name = self._commands[cmd_name]
 
@@ -102,10 +104,10 @@ class BaseCommand(click.MultiCommand):
             mod = importlib.import_module(pkg_name)
         except ImportError:
             logger.exception("Command '%s' is not configured correctly. Unable to import '%s'", cmd_name, pkg_name)
-            return
+            return None
 
         if not hasattr(mod, "cli"):
             logger.error("Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name)
-            return
+            return None
 
         return mod.cli

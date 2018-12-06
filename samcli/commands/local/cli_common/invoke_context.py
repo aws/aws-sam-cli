@@ -341,8 +341,7 @@ class InvokeContext(object):
                 else:
                     raise error
 
-            # We turn off pylint here due to https://github.com/PyCQA/pylint/issues/1660
-            if not debugger.is_dir():  # pylint: disable=no-member
+            if not debugger.is_dir():
                 raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
             debugger_path = str(debugger)
 

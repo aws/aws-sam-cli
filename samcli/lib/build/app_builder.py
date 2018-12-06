@@ -14,12 +14,12 @@ except ImportError:
     import pathlib2 as pathlib
 
 import docker
-
-import samcli.lib.utils.osutils as osutils
-from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+
+import samcli.lib.utils.osutils as osutils
+from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 
 
 LOG = logging.getLogger(__name__)
@@ -211,7 +211,7 @@ class ApplicationBuilder(object):
 
         return artifacts_dir
 
-    def _build_function_on_container(self,  # pylint: disable=too-many-locals
+    def _build_function_on_container(self,
                                      config,
                                      source_dir,
                                      artifacts_dir,

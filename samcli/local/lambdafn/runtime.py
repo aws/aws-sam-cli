@@ -148,6 +148,8 @@ class LambdaRuntime(object):
             timer.start()
             return timer
 
+        return None
+
     @contextmanager
     def _get_code_dir(self, code_path):
         """

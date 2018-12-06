@@ -4,7 +4,8 @@ tox==2.2.1
 pytest-cov==2.4.0
 # astroid > 2.0.4 is not compatible with pylint1.7
 astroid>=1.5.8,<2.1.0
-pylint==1.7.2
+# pylint > 1.9 is not Python2.7 compatible
+pylint==1.9
 
 # Test requirements
 pytest==3.0.7
