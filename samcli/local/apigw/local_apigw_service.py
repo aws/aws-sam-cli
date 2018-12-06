@@ -152,7 +152,7 @@ class LocalApigwService(BaseLocalService):
                                                                      route.binary_types,
                                                                      request)
         except (KeyError, TypeError, ValueError):
-            LOG.error("Function returned an invalid response (must include one of: body, headers or "
+            LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
                       "statusCode in the response object). Response received: %s", lambda_response)
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -193,8 +193,31 @@ class LocalApigwService(BaseLocalService):
         if not isinstance(json_output, dict):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
+        # TODO: Implement full tests
+        # Merge multiValueHeaders headers with headers
+        # Convert into CSV for Flask compatibility
+
+        # TODO: Move to separate testable function
+        # Merge multiValueHeaders into h, this will overwrite existing items as per documentation
+        h = {**(json_output.get("headers") or {}), **(json_output.get("multiValueHeaders") or {})}
+
+        # Now we have single headers and arrays, convert arrays to CSV
+        for i, s in enumerate(h):
+            if isinstance(h[s], list):
+                h[s] = ", ".join(h[s])
+
+        # TODO: Cleanup and put in PR/comments for merge reasoning
+        # "headers": {"headerName": "headerValue", ...},
+        # "multiValueHeaders": {"headerName": ["headerValue", "headerValue2", ...], ...},
+        #The headers and multiValueHeaders keys can be unspecified if no extra response headers are to be returned.
+        #The headers key can only contain single-value headers.
+        #The multiValueHeaders key can contain multi-value headers as well as single-value headers.
+        # You can use the multiValueHeaders key to specify all of your extra headers, including any single-value ones.
+        # ASSUMING CORRECTNESS If you specify values for both headers and multiValueHeaders, API Gateway merges them into a single list.
+        # If the same key-value pair is specified in both, only the values from multiValueHeaders will appear in the merged list.
+
         status_code = json_output.get("statusCode") or 200
-        headers = CaseInsensitiveDict(json_output.get("headers") or {})
+        headers = CaseInsensitiveDict(h)
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
@@ -234,7 +257,10 @@ class LocalApigwService(BaseLocalService):
         True if the body from the request should be converted to binary, otherwise false
 
         """
-        best_match_mimetype = flask_request.accept_mimetypes.best_match([lamba_response_headers["Content-Type"]])
+
+        # Get the first part of the content-type header, to allow for extras such as text/html; charset=utf-8
+        content_type = lamba_response_headers['Content-Type'].split(";", 1)[0]
+        best_match_mimetype = flask_request.accept_mimetypes.best_match([content_type])
         is_best_match_in_binary_types = best_match_mimetype in binary_types or '*/*' in binary_types
 
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
