@@ -25,9 +25,9 @@ What will be changed?
 ---------------------
 In this proposal, we will be providing a new command, ``sam publish app``, which takes a SAM template as input and publishes
 an application to AWS Serverless Application Repository using applicaiton metadata specified in the template. Customers just
-need to provide application metadata information in the template, then ``sam publish app`` will handle uploading local files
-to S3 and creating the app. We will also provide sharing options to set application permission policies. This command will
-greatly simplify the exsiting publishing experience.
+need to provide application metadata information in the template, then ``sam package`` will handle uploading local files to S3,
+and ``sam publish app`` will create the app in Serverless Application Repository. We will also provide sharing options to set
+application permission policies. This command will greatly simplify the exsiting publishing experience.
 
 
 Success criteria for the change
@@ -35,8 +35,8 @@ Success criteria for the change
 #. Support all the following use cases:
 
    * Create new application and its first version in SAR using ``sam publish app``
-   * Update existing SAR application (metadata only) using ``sam publish app --meta-data``
    * Create new version of existing SAR application using ``sam publish app``
+   * Update application metadata of existing SAR application using ``sam publish app``
    * Share the app publicly using the ``--make-public`` option
    * Make the app private using the ``--make-private`` option
    * Share the app privately with other AWS accounts using the ``--account-ids`` option
@@ -49,8 +49,6 @@ Success criteria for the change
 
 Out-of-Scope
 ------------
-#. Create new application or version if the ``--meta-data`` option is used.
-
 #. Manage application permission separately without publishing/updating the app.
 
 #. Specify granular permission types as defined in `application permission`_ when sharing the application.
@@ -100,24 +98,26 @@ Package SAM template
 
 Create new application in SAR
   Run ``sam publish app -t ./packaged.yaml`` to publish a new application named my-app in SAR with the first version
-  created as 1.0.0. The app will be created as private by default.
+  created as 1.0.0. The app will be created as private by default. SAM CLI prints application created message and
+  link to the console details page.
 
 Create new version of an existing SAR application
-  Modify the existing template, give a different SemanticVersion value, and run ``sam publish app -t ./packaged.yaml``. If
-  customers try to publish the same version again, the command will fail with an error message that the version already exists.
+  Modify the existing template, give a different SemanticVersion value, and run ``sam publish app -t ./packaged.yaml``.
+  SAM CLI prints application metadata updated message, application version created message, values of the current application
+  metadata and link to the console details page.
 
 Crete application/version and set application permission
   Run ``sam publish app -t ./packaged.yaml --make-public`` to publish the app and share it publicly. If ``--make-private``
   option is used, the app will only be visible to the owner. If ``--account-ids <account ids>`` is used, the app will be
   shared with the provided AWS accounts.
 
-Update the metadata of an exsiting application
-  Run ``sam publish app -t ./packaged.yaml --meta-data --application-id <id>`` to update the application metadata.
-  Only changes to Description, Author, ReadmeUrl, Labels, and HomepageUrl will be honored because other fields are not
-  allowed to modify or are version specific.
+Update the metadata of an exsiting application without creating new version
+  Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
+  ``sam publish app -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of the current
+  application metadata and link to the console details page.
 
 Output of the ``sam publish app`` command will be a link to the AWS Serverless Application Repository console details page
-of the app just published.
+of the app just published, and actions taken during publish (create application, update metadata w/ create application version).
 
 Implementation
 ==============
@@ -130,8 +130,6 @@ CLI Changes
 
   -t, --template PATH      AWS SAM template to publish.
   --region TEXT            Set the AWS Region of the service (e.g. us-east-1).
-  --application-id TEXT    Specify the application id to update.
-  --meta-data              Update the application metadata.
   --make-public            Share the app publicly with anyone.
   --make-private           Share the app only with the owning account.
   --account-ids TEXT       Share the app privately with the given comma-separated list
@@ -142,7 +140,8 @@ CLI Changes
                            by SAM CLI.
   --help                   Show this message and exit.
 
-2. Update ``sam package`` command to support uploading locally referenced readme and license files to S3.
+2. Update ``sam package`` (``aws cloudformation package``) command to support uploading locally referenced readme and
+license files to S3.
 
 Breaking Change
 ~~~~~~~~~~~~~~~
