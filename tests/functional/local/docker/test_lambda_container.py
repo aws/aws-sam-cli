@@ -10,6 +10,7 @@ import docker
 from contextlib import contextmanager
 from unittest import TestCase
 
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.debug_context import DebugContext
 from tests.functional.function_code import nodejs_lambda
 from samcli.local.docker.lambda_container import LambdaContainer
@@ -130,13 +131,17 @@ class TestLambdaContainer(TestCase):
         layer_downloader = LayerDownloader("./", "./")
         image_builder = LambdaImage(layer_downloader, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder)
+
         stdout_stream = io.BytesIO()
         stderr_stream = io.BytesIO()
+
+        stdout_stream_writer = StreamWriter(stdout_stream)
+        stderr_stream_writer = StreamWriter(stderr_stream)
 
         with self._create(container):
 
             container.start()
-            container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
+            container.wait_for_logs(stdout=stdout_stream_writer, stderr=stderr_stream_writer)
 
             function_output = stdout_stream.getvalue()
             function_stderr = stderr_stream.getvalue()

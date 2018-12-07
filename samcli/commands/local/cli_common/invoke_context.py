@@ -7,6 +7,7 @@ import json
 import os
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -202,26 +203,28 @@ class InvokeContext(object):
     @property
     def stdout(self):
         """
-        Returns a stdout stream to output Lambda function logs to
+        Returns stream writer for stdout to output Lambda function errors to
 
-        :return File like object: Stream where the output of the function is sent to
+        Returns
+        -------
+        samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer for stdout
         """
-        if self._log_file_handle:
-            return self._log_file_handle
-
-        return osutils.stdout()
+        stream = self._log_file_handle if self._log_file_handle else osutils.stdout()
+        return StreamWriter(stream, self._is_debugging)
 
     @property
     def stderr(self):
         """
-        Returns stderr stream to output Lambda function errors to
+        Returns stream writer for stderr to output Lambda function errors to
 
-        :return File like object: Stream where the stderr of the function is sent to
+        Returns
+        -------
+        samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer for stderr
         """
-        if self._log_file_handle:
-            return self._log_file_handle
-
-        return osutils.stderr()
+        stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
+        return StreamWriter(stream, self._is_debugging)
 
     @property
     def template(self):
@@ -255,6 +258,10 @@ class InvokeContext(object):
             self._parameter_overrides["AWS::Region"] = self._aws_region
 
         return self._parameter_overrides
+
+    @property
+    def _is_debugging(self):
+        return bool(self._debug_context)
 
     @staticmethod
     def _get_template_data(template_file):

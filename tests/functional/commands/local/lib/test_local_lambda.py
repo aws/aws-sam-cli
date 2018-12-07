@@ -8,6 +8,7 @@ import json
 import shutil
 import logging
 
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib import provider
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -82,7 +83,10 @@ class TestFunctionalLocalLambda(TestCase):
 
         stdout_stream = io.BytesIO()
         stderr_stream = io.BytesIO()
-        runner.invoke(self.function_name, input_event, stdout=stdout_stream, stderr=stderr_stream)
+
+        stdout_stream_writer = StreamWriter(stdout_stream)
+        stderr_stream_writer = StreamWriter(stderr_stream)
+        runner.invoke(self.function_name, input_event, stdout=stdout_stream_writer, stderr=stderr_stream_writer)
 
         # stderr is where the Lambda container runtime logs are available. It usually contains requestId, start time
         # etc. So it is non-zero in size
@@ -93,4 +97,4 @@ class TestFunctionalLocalLambda(TestCase):
 
         for key, value in expected_env_vars.items():
             self.assertTrue(key in actual_output, "Key '{}' must be in function output".format(key))
-            self.assertEquals(actual_output.get(key), value)
+            self.assertEqual(actual_output.get(key), value)
