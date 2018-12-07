@@ -615,7 +615,7 @@ def make_service(list_of_routes, function_provider, cwd):
     port = random_port()
     manager = ContainerManager()
     layer_downloader = LayerDownloader("./", "./")
-    lambda_image = LambdaImage(layer_downloader, False)
+    lambda_image = LambdaImage(layer_downloader, False, False)
     local_runtime = LambdaRuntime(manager, lambda_image)
     lambda_runner = LocalLambdaRunner(local_runtime=local_runtime,
                                       function_provider=function_provider,
