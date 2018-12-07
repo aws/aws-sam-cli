@@ -72,64 +72,64 @@ Design
 The BuildContext currently has a property for a function_provider. As we expand to building more resources, we need
 the framework to support this seamlessly.
 
-```
-class BuildContext(object):
+.. code-block:: python
+    class BuildContext(object):
 
-    ...
+        ...
 
-    @property
-    def function_provider(self):
-        return self._function_provider
+        @property
+        def function_provider(self):
+            return self._function_provider
 
-    ...
-```
+        ...
+
 
 We will update this the ``function_provider`` property to be a ``resource_provider`` that will return the list of
 providers that will be used to get different types of resources from the template.
 
 
-```
-class BuildContext(object):
+.. code-block:: python
+    class BuildContext(object):
 
-    ...
+        ...
 
-    @property
-    def resource_providers(self):
-        return [self._function_provider, self._layer_provider]
+        @property
+        def resource_providers(self):
+            return [self._function_provider, self._layer_provider]
 
-    ...
-```
+        ...
+
 
 With this, we need to expand the ApplicationBuilder class as well. Since we are building different resources. The class
 will be updated to:
 
-```
-class ApplicationBuilder(object):
+.. code-block:: python
+    class ApplicationBuilder(object):
 
-    def __init__(self,
-                 provider_list,
-                 build_dir,
-                 base_dir,
-                 manifest_path_override=None,
-                 container_manager=None,
-                 parallel=False):
-        pass
+        def __init__(self,
+                     provider_list,
+                     build_dir,
+                     base_dir,
+                     manifest_path_override=None,
+                     container_manager=None,
+                     parallel=False):
+            pass
 
-    def build(self):
-        """
-        Build the entire application.
+        def build(self):
+            """
+            Build the entire application.
 
-        For each provider in provider_list:
-            For each resource in the provider:
-                build
+            For each provider in provider_list:
+                For each resource in the provider:
+                    build
 
-        Returns
-        -------
-        dict
-            Returns the path to where each resource was built as a map of resource's LogicalId to the path string
-        """
-        pass
-```
+            Returns
+            -------
+            dict
+                Returns the path to where each resource was built as a map of resource's LogicalId to the path string
+            """
+            pass
+
 
 The ApplicationBuilder no longer understands a single provider. This requires the building logic to live at each
 resource.
@@ -144,31 +144,30 @@ Will will create a new class to encapsulate the ``_build_function_in_process`` a
 which are specific to the service the resource is being built for.
 
 
-```
-class LambdaBuilder(object):
+.. code-block:: python
+    class LambdaBuilder(object):
 
-    def _build_function_in_process(self,
-                                   config,
-                                   source_dir,
-                                   artifacts_dir,
-                                   scratch_dir,
-                                   manifest_path,
-                                   runtime):
-        pass
+        def _build_function_in_process(self,
+                                       config,
+                                       source_dir,
+                                       artifacts_dir,
+                                       scratch_dir,
+                                       manifest_path,
+                                       runtime):
+            pass
 
-    def _build_function_on_container(self,  # pylint: disable=too-many-locals
-                                     config,
-                                     source_dir,
-                                     artifacts_dir,
-                                     scratch_dir,
-                                     manifest_path,
-                                     runtime):
-        pass
+        def _build_function_on_container(self,  # pylint: disable=too-many-locals
+                                         config,
+                                         source_dir,
+                                         artifacts_dir,
+                                         scratch_dir,
+                                         manifest_path,
+                                         runtime):
+            pass
 
-    @staticmethod
-    def _parse_builder_response(stdout_data, image_name):
-        pass
-```
+        @staticmethod
+        def _parse_builder_response(stdout_data, image_name):
+            pass
 
 
 ``.samrc`` Changes
