@@ -393,7 +393,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
     def test_status_code_negative_int(self):
         lambda_output = '{"statusCode": -1, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
-                        '"isBase64Encoded": false}'
+                            '"isBase64Encoded": false}'
 
         with self.assertRaises(TypeError):
             LocalApigwService._parse_lambda_output(lambda_output,
