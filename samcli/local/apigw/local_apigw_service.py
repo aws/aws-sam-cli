@@ -193,31 +193,9 @@ class LocalApigwService(BaseLocalService):
         if not isinstance(json_output, dict):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
-        # TODO: Implement full tests
-        # Merge multiValueHeaders headers with headers
-        # Convert into CSV for Flask compatibility
-
-        # TODO: Move to separate testable function
-        # Merge multiValueHeaders into h, this will overwrite existing items as per documentation
-        h = {**(json_output.get("headers") or {}), **(json_output.get("multiValueHeaders") or {})}
-
-        # Now we have single headers and arrays, convert arrays to CSV
-        for i, s in enumerate(h):
-            if isinstance(h[s], list):
-                h[s] = ", ".join(h[s])
-
-        # TODO: Cleanup and put in PR/comments for merge reasoning
-        # "headers": {"headerName": "headerValue", ...},
-        # "multiValueHeaders": {"headerName": ["headerValue", "headerValue2", ...], ...},
-        #The headers and multiValueHeaders keys can be unspecified if no extra response headers are to be returned.
-        #The headers key can only contain single-value headers.
-        #The multiValueHeaders key can contain multi-value headers as well as single-value headers.
-        # You can use the multiValueHeaders key to specify all of your extra headers, including any single-value ones.
-        # ASSUMING CORRECTNESS If you specify values for both headers and multiValueHeaders, API Gateway merges them into a single list.
-        # If the same key-value pair is specified in both, only the values from multiValueHeaders will appear in the merged list.
-
+        headers = LocalApigwService._merge_response_headers(json_output.get("headers"),
+                                                            json_output.get("multiValueHeaders"))
         status_code = json_output.get("statusCode") or 200
-        headers = CaseInsensitiveDict(h)
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
@@ -264,6 +242,39 @@ class LocalApigwService(BaseLocalService):
         is_best_match_in_binary_types = best_match_mimetype in binary_types or '*/*' in binary_types
 
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
+
+    @staticmethod
+    def _merge_response_headers(headers, multi_headers):
+        """
+        # Merge multiValueHeaders headers with headers
+        # Convert into CSV for Flask compatibility
+        # If you specify values for both headers and multiValueHeaders, API Gateway merges them into a single list.
+        # If the same key-value pair is specified in both, only the values from multiValueHeaders will
+        # appear in the merged list.
+
+        Parameters
+        ----------
+        headers (dict)
+            Headers map from the lambda_response_headers
+        multi_headers (dict)
+            multiValueHeaders map from the lambda_response_headers
+
+        Returns
+        -------
+        Merged list in accordance to the AWS documentation within a CaseInsensitiveDict
+
+        """
+
+        # Merge dictionary
+        h = (headers or {}).copy()
+        h.update(multi_headers or {})
+
+        # Now we have single headers map with Strings and Lists, convert Lists to CSV Strings for Flask
+        for _, s in enumerate(h):
+            if isinstance(h[s], list):
+                h[s] = ", ".join(h[s])
+
+        return CaseInsensitiveDict(h)
 
     @staticmethod
     def _construct_event(flask_request, port, binary_types):

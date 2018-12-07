@@ -10,7 +10,6 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestApiGatewayService(TestCase):
-
     def setUp(self):
         self.function_name = Mock()
         self.api_gateway_route = Route(['GET'], self.function_name, '/')
@@ -51,7 +50,6 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.LambdaOutputParser')
     def test_request_handler_returns_process_stdout_when_making_response(self, lambda_output_parser_mock):
-
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
@@ -150,7 +148,6 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.ServiceErrorResponses')
     def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch):
-
         not_found_response_mock = Mock()
         self.service._construct_event = Mock()
         self.service._get_current_route = Mock()
@@ -212,7 +209,6 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.request')
     def test_get_current_route(self, request_patch):
-
         request_mock = Mock()
         request_mock.endpoint = "path"
         request_mock.method = "method"
@@ -249,7 +245,6 @@ class TestApiGatewayService(TestCase):
 
 
 class TestApiGatewayModel(TestCase):
-
     def setUp(self):
         self.function_name = "name"
         self.api_gateway = Route(['POST'], self.function_name, '/')
@@ -260,8 +255,48 @@ class TestApiGatewayModel(TestCase):
         self.assertEquals(self.api_gateway.path, '/')
 
 
-class TestServiceParsingLambdaOutput(TestCase):
+class TestLambdaHeaderDictionaryMerge(TestCase):
+    def test_none_dictionaries_produce_result(self):
+        headers = None
+        multi_value_headers = None
 
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertEquals(result, {})
+
+    def test_headers_are_merged(self):
+        headers = {"h1": "value1", "h2": "value2"}
+        multi_value_headers = {"h3": ["value3"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertIn("h2", result)
+        self.assertIn("h3", result)
+        self.assertEquals(result["h1"], "value1")
+        self.assertEquals(result["h2"], "value2")
+        self.assertEquals(result["h3"], "value3")
+
+    def test_multivalue_headers_are_turned_into_csv(self):
+        headers = None
+        multi_value_headers = {"h1": ["a", "b", "c"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertEquals(result["h1"], "a, b, c")
+
+    def test_multivalue_headers_override_headers_dict(self):
+        headers = {"h1": "ValueA"}
+        multi_value_headers = {"h1": ["ValueB"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertEquals(result["h1"], "ValueB")
+
+
+class TestServiceParsingLambdaOutput(TestCase):
     def test_default_content_type_header_added_with_no_headers(self):
         lambda_output = '{"statusCode": 200, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
                         '"isBase64Encoded": false}'
@@ -282,6 +317,15 @@ class TestServiceParsingLambdaOutput(TestCase):
 
     def test_custom_content_type_header_is_not_modified(self):
         lambda_output = '{"statusCode": 200, "headers":{"Content-Type": "text/xml"}, "body": "{}", ' \
+                        '"isBase64Encoded": false}'
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
+
+        self.assertIn("Content-Type", headers)
+        self.assertEquals(headers["Content-Type"], "text/xml")
+
+    def test_custom_content_type_multivalue_header_is_not_modified(self):
+        lambda_output = '{"statusCode": 200, "multiValueHeaders":{"Content-Type": ["text/xml"]}, "body": "{}", ' \
                         '"isBase64Encoded": false}'
 
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
@@ -343,7 +387,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
     def test_status_code_negative_int(self):
         lambda_output = '{"statusCode": -1, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
-                            '"isBase64Encoded": false}'
+                        '"isBase64Encoded": false}'
 
         with self.assertRaises(TypeError):
             LocalApigwService._parse_lambda_output(lambda_output,
@@ -378,7 +422,6 @@ class TestServiceParsingLambdaOutput(TestCase):
 
 
 class TestService_construct_event(TestCase):
-
     def setUp(self):
         self.request_mock = Mock()
         self.request_mock.endpoint = "endpoint"
@@ -462,7 +505,6 @@ class TestService_construct_event(TestCase):
 
 
 class TestService_should_base64_encode(TestCase):
-
     @parameterized.expand([
         param("Mimeyype is in binary types", ['image/gif'], 'image/gif'),
         param("Mimetype defined and binary types has */*", ['*/*'], 'image/gif'),
