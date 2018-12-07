@@ -1,0 +1,1 @@
+"""`sam publish app` command."""

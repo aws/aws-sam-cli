@@ -16,7 +16,8 @@ _SAM_CLI_COMMAND_PACKAGES = {
     "samcli.commands.deploy",
     "samcli.commands.package",
     "samcli.commands.logs",
-    "samcli.commands.build"
+    "samcli.commands.build",
+    "samcli.commands.publish.publish"
 }
 
 
