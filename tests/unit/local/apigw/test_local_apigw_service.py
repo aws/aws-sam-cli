@@ -10,6 +10,7 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestApiGatewayService(TestCase):
+
     def setUp(self):
         self.function_name = Mock()
         self.api_gateway_route = Route(['GET'], self.function_name, '/')
@@ -50,6 +51,7 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.LambdaOutputParser')
     def test_request_handler_returns_process_stdout_when_making_response(self, lambda_output_parser_mock):
+
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
@@ -148,6 +150,7 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.ServiceErrorResponses')
     def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch):
+
         not_found_response_mock = Mock()
         self.service._construct_event = Mock()
         self.service._get_current_route = Mock()
@@ -209,6 +212,7 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.request')
     def test_get_current_route(self, request_patch):
+
         request_mock = Mock()
         request_mock.endpoint = "path"
         request_mock.method = "method"
@@ -245,6 +249,7 @@ class TestApiGatewayService(TestCase):
 
 
 class TestApiGatewayModel(TestCase):
+
     def setUp(self):
         self.function_name = "name"
         self.api_gateway = Route(['POST'], self.function_name, '/')
@@ -297,6 +302,7 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
 
 
 class TestServiceParsingLambdaOutput(TestCase):
+
     def test_default_content_type_header_added_with_no_headers(self):
         lambda_output = '{"statusCode": 200, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
                         '"isBase64Encoded": false}'
@@ -422,6 +428,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
 
 class TestService_construct_event(TestCase):
+
     def setUp(self):
         self.request_mock = Mock()
         self.request_mock.endpoint = "endpoint"
@@ -505,6 +512,7 @@ class TestService_construct_event(TestCase):
 
 
 class TestService_should_base64_encode(TestCase):
+
     @parameterized.expand([
         param("Mimeyype is in binary types", ['image/gif'], 'image/gif'),
         param("Mimetype defined and binary types has */*", ['*/*'], 'image/gif'),
