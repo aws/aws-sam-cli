@@ -203,7 +203,7 @@ class InvokeContext(object):
     @property
     def stdout(self):
         """
-        Returns stream writer for stdout to output Lambda function errors to
+        Returns stream writer for stdout to output Lambda function logs to
 
         Returns
         -------
