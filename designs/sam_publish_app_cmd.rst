@@ -24,10 +24,10 @@ a mistake while typing in the command line.
 What will be changed?
 ---------------------
 In this proposal, we will be providing a new command, ``sam publish app``, which takes a SAM template as input and publishes
-an application to AWS Serverless Application Repository using applicaiton metadata specified in the template. Customers just
+an application to AWS Serverless Application Repository using applicaiton metadata specified in the template. Customers
 need to provide application metadata information in the template, then ``sam package`` will handle uploading local files to S3,
 and ``sam publish app`` will create the app in Serverless Application Repository. We will also provide sharing options to set
-application permission policies. This command will greatly simplify the exsiting publishing experience.
+application permission policies.
 
 
 Success criteria for the change
@@ -49,7 +49,7 @@ Out-of-Scope
 ------------
 #. Manage application permission separately without publishing/updating the app.
 
-#. Specify granular permission types as defined in `application permission`_ when sharing the application.
+#. Specify granular `application permission`_ types when sharing the application. If needed, customers can use AWS CLI instead as described `here`_.
 
 #. Recursively publish nested apps in the template (SAR CreateApplication API doesn't support yet).
 
@@ -59,9 +59,10 @@ Out-of-Scope
 
 #. Recognize template changes and suggest version number.
 
-#. Parse metadata from template without an AWS::ServerlessRepo::Application section.
+#. Publish appication if ``AWS::ServerlessRepo::Application`` section is not found in the template's ``Metadata`` section.
 
 .. _application permission: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/access-control-resource-based.html#application-permissions
+.. _here: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/access-control-resource-based.html#access-control-resource-based-example-multiple-permissions
 
 
 User Experience Walkthrough
@@ -88,10 +89,16 @@ Assuming that customers have the following SAM template:
         HelloWorldFunction:
             Type: AWS::Lambda::Function
             Properties:
-                CodeUri: s3://bucket/hello-world
+              ...
+              CodeUri: ./source-code1
+              ...
 
-Package SAM template
-  Run ``sam package --template-file ./template.yaml --output-template-file packaged.yaml --s3-bucket my-bucket``
+Build Lambda source code
+  Run ``sam build -t template.yaml -b ./build -o built-template.yaml`` to build all functions in the template and output
+  a SAM template that can be run through the package command.
+
+Package built artifacts and local file references
+  Run ``sam package --template-file built-template.yaml --output-template-file packaged.yaml --s3-bucket my-bucket``
   to upload code artifacts, readme and license files to S3 and generate the packaged template.
 
 Create new application in SAR
@@ -104,10 +111,13 @@ Create new version of an existing SAR application
   SAM CLI prints application metadata updated message, application version created message, values of the current application
   metadata and link to the console details page.
 
-Crete application/version and set application permission
-  Run ``sam publish app -t ./packaged.yaml --make-public`` to publish the app and share it publicly. If ``--make-private``
-  option is used, the app will only be visible to the owner. If ``--account-ids <account ids>`` is used, the app will be
-  shared with the provided AWS accounts.
+Create application/version and set application permission
+  Run ``sam publish app -t ./packaged.yaml --make-public`` to publish the app and share it publicly so that everyone is
+  allowed to `Deploy`_ the app. Alternatively, use ``--account-ids <account ids>`` to share with some AWS accounts. Only
+  you and the shared accounts can deploy the app.
+
+  Customers can also revoke granted permissions and set the application back to be private, so it can
+  only be deployed by the owning account: ``sam publish app -t ./packaged.yaml --make-private``
 
 Update the metadata of an exsiting application without creating new version
   Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
@@ -115,7 +125,16 @@ Update the metadata of an exsiting application without creating new version
   application metadata and link to the console details page.
 
 Output of the ``sam publish app`` command will be a link to the AWS Serverless Application Repository console details page
-of the app just published, and actions taken during publish (create application or update metadata w/ create application version).
+of the app just published, message informing application created or application metadata updated w/ new application version
+created, and the metadata fields that have been updated.
+
+Once the application is published, other developers in your team or your organization will be able to deploy it with a few
+clicks. If the application is shared publicly, the whole community will be able to find it by visiting the AWS Serverless
+Application Repository `public site`_.
+
+.. _Deploy: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/access-control-resource-based.html#application-permissions
+.. _public site: https://serverlessrepo.aws.amazon.com/applications
+
 
 Implementation
 ==============
@@ -124,19 +143,33 @@ CLI Changes
 -----------
 *Explain the changes to command line interface, including adding new commands, modifying arguments etc*
 
-1. Add a new top-level command called ``sam publish app`` with the following options.
+1. Add a new top-level command called ``sam publish app`` with the following help message.
 
-  -t, --template PATH      AWS SAM template to publish.
-  --region TEXT            Set the AWS Region of the service (e.g. us-east-1).
-  --make-public            Share the app publicly with anyone.
-  --make-private           Share the app only with the owning account.
-  --account-ids TEXT       Share the app privately with the given comma-separated list
-                           of AWS account ids.
-  --profile TEXT           Select a specific profile from your credential file to
-                           get AWS credentials.
-  --debug                  Turn on debug logging to print debug message generated
-                           by SAM CLI.
-  --help                   Show this message and exit.
+.. code-block:: text
+
+  Usage: samdev publish app [OPTIONS]
+
+    Use this command to publish a packaged AWS SAM template to the AWS
+    Serverless Application Repository to share within your team, across your
+    organization, or with the community at large.
+
+    This command expects the template's Metadata section to contain an
+    AWS::ServerlessRepo::Application section with application metadata
+    for publishing. For more details on this metadata section, see
+    https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publishing-applications.html
+
+  Options:
+    -t, --template PATH  AWS SAM template file  [default: template.[yaml|yml]]
+    --make-public        Share the app publicly with anyone.
+    --make-private       Share the app only with the owning account.
+    --account-ids TEXT   Share the app privately with the given comma-separated
+                        list of AWS account ids.
+    --profile TEXT       Select a specific profile from your credential file to
+                        get AWS credentials.
+    --region TEXT        Set the AWS Region of the service (e.g. us-east-1).
+    --debug              Turn on debug logging to print debug message generated
+                        by SAM CLI.
+    --help               Show this message and exit.
 
 2. Update ``sam package`` (``aws cloudformation package``) command to support uploading locally referenced readme and
 license files to S3.
@@ -211,8 +244,18 @@ N/A
 Documentation Changes
 ---------------------
 
-We will document how to use the new ``sam publish app`` command for publishing SAR applications, and link to
-the "AWS::ServerlessRepo::Application" sepc in CloudFormation documentation.
+#. Add "AWS::ServerlessRepo::Application" sepc in `Publishing Applications`_ guide and document how to use ``sam publish app``.
+
+#. Add ``ReadmeUrl`` and ``LicenseUrl`` in `aws cloudformation package`_ documentation.
+
+#. Add ``sam publish app`` in `AWS SAM CLI Command Reference`_, and explain the command, usage, examples, options.
+
+#. Add a quick start guide "Publishing your application to AWS Serverless Application Repository" under SAM CLI `Get Started`_.
+
+.. _Publishing Applications: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publishing-applications.html
+.. _aws cloudformation package: https://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html
+.. _AWS SAM CLI Command Reference: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html
+.. _Get Started: https://github.com/awslabs/aws-sam-cli#get-started
 
 Open Issues
 -----------
