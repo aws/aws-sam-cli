@@ -26,6 +26,15 @@ class Test_get_workflow_config(TestCase):
         self.assertEquals(result.application_framework, None)
         self.assertEquals(result.manifest_name, "requirements.txt")
 
+    def test_must_work_for_nodejs(self):
+
+        runtime = "nodejs"
+        result = _get_workflow_config(runtime)
+        self.assertEquals(result.language, "nodejs")
+        self.assertEquals(result.dependency_manager, "npm")
+        self.assertEquals(result.application_framework, None)
+        self.assertEquals(result.manifest_name, "package.json")
+
     def test_must_raise_for_unsupported_runtimes(self):
 
         runtime = "foobar"
