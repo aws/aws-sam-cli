@@ -26,9 +26,14 @@ class Test_get_workflow_config(TestCase):
         self.assertEquals(result.application_framework, None)
         self.assertEquals(result.manifest_name, "requirements.txt")
 
-    def test_must_work_for_nodejs(self):
+    @parameterized.expand([
+        ("nodejs6.10", ),
+        ("nodejs8.10", ),
+        ("nodejsX.Y", ),
+        ("nodejs", )
+    ])
+    def test_must_work_for_nodejs(self, runtime):
 
-        runtime = "nodejs"
         result = _get_workflow_config(runtime)
         self.assertEquals(result.language, "nodejs")
         self.assertEquals(result.dependency_manager, "npm")
