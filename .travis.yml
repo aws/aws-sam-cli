@@ -19,8 +19,12 @@ matrix:
 install:
   # Install the code requirements
   - make init
+  - pip install codecov
 
 script:
   # Runs unit tests
   - make pr
   - SAM_CLI_DEV=1 travis_wait pytest -vv tests/integration
+
+after_success:
+  - codecov

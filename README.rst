@@ -10,7 +10,7 @@
 SAM CLI (Beta)
 ==============
 
-|Build Status| |Apache-2.0| |Contributers| |GitHub-release| |PyPI version|
+|Build Status| |Apache-2.0| |Contributers| |GitHub-release| |PyPI version| |Codecov|
 
 `Join the SAM developers channel (#samdev) on
 Slack <https://join.slack.com/t/awsdevelopers/shared_invite/enQtMzg3NTc5OTM2MzcxLTdjYTdhYWE3OTQyYTU4Njk1ZWY4Y2ZjYjBhMTUxNGYzNDg5MWQ1ZTc5MTRlOGY0OTI4NTdlZTMwNmI5YTgwOGM/>`__ to collaborate with
@@ -122,5 +122,6 @@ images created by `@mhart <https://github.com/mhart>`__.
 .. |Contributers| image:: https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg?maxAge=2592000
 .. |GitHub-release| image:: https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?maxAge=2592000
 .. |PyPI version| image:: https://badge.fury.io/py/aws-sam-cli.svg
+.. |Codecov| image:: https://codecov.io/gh/awslabs/aws-sam-cli/branch/develop/graphs/badge.svg?style=flat
 
 =======
