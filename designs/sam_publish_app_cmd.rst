@@ -103,30 +103,85 @@ Package built artifacts and local file references
 
 Create new application in SAR
   Run ``sam publish app -t ./packaged.yaml`` to publish a new application named my-app in SAR with the first version
-  created as 1.0.0. The app will be created as private by default. SAM CLI prints application created message and
-  link to the console details page.
+  created as 1.0.0. If no permission option is passed, the app will be created as private by default.
+
+  SAM CLI prints application created message, metadata used to create application and link to the console details page.
+
+  >>> sam publish app -t ./packaged.yaml
+  Publish Succeeded
+  Created new application with the following metadata:
+  {
+    "Name": "my-app",
+    "Description": "hello world",
+    "Author": "user1",
+    "SpdxLicenseId": "Apache-2.0",
+    "LicenseUrl": "s3://test/LICENSE.txt",
+    "ReadmeUrl": "s3://test/README.md",
+    "Labels": ['tests'],
+    "HomepageUrl": "https://github.com/user1/my-app-project",
+    "SemanticVersion": "1.0.0",
+    "SourceCodeUrl": "https://github.com/user1/my-app-project"
+  }
+  Click the link below to view your application in AWS console:
+  https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
 Create new version of an existing SAR application
-  Modify the existing template, give a different SemanticVersion value, and run ``sam publish app -t ./packaged.yaml``.
-  SAM CLI prints application metadata updated message, application version created message, values of the current application
-  metadata and link to the console details page.
+  Modify the existing template, give a new SemanticVersion, and run ``sam publish app -t ./packaged.yaml`` again.
+
+  SAM CLI prints application metadata updated message and link to the console details page. If no permission option
+  is passed, the application's permission remains the same.
+
+  >>> sam publish app -t ./packaged.yaml
+  Publish Succeeded
+  The following metadata of application <id> has been updated:
+  {
+    "Author": "user1",
+    "Description": "description",
+    "ReadmeUrl": "s3://test/README.md",
+    ...
+    "SemanticVersion": "1.0.1",
+    "SourceCodeUrl": "https://github.com/hello"
+  }
+  Click the link below to view your application in AWS console:
+  https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
 Create application/version and set application permission
   Run ``sam publish app -t ./packaged.yaml --make-public`` to publish the app and share it publicly so that everyone is
-  allowed to `Deploy`_ the app. Alternatively, use ``--account-ids <account ids>`` to share with some AWS accounts. Only
-  you and the shared accounts can deploy the app.
+  allowed to `Deploy`_ the app. Alternatively, use ``--account-ids <account ids>`` to share with some AWS accounts so that
+  only you and the shared accounts can deploy the app.
 
-  Customers can also revoke granted permissions and set the application back to be private, so it can
-  only be deployed by the owning account: ``sam publish app -t ./packaged.yaml --make-private``
+  Customers can also revoke granted permissions and set the application back to be private using the ``--make-private`` option,
+  so that it can only be deployed by the owning account.
+
+  >>> sam publish app -t ./packaged.yaml --make-public
+  Publish Succeeded
+  The following metadata of application <id> has been updated:
+  {
+    "Author": "qwang",
+    "Description": "description",
+    "ReadmeUrl": "s3://test/README.md"
+    ...
+  }
+  Shared Application Publicly
+  Click the link below to view your application in AWS console:
+  https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
 Update the metadata of an exsiting application without creating new version
   Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
   ``sam publish app -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of the current
   application metadata and link to the console details page.
 
-Output of the ``sam publish app`` command will be a link to the AWS Serverless Application Repository console details page
-of the app just published, message informing application created or application metadata updated w/ new application version
-created, and the metadata fields that have been updated.
+  >>> sam publish app -t ./packaged.yaml
+  Publish Succeeded
+  The following metadata of application <id> has been updated:
+  {
+    "Author": "qwang",
+    "Description": "description",
+    "ReadmeUrl": "s3://test/README.md"
+    ...
+  }
+  Click the link below to view your application in AWS console:
+  https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
 Once the application is published, other developers in your team or your organization will be able to deploy it with a few
 clicks. If the application is shared publicly, the whole community will be able to find it by visiting the AWS Serverless
@@ -209,7 +264,7 @@ library. The algorithm for ``sam publish app -t ./packaged.yaml --make-public`` 
     with open('./packaged.yaml', 'r') as f:
         template = f.read()
         result = publish_application(template)
-        make_application_public(result.applicaiton_id)
+        make_application_public(result['applicaiton_id'])
 
 
 ``.samrc`` Changes
