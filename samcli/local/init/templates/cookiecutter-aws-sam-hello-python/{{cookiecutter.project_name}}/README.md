@@ -6,10 +6,10 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 .
 ├── README.md                   <-- This instructions file
 ├── hello_world                 <-- Source code for a lambda function
-│   ├── __init__.py
-│   └── app.py                  <-- Lambda function code
-├── requirements.txt            <-- Python dependencies
-├── template.yaml               <-- SAM template
+│   ├── __init__.py
+│   ├── app.py                  <-- Lambda function code
+│   └── requirements.txt        <-- Python dependencies
+├── template.yaml               <-- SAM Template
 └── tests                       <-- Unit tests
     └── unit
         ├── __init__.py
@@ -18,30 +18,32 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ## Requirements
 
-* AWS CLI already configured with Administrator permission
-{%- if cookiecutter.runtime == 'python3.6' %}
-* [Python 3 installed](https://www.python.org/downloads/)
-{%- else %}
+* AWS CLI already configured with at least PowerUser permission
+{%- if cookiecutter.runtime == 'python2.7' %}
 * [Python 2.7 installed](https://www.python.org/downloads/)
+{%- else %}
+* [Python 3 installed](https://www.python.org/downloads/)
 {%- endif %}
 * [Docker installed](https://www.docker.com/community-edition)
 * [Python Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
 
 ## Setup process
 
-### Installing dependencies
+### Building the project
 
-[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html) with the application as well as its dependencies. Therefore, we need to have a 2 step process in order to enable local testing as well as packaging/deployment later on - This consist of two commands you can run as follows:
-
+[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html) with the application as well as its dependencies. When you make changes to your source code or dependency manifest,
+run the following command to build your project local testing and deployment:
+ 
 ```bash
-pip install -r requirements.txt -t hello_world/build/
-cp hello_world/*.py hello_world/build/
+sam build
 ```
 
-1. Step 1 install our dependencies into ``build`` folder 
-2. Step 2 copies our application into ``build`` folder
-
-**NOTE:** As you change your application code as well as dependencies during development you'll need to make sure these steps are repeated in order to execute your Lambda and/or API Gateway locally.
+If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
+```bash
+sam build --use-container
+```
+ 
+By default, this command writes built artifacts to `.aws-sam/build` folder.
 
 ### Local development
 
@@ -88,7 +90,6 @@ Next, run the following command to package our Lambda function to S3:
 
 ```bash
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 ```
@@ -128,18 +129,7 @@ python -m pytest tests/ -v
 
 ### Python Virtual environment
 
-{%- if cookiecutter.runtime == 'python3.6' %}
-**In case you're new to this**, python3 comes with `virtualenv` library by default so you can simply run the following:
-
-1. Create a new virtual environment
-2. Install dependencies in the new virtual environment
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-```
-{%- else %}
+{%- if cookiecutter.runtime == 'python2.7' %}
 **In case you're new to this**, python2 `virtualenv` module is not available in the standard library so we need to install it and then we can install our dependencies:
 
 1. Create a new virtual environment
@@ -148,6 +138,17 @@ pip install -r requirements.txt
 ```bash
 pip install virtualenv
 virtualenv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+```
+{%- else %}
+**In case you're new to this**, python3 comes with `virtualenv` library by default so you can simply run the following:
+
+1. Create a new virtual environment
+2. Install dependencies in the new virtual environment
+
+```bash
+python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -161,7 +162,6 @@ AWS CLI commands to package, deploy and describe outputs defined within the clou
 
 ```bash
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 

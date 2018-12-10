@@ -13,7 +13,7 @@ SAM CLI (Beta)
 |Build Status| |Apache-2.0| |Contributers| |GitHub-release| |PyPI version|
 
 `Join the SAM developers channel (#samdev) on
-Slack <https://awssamopensource.splashthat.com/>`__ to collaborate with
+Slack <https://join.slack.com/t/awsdevelopers/shared_invite/enQtMzg3NTc5OTM2MzcxLTdjYTdhYWE3OTQyYTU4Njk1ZWY4Y2ZjYjBhMTUxNGYzNDg5MWQ1ZTc5MTRlOGY0OTI4NTdlZTMwNmI5YTgwOGM/>`__ to collaborate with
 fellow community members and the AWS SAM team.
 
 ``sam`` is the AWS CLI tool for managing Serverless applications
@@ -50,7 +50,7 @@ Learn how to get started using the SAM CLI with these guides:
 -  `Running and debugging serverless applications locally <docs/usage.rst>`__: Describes how to use SAM CLI for invoking Lambda functions locally, running automated tests, fetching logs, and debugging applications
 -  `Packaging and deploying your application <docs/deploying_serverless_applications.rst>`__: Deploy your local application using an S3 bucket, and AWS CloudFormation.
 -  `Advanced <docs/advanced_usage.rst>`__: Learn how to work with compiled languages (such as Java and .NET), configure IAM credentials, provide environment variables, and more.
--  `Examples <#examples>`__
+-  `Examples <https://github.com/awslabs/serverless-application-model/tree/master/examples/apps>`__
 
 
 Project Status
@@ -70,10 +70,13 @@ Project Status
    -  [x] ``java8``
    -  [x] ``python2.7``
    -  [x] ``python3.6``
+   -  [x] ``python3.7``
    -  [x] ``go1.x``
    -  [ ] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
    -  [x] ``dotnetcore2.1``
+   -  [x] ``ruby2.5``
+   -  [x] ``Provided``
 
 -  [x] AWS credential support
 -  [x] Debugging support
@@ -88,9 +91,12 @@ Project Status
    -  [x] ``java8``
    -  [x] ``python2.7``
    -  [x] ``python3.6``
+   -  [x] ``python3.7``
    -  [x] ``go1.x``
    -  [x] ``dotnetcore1.0``
    -  [x] ``dotnetcore2.0``
+   -  [x] ``ruby2.5``
+   -  [ ] ``Provided``
 
 Contributing
 ------------

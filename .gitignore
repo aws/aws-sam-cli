@@ -230,7 +230,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+/build/
 develop-eggs/
 dist/
 downloads/
@@ -378,5 +378,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Temporary scratch directory used by the tests
+tests/integration/buildcmd/scratch
 
 # End of https://www.gitignore.io/api/osx,node,macos,linux,python,windows,pycharm,intellij,sublimetext,visualstudiocode

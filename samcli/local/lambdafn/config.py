@@ -19,26 +19,38 @@ class FunctionConfig(object):
                  runtime,
                  handler,
                  code_abs_path,
+                 layers,
                  memory=None,
                  timeout=None,
                  env_vars=None):
         """
         Initialize the class.
 
-        :param string name: Name of the function
-        :param string runtime: Runtime of function
-        :param string handler: Handler method
-        :param string code_abs_path: Absolute path to the code
-        :param integer memory: Function memory limit in MB
-        :param integer timeout: Function timeout in seconds
-        :param samcli.local.lambdafn.env_vars.EnvironmentVariables env_vars: Optional, Environment variables.
+        Parameters
+        ----------
+        name str
+            Name of the function
+        runtime str
+            Runtime of function
+        handler str
+            Handler method
+        code_abs_path str
+            Absolute path to the code
+        layers list(str)
+            List of Layers
+        memory int
+            Function memory limit in MB
+        timeout int
+            Function timeout in seconds
+        env_vars samcli.local.lambdafn.env_vars.EnvironmentVariables
+            Optional, Environment variables.
             If it not provided, this class will generate one for you based on the function properties
         """
-
         self.name = name
         self.runtime = runtime
         self.handler = handler
         self.code_abs_path = code_abs_path
+        self.layers = layers
         self.memory = memory or self._DEFAULT_MEMORY
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
 
