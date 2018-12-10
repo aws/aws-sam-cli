@@ -1,10 +1,18 @@
 """CLI command for "publish app" command."""
 
+import os
+import json
 import logging
 import click
 
+from serverlessrepo import publish_application
+from serverlessrepo.publish import CREATE_APPLICATION
+from serverlessrepo.exceptions import ServerlessRepoError
+
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_common_option
+from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+from samcli.commands.exceptions import UserException
 
 LOG = logging.getLogger(__name__)
 
@@ -38,4 +46,36 @@ def cli(ctx, template):
 
 
 def do_cli(ctx, template):
-    click.echo('hello world')
+    """Publish the application based on command line inputs."""
+    if not os.path.exists(template):
+        click.secho("Publish Failed", fg='red')
+        raise SamTemplateNotFoundException("Template at {} is not found".format(template))
+
+    with click.open_file(template, 'r') as template_file:
+        try:
+            output = publish_application(template_file.read())
+            click.secho("Publish Succeeded", fg="green")
+            click.secho(_gen_publish_message(output), fg="yellow")
+        except ServerlessRepoError as ex:
+            click.secho("Publish Failed", fg='red')
+            raise UserException(str(ex))
+
+        application_id = output['application_id']
+        _print_console_link(ctx.region, application_id)
+
+
+def _gen_publish_message(publish_output):
+    application_id = publish_output['application_id']
+    details = json.dumps(publish_output['details'], indent=2)
+
+    if CREATE_APPLICATION in publish_output['actions']:
+        return "Created new application with the following metadata:\n{}".format(details)
+
+    return 'The following metadata of application "{}" has been updated:\n{}'.format(application_id, details)
+
+
+def _print_console_link(region, application_id):
+    url = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
+    console_link = url.format(region, application_id.replace('/', '~'))
+    msg = "Click the link below to view your application in AWS console:\n{}".format(console_link)
+    click.secho(msg, fg="yellow")
