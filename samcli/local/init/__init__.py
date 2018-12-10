@@ -75,14 +75,14 @@ def generate_project(
     }
 
     params['extra_context'].update({'project_name': name})
+    params['extra_context'].update({'runtime': runtime})
 
     LOG.debug("Parameters dict created with input given")
     LOG.debug("%s", params)
 
     if not location:
-        params['extra_context'].update({'runtime': runtime})
         params['no_input'] = True
-        LOG.debug("Parameters dict updated with project name as extra_context")
+        LOG.debug("Using vended templates and not prompting user for more info")
         LOG.debug("%s", params)
 
     try:
