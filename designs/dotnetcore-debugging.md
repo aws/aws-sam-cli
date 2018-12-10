@@ -18,7 +18,7 @@ And let's break it down to the checklist
 
 ### What will be changed
 
-Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support *waiting for the debugger* to attach. I've filed [PR](https://github.com/lambci/docker-lambda/pull/130) with only required changes already (guys and @mhart - reviewers wanted 😁). 
+Runner program for .NET core [2.0](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.0/run/MockBootstraps/Program.cs) and [2.1](https://github.com/lambci/docker-lambda/blob/master/dotnetcore2.1/run/MockBootstraps/Program.cs) in another [repo](https://github.com/lambci/docker-lambda) to support *waiting for the debugger* to attach. I've filed [PR](https://github.com/lambci/docker-lambda/pull/130) with only required changes already (✅ merged);
 
 The good part is that no new commands or parameters on SAM CLI side are required.
 
@@ -30,9 +30,9 @@ The good part is that no new commands or parameters on SAM CLI side are required
 
 ### Out-of-Scope
 
-Visual Studio 2017 (can be a target, but it has some other very different Docker container debugging support - needs additional investigation). But some trick with `launch.json` [might be possible](https://github.com/Microsoft/MIEngine/wiki/Offroad-Debugging-of-.NET-Core-on-Linux---OSX-from-Visual-Studio). Help on this area is highly appreciated.
+SAM CLI users can perform debugging via Visual Studio 2017 also, but it has some other very different Docker container debugging support, and to keep things consistent it requires over complicated setup from the user. More about approach [here](https://github.com/Microsoft/MIEngine/wiki/Offroad-Debugging-of-.NET-Core-on-Linux---OSX-from-Visual-Studio). So we've decided that it would be a better long term solution to hand this are over to the [new AWS Lambda Test Tool](https://github.com/aws/aws-lambda-dotnet/tree/master/Tools/LambdaTestTool) of VS 2017 AWS Toolkit.
 
-Rider support also needs separate investigation, as it does not support `vsdbg` by any means (licensing [issue](https://github.com/dotnet/core/issues/505)) and therefore they have [their own](https://blog.jetbrains.com/dotnet/2017/02/23/rider-eap-18-coreclr-debugging-back-windows/) debugger implementation and possibly UX around .NET Core remote debugging. If support is required - I think we should open another issue. 
+Rider support needs separate investigation, as it does not support `vsdbg` by any means (licensing [issue](https://github.com/dotnet/core/issues/505)) and therefore they have [their own](https://blog.jetbrains.com/dotnet/2017/02/23/rider-eap-18-coreclr-debugging-back-windows/) debugger implementation and possibly UX around .NET Core remote debugging. If support is required - I think we should open another issue. 
 
 ### User Experience Walkthrough
 
@@ -103,7 +103,7 @@ As for the debugging support for the runner, unfortunately `dotnet` command does
 
 During the discussion in this related [issue](https://github.com/awslabs/aws-sam-cli/issues/568) it was decided to go with infinite loop approach. It means that program will query [Debugger.IsAttached](https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.debugger.isattached?view=netcore-2.0) property with some interval (for now it is 50ms - which seems instantaneous for the user), also we have timeout for this loop which is 10 minutes for now (thanks for shaping that out, @mikemorain, @sanathkr). Interval and timeout are **open** for suggestions and edits.
 
-_Examine the code from open [PR](https://github.com/lambci/docker-lambda/pull/130/files):_
+_Examine the code from [PR](https://github.com/lambci/docker-lambda/pull/130/files):_
 
 ```c#
 public static bool TryWaitForAttaching(TimeSpan queryInterval, TimeSpan timeout)
@@ -188,35 +188,13 @@ As for the `processId` - luckily entry point program always gets PID of 1 in a r
 
 ### Open questions
 
-1. A bit off-topic, but still, has someone else encountered the problem with python 3.7.1 ? As it now does not flush the `stdout` and `stderr` from the running container immediately but rather after SAM ends the invocation, and user does not see _"waiting for the debugger to attach..."_ message. Which leads to bad debugging experience.
+1. A bit off-topic, but still, has someone else encountered the problem with python 3.7.1 ? As it now does not flush the `stdout` and `stderr` from the running container immediately but rather after SAM ends the invocation, and user does not see _"waiting for the debugger to attach..."_ message. Which leads to bad debugging experience. this behavior is also reproduced on any python (except 2.7). And I see some correlation with this [issue](https://github.com/awslabs/aws-sam-cli/pull/729). I've tested and the problem is certainly on Python side, as auto flushing is enabled in .NET by default;
 
-   _From SAM code - container.py:_
+   **UPD**: Filed [PR](https://github.com/awslabs/aws-sam-cli/pull/843) that fixes that.
 
-   ```python
-    for frame_type, data in output_itr:
-         #LOG.debug("Next frame")
-         if frame_type == Container._STDOUT_FRAME_TYPE and stdout:
-           # Frame type 1 is stdout data.
-           stdout.write(data)
-           # with this in place, everything works fine
-           stdout.flush()
-   
-         elif frame_type == Container._STDERR_FRAME_TYPE and stderr:
-           # Frame type 2 is stderr data.
-           stderr.write(data)
-           # with this in place, everything works fine
-           stderr.flush()
-   ```
+2. Jet Brains Rider support remains under question too;
 
-   As you see above with flush, everything works. Without it all is buffered, help needed, maybe this [link](https://docs.python.org/3/using/cmdline.html#cmdoption-u) will give something (see note for python 3.7). 
-
-   **UPD:** this behavior is also reproduced on any python version on Windows. And I see some correlation with this [issue](https://github.com/awslabs/aws-sam-cli/pull/729). I've tested and the issue is certainly on Python side, as auto flushing is enabled on .NET by default;
-
-2. Help needed in investigation of how to adopt that approach for VS 2017. See this [link](https://github.com/Microsoft/MIEngine/wiki/Offroad-Debugging-of-.NET-Core-on-Linux---OSX-from-Visual-Studio) for some information. Maybe we can try to use Docker as a pipe there too;
-
-3. Jet Brains Rider support remains under question too;
-
-4. VS Code .NET debugger adapter from C# extension `vsdbg-ui` reports _"The pipe program 'docker' exited unexpectedly with code 137."_ after debugger session ends. It seems, that 137 (*128+9*) is **killed** exit code, which seems a bit strange. I could not track the issue to the core because `vsdbg` is not open source actually.
+3. VS Code .NET debugger adapter from C# extension `vsdbg-ui` reports _"The pipe program 'docker' exited unexpectedly with code 137."_ after debugger session ends. It seems, that 137 (*128+9*) is **killed** exit code, which seems a bit strange. I could not track the issue to the core because `vsdbg` is not open source actually.
 
    I've investigated this issue and it turned out, that this behavior is observed (on my Windows machine) for any remote .NET debugging inside Docker container. I will reach out to `csharp` extension team to get their thoughts on that.
 
@@ -228,6 +206,6 @@ As for the `processId` - luckily entry point program always gets PID of 1 in a r
 
 - [x] Submit PR with the design doc;
 - [x] Submit PR with runner program improvements;
-- [ ] Submit PR with changes and user documentation required to take advantage of .NET Core debugging to SAM CLI repo.
-- [ ] Merge [PR](https://github.com/lambci/docker-lambda/pull/130) to `lambci/docker-lambda` [repo](https://github.com/lambci/docker-lambda) **WIP** 🚨 blocker;
-- [ ] Investigate debugging support for VS 2017. Help appreciated.
+- [x] Submit PR with changes and user documentation required to take advantage of .NET Core debugging to SAM CLI repo.
+- [x] Merge [PR](https://github.com/lambci/docker-lambda/pull/130) to `lambci/docker-lambda` [repo](https://github.com/lambci/docker-lambda);
+- [x] Investigate debugging support for VS 2017
