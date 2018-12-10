@@ -158,6 +158,20 @@ CLI Changes
     for publishing. For more details on this metadata section, see
     https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publishing-applications.html
 
+    Examples
+    --------
+    To publish an application privately using a packaged SAM template
+    $ sam publish app -t packaged.yaml --region <region>
+
+    To publish an application & share it publicly
+    $ sam publish app -t packaged.yaml --region <region> --make-public
+
+    To publish an application & share it with other AWS accounts
+    $ sam publish app -t packaged.yaml --region <region> --account-ids 123456789012,123456789013
+
+    To publish an application & revoke granted permissions
+    $ sam publish app -t packaged.yaml --region <region> --make-private
+
   Options:
     -t, --template PATH  AWS SAM template file  [default: template.[yaml|yml]]
     --make-public        Share the app publicly with anyone.
