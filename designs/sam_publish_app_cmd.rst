@@ -82,7 +82,7 @@ Assuming that customers have the following SAM template:
             ReadmeUrl: ./README.md
             Labels: ['tests']
             HomepageUrl: https://github.com/user1/my-app-project
-            SemanticVersion: 1.0.0
+            SemanticVersion: 0.0.1
             SourceCodeUrl: https://github.com/user1/my-app-project
 
     Resources:
@@ -103,7 +103,7 @@ Package built artifacts and local file references
 
 Create new application in SAR
   Run ``sam publish app -t ./packaged.yaml`` to publish a new application named my-app in SAR with the first version
-  created as 1.0.0. If no permission option is passed, the app will be created as private by default.
+  created as 0.0.1. If no permission option is passed, the app will be created as private by default.
 
   SAM CLI prints application created message, metadata used to create application and link to the console details page.
 
@@ -119,14 +119,14 @@ Create new application in SAR
     "ReadmeUrl": "s3://test/README.md",
     "Labels": ['tests'],
     "HomepageUrl": "https://github.com/user1/my-app-project",
-    "SemanticVersion": "1.0.0",
+    "SemanticVersion": "0.0.1",
     "SourceCodeUrl": "https://github.com/user1/my-app-project"
   }
   Click the link below to view your application in AWS console:
   https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
 Create new version of an existing SAR application
-  Modify the existing template, give a new SemanticVersion, and run ``sam publish app -t ./packaged.yaml`` again.
+  Modify the existing template, change SemanticVersion to 0.0.2, and run ``sam publish app -t ./packaged.yaml`` again.
 
   SAM CLI prints application metadata updated message and link to the console details page. If no permission option
   is passed, the application's permission remains the same.
@@ -139,7 +139,7 @@ Create new version of an existing SAR application
     "Description": "description",
     "ReadmeUrl": "s3://test/README.md",
     ...
-    "SemanticVersion": "1.0.1",
+    "SemanticVersion": "0.0.2",
     "SourceCodeUrl": "https://github.com/hello"
   }
   Click the link below to view your application in AWS console:
@@ -202,7 +202,7 @@ CLI Changes
 
 .. code-block:: text
 
-  Usage: samdev publish app [OPTIONS]
+  Usage: sam publish app [OPTIONS]
 
     Use this command to publish a packaged AWS SAM template to the AWS
     Serverless Application Repository to share within your team, across your
@@ -229,10 +229,10 @@ CLI Changes
 
   Options:
     -t, --template PATH  AWS SAM template file  [default: template.[yaml|yml]]
-    --make-public        Share the app publicly with anyone.
-    --make-private       Share the app only with the owning account.
+    --make-public        Share the app publicly with anyone, mutually exclusive with --make-private and --account-ids.
+    --make-private       Share the app only with the owning account, mutually exclusive with --make-public and --account-ids.
     --account-ids TEXT   Share the app privately with the given comma-separated
-                        list of AWS account ids.
+                        list of AWS account ids, mutually exclusive with --make-public and --make-private.
     --profile TEXT       Select a specific profile from your credential file to
                         get AWS credentials.
     --region TEXT        Set the AWS Region of the service (e.g. us-east-1).
