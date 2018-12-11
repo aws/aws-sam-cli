@@ -215,7 +215,7 @@ CLI Changes
 
     Examples
     --------
-    To publish an application privately using a packaged SAM template
+    To publish an application without managing permissions
     $ sam publish app -t packaged.yaml --region <region>
 
     To publish an application & share it publicly
