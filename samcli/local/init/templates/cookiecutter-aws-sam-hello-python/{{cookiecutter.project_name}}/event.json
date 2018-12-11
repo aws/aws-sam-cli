@@ -3,7 +3,7 @@
   "resource": "/{proxy+}",
   "path": "/path/to/resource",
   "httpMethod": "POST",
-  "isBase64Encoded": "false",
+  "isBase64Encoded": false,
   "queryStringParameters": {
     "foo": "bar"
   },
