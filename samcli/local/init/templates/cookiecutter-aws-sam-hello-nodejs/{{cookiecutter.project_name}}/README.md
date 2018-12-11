@@ -28,15 +28,21 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ## Setup process
 
-### Installing dependencies
+### Building the project
 
-In this example we use `npm` but you can use `yarn` if you prefer to manage NodeJS dependencies:
-
+[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-create-deployment-pkg.html) with the application as well as its dependencies in a node_modules folder. When you make changes to your source code or dependency manifest,
+run the following command to build your project local testing and deployment:
+ 
 ```bash
-cd hello_world
-npm install
-cd ../
+sam build
 ```
+
+If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
+```bash
+sam build --use-container
+```
+ 
+By default, this command writes built artifacts to `.aws-sam/build` folder.
 
 ### Local development
 
@@ -112,7 +118,8 @@ aws cloudformation describe-stacks \
 We use `mocha` for testing our code and it is already added in `package.json` under `scripts`, so that we can simply run the following command to run our tests:
 
 ```bash
-cd hello_world
+cd 
+npm install
 npm run test
 ```
 
