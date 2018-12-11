@@ -6,6 +6,7 @@ import logging
 import sys
 
 import docker
+import requests
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +33,26 @@ class ContainerManager(object):
         self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
         self.docker_client = docker_client or docker.from_env()
+
+    @property
+    def is_docker_reachable(self):
+        """
+        Checks if Docker daemon is running. This is required for us to invoke the function locally
+
+        Returns
+        -------
+        bool
+            True, if Docker is available, False otherwise
+        """
+        try:
+            self.docker_client.ping()
+
+            return True
+
+        # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
+        except (docker.errors.APIError, requests.exceptions.ConnectionError):
+            LOG.debug("Docker is not reachable", exc_info=True)
+            return False
 
     def run(self, container, input_data=None, warm=False):
         """

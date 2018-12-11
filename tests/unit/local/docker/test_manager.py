@@ -3,8 +3,10 @@ Tests container manager
 """
 
 import io
-
 from unittest import TestCase
+
+import requests
+
 from mock import Mock
 from docker.errors import APIError, ImageNotFound
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
@@ -204,6 +206,41 @@ class TestContainerManager_pull_image(TestCase):
 
         ex = context.exception
         self.assertEquals(str(ex), msg)
+
+
+class TestContainerManager_is_docker_reachable(TestCase):
+
+    def setUp(self):
+        self.ping_mock = Mock()
+
+        docker_client_mock = Mock()
+        docker_client_mock.ping = self.ping_mock
+
+        self.manager = ContainerManager(docker_client=docker_client_mock)
+
+    def test_must_use_docker_client_ping(self):
+        self.manager.is_docker_reachable
+
+        self.ping_mock.assert_called_once_with()
+
+    def test_must_return_true_if_ping_does_not_raise(self):
+        is_reachable = self.manager.is_docker_reachable
+
+        self.assertTrue(is_reachable)
+
+    def test_must_return_false_if_ping_raises_api_error(self):
+        self.ping_mock.side_effect = APIError("error")
+
+        is_reachable = self.manager.is_docker_reachable
+
+        self.assertFalse(is_reachable)
+
+    def test_must_return_false_if_ping_raises_connection_error(self):
+        self.ping_mock.side_effect = requests.exceptions.ConnectionError("error")
+
+        is_reachable = self.manager.is_docker_reachable
+
+        self.assertFalse(is_reachable)
 
 
 class TestContainerManager_has_image(TestCase):

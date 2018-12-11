@@ -1,6 +1,8 @@
 import json
 import shutil
 import os
+import copy
+from unittest import skipIf
 
 from nose_parameterized import parameterized
 from subprocess import Popen, PIPE
@@ -10,6 +12,10 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
+
+# Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
+# This is to restrict layers tests to run outside of Travis and when the branch is not master.
+SKIP_LAYERS_TESTS = os.environ.get("TRAVIS", False) and os.environ.get("TRAVIS_BRANCH", "master") != "master"
 
 try:
     from pathlib import Path
@@ -176,6 +182,34 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(environ["Region"], custom_region)
 
+    def test_invoke_with_env_with_aws_creds(self):
+        custom_region = "my-custom-region"
+        key = "key"
+        secret = "secret"
+        session = "session"
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = copy.deepcopy(dict(os.environ))
+        env["AWS_DEFAULT_REGION"] = custom_region
+        env["AWS_REGION"] = custom_region
+        env["AWS_ACCESS_KEY_ID"] = key
+        env["AWS_SECRET_ACCESS_KEY"] = secret
+        env["AWS_SESSION_TOKEN"] = session
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], custom_region)
+        self.assertEquals(environ["AWS_REGION"], custom_region)
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], key)
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], secret)
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], session)
+
     def test_invoke_with_docker_network_of_host(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
                                              template_path=self.template_path,
@@ -188,6 +222,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(return_code, 0)
 
 
+@skipIf(SKIP_LAYERS_TESTS,
+        "Skip layers tests in Travis only")
 class TestLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'
@@ -195,7 +231,6 @@ class TestLayerVersion(InvokeIntegBase):
 
     def setUp(self):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
-        self.layer_cache.mkdir(parents=True, exist_ok=True)
 
     def tearDown(self):
         docker_client = docker.from_env()
@@ -347,8 +382,25 @@ class TestLayerVersion(InvokeIntegBase):
 
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
 
-    def test_layer_does_not_exist(self):
 
+@skipIf(SKIP_LAYERS_TESTS,
+        "Skip layers tests in Travis only")
+class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
+    template = Path("layers", "layer-template.yml")
+    region = 'us-west-2'
+    layer_utils = LayerUtils(region=region)
+
+    def setUp(self):
+        self.layer_cache = Path().home().joinpath("integ_layer_cache")
+
+    def tearDown(self):
+        docker_client = docker.from_env()
+        samcli_images = docker_client.images.list(name='samcli/lambda')
+        for image in samcli_images:
+            docker_client.images.remove(image.id)
+
+    def test_layer_does_not_exist(self):
+        self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         non_existent_layer_arn = self.layer_utils.parameters_overrides["LayerOneArn"].replace(
             self.layer_utils.layers_meta[0].layer_name, 'non_existent_layer')
 
@@ -370,6 +422,7 @@ class TestLayerVersion(InvokeIntegBase):
         expected_error_output = "{} was not found.".format(non_existent_layer_arn)
 
         self.assertIn(expected_error_output, error_output)
+        self.layer_utils.delete_layers()
 
     def test_account_does_not_exist_for_layer(self):
         command_list = self.get_command_list("LayerVersionAccountDoesNotExistFunction",

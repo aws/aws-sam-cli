@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -30,20 +30,9 @@ public class App implements RequestHandler<Object, Object> {
     }
 
     private String getPageContents(String address) throws IOException{
-        BufferedReader br = null;
-        StringJoiner lines = new StringJoiner(System.lineSeparator());
-        try {
-            URL url = new URL(address);
-            br = new BufferedReader(new InputStreamReader(url.openStream()));
-            String line;
-            while ((line = br.readLine()) != null) {
-                lines.add(line);
-            }
-        } finally {
-            if (br != null) {
-                br.close();
-            }
+        URL url = new URL(address);
+        try(BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()))) {
+            return br.lines().collect(Collectors.joining(System.lineSeparator()));
         }
-        return lines.toString();
     }
 }
