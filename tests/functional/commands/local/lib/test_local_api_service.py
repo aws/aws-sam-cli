@@ -67,7 +67,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.lambda_invoke_context_mock = Mock()
         manager = ContainerManager()
         layer_downloader = LayerDownloader("./", "./")
-        lambda_image = LambdaImage(layer_downloader, False)
+        lambda_image = LambdaImage(layer_downloader, False, False)
         local_runtime = LambdaRuntime(manager, lambda_image)
         lambda_runner = LocalLambdaRunner(local_runtime, self.mock_function_provider, self.cwd, env_vars_values=None,
                                           debug_context=None)
