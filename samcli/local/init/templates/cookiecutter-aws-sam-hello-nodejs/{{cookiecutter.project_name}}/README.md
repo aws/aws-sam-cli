@@ -8,10 +8,17 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ├── event.json                  <-- API Gateway Proxy Integration event payload
 ├── hello_world                 <-- Source code for a lambda function
 │   └── app.js                  <-- Lambda function code
+<<<<<<< HEAD
 │   └── tests                   <-- Unit tests
 │       └── unit
 │           └── test-handler.js
 ├── package.json                <-- NodeJS dependencies and scripts
+=======
+│   ├── package.json            <-- NodeJS dependencies and scripts
+│   └── tests                   <-- Unit tests
+│       └── unit
+│           └── test_hello_world.js
+>>>>>>> fix: Add functional sam build and npm run test preffix while we discuss scripts location
 ├── template.yaml               <-- SAM template
 ```
 
@@ -122,9 +129,8 @@ You can find more information and examples about filtering Lambda function logs 
 We use `mocha` for testing our code and it is already added in `package.json` under `scripts`, so that we can simply run the following command to run our tests:
 
 ```bash
-cd hello-world
-npm install
-npm run test
+sam build
+npm run test --prefix hello_world/
 ```
 
 ## Cleanup
