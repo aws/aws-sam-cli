@@ -6,7 +6,7 @@
 ====================================
 
 This is the design for a command to publish an application to `AWS Serverless Application Repository (SAR)`_ with a SAM
-template. It can be used to create a new application and its first version, update exisitng application's metadata, create
+template. It can be used to create a new application and its first version, update existing application's metadata, create
 a new version of the application, and manage application permissions.
 
 .. _AWS Serverless Application Repository (SAR): https://aws.amazon.com/serverless/serverlessrepo/
@@ -26,7 +26,7 @@ What will be changed?
 In this proposal, we will be providing a new command, ``sam publish app``, which takes a SAM template as input and publishes
 an application to AWS Serverless Application Repository using applicaiton metadata specified in the template. Customers
 need to provide application metadata information in the template, then ``sam package`` will handle uploading local files to S3,
-and ``sam publish app`` will create the app in Serverless Application Repository. We will also provide the ``--acount-ids`` option
+and ``sam publish app`` will create the app in Serverless Application Repository. We will also provide the ``--account-ids`` option
 to configure who the application can be shared with.
 
 
@@ -37,8 +37,8 @@ Success criteria for the change
    * Create new application and its first version in SAR using ``sam publish app``
    * Create new version of existing SAR application using ``sam publish app``
    * Update application metadata of existing SAR application using ``sam publish app``
-   * Share the app publicly using ``--acount-ids '*'``
-   * Share the app with other AWS accounts using ``--acount-ids 123456789012``
+   * Share the app publicly using ``--account-ids '*'``
+   * Share the app with other AWS accounts using ``--account-ids 123456789012``
 
 
 #. ``sam package`` command can upload local readme/license files to S3.
@@ -162,7 +162,7 @@ Create application/version and set application permission
   Click the link below to view your application in AWS console:
   https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
-Update the metadata of an exsiting application without creating new version
+Update the metadata of an existing application without creating new version
   Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
   ``sam publish app -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of the current
   application metadata and link to the console details page.
