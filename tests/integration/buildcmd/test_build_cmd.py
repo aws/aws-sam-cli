@@ -37,7 +37,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             self.skipTest("Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version,
                                                                                                           runtime))
 
-        overrides = {"Runtime": runtime, "CodeUri":"Python"}
+        overrides = {"Runtime": runtime, "CodeUri": "Python"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
