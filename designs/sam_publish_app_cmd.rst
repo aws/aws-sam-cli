@@ -54,8 +54,6 @@ Out-of-Scope
 
 #. Publish appication if ``AWS::ServerlessRepo::Application`` section is not found in the template's ``Metadata`` section.
 
-.. _here: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/access-control-resource-based.html#access-control-resource-based-example-multiple-permissions
-
 
 User Experience Walkthrough
 ---------------------------
@@ -95,9 +93,8 @@ Package built artifacts and local file references
 
 Create new application in SAR
   Run ``sam publish app -t ./packaged.yaml`` to publish a new application named my-app in SAR with the first version
-  created as 0.0.1. If no permission option is passed, the app will be created as private by default.
-
-  SAM CLI prints application created message, metadata used to create application and link to the console details page.
+  created as 0.0.1. The app will be created as private by default. SAM CLI prints application created message, metadata
+  used to create application and link to the console details page.
 
   >>> sam publish app -t ./packaged.yaml
   Publish Succeeded
@@ -119,9 +116,7 @@ Create new application in SAR
 
 Create new version of an existing SAR application
   Modify the existing template, change SemanticVersion to 0.0.2, and run ``sam publish app -t ./packaged.yaml`` again.
-
-  SAM CLI prints application metadata updated message and link to the console details page. If no permission option
-  is passed, the application's permission remains the same.
+  SAM CLI prints application metadata updated message, values of updated metadata and link to the console details page.
 
   >>> sam publish app -t ./packaged.yaml
   Publish Succeeded
@@ -139,8 +134,8 @@ Create new version of an existing SAR application
 
 Update the metadata of an existing application without creating new version
   Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
-  ``sam publish app -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of the current
-  application metadata and link to the console details page.
+  ``sam publish app -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of updated
+  metadata and link to the console details page.
 
   >>> sam publish app -t ./packaged.yaml
   Publish Succeeded
