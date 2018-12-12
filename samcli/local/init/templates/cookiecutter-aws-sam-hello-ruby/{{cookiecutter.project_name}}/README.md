@@ -5,14 +5,14 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ```bash
 .
 ├── README.md                   <-- This instructions file
+├── event.json                  <-- API Gateway Proxy Integration event payload
 ├── hello_world                 <-- Source code for a lambda function
 │   ├── app.rb                  <-- Lambda function code
-│   ├── Gemfile                 <-- Ruby function dependencies
-├── Gemfile                     <-- Ruby test/documentation dependencies
+│   ├── Gemfile                 <-- Ruby test/documentation dependencies
+│   └── tests                   <-- Unit tests
+│       └── unit
+│           └── test_handler.rb
 ├── template.yaml               <-- SAM template
-└── tests                       <-- Unit tests
-    └── unit
-        └── test_handler.rb
 ```
 
 ## Requirements
@@ -20,41 +20,16 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 * AWS CLI already configured with at least PowerUser permission
 * [Ruby](https://www.ruby-lang.org/en/documentation/installation/) 2.5 installed
 * [Docker installed](https://www.docker.com/community-edition)
-* [Ruby Version Manager](http://rvm.io/)
 
 ## Setup process
 
-### Match ruby version with docker image
-For high fidelity development environment, make sure the local ruby version matches that of the docker image. To do so lets use [Ruby Version Manager](http://rvm.io/)
+### Local development
 
-Setup Ruby Version Manager from [Ruby Version Manager](http://rvm.io/)
-
-Run following commands
+**Invoking function locally using a local sample payload**
 
 ```bash
-rvm install ruby-2.5.3
-rvm use ruby-2.5.3
-rvm --default use 2.5.3
+sam local invoke HelloWorldFunction --event event.json
 ```
-
-### Building the Project
-
-```sam-app``` comes with a Gemfile that defines the requirements and manages installing them. The `sam build` command will install the dependencies in your function Gemfile and vendor it for deployment.
-
-```
-sam build
-```
-
-If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
-
-```
-sam build --use-container
-```
-By default, this command writes built artifacts to .aws-sam/build folder.
-
-**NOTE:** As you change your dependencies during development you'll need to run `sam build` again in order to execute your Lambda and/or API Gateway locally.
-
-### Local development
 
 **Invoking function locally through local API Gateway**
 
@@ -131,38 +106,66 @@ Run our initial unit tests:
 ruby tests/unit/test_handler.rb
 ```
 
-**NOTE**: It is recommended to use a Ruby Version Manager to manage, and work with multiple ruby environments from interpreters to sets of gems
 # Appendix
 
-## AWS CLI commands
+## SAM and AWS CLI commands
 
-AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack after building:
+All commands used throughout this document
 
 ```bash
+# Invoke function locally with event.json as an input
+sam local invoke HelloWorldFunction --event event.json
+
+# Run API Gateway locally
+sam local start-api
+
+# Create S3 bucket
+aws s3 mb s3://BUCKET_NAME
+
+# Package Lambda function defined locally and upload to S3 as an artifact
 sam package \
     --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
+# Deploy SAM template as a CloudFormation stack
 sam deploy \
     --template-file packaged.yaml \
-    --stack-name sam-app \
+    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
     --capabilities CAPABILITY_IAM \
     --parameter-overrides MyParameterSample=MySampleValue
 
+# Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
-    --stack-name sam-app --query 'Stacks[].Outputs'
+    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
+    --query 'Stacks[].Outputs' \
+    --output table
+
+# Tail Lambda function Logs using Logical name defined in SAM Template
+sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
 ```
 
 ## Bringing to the next level
 
 Here are a few ideas that you can use to get more acquainted as to how this overall process works:
 
+**Idea 1**
+
 * Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
 * Update unit test to capture that
 * Package & Deploy
 
+**Idea 2**
+
+* Create a Docker network named `sam`
+* Run [DynamoDB Local via Docker](https://hub.docker.com/r/amazon/dynamodb-local/) within the `sam` network
+* Change your code to connect to DynamoDB Local when running your functions locally
+    - Hint: Use `endpoint` property from AWS SDK and `AWS_SAM_LOCAL` env variable to achieve that
+
+**Idea 3**
+
+* Enable [step-through debugging](https://github.com/awslabs/aws-sam-cli/blob/develop/docs/usage.rst#debugging-applications)
+
 Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
 
 * [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
-
