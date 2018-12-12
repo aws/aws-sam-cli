@@ -2,12 +2,12 @@
   "version": "1.0",
   "session": {
     "new": true,
-    "sessionId": "amzn1.echo-api.session.{{session_id}}",
+    "sessionId": "amzn1.echo-api.session.{{{session_id}}}",
     "application": {
-        "applicationId": "amzn1.ask.skill.{{application_id}}"
+        "applicationId": "amzn1.ask.skill.{{{application_id}}}"
     },
     "user": {
-        "userId": "amzn1.ask.account.{{user_id}}"
+        "userId": "amzn1.ask.account.{{{user_id}}}"
     },
     "attributes": {}
   },
@@ -17,10 +17,10 @@
     },
     "System": {
       "application": {
-          "applicationId": "amzn1.ask.skill.{{application_id}}"
+          "applicationId": "amzn1.ask.skill.{{{application_id}}}"
       },
       "user": {
-        "userId": "amzn1.ask.account.{{user_id}}"
+        "userId": "amzn1.ask.account.{{{user_id}}}"
       },
       "device": {
         "supportedInterfaces": {
@@ -31,7 +31,7 @@
   },
   "request": {
     "type": "LaunchRequest",
-    "requestId": "amzn1.echo-api.request.{{request_id}}",
+    "requestId": "amzn1.echo-api.request.{{{request_id}}}",
     "timestamp": "2016-10-27T18:21:44Z",
     "locale": "en-US"
   }

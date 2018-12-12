@@ -314,7 +314,7 @@ def make_service(function_provider, cwd):
     port = random_port()
     manager = ContainerManager()
     layer_downloader = LayerDownloader("./", "./")
-    image_builder = LambdaImage(layer_downloader, False)
+    image_builder = LambdaImage(layer_downloader, False, False)
     local_runtime = LambdaRuntime(manager, image_builder)
     lambda_runner = LocalLambdaRunner(local_runtime=local_runtime,
                                       function_provider=function_provider,
