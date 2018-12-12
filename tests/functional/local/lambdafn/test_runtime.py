@@ -39,7 +39,7 @@ class TestLambdaRuntime(TestCase):
 
         self.container_manager = ContainerManager()
         layer_downloader = LayerDownloader("./", "./")
-        self.lambda_image = LambdaImage(layer_downloader, False)
+        self.lambda_image = LambdaImage(layer_downloader, False, False)
         self.runtime = LambdaRuntime(self.container_manager, self.lambda_image)
 
     def tearDown(self):
@@ -190,7 +190,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
 
         container_manager = ContainerManager()
         layer_downloader = LayerDownloader("./", "./")
-        self.lambda_image = LambdaImage(layer_downloader, False)
+        self.lambda_image = LambdaImage(layer_downloader, False, False)
         self.runtime = LambdaRuntime(container_manager, self.lambda_image)
 
     def tearDown(self):
