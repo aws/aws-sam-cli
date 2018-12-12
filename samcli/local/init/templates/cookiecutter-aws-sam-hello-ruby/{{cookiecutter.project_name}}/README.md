@@ -95,7 +95,7 @@ After deployment is complete you can run the following command to retrieve the A
 ```bash
 aws cloudformation describe-stacks \
     --stack-name sam-app \
-    --query 'Stacks[].Outputs'
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]'
 ``` 
 
 ## Testing
@@ -132,13 +132,12 @@ sam package \
 sam deploy \
     --template-file packaged.yaml \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides MyParameterSample=MySampleValue
+    --capabilities CAPABILITY_IAM
 
 # Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --query 'Stacks[].Outputs' \
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
     --output table
 
 # Tail Lambda function Logs using Logical name defined in SAM Template

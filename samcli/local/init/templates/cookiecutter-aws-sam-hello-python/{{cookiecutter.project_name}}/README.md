@@ -160,13 +160,12 @@ sam package \
 sam deploy \
     --template-file packaged.yaml \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides MyParameterSample=MySampleValue
+    --capabilities CAPABILITY_IAM
 
 # Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --query 'Stacks[].Outputs' \
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
     --output table
 
 # Tail Lambda function Logs using Logical name defined in SAM Template
