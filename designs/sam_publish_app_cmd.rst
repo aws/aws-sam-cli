@@ -6,8 +6,8 @@
 ====================================
 
 This is the design for a command to publish an application to `AWS Serverless Application Repository (SAR)`_ with a SAM
-template. It can be used to create a new application and its first version, update existing application's metadata, create
-a new version of the application, and manage application permissions.
+template. It can be used to create a new application w/ its first version, update existing application's metadata, and
+create new versions of the application.
 
 .. _AWS Serverless Application Repository (SAR): https://aws.amazon.com/serverless/serverlessrepo/
 
@@ -26,29 +26,23 @@ What will be changed?
 In this proposal, we will be providing a new command, ``sam publish app``, which takes a SAM template as input and publishes
 an application to AWS Serverless Application Repository using applicaiton metadata specified in the template. Customers
 need to provide application metadata information in the template, then ``sam package`` will handle uploading local files to S3,
-and ``sam publish app`` will create the app in Serverless Application Repository. We will also provide the ``--account-ids`` option
-to configure who the application can be shared with.
+and ``sam publish app`` will create the app in Serverless Application Repository.
 
 
 Success criteria for the change
 -------------------------------
 #. Support all the following use cases:
 
-   * Create new application and its first version in SAR using ``sam publish app``
+   * Create new application w/ its first version in SAR using ``sam publish app``
    * Create new version of existing SAR application using ``sam publish app``
    * Update application metadata of existing SAR application using ``sam publish app``
-   * Share the app publicly using ``--account-ids '*'``
-   * Share the app with other AWS accounts using ``--account-ids 123456789012``
-
 
 #. ``sam package`` command can upload local readme/license files to S3.
 
 
 Out-of-Scope
 ------------
-#. Manage application permission separately without publishing/updating the app.
-
-#. Specify granular `application permission`_ types when sharing the application. If needed, customers can use AWS CLI instead as described `here`_.
+#. Manage application permissions while publishing the app.
 
 #. Recursively publish nested apps in the template (SAR CreateApplication API doesn't support yet).
 
@@ -60,7 +54,6 @@ Out-of-Scope
 
 #. Publish appication if ``AWS::ServerlessRepo::Application`` section is not found in the template's ``Metadata`` section.
 
-.. _application permission: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/access-control-resource-based.html#application-permissions
 .. _here: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/access-control-resource-based.html#access-control-resource-based-example-multiple-permissions
 
 
@@ -144,24 +137,6 @@ Create new version of an existing SAR application
   Click the link below to view your application in AWS console:
   https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
-Create application/version and set application permission
-  Run ``sam publish app -t ./packaged.yaml --account-ids '*'`` to publish the app and share it publicly so that everyone is
-  allowed to `Deploy`_ the app. Alternatively, use ``--account-ids <id1>,<id2>`` to share with some AWS accounts so that
-  only you and the shared accounts can deploy the app.
-
-  >>> sam publish app -t ./packaged.yaml --account-ids '*'
-  Publish Succeeded
-  The following metadata of application <id> has been updated:
-  {
-    "Author": "qwang",
-    "Description": "description",
-    "ReadmeUrl": "s3://test/README.md"
-    ...
-  }
-  Shared Application Publicly
-  Click the link below to view your application in AWS console:
-  https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
-
 Update the metadata of an existing application without creating new version
   Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
   ``sam publish app -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of the current
@@ -183,7 +158,6 @@ Once the application is published, other developers in your team or your organiz
 clicks. If the application is shared publicly, the whole community will be able to find it by visiting the AWS Serverless
 Application Repository `public site`_.
 
-.. _Deploy: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/access-control-resource-based.html#application-permissions
 .. _public site: https://serverlessrepo.aws.amazon.com/applications
 
 
@@ -211,19 +185,11 @@ CLI Changes
 
     Examples
     --------
-    To publish an application without managing permissions
+    To publish an application
     $ sam publish app -t packaged.yaml --region <region>
-
-    To publish an application & share it publicly
-    $ sam publish app -t packaged.yaml --region <region> --account-ids '*'
-
-    To publish an application & share it with other AWS accounts
-    $ sam publish app -t packaged.yaml --region <region> --account-ids 123456789012,123456789013
 
   Options:
     -t, --template PATH  AWS SAM template file  [default: template.[yaml|yml]]
-    --account-ids TEXT   Share the app with the given comma-separated list of AWS account ids.
-                        If '*' is specified, the app will be shared publicly.
     --profile TEXT       Select a specific profile from your credential file to
                         get AWS credentials.
     --region TEXT        Set the AWS Region of the service (e.g. us-east-1).
@@ -246,16 +212,15 @@ Design
 *between components, constraints, etc.*
 
 SAM CLI will read the packaged SAM template and pass it as string to `aws-serverlessrepo-python <https://github.com/awslabs/aws-serverlessrepo-python>`_
-library. The algorithm for ``sam publish app -t ./packaged.yaml --account-ids '*'`` looks like this:
+library. The algorithm for ``sam publish app -t ./packaged.yaml`` looks like this:
 
 .. code-block:: python
 
-    from serverlessrepo import publish_application, make_application_public
+    from serverlessrepo import publish_application
 
     with open('./packaged.yaml', 'r') as f:
         template = f.read()
         result = publish_application(template)
-        make_application_public(result['applicaiton_id'])
 
 
 ``.samrc`` Changes
@@ -283,14 +248,13 @@ N/A
 
 **Are you connecting to a remote API? If so explain how is this connection secured**
 
-Will be connecting to boto3 serverlessrepo `create_application`_, `update_application`_, `create_application_version`_, and `put_application_policy`_
-APIs through the `aws-serverlessrepo-python <https://github.com/awslabs/aws-serverlessrepo-python>`_ library. The connection is secured by requiring
+Will be connecting to boto3 serverlessrepo `create_application`_, `update_application`_, `create_application_version`_ APIs through
+the `aws-serverlessrepo-python <https://github.com/awslabs/aws-serverlessrepo-python>`_ library. The connection is secured by requiring
 AWS credentials and permissions for the target application.
 
 .. _create_application : https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.create_application
 .. _update_application : https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.update_application
 .. _create_application_version: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.create_application_version
-.. _put_application_policy: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/serverlessrepo.html#ServerlessApplicationRepository.Client.put_application_policy
 
 
 **Are you reading/writing to a temporary folder? If so, what is this used for and when do you clean up?**
