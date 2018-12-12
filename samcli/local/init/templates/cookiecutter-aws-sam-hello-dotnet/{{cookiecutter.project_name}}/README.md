@@ -105,7 +105,8 @@ After deployment is complete you can run the following command to retrieve the A
 ```bash
 aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]'
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
+    --output table
 ```
 
 ## Testing

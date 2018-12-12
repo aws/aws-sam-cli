@@ -84,7 +84,7 @@ Next, the following command will create a Cloudformation Stack and deploy your S
 ```bash
 sam deploy \
     --template-file packaged.yaml \
-    --stack-name sam-app \
+    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
     --capabilities CAPABILITY_IAM
 ```
 
@@ -94,8 +94,9 @@ After deployment is complete you can run the following command to retrieve the A
 
 ```bash
 aws cloudformation describe-stacks \
-    --stack-name sam-app \
-    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]'
+    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
+    --output table
 ``` 
 
 ## Testing

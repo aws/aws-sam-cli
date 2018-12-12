@@ -10,7 +10,7 @@ A cookiecutter template to create a NodeJS Hello world boilerplate using [Server
 
 Generate a boilerplate template in your current project directory using the following syntax:
 
-* **NodeJS 8**: `sam init --runtime go1.x`
+* **Go 1.x**: `sam init --runtime go1.x`
 
 > **NOTE**: ``--name`` allows you to specify a different project folder name (`sam-app` is the default)
 
