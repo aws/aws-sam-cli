@@ -37,9 +37,8 @@ Success criteria for the change
    * Create new application and its first version in SAR using ``sam publish app``
    * Create new version of existing SAR application using ``sam publish app``
    * Update application metadata of existing SAR application using ``sam publish app``
-   * Share the app publicly using ``--acount-ids ['*']``
-   * Make the app private using ``--acount-ids []``
-   * Share the app with other AWS accounts using ``--acount-ids ['123456789012']``
+   * Share the app publicly using ``--acount-ids '*'``
+   * Share the app with other AWS accounts using ``--acount-ids 123456789012``
 
 
 #. ``sam package`` command can upload local readme/license files to S3.
@@ -146,14 +145,11 @@ Create new version of an existing SAR application
   https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
 Create application/version and set application permission
-  Run ``sam publish app -t ./packaged.yaml --account-ids ['*']`` to publish the app and share it publicly so that everyone is
-  allowed to `Deploy`_ the app. Alternatively, use ``--account-ids [<id1>, <id2>]`` to share with some AWS accounts so that
+  Run ``sam publish app -t ./packaged.yaml --account-ids '*'`` to publish the app and share it publicly so that everyone is
+  allowed to `Deploy`_ the app. Alternatively, use ``--account-ids <id1>,<id2>`` to share with some AWS accounts so that
   only you and the shared accounts can deploy the app.
 
-  Customers can also revoke granted permissions and set the application back to be private using ``--account-ids []``,
-  so that it can only be deployed by the owning account.
-
-  >>> sam publish app -t ./packaged.yaml --account-ids ['*']
+  >>> sam publish app -t ./packaged.yaml --account-ids '*'
   Publish Succeeded
   The following metadata of application <id> has been updated:
   {
@@ -219,17 +215,15 @@ CLI Changes
     $ sam publish app -t packaged.yaml --region <region>
 
     To publish an application & share it publicly
-    $ sam publish app -t packaged.yaml --region <region> --account-ids ['*']
+    $ sam publish app -t packaged.yaml --region <region> --account-ids '*'
 
     To publish an application & share it with other AWS accounts
-    $ sam publish app -t packaged.yaml --region <region> --account-ids ['123456789012', '123456789013']
-
-    To publish an application & revoke granted permissions to others
-    $ sam publish app -t packaged.yaml --region <region> --account-ids []
+    $ sam publish app -t packaged.yaml --region <region> --account-ids 123456789012,123456789013
 
   Options:
     -t, --template PATH  AWS SAM template file  [default: template.[yaml|yml]]
-    --account-ids TEXT   Share the app with the given list of AWS account ids.
+    --account-ids TEXT   Share the app with the given comma-separated list of AWS account ids.
+                        If '*' is specified, the app will be shared publicly.
     --profile TEXT       Select a specific profile from your credential file to
                         get AWS credentials.
     --region TEXT        Set the AWS Region of the service (e.g. us-east-1).
@@ -252,7 +246,7 @@ Design
 *between components, constraints, etc.*
 
 SAM CLI will read the packaged SAM template and pass it as string to `aws-serverlessrepo-python <https://github.com/awslabs/aws-serverlessrepo-python>`_
-library. The algorithm for ``sam publish app -t ./packaged.yaml --account-ids ['*']`` looks like this:
+library. The algorithm for ``sam publish app -t ./packaged.yaml --account-ids '*'`` looks like this:
 
 .. code-block:: python
 
