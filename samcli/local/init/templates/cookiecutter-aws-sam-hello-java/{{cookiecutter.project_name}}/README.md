@@ -119,6 +119,14 @@ We use `JUnit` for testing our code and you can simply run the following command
 mvn test
 ```
 
+## Cleanup
+
+In order to delete our Serverless Application recently deployed you can use the following AWS CLI Command:
+
+```bash
+aws cloudformation delete-stack --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }}
+```
+
 # Appendix
 
 ## SAM and AWS CLI commands
