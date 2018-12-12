@@ -31,11 +31,11 @@ SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Applicat
 @aws_creds_options
 @cli_framework_options
 @pass_context
-def cli(ctx, template, account_ids):
+def cli(ctx, template):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template, account_ids)  # pragma: no cover
+    do_cli(ctx, template)  # pragma: no cover
 
 
-def do_cli(ctx, template, account_ids):
+def do_cli(ctx, template):
     click.echo('hello world')
