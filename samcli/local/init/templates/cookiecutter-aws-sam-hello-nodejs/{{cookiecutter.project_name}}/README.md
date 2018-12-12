@@ -5,7 +5,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ```bash
 .
 ├── README.md                   <-- This instructions file
-├── hello_world                 <-- Source code for a lambda function
+├── hello-world                 <-- Source code for a lambda function
 │   ├── app.js                  <-- Lambda function code
 │   ├── package.json            <-- NodeJS dependencies
 │   └── tests                   <-- Unit tests
@@ -75,7 +75,7 @@ AWS Lambda NodeJS runtime requires a flat folder with all dependencies including
     FirstFunction:
         Type: AWS::Serverless::Function
         Properties:
-            CodeUri: hello_world/
+            CodeUri: hello-world/
             ...
 ```
 
@@ -118,7 +118,7 @@ aws cloudformation describe-stacks \
 We use `mocha` for testing our code and it is already added in `package.json` under `scripts`, so that we can simply run the following command to run our tests:
 
 ```bash
-cd 
+cd hello-world
 npm install
 npm run test
 ```
