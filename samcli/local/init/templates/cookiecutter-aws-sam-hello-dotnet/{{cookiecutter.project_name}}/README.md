@@ -2,6 +2,7 @@
 
 This is a sample template for {{ cookiecutter.project_name }}
 
+
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
@@ -33,6 +34,12 @@ build.ps1 --target=Package
 ```
 
 ### Local development
+
+**Invoking function locally using a local sample payload**
+
+```bash
+sam local invoke HelloWorldFunction --event event.json
+```
 
 **Invoking function locally through local API Gateway**
 
@@ -103,14 +110,6 @@ aws cloudformation describe-stacks \
 
 ## Testing
 
-For testing our code, we use XUnit and you can use `dotnet test` to run tests defined under `test/`
-
-```bash
-dotnet test test/HelloWorld.Test
-```
-
-Alternatively, you can use Cake. It discovers and executes all the tests.
-
 ### Linux & macOS
 
 ```bash
@@ -125,47 +124,64 @@ build.ps1 --target=Test
 
 # Appendix
 
-## AWS CLI commands
+## SAM and AWS CLI commands
 
-AWS CLI commands to package, deploy and describe outputs defined within the AWS CloudFormation stack:
+All commands used throughout this document
 
 ```bash
-aws cloudformation package \
+# Invoke function locally with event.json as an input
+sam local invoke HelloWorldFunction --event event.json
+
+# Run API Gateway locally
+sam local start-api
+
+# Create S3 bucket
+aws s3 mb s3://BUCKET_NAME
+
+# Package Lambda function defined locally and upload to S3 as an artifact
+sam package \
     --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
-aws cloudformation deploy \
+# Deploy SAM template as a CloudFormation stack
+sam deploy \
     --template-file packaged.yaml \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
     --capabilities CAPABILITY_IAM \
     --parameter-overrides MyParameterSample=MySampleValue
 
+# Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
-```
+    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
+    --query 'Stacks[].Outputs' \
+    --output table
 
-## Next Steps
-
-Create your own .NET Core solution template to use with SAM CLI. [Cookiecutter for AWS SAM and .NET](https://github.com/aws-samples/cookiecutter-aws-sam-dotnet) provides you with a sample implementation how to use cookiecutter templating library to standardise how you initialise your Serverless projects.
-
-``` bash
- sam init --location gh:aws-samples/cookiecutter-aws-sam-dotnet
-```
-
-For more information and examples of how to use `sam init` run 
-
-``` bash
-sam init --help
+# Tail Lambda function Logs using Logical name defined in SAM Template
+sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
 ```
 
 ## Bringing to the next level
 
 Here are a few ideas that you can use to get more acquainted as to how this overall process works:
 
+**Idea 1**
+
 * Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
 * Update unit test to capture that
 * Package & Deploy
+    - Hint: Use a more opinionated version for .NET developers already experienced with SAM: ``sam init --location https://github.com/aws-samples/cookiecutter-aws-sam-dotnet``
+
+**Idea 2**
+
+* Create a Docker network named `sam`
+* Run [DynamoDB Local via Docker](https://hub.docker.com/r/amazon/dynamodb-local/) within the `sam` network
+* Change your code to connect to DynamoDB Local when running your functions locally
+    - Hint: Use `endpoint` property from AWS SDK and `AWS_SAM_LOCAL` env variable to achieve that
+
+**Idea 3**
+
+* Enable [step-through debugging](https://github.com/awslabs/aws-sam-cli/blob/develop/docs/usage.rst#debugging-applications)
 
 Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
 
