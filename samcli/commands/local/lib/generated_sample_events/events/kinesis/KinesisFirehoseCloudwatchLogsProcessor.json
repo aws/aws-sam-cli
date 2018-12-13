@@ -21,7 +21,7 @@
       "approximateArrivalTimestamp": 1510254474388
     }
   ],
-  "region": "{{region}}",
-  "deliveryStreamArn": "arn:{{partition}}:firehose:{{region}}:{{account_id}}:deliverystream/copy-cwl-lambda-invoke-input-151025436553-Firehose-8KILJ01Q5OBN",
+  "region": "{{{region}}}",
+  "deliveryStreamArn": "arn:{{{partition}}}:firehose:{{{region}}}:{{{account_id}}}:deliverystream/copy-cwl-lambda-invoke-input-151025436553-Firehose-8KILJ01Q5OBN",
   "invocationId": "a7234216-12b6-4bc0-96d7-82606c0e80cf"
 }

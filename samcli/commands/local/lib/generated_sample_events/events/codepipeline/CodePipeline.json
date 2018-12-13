@@ -19,8 +19,8 @@
           "location": {
             "type": "S3",
             "s3Location": {
-              "objectKey": "{{input_key}}",
-              "bucketName": "{{input_bucket}}"
+              "objectKey": "{{{input_key}}}",
+              "bucketName": "{{{input_bucket}}}"
             }
           }
         }
@@ -32,14 +32,14 @@
           "location": {
             "type": "S3",
             "s3Location": {
-              "objectKey": "{{output_key}}",
-              "bucketName": "{{output_bucket}}"
+              "objectKey": "{{{output_key}}}",
+              "bucketName": "{{{output_bucket}}}"
             }
           }
         }
       ]
     },
     "id": "c968ef10-6415-4127-80b1-42502218a8c7",
-    "accountId": "{{account_id}}"
+    "accountId": "{{{account_id}}}"
   }
 }

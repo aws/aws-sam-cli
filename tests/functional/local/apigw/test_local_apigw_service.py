@@ -15,6 +15,8 @@ from samcli.commands.local.lib import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager
+from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.local.docker.lambda_image import LambdaImage
 
 
 class TestService_InvalidResponses(TestCase):
@@ -30,7 +32,7 @@ class TestService_InvalidResponses(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -76,11 +78,11 @@ class TestService_ContentType(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.base64_response_function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                                         rolearn=None)
+                                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -129,11 +131,11 @@ class TestService_EventSerialization(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.base64_response_function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                                         rolearn=None)
+                                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -347,7 +349,7 @@ class TestService_ProxyAtBasePath(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -406,7 +408,7 @@ class TestService_Binary(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.echoimagehandler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -483,7 +485,7 @@ class TestService_PostingBinary(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.base54request", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -563,11 +565,11 @@ class TestService_FlaskDefaultOptionsDisabled(TestCase):
 
         cls.function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                         rolearn=None)
+                                         rolearn=None, layers=[])
 
         cls.base64_response_function = provider.Function(name=cls.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                                          handler="index.handler", codeuri=cls.code_uri, environment=None,
-                                                         rolearn=None)
+                                                         rolearn=None, layers=[])
 
         cls.mock_function_provider = Mock()
         cls.mock_function_provider.get.return_value = cls.function
@@ -612,7 +614,9 @@ class TestService_FlaskDefaultOptionsDisabled(TestCase):
 def make_service(list_of_routes, function_provider, cwd):
     port = random_port()
     manager = ContainerManager()
-    local_runtime = LambdaRuntime(manager)
+    layer_downloader = LayerDownloader("./", "./")
+    lambda_image = LambdaImage(layer_downloader, False, False)
+    local_runtime = LambdaRuntime(manager, lambda_image)
     lambda_runner = LocalLambdaRunner(local_runtime=local_runtime,
                                       function_provider=function_provider,
                                       cwd=cwd)

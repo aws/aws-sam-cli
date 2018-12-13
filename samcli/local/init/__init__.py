@@ -14,9 +14,11 @@ _init_path = os.path.dirname(__file__)
 _templates = os.path.join(_init_path, 'templates')
 
 RUNTIME_TEMPLATE_MAPPING = {
+    "python3.7": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
     "python3.6": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
     "python2.7": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
     "python": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
+    "ruby2.5": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
     "nodejs6.10": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
     "nodejs8.10": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
     "nodejs4.3": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),

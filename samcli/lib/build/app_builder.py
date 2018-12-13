@@ -51,6 +51,12 @@ def _get_workflow_config(runtime):
             dependency_manager="pip",
             application_framework=None,
             manifest_name="requirements.txt")
+    elif runtime.startswith("nodejs"):
+        return config(
+            language="nodejs",
+            dependency_manager="npm",
+            application_framework=None,
+            manifest_name="package.json")
     else:
         raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 
@@ -118,7 +124,7 @@ class ApplicationBuilder(object):
 
         return result
 
-    def update_template(self, template_dict, target_template_path, built_artifacts):
+    def update_template(self, template_dict, original_template_path, built_artifacts):
         """
         Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
@@ -126,7 +132,7 @@ class ApplicationBuilder(object):
         Parameters
         ----------
         template_dict
-        target_template_path : str
+        original_template_path : str
             Path where the template file will be written to
 
         built_artifacts : dict
@@ -138,7 +144,7 @@ class ApplicationBuilder(object):
             Updated template
         """
 
-        target_dir = os.path.dirname(target_template_path)
+        original_dir = os.path.dirname(original_template_path)
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
@@ -146,10 +152,10 @@ class ApplicationBuilder(object):
                 # this resource was not built. So skip it
                 continue
 
-            # Artifacts are written relative to the output template because it makes the template portability
+            # Artifacts are written relative to the template because it makes the template portable
             #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
             #   package stage running on a different machine
-            artifact_relative_path = os.path.relpath(built_artifacts[logical_id], target_dir)
+            artifact_relative_path = os.path.relpath(built_artifacts[logical_id], original_dir)
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})

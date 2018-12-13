@@ -26,6 +26,20 @@ class Test_get_workflow_config(TestCase):
         self.assertEquals(result.application_framework, None)
         self.assertEquals(result.manifest_name, "requirements.txt")
 
+    @parameterized.expand([
+        ("nodejs6.10", ),
+        ("nodejs8.10", ),
+        ("nodejsX.Y", ),
+        ("nodejs", )
+    ])
+    def test_must_work_for_nodejs(self, runtime):
+
+        result = _get_workflow_config(runtime)
+        self.assertEquals(result.language, "nodejs")
+        self.assertEquals(result.dependency_manager, "npm")
+        self.assertEquals(result.application_framework, None)
+        self.assertEquals(result.manifest_name, "package.json")
+
     def test_must_raise_for_unsupported_runtimes(self):
 
         runtime = "foobar"
@@ -97,7 +111,7 @@ class TestApplicationBuilder_update_template(TestCase):
         }
 
     def test_must_write_relative_build_artifacts_path(self):
-        target_template_path = "/path/to/tempate.txt"
+        original_template_path = "/path/to/tempate.txt"
         built_artifacts = {
             "MyFunction1": "/path/to/build/MyFunction1",
             "MyFunction2": "/path/to/build/MyFunction2"
@@ -126,7 +140,7 @@ class TestApplicationBuilder_update_template(TestCase):
             }
         }
 
-        actual = self.builder.update_template(self.template_dict, target_template_path, built_artifacts)
+        actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
         self.assertEquals(actual, expected_result)
 
     def test_must_skip_if_no_artifacts(self):
