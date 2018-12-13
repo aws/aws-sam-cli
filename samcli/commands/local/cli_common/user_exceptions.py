@@ -66,3 +66,10 @@ class UnsupportedIntrinsic(UserException):
     Value from a template has an Intrinsic that is unsupported
     """
     pass
+
+
+class S3PermissionsRequired(UserException):
+    """
+    S3 bucket access permissions not granted when required
+    """
+    pass

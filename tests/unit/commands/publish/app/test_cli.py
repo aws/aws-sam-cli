@@ -3,11 +3,13 @@ import json
 from unittest import TestCase
 from mock import patch, call, Mock
 
+from botocore.exceptions import ClientError
+
 from serverlessrepo.exceptions import ServerlessRepoError
 from serverlessrepo.publish import CREATE_APPLICATION, UPDATE_APPLICATION
 
 from samcli.commands.publish.app.cli import do_cli as publish_app_cli
-from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, S3PermissionsRequired
 from samcli.commands.exceptions import UserException
 
 
@@ -47,6 +49,33 @@ class TestCli(TestCase):
     def test_must_raise_if_serverlessrepo_error(self, publish_application_mock):
         publish_application_mock.side_effect = ServerlessRepoError()
         with self.assertRaises(UserException):
+            publish_app_cli(self.ctx_mock, self.template)
+
+        self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
+
+    @patch('samcli.commands.publish.app.cli.publish_application')
+    def test_must_raise_if_s3_error(self, publish_application_mock):
+        publish_application_mock.side_effect = ClientError(
+            {
+                'Error': {
+                    'Code': 'BadRequestException',
+                    'Message': 'Failed to copy S3 object.'
+                }
+            },
+            'create_application'
+        )
+        with self.assertRaises(S3PermissionsRequired):
+            publish_app_cli(self.ctx_mock, self.template)
+
+        self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
+
+    @patch('samcli.commands.publish.app.cli.publish_application')
+    def test_must_raise_if_not_s3_error(self, publish_application_mock):
+        publish_application_mock.side_effect = ClientError(
+            {'Error': {'Code': 'OtherError', 'Message': 'OtherMessage'}},
+            'other_operation'
+        )
+        with self.assertRaises(ClientError):
             publish_app_cli(self.ctx_mock, self.template)
 
         self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
