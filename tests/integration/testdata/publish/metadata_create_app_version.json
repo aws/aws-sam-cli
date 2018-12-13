@@ -1,0 +1,11 @@
+{
+  "Author": "user",
+  "Description": "description",
+  "HomePageUrl": "https://github.com/test/test",
+  "Labels": [
+    "test-app"
+  ],
+  "ReadmeUrl": "s3://test-sam-publish-app/README.md",
+  "SemanticVersion": "0.0.2",
+  "SourceCodeUrl": "https://github.com/test/test-new-version"
+}

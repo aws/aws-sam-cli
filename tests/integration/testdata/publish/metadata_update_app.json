@@ -1,0 +1,9 @@
+{
+  "Author": "user-update",
+  "Description": "description-update",
+  "HomePageUrl": "https://github.com/test/test-update",
+  "Labels": [
+    "test-app-update"
+  ],
+  "ReadmeUrl": "s3://test-sam-publish-app/README_UPDATE.md"
+}

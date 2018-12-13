@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'sam-app
+
+  Sample SAM Template for sam-app
+
+  '
+Globals:
+  Function:
+    Timeout: 3
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Author: user-update
+    Description: description-update
+    HomePageUrl: https://github.com/test/test-update
+    Labels:
+    - test-app-update
+    LicenseUrl: s3://test-sam-publish-app/LICENSE.txt
+    Name: hello-world
+    ReadmeUrl: s3://test-sam-publish-app/README_UPDATE.md
+    SemanticVersion: 0.0.1
+    SourceCodeUrl: https://github.com/test/test
+Resources:
+  HelloWorldFunction:
+    Properties:
+      CodeUri: s3://test-sam-publish-app/175e5e4aebf2c1ed7744e51d7837bc1f
+      Environment:
+        Variables:
+          PARAM1: VALUE
+      Events:
+        HelloWorld:
+          Properties:
+            Method: get
+            Path: /hello
+          Type: Api
+      Handler: app.lambda_handler
+      Runtime: python3.6
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
