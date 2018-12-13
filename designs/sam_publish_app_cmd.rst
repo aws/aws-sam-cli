@@ -263,18 +263,22 @@ N/A
 Documentation Changes
 ---------------------
 
-#. Add "AWS::ServerlessRepo::Application" sepc in `Publishing Applications`_ guide and document how to use ``sam publish app``.
+1. SAM specification updates:
 
-#. Add ``ReadmeUrl`` and ``LicenseUrl`` in `aws cloudformation package`_ documentation.
+  - Add "AWS::ServerlessRepo::Application" sepc in `SAM specification`.
 
-#. Add ``sam publish app`` in `AWS SAM CLI Command Reference`_, and explain the command, usage, examples, options.
+  - Point to the new SAM spec in `Publishing Applications`_ guide.
 
-#. Add a quick start guide "Publishing your application to AWS Serverless Application Repository" under SAM CLI `Get Started`_.
+2. Add ``ReadmeUrl`` and ``LicenseUrl`` in `aws cloudformation package`_ documentation.
 
+3. Add ``sam publish app`` in `AWS SAM CLI Command Reference`_, and explain the command, usage, examples, options.
+
+4. Add a quick start guide "Publishing your application to AWS Serverless Application Repository" explaining how to use ``sam publish app``.
+
+.. _SAM Spec: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md
 .. _Publishing Applications: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publishing-applications.html
 .. _aws cloudformation package: https://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html
 .. _AWS SAM CLI Command Reference: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html
-.. _Get Started: https://github.com/awslabs/aws-sam-cli#get-started
 
 Open Issues
 -----------
