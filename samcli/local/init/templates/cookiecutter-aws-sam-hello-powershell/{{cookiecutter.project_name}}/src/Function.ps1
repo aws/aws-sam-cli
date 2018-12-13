@@ -14,4 +14,8 @@
 # This line publishes the input to CloudWatch logs so you know what triggered the function
 Write-Host (ConvertTo-Json -InputObject $LambdaInput -Compress -Depth 5)
 
+return @{
+    "message" = "hello world"
+}
+
 # Your logic goes here

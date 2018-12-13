@@ -2,28 +2,32 @@
 
 This is a sample template for {{ cookiecutter.project_name }}
 
+
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
 * [Docker installed](https://www.docker.com/community-edition)
-* [SAM Local installed](https://github.com/awslabs/aws-sam-cli)
-* [DotNet Core installed](https://www.microsoft.com/net/download)
+* [SAM CLI installed](https://github.com/awslabs/aws-sam-cli)
+* [.NET Core installed](https://www.microsoft.com/net/download)
+* [PowerShell Core installed](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-powershell?view=powershell-6)
+* [AWSLambdaPSCore PowerShell module](https://www.powershellgallery.com/packages/AWSLambdaPSCore/1.1.0.0)
+* [Pester PowerShell module](https://github.com/pester/Pester)
 
 ## Setup process
 
-### Linux & macOS
-
-```bash
-sh build.sh --target=Package
-```
-
-### Windows (Powershell)
+### PowerShell (all Operating Systems)
 
 ```powershell
-build.ps1 --target=Package
+build.ps1
 ```
 
 ### Local development
+
+**Invoking function locally using a local sample payload**
+
+```bash
+sam local invoke HelloWorldFunction --event event.json
+```
 
 **Invoking function locally through local API Gateway**
 
@@ -43,12 +47,11 @@ Events:
             Method: get
 ```
 
-
 If the previous command run successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
 
 ## Packaging and deployment
 
-AWS Lambda C# runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
+AWS Lambda PowerShell functions are compiled in to a .net core project before they are uploaded. Depencies are detected through the `#Requires` statement in your script file. After your project is built SAM will use `CodeUri` property to know where to look for the built application (including its dependencies):
 
 ```yaml
 ...
@@ -90,60 +93,54 @@ After deployment is complete you can run the following command to retrieve the A
 ```bash
 aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --query 'Stacks[].Outputs'
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
+    --output table
 ```
+
 ## Testing
 
-For testing our code, we use XUnit and you can use `dotnet test` to run tests defined under `test/`
-
-```bash
-dotnet test test/HelloWorld.Test
-```
-
-Alternatively, you can use Cake. It discovers and executes all the tests.
-
-### Linux & macOS
-
-```bash
-sh build.sh --target=Test
-```
-
-### Windows (Powershell)
+### Powershell (all Operating Systems)
 
 ```powershell
-build.ps1 --target=Test
+Invoke-Pester '[path to test directory]'
 ```
+
+This will run all files that end in `tests.ps1` in that directory.
 
 # Appendix
 
-## AWS CLI commands
+## SAM and AWS CLI commands
 
-AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack:
+All commands used throughout this document
 
 ```bash
-aws cloudformation package \
+# Invoke function locally with event.json as an input
+sam local invoke HelloWorldFunction --event event.json
+
+# Run API Gateway locally
+sam local start-api
+
+# Create S3 bucket
+aws s3 mb s3://BUCKET_NAME
+
+# Package Lambda function defined locally and upload to S3 as an artifact
+sam package \
     --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
-aws cloudformation deploy \
+# Deploy SAM template as a CloudFormation stack
+sam deploy \
     --template-file packaged.yaml \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides MyParameterSample=MySampleValue
+    --capabilities CAPABILITY_IAM
 
+# Describe Output section of CloudFormation stack previously created 
 aws cloudformation describe-stacks \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
+    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
+    --output table
+
+# Tail Lambda function Logs using Logical name defined in SAM Template
+sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
 ```
-
-## Bringing to the next level
-
-Here are a few ideas that you can use to get more acquainted as to how this overall process works:
-
-* Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
-* Update unit test to capture that
-* Package & Deploy
-
-Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
-
-* [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)

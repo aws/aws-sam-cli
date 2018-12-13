@@ -401,5 +401,10 @@ __pycache__/
 # By default, sensitive information, such as encrypted password
 # should be stored in the .pubxml.user file.
 
+# Exclude packaged modules
+*.zip
+
+# Exclude .NET assemblies from source
+*.dll
 
 # End of https://www.gitignore.io/api/macos,linux,windows,sublimetext,dotsettings,visualstudio,visualstudiocode

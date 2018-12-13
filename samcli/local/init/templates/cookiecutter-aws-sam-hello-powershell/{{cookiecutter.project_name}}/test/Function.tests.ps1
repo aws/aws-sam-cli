@@ -8,7 +8,8 @@ Describe "HelloWorld Tests" {
 
     It "Should write the input to the host stream" {
         $functionPath = Join-Path -Path $srcRoot -ChildPath "Function.ps1"
-        . $functionPath
+        $result = . $functionPath
         Assert-MockCalled -CommandName Write-Host -Times 1
+        $result.message | Should Be "hello world"
     }
 }
