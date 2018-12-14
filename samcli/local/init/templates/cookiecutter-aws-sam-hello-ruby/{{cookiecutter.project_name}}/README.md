@@ -44,7 +44,7 @@ rvm --default use 2.5.0
 ```bash
 gem install bundler
 bundle install
-bundle install --deployment --path hello_world/vendor/bundle
+bundle install --deployment --path hello_world/vendor/bundle --without test
 ```
 
 * Step 1 installs ```bundler```which provides a consistent environment for Ruby projects by tracking and installing the exact gems and versions that are needed.
@@ -124,12 +124,10 @@ aws cloudformation describe-stacks \
 
 ## Testing
 
-We use [Mocha](http://gofreerange.com/mocha/docs) for testing our code and you can install it using gem: ``gem install mocha`` 
-
-Next, we run our initial unit tests:
+Run our initial unit tests:
 
 ```bash
-ruby tests/unit/test_handler.rb
+bundle exec ruby tests/unit/test_handler.rb
 ```
 
 **NOTE**: It is recommended to use a Ruby Version Manager to manage, and work with multiple ruby environments from interpreters to sets of gems
