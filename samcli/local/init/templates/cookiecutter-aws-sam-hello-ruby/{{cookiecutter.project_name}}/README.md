@@ -129,7 +129,7 @@ We use [Mocha](http://gofreerange.com/mocha/docs) for testing our code and you c
 Next, we run our initial unit tests:
 
 ```bash
-ruby tests/unit/test_hello.rb
+ruby tests/unit/test_handler.rb
 ```
 
 **NOTE**: It is recommended to use a Ruby Version Manager to manage, and work with multiple ruby environments from interpreters to sets of gems
