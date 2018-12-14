@@ -5,9 +5,9 @@
   "Labels": [
     "test-app"
   ],
-  "LicenseUrl": "s3://test-sam-publish-app/LICENSE.txt",
+  "LicenseUrl": "s3://<bucket-name>/LICENSE",
   "Name": "hello-world",
-  "ReadmeUrl": "s3://test-sam-publish-app/README.md",
+  "ReadmeUrl": "s3://<bucket-name>/README.rst",
   "SemanticVersion": "0.0.1",
   "SourceCodeUrl": "https://github.com/test/test"
 }

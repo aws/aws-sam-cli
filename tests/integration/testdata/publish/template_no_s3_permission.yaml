@@ -14,15 +14,15 @@ Metadata:
     HomePageUrl: https://github.com/test/test
     Labels:
     - test-app
-    LicenseUrl: s3://test-sam-publish-app/LICENSE.txt
+    LicenseUrl: s3://<bucket-name>/LICENSE
     Name: hello-world
-    ReadmeUrl: s3://test-sam-publish-app/README_no_permission.md
+    ReadmeUrl: s3://<bucket-name>/README_NO_PERMISSION.rst
     SemanticVersion: 0.0.1
     SourceCodeUrl: https://github.com/test/test
 Resources:
   HelloWorldFunction:
     Properties:
-      CodeUri: s3://test-sam-publish-app/175e5e4aebf2c1ed7744e51d7837bc1f
+      CodeUri: s3://<bucket-name>/main.py
       Environment:
         Variables:
           PARAM1: VALUE
@@ -32,7 +32,7 @@ Resources:
             Method: get
             Path: /hello
           Type: Api
-      Handler: app.lambda_handler
+      Handler: main.lambda_handler
       Runtime: python3.6
     Type: AWS::Serverless::Function
 Transform: AWS::Serverless-2016-10-31

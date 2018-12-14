@@ -5,7 +5,7 @@
   "Labels": [
     "test-app"
   ],
-  "ReadmeUrl": "s3://test-sam-publish-app/README.md",
+  "ReadmeUrl": "s3://<bucket-name>/README.rst",
   "SemanticVersion": "0.0.2",
   "SourceCodeUrl": "https://github.com/test/test-new-version"
 }
