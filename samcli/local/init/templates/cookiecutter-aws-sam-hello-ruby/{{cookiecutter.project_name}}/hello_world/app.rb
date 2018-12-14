@@ -72,7 +72,7 @@ def lambda_handler(event:, context:)
     puts error.inspect
     raise error
   end
-        		
+
   return {
     :statusCode => response.code,
     :body => {

@@ -6,7 +6,7 @@ require_relative '../../hello_world/app'
 class HelloWorldTest < Test::Unit::TestCase
 
   def setup
-    @event = { 
+    @event = {
       body: 'eyJ0ZXN0IjoiYm9keSJ9',
       resource: '/{proxy+}',
       path: '/path/to/resource',
