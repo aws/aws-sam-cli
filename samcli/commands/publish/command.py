@@ -1,10 +1,11 @@
-"""CLI command for "publish app" command."""
+"""CLI command for "publish" command."""
 
 import os
 import json
 import logging
 import click
 
+import boto3
 from botocore.exceptions import ClientError
 
 from serverlessrepo import publish_application
@@ -31,12 +32,12 @@ https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publis
 Examples
 --------
 To publish an application
-$ sam publish app -t packaged.yaml --region <region>
+$ sam publish -t packaged.yaml --region <region>
 """
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
 
 
-@click.command("app", help=HELP_TEXT, short_help=SHORT_HELP)
+@click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
 @template_common_option
 @aws_creds_options
 @cli_framework_options
@@ -104,6 +105,8 @@ def _print_console_link(region, application_id):
         The Amazon Resource Name (ARN) of the application
 
     """
+    if not region:
+        region = boto3.Session().region_name
     url = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
     console_link = url.format(region, application_id.replace('/', '~'))
     msg = "Click the link below to view your application in AWS console:\n{}".format(console_link)

@@ -1,4 +1,5 @@
 import os
+import json
 import uuid
 from unittest import TestCase
 import boto3
@@ -17,7 +18,7 @@ class PublishAppIntegBase(TestCase):
         cls.bucket_name = str(uuid.uuid4())
         cls.bucket_name_placeholder = "<bucket-name>"
         cls.application_name_placeholder = "<application-name>"
-        cls.test_data_path = Path(__file__).resolve().parents[2].joinpath("testdata", "publish")
+        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "publish")
         cls.sar_client = boto3.client('serverlessrepo', region_name=cls.region_name)
 
         # Create S3 bucket
@@ -33,10 +34,10 @@ class PublishAppIntegBase(TestCase):
         cls.s3_bucket.Policy().put(Policy=bucket_policy)
 
         # Upload test files to S3
-        license_body = Path(__file__).resolve().parents[4].joinpath("LICENSE").read_text()
+        license_body = Path(__file__).resolve().parents[3].joinpath("LICENSE").read_text()
         cls.s3_bucket.put_object(Key="LICENSE", Body=license_body)
 
-        readme_body = Path(__file__).resolve().parents[4].joinpath("README.rst").read_text()
+        readme_body = Path(__file__).resolve().parents[3].joinpath("README.rst").read_text()
         cls.s3_bucket.put_object(Key="README.rst", Body=readme_body)
         cls.s3_bucket.put_object(Key="README_UPDATE.rst", Body=readme_body)
 
@@ -62,6 +63,13 @@ class PublishAppIntegBase(TestCase):
                 content = f.read_text()
                 f.write_text(content.replace(text, replace_text))
 
+    def assert_metadata_details(self, app_metadata, std_output):
+        # Strip newlines and spaces in the std output
+        stripped_std_output = std_output.replace('\n', '').replace('\r', '').replace(' ', '')
+        # Assert expected app metadata in the std output regardless of key order
+        for key, value in app_metadata.items():
+            self.assertIn('"{}":{}'.format(key, json.dumps(value)), stripped_std_output)
+
     def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
@@ -70,7 +78,7 @@ class PublishAppIntegBase(TestCase):
         return command
 
     def get_command_list(self, template_path=None, region=None, profile=None):
-        command_list = [self.base_command(), "publish", "app"]
+        command_list = [self.base_command(), "publish"]
 
         if template_path:
             command_list = command_list + ["-t", template_path]
