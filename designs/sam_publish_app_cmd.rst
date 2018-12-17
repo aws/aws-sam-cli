@@ -2,7 +2,7 @@
    :depth: 2
    :local:
 
-``sam publish app`` command
+``sam publish`` command
 ====================================
 
 This is the design for a command to publish an application to `AWS Serverless Application Repository (SAR)`_ with a SAM
@@ -23,19 +23,19 @@ a mistake while typing in the command line.
 
 What will be changed?
 ---------------------
-In this proposal, we will be providing a new command, ``sam publish app``, which takes a SAM template as input and publishes
+In this proposal, we will be providing a new command, ``sam publish``, which takes a SAM template as input and publishes
 an application to AWS Serverless Application Repository using applicaiton metadata specified in the template. Customers
 need to provide application metadata information in the template, then ``sam package`` will handle uploading local files to S3,
-and ``sam publish app`` will create the app in Serverless Application Repository.
+and ``sam publish`` will create the app in Serverless Application Repository.
 
 
 Success criteria for the change
 -------------------------------
 #. Support all the following use cases:
 
-   * Create new application w/ its first version in SAR using ``sam publish app``
-   * Create new version of existing SAR application using ``sam publish app``
-   * Update application metadata of existing SAR application using ``sam publish app``
+   * Create new application w/ its first version in SAR using ``sam publish``
+   * Create new version of existing SAR application using ``sam publish``
+   * Update application metadata of existing SAR application using ``sam publish``
 
 #. ``sam package`` command can upload local readme/license files to S3.
 
@@ -92,11 +92,11 @@ Package built artifacts and local file references
   to upload code artifacts, readme and license files to S3 and generate the packaged template.
 
 Create new application in SAR
-  Run ``sam publish app -t ./packaged.yaml`` to publish a new application named my-app in SAR with the first version
+  Run ``sam publish -t ./packaged.yaml`` to publish a new application named my-app in SAR with the first version
   created as 0.0.1. The app will be created as private by default. SAM CLI prints application created message, metadata
   used to create application and link to the console details page.
 
-  >>> sam publish app -t ./packaged.yaml
+  >>> sam publish -t ./packaged.yaml
   Publish Succeeded
   Created new application with the following metadata:
   {
@@ -115,10 +115,10 @@ Create new application in SAR
   https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
 Create new version of an existing SAR application
-  Modify the existing template, change SemanticVersion to 0.0.2, and run ``sam publish app -t ./packaged.yaml`` again.
+  Modify the existing template, change SemanticVersion to 0.0.2, and run ``sam publish -t ./packaged.yaml`` again.
   SAM CLI prints application metadata updated message, values of updated metadata and link to the console details page.
 
-  >>> sam publish app -t ./packaged.yaml
+  >>> sam publish -t ./packaged.yaml
   Publish Succeeded
   The following metadata of application <id> has been updated:
   {
@@ -134,10 +134,10 @@ Create new version of an existing SAR application
 
 Update the metadata of an existing application without creating new version
   Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
-  ``sam publish app -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of updated
+  ``sam publish -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of updated
   metadata and link to the console details page.
 
-  >>> sam publish app -t ./packaged.yaml
+  >>> sam publish -t ./packaged.yaml
   Publish Succeeded
   The following metadata of application <id> has been updated:
   {
@@ -163,11 +163,11 @@ CLI Changes
 -----------
 *Explain the changes to command line interface, including adding new commands, modifying arguments etc*
 
-1. Add a new top-level command called ``sam publish app`` with the following help message.
+1. Add a new top-level command called ``sam publish`` with the following help message.
 
 .. code-block:: text
 
-  Usage: sam publish app [OPTIONS]
+  Usage: sam publish [OPTIONS]
 
     Use this command to publish a packaged AWS SAM template to the AWS
     Serverless Application Repository to share within your team, across your
@@ -181,7 +181,7 @@ CLI Changes
     Examples
     --------
     To publish an application
-    $ sam publish app -t packaged.yaml --region <region>
+    $ sam publish -t packaged.yaml --region <region>
 
   Options:
     -t, --template PATH  AWS SAM template file  [default: template.[yaml|yml]]
@@ -207,7 +207,7 @@ Design
 *between components, constraints, etc.*
 
 SAM CLI will read the packaged SAM template and pass it as string to `aws-serverlessrepo-python <https://github.com/awslabs/aws-serverlessrepo-python>`_
-library. The algorithm for ``sam publish app -t ./packaged.yaml`` looks like this:
+library. The algorithm for ``sam publish -t ./packaged.yaml`` looks like this:
 
 .. code-block:: python
 
@@ -263,19 +263,17 @@ N/A
 Documentation Changes
 ---------------------
 
-1. SAM specification updates:
+1. Add "AWS::ServerlessRepo::Application" spec in `Publishing Applications`_ guide.
 
-  - Add "AWS::ServerlessRepo::Application" sepc in `SAM specification`.
-
-  - Point to the new SAM spec in `Publishing Applications`_ guide.
+  - Can be added in `SAM specification`_ in the future.
 
 2. Add ``ReadmeUrl`` and ``LicenseUrl`` in `aws cloudformation package`_ documentation.
 
-3. Add ``sam publish app`` in `AWS SAM CLI Command Reference`_, and explain the command, usage, examples, options.
+3. Add ``sam publish`` in `AWS SAM CLI Command Reference`_, and explain the command, usage, examples, options.
 
-4. Add a quick start guide "Publishing your application to AWS Serverless Application Repository" explaining how to use ``sam publish app``.
+4. Add a quick start guide "Publishing your application to AWS Serverless Application Repository" explaining how to use ``sam publish``.
 
-.. _SAM Spec: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md
+.. _SAM specification: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md
 .. _Publishing Applications: https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publishing-applications.html
 .. _aws cloudformation package: https://docs.aws.amazon.com/cli/latest/reference/cloudformation/package.html
 .. _AWS SAM CLI Command Reference: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html
