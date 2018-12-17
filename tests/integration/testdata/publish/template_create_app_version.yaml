@@ -15,7 +15,7 @@ Metadata:
     Labels:
     - test-app
     LicenseUrl: s3://<bucket-name>/LICENSE
-    Name: hello-world
+    Name: <application-name>
     ReadmeUrl: s3://<bucket-name>/README.rst
     SemanticVersion: 0.0.2
     SourceCodeUrl: "https://github.com/test/test-new-version"

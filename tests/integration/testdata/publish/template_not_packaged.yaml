@@ -14,15 +14,15 @@ Metadata:
     HomePageUrl: https://github.com/test/test
     Labels:
     - test-app
-    LicenseUrl: s3://<bucket-name>/LICENSE
-    Name: hello-world
-    ReadmeUrl: s3://<bucket-name>/README_NO_PERMISSION.rst
+    LicenseUrl: ./LICENSE
+    Name: <application-name>
+    ReadmeUrl: ./README.rst
     SemanticVersion: 0.0.1
     SourceCodeUrl: https://github.com/test/test
 Resources:
   HelloWorldFunction:
     Properties:
-      CodeUri: s3://<bucket-name>/main.py
+      CodeUri: ./main.py
       Environment:
         Variables:
           PARAM1: VALUE

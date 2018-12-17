@@ -9,7 +9,7 @@ from serverlessrepo.exceptions import ServerlessRepoError
 from serverlessrepo.publish import CREATE_APPLICATION, UPDATE_APPLICATION
 
 from samcli.commands.publish.app.cli import do_cli as publish_app_cli
-from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, S3PermissionsRequired
+from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.exceptions import UserException
 
 
@@ -54,23 +54,26 @@ class TestCli(TestCase):
         self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch('samcli.commands.publish.app.cli.publish_application')
-    def test_must_raise_if_s3_error(self, publish_application_mock):
+    def test_must_raise_if_s3_uri_error(self, publish_application_mock):
         publish_application_mock.side_effect = ClientError(
             {
                 'Error': {
                     'Code': 'BadRequestException',
-                    'Message': 'Failed to copy S3 object.'
+                    'Message': 'Invalid S3 URI'
                 }
             },
             'create_application'
         )
-        with self.assertRaises(S3PermissionsRequired):
+        with self.assertRaises(UserException) as context:
             publish_app_cli(self.ctx_mock, self.template)
 
+        message = str(context.exception)
+        self.assertIn("Please make sure that you have uploaded application artifacts "
+                      "to S3 by packaging the template", message)
         self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch('samcli.commands.publish.app.cli.publish_application')
-    def test_must_raise_if_not_s3_error(self, publish_application_mock):
+    def test_must_raise_if_not_s3_uri_error(self, publish_application_mock):
         publish_application_mock.side_effect = ClientError(
             {'Error': {'Code': 'OtherError', 'Message': 'OtherMessage'}},
             'other_operation'

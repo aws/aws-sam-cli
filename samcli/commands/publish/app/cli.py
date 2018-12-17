@@ -13,7 +13,7 @@ from serverlessrepo.exceptions import ServerlessRepoError
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_common_option
-from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException, S3PermissionsRequired
+from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.exceptions import UserException
 
 LOG = logging.getLogger(__name__)
@@ -34,7 +34,6 @@ To publish an application
 $ sam publish app -t packaged.yaml --region <region>
 """
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
-PUBLISH_GUIDE = "https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publishing-applications.html"
 
 
 @click.command("app", help=HELP_TEXT, short_help=SHORT_HELP)
@@ -64,7 +63,7 @@ def do_cli(ctx, template):
             raise UserException(str(ex))
         except ClientError as ex:
             click.secho("Publish Failed", fg='red')
-            raise _wrap_s3_exception(ex)
+            raise _wrap_s3_uri_exception(ex)
 
         application_id = output['application_id']
         _print_console_link(ctx.region, application_id)
@@ -95,7 +94,7 @@ def _gen_success_message(publish_output):
 
 def _print_console_link(region, application_id):
     """
-    Print link for the application in AWS Serverless Repository console.
+    Print link for the application in AWS Serverless Application Repository console.
 
     Parameters
     ----------
@@ -111,9 +110,9 @@ def _print_console_link(region, application_id):
     click.secho(msg, fg="yellow")
 
 
-def _wrap_s3_exception(ex):
+def _wrap_s3_uri_exception(ex):
     """
-    Wrap S3 access denied exception with a better error message.
+    Wrap invalid S3 URI exception with a better error message.
 
     Parameters
     ----------
@@ -123,15 +122,14 @@ def _wrap_s3_exception(ex):
     Returns
     -------
     Exception
-        S3PermissionsRequired if S3 related or ClientError
+        UserException if found invalid S3 URI or ClientError
     """
     error_code = ex.response['Error']['Code']
     message = ex.response['Error']['Message']
 
-    if error_code == 'BadRequestException' and "Failed to copy S3 object" in message:
-        return S3PermissionsRequired(
-            "AWS Serverless Application Repository doesn't have read permissions for "
-            "artifacts uploaded to your S3 bucket. Follow the steps in {} to correctly "
-            "configure the S3 bucket policy.".format(PUBLISH_GUIDE))
+    if error_code == 'BadRequestException' and "Invalid S3 URI" in message:
+        return UserException(
+            "You SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
+            "artifacts to S3 by packaging the template: 'sam package --template-file <file-path>'.")
 
     return ex
