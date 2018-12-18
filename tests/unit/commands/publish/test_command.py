@@ -4,15 +4,15 @@ from unittest import TestCase
 from mock import patch, call, Mock
 
 from botocore.exceptions import ClientError
-
 from serverlessrepo.exceptions import ServerlessRepoError
 from serverlessrepo.publish import CREATE_APPLICATION, UPDATE_APPLICATION
 
 from samcli.commands.publish.command import do_cli as publish_cli
-from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
 from samcli.commands.exceptions import UserException
 
 
+@patch('samcli.commands.publish.command.yaml', Mock(return_value=""))
+@patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
 class TestCli(TestCase):
 
     def setUp(self):
@@ -23,38 +23,18 @@ class TestCli(TestCase):
         self.console_link = "Click the link below to view your application in AWS console:\n" \
             "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
 
-        path_patcher = patch('samcli.commands.publish.command.os.path')
-        self.path_mock = path_patcher.start()
-        self.path_mock.exists.return_value = True
-
-        click_patcher = patch('samcli.commands.publish.command.click')
-        self.click_mock = click_patcher.start()
-        fs_mock = Mock()
-        fs_mock.read.return_value = "hello"
-        self.click_mock.open_file.__enter__.return_value = fs_mock
-
-        self.addCleanup(patch.stopall)
-
-    def test_must_raise_if_no_template_found(self):
-        self.path_mock.exists.return_value = False
-        with self.assertRaises(SamTemplateNotFoundException) as context:
-            publish_cli(self.ctx_mock, self.template)
-
-        msg = str(context.exception)
-        expected = "Template at {} is not found".format(self.template)
-        self.assertEqual(msg, expected)
-        self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
-
     @patch('samcli.commands.publish.command.publish_application')
-    def test_must_raise_if_serverlessrepo_error(self, publish_application_mock):
+    @patch('samcli.commands.publish.command.click')
+    def test_must_raise_if_serverlessrepo_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = ServerlessRepoError()
         with self.assertRaises(UserException):
             publish_cli(self.ctx_mock, self.template)
 
-        self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
+        click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch('samcli.commands.publish.command.publish_application')
-    def test_must_raise_if_s3_uri_error(self, publish_application_mock):
+    @patch('samcli.commands.publish.command.click')
+    def test_must_raise_if_s3_uri_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = ClientError(
             {
                 'Error': {
@@ -70,10 +50,11 @@ class TestCli(TestCase):
         message = str(context.exception)
         self.assertIn("Please make sure that you have uploaded application artifacts "
                       "to S3 by packaging the template", message)
-        self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
+        click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch('samcli.commands.publish.command.publish_application')
-    def test_must_raise_if_not_s3_uri_error(self, publish_application_mock):
+    @patch('samcli.commands.publish.command.click')
+    def test_must_raise_if_not_s3_uri_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = ClientError(
             {'Error': {'Code': 'OtherError', 'Message': 'OtherMessage'}},
             'other_operation'
@@ -81,10 +62,11 @@ class TestCli(TestCase):
         with self.assertRaises(ClientError):
             publish_cli(self.ctx_mock, self.template)
 
-        self.click_mock.secho.assert_called_with("Publish Failed", fg="red")
+        click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch('samcli.commands.publish.command.publish_application')
-    def test_must_succeed_to_create_application(self, publish_application_mock):
+    @patch('samcli.commands.publish.command.click')
+    def test_must_succeed_to_create_application(self, click_mock, publish_application_mock):
         publish_application_mock.return_value = {
             'application_id': self.application_id,
             'details': {'attr1': 'value1'},
@@ -98,14 +80,15 @@ class TestCli(TestCase):
             self.ctx_mock.region,
             self.application_id.replace('/', '~')
         )
-        self.click_mock.secho.assert_has_calls([
+        click_mock.secho.assert_has_calls([
             call("Publish Succeeded", fg="green"),
             call(expected_msg.format(details_str), fg="yellow"),
             call(expected_link, fg="yellow")
         ])
 
     @patch('samcli.commands.publish.command.publish_application')
-    def test_must_succeed_to_update_application(self, publish_application_mock):
+    @patch('samcli.commands.publish.command.click')
+    def test_must_succeed_to_update_application(self, click_mock, publish_application_mock):
         publish_application_mock.return_value = {
             'application_id': self.application_id,
             'details': {'attr1': 'value1'},
@@ -119,7 +102,7 @@ class TestCli(TestCase):
             self.ctx_mock.region,
             self.application_id.replace('/', '~')
         )
-        self.click_mock.secho.assert_has_calls([
+        click_mock.secho.assert_has_calls([
             call("Publish Succeeded", fg="green"),
             call(expected_msg.format(self.application_id, details_str), fg="yellow"),
             call(expected_link, fg="yellow")
@@ -127,7 +110,9 @@ class TestCli(TestCase):
 
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.boto3')
-    def test_print_console_link_if_context_region_not_set(self, boto3_mock, publish_application_mock):
+    @patch('samcli.commands.publish.command.click')
+    def test_print_console_link_if_context_region_not_set(self, click_mock, boto3_mock,
+                                                          publish_application_mock):
         self.ctx_mock.region = None
         publish_application_mock.return_value = {
             'application_id': self.application_id,
@@ -144,4 +129,4 @@ class TestCli(TestCase):
             session_mock.region_name,
             self.application_id.replace('/', '~')
         )
-        self.click_mock.secho.assert_called_with(expected_link, fg="yellow")
+        click_mock.secho.assert_called_with(expected_link, fg="yellow")

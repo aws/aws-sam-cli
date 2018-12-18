@@ -1,7 +1,9 @@
 import os
 import json
 import uuid
+import shutil
 from unittest import TestCase
+
 import boto3
 
 try:
@@ -14,10 +16,11 @@ class PublishAppIntegBase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.region_name = "us-east-1"
+        cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
         cls.bucket_name = str(uuid.uuid4())
         cls.bucket_name_placeholder = "<bucket-name>"
         cls.application_name_placeholder = "<application-name>"
+        cls.temp_dir = Path(__file__).resolve().parent.joinpath("temp")
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "publish")
         cls.sar_client = boto3.client('serverlessrepo', region_name=cls.region_name)
 
@@ -26,18 +29,17 @@ class PublishAppIntegBase(TestCase):
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
         cls.s3_bucket.create()
 
-        # Replace placeholder with the created S3 bucket name in test files
-        cls.replace_text_in_file(cls.bucket_name_placeholder, cls.bucket_name)
-
         # Grant serverlessrepo read access to the bucket
-        bucket_policy = cls.test_data_path.joinpath("s3_bucket_policy.json").read_text()
+        bucket_policy_template = cls.test_data_path.joinpath("s3_bucket_policy.json").read_text()
+        bucket_policy = bucket_policy_template.replace(cls.bucket_name_placeholder, cls.bucket_name)
         cls.s3_bucket.Policy().put(Policy=bucket_policy)
 
         # Upload test files to S3
-        license_body = Path(__file__).resolve().parents[3].joinpath("LICENSE").read_text()
+        root_path = Path(__file__).resolve().parents[3]
+        license_body = root_path.joinpath("LICENSE").read_text()
         cls.s3_bucket.put_object(Key="LICENSE", Body=license_body)
 
-        readme_body = Path(__file__).resolve().parents[3].joinpath("README.rst").read_text()
+        readme_body = root_path.joinpath("README.rst").read_text()
         cls.s3_bucket.put_object(Key="README.rst", Body=readme_body)
         cls.s3_bucket.put_object(Key="README_UPDATE.rst", Body=readme_body)
 
@@ -53,15 +55,25 @@ class PublishAppIntegBase(TestCase):
             ]
         })
         cls.s3_bucket.delete()
-        # Replace the S3 bucket name with placeholder in test files
-        cls.replace_text_in_file(cls.bucket_name, cls.bucket_name_placeholder)
 
     @classmethod
-    def replace_text_in_file(cls, text, replace_text):
-        for f in cls.test_data_path.iterdir():
+    def replace_template_placeholder(cls, placeholder, replace_text):
+        for f in cls.temp_dir.iterdir():
             if f.suffix == ".yaml" or f.suffix == ".json":
                 content = f.read_text()
-                f.write_text(content.replace(text, replace_text))
+                f.write_text(content.replace(placeholder, replace_text))
+
+    def setUp(self):
+        shutil.rmtree(str(self.temp_dir), ignore_errors=True)
+        shutil.copytree(str(self.test_data_path), str(self.temp_dir))
+
+        # Replace placeholders with the created S3 bucket name and application name
+        self.application_name = str(uuid.uuid4())
+        self.replace_template_placeholder(self.bucket_name_placeholder, self.bucket_name)
+        self.replace_template_placeholder(self.application_name_placeholder, self.application_name)
+
+    def tearDown(self):
+        shutil.rmtree(str(self.temp_dir), ignore_errors=True)
 
     def assert_metadata_details(self, app_metadata, std_output):
         # Strip newlines and spaces in the std output
@@ -81,7 +93,7 @@ class PublishAppIntegBase(TestCase):
         command_list = [self.base_command(), "publish"]
 
         if template_path:
-            command_list = command_list + ["-t", template_path]
+            command_list = command_list + ["-t", str(template_path)]
 
         if region:
             command_list = command_list + ["--region", region]

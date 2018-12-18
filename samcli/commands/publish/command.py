@@ -1,23 +1,19 @@
 """CLI command for "publish" command."""
 
-import os
 import json
-import logging
-import click
 
+import yaml
+import click
 import boto3
 from botocore.exceptions import ClientError
-
 from serverlessrepo import publish_application
 from serverlessrepo.publish import CREATE_APPLICATION
 from serverlessrepo.exceptions import ServerlessRepoError
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_common_option
-from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+from samcli.commands._utils.template import get_template_data
 from samcli.commands.exceptions import UserException
-
-LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
 Use this command to publish a packaged AWS SAM template to
@@ -35,6 +31,7 @@ To publish an application
 $ sam publish -t packaged.yaml --region <region>
 """
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
+SERVERLESSREPO_CONSOLE_URL = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
 
 
 @click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
@@ -50,24 +47,20 @@ def cli(ctx, template):
 
 def do_cli(ctx, template):
     """Publish the application based on command line inputs."""
-    if not os.path.exists(template):
+    template_data = get_template_data(template)
+    try:
+        publish_output = publish_application(yaml.safe_dump(template_data))
+        click.secho("Publish Succeeded", fg="green")
+        click.secho(_gen_success_message(publish_output), fg="yellow")
+    except ServerlessRepoError as ex:
         click.secho("Publish Failed", fg='red')
-        raise SamTemplateNotFoundException("Template at {} is not found".format(template))
+        raise UserException(str(ex))
+    except ClientError as ex:
+        click.secho("Publish Failed", fg='red')
+        raise _wrap_s3_uri_exception(ex)
 
-    with click.open_file(template, 'r') as template_file:
-        try:
-            output = publish_application(template_file.read())
-            click.secho("Publish Succeeded", fg="green")
-            click.secho(_gen_success_message(output), fg="yellow")
-        except ServerlessRepoError as ex:
-            click.secho("Publish Failed", fg='red')
-            raise UserException(str(ex))
-        except ClientError as ex:
-            click.secho("Publish Failed", fg='red')
-            raise _wrap_s3_uri_exception(ex)
-
-        application_id = output['application_id']
-        _print_console_link(ctx.region, application_id)
+    application_id = publish_output.get('application_id')
+    _print_console_link(ctx.region, application_id)
 
 
 def _gen_success_message(publish_output):
@@ -84,10 +77,10 @@ def _gen_success_message(publish_output):
     str
         Detailed success message
     """
-    application_id = publish_output['application_id']
-    details = json.dumps(publish_output['details'], indent=2)
+    application_id = publish_output.get('application_id')
+    details = json.dumps(publish_output.get('details'), indent=2)
 
-    if CREATE_APPLICATION in publish_output['actions']:
+    if CREATE_APPLICATION in publish_output.get('actions'):
         return "Created new application with the following metadata:\n{}".format(details)
 
     return 'The following metadata of application "{}" has been updated:\n{}'.format(application_id, details)
@@ -107,8 +100,8 @@ def _print_console_link(region, application_id):
     """
     if not region:
         region = boto3.Session().region_name
-    url = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
-    console_link = url.format(region, application_id.replace('/', '~'))
+
+    console_link = SERVERLESSREPO_CONSOLE_URL.format(region, application_id.replace('/', '~'))
     msg = "Click the link below to view your application in AWS console:\n{}".format(console_link)
     click.secho(msg, fg="yellow")
 
@@ -127,8 +120,8 @@ def _wrap_s3_uri_exception(ex):
     Exception
         UserException if found invalid S3 URI or ClientError
     """
-    error_code = ex.response['Error']['Code']
-    message = ex.response['Error']['Message']
+    error_code = ex.response.get('Error').get('Code')
+    message = ex.response.get('Error').get('Message')
 
     if error_code == 'BadRequestException' and "Invalid S3 URI" in message:
         return UserException(
