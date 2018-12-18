@@ -7,7 +7,8 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ├── README.md                   <-- This instructions file
 ├── hello_world                 <-- Source code for a lambda function
 │   ├── app.rb                  <-- Lambda function code
-│   ├── Gemfile                 <-- Ruby dependencies
+│   ├── Gemfile                 <-- Ruby function dependencies
+├── Gemfile                     <-- Ruby test/documentation dependencies
 ├── template.yaml               <-- SAM template
 └── tests                       <-- Unit tests
     └── unit
@@ -124,11 +125,11 @@ ruby tests/unit/test_handler.rb
 
 ## AWS CLI commands
 
-AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack:
+AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack after building:
 
 ```bash
 sam package \
-    --template-file template.yaml \
+    --template-file .aws-sam/build/template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 

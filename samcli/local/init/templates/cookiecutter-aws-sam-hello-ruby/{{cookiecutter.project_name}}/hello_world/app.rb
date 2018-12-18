@@ -74,10 +74,10 @@ def lambda_handler(event:, context:)
   end
         		
   {
-    :statusCode => response.code,
-    :body => {
-      :message => "Hello World!",
-      :location => response.body
+    statusCode: response.code,
+    body: {
+      message: "Hello World!",
+      location: response.body
     }.to_json
   }
 end
