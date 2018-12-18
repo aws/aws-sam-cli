@@ -11,7 +11,6 @@ from samcli.commands.publish.command import do_cli as publish_cli
 from samcli.commands.exceptions import UserException
 
 
-@patch('samcli.commands.publish.command.yaml', Mock(return_value=""))
 @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
 class TestCli(TestCase):
 

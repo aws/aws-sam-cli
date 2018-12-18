@@ -2,7 +2,6 @@
 
 import json
 
-import yaml
 import click
 import boto3
 from botocore.exceptions import ClientError
@@ -49,7 +48,7 @@ def do_cli(ctx, template):
     """Publish the application based on command line inputs."""
     template_data = get_template_data(template)
     try:
-        publish_output = publish_application(yaml.safe_dump(template_data))
+        publish_output = publish_application(json.dumps(template_data))
         click.secho("Publish Succeeded", fg="green")
         click.secho(_gen_success_message(publish_output), fg="yellow")
     except ServerlessRepoError as ex:

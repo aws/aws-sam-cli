@@ -2,6 +2,7 @@ import os
 import json
 import uuid
 import shutil
+import tempfile
 from unittest import TestCase
 
 import boto3
@@ -20,7 +21,7 @@ class PublishAppIntegBase(TestCase):
         cls.bucket_name = str(uuid.uuid4())
         cls.bucket_name_placeholder = "<bucket-name>"
         cls.application_name_placeholder = "<application-name>"
-        cls.temp_dir = Path(__file__).resolve().parent.joinpath("temp")
+        cls.temp_dir = Path(tempfile.mkdtemp())
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "publish")
         cls.sar_client = boto3.client('serverlessrepo', region_name=cls.region_name)
 
