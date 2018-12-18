@@ -73,7 +73,7 @@ def lambda_handler(event:, context:)
     raise error
   end
         		
-  return {
+  {
     :statusCode => response.code,
     :body => {
       :message => "Hello World!",

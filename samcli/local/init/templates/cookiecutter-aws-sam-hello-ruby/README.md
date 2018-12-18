@@ -1,6 +1,6 @@
 # Cookiecutter SAM for Ruby Lambda functions
 
-This is a [Cookiecutter](https://github.com/audreyr/cookiecutter) template to create a Serverless Hello World App based on Serverless Application Model (SAM) and Python.
+This is a [Cookiecutter](https://github.com/audreyr/cookiecutter) template to create a Serverless Hello World App based on Serverless Application Model (SAM) and Ruby.
 
 ## Recommendations
 
