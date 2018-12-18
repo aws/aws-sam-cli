@@ -11,7 +11,6 @@ from samcli.commands.publish.command import do_cli as publish_cli
 from samcli.commands.exceptions import UserException
 
 
-@patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
 class TestCli(TestCase):
 
     def setUp(self):
@@ -22,6 +21,18 @@ class TestCli(TestCase):
         self.console_link = "Click the link below to view your application in AWS console:\n" \
             "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
 
+    @patch('samcli.commands.publish.command.get_template_data')
+    @patch('samcli.commands.publish.command.click')
+    def test_must_raise_if_value_error(self, click_mock, get_template_data_mock):
+        get_template_data_mock.side_effect = ValueError("Template not found")
+        with self.assertRaises(UserException) as context:
+            publish_cli(self.ctx_mock, self.template)
+
+        message = str(context.exception)
+        self.assertEqual("Template not found", message)
+        click_mock.secho.assert_called_with("Publish Failed", fg="red")
+
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.click')
     def test_must_raise_if_serverlessrepo_error(self, click_mock, publish_application_mock):
@@ -31,6 +42,7 @@ class TestCli(TestCase):
 
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.click')
     def test_must_raise_if_s3_uri_error(self, click_mock, publish_application_mock):
@@ -51,6 +63,7 @@ class TestCli(TestCase):
                       "to S3 by packaging the template", message)
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.click')
     def test_must_raise_if_not_s3_uri_error(self, click_mock, publish_application_mock):
@@ -63,6 +76,7 @@ class TestCli(TestCase):
 
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.click')
     def test_must_succeed_to_create_application(self, click_mock, publish_application_mock):
@@ -85,6 +99,7 @@ class TestCli(TestCase):
             call(expected_link, fg="yellow")
         ])
 
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.click')
     def test_must_succeed_to_update_application(self, click_mock, publish_application_mock):
@@ -107,6 +122,7 @@ class TestCli(TestCase):
             call(expected_link, fg="yellow")
         ])
 
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.boto3')
     @patch('samcli.commands.publish.command.click')

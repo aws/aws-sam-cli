@@ -46,7 +46,12 @@ def cli(ctx, template):
 
 def do_cli(ctx, template):
     """Publish the application based on command line inputs."""
-    template_data = get_template_data(template)
+    try:
+        template_data = get_template_data(template)
+    except ValueError as ex:
+        click.secho("Publish Failed", fg='red')
+        raise UserException(str(ex))
+
     try:
         publish_output = publish_application(json.dumps(template_data))
         click.secho("Publish Succeeded", fg="green")
