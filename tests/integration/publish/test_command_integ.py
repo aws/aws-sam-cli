@@ -63,6 +63,16 @@ class TestPublishExistingApp(PublishAppIntegBase):
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in Travis only")
 class TestPublishNewApp(PublishAppIntegBase):
 
+    def setUp(self):
+        super(TestPublishNewApp, self).setUp()
+        self.application_id = None
+
+    def tearDown(self):
+        super(TestPublishNewApp, self).tearDown()
+        # Delete application if exists
+        if self.application_id:
+            self.sar_client.delete_application(ApplicationId=self.application_id)
+
     def test_create_application(self):
         template_path = self.temp_dir.joinpath("template_create_app.yaml")
         command_list = self.get_command_list(template_path=template_path, region=self.region_name)
@@ -81,8 +91,7 @@ class TestPublishNewApp(PublishAppIntegBase):
         # Get console link application id from stdout
         pattern = r'arn:[\w\-]+:serverlessrepo:[\w\-]+:[0-9]+:applications\~[\S]+'
         match = re.search(pattern, process_stdout.decode('utf-8'))
-        application_id = match.group().replace('~', '/')
-        self.sar_client.delete_application(ApplicationId=application_id)
+        self.application_id = match.group().replace('~', '/')
 
     def test_publish_not_packaged_template(self):
         template_path = self.temp_dir.joinpath("template_not_packaged.yaml")
@@ -109,6 +118,5 @@ class TestPublishNewApp(PublishAppIntegBase):
         # Get console link application id from stdout
         pattern = r'arn:[\w\-]+:serverlessrepo:[\w\-]+:[0-9]+:applications\~[\S]+'
         match = re.search(pattern, process_stdout.decode('utf-8'))
-        application_id = match.group().replace('~', '/')
-        self.assertIn(self.region_name, application_id)
-        self.sar_client.delete_application(ApplicationId=application_id)
+        self.application_id = match.group().replace('~', '/')
+        self.assertIn(self.region_name, self.application_id)
