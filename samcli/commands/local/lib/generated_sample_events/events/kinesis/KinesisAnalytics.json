@@ -1,0 +1,11 @@
+{
+  "invocationId": "invocationIdExample",
+  "applicationArn": "arn:{{{partition}}}:kinesisanalytics:{{{region}}}:{{{account_id}}}:application/{{{application}}}",
+  "streamArn": "arn:{{{partition}}}:kinesis:{{{region}}}:{{{account_id}}}:stream/{{{stream}}}",
+  "records": [
+    {
+      "recordId": "49571347871967966406409637155186850213682522142927749122",
+      "data": "{{{data}}}"
+    }
+  ]
+}

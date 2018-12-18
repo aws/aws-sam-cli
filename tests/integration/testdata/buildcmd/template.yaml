@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Runtime:
+    Type: String
+  CodeUri:
+    Type: String
+
+Resources:
+
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600
+
+  OtherRelativePathResource:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      BodyS3Location: SomeRelativePath

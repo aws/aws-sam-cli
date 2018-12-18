@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+
+  Go1xFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main
+      Runtime: go1.x
+      CodeUri: ./go1.x/main.zip
+      Timeout: 300
+
+  Java8Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: helloworld.App::handleRequest
+      Runtime: java8
+      CodeUri: ./java8/target/HelloWorld-1.0.jar
+      Timeout: 300
+
+  CustomBashFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: hello.echo_request
+      Runtime: provided
+      CodeUri: ./custom_bash
+      Timeout: 300
+      Events:
+        MyApi:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET

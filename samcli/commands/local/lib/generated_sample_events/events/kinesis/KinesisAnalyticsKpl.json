@@ -1,0 +1,27 @@
+{
+  "invocationId": "invocationIdExample",
+  "applicationArn": "arn:{{{partition}}}:kinesisanalytics:{{{region}}}:{{{account_id}}}:application/{{{application}}}",
+  "streamArn": "arn:{{{partition}}}:kinesis:{{{region}}}:{{{account_id}}}:stream/{{{stream}}}",
+  "records": [
+    {
+      "recordId": "49571347871967966406409637155186850213682522142927749122",
+      "kinesisStreamRecordMetadata": {
+        "shardId": "shardId-000000000001",
+        "partitionKey": "partitionKey-01",
+        "approximateArrivalTimestamp": 1505169657117,
+        "sequenceNumber": "49571347871967966406409637155186850213682522142927749122"
+      },
+      "data": "84mawgoNMTUwNTE2OTY0NTI1MBIlODYwOTcwOTY1NTE0NjQwMzU1MjIwNTI5MjgyNDk2MzU3MTUzNxImNzk1MTM3MTQxMzM4MTE5NTU1OTExMzA1ODMxNDEyOTg2NTM2OTgaiAEIABAAGoEBNDAsYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEKGogBCAAQARqBATQxLGFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhCkU/elbPye5g1wGkAmxGCNg="
+    },
+    {
+      "recordId": "49571347871967966406409637141563465152445265354688561154",
+      "kinesisStreamRecordMetadata": {
+        "shardId": "shardId-000000000002",
+        "partitionKey": "partitionKey-02",
+        "approximateArrivalTimestamp": 1505169647777,
+        "sequenceNumber": "49571347871967966406409637141563465152445265354688561154"
+      },
+      "data": "NCxhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEK"
+    }
+  ]
+}

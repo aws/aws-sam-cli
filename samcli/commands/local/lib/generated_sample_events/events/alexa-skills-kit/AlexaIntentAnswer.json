@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "session": {
+    "new": false,
+    "sessionId": "amzn1.echo-api.session.{{{session_id}}}",
+    "application": {
+        "applicationId": "amzn1.ask.skill.{{{application_id}}}"
+    },
+    "attributes": {
+      "score": 0,
+      "currentQuestionIndex": 0,
+      "speechOutput": "Question 1. What was Rudolph's father's name? 1. Blixen. 2. Comet. 3. Donner. 4. Dasher. ",
+      "correctAnswerText": "Donner",
+      "repromptText": "Question 1. What was Rudolph's father's name? 1. Blixen. 2. Comet. 3. Donner. 4. Dasher. ",
+      "questions": [
+        16,
+        20,
+        29,
+        2,
+        19
+      ],
+      "STATE": "_TRIVIAMODE",
+      "correctAnswerIndex": 3
+    },
+    "user": {
+      "userId": "amzn1.ask.account.{{{user_id}}}"
+    }
+  },
+  "context": {
+    "AudioPlayer": {
+      "playerActivity": "IDLE"
+    },
+    "System": {
+      "application": {
+      "applicationId": "amzn1.ask.skill.{{{application_id}}}"
+      },
+      "user": {
+        "userId": "amzn1.ask.account.{{{user_id}}}"
+      },
+      "device": {
+        "supportedInterfaces": {
+          "AudioPlayer": {}
+        }
+      }
+    }
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "amzn1.echo-api.request.{{{request_id}}}",
+    "timestamp": "2016-10-27T21:06:28Z",
+    "locale": "en-US",
+    "intent": {
+      "name": "AnswerIntent",
+      "slots": {
+        "Item": {
+          "name": "Answer",
+          "value": "1"
+        }
+      }
+    }
+  }
+}

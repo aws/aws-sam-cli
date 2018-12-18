@@ -1,0 +1,906 @@
+{
+  "alexa-skills-kit": {
+    "end-session": {
+      "filename": "AlexaEndSession",
+      "help": "Generates an Amazon Alexa End Session Event",
+      "tags": {
+        "session-id": {
+          "default": "123456789012"
+        },
+        "user-id": {
+          "default": "testUser"
+        },
+        "application-id": {
+          "default": "987654321"
+        },
+        "request-id": {
+          "default": "1234"
+        }
+      }
+    },
+    "intent-answer": {
+      "filename": "AlexaIntentAnswer",
+      "help": "Generates an Amazon Alexa Intent Answer Event",
+      "tags": {
+        "session-id": {
+          "default": "123456789012"
+        },
+        "user-id": {
+          "default": "testUser"
+        },
+        "application-id": {
+          "default": "987654321"
+        },
+        "request-id": {
+          "default": "1234"
+        }
+      }
+    },
+    "intent-getnewfact": {
+      "filename": "AlexaIntentGetNewFact",
+      "help": "Generates an Amazon Alexa Intent GetNewFact Event",
+      "tags": {
+        "session-id": {
+          "default": "123456789012"
+        },
+        "user-id": {
+          "default": "testUser"
+        },
+        "application-id": {
+          "default": "987654321"
+        },
+        "request-id": {
+          "default": "1234"
+        }
+      }
+    },
+    "intent-mycoloris": {
+      "filename": "AlexaIntentMyColorIs",
+      "help": "Generates an Amazon Alexa Intent MyColorIs Event",
+      "tags": {
+        "session-id": {
+          "default": "123456789012"
+        },
+        "user-id": {
+          "default": "testUser"
+        },
+        "application-id": {
+          "default": "987654321"
+        },
+        "request-id": {
+          "default": "1234"
+        }
+      }
+    },
+    "intent-recipe": {
+      "filename": "AlexaIntentRecipe",
+      "help": "Generates an Amazon Alexa Intent Recipe Event",
+      "tags": {
+        "session-id": {
+          "default": "123456789012"
+        },
+        "user-id": {
+          "default": "testUser"
+        },
+        "application-id": {
+          "default": "987654321"
+        },
+        "request-id": {
+          "default": "1234"
+        }
+      }
+    },
+    "start-session": {
+      "filename": "AlexaStartSession",
+      "help": "Generates an Amazon Alexa Start Session Event",
+      "tags": {
+        "session-id": {
+          "default": "123456789012"
+        },
+        "user-id": {
+          "default": "testUser"
+        },
+        "application-id": {
+          "default": "987654321"
+        },
+        "request-id": {
+          "default": "1234"
+        }
+      }
+    }
+  },
+  "alexa-smart-home": {
+    "smart-home-control-turn-off-request": {
+      "filename": "AlexaSmartHomeControlTurnOffRequest",
+      "help": "Generates an Amazon Alexa Smart Home Control Turn Off Request Event",
+      "tags": {}
+    },
+    "smart-home-control-turn-on-request": {
+      "filename": "AlexaSmartHomeControlTurnOnRequest",
+      "help": "Generates an Amazon Alexa Smart Home Control Turn On Request Event",
+      "tags": {}
+    },
+    "smart-home-discovery-request": {
+      "filename": "AlexaSmartHomeDiscoveryRequest",
+      "help": "Generates an Amazon Alexa Smart Home Discovery Request Event",
+      "tags": {}
+    }
+  },
+  "apigateway": {
+    "authorizer": {
+      "filename": "ApiGatewayAuthorizer",
+      "help": "Generates an Amazon API Gateway Authorizer Event",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "stage": {
+          "type": "string",
+          "default": "prod"
+        },
+        "method": {
+          "type": "string",
+          "default": "POST"
+        },
+        "resource": {
+          "type": "string",
+          "default": "{proxy+}"
+        },
+        "restApiId": {
+          "type": "string",
+          "default": "example"
+        }
+      }
+    },
+    "aws-proxy": {
+      "filename": "AwsProxy",
+      "help": "Generates an Amazon API Gateway AWS Proxy Event",
+      "tags": {
+        "body": {
+          "type": "string",
+          "default": "{\"test\":\"body\"}",
+          "encoding": "base64"
+        },
+        "stage": {
+          "type": "string",
+          "default": "prod"
+        },
+        "method": {
+          "type": "string",
+          "default": "POST"
+        },
+        "resource": {
+          "type": "string",
+          "default": "/{proxy+}"
+        },
+        "path": {
+          "type": "string",
+          "default": "path/to/resource"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "dns-suffix": {
+          "default": "us-east-1.amazonaws.com"
+        }
+      }
+    }
+  },
+  "batch": {
+    "get-job": {
+      "filename": "BatchGetJob",
+      "help": "Generates an AWS Batch Get Job Event",
+      "tags": {}
+    },
+    "submit-job": {
+      "filename": "BatchSubmitJob",
+      "help": "Generates an AWS Batch Submit Job Event",
+      "tags": {}
+    }
+  },
+  "cloudformation": {
+    "create-request": {
+      "filename": "CfnCreateRequest",
+      "help": "Generates an AWS CloudFormation Create Request Event",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "stack": {
+          "type": "string",
+          "default": "MyStack"
+        }
+      }
+    }
+  },
+  "cloudfront": {
+    "ab-test": {
+      "filename": "CloudFrontABTest",
+      "help": "Generates an Amazon CloudFront A/B Test Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "access-request-in-response": {
+      "filename": "CloudFrontAccessRequestInResponse",
+      "help": "Generates an Amazon CloudFront Access Request in Response Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "http-redirect": {
+      "filename": "CloudFrontHttpRedirect",
+      "help": "Generates an Amazon CloudFront HTTP Redirect Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "modify-querystring": {
+      "filename": "CloudFrontModifyQueryString",
+      "help": "Generates an Amazon CloudFront Modify QueryString Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "modify-response-header": {
+      "filename": "CloudFrontModifyResponseHeader",
+      "help": "Generates an Amazon CloudFront Modify Response Header Event",
+      "tags": {}
+    },
+    "multiple-remote-calls-aggregate-response": {
+      "filename": "CloudFrontMultipleRemoteCallsAggregateResponse",
+      "help": "Generates an Amazon CloudFront Multiple Remote Calls Aggregate Response Event",
+      "tags": {
+        "uri": {
+          "default": "/forecast/Seattle:NewYork:Chicago:SanFrancisco"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "normalize-querystring-to-improve-cache-hit": {
+      "filename": "CloudFrontNormalizeQuerystringToImproveCacheHit",
+      "help": "Generates an Amazon CloudFront Normalize Querystring Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "redirect-on-viewer-country": {
+      "filename": "CloudFrontRedirectOnViewerCountry",
+      "help": "Generates an Amazon CloudFront Redirect on Viewer Country Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "redirect-unauthenticated-users": {
+      "filename": "CloudFrontRedirectUnauthenticatedUsers",
+      "help": "Generates an Amazon CloudFront Redirect Unauthenticated Users Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "response-generation": {
+      "filename": "CloudFrontResponseGeneration",
+      "help": "Generates an Amazon CloudFront Response Generation Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "serve-object-on-viewer-device": {
+      "filename": "CloudFrontServeObjectOnViewerDevice",
+      "help": "Generates an Amazon CloudFront Serve Object on Viewer Device Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    },
+    "simple-remote-call": {
+      "filename": "CloudFrontSimpleRemoteCall",
+      "help": "Generates an Amazon CloudFront Simple Remote Call Event",
+      "tags": {
+        "uri": {
+          "default": "/test"
+        },
+        "method": {
+          "default": "GET"
+        }
+      }
+    }
+  },
+  "codecommit": {
+    "repository": {
+      "filename": "CodeCommit",
+      "help": "Generates an AWS CodeCommit Repository Event ",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "repository": {
+          "type": "string",
+          "default": "my-repo"
+        },
+        "trigger": {
+          "type": "string",
+          "default": "my-trigger"
+        },
+        "custom-data": {
+          "type": "string",
+          "default": "this is custom data"
+        }
+      }
+    }
+  },
+  "codepipeline": {
+    "job": {
+      "filename": "CodePipeline",
+      "help": "Generates an AWS CodePipeline Job Event",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "input-bucket": {
+          "type": "string",
+          "default": "example-bucket"
+        },
+        "input-key": {
+          "type": "string",
+          "default": "test/key"
+        },
+        "output-bucket": {
+          "type": "string",
+          "default": "example-bucket2"
+        },
+        "output-key": {
+          "type": "string",
+          "default": "test/key2"
+        }
+      }
+    }
+  },
+  "cognito": {
+    "sync-trigger": {
+      "filename": "CognitoSyncTrigger",
+      "help": "Generates an Amazon Cognito Sync Trigger Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        }
+      }
+    }
+  },
+  "config": {
+    "item-change-notification": {
+      "filename": "ConfigurationItemChangeNotification",
+      "help": "Generates an AWS Config Configuration Item Change Notification Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        }
+      }
+    },
+    "oversized-item-change-notification": {
+      "filename": "OversizedConfigurationItemChangeNotification",
+      "help": "Generates an AWS Config Oversized Configuration Item Change Notification Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        }
+      }
+    },
+    "periodic-rule": {
+      "filename": "PeriodicRule",
+      "help": "Generates an AWS Config Periodic Rule Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        }
+      }
+    }
+  },
+  "dynamodb": {
+    "update": {
+      "filename": "DynamoDBUpdate",
+      "help": "Generates an Amazon DynamoDB Update Event",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "table": {
+          "type": "string",
+          "default": "ExampleTableWithStream"
+        }
+      }
+    }
+  },
+  "cloudwatch": {
+    "logs": {
+      "filename": "CloudwatchLogs",
+      "help": "Generates an Amazon Cloudwatch Logs Event",
+      "tags": {}
+    },
+    "scheduled-event": {
+      "filename": "ScheduledEvent",
+      "help": "Generates an Amazon CloudWatch Events Scheduled Event",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "rule": {
+          "type": "string",
+          "default": "ExampleRule"
+        }
+      }
+    }
+  },
+  "kinesis": {
+    "get-records": {
+      "filename": "Kinesis",
+      "help": "Generates an Amazon Kinesis Data Stream Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "sequence": {
+          "type": "string",
+          "default": "49545115243490985018280067714973144582180062593244200961"
+        },
+        "data": {
+          "type": "string",
+          "default": "Hello, this is a test 123.",
+          "encoding": "base64"
+        },
+        "partition-key": {
+          "type": "string",
+          "default": "partitionKey-03"
+        }
+      }
+    },
+    "kinesis-firehose": {
+      "filename": "KinesisFirehose",
+      "help": "Generates an Amazon Kinesis Data Firehose Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "data": {
+          "default": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IDEyMy4="
+        }
+      }
+    },
+    "analytics": {
+      "filename": "KinesisAnalytics",
+      "help": "Generates an Amazon Kinesis Data Analytics Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        },
+        "data": {
+          "type": "string",
+          "default": "This is a test from Kinesis Analytics",
+          "encoding": "base64"
+        }
+      }
+    },
+    "analytics-compressed": {
+      "filename": "KinesisAnalytics",
+      "help": "Generates an Amazon Kinesis Data Analytics Compressed Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        },
+        "data": {
+          "type": "string",
+          "default": "H4sIAAAAAAAA/6vmUspLzE1VslLKTsxNzFHS4VJKTEkpSi0uBgol5SRmKHHVAgDd1tysJAAAAA=="
+        }
+      }
+    },
+    "analytics-dynamodb": {
+      "filename": "KinesisAnalytics",
+      "help": "Generates an Amazon Kinesis Data Analytics DynamoDB Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        },
+        "data": {
+          "type": "string",
+          "default": "{\"ROWTIME_TIMESTAMP\":\"2017-12-15 01:09:50.000\",\"VEHICLEID\":\"5\",\"VEHICLECOUNT\":18}",
+          "encoding": "base64"
+        }
+      }
+    },
+    "analytics-kpl": {
+      "filename": "KinesisAnalyticsKpl",
+      "help": "Generates an Amazon Kinesis Data Analytics KPL Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "application": {
+          "type": "string",
+          "default": "example-application"
+        },
+        "stream": {
+          "type": "string",
+          "default": "example-stream"
+        }
+      }
+    },
+    "apachelog": {
+      "filename": "KinesisFirehoseApachelog",
+      "help": "Generates an Amazon Kinesis Data Firehose Apachelog Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "data": {
+          "default": "NjQuMjQyLjg4LjEwIC0gLSBbMDcvTWFyLzIwMDQ6MTY6MTA6MDIgLTA4MDBdICJHRVQgL21haWxtYW4vbGlzdGluZm8vaHNkaXZpc2lvbiBIVFRQLzEuMSIgMjAwIDYyOTE=="
+        }
+      }
+    },
+    "cloudwatch-logs-processor": {
+      "filename": "KinesisFirehoseCloudwatchLogsProcessor",
+      "help": "Generates an Amazon Kinesis Data Firehose Cloudwatch Logs Processor Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        }
+      }
+    },
+    "streams-as-source": {
+      "filename": "KinesisFirehoseStreamsAsSource",
+      "help": "Generates an Amazon Kinesis Data Firehose Streams as Source Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition-key": {
+          "type": "string",
+          "default": "partitionKey-03"
+        },
+        "data": {
+          "type": "string",
+          "default": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IDEyMy4="
+        },
+        "sequence": {
+          "type": "string",
+          "default": "49545115243490985018280067714973144582180062593244200961"
+        }
+      }
+    },
+    "syslog": {
+      "filename": "KinesisFirehoseSyslog",
+      "help": "Generates an Amazon Kinesis Data Firehose Syslog Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "data": {
+          "type": "string",
+          "default": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IDEyMy4="
+        }
+      }
+    }
+  },
+  "lex": {
+    "book-car": {
+      "filename": "LexBookCar",
+      "help": "Generates an Amazon Lex Book Car Event",
+      "tags": {}
+    },
+    "book-hotel": {
+      "filename": "LexBookHotel",
+      "help": "Generates an Amazon Lex Book Hotel Event",
+      "tags": {}
+    },
+    "make-appointment": {
+      "filename": "LexMakeAppointment",
+      "help": "Generates an Amazon Lex Make Appointment Event",
+      "tags": {}
+    },
+    "order-flowers": {
+      "filename": "LexOrderFlowers",
+      "help": "Generates an Amazon Lex Order Flowers Event",
+      "tags": {}
+    }
+  },
+  "rekognition": {
+    "s3-request": {
+      "filename": "RekognitionS3Request",
+      "help": "Generates an Amazon Rekognition S3 Request Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "bucket": {
+          "type": "string",
+          "default": "example-bucket"
+        },
+        "key": {
+          "type": "string",
+          "default": "test/key",
+          "encoding": "url"
+        }
+      }
+    }
+  },
+  "s3": {
+    "delete": {
+      "filename": "S3Delete",
+      "help": "Generates an Amazon S3 Delete Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "bucket": {
+          "type": "string",
+          "default": "example-bucket"
+        },
+        "key": {
+          "type": "string",
+          "default": "test/key",
+          "encoding": "url"
+        }
+      }
+    },
+    "put": {
+      "filename": "S3Put",
+      "help": "Generates an Amazon S3 Put Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "bucket": {
+          "type": "string",
+          "default": "example-bucket"
+        },
+        "key": {
+          "type": "string",
+          "default": "test/key",
+          "encoding": "url"
+        }
+      }
+    }
+  },
+  "ses": {
+    "email-receiving": {
+      "filename": "SesEmailReceiving",
+      "help": "Generates an Amazon SES Email Receiving Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "dns-suffix": {
+          "default": "us-east-1.amazonaws.com"
+        }
+      }
+    }
+  },
+  "sns": {
+    "notification": {
+      "filename": "Sns",
+      "help": "Generates an Amazon SNS Topic Notification Event",
+      "tags": {
+        "account-id": {
+          "default": "123456789012"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "default": "us-east-1"
+        },
+        "topic": {
+          "type": "string",
+          "default": "ExampleTopic"
+        },
+        "subject": {
+          "type": "string",
+          "default": "example subject"
+        },
+        "message": {
+          "type": "string",
+          "default": "example message"
+        }
+      }
+    }
+  },
+  "sqs": {
+    "receive-message": {
+      "filename": "Sqs",
+      "help": "Generates an Amazon SQS Event",
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "type": "string",
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "queue-name": {
+          "default": "MyQueue"
+        }
+      }
+    }
+  },
+  "stepfunctions": {
+    "error": {
+      "filename": "StepFunctionsError",
+      "help": "Generates an AWS StepFunctions Error Event",
+      "tags": {}
+    }
+  }
+}

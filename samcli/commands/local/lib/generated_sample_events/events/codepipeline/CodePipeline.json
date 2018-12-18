@@ -1,0 +1,45 @@
+{
+  "CodePipeline.job": {
+    "data": {
+      "artifactCredentials": {
+        "secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        "sessionToken": "token",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE"
+      },
+      "actionConfiguration": {
+        "configuration": {
+          "FunctionName": "my-function",
+          "UserParameters": "user-parameter-string"
+        }
+      },
+      "inputArtifacts": [
+        {
+          "revision": "ca2bdeadbeef7d1932acb4977e08c803295d9896",
+          "name": "input-artifact",
+          "location": {
+            "type": "S3",
+            "s3Location": {
+              "objectKey": "{{{input_key}}}",
+              "bucketName": "{{{input_bucket}}}"
+            }
+          }
+        }
+      ],
+      "outputArtifacts": [
+        {
+          "revision": null,
+          "name": "output-artifact",
+          "location": {
+            "type": "S3",
+            "s3Location": {
+              "objectKey": "{{{output_key}}}",
+              "bucketName": "{{{output_bucket}}}"
+            }
+          }
+        }
+      ]
+    },
+    "id": "c968ef10-6415-4127-80b1-42502218a8c7",
+    "accountId": "{{{account_id}}}"
+  }
+}

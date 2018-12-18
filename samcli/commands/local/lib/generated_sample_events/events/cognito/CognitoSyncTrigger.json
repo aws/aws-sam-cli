@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "eventType": "SyncTrigger",
+  "region": "{{{region}}}",
+  "identityPoolId": "identityPoolId",
+  "identityId": "identityId",
+  "datasetName": "datasetName",
+  "datasetRecords": {
+    "SampleKey1": {
+      "oldValue": "oldValue1",
+      "newValue": "newValue1",
+      "op": "replace"
+    },
+    "SampleKey2": {
+      "oldValue": "oldValue2",
+      "newValue": "newValue2",
+      "op": "replace"
+    }
+  }
+}

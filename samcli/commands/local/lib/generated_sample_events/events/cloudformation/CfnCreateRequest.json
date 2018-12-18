@@ -1,0 +1,16 @@
+{
+  "RequestType": "Create",
+  "ResponseURL": "http://pre-signed-S3-url-for-response",
+  "StackId": "arn:{{{partition}}}:cloudformation:{{{region}}}:{{{account_id}}}:stack/{{{stack}}}/guid",
+  "RequestId": "unique id for this create request",
+  "ResourceType": "Custom::TestResource",
+  "LogicalResourceId": "MyTestResource",
+  "ResourceProperties": {
+    "StackName": "{{{stack}}}",
+    "List": [
+      "1",
+      "2",
+      "3"
+    ]
+  }
+}

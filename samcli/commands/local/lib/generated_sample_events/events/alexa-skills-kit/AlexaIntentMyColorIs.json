@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "session": {
+    "new": false,
+    "sessionId": "amzn1.echo-api.session.{{{session_id}}}",
+    "application": {
+        "applicationId": "amzn1.ask.skill.{{{application_id}}}"
+    },
+    "attributes": {},
+    "user": {
+        "userId": "amzn1.ask.account.{{{user_id}}}"
+
+    }
+  },
+  "context": {
+    "AudioPlayer": {
+      "playerActivity": "IDLE"
+    },
+    "System": {
+      "application": {
+          "applicationId": "amzn1.ask.skill.{{{application_id}}}"
+      },
+      "user": {
+          "userId": "amzn1.ask.account.{{{user_id}}}"
+      },
+      "device": {
+        "supportedInterfaces": {
+          "AudioPlayer": {}
+        }
+      }
+    }
+  },
+  "request": {
+    "type": "IntentRequest",
+    "requestId": "amzn1.echo-api.request.{{{request_id}}}",
+    "timestamp": "2016-10-27T21:06:28Z",
+    "locale": "en-US",
+    "intent": {
+      "name": "MyColorIsIntent",
+      "slots": {
+        "Color": {
+          "name": "Color",
+          "value": "blue"
+        }
+      }
+    }
+  }
+}

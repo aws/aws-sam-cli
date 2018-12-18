@@ -1,4 +1,31 @@
-language: go
+# Enable container based builds
+sudo: required
+language: python
 
-go:
-  - 1.8
+services:
+  - docker
+
+python:
+  - "2.7"
+  - "3.6"
+
+# Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
+matrix:
+  include:
+    - python: 3.7
+      dist: xenial
+      sudo: true
+
+before_install:
+  - nvm install 8.10
+  - npm --version
+  - node --version
+
+install:
+  # Install the code requirements
+  - make init
+
+script:
+  # Runs unit tests
+  - make pr
+  - SAM_CLI_DEV=1 travis_wait pytest -vv tests/integration

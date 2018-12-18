@@ -1,0 +1,12 @@
+{
+  "invokingEvent": "{\"configurationItem\":{\"configurationItemCaptureTime\":\"2016-10-06T16:46:16.261Z\",\"awsAccountId\":\"{{{account_id}}}\",\"configurationItemStatus\":\"OK\",\"resourceId\":\"i-00000000\",\"resourceName\":\"foo\",\"configurationStateMd5Hash\":\"8f1ee69b297895a0f8bc5753eca68e96\",\"resourceCreationTime\":\"2016-10-06T16:46:10.489Z\",\"configurationStateId\":0,\"configurationItemVersion\":\"1.2\",\"ARN\":\"arn:{{{partition}}}:ec2:{{{region}}}:{{{account_id}}}:instance/i-00000000\",\"awsRegion\":\"{{{region}}}\",\"availabilityZone\":\"{{{region}}}\",\"resourceType\":\"AWS::EC2::Instance\",\"tags\":{\"<Foo>\":\"<Bar>\"},\"relationships\":[{\"resourceId\":\"eipalloc-00000000\",\"resourceType\":\"AWS::EC2::EIP\",\"name\":\"Is attached to ElasticIp\"}],\"configuration\":{\"<foo>\":\"<bar>\"}},\"messageType\":\"ConfigurationItemChangeNotification\"}",
+  "ruleParameters": "{\"<exampleKey>\":\"<exampleValue>\"}",
+  "resultToken": "myResultToken",
+  "eventLeftScope": false,
+  "executionRoleArn": "arn:{{{partition}}}:iam::{{{account_id}}}:role/config-role",
+  "configRuleArn": "arn:{{{partition}}}:config:{{{region}}}:{{{account_id}}}:config-rule/config-rule-0123456",
+  "configRuleName": "change-triggered-config-rule",
+  "configRuleId": "config-rule-0123456",
+  "accountId": "{{{account_id}}}",
+  "version": "1.0"
+}

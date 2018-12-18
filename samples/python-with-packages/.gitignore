@@ -1,8 +1,0 @@
-*.py[co]
-*.egg-info
-
-/bundle.zip
-/packaged.yml
-
-/var
-/.venv

@@ -1,0 +1,5 @@
+{
+  "type": "TOKEN",
+  "authorizationToken": "incoming-client-token",
+  "methodArn": "arn:{{{partition}}}:execute-api:{{{region}}}:{{{account_id}}}:{{{restApiId}}}/{{{stage}}}/{{{method}}}/{{{resource}}}"
+}
