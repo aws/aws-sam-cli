@@ -129,7 +129,7 @@ def _wrap_s3_uri_exception(ex):
 
     if error_code == 'BadRequestException' and "Invalid S3 URI" in message:
         return UserException(
-            "You SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
+            "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
             "artifacts to S3 by packaging the template: 'sam package --template-file <file-path>'.")
 
     return ex
