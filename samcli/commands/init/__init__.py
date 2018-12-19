@@ -81,9 +81,16 @@ def do_cli(ctx, location, runtime, output_dir, name, no_input):
         generate_project(location, runtime, output_dir, name, no_input)
         # Custom templates can implement their own visual cues so let's not repeat the message
         if not location:
-            click.secho(
-                "[SUCCESS] - Read {name}/README.md for further instructions on how to proceed"
-                .format(name=name), bold=True)
+            next_step_msg = """
+Project generated: {output_dir}/{name}
+
+Commands you can use next within the project folder
+===================================================
+[*] Invoke Function: sam local invoke HelloWorldFunction --event event.json
+[*] Start API Gateway locally: sam local start-api
+""".format(output_dir=output_dir, name=name)
+            click.secho(next_step_msg, bold=True)
+            click.secho("Read {name}/README.md for further instructions\n".format(name=name), bold=True)
         click.secho("[*] Project initialization is now complete", fg="green")
     except GenerateProjectFailedError as e:
         raise UserException(str(e))
