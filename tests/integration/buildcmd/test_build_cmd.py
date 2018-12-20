@@ -4,7 +4,10 @@ import subprocess
 import json
 import logging
 
-from pathlib import Path
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
 from parameterized import parameterized
 
 from samcli.yamlhelper import yaml_parse
