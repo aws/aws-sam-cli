@@ -53,7 +53,7 @@ def do_cli(ctx, template):
         raise UserException(str(ex))
 
     try:
-        publish_output = publish_application(json.dumps(template_data))
+        publish_output = publish_application(template_data)
         click.secho("Publish Succeeded", fg="green")
         click.secho(_gen_success_message(publish_output), fg="yellow")
     except ServerlessRepoError as ex:
