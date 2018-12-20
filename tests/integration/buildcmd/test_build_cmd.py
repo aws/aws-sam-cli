@@ -255,7 +255,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         ruby_bundled_path = None
 
         # Walk through ruby version to get to the gem path
-        for dirpath, dirname, _ in os.walk(resource_artifact_dir.joinpath('vendor', 'bundle', 'ruby')):
+        for dirpath, dirname, _ in os.walk(str(resource_artifact_dir.joinpath('vendor', 'bundle', 'ruby'))):
             ruby_version = dirname
             ruby_bundled_path = Path(dirpath)
             break
