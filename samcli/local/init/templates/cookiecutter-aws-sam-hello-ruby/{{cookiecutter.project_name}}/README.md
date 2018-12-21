@@ -37,9 +37,20 @@ rvm use ruby-2.5.3
 rvm --default use 2.5.3
 ```
 
-### Installing dependencies
+### Building the Project
 
 ```sam-app``` comes with a Gemfile that defines the requirements and manages installing them. The `sam build` command will install the dependencies in your function Gemfile and vendor it for deployment.
+
+```
+sam build
+```
+
+If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
+
+```
+sam build --use-container
+```
+By default, this command writes built artifacts to .aws-sam/build folder.
 
 **NOTE:** As you change your dependencies during development you'll need to run `sam build` again in order to execute your Lambda and/or API Gateway locally.
 
@@ -129,7 +140,7 @@ AWS CLI commands to package, deploy and describe outputs defined within the clou
 
 ```bash
 sam package \
-    --template-file .aws-sam/build/template.yaml \
+    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
