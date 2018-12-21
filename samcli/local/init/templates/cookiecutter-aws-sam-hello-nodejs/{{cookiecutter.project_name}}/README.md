@@ -45,7 +45,7 @@ If the previous command ran successfully you should now be able to hit the follo
 ...
 Events:
     HelloWorld:
-        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        Type: Api # More info about API Event Source: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template.html#serverless-sam-template-api
         Properties:
             Path: /hello
             Method: get
@@ -87,7 +87,7 @@ sam deploy \
     --capabilities CAPABILITY_IAM
 ```
 
-> **See [Serverless Application Model (SAM) HOWTO Guide](https://github.com/awslabs/serverless-application-model/blob/master/HOWTO.md) for more details in how to get started.**
+> **See [Serverless Application Model (SAM) HOWTO Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html) for more details in how to get started.**
 
 After deployment is complete you can run the following command to retrieve the API Gateway Endpoint URL:
 
@@ -108,7 +108,7 @@ To simplify troubleshooting, SAM CLI has a command called sam logs. sam logs let
 sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
 ```
 
-You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://github.com/awslabs/aws-sam-cli/blob/develop/docs/usage.rst#fetch-tail-and-filter-lambda-function-logs).
+You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
 
 ## Testing
 
