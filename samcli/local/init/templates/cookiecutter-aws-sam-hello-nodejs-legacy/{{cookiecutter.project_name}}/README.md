@@ -185,7 +185,6 @@ aws s3 mb s3://BUCKET_NAME
 
 # Package Lambda function defined locally and upload to S3 as an artifact
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
