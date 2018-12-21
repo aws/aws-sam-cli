@@ -57,6 +57,12 @@ def _get_workflow_config(runtime):
             dependency_manager="npm",
             application_framework=None,
             manifest_name="package.json")
+    elif runtime.startswith("ruby"):
+        return config(
+            language="ruby",
+            dependency_manager="bundler",
+            application_framework=None,
+            manifest_name="Gemfile")
     else:
         raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 
