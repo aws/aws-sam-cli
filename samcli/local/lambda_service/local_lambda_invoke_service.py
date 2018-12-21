@@ -6,7 +6,7 @@ import io
 
 from flask import Flask, request
 
-
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from .lambda_error_responses import LambdaErrorResponses
@@ -139,9 +139,10 @@ class LocalLambdaInvokeService(BaseLocalService):
         request_data = request_data.decode('utf-8')
 
         stdout_stream = io.BytesIO()
+        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
         try:
-            self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream, stderr=self.stderr)
+            self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:
             LOG.debug('%s was not found to invoke.', function_name)
             return LambdaErrorResponses.resource_not_found(function_name)
