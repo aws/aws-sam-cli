@@ -7,7 +7,8 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ├── README.md                   <-- This instructions file
 ├── hello_world                 <-- Source code for a lambda function
 │   ├── app.rb                  <-- Lambda function code
-├── Gemfile                     <-- Ruby dependencies
+│   ├── Gemfile                 <-- Ruby function dependencies
+├── Gemfile                     <-- Ruby test/documentation dependencies
 ├── template.yaml               <-- SAM template
 └── tests                       <-- Unit tests
     └── unit
@@ -31,27 +32,27 @@ Setup Ruby Version Manager from [Ruby Version Manager](http://rvm.io/)
 Run following commands
 
 ```bash
-rvm install ruby-2.5.0
-rvm use ruby-2.5.0
-rvm --default use 2.5.0
+rvm install ruby-2.5.3
+rvm use ruby-2.5.3
+rvm --default use 2.5.3
 ```
 
+### Building the Project
 
-### Installing dependencies
+```sam-app``` comes with a Gemfile that defines the requirements and manages installing them. The `sam build` command will install the dependencies in your function Gemfile and vendor it for deployment.
 
-```sam-app``` comes with a Gemfile that defines the requirements and manages installing them.
-
-```bash
-gem install bundler
-bundle install
-bundle install --deployment --path hello_world/vendor/bundle
+```
+sam build
 ```
 
-* Step 1 installs ```bundler```which provides a consistent environment for Ruby projects by tracking and installing the exact gems and versions that are needed.
-* Step 2 creates a Gemfile.lock that locks down the versions and creates the full dependency closure.
-* Step 3 installs the gems to ```hello_world/vendor/bundle```.
+If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
 
-**NOTE:** As you change your dependencies during development you'll need to make sure these steps are repeated in order to execute your Lambda and/or API Gateway locally.
+```
+sam build --use-container
+```
+By default, this command writes built artifacts to .aws-sam/build folder.
+
+**NOTE:** As you change your dependencies during development you'll need to run `sam build` again in order to execute your Lambda and/or API Gateway locally.
 
 ### Local development
 
@@ -124,12 +125,10 @@ aws cloudformation describe-stacks \
 
 ## Testing
 
-We use [Mocha](http://gofreerange.com/mocha/docs) for testing our code and you can install it using gem: ``gem install mocha`` 
-
-Next, we run our initial unit tests:
+Run our initial unit tests:
 
 ```bash
-ruby tests/unit/test_hello.rb
+ruby tests/unit/test_handler.rb
 ```
 
 **NOTE**: It is recommended to use a Ruby Version Manager to manage, and work with multiple ruby environments from interpreters to sets of gems
@@ -137,7 +136,7 @@ ruby tests/unit/test_hello.rb
 
 ## AWS CLI commands
 
-AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack:
+AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack after building:
 
 ```bash
 sam package \
