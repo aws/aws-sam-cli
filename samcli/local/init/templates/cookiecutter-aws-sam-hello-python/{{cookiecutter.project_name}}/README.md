@@ -25,7 +25,6 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 * [Python 3 installed](https://www.python.org/downloads/)
 {%- endif %}
 * [Docker installed](https://www.docker.com/community-edition)
-* [Python Virtual Environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
 
 ## Setup process
 
@@ -80,7 +79,6 @@ Next, run the following command to package our Lambda function to S3:
 
 ```bash
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 ```
@@ -119,11 +117,11 @@ You can find more information and examples about filtering Lambda function logs 
 
 ## Testing
 
-We use **Pytest** and **pytest-mock** for testing our code and you can install it using pip: ``pip install pytest pytest-mock --user``
 
-Next, we run `pytest` against our `tests` folder to run our initial unit tests:
+Next, we install test dependencies and we run `pytest` against our `tests` folder to run our initial unit tests:
 
 ```bash
+pip install pytest pytest-mock --user
 python -m pytest tests/ -v
 ```
 
@@ -135,8 +133,46 @@ In order to delete our Serverless Application recently deployed you can use the 
 aws cloudformation delete-stack --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }}
 ```
 
+## Bringing to the next level
+
+Here are a few things you can try to get more acquainted with building serverless applications using SAM:
+
+### Learn how SAM Build can help you with dependencies
+
+* Uncomment lines on `app.py`
+* Build the project with ``sam build --use-container``
+* Update tests
+
+### Create an additional API resource
+
+* Create a catch all resource (e.g. /hello/{proxy+}) and return the name requested through this new path
+* Update tests
+
+### Step-through debugging
+
+* **[Enable step-through debugging docs for supported runtimes]((https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-using-debugging.html))**
+
+Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+
 # Appendix
 
+## Building the project
+
+[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-create-deployment-pkg.html) with the application as well as its dependencies in a node_modules folder. When you make changes to your source code or dependency manifest,
+run the following command to build your project local testing and deployment:
+
+```bash
+sam build
+```
+
+If your dependencies contain native modules that need to be compiled specifically for the operating system running on AWS Lambda, use this command to build inside a Lambda-like Docker container instead:
+```bash
+sam build --use-container
+```
+
+By default, this command writes built artifacts to `.aws-sam/build` folder.
+
+## SAM and AWS CLI commands
 
 All commands used throughout this document
 
@@ -152,7 +188,6 @@ aws s3 mb s3://BUCKET_NAME
 
 # Package Lambda function defined locally and upload to S3 as an artifact
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
@@ -172,29 +207,3 @@ aws cloudformation describe-stacks \
 sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
 ```
 
-## Bringing to the next level
-
-Here are a few ideas that you can use to get more acquainted as to how this overall process works:
-
-**Idea 1**
-
-* Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
-* Update unit test to capture that
-* Package & Deploy
-
-**Idea 2**
-
-* Create a Docker network named `sam`
-* Run [DynamoDB Local via Docker](https://hub.docker.com/r/amazon/dynamodb-local/) within the `sam` network
-* Change your code to connect to DynamoDB Local when running your functions locally
-    - Hint: Use `endpoint` property from AWS SDK and `AWS_SAM_LOCAL` env variable to achieve that
-
-**Idea 3**
-
-* Enable [step-through debugging](https://github.com/awslabs/aws-sam-cli/blob/develop/docs/usage.rst#debugging-applications)
-
-Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
-
-* [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
-* [Chalice Python Serverless framework](https://github.com/aws/chalice)
-* Sample Python with 3rd party dependencies, AWS X-Ray, SAM Safe Deployments, etc.: ``sam init --location https://github.com/aws-samples/cookiecutter-aws-sam-python``
