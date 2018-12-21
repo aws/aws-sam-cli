@@ -4,7 +4,7 @@ Description: >
     {{ cookiecutter.project_name }}
 
     Sample SAM Template for {{ cookiecutter.project_name }}
-    
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
     Function:
