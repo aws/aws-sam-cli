@@ -29,19 +29,13 @@ In this example we use the built-in `go get` and the only dependency we need is 
 go get -u github.com/aws/aws-lambda-go/...
 ```
 
-### Building
+### Local development
 
-Golang is a staticly compiled language, meaning that in order to run it you have to build the executeable target.
-
-You can issue the following command in a shell to build it:
+**Building an executable target for Lambda runtime**
 
 ```shell
 GOOS=linux GOARCH=amd64 go build -o hello-world/hello-world ./hello-world
 ```
-
-**NOTE**: If you're not building the function on a Linux machine, you will need to specify the `GOOS` and `GOARCH` environment variables, this allows Golang to build your function for another system architecture and ensure compatability.
-
-### Local development
 
 **Invoking function locally using a local sample payload**
 
@@ -78,7 +72,7 @@ AWS Lambda Python runtime requires a flat folder with all dependencies including
     FirstFunction:
         Type: AWS::Serverless::Function
         Properties:
-            CodeUri: hello_world/
+            CodeUri: hello-world/
             ...
 ```
 
@@ -92,7 +86,6 @@ Next, run the following command to package our Lambda function to S3:
 
 ```bash
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 ```
@@ -147,6 +140,21 @@ aws cloudformation delete-stack --stack-name {{ cookiecutter.project_name.lower(
 
 # Appendix
 
+## Bringing to the next level
+
+Here are a few things you can try to get more acquainted with building serverless applications using SAM:
+
+### Create an additional API resource
+
+* Create a catch all resource (e.g. /hello/{proxy+}) and return the name requested through this new path
+* Update tests
+
+### Step-through debugging
+
+* **[Enable step-through debugging docs for supported runtimes]((https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-using-debugging.html))**
+
+Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+
 ## SAM and AWS CLI commands
 
 All commands used throughout this document
@@ -163,7 +171,6 @@ aws s3 mb s3://BUCKET_NAME
 
 # Package Lambda function defined locally and upload to S3 as an artifact
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
@@ -182,28 +189,3 @@ aws cloudformation describe-stacks \
 # Tail Lambda function Logs using Logical name defined in SAM Template
 sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
 ```
-
-## Bringing to the next level
-
-Here are a few ideas that you can use to get more acquainted as to how this overall process works:
-
-**Idea 1**
-
-* Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
-* Update unit test to capture that
-* Package & Deploy
-
-**Idea 2**
-
-* Create a Docker network named `sam`
-* Run [DynamoDB Local via Docker](https://hub.docker.com/r/amazon/dynamodb-local/) within the `sam` network
-* Change your code to connect to DynamoDB Local when running your functions locally
-    - Hint: Use `endpoint` property from AWS SDK and `AWS_SAM_LOCAL` env variable to achieve that
-
-**Idea 3**
-
-* Enable [step-through debugging](https://github.com/awslabs/aws-sam-cli/blob/develop/docs/usage.rst#debugging-applications)
-
-Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
-
-* [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
