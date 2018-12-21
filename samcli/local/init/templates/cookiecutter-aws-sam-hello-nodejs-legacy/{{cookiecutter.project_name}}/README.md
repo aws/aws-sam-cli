@@ -8,6 +8,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ├── event.json                  <-- API Gateway Proxy Integration event payload
 ├── hello_world                 <-- Source code for a lambda function
 │   └── app.js                  <-- Lambda function code
+│   └── app-deps.js             <-- Lambda function code with dependencies (Bringing to the next level section)
 │   └── tests                   <-- Unit tests
 │       └── unit
 │           └── test-handler.js
@@ -18,7 +19,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [NodeJS 8.10+ installed](https://nodejs.org/en/download/)
+* [{{ cookiecutter.runtime }} installed](https://nodejs.org/en/download/releases/)
 * [Docker installed](https://www.docker.com/community-edition)
 
 ## Setup process
@@ -30,7 +31,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ```bash
 sam local invoke HelloWorldFunction --event event.json
 ```
- 
+
 **Invoking function locally through local API Gateway**
 
 ```bash
@@ -96,7 +97,7 @@ aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
     --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
     --output table
-``` 
+```
 
 ## Fetch, tail, and filter Lambda function logs
 
@@ -134,7 +135,8 @@ Here are a few things you can try to get more acquainted with building serverles
 
 ### Learn how SAM Build can help you with dependencies
 
-* Uncomment lines on `app.js`
+* Delete `hello-world/app.js`
+* Rename `hello-world/app-deps.js` to `hello-world/app.js`
 * Build the project with ``sam build --use-container``
 * Update tests
 

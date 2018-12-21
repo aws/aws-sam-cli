@@ -4,7 +4,7 @@ Description: >
     {{ cookiecutter.project_name }}
 
     Sample SAM Template for {{ cookiecutter.project_name }}
-    
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
     Function:
@@ -18,7 +18,7 @@ Resources:
         Properties:
             CodeUri: hello-world/
             Handler: app.lambdaHandler
-            Runtime: nodejs8.10
+            Runtime: {{ cookiecutter.runtime }}
             Events:
                 HelloWorld:
                     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
