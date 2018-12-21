@@ -1,4 +1,3 @@
-import os
 from unittest import TestCase
 
 from parameterized import parameterized
@@ -29,7 +28,6 @@ class TestDebugContext(TestCase):
         debug_context = DebugContext(port, debug_path, debug_ars)
 
         self.assertTrue(debug_context.__bool__())
-        self.assertTrue(os.environ["PYTHONUNBUFFERED"], "1")
 
     @parameterized.expand([
         (None, 'debuggerpath', 'debug_args'),
@@ -41,7 +39,6 @@ class TestDebugContext(TestCase):
         debug_context = DebugContext(port, debug_path, debug_ars)
 
         self.assertFalse(debug_context.__bool__())
-        self.assertFalse(False, "PYTHONUNBUFFERED" in os.environ.keys())
 
     @parameterized.expand([
         ('1000', 'debuggerpath', 'debug_args'),
