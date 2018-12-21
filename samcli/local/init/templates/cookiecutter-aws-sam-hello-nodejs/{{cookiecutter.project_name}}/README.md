@@ -151,7 +151,7 @@ Next, you can use AWS Serverless Application Repository to deploy ready to use A
 
 # Appendix
 
-### Building the project
+## Building the project
 
 [AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-create-deployment-pkg.html) with the application as well as its dependencies in a node_modules folder. When you make changes to your source code or dependency manifest,
 run the following command to build your project local testing and deployment:
