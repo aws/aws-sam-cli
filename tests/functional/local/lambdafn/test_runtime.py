@@ -11,6 +11,7 @@ from unittest import TestCase
 from parameterized import parameterized, param
 
 from tests.functional.function_code import nodejs_lambda, make_zip, ECHO_CODE, SLEEP_CODE, GET_ENV_VAR
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.lambdafn.config import FunctionConfig
@@ -59,7 +60,9 @@ class TestLambdaRuntime(TestCase):
                                 timeout=timeout)
 
         stdout_stream = io.BytesIO()
-        self.runtime.invoke(config, input_event, stdout=stdout_stream)
+        stdout_stream_writer = StreamWriter(stdout_stream)
+
+        self.runtime.invoke(config, input_event, stdout=stdout_stream_writer)
 
         actual_output = stdout_stream.getvalue()
         self.assertEquals(actual_output.strip(), expected_output)
@@ -69,6 +72,8 @@ class TestLambdaRuntime(TestCase):
         Setup a short timeout and verify that the container is stopped
         """
         stdout_stream = io.BytesIO()
+        stdout_stream_writer = StreamWriter(stdout_stream)
+
         timeout = 1  # 1 second timeout
         sleep_seconds = 20  # Ask the function to sleep for 20 seconds
 
@@ -81,7 +86,7 @@ class TestLambdaRuntime(TestCase):
 
         # Measure the actual duration of execution
         start = timer()
-        self.runtime.invoke(config, str(sleep_seconds), stdout=stdout_stream)
+        self.runtime.invoke(config, str(sleep_seconds), stdout=stdout_stream_writer)
         end = timer()
 
         # Make sure that the wall clock duration is around the ballpark of timeout value
@@ -118,7 +123,9 @@ class TestLambdaRuntime(TestCase):
                                     timeout=timeout)
 
             stdout_stream = io.BytesIO()
-            self.runtime.invoke(config, input_event, stdout=stdout_stream)
+            stdout_stream_writer = StreamWriter(stdout_stream)
+
+            self.runtime.invoke(config, input_event, stdout=stdout_stream_writer)
 
             actual_output = stdout_stream.getvalue()
             self.assertEquals(actual_output.strip(), expected_output)
@@ -129,7 +136,10 @@ class TestLambdaRuntime(TestCase):
 
         timeout = 30
         input_event = ""
+
         stdout_stream = io.BytesIO()
+        stdout_stream_writer = StreamWriter(stdout_stream)
+
         expected_output = {
             "AWS_SAM_LOCAL": "true",
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
@@ -159,7 +169,7 @@ class TestLambdaRuntime(TestCase):
         config.env_vars.variables = variables
         config.env_vars.aws_creds = aws_creds
 
-        self.runtime.invoke(config, input_event, stdout=stdout_stream)
+        self.runtime.invoke(config, input_event, stdout=stdout_stream_writer)
 
         actual_output = json.loads(stdout_stream.getvalue().strip().decode('utf-8'))  # Output is a JSON String. Deserialize.
 
@@ -202,6 +212,8 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
         print("Invoking function " + name)
         try:
             stdout_stream = io.BytesIO()
+            stdout_stream_writer = StreamWriter(stdout_stream)
+
             config = FunctionConfig(name=name,
                                     runtime=RUNTIME,
                                     handler=HANDLER,
@@ -210,7 +222,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
                                     memory=1024,
                                     timeout=timeout)
 
-            self.runtime.invoke(config, sleep_duration, stdout=stdout_stream)
+            self.runtime.invoke(config, sleep_duration, stdout=stdout_stream_writer)
             actual_output = stdout_stream.getvalue().strip()  # Must output the sleep duration
             if check_stdout:
                 self.assertEquals(actual_output.decode('utf-8'), str(sleep_duration))

@@ -1,7 +1,6 @@
 """
 Information and debug options for a specific runtime.
 """
-import os
 
 
 class DebugContext(object):
@@ -14,8 +13,6 @@ class DebugContext(object):
         self.debug_port = debug_port
         self.debugger_path = debugger_path
         self.debug_args = debug_args
-        if self.debug_port:
-            os.environ["PYTHONUNBUFFERED"] = "1"
 
     def __bool__(self):
         return bool(self.debug_port)
