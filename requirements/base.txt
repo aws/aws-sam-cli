@@ -13,4 +13,4 @@ python-dateutil~=2.6
 pathlib2~=2.3.2; python_version<"3.4"
 requests==2.20.1
 aws_lambda_builders==0.0.5
-serverlessrepo==0.1.5
+serverlessrepo==0.1.6
