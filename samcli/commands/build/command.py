@@ -69,6 +69,12 @@ $ sam build && sam package --s3-bucket <bucketname>
               is_flag=True,
               help="If your functions depend on packages that have natively compiled dependencies, use this flag "
                    "to build your function inside an AWS Lambda-like Docker container")
+@click.option("--docker-volume-basedir", "-v",
+              default=None,
+              envvar="SAM_DOCKER_VOLUME_BASEDIR",
+              help="Specifies the location basedir where the SAM file exists. If the Docker is running on "
+                   "a remote machine, you must mount the path where the SAM file exists on the docker machine "
+                   "and modify this value to match the remote machine.")
 @click.option("--manifest", "-m",
               default=None,
               type=click.Path(),
@@ -84,13 +90,14 @@ def cli(ctx,
         base_dir,
         build_dir,
         use_container,
+        docker_volume_basedir,
         manifest,
         docker_network,
         skip_pull_image,
         parameter_overrides):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network,
+    do_cli(template, base_dir, build_dir, True, use_container, docker_volume_basedir, manifest, docker_network,
            skip_pull_image, parameter_overrides)  # pragma: no cover
 
 
@@ -99,6 +106,7 @@ def do_cli(template,  # pylint: disable=too-many-locals
            build_dir,
            clean,
            use_container,
+           docker_volume_basedir,
            manifest_path,
            docker_network,
            skip_pull_image,
@@ -111,6 +119,8 @@ def do_cli(template,  # pylint: disable=too-many-locals
 
     if use_container:
         LOG.info("Starting Build inside a container")
+        if docker_volume_basedir:
+            base_dir = docker_volume_basedir
 
     with BuildContext(template,
                       base_dir,
