@@ -41,9 +41,9 @@ Get Started
 
 Learn how to get started using the SAM CLI with these guides:
 
--   [Installation](docs/installation.rst): Set up your macOS, Linux or
+-   [Installation](https://aws.amazon.com/serverless/sam/): Set up your macOS, Linux or
     Windows Machine to run serverless projects with SAM CLI.
--   [Introduction to SAM and SAM CLI](docs/getting_started.rst) What is
+-   [Introduction to SAM and SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html) What is
     SAM and SAM CLI, and how can you use it to make a simple hello-world
     app.
 -   [Running and debugging serverless applications
