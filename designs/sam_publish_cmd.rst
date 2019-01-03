@@ -71,7 +71,7 @@ Assuming that customers have the following SAM template:
             LicenseUrl: ./LICENSE.txt
             ReadmeUrl: ./README.md
             Labels: ['tests']
-            HomepageUrl: https://github.com/user1/my-app-project
+            HomePageUrl: https://github.com/user1/my-app-project
             SemanticVersion: 0.0.1
             SourceCodeUrl: https://github.com/user1/my-app-project
 
@@ -107,7 +107,7 @@ Create new application in SAR
     "LicenseUrl": "s3://test/LICENSE.txt",
     "ReadmeUrl": "s3://test/README.md",
     "Labels": ['tests'],
-    "HomepageUrl": "https://github.com/user1/my-app-project",
+    "HomePageUrl": "https://github.com/user1/my-app-project",
     "SemanticVersion": "0.0.1",
     "SourceCodeUrl": "https://github.com/user1/my-app-project"
   }
