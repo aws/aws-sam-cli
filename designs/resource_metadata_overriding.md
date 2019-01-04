@@ -1,10 +1,11 @@
-Support template generation through other Frameworks
-====================================================
+Understand Resource Level Metadata
+==================================
 
 This is a design to capture how SAM CLI can support templates that are generated 
 from different frameworks, e.g. AWS Cloud Development Kit.
 
-Initially, the support will only be for processing the CDK metadata that is appended into a template.
+Initially, the support will only be for processing Resource Metadata within the template, which enables support for
+customers using AWS Cloud Development Kit (CDK).
 
 What is the problem?
 --------------------
@@ -20,9 +21,9 @@ applications.
 What will be changed?
 ---------------------
 
-To start, we will add support for processing metadata from CDK applications:
+To start, we will add support for processing Resource Metadata that is embedded into the template:
 SAM CLI will add a processing step on the templates it reads. This will consist of reading
-the template and for each resource reading the metadata and replacing values as specified.
+the template and for each resource reading the Metadata and replacing values as specified.
 
 In the future, we can support creating these templates from the different frameworks in a command directly within 
 SAM CLI but is out of scope in the initial implementation of support.
@@ -30,18 +31,18 @@ SAM CLI but is out of scope in the initial implementation of support.
 Success criteria for the change
 -------------------------------
 
-* Ability to invoke functions locally that was defined in AWS Cloud Development Kit (CDK).
+* Ability to invoke functions locally that contain Metadata on a Resource
 * Process a template with CDK Metadata on a resource.
 
 Out-of-Scope
 ------------
 
 * A command that will generate the template from the framework.
-* Handling multiple stacks.
-* Support for frameworks other than CDK.
 
 User Experience Walkthrough
 ---------------------------
+
+CDK is a framework that appends this Metadata to Resources within a template and will use this as an example.
 
 ### Customer using CDK
 
@@ -72,18 +73,42 @@ All the providers, which are used to get resources out of the template provided 
 `SamBaseProvider.get_template(template_dict, parameter_overrides)` to get a normalized template. This function call is 
 responsible for taking a SAM template dictionary and returning a cleaned copy of the template where SAM plugins have 
 been run and parameter values have been substituted. Given the current scope of this call, expanding it to also normalize 
-metadata, seems reasonable. We will expand `SamBaseProvider.get_tempalte()` to call a `CdkTemplateNormalizer` class
+metadata, seems reasonable. We will expand `SamBaseProvider.get_tempalte()` to call a `TemplateMetadataNormalizer` class
 that will be responsible for understanding the metadata and normalizing the template with respect to the metadata. 
 
-```python
+Template snippet that contains the metadata SAM CLI will parse and understand.
 
-class CdkTemplateNormalizer(object):
+```yaml
+
+Resources:
+    MyFunction:
+      Type: AWS::Lambda::Function
+      Properties:
+        Code: 
+          S3Bucket: mybucket
+          S3Key: myKey
+        ...
+      Metadata:
+        aws:asset:path: '/path/to/function/code'
+        aws:asset:property: 'Code'
+```
+
+The two keys we will recognize are `aws:asset:path` and `aws:asset:property`. `aws:asset:path`'s value will be the path
+to the code, files, etc that are help on the machine, while `aws:asset:property` is the Property of the Resource that
+needs to be replaced. So in the example above, the `Code` Property will be replaced with `/path/to/function/code`.
+
+Below algorithm to do this Metadata Normalization on the template.
+
+```python
+class TemplateMetadataNormalizer(object):
 
     @staticmethod
     def normalize(template_dict):
         for resource in template_dict.get('Resources'):
             if 'Metadata' in resource:
-                CdkTemplateNormalizer.replace_property(key, value)
+                asset_property = resource.get('Metadata').get('aws:asset:property')
+                asset_path = resource.get('Metadata').get('aws:asset:path')
+                TemplateMetadataNormalizer.replace_property(asset_property, asset_path)
 ```
 
 `.samrc` Changes
