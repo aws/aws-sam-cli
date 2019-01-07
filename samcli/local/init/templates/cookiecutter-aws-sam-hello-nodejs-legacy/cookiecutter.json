@@ -1,4 +1,4 @@
 {
     "project_name": "Name of the project",
-    "runtime": "nodejs8.10"
+    "runtime": "nodejs6.10"
 }

@@ -10,8 +10,7 @@ A cookiecutter template to create a legacy NodeJS Hello world boilerplate using 
 
 Generate a boilerplate template in your current project directory using the following syntax:
 
-* **NodeJS 8**: `sam init --runtime nodejs6.10`
-* **NodeJS 6**: `sam init --runtime nodejs4.3`
+* **NodeJS 6**: `sam init --runtime nodejs6.10`
 
 > **NOTE**: ``--name`` allows you to specify a different project folder name (`sam-app` is the default)
 
