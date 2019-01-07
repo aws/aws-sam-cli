@@ -73,7 +73,7 @@ All the providers, which are used to get resources out of the template provided 
 `SamBaseProvider.get_template(template_dict, parameter_overrides)` to get a normalized template. This function call is 
 responsible for taking a SAM template dictionary and returning a cleaned copy of the template where SAM plugins have 
 been run and parameter values have been substituted. Given the current scope of this call, expanding it to also normalize 
-metadata, seems reasonable. We will expand `SamBaseProvider.get_tempalte()` to call a `TemplateMetadataNormalizer` class
+metadata, seems reasonable. We will expand `SamBaseProvider.get_tempalte()` to call a `ResourceMetadataNormalizer` class
 that will be responsible for understanding the metadata and normalizing the template with respect to the metadata. 
 
 Template snippet that contains the metadata SAM CLI will parse and understand.
@@ -94,13 +94,13 @@ Resources:
 ```
 
 The two keys we will recognize are `aws:asset:path` and `aws:asset:property`. `aws:asset:path`'s value will be the path
-to the code, files, etc that are help on the machine, while `aws:asset:property` is the Property of the Resource that
+to the code, files, etc that are on the machine, while `aws:asset:property` is the Property of the Resource that
 needs to be replaced. So in the example above, the `Code` Property will be replaced with `/path/to/function/code`.
 
 Below algorithm to do this Metadata Normalization on the template.
 
 ```python
-class TemplateMetadataNormalizer(object):
+class ResourceMetadataNormalizer(object):
 
     @staticmethod
     def normalize(template_dict):
@@ -108,7 +108,7 @@ class TemplateMetadataNormalizer(object):
             if 'Metadata' in resource:
                 asset_property = resource.get('Metadata').get('aws:asset:property')
                 asset_path = resource.get('Metadata').get('aws:asset:path')
-                TemplateMetadataNormalizer.replace_property(asset_property, asset_path)
+                ResourceMetadataNormalizer.replace_property(asset_property, asset_path)
 ```
 
 `.samrc` Changes
