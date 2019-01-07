@@ -2,11 +2,15 @@
 Class that Normalizes a Template based on Resource Metadata
 """
 
+import logging
+
 RESOURCES_KEY = "Resources"
 PROPERTIES_KEY = "Properties"
 METADATA_KEY = "Metadata"
 ASSET_PATH_METADATA_KEY = "aws:asset:path"
 ASSET_PROPERTY_METADATA_KEY = "aws:asset:property"
+
+LOG = logging.getLogger(__name__)
 
 
 class ResourceMetadataNormalizer(object):
@@ -26,15 +30,15 @@ class ResourceMetadataNormalizer(object):
         """
         resources = template_dict.get(RESOURCES_KEY, {})
 
-        for _, resource in resources.items():
+        for logical_id, resource in resources.items():
             resource_metadata = resource.get(METADATA_KEY, {})
             asset_path = resource_metadata.get(ASSET_PATH_METADATA_KEY)
             asset_property = resource_metadata.get(ASSET_PROPERTY_METADATA_KEY)
 
-            ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource)
+            ResourceMetadataNormalizer._replace_property(asset_property, asset_path, resource, logical_id)
 
     @staticmethod
-    def _replace_property(property_key, property_value, resource):
+    def _replace_property(property_key, property_value, resource, logical_id):
         """
         Replace a property with an asset on a given resource
 
@@ -48,7 +52,12 @@ class ResourceMetadataNormalizer(object):
             The new value of the property
         resource dict
             Dictionary representing the Resource to change
+        logical_id str
+            LogicalId of the Resource
 
         """
-        if property_value and property_key:
+        if property_key and property_value:
             resource.get(PROPERTIES_KEY, {})[property_key] = property_value
+        elif property_key or property_value:
+            LOG.info("WARNING: Ignoring Metadata for Resource %s. Metadata contains only aws:asset:path or "
+                     "aws:assert:property but not both", logical_id)
