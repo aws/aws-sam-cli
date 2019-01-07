@@ -2,7 +2,6 @@
 
 This is a sample template for {{ cookiecutter.project_name }}
 
-
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
@@ -35,12 +34,6 @@ build.ps1 --target=Package
 
 ### Local development
 
-**Invoking function locally using a local sample payload**
-
-```bash
-sam local invoke HelloWorldFunction --event event.json
-```
-
 **Invoking function locally through local API Gateway**
 
 ```bash
@@ -53,7 +46,7 @@ sam local start-api
 ...
 Events:
     HelloWorldFunction:
-        Type: Api # More info about API Event Source: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template.html#serverless-sam-template-api
+        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
         Properties:
             Path: /hello
             Method: get
@@ -84,6 +77,7 @@ Next, run the following command to package our Lambda function to S3:
 
 ```bash
 sam package \
+    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 ```
@@ -97,18 +91,25 @@ sam deploy \
     --capabilities CAPABILITY_IAM
 ```
 
-> **See [Serverless Application Model (SAM) HOWTO Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html) for more details in how to get started.**
+> **See [Serverless Application Model (SAM) HOWTO Guide](https://github.com/awslabs/serverless-application-model/blob/master/HOWTO.md) for more details in how to get started.**
 
 After deployment is complete you can run the following command to retrieve the API Gateway Endpoint URL:
 
 ```bash
 aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
-    --output table
+    --query 'Stacks[].Outputs'
 ```
 
 ## Testing
+
+For testing our code, we use XUnit and you can use `dotnet test` to run tests defined under `test/`
+
+```bash
+dotnet test test/HelloWorld.Test
+```
+
+Alternatively, you can use Cake. It discovers and executes all the tests.
 
 ### Linux & macOS
 
@@ -124,52 +125,48 @@ build.ps1 --target=Test
 
 # Appendix
 
-## Bringing to the next level
+## AWS CLI commands
 
-Here are a few things you can try to get more acquainted with building serverless applications using SAM:
-
-### Create an additional API resource
-
-* Create a catch all resource (e.g. /hello/{proxy+}) and return the name requested through this new path
-* Update tests
-
-### Step-through debugging
-
-* **[Enable step-through debugging docs for supported runtimes](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-using-debugging.html)**
-
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
-
-## SAM and AWS CLI commands
-
-All commands used throughout this document
+AWS CLI commands to package, deploy and describe outputs defined within the AWS CloudFormation stack:
 
 ```bash
-# Invoke function locally with event.json as an input
-sam local invoke HelloWorldFunction --event event.json
-
-# Run API Gateway locally
-sam local start-api
-
-# Create S3 bucket
-aws s3 mb s3://BUCKET_NAME
-
-# Package Lambda function defined locally and upload to S3 as an artifact
-sam package \
+aws cloudformation package \
+    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
-# Deploy SAM template as a CloudFormation stack
-sam deploy \
+aws cloudformation deploy \
     --template-file packaged.yaml \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --capabilities CAPABILITY_IAM
+    --capabilities CAPABILITY_IAM \
+    --parameter-overrides MyParameterSample=MySampleValue
 
-# Describe Output section of CloudFormation stack previously created
 aws cloudformation describe-stacks \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
-    --output table
-
-# Tail Lambda function Logs using Logical name defined in SAM Template
-sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
+    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
 ```
+
+## Next Steps
+
+Create your own .NET Core solution template to use with SAM CLI. [Cookiecutter for AWS SAM and .NET](https://github.com/aws-samples/cookiecutter-aws-sam-dotnet) provides you with a sample implementation how to use cookiecutter templating library to standardise how you initialise your Serverless projects.
+
+``` bash
+ sam init --location gh:aws-samples/cookiecutter-aws-sam-dotnet
+```
+
+For more information and examples of how to use `sam init` run
+
+``` bash
+sam init --help
+```
+
+## Bringing to the next level
+
+Here are a few ideas that you can use to get more acquainted as to how this overall process works:
+
+* Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
+* Update unit test to capture that
+* Package & Deploy
+
+Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
+
+* [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)

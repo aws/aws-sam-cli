@@ -8,9 +8,3 @@ clean:
 	
 build:
 	GOOS=linux GOARCH=amd64 go build -o hello-world/hello-world ./hello-world
-
-invoke:
-	sam local invoke HelloWorldFunction -e event.json
-
-start:
-	sam local start-api
