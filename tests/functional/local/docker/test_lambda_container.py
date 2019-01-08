@@ -10,6 +10,7 @@ import docker
 from contextlib import contextmanager
 from unittest import TestCase
 
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.debug_context import DebugContext
 from tests.functional.function_code import nodejs_lambda
 from samcli.local.docker.lambda_container import LambdaContainer
@@ -69,7 +70,7 @@ class TestLambdaContainer(TestCase):
         A docker container must be successfully created
         """
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder)
 
         self.assertIsNone(container.id, "Container must not have ID before creation")
@@ -87,7 +88,7 @@ class TestLambdaContainer(TestCase):
     def test_debug_port_is_created_on_host(self):
 
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder, debug_options=self.debug_context)
 
         with self._create(container):
@@ -102,7 +103,7 @@ class TestLambdaContainer(TestCase):
 
     def test_container_is_attached_to_network(self):
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder)
 
         with self._network_create() as network:
@@ -128,15 +129,19 @@ class TestLambdaContainer(TestCase):
         expected_stderr = b"**This string is printed from Lambda function**"
 
         layer_downloader = LayerDownloader("./", "./")
-        image_builder = LambdaImage(layer_downloader, False)
+        image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder)
+
         stdout_stream = io.BytesIO()
         stderr_stream = io.BytesIO()
+
+        stdout_stream_writer = StreamWriter(stdout_stream)
+        stderr_stream_writer = StreamWriter(stderr_stream)
 
         with self._create(container):
 
             container.start()
-            container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
+            container.wait_for_logs(stdout=stdout_stream_writer, stderr=stderr_stream_writer)
 
             function_output = stdout_stream.getvalue()
             function_stderr = stderr_stream.getvalue()
