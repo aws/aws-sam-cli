@@ -246,31 +246,34 @@ class ApplicationBuilder(object):
                                          options=None)
 
         try:
-            self._container_manager.run(container)
-        except docker.errors.APIError as ex:
-            if "executable file not found in $PATH" in str(ex):
-                raise UnsupportedBuilderLibraryVersionError(container.image,
-                                                            "{} executable not found in container"
-                                                            .format(container.executable_name))
+            try:
+                self._container_manager.run(container)
+            except docker.errors.APIError as ex:
+                if "executable file not found in $PATH" in str(ex):
+                    raise UnsupportedBuilderLibraryVersionError(container.image,
+                                                                "{} executable not found in container"
+                                                                .format(container.executable_name))
 
-        # Container's output provides status of whether the build succeeded or failed
-        # stdout contains the result of JSON-RPC call
-        stdout_stream = io.BytesIO()
-        # stderr contains logs printed by the builder. Stream it directly to terminal
-        stderr_stream = osutils.stderr()
-        container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
+            # Container's output provides status of whether the build succeeded or failed
+            # stdout contains the result of JSON-RPC call
+            stdout_stream = io.BytesIO()
+            # stderr contains logs printed by the builder. Stream it directly to terminal
+            stderr_stream = osutils.stderr()
+            container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
 
-        stdout_data = stdout_stream.getvalue().decode('utf-8')
-        LOG.debug("Build inside container returned response %s", stdout_data)
+            stdout_data = stdout_stream.getvalue().decode('utf-8')
+            LOG.debug("Build inside container returned response %s", stdout_data)
 
-        response = self._parse_builder_response(stdout_data, container.image)
+            response = self._parse_builder_response(stdout_data, container.image)
 
-        # Request is successful. Now copy the artifacts back to the host
-        LOG.debug("Build inside container was successful. Copying artifacts from container to host")
+            # Request is successful. Now copy the artifacts back to the host
+            LOG.debug("Build inside container was successful. Copying artifacts from container to host")
 
-        # "/." is a Docker thing that instructions the copy command to download contents of the folder only
-        result_dir_in_container = response["result"]["artifacts_dir"] + "/."
-        container.copy(result_dir_in_container, artifacts_dir)
+            # "/." is a Docker thing that instructions the copy command to download contents of the folder only
+            result_dir_in_container = response["result"]["artifacts_dir"] + "/."
+            container.copy(result_dir_in_container, artifacts_dir)
+        finally:
+            self._container_manager.stop(container)
 
         LOG.debug("Build inside container succeeded")
         return artifacts_dir
