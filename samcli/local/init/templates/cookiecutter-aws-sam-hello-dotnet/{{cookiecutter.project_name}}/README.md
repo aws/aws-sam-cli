@@ -153,7 +153,7 @@ Create your own .NET Core solution template to use with SAM CLI. [Cookiecutter f
  sam init --location gh:aws-samples/cookiecutter-aws-sam-dotnet
 ```
 
-For more information and examples of how to use `sam init` run
+For more information and examples of how to use `sam init` run 
 
 ``` bash
 sam init --help
