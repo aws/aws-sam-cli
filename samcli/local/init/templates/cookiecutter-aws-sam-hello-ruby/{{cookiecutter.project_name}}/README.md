@@ -46,7 +46,7 @@ If the previous command ran successfully you should now be able to hit the follo
 ...
 Events:
     HelloWorld:
-        Type: Api # More info about API Event Source: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template.html#serverless-sam-template-api
+        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
         Properties:
             Path: /hello
             Method: get
@@ -135,6 +135,7 @@ Here are a few things you can try to get more acquainted with building serverles
 
 * Uncomment lines on `app.rb`
 * Build the project with ``sam build --use-container``
+* Invoke with ``sam local invoke HelloWorldFunction --event event.json``
 * Update tests
 
 ### Create an additional API resource
@@ -153,7 +154,7 @@ Next, you can use AWS Serverless Application Repository to deploy ready to use A
 
 ## Building the project
 
-[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-create-deployment-pkg.html) with the application as well as its dependencies in a node_modules folder. When you make changes to your source code or dependency manifest,
+[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/ruby-package.html) with the application as well as its dependencies. When you make changes to your source code or dependency manifest,
 run the following command to build your project local testing and deployment:
 
 ```bash
@@ -173,6 +174,9 @@ By default, this command writes built artifacts to `.aws-sam/build` folder.
 All commands used throughout this document
 
 ```bash
+# Generate event.json via generate-event command
+sam local generate-event apigateway aws-proxy > event.json
+
 # Invoke function locally with event.json as an input
 sam local invoke HelloWorldFunction --event event.json
 
@@ -184,7 +188,6 @@ aws s3 mb s3://BUCKET_NAME
 
 # Package Lambda function defined locally and upload to S3 as an artifact
 sam package \
-    --template-file template.yaml \
     --output-template-file packaged.yaml \
     --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 

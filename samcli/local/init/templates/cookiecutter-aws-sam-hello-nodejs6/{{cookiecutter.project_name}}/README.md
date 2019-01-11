@@ -46,7 +46,7 @@ If the previous command ran successfully you should now be able to hit the follo
 ...
 Events:
     HelloWorld:
-        Type: Api # More info about API Event Source: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template.html#serverless-sam-template-api
+        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
         Properties:
             Path: /hello
             Method: get
@@ -58,7 +58,7 @@ AWS Lambda NodeJS runtime requires a flat folder with all dependencies including
 
 ```yaml
 ...
-    FirstFunction:
+    HelloWorldFunction:
         Type: AWS::Serverless::Function
         Properties:
             CodeUri: hello-world/
@@ -175,6 +175,9 @@ By default, this command writes built artifacts to `.aws-sam/build` folder.
 All commands used throughout this document
 
 ```bash
+# Generate event.json via generate-event command
+sam local generate-event apigateway aws-proxy > event.json
+
 # Invoke function locally with event.json as an input
 sam local invoke HelloWorldFunction --event event.json
 
