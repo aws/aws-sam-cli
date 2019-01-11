@@ -8,10 +8,10 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ├── event.json                  <-- API Gateway Proxy Integration event payload
 ├── hello_world                 <-- Source code for a lambda function
 │   └── app.js                  <-- Lambda function code
+│   └── package.json            <-- NodeJS dependencies and scripts
 │   └── tests                   <-- Unit tests
 │       └── unit
 │           └── test-handler.js
-├── package.json                <-- NodeJS dependencies and scripts
 ├── template.yaml               <-- SAM template
 ```
 
@@ -136,6 +136,7 @@ Here are a few things you can try to get more acquainted with building serverles
 
 * Uncomment lines on `app.js`
 * Build the project with ``sam build --use-container``
+* Invoke with ``sam local invoke HelloWorldFunction --event event.json``
 * Update tests
 
 ### Create an additional API resource
