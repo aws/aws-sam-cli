@@ -19,7 +19,7 @@ RUNTIME_TEMPLATE_MAPPING = {
     "python2.7": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
     "python": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
     "ruby2.5": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
-    "nodejs6.10": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs-legacy"),
+    "nodejs6.10": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs6"),
     "nodejs8.10": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
     "nodejs": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
     "dotnetcore2.0": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
