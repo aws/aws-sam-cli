@@ -22,7 +22,7 @@ across your organization, or with the community at large.\n
 This command expects the template's Metadata section to contain an
 AWS::ServerlessRepo::Application section with application metadata
 for publishing. For more details on this metadata section, see
-https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverless-app-publishing-applications.html
+https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html
 \b
 Examples
 --------
