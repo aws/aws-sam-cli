@@ -36,6 +36,17 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(return_code, 0)
 
+    def test_function_with_metadata(self):
+        command_list = self.get_command_list("FunctionWithMetadata",
+                                             template_path=self.template_path,
+                                             no_event=True)
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+
+        self.assertEquals(process_stdout.decode('utf-8'), '"Hello World in a different dir"')
+
     def test_invoke_returns_execpted_results(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
                                              template_path=self.template_path,
