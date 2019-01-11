@@ -133,3 +133,14 @@ class TestYaml(TestCase):
         # yaml dump changes indentation, remove spaces and new line characters to just compare the text
         self.assertEqual(re.sub(r'\n|\s', '', input_template),
                          re.sub(r'\n|\s', '', output_template))
+
+    def test_yaml_merge_tag(self):
+        test_yaml = """
+        base: &base
+            property: value
+        test:
+            <<: *base
+        """
+        output = yaml_parse(test_yaml)
+        self.assertTrue(isinstance(output, OrderedDict))
+        self.assertEqual(output.get('test').get('property'), 'value')
