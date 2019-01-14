@@ -18,16 +18,7 @@ Resources:
         Properties:
             CodeUri: hello-world/
             Handler: app.lambdaHandler
-            {%- if cookiecutter.runtime == 'nodejs6.10' %}
-            Runtime: nodejs6.10
-            {%- elif cookiecutter.runtime =='nodejs4.3' %}
-            Runtime: nodejs4.3
-            {%- else %}
             Runtime: nodejs8.10
-            {%- endif %}
-            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
-                Variables:
-                    PARAM1: VALUE
             Events:
                 HelloWorld:
                     Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -37,6 +28,9 @@ Resources:
 
 Outputs:
 
+    # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+    # Find out more about other implicit resources you can reference within SAM
+    # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
     HelloWorldApi:
       Description: "API Gateway endpoint URL for Prod stage for Hello World function"
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
