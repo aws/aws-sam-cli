@@ -4,9 +4,11 @@ Base class for SAM Template providers
 
 import logging
 
-from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samtranslator.intrinsics.resolver import IntrinsicsResolver
 from samtranslator.intrinsics.actions import RefAction
+
+from samcli.lib.samlib.wrapper import SamTranslatorWrapper
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
 
 LOG = logging.getLogger(__name__)
@@ -60,6 +62,7 @@ class SamBaseProvider(object):
             template_dict = SamTranslatorWrapper(template_dict).run_plugins()
 
         template_dict = SamBaseProvider._resolve_parameters(template_dict, parameter_overrides)
+        ResourceMetadataNormalizer.normalize(template_dict)
         return template_dict
 
     @staticmethod
