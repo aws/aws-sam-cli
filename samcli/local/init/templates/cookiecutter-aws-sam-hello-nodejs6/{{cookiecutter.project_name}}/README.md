@@ -4,27 +4,22 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ```bash
 .
-├── README.md                   <-- This instructions file
+├── README.MD                   <-- This instructions file
 ├── event.json                  <-- API Gateway Proxy Integration event payload
 ├── hello_world                 <-- Source code for a lambda function
-│   ├── __init__.py
-│   ├── app.py                  <-- Lambda function code
-│   ├── requirements.txt        <-- Lambda function code
-├── template.yaml               <-- SAM Template
-└── tests                       <-- Unit tests
-    └── unit
-        ├── __init__.py
-        └── test_handler.py
+│   └── app.js                  <-- Lambda function code
+│   └── package.json            <-- NodeJS dependencies and scripts
+│   └── app-deps.js             <-- Lambda function code with dependencies (Bringing to the next level section)
+│   └── tests                   <-- Unit tests
+│       └── unit
+│           └── test-handler.js
+├── template.yaml               <-- SAM template
 ```
 
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-{%- if cookiecutter.runtime == 'python2.7' %}
-* [Python 2.7 installed](https://www.python.org/downloads/)
-{%- else %}
-* [Python 3 installed](https://www.python.org/downloads/)
-{%- endif %}
+* [{{ cookiecutter.runtime }} installed](https://nodejs.org/en/download/releases/)
 * [Docker installed](https://www.docker.com/community-edition)
 
 ## Setup process
@@ -59,14 +54,14 @@ Events:
 
 ## Packaging and deployment
 
-AWS Lambda Python runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
+AWS Lambda NodeJS runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
 
 ```yaml
 ...
     HelloWorldFunction:
         Type: AWS::Serverless::Function
         Properties:
-            CodeUri: hello_world/
+            CodeUri: hello-world/
             ...
 ```
 
@@ -102,7 +97,7 @@ aws cloudformation describe-stacks \
     --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
     --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
     --output table
-``` 
+```
 
 ## Fetch, tail, and filter Lambda function logs
 
@@ -118,12 +113,12 @@ You can find more information and examples about filtering Lambda function logs 
 
 ## Testing
 
-
-Next, we install test dependencies and we run `pytest` against our `tests` folder to run our initial unit tests:
+We use `mocha` for testing our code and it is already added in `package.json` under `scripts`, so that we can simply run the following command to run our tests:
 
 ```bash
-pip install pytest pytest-mock --user
-python -m pytest tests/ -v
+cd hello-world
+npm install
+npm run test
 ```
 
 ## Cleanup
@@ -140,7 +135,8 @@ Here are a few things you can try to get more acquainted with building serverles
 
 ### Learn how SAM Build can help you with dependencies
 
-* Uncomment lines on `app.py`
+* Delete `hello-world/app.js`
+* Rename `hello-world/app-deps.js` to `hello-world/app.js`
 * Build the project with ``sam build --use-container``
 * Invoke with ``sam local invoke HelloWorldFunction --event event.json``
 * Update tests
@@ -158,9 +154,9 @@ Next, you can use AWS Serverless Application Repository to deploy ready to use A
 
 # Appendix
 
-## Building the project
+### Building the project
 
-[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html) with the application as well as its dependencies in  deployment package. When you make changes to your source code or dependency manifest,
+[AWS Lambda requires a flat folder](https://docs.aws.amazon.com/lambda/latest/dg/nodejs-create-deployment-pkg.html) with the application as well as its dependencies in a node_modules folder. When you make changes to your source code or dependency manifest,
 run the following command to build your project local testing and deployment:
 
 ```bash
@@ -212,3 +208,4 @@ aws cloudformation describe-stacks \
 sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --tail
 ```
 
+**NOTE**: Alternatively this could be part of package.json scripts section.

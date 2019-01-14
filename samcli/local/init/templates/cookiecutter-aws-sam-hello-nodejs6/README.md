@@ -1,6 +1,6 @@
-# Cookiecutter Python Hello-world for SAM based Serverless App
+# Cookiecutter legacy NodeJS Hello-world for SAM based Serverless App
 
-A cookiecutter template to create a NodeJS Hello world boilerplate using [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model).
+A cookiecutter template to create a legacy NodeJS Hello world boilerplate using [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model).
 
 ## Requirements
 
@@ -10,12 +10,9 @@ A cookiecutter template to create a NodeJS Hello world boilerplate using [Server
 
 Generate a boilerplate template in your current project directory using the following syntax:
 
-* **Python 3.7**: `sam init --runtime python3.7`
-* **Python 3.6**: `sam init --runtime python3.6`
-* **Python 2.7**: `sam init --runtime python2.7`
+* **NodeJS 6**: `sam init --runtime nodejs6.10`
 
 > **NOTE**: ``--name`` allows you to specify a different project folder name (`sam-app` is the default)
-
 
 # Credits
 
