@@ -2,6 +2,8 @@ import os
 import shutil
 import tempfile
 
+import docker
+
 try:
     from pathlib import Path
 except ImportError:
@@ -72,6 +74,12 @@ class BuildIntegBase(TestCase):
             command_list += ["--use-container"]
 
         return command_list
+
+    def verify_docker_container_cleanedup(self, runtime):
+        docker_client = docker.from_env()
+        samcli_containers = \
+            docker_client.containers.list(all=True, filters={"ancestor": "lambci/lambda:build-{}".format(runtime)})
+        self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
 
     def _make_parameter_override_arg(self, overrides):
         return " ".join([
