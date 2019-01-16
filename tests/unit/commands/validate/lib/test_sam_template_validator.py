@@ -1,7 +1,7 @@
 from unittest import TestCase
 from mock import Mock, patch
 
-from samtranslator.public.exceptions import InvalidDocumentException
+from samtranslator.public.exceptions import InvalidDocumentException, InvalidTemplateException
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.validate.lib.sam_template_validator import SamTemplateValidator
@@ -45,7 +45,7 @@ class TestSamTemplateValidator(TestCase):
         sam_parser.Parser.return_value = parser
 
         translate_mock = Mock()
-        translate_mock.translate.side_effect = InvalidDocumentException([Exception('message')])
+        translate_mock.translate.side_effect = InvalidDocumentException([InvalidTemplateException('message')])
         sam_translator.return_value = translate_mock
 
         validator = SamTemplateValidator(template, managed_policy_mock)

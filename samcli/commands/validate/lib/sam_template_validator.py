@@ -84,7 +84,7 @@ class SamTemplateValidator(object):
                 LOG.debug("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
+                functools.reduce(lambda message, error: message + '\n\t' + error.message, e.causes, e.message))
 
     def _replace_local_codeuri(self):
         """
