@@ -74,7 +74,7 @@ def template_click_option(include_build=True):
     """
     Click Option for template option
     """
-    return click.option('--template', '-t',
+    return click.option('--template', '-t', '--template-file',
                         default=_TEMPLATE_OPTION_DEFAULT_VALUE,
                         type=click.Path(),
                         envvar="SAM_TEMPLATE_FILE",
