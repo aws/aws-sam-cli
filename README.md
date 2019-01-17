@@ -6,9 +6,9 @@ SAM CLI (Beta)
 
 ![Build
 Status](https://travis-ci.org/awslabs/aws-sam-cli.svg?branch=develop)
-![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg?maxAge=2592000)
-![Contributers](https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg?maxAge=2592000)
-![GitHub-release](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?maxAge=2592000)
+![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
+![Contributers](https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg)
+![GitHub-release](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg)
 ![PyPI version](https://badge.fury.io/py/aws-sam-cli.svg)
 
 [Join the SAM developers channel (\#samdev) on
