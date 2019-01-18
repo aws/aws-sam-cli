@@ -182,7 +182,6 @@ class LambdaImage(object):
                     self.docker_client.images.build(fileobj=tarballfile,
                                                     custom_context=True,
                                                     rm=True,
-                                                    encoding='gzip',
                                                     tag=docker_tag,
                                                     pull=not self.skip_pull_image)
                 except (docker.errors.BuildError, docker.errors.APIError):
