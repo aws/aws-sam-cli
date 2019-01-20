@@ -239,8 +239,9 @@ class SamFunctionProvider(FunctionProvider):
         layers = []
         for layer in list_of_layers:
             if isinstance(layer, dict) and layer.get("Fn::Sub"):
-                LOG.warning("'!Sub' keyword in Layer configuration does not work locally. "
-                            "Please replace all parameter strings(like '${AWS::Region}') with the original value(like 'ap-northeast-1') and remove '!Sub' keyword.")
+                LOG.warning("'!Sub' keyword in Layer configuration does not work at local. "
+                            "Please replace all parameter strings(like '${AWS::Region}') with the original value "
+                            "and remove '!Sub' keyword from template.yaml .")
 
             # If the layer is a string, assume it is the arn
             if isinstance(layer, six.string_types):
