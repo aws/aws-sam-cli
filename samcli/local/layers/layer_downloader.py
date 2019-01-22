@@ -8,7 +8,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 
 from samcli.lib.utils.codeuri import resolve_code_path
-from samcli.local.lambdafn.zip import unzip_from_uri
+from samcli.local.lambdafn.zip import unzip, unzip_from_uri
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
 
 try:
@@ -92,6 +92,13 @@ class LayerDownloader(object):
         if layer.is_defined_within_template:
             LOG.info("%s is a local Layer in the template", layer.name)
             layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)
+
+            if layer.codeuri.lower().endswith('.zip'):
+                LOG.info("Decompressing %s", layer.codeuri)
+                layer_zip_path = layer.codeuri
+                layer.codeuri = layer.codeuri[:-4]
+                unzip(layer_zip_path, layer.codeuri)
+
             return layer
 
         # disabling no-member due to https://github.com/PyCQA/pylint/issues/1660

@@ -185,6 +185,10 @@ class ApplicationBuilder(object):
         # artifacts directory will be created by the builder
         artifacts_dir = str(pathlib.Path(self._build_dir, function_name))
 
+        if code_dir.lower().endswith(".zip"):
+           LOG.debug("Serverless function '%s' is already built", function_name)
+           return code_dir
+
         with osutils.mkdir_temp() as scratch_dir:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
