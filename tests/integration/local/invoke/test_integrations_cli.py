@@ -3,6 +3,7 @@ import shutil
 import os
 import copy
 from unittest import skipIf
+import tempfile
 
 from nose_parameterized import parameterized
 from subprocess import Popen, PIPE
@@ -231,6 +232,125 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         return_code = process.wait()
 
         self.assertEquals(return_code, 0)
+
+
+class TestUsingConfigFiles(InvokeIntegBase):
+    template = Path("template.yml")
+
+    def setUp(self):
+        self.config_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.config_dir, ignore_errors=True)
+
+    def test_default_profile_with_custom_configs(self):
+        profile = "default"
+        custom_config = self._create_config_file(profile)
+        custom_cred = self._create_cred_file(profile)
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+        env.pop('AWS_DEFAULT_REGION', None)
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+
+    def test_custom_profile_with_custom_configs(self):
+        custom_config = self._create_config_file("custom")
+        custom_cred = self._create_cred_file("custom")
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path,
+                                             profile='custom')
+
+        env = os.environ.copy()
+        env.pop('AWS_DEFAULT_REGION', None)
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+
+    def test_custom_profile_through_envrionment_variables(self):
+        # When using a custom profile in a custom location, you need both the config
+        # and credential file otherwise we fail to find a region or the profile (depending
+        # on which one is provided
+        custom_config = self._create_config_file("custom")
+
+        custom_cred = self._create_cred_file("custom")
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+        env.pop('AWS_DEFAULT_REGION', None)
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+        env['AWS_PROFILE'] = "custom"
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+
+    def _create_config_file(self, profile):
+        if profile == "default":
+            config_file_content = """
+            [{}]
+            output = json
+            region = us-west-1
+            """.format(profile)
+        else:
+            config_file_content = """
+            [profile {}]
+            output = json
+            region = us-west-1""".format(profile)
+
+        custom_config = os.path.join(self.config_dir, "customconfig")
+        with open(custom_config, "w") as file:
+            file.write(config_file_content)
+        return custom_config
+
+    def _create_cred_file(self, profile):
+        cred_file_content = """
+        [{}]
+        aws_access_key_id = someaccesskeyid
+        aws_secret_access_key = shhhhhthisisasecret
+        aws_session_token = sessiontoken
+        """.format(profile)
+        custom_cred = os.path.join(self.config_dir, "customcred")
+        with open(custom_cred, "w") as file:
+            file.write(cred_file_content)
+        return custom_cred
 
 
 @skipIf(SKIP_LAYERS_TESTS,
