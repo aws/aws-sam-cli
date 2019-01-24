@@ -54,7 +54,7 @@ class BuildContext(object):
         except ValueError as ex:
             raise UserException(str(ex))
 
-        self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
+        self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides, self._template_file)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template

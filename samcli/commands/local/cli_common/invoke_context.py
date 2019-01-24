@@ -127,7 +127,7 @@ class InvokeContext(object):
 
         # Grab template from file and create a provider
         self._template_dict = self._get_template_data(self._template_file)
-        self._function_provider = SamFunctionProvider(self._template_dict, self.parameter_overrides)
+        self._function_provider = SamFunctionProvider(self._template_dict, self.parameter_overrides, self._template_file)
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
