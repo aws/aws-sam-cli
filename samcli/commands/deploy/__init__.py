@@ -14,17 +14,27 @@ SHORT_HELP = "Deploy an AWS SAM application. This is an alias for 'aws cloudform
 
 @click.command("deploy", short_help=SHORT_HELP, context_settings={"ignore_unknown_options": True})
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
+@click.option('--template-file',
+              required=True,
+              type=click.Path(),
+              help="The path where your AWS SAM template is located")
+@click.option('--stack-name',
+              required=True,
+              help="The name of the AWS CloudFormation stack you're deploying to. "
+                   "If you specify an existing stack, the command updates the stack. "
+                   "If you specify a new stack, the command creates it.")
 @common_options
 @pass_context
-def cli(ctx, args):
+def cli(ctx, args, template_file, stack_name):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
+    do_cli(args, template_file, stack_name)  # pragma: no cover
 
-    do_cli(args)  # pragma: no cover
 
+def do_cli(args, template_file, stack_name):
+    args = args + ('--stack-name', stack_name)
 
-def do_cli(args):
     try:
-        execute_command("deploy", args, template_file=None)
+        execute_command("deploy", args, template_file=template_file)
     except OSError as ex:
         raise UserException(str(ex))

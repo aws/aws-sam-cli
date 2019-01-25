@@ -21,17 +21,23 @@ SHORT_HELP = "Package an AWS SAM application. This is an alias for 'aws cloudfor
               callback=partial(get_or_default_template_file_name, include_build=True),
               show_default=False,
               help="The path where your AWS SAM template is located")
+@click.option('--s3-bucket',
+              required=True,
+              help="The name of the S3 bucket where this command uploads the artifacts that "
+                   "are referenced in your template.")
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @common_options
 @pass_context
-def cli(ctx, args, template_file):
+def cli(ctx, args, template_file, s3_bucket):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(args, template_file)  # pragma: no cover
+    do_cli(args, template_file, s3_bucket)  # pragma: no cover
 
 
-def do_cli(args, template_file):
+def do_cli(args, template_file, s3_bucket):
+    args = args + ('--s3-bucket', s3_bucket)
+
     try:
         execute_command("package", args, template_file)
     except OSError as ex:
