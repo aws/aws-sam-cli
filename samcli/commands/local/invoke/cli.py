@@ -15,22 +15,24 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.local.docker.manager import DockerImagePullFailedException
 from samcli.local.docker.lambda_container import DebuggingNotSupported
-
+from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
 You can use this command to execute your function in a Lambda-like environment locally.
-You can pass in the event body via stdin or by using the -e (--event) parameter.
+You can pass in the event body via stdin by using the -e (--event) parameter.
 Logs from the Lambda function will be output via stdout.\n
 \b
 Invoking a Lambda function using an event file
 $ sam local invoke "HelloWorldFunction" -e event.json\n
 \b
 Invoking a Lambda function using input from stdin
-$ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction" \n
+$ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction --event -" \n
 """
 STDIN_FILE_NAME = "-"
+
+COLOR_TEXT = Colored()
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
@@ -62,7 +64,6 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
-
     LOG.debug("local invoke command is called")
 
     if no_event and event != STDIN_FILE_NAME:
@@ -70,6 +71,11 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
         raise UserException("no_event and event cannot be used together. Please provide only one.")
 
     if no_event:
+        LOG.info(COLOR_TEXT.yellow("FUTURE WARNING: We will be modifying the behavior of sam local invoke in April. "
+                                   "To locally invoke your Lambda function without specifying an event, you will be "
+                                   "able to use 'sam local invoke [FUNCTION_IDENTIFIER]' and the event to your local "
+                                   "Lambda Function will be '{}'. To provide input from stdin, use "
+                                   "'sam local invoke [FUNCTION_IDENTIFIER] --event -'."))
         event_data = "{}"
     else:
         event_data = _get_event(event)
@@ -119,6 +125,11 @@ def _get_event(event_file_name):
 
     if event_file_name == STDIN_FILE_NAME:
         # If event is empty, listen to stdin for event data until EOF
+        LOG.info(COLOR_TEXT.yellow("DEPRECATION WARNING: We will be modifying the behavior of sam local invoke in "
+                                   "April. Starting in April, not providing an event will default the event to '{}' "
+                                   "(which is the current behavior of --no-event). To use stdin for input, use "
+                                   "'--event -' "
+                                   "(e.g. 'cat event.json | sam local invoke [FUNCTION_IDENTIFIER] --event -')."))
         LOG.info("Reading invoke payload from stdin (you can also pass it from file with --event)")
 
     # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
