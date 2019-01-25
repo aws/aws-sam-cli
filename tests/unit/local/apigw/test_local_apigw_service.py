@@ -261,9 +261,9 @@ class TestApiGatewayModel(TestCase):
 
 
 class TestLambdaHeaderDictionaryMerge(TestCase):
-    def test_none_dictionaries_produce_result(self):
-        headers = None
-        multi_value_headers = None
+    def test_empty_dictionaries_produce_empty_result(self):
+        headers = {}
+        multi_value_headers = {}
 
         result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
 
@@ -283,7 +283,7 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         self.assertEquals(result["h3"], "value3")
 
     def test_multivalue_headers_are_turned_into_csv(self):
-        headers = None
+        headers = {}
         multi_value_headers = {"h1": ["a", "b", "c"]}
 
         result = LocalApigwService._merge_response_headers(headers, multi_value_headers)

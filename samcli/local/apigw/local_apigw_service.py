@@ -193,8 +193,8 @@ class LocalApigwService(BaseLocalService):
         if not isinstance(json_output, dict):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
-        headers = LocalApigwService._merge_response_headers(json_output.get("headers"),
-                                                            json_output.get("multiValueHeaders"))
+        headers = LocalApigwService._merge_response_headers(json_output.get("headers") or {},
+                                                            json_output.get("multiValueHeaders") or {})
         status_code = json_output.get("statusCode") or 200
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
@@ -265,16 +265,14 @@ class LocalApigwService(BaseLocalService):
 
         """
 
-        # Merge dictionary
-        h = (headers or {}).copy()
-        h.update(multi_headers or {})
+        processed_headers = CaseInsensitiveDict(headers)
 
-        # Now we have single headers map with Strings and Lists, convert Lists to CSV Strings for Flask
-        for _, s in enumerate(h):
-            if isinstance(h[s], list):
-                h[s] = ", ".join(h[s])
+        # Convert multi_header Lists to CSV Strings for Flask
+        # This gives multiValueHeaders precedence over the API Gateway headers property
+        for _, s in enumerate(multi_headers):
+            processed_headers[s] = ", ".join(multi_headers[s])
 
-        return CaseInsensitiveDict(h)
+        return processed_headers
 
     @staticmethod
     def _construct_event(flask_request, port, binary_types):
