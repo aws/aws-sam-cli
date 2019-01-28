@@ -11,13 +11,14 @@ from samcli.commands.exceptions import UserException
 
 SHORT_HELP = "Deploy an AWS SAM application. This is an alias for 'aws cloudformation deploy'."
 
+
 HELP_TEXT = """The sam deploy command creates a Cloudformation Stack and deploys your resources.
 
 \b
 e.g. sam deploy sam deploy --template-file packaged.yaml --stack-name sam-app --capabilities CAPABILITY_IAM
 
 \b
-This is an alias for aws cloudformation deploy. To learn about other parameters you can use, 
+This is an alias for aws cloudformation deploy. To learn about other parameters you can use,
 run aws cloudformation deploy help.
 """
 

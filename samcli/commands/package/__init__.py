@@ -13,16 +13,17 @@ from samcli.commands.exceptions import UserException
 
 SHORT_HELP = "Package an AWS SAM application. This is an alias for 'aws cloudformation package'."
 
-HELP_TEXT = """The SAM package command creates a zip of your code and dependencies and uploads it to S3. The command 
-returns a copy of your template, replacing references to local artifacts with the S3 location where the command 
+
+HELP_TEXT = """The SAM package command creates a zip of your code and dependencies and uploads it to S3. The command
+returns a copy of your template, replacing references to local artifacts with the S3 location where the command
 uploaded the artifacts.
 
 \b
-e.g. sam package --template-file template.yaml  --output-template-file packaged.yaml 
+e.g. sam package --template-file template.yaml  --output-template-file packaged.yaml
 --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
 
 \b
-This is an alias for aws cloudformation package. To learn about other parameters you can use, 
+This is an alias for aws cloudformation package. To learn about other parameters you can use,
 run aws cloudformation package help.
 """
 
