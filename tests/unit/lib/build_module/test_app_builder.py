@@ -35,8 +35,8 @@ class TestApplicationBuilder_build(TestCase):
         })
 
         build_function_mock.assert_has_calls([
-            call(func1.name, func1.codeuri, func1.runtime),
-            call(func2.name, func2.codeuri, func2.runtime),
+            call(func1.name, func1.codeuri, func1.runtime, func1.handler),
+            call(func2.name, func2.codeuri, func2.runtime, func2.handler),
         ], any_order=False)
 
 
@@ -124,6 +124,7 @@ class TestApplicationBuilder_build_function(TestCase):
         function_name = "function_name"
         codeuri = "path/to/source"
         runtime = "runtime"
+        handler = "handler"
         scratch_dir = "scratch"
         config_mock = get_workflow_config_mock.return_value = Mock()
         config_mock.manifest_name = "manifest_name"
@@ -132,19 +133,22 @@ class TestApplicationBuilder_build_function(TestCase):
         osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
 
         self.builder._build_function_in_process = Mock()
+        self.builder._get_build_options = Mock(return_value=None)
 
         code_dir = "/base/dir/path/to/source"
         artifacts_dir = "/build/dir/function_name"
         manifest_path = os.path.join(code_dir, config_mock.manifest_name)
+        expected_options = None
 
-        self.builder._build_function(function_name, codeuri, runtime)
+        self.builder._build_function(function_name, codeuri, runtime, handler)
 
         self.builder._build_function_in_process.assert_called_with(config_mock,
                                                                    code_dir,
                                                                    artifacts_dir,
                                                                    scratch_dir,
                                                                    manifest_path,
-                                                                   runtime)
+                                                                   runtime,
+                                                                   expected_options)
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -152,6 +156,7 @@ class TestApplicationBuilder_build_function(TestCase):
         function_name = "function_name"
         codeuri = "path/to/source"
         runtime = "runtime"
+        handler = "handler"
         scratch_dir = "scratch"
         config_mock = get_workflow_config_mock.return_value = Mock()
         config_mock.manifest_name = "manifest_name"
@@ -160,21 +165,24 @@ class TestApplicationBuilder_build_function(TestCase):
         osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
 
         self.builder._build_function_on_container = Mock()
+        self.builder._get_build_options = Mock(return_value=None)
 
         code_dir = "/base/dir/path/to/source"
         artifacts_dir = "/build/dir/function_name"
         manifest_path = os.path.join(code_dir, config_mock.manifest_name)
+        expected_options = None
 
         # Settting the container manager will make us use the container
         self.builder._container_manager = Mock()
-        self.builder._build_function(function_name, codeuri, runtime)
+        self.builder._build_function(function_name, codeuri, runtime, handler)
 
         self.builder._build_function_on_container.assert_called_with(config_mock,
                                                                      code_dir,
                                                                      artifacts_dir,
                                                                      scratch_dir,
                                                                      manifest_path,
-                                                                     runtime)
+                                                                     runtime,
+                                                                     expected_options)
 
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
@@ -188,13 +196,15 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
     def test_must_use_lambda_builder(self, lambda_builder_mock):
         config_mock = Mock()
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
+        build_options = None
 
         result = self.builder._build_function_in_process(config_mock,
                                                          "source_dir",
                                                          "artifacts_dir",
                                                          "scratch_dir",
                                                          "manifest_path",
-                                                         "runtime")
+                                                         "runtime",
+                                                         build_options)
         self.assertEquals(result, "artifacts_dir")
 
         lambda_builder_mock.assert_called_with(language=config_mock.language,
@@ -206,7 +216,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                                                        "scratch_dir",
                                                        "manifest_path",
                                                        runtime="runtime",
-                                                       executable_search_paths=config_mock.executable_search_paths)
+                                                       executable_search_paths=config_mock.executable_search_paths,
+                                                       options=None)
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_raise_on_error(self, lambda_builder_mock):
@@ -215,13 +226,16 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         builder_instance_mock.build.side_effect = LambdaBuilderError()
         self.builder._get_build_options = Mock(return_value=None)
 
+        expected_options = None
+
         with self.assertRaises(BuildError):
             self.builder._build_function_in_process(config_mock,
                                                     "source_dir",
                                                     "artifacts_dir",
                                                     "scratch_dir",
                                                     "manifest_path",
-                                                    "runtime")
+                                                    "runtime",
+                                                    expected_options)
 
 
 class TestApplicationBuilder_build_function_on_container(TestCase):
@@ -256,13 +270,15 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         container_mock = LambdaBuildContainerMock.return_value = Mock()
         container_mock.wait_for_logs = mock_wait_for_logs
         self.builder._parse_builder_response.return_value = response
+        build_options = None
 
         result = self.builder._build_function_on_container(config,
                                                            "source_dir",
                                                            "artifacts_dir",
                                                            "scratch_dir",
                                                            "manifest_path",
-                                                           "runtime")
+                                                           "runtime",
+                                                           build_options)
         self.assertEquals(result, "artifacts_dir")
 
         LambdaBuildContainerMock.assert_called_once_with(protocol_version_mock,
@@ -294,13 +310,16 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         self.container_manager.run.side_effect = docker.errors.APIError("Bad Request: 'lambda-builders' "
                                                                         "executable file not found in $PATH")
 
+        build_options = None
+
         with self.assertRaises(UnsupportedBuilderLibraryVersionError) as ctx:
             self.builder._build_function_on_container(config,
                                                       "source_dir",
                                                       "artifacts_dir",
                                                       "scratch_dir",
                                                       "manifest_path",
-                                                      "runtime")
+                                                      "runtime",
+                                                      build_options)
 
         msg = "You are running an outdated version of Docker container 'image name' that is not compatible with" \
               "this version of SAM CLI. Please upgrade to continue to continue with build. " \
@@ -308,6 +327,21 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
         self.assertEquals(str(ctx.exception), msg)
         self.container_manager.stop.assert_called_with(container_mock)
+
+
+class TestApplicationBuilder_get_build_options(TestCase):
+
+    def test_build_options_for_go(self):
+        build_options = ApplicationBuilder._get_build_options("go", "myhandler")
+
+        expected_options = {"handler": "myhandler"}
+
+        self.assertEquals(build_options, expected_options)
+
+    def test_build_options_for_language_without_options(self):
+        build_options = ApplicationBuilder._get_build_options("nodejs", "somehandler")
+
+        self.assertIsNone(build_options)
 
 
 class TestApplicationBuilder_parse_builder_response(TestCase):

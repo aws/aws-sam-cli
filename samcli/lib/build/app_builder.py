@@ -96,7 +96,8 @@ class ApplicationBuilder(object):
             LOG.info("Building resource '%s'", lambda_function.name)
             result[lambda_function.name] = self._build_function(lambda_function.name,
                                                                 lambda_function.codeuri,
-                                                                lambda_function.runtime)
+                                                                lambda_function.runtime,
+                                                                lambda_function.handler)
 
         return result
 
@@ -143,7 +144,7 @@ class ApplicationBuilder(object):
 
         return template_dict
 
-    def _build_function(self, function_name, codeuri, runtime):
+    def _build_function(self, function_name, codeuri, runtime, handler):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
@@ -182,12 +183,35 @@ class ApplicationBuilder(object):
             if self._container_manager:
                 build_method = self._build_function_on_container
 
+            options = ApplicationBuilder._get_build_options(config.language, handler)
+
             return build_method(config,
                                 code_dir,
                                 artifacts_dir,
                                 scratch_dir,
                                 manifest_path,
-                                runtime)
+                                runtime,
+                                options)
+
+    @staticmethod
+    def _get_build_options(language, handler):
+        """
+
+        Parameters
+        ----------
+        language str
+            Language of the runtime
+        handler str
+            Handler value of the Lambda Function Resource
+        Returns
+        -------
+        dict
+            Dictionary that represents the options to pass to the builder workflow or None if options are not needed
+        """
+        options = None
+        if language == 'go':
+            options = {'handler': handler}
+        return options
 
     def _build_function_in_process(self,
                                    config,
@@ -195,7 +219,8 @@ class ApplicationBuilder(object):
                                    artifacts_dir,
                                    scratch_dir,
                                    manifest_path,
-                                   runtime):
+                                   runtime,
+                                   options):
 
         builder = LambdaBuilder(language=config.language,
                                 dependency_manager=config.dependency_manager,
@@ -208,6 +233,8 @@ class ApplicationBuilder(object):
                           manifest_path,
                           runtime=runtime,
                           executable_search_paths=config.executable_search_paths)
+                          options=options)
+
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 
@@ -219,7 +246,8 @@ class ApplicationBuilder(object):
                                      artifacts_dir,
                                      scratch_dir,
                                      manifest_path,
-                                     runtime):
+                                     runtime,
+                                     options):
 
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
@@ -233,8 +261,8 @@ class ApplicationBuilder(object):
                                          runtime,
                                          log_level=log_level,
                                          optimizations=None,
-                                         options=None,
                                          executable_search_paths=config.executable_search_paths)
+                                         options=options)
 
         try:
             try:

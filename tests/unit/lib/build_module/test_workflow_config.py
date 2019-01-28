@@ -2,6 +2,7 @@ from unittest import TestCase
 from parameterized import parameterized
 from mock import patch
 
+
 from samcli.lib.build.workflow_config import get_workflow_config, UnsupportedRuntimeException
 
 
@@ -16,7 +17,6 @@ class Test_get_workflow_config(TestCase):
         ("python3.6", )
     ])
     def test_must_work_for_python(self, runtime):
-
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEquals(result.language, "python")
         self.assertEquals(result.dependency_manager, "pip")
@@ -79,6 +79,17 @@ class Test_get_workflow_config(TestCase):
 
         self.assertIn("Unable to find a supported build workflow for runtime '{}'.".format(runtime),
                       str(ctx.exception))
+
+    @parameterized.expand([
+        ("go1.x", )
+    ])
+    def test_must_work_for_go(self, runtime):
+        result = get_workflow_config(runtime)
+        self.assertEquals(result.language, "go")
+        self.assertEquals(result.dependency_manager, "modules")
+        self.assertEquals(result.application_framework, None)
+        self.assertEquals(result.manifest_name, "go.mod")
+        self.assertIsNone(result.executable_search_paths)
 
     def test_must_raise_for_unsupported_runtimes(self):
 

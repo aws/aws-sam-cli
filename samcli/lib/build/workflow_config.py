@@ -13,6 +13,12 @@ LOG = logging.getLogger(__name__)
 CONFIG = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name",
                                    "executable_search_paths"])
 
+GO_MOD_CONFIG = CONFIG(
+            language="go",
+            dependency_manager="modules",
+            application_framework=None,
+            manifest_name="go.mod")
+
 PYTHON_PIP_CONFIG = CONFIG(
                 language="python",
                 dependency_manager="pip",

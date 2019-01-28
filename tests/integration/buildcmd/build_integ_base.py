@@ -1,9 +1,12 @@
 import os
 import shutil
 import tempfile
+<<<<<<< HEAD
 import logging
 import subprocess
 import json
+=======
+>>>>>>> feat(build): Support for Go Modules
 from unittest import TestCase
 
 import docker
@@ -13,10 +16,15 @@ try:
 except ImportError:
     from pathlib2 import Path
 
+<<<<<<< HEAD
 from samcli.yamlhelper import yaml_parse
 
 
 LOG = logging.getLogger(__name__)
+=======
+
+from samcli.yamlhelper import yaml_parse
+>>>>>>> feat(build): Support for Go Modules
 
 
 class BuildIntegBase(TestCase):
@@ -61,7 +69,7 @@ class BuildIntegBase(TestCase):
         return command
 
     def get_command_list(self, build_dir=None, base_dir=None, manifest_path=None, use_container=None,
-                         parameter_overrides=None):
+                         parameter_overrides=None, skip_pull_image=False):
 
         command_list = [self.cmd, "build", "-t", self.template_path]
 
@@ -79,6 +87,9 @@ class BuildIntegBase(TestCase):
 
         if use_container:
             command_list += ["--use-container"]
+
+        if skip_pull_image:
+            command_list += ["--skip-pull-image"]
 
         return command_list
 
