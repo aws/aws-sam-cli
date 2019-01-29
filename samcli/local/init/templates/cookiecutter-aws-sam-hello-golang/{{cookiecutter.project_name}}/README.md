@@ -32,7 +32,7 @@ go get -u github.com/aws/aws-lambda-go/...
 
 ### Building
 
-Golang is a staticly compiled language, meaning that in order to run it you have to build the executeable target.
+Golang is a statically compiled language, meaning that in order to run it you have to build the executeable target.
 
 You can issue the following command in a shell to build it:
 
