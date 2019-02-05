@@ -16,7 +16,7 @@ Metadata:
     - test-app
     LicenseUrl: ./LICENSE
     Name: <application-name>
-    ReadmeUrl: ./README.rst
+    ReadmeUrl: ./README.md
     SemanticVersion: 0.0.1
     SourceCodeUrl: https://github.com/test/test
 Resources:

@@ -5,5 +5,5 @@
   "Labels": [
     "test-app-update"
   ],
-  "ReadmeUrl": "s3://<bucket-name>/README_UPDATE.rst"
+  "ReadmeUrl": "s3://<bucket-name>/README_UPDATE.md"
 }
