@@ -318,6 +318,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         self.builder._parse_builder_response.assert_called_once_with(stdout_data, container_mock.image)
         container_mock.copy.assert_called_with(response["result"]["artifacts_dir"] + "/.",
                                                "artifacts_dir")
+        self.container_manager.stop.assert_called_with(container_mock)
 
     @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
     def test_must_raise_on_unsupported_container(self, LambdaBuildContainerMock):
@@ -343,6 +344,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
               "Reason: 'myexecutable executable not found in container'"
 
         self.assertEquals(str(ctx.exception), msg)
+        self.container_manager.stop.assert_called_with(container_mock)
 
 
 class TestApplicationBuilder_parse_builder_response(TestCase):

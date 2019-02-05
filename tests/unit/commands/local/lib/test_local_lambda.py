@@ -445,8 +445,11 @@ class TestLocalLambda_invoke(TestCase):
                                                     stdout=stdout, stderr=stderr)
 
     def test_must_raise_if_function_not_found(self):
+        function = Mock()
+        function.name = 'FunctionLogicalId'
 
         self.function_provider_mock.get.return_value = None  # function not found
+        self.function_provider_mock.get_all.return_value = [function]
         with self.assertRaises(FunctionNotFound):
             self.local_lambda.invoke("name", "event")
 

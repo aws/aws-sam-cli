@@ -171,8 +171,7 @@ class TestLambdaImage(TestCase):
                                                                 rm=True,
                                                                 tag="docker_tag",
                                                                 pull=False,
-                                                                custom_context=True,
-                                                                encoding='gzip')
+                                                                custom_context=True)
 
         docker_full_path_mock.unlink.assert_called_once()
 
@@ -218,8 +217,7 @@ class TestLambdaImage(TestCase):
                                                                 rm=True,
                                                                 tag="docker_tag",
                                                                 pull=False,
-                                                                custom_context=True,
-                                                                encoding='gzip')
+                                                                custom_context=True)
 
         docker_full_path_mock.unlink.assert_not_called()
 
@@ -264,6 +262,5 @@ class TestLambdaImage(TestCase):
                                                                 rm=True,
                                                                 tag="docker_tag",
                                                                 pull=False,
-                                                                custom_context=True,
-                                                                encoding='gzip')
+                                                                custom_context=True)
         docker_full_path_mock.unlink.assert_called_once()

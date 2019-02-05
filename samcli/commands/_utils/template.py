@@ -14,6 +14,10 @@ except ImportError:
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
+_METADATA_WITH_LOCAL_PATHS = {
+    "AWS::ServerlessRepo::Application": ["LicenseUrl", "ReadmeUrl"]
+}
+
 _RESOURCES_WITH_LOCAL_PATHS = {
     "AWS::Serverless::Function": ["CodeUri"],
     "AWS::Serverless::Api": ["DefinitionUri"],
@@ -131,6 +135,22 @@ def _update_relative_paths(template_dict,
     Updated dictionary
 
     """
+
+    for resource_type, properties in template_dict.get("Metadata", {}).items():
+
+        if resource_type not in _METADATA_WITH_LOCAL_PATHS:
+            # Unknown resource. Skipping
+            continue
+
+        for path_prop_name in _METADATA_WITH_LOCAL_PATHS[resource_type]:
+            path = properties.get(path_prop_name)
+
+            updated_path = _resolve_relative_to(path, original_root, new_root)
+            if not updated_path:
+                # This path does not need to get updated
+                continue
+
+            properties[path_prop_name] = updated_path
 
     for _, resource in template_dict.get("Resources", {}).items():
         resource_type = resource.get("Type")

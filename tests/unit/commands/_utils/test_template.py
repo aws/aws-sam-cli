@@ -7,8 +7,8 @@ from unittest import TestCase
 from mock import patch, mock_open
 from parameterized import parameterized, param
 
-from samcli.commands._utils.template import get_template_data, _RESOURCES_WITH_LOCAL_PATHS, _update_relative_paths, \
-    move_template
+from samcli.commands._utils.template import get_template_data, _METADATA_WITH_LOCAL_PATHS, \
+     _RESOURCES_WITH_LOCAL_PATHS, _update_relative_paths, move_template
 
 
 class Test_get_template_data(TestCase):
@@ -79,9 +79,40 @@ class Test_update_relative_paths(TestCase):
         self.expected_result = os.path.join("..", "foo", "bar")
 
     @parameterized.expand(
+        [(resource_type, props) for resource_type, props in _METADATA_WITH_LOCAL_PATHS.items()]
+    )
+    def test_must_update_relative_metadata_paths(self, resource_type, properties):
+
+        for propname in properties:
+            for path in [self.s3path, self.abspath, self.curpath]:
+                template_dict = {
+                    "Metadata": {
+                        resource_type: {
+                            propname: path
+                        },
+                        "AWS::Ec2::Instance": {
+                            propname: path
+                        }
+                    },
+                    "Parameters": {
+                        "a": "b"
+                    }
+                }
+
+                expected_template_dict = copy.deepcopy(template_dict)
+                if path == self.curpath:
+                    expected_template_dict["Metadata"][resource_type][propname] = \
+                        self.expected_result
+
+                result = _update_relative_paths(template_dict, self.src, self.dest)
+
+                self.maxDiff = None
+                self.assertEquals(result, expected_template_dict)
+
+    @parameterized.expand(
         [(resource_type, props) for resource_type, props in _RESOURCES_WITH_LOCAL_PATHS.items()]
     )
-    def test_must_update_relative_paths(self, resource_type, properties):
+    def test_must_update_relative_resource_paths(self, resource_type, properties):
 
         for propname in properties:
 
