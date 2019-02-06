@@ -178,10 +178,17 @@ class TestSamBaseProvider_resolve_parameters(TestCase):
 
 class TestSamBaseProvider_get_template(TestCase):
 
+    @patch("samcli.commands.local.lib.sam_base_provider.ResourceMetadataNormalizer")
     @patch("samcli.commands.local.lib.sam_base_provider.SamTranslatorWrapper")
     @patch.object(SamBaseProvider, "_resolve_parameters")
-    def test_must_run_translator_plugins(self, resolve_params_mock, SamTranslatorWrapperMock):
+    def test_must_run_translator_plugins(self,
+                                         resolve_params_mock,
+                                         SamTranslatorWrapperMock,
+                                         resource_metadata_normalizer_patch):
         translator_instance = SamTranslatorWrapperMock.return_value = Mock()
+
+        parameter_resolved_template = {"Key": "Value", "Parameter": "Resolved"}
+        resolve_params_mock.return_value = parameter_resolved_template
 
         template = {"Key": "Value"}
         overrides = {'some': 'value'}
@@ -191,3 +198,4 @@ class TestSamBaseProvider_get_template(TestCase):
         SamTranslatorWrapperMock.assert_called_once_with(template)
         translator_instance.run_plugins.assert_called_once()
         resolve_params_mock.assert_called_once()
+        resource_metadata_normalizer_patch.normalize.assert_called_once_with(parameter_resolved_template)

@@ -88,6 +88,15 @@ Resources:
       Timeout:
         Ref: DefaultTimeout
 
+  FunctionWithMetadata:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.6
+      Handler: main.echo_hello_world
+    Metadata:
+      aws:asset:property: CodeUri
+      aws:asset:path: ./different_code_location
+
   EchoEnvWithParameters:
     Type: AWS::Serverless::Function
     Properties:

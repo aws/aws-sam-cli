@@ -76,7 +76,7 @@ class LocalApiService(object):
         # Print out the list of routes that will be mounted
         self._print_routes(self.api_provider, self.host, self.port)
         LOG.info("You can now browse to the above endpoints to invoke your functions. "
-                 "You do not need to restart/reload SAM CLI while working on your functions "
+                 "You do not need to restart/reload SAM CLI while working on your functions, "
                  "changes will be reflected instantly/automatically. You only need to restart "
                  "SAM CLI if you update your AWS SAM template")
 

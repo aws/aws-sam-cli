@@ -1,42 +1,22 @@
-# Cookiecutter SAM for Python Lambda functions
+# Cookiecutter Python Hello-world for SAM based Serverless App
 
-This is a [Cookiecutter](https://github.com/audreyr/cookiecutter) template to create a Serverless Hello World App based on Serverless Application Model (SAM) and Python.
-
-It is important to note that you should not try to `git clone` this project but use `cookiecutter` CLI instead as ``{{cookiecutter.project_name}}`` will be rendered based on your input and therefore all variables and files will be rendered properly.
+A cookiecutter template to create a NodeJS Hello world boilerplate using [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model).
 
 ## Requirements
 
-Install `cookiecutter` command line: 
-
-**Pip users**:
-
-* `pip install cookiecutter`
-
-**Homebrew users**:
-
-* `brew install cookiecutter`
-
-**Windows or Pipenv users**:
-
-* `pipenv install cookiecutter`
-
-**NOTE**: [`Pipenv`](https://github.com/pypa/pipenv) is the new and recommended Python packaging tool that works across multiple platforms and makes Windows a first-class citizen.
+* [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli)
 
 ## Usage
 
-Generate a new SAM based Serverless App: `cookiecutter gh:aws-samples/cookiecutter-aws-sam-hello-python`. 
+Generate a boilerplate template in your current project directory using the following syntax:
 
-You'll be prompted a few questions to help this cookiecutter template to scaffold this project and after its completed you should see a new folder at your current path with the name of the project you gave as input.
+* **Python 3.7**: `sam init --runtime python3.7`
+* **Python 3.6**: `sam init --runtime python3.6`
+* **Python 2.7**: `sam init --runtime python2.7`
 
-**NOTE**: After you understand how cookiecutter works (cookiecutter.json, mainly), you can fork this repo and apply your own mechanisms to accelerate your development process and this can be followed for any programming language and OS.
+> **NOTE**: ``--name`` allows you to specify a different project folder name (`sam-app` is the default)
 
 
 # Credits
 
 * This project has been generated with [Cookiecutter](https://github.com/audreyr/cookiecutter)
-
-
-License
--------
-
-This project is licensed under the terms of the [MIT License with no attribution](/LICENSE)

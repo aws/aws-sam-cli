@@ -25,4 +25,4 @@ class TestTar(TestCase):
         temp_file_mock.flush.assert_called_once()
         temp_file_mock.seek.assert_called_once_with(0)
         temp_file_mock.close.assert_called_once()
-        tarfile_open_patch.assert_called_once_with(fileobj=temp_file_mock, mode='w:gz')
+        tarfile_open_patch.assert_called_once_with(fileobj=temp_file_mock, mode='w')
