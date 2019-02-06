@@ -42,11 +42,11 @@ setup(
     author='Amazon Web Services',
     author_email='aws-sam-developers@amazon.com',
     url='https://github.com/awslabs/aws-sam-cli',
-    license=read('LICENSE'),
+    license='Apache License 2.0',
     packages=find_packages(exclude=('tests', 'docs')),
     keywords="AWS SAM CLI",
     # Support Python 2.7 and 3.6 or greater
-    python_requires=('>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*'),
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*',
     entry_points={
         'console_scripts': [
             '{}=samcli.cli.main:cli'.format(cmd_name)
