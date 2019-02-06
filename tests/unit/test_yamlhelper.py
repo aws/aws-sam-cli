@@ -1,7 +1,6 @@
 """
 Helper to be able to parse/dump YAML files
 """
-import re
 from collections import OrderedDict
 
 from unittest import TestCase
@@ -111,16 +110,16 @@ class TestYaml(TestCase):
 
     def test_parse_yaml_preserve_elements_order(self):
         input_template = (
-        'B_Resource:\n'
-        '  Key2:\n'
-        '    Name: name2\n'
-        '  Key1:\n'
-        '    Name: name1\n'
-        'A_Resource:\n'
-        '  Key2:\n'
-        '    Name: name2\n'
-        '  Key1:\n'
-        '    Name: name1\n'
+            'B_Resource:\n'
+            '  Key2:\n'
+            '    Name: name2\n'
+            '  Key1:\n'
+            '    Name: name1\n'
+            'A_Resource:\n'
+            '  Key2:\n'
+            '    Name: name2\n'
+            '  Key1:\n'
+            '    Name: name1\n'
         )
         output_dict = yaml_parse(input_template)
         expected_dict = OrderedDict([
