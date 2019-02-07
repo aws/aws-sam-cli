@@ -74,6 +74,10 @@ class LocalLambdaRunner(object):
         function = self.provider.get(function_name)
 
         if not function:
+            all_functions = [f.name for f in self.provider.get_all()]
+            available_function_message = "{} not found. Possible options in your template: {}"\
+                .format(function_name, all_functions)
+            LOG.info(available_function_message)
             raise FunctionNotFound("Unable to find a Function with name '%s'", function_name)
 
         LOG.debug("Found one Lambda function with name '%s'", function_name)

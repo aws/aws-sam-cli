@@ -40,9 +40,9 @@ class PublishAppIntegBase(TestCase):
         license_body = root_path.joinpath("LICENSE").read_text()
         cls.s3_bucket.put_object(Key="LICENSE", Body=license_body)
 
-        readme_body = root_path.joinpath("README.rst").read_text()
-        cls.s3_bucket.put_object(Key="README.rst", Body=readme_body)
-        cls.s3_bucket.put_object(Key="README_UPDATE.rst", Body=readme_body)
+        readme_body = root_path.joinpath("README.md").read_text()
+        cls.s3_bucket.put_object(Key="README.md", Body=readme_body)
+        cls.s3_bucket.put_object(Key="README_UPDATE.md", Body=readme_body)
 
         code_body = cls.test_data_path.joinpath("main.py").read_text()
         cls.s3_bucket.put_object(Key="main.py", Body=code_body)
@@ -51,8 +51,8 @@ class PublishAppIntegBase(TestCase):
     def tearDownClass(cls):
         cls.s3_bucket.delete_objects(Delete={
             'Objects': [
-                {'Key': 'LICENSE'}, {'Key': 'README.rst'},
-                {'Key': 'README_UPDATE.rst'}, {'Key': 'main.py'}
+                {'Key': 'LICENSE'}, {'Key': 'README.md'},
+                {'Key': 'README_UPDATE.md'}, {'Key': 'main.py'}
             ]
         })
         cls.s3_bucket.delete()
