@@ -1,6 +1,6 @@
 # Cookiecutter Python Hello-world for SAM based Serverless App
 
-A cookiecutter template to create a NodeJS Hello world boilerplate using [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model).
+A cookiecutter template to create a Python Hello world boilerplate using [Serverless Application Model (SAM)](https://github.com/awslabs/serverless-application-model).
 
 ## Requirements
 
