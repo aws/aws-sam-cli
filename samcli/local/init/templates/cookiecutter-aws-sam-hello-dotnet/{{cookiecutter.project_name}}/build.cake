@@ -190,7 +190,7 @@ Task("Pack")
 
 			Information("Packing '{0}'...", projectName);
 			var path = System.IO.Path.Combine(publishDir, projectName);
-			var files = GetFiles(path + "/*.*");
+			var files = GetFiles(path + "/**/*.*");
 			Zip(
 				path, 
 				System.IO.Path.Combine(artifactsDir, $"{projectName}.zip"),
