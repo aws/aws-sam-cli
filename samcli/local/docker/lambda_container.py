@@ -301,6 +301,9 @@ class LambdaContainer(Container):
                 Runtime.nodejs.value, Runtime.nodejs43.value, Runtime.nodejs610.value, Runtime.nodejs810.value,
                 Runtime.python27.value, Runtime.python36.value}
 
+    def should_put_archive(self):
+        return False
+
 
 class DebuggingNotSupported(Exception):
     pass

@@ -38,6 +38,8 @@ class LambdaBuildContainer(Container):
                  executable_search_paths=None,
                  log_level=None):
 
+        self.runtime = runtime
+
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
         manifest_dir = str(abs_manifest_path.parent)
@@ -60,15 +62,17 @@ class LambdaBuildContainer(Container):
         image = LambdaBuildContainer._get_image(runtime)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
+        additional_volumes = {}
 
-        additional_volumes = {
+        if container_dirs["manifest_dir"] != container_dirs['source_dir']:
             # Manifest is mounted separately in order to support the case where manifest
             # is outside of source directory
-            manifest_dir: {
+            additional_volumes[manifest_dir] = {
                 "bind": container_dirs["manifest_dir"],
                 "mode": "ro"
             }
-        }
+
+        LOG.info("manifest is %s", container_dirs["manifest_dir"])
 
         env_vars = None
         if log_level:
@@ -166,3 +170,6 @@ class LambdaBuildContainer(Container):
     @staticmethod
     def _get_image(runtime):
         return "{}:build-{}".format(LambdaBuildContainer._IMAGE_REPO_NAME, runtime)
+
+    def should_put_archive(self):
+        return self.runtime == 'go1.x'

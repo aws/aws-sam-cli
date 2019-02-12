@@ -1,12 +1,9 @@
 import os
 import shutil
 import tempfile
-<<<<<<< HEAD
 import logging
 import subprocess
 import json
-=======
->>>>>>> feat(build): Support for Go Modules
 from unittest import TestCase
 
 import docker
@@ -16,15 +13,10 @@ try:
 except ImportError:
     from pathlib2 import Path
 
-<<<<<<< HEAD
 from samcli.yamlhelper import yaml_parse
 
 
 LOG = logging.getLogger(__name__)
-=======
-
-from samcli.yamlhelper import yaml_parse
->>>>>>> feat(build): Support for Go Modules
 
 
 class BuildIntegBase(TestCase):

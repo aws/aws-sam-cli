@@ -210,7 +210,7 @@ class ApplicationBuilder(object):
         """
         options = None
         if language == 'go':
-            options = {'handler': handler}
+            options = {'artifact_executable_name': handler}
         return options
 
     def _build_function_in_process(self,
@@ -232,7 +232,7 @@ class ApplicationBuilder(object):
                           scratch_dir,
                           manifest_path,
                           runtime=runtime,
-                          executable_search_paths=config.executable_search_paths)
+                          executable_search_paths=config.executable_search_paths,
                           options=options)
 
         except LambdaBuilderError as ex:
@@ -261,7 +261,7 @@ class ApplicationBuilder(object):
                                          runtime,
                                          log_level=log_level,
                                          optimizations=None,
-                                         executable_search_paths=config.executable_search_paths)
+                                         executable_search_paths=config.executable_search_paths,
                                          options=options)
 
         try:

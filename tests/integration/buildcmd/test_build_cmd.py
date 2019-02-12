@@ -305,12 +305,11 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
         self.assertEquals(lib_dir_contents, expected_modules)
 
 
-
 class TestBuildCommand_GoFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
-    EXPECTED_FILES_PROJECT_MANIFEST = {'main.handler'}
-    EXPECTED_BINARY = 'main.handler'
+    EXPECTED_FILES_PROJECT_MANIFEST = {'handler'}
+    EXPECTED_BINARY = 'handler'
 
     FUNCTION_LOGICAL_ID = "Function"
 
@@ -319,7 +318,7 @@ class TestBuildCommand_GoFunctions(BuildIntegBase):
         ("go1.x", "use_container")
     ])
     def test_with_default_go_mod(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": "Go"}
+        overrides = {"Runtime": runtime, "CodeUri": "Go", "Handler": "handler"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -345,6 +344,10 @@ class TestBuildCommand_GoFunctions(BuildIntegBase):
                                            expected)
 
         self.verify_docker_container_cleanedup(runtime)
+
+        go_sum_path = Path(self.test_data_path).joinpath('Go', 'go.sum')
+        if go_sum_path.exists():
+            go_sum_path.unlink()
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 

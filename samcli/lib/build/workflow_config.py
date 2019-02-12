@@ -17,7 +17,8 @@ GO_MOD_CONFIG = CONFIG(
             language="go",
             dependency_manager="modules",
             application_framework=None,
-            manifest_name="go.mod")
+            manifest_name="go.mod",
+            executable_search_paths=None)
 
 PYTHON_PIP_CONFIG = CONFIG(
                 language="python",
@@ -84,6 +85,7 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "nodejs6.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs8.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
+        "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
 
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest

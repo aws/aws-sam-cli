@@ -5,11 +5,14 @@ Representation of a generic Docker container
 import logging
 import tarfile
 import tempfile
+import json
 
 import docker
 
 from samcli.local.docker.attach_api import attach
+from samcli.lib.utils.tar import create_tarball
 from .utils import to_posix_path
+
 
 LOG = logging.getLogger(__name__)
 
@@ -84,32 +87,31 @@ class Container(object):
         if self.is_created():
             raise RuntimeError("This container already exists. Cannot create again.")
 
-        LOG.info("Mounting %s as %s:ro inside runtime container", self._host_dir, self._working_dir)
-
         kwargs = {
             "command": self._cmd,
             "working_dir": self._working_dir,
-            "volumes": {
-                self._host_dir: {
-                    # Mount the host directory as "read only" directory inside container at working_dir
-                    # https://docs.docker.com/storage/bind-mounts
-                    # Mount the host directory as "read only" inside container
-                    "bind": self._working_dir,
-                    "mode": "ro"
-                }
-            },
             # We are not running an interactive shell here.
             "tty": False
         }
+
+        docker_volumes = {
+            self._host_dir: {
+                # Mount the host directory as "read only" directory inside container at working_dir
+                # https://docs.docker.com/storage/bind-mounts
+                # Mount the host directory as "read only" inside container
+                "bind": self._working_dir,
+                "mode": "ro"
+            }}
 
         if self._container_opts:
             kwargs.update(self._container_opts)
 
         if self._additional_volumes:
-            kwargs["volumes"].update(self._additional_volumes)
+            docker_volumes.update(self._additional_volumes)
 
         # Make sure all mounts are of posix path style.
-        kwargs["volumes"] = {to_posix_path(host_dir): mount for host_dir, mount in kwargs["volumes"].items()}
+        if 'volumes' in kwargs:
+            kwargs["volumes"] = {to_posix_path(host_dir): mount for host_dir, mount in kwargs["volumes"].items()}
 
         if self._env_vars:
             kwargs["environment"] = self._env_vars
@@ -127,8 +129,21 @@ class Container(object):
         if self.network_id == 'host':
             kwargs["network_mode"] = self.network_id
 
+        if not self.should_put_archive():
+            LOG.info("Mounting %s as %s:ro inside runtime container", self._host_dir, self._working_dir)
+
+            kwargs["volumes"] = docker_volumes
+
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
+
+        if self.should_put_archive():
+            for host_dir, container_mount in docker_volumes.items():
+                with create_tarball({host_dir: '.'}) as tar_source:
+                    container_dir = container_mount["bind"]
+                    real_container.put_archive(container_dir, tar_source)
+
+                    LOG.debug("Copied %s into container at %s", host_dir, container_dir)
 
         if self.network_id and self.network_id != 'host':
             network = self.docker_client.networks.get(self.network_id)
@@ -290,3 +305,6 @@ class Container(object):
         :return bool: True if the container was created
         """
         return self.id is not None
+
+    def should_put_archive(self):
+        return False
