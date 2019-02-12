@@ -7,12 +7,6 @@ from collections import namedtuple
 
 CONFIG = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name"])
 
-GO_MOD_CONFIG = CONFIG(
-            language="go",
-            dependency_manager="modules",
-            application_framework=None,
-            manifest_name="go.mod")
-
 PYTHON_PIP_CONFIG = CONFIG(
                 language="python",
                 dependency_manager="pip",
@@ -52,7 +46,6 @@ def get_workflow_config(runtime):
     """
 
     workflow_config_by_runtime = {
-        "go1.x": GO_MOD_CONFIG,
         "python2.7": PYTHON_PIP_CONFIG,
         "python3.6": PYTHON_PIP_CONFIG,
         "python3.7": PYTHON_PIP_CONFIG,

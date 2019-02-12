@@ -41,16 +41,6 @@ class Test_get_workflow_config(TestCase):
         self.assertEquals(result.application_framework, None)
         self.assertEquals(result.manifest_name, "Gemfile")
 
-    @parameterized.expand([
-        ("go1.x", )
-    ])
-    def test_must_work_for_go(self, runtime):
-        result = get_workflow_config(runtime)
-        self.assertEquals(result.language, "go")
-        self.assertEquals(result.dependency_manager, "modules")
-        self.assertEquals(result.application_framework, None)
-        self.assertEquals(result.manifest_name, "go.mod")
-
     def test_must_raise_for_unsupported_runtimes(self):
 
         runtime = "foobar"
