@@ -6,7 +6,6 @@ import os
 import io
 import json
 import logging
-from collections import namedtuple
 
 try:
     import pathlib
@@ -20,13 +19,10 @@ from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+from .workflow_config import get_workflow_config
 
 
 LOG = logging.getLogger(__name__)
-
-
-class UnsupportedRuntimeException(Exception):
-    pass
 
 
 class UnsupportedBuilderLibraryVersionError(Exception):
@@ -39,32 +35,6 @@ class UnsupportedBuilderLibraryVersionError(Exception):
 
 class BuildError(Exception):
     pass
-
-
-def _get_workflow_config(runtime):
-
-    config = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name"])
-
-    if runtime.startswith("python"):
-        return config(
-            language="python",
-            dependency_manager="pip",
-            application_framework=None,
-            manifest_name="requirements.txt")
-    elif runtime.startswith("nodejs"):
-        return config(
-            language="nodejs",
-            dependency_manager="npm",
-            application_framework=None,
-            manifest_name="package.json")
-    elif runtime.startswith("ruby"):
-        return config(
-            language="ruby",
-            dependency_manager="bundler",
-            application_framework=None,
-            manifest_name="Gemfile")
-    else:
-        raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 
 
 class ApplicationBuilder(object):
@@ -174,8 +144,7 @@ class ApplicationBuilder(object):
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
-
-        config = _get_workflow_config(runtime)
+        config = get_workflow_config(runtime)
 
         # Create the arguments to pass to the builder
 
