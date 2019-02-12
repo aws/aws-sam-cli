@@ -5,50 +5,10 @@ import json
 
 from unittest import TestCase
 from mock import Mock, call, patch
-from parameterized import parameterized
 
-from samcli.lib.build.app_builder import ApplicationBuilder, _get_workflow_config,\
-    UnsupportedBuilderLibraryVersionError, UnsupportedRuntimeException, BuildError, \
+from samcli.lib.build.app_builder import ApplicationBuilder,\
+    UnsupportedBuilderLibraryVersionError, BuildError, \
     LambdaBuilderError
-
-
-class Test_get_workflow_config(TestCase):
-
-    @parameterized.expand([
-        ("python2.7", ),
-        ("python3.6", )
-    ])
-    def test_must_work_for_python(self, runtime):
-
-        result = _get_workflow_config(runtime)
-        self.assertEquals(result.language, "python")
-        self.assertEquals(result.dependency_manager, "pip")
-        self.assertEquals(result.application_framework, None)
-        self.assertEquals(result.manifest_name, "requirements.txt")
-
-    @parameterized.expand([
-        ("nodejs6.10", ),
-        ("nodejs8.10", ),
-        ("nodejsX.Y", ),
-        ("nodejs", )
-    ])
-    def test_must_work_for_nodejs(self, runtime):
-
-        result = _get_workflow_config(runtime)
-        self.assertEquals(result.language, "nodejs")
-        self.assertEquals(result.dependency_manager, "npm")
-        self.assertEquals(result.application_framework, None)
-        self.assertEquals(result.manifest_name, "package.json")
-
-    def test_must_raise_for_unsupported_runtimes(self):
-
-        runtime = "foobar"
-
-        with self.assertRaises(UnsupportedRuntimeException) as ctx:
-            _get_workflow_config(runtime)
-
-        self.assertEquals(str(ctx.exception),
-                          "'foobar' runtime is not supported")
 
 
 class TestApplicationBuilder_build(TestCase):
@@ -158,7 +118,7 @@ class TestApplicationBuilder_build_function(TestCase):
                                           "/build/dir",
                                           "/base/dir")
 
-    @patch("samcli.lib.build.app_builder._get_workflow_config")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_build_in_process(self, osutils_mock, get_workflow_config_mock):
         function_name = "function_name"
@@ -186,7 +146,7 @@ class TestApplicationBuilder_build_function(TestCase):
                                                                    manifest_path,
                                                                    runtime)
 
-    @patch("samcli.lib.build.app_builder._get_workflow_config")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_build_in_container(self, osutils_mock, get_workflow_config_mock):
         function_name = "function_name"
@@ -252,6 +212,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         config_mock = Mock()
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
         builder_instance_mock.build.side_effect = LambdaBuilderError()
+        self.builder._get_build_options = Mock(return_value=None)
 
         with self.assertRaises(BuildError):
             self.builder._build_function_in_process(config_mock,

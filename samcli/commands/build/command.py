@@ -11,8 +11,8 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import template_option_without_build, docker_common_options, \
     parameter_override_option
 from samcli.commands.build.build_context import BuildContext
-from samcli.lib.build.app_builder import ApplicationBuilder, UnsupportedRuntimeException, \
-    BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.commands._utils.template import move_template
 
 LOG = logging.getLogger(__name__)

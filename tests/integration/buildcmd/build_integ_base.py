@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+from unittest import TestCase
 
 import docker
 
@@ -9,7 +10,8 @@ try:
 except ImportError:
     from pathlib2 import Path
 
-from unittest import TestCase
+
+from samcli.yamlhelper import yaml_parse
 
 
 class BuildIntegBase(TestCase):
@@ -85,3 +87,9 @@ class BuildIntegBase(TestCase):
         return " ".join([
             "ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()
         ])
+
+    def _verify_resource_property(self, template_path, logical_id, property, expected_value):
+
+        with open(template_path, 'r') as fp:
+            template_dict = yaml_parse(fp.read())
+            self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])

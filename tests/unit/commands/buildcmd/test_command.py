@@ -5,7 +5,8 @@ from parameterized import parameterized
 
 from samcli.commands.build.command import do_cli
 from samcli.commands.exceptions import UserException
-from samcli.lib.build.app_builder import UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.app_builder import BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 
 
 class TestDoCli(TestCase):
