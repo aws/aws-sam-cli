@@ -1,3 +1,9 @@
+"""
+Invokable Module for CLI
+
+python -m samcli
+"""
+
 import sys
 from samcli.cli.main import cli
 
