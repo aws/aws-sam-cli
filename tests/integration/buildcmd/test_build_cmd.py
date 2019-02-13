@@ -10,7 +10,6 @@ except ImportError:
     from pathlib2 import Path
 from parameterized import parameterized
 
-from samcli.yamlhelper import yaml_parse
 from .build_integ_base import BuildIntegBase
 
 
@@ -105,12 +104,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         actual_files = all_artifacts.intersection(expected_files)
         self.assertEquals(actual_files, expected_files)
 
-    def _verify_resource_property(self, template_path, logical_id, property, expected_value):
-
-        with open(template_path, 'r') as fp:
-            template_dict = yaml_parse(fp.read())
-            self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
-
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
@@ -193,12 +186,6 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         actual_files = all_modules.intersection(expected_modules)
         self.assertEquals(actual_files, expected_modules)
 
-    def _verify_resource_property(self, template_path, logical_id, property, expected_value):
-
-        with open(template_path, 'r') as fp:
-            template_dict = yaml_parse(fp.read())
-            self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
-
 
 class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
@@ -265,9 +252,3 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         gem_path = ruby_bundled_path.joinpath(ruby_version[0], 'gems')
 
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
-
-    def _verify_resource_property(self, template_path, logical_id, property, expected_value):
-
-        with open(template_path, 'r') as fp:
-            template_dict = yaml_parse(fp.read())
-            self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
