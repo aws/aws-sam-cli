@@ -4,7 +4,6 @@ Entry point for the CLI
 
 import logging
 import json
-import sys
 import click
 
 from samcli import __version__
@@ -64,7 +63,3 @@ def cli(ctx):
     https://github.com/awslabs/serverless-application-model.
     """
     pass
-
-
-if __name__ == '__main__':
-    sys.exit(cli())
