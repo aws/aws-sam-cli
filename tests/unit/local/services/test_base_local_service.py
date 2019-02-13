@@ -25,7 +25,7 @@ class TestLocalHostRunner(TestCase):
 
         service.run()
 
-        app_run_mock.assert_called_once_with(threaded=True, host='127.0.0.1', port=3000)
+        app_run_mock.assert_called_once_with(threaded=True, passthrough_errors=False, host='127.0.0.1', port=3000)
 
     def test_run_starts_service_singlethreaded(self):
         is_debugging = True  # singlethreaded
@@ -37,7 +37,7 @@ class TestLocalHostRunner(TestCase):
 
         service.run()
 
-        app_run_mock.assert_called_once_with(threaded=False, host='127.0.0.1', port=3000)
+        app_run_mock.assert_called_once_with(threaded=False, passthrough_errors=True, host='127.0.0.1', port=3000)
 
     @patch('samcli.local.services.base_local_service.Response')
     def test_service_response(self, flask_response_patch):
