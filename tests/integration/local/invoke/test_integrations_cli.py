@@ -324,16 +324,9 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
     def _create_config_file(self, profile):
         if profile == "default":
-            config_file_content = """
-            [{}]
-            output = json
-            region = us-west-1
-            """.format(profile)
+            config_file_content = "[{}]\noutput = json\nregion = us-west-1".format(profile)
         else:
-            config_file_content = """
-            [profile {}]
-            output = json
-            region = us-west-1""".format(profile)
+            config_file_content = "[profile {}]\noutput = json\nregion = us-west-1".format(profile)
 
         custom_config = os.path.join(self.config_dir, "customconfig")
         with open(custom_config, "w") as file:
@@ -341,12 +334,8 @@ class TestUsingConfigFiles(InvokeIntegBase):
         return custom_config
 
     def _create_cred_file(self, profile):
-        cred_file_content = """
-        [{}]
-        aws_access_key_id = someaccesskeyid
-        aws_secret_access_key = shhhhhthisisasecret
-        aws_session_token = sessiontoken
-        """.format(profile)
+        cred_file_content = "[{}]\naws_access_key_id = someaccesskeyid\naws_secret_access_key = shhhhhthisisasecret \
+        \naws_session_token = sessiontoken".format(profile)
         custom_cred = os.path.join(self.config_dir, "customcred")
         with open(custom_cred, "w") as file:
             file.write(cred_file_content)
