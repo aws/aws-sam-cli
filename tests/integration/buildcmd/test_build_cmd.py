@@ -252,3 +252,61 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         gem_path = ruby_bundled_path.joinpath(ruby_version[0], 'gems')
 
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
+
+
+class TestBuildCommand_JavaGradle(BuildIntegBase):
+
+    EXPECTED_FILES_PROJECT_MANIFEST = {'aws', 'lib'}
+    EXPECTED_DEPENDENCY = 'annotations-2.1.0.jar'
+
+    FUNCTION_LOGICAL_ID = "Function"
+    CODE_PATH = os.path.join("Java", "gradle")
+
+    @parameterized.expand([
+        ("java8", False),
+        # ("java8", "use_container")
+    ])
+    def test_with_gradle(self, runtime, use_container):
+        overrides = {"Runtime": runtime, "CodeUri": self.CODE_PATH}
+        cmdlist = self.get_command_list(use_container=use_container,
+                                        parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        process.wait()
+
+        self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
+                                    self.EXPECTED_FILES_PROJECT_MANIFEST, self.EXPECTED_DEPENDENCY)
+
+        self._verify_resource_property(str(self.built_template),
+                                       "OtherRelativePathResource",
+                                       "BodyS3Location",
+                                       os.path.relpath(
+                                           os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                                           str(self.default_build_dir))
+                                       )
+        self.verify_docker_container_cleanedup(runtime)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        print(build_dir_files)
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path),
+                                       function_logical_id,
+                                       "CodeUri",
+                                       function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEquals(actual_files, expected_files)
+
+        # TODO: Check if annotations.jar is in the artifacts dir

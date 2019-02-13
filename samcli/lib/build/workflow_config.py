@@ -25,6 +25,12 @@ RUBY_BUNDLER_CONFIG = CONFIG(
                 application_framework=None,
                 manifest_name="Gemfile")
 
+JAVA_GRADLE_CONFIG = CONFIG(
+                language="java",
+                dependency_manager="gradle",
+                application_framework=None,
+                manifest_name="build.gradle")
+
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -52,7 +58,8 @@ def get_workflow_config(runtime):
         "nodejs4.3": NODEJS_NPM_CONFIG,
         "nodejs6.10": NODEJS_NPM_CONFIG,
         "nodejs8.10": NODEJS_NPM_CONFIG,
-        "ruby2.5": RUBY_BUNDLER_CONFIG
+        "ruby2.5": RUBY_BUNDLER_CONFIG,
+        "java8": JAVA_GRADLE_CONFIG,
     }
 
     try:
