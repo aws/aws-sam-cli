@@ -53,6 +53,7 @@ class BaseLocalService:
         # the debugger. Keeping this single threaded also enables the Lambda Runner to handle Ctrl+C in order to
         # kill the container gracefully (Ctrl+C can be handled only by the main thread)
         multi_threaded = not self.is_debugging
+        passthrough_errors = self.is_debugging
 
         LOG.debug("Localhost server is starting up. Multi-threading = %s", multi_threaded)
 
@@ -60,7 +61,7 @@ class BaseLocalService:
         # our cli and not on a production server.
         os.environ["WERKZEUG_RUN_MAIN"] = "true"
 
-        self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
+        self._app.run(threaded=multi_threaded, passthrough_errors=passthrough_errors, host=self.host, port=self.port)
 
     @staticmethod
     def service_response(body, headers, status_code):
