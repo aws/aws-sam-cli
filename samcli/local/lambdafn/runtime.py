@@ -105,6 +105,7 @@ class LambdaRuntime(object):
                 # container is in debugging mode. We have special handling of Ctrl+C. So handle KeyboardInterrupt
                 # and swallow the exception. The ``finally`` block will also take care of cleaning it up.
                 LOG.debug("Ctrl+C was pressed. Aborting Lambda execution")
+                raise
 
             finally:
                 # We will be done with execution, if either the execution completed or an interrupt was fired
@@ -113,6 +114,8 @@ class LambdaRuntime(object):
                 # If we are in debugging mode, timer would not be created. So skip cleanup of the timer
                 if timer:
                     timer.cancel()
+                else:
+                    self._reset_interrupt()
                 self._container_manager.stop(container)
 
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
@@ -136,7 +139,9 @@ class LambdaRuntime(object):
         def signal_handler(sig, frame):
             # NOTE: This handler runs in a separate thread. So don't try to mutate any non-thread-safe data structures
             LOG.info("Execution of function %s was interrupted", function_name)
+            self._reset_interrupt()
             self._container_manager.stop(container)
+            os.kill(os.getpid(), sig)
 
         if is_debugging:
             LOG.debug("Setting up SIGTERM interrupt handler")
@@ -147,6 +152,10 @@ class LambdaRuntime(object):
             timer = threading.Timer(timeout, timer_handler, ())
             timer.start()
             return timer
+
+    def _reset_interrupt(self):
+        LOG.debug("Resetting SIGTERM interrupt handler")
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
     @contextmanager
     def _get_code_dir(self, code_path):

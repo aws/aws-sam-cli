@@ -165,7 +165,7 @@ class LambdaRuntime_invoke(TestCase):
         self.manager_mock.stop.assert_called_with(container)
 
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
-    def test_keyboard_interrupt_must_not_raise(self, LambdaContainerMock):
+    def test_keyboard_interrupt_must_raise(self, LambdaContainerMock):
         event = "event"
         code_dir = "some code dir"
         stdout = "stdout"
@@ -184,10 +184,11 @@ class LambdaRuntime_invoke(TestCase):
 
         self.manager_mock.run.side_effect = KeyboardInterrupt("some exception")
 
-        self.runtime.invoke(self.func_config,
-                            event,
-                            stdout=stdout,
-                            stderr=stderr)
+        with self.assertRaises(KeyboardInterrupt):
+            self.runtime.invoke(self.func_config,
+                                event,
+                                stdout=stdout,
+                                stderr=stderr)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
@@ -238,9 +239,10 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
         SignalMock.signal.assert_called_with(sigterm, ANY)
         ThreadingMock.Timer.signal.assert_not_called()  # must not setup timer
 
+    @patch("samcli.local.lambdafn.runtime.os")
     @patch("samcli.local.lambdafn.runtime.threading")
     @patch("samcli.local.lambdafn.runtime.signal")
-    def test_verify_signal_handler(self, SignalMock, ThreadingMock):
+    def test_verify_signal_handler(self, SignalMock, ThreadingMock, OsMock):
         """
         Verify the internal implementation of the Signal Handler
         """
@@ -249,6 +251,9 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
 
         # Fake the real method with a Lambda. Also run the handler immediately.
         SignalMock.signal = lambda term, handler: handler("a", "b")
+
+        # Fake the real method with a Lambda.
+        OsMock.getpid = lambda: 101
 
         self.runtime._configure_interrupt(self.name, self.timeout, self.container, is_debugging)
 
