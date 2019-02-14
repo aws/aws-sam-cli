@@ -41,6 +41,16 @@ class Test_get_workflow_config(TestCase):
         self.assertEquals(result.application_framework, None)
         self.assertEquals(result.manifest_name, "Gemfile")
 
+    @parameterized.expand([
+        ("java8", )
+    ])
+    def test_must_work_for_java(self, runtime):
+        result = get_workflow_config(runtime)
+        self.assertEquals(result.language, "java")
+        self.assertEquals(result.dependency_manager, "gradle")
+        self.assertEquals(result.application_framework, None)
+        self.assertEquals(result.manifest_name, "build.gradle")
+
     def test_must_raise_for_unsupported_runtimes(self):
 
         runtime = "foobar"
