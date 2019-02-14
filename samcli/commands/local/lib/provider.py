@@ -229,7 +229,7 @@ class Api(_ApiTuple):
         return hash(self.path) * hash(self.method) * hash(self.function_name)
 
 
-Cors = namedtuple("Cors", ["AllowOrigin", "AllowMethods", "AllowHeaders"])
+Cors = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
 
 
 class ApiProvider(object):

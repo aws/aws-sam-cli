@@ -6,7 +6,7 @@ from collections import namedtuple
 from six import string_types
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
-from samcli.commands.local.lib.provider import ApiProvider, Api
+from samcli.commands.local.lib.provider import ApiProvider, Api, Cors
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -127,6 +127,7 @@ class SamApiProvider(ApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
+        cors = properties.get("Cors", {})
 
         if not body and not uri:
             # Swagger is not found anywhere.
@@ -145,6 +146,13 @@ class SamApiProvider(ApiProvider):
         collector.add_apis(logical_id, apis)
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
+
+        collector.add_cors(logical_id, Cors(
+            allow_origin=cors.get("AllowOrigin"),
+            allow_methods=cors.get("AllowMethods"),
+            allow_headers=cors.get("AllowHeaders"),
+            max_age=cors.get("MaxAge")
+        ))
 
     @staticmethod
     def _merge_apis(collector):
@@ -386,6 +394,23 @@ class ApiCollector(object):
                 properties.binary_media_types.add(normalized_value)
             else:
                 LOG.debug("Unsupported data type of binary media type value of resource '%s'", logical_id)
+
+    def add_cors(self, logical_id, cors):
+        """
+        Stores the CORS configuration for the API with given logical ID
+
+        Parameters
+        ----------
+        logical_id : str
+            LogicalId of the AWS::Serverless::Api resource
+
+        apis : samcli.commands.local.lib.provider.Cors
+            CORS configuration for the given resource
+        """
+        old_properties = self._get_properties(logical_id)
+        self.by_resource[logical_id] = self.Properties(apis=old_properties.apis,
+                                                       binary_media_types=old_properties.binary_media_types,
+                                                       cors=cors)
 
     def _get_apis_with_config(self, logical_id):
         """

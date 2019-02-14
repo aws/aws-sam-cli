@@ -18,18 +18,20 @@ LOG = logging.getLogger(__name__)
 
 class Route(object):
 
-    def __init__(self, methods, function_name, path, binary_types=None):
+    def __init__(self, methods, function_name, path, binary_types=None, cors=None):
         """
         Creates an ApiGatewayRoute
 
         :param list(str) methods: List of HTTP Methods
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
+        :param Cors cors: Cors configuration for the route
         """
         self.methods = methods
         self.function_name = function_name
         self.path = path
         self.binary_types = binary_types or []
+        self.cors = cors
 
 
 class LocalApigwService(BaseLocalService):
@@ -43,7 +45,7 @@ class LocalApigwService(BaseLocalService):
 
         Parameters
         ----------
-        routing_list list(ApiGatewayCallModel)
+        routing_list list(Route)
             A list of the Model that represent the service paths to create.
         lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
             The Lambda runner class capable of invoking the function
@@ -81,10 +83,18 @@ class LocalApigwService(BaseLocalService):
                                                        path):
                 self._dict_of_routes[route_key] = api_gateway_route
 
+            methods = api_gateway_route.methods.copy()
+            if api_gateway_route.cors is not None:
+                methods.append('OPTIONS')
+
+                route_key = self._route_key('OPTIONS', api_gateway_route.path)
+                if route_key not in self._dict_of_routes:
+                    self._dict_of_routes[route_key] = api_gateway_route
+
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
-                                   methods=api_gateway_route.methods,
+                                   methods=methods,
                                    provide_automatic_options=False)
 
         self._construct_error_handling()
@@ -140,6 +150,9 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
         route = self._get_current_route(request)
+
+        if request.method == 'OPTIONS':
+            return self.service_response('', LocalApigwService._cors_to_headers(route.cors), 200)
 
         try:
             event = self._construct_event(request, self.port, route.binary_types)
@@ -358,3 +371,31 @@ class LocalApigwService(BaseLocalService):
 
         """
         return request_mimetype in binary_types or "*/*" in binary_types
+
+
+    @staticmethod
+    def _cors_to_headers(cors):
+        """
+        Convert CORS object to headers dictionary
+
+        Parameters
+        ----------
+        cors list(samcli.commands.local.lib.provider.Cors)
+            CORS configuration objcet
+
+        Returns
+        -------
+            Dictionary with CORS headers
+
+        """
+        headers = {}
+        if cors.allow_origin is not None:
+            headers['Access-Control-Allow-Origin'] = cors.allow_origin[1:-1]
+        if cors.allow_methods is not None:
+            headers['Access-Control-Allow-Methods'] = cors.allow_methods[1:-1]
+        if cors.allow_headers is not None:
+            headers['Access-Control-Allow-Headers'] = cors.allow_headers[1:-1]
+        if cors.max_age is not None:
+            headers['Access-Control-Max-Age'] = cors.max_age[1:-1]
+
+        return headers
