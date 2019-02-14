@@ -40,7 +40,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             self.skipTest("Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version,
                                                                                                           runtime))
 
-        overrides = {"Runtime": runtime, "CodeUri": "Python"}
+        overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -68,19 +68,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
                                            self._make_parameter_override_arg(overrides),
                                            expected)
         self.verify_docker_container_cleanedup(runtime)
-
-    def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
-        LOG.info("Invoking built function '{}'", function_logical_id)
-
-        cmdlist = [self.cmd, "local", "invoke", function_logical_id, "-t", str(template_path), "--no-event",
-                   "--parameter-overrides", overrides]
-
-        process = subprocess.Popen(cmdlist, stdout=subprocess.PIPE)
-        process.wait()
-
-        process_stdout = b"".join(process.stdout.readlines()).strip().decode('utf-8')
-        print(process_stdout)
-        self.assertEquals(json.loads(process_stdout), expected_result)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
@@ -141,7 +128,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         ("nodejs8.10", "use_container")
     ])
     def test_with_default_package_json(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": "Node"}
+        overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -200,7 +187,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         ("ruby2.5", "use_container")
     ])
     def test_with_default_gemfile(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": "Ruby"}
+        overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -256,8 +243,8 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
 class TestBuildCommand_JavaGradle(BuildIntegBase):
 
-    EXPECTED_FILES_PROJECT_MANIFEST = {'aws', 'lib'}
-    EXPECTED_DEPENDENCY = 'annotations-2.1.0.jar'
+    EXPECTED_FILES_PROJECT_MANIFEST = {'aws', 'lib', "META-INF"}
+    EXPECTED_DEPENDENCIES = {'annotations-2.1.0.jar', "aws-lambda-java-core-1.1.0.jar"}
 
     FUNCTION_LOGICAL_ID = "Function"
     CODE_PATH = os.path.join("Java", "gradle")
@@ -267,7 +254,7 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
         # ("java8", "use_container")
     ])
     def test_with_gradle(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": self.CODE_PATH}
+        overrides = {"Runtime": runtime, "CodeUri": self.CODE_PATH, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -276,7 +263,7 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
         process.wait()
 
         self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
-                                    self.EXPECTED_FILES_PROJECT_MANIFEST, self.EXPECTED_DEPENDENCY)
+                                    self.EXPECTED_FILES_PROJECT_MANIFEST, self.EXPECTED_DEPENDENCIES)
 
         self._verify_resource_property(str(self.built_template),
                                        "OtherRelativePathResource",
@@ -285,6 +272,13 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
                                            os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
                                            str(self.default_build_dir))
                                        )
+
+        expected = "Hello World"
+        self._verify_invoke_built_function(self.built_template,
+                                           self.FUNCTION_LOGICAL_ID,
+                                           self._make_parameter_override_arg(overrides),
+                                           expected)
+
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
@@ -292,7 +286,6 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
-        print(build_dir_files)
         self.assertIn("template.yaml", build_dir_files)
         self.assertIn(function_logical_id, build_dir_files)
 
@@ -309,4 +302,5 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
         actual_files = all_artifacts.intersection(expected_files)
         self.assertEquals(actual_files, expected_files)
 
-        # TODO: Check if annotations.jar is in the artifacts dir
+        lib_dir_contents = set(os.listdir(resource_artifact_dir.joinpath("lib")))
+        self.assertEquals(lib_dir_contents, expected_modules)

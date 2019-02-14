@@ -6,17 +6,15 @@ Parameteres:
     Type: String
   CodeUri:
     Type: String
-  Handler:
-    Type: String
 
 Resources:
 
   Function:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: !Ref Handler
-      Runtime: !Ref Runtime
-      CodeUri: !Ref CodeUri
+      Handler: main.handler
+      Runtime: java8
+      CodeUri: .
       Timeout: 600
 
   OtherRelativePathResource:
