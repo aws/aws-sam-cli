@@ -144,12 +144,13 @@ class ApplicationBuilder(object):
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
-        config = get_workflow_config(runtime, codeuri, self._base_dir)
 
         # Create the arguments to pass to the builder
 
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
+
+        config = get_workflow_config(runtime, code_dir, self._base_dir)
 
         # artifacts directory will be created by the builder
         artifacts_dir = str(pathlib.Path(self._build_dir, function_name))

@@ -246,14 +246,17 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
     EXPECTED_DEPENDENCIES = {'annotations-2.1.0.jar', "aws-lambda-java-core-1.1.0.jar"}
 
     FUNCTION_LOGICAL_ID = "Function"
-    CODE_PATH = os.path.join("Java", "gradle")
+    USING_GRADLE_PATH = os.path.join("Java", "gradle")
+    USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
 
     @parameterized.expand([
-        ("java8", False),
-        # ("java8", "use_container")
+        ("java8", USING_GRADLE_PATH, False),
+        ("java8", USING_GRADLEW_PATH, False),
+        # ("java8", USING_GRADLE_PATH, "use_container"),
+        # ("java8", USING_GRADLEW_PATH, "use_container"),
     ])
-    def test_with_gradle(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": self.CODE_PATH, "Handler": "aws.example.Hello::myHandler"}
+    def test_with_gradle(self, runtime, code_path, use_container):
+        overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
