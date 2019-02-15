@@ -30,10 +30,10 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 2.7, 3.6, 3.7\n
-4. Nodejs 8.10, 6.10
-4. Ruby 2.5
-5. Java 8
+1. Python 2.7, 3.6, 3.7 using PIP\n
+4. Nodejs 8.10, 6.10 using NPM
+4. Ruby 2.5 using Bundler
+5. Java 8 using Gradle
 \b
 Examples
 --------

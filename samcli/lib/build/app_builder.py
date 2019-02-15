@@ -144,9 +144,28 @@ class ApplicationBuilder(object):
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
+        """
+        Given the function information, this method will build the Lambda function. Depending on the configuration
+        it will either build the function in process or by spinning up a Docker container.
+
+        Parameters
+        ----------
+        function_name : str
+            Name or LogicalId of the function
+
+        codeuri : str
+            Path to where the code lives
+
+        runtime : str
+            AWS Lambda function runtime
+
+        Returns
+        -------
+        str
+            Path to the location where built artifacts are available
+        """
 
         # Create the arguments to pass to the builder
-
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
