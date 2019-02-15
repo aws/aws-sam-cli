@@ -250,8 +250,8 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
 
     @parameterized.expand([
-        # ("java8", USING_GRADLE_PATH, False),
-        # ("java8", USING_GRADLEW_PATH, False),
+        ("java8", USING_GRADLE_PATH, False),
+        ("java8", USING_GRADLEW_PATH, False),
         ("java8", USING_GRADLE_PATH, "use_container"),
         ("java8", USING_GRADLEW_PATH, "use_container"),
     ])
@@ -304,5 +304,5 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
         actual_files = all_artifacts.intersection(expected_files)
         self.assertEquals(actual_files, expected_files)
 
-        lib_dir_contents = set(os.listdir(resource_artifact_dir.joinpath("lib")))
+        lib_dir_contents = set(os.listdir(str(resource_artifact_dir.joinpath("lib"))))
         self.assertEquals(lib_dir_contents, expected_modules)
