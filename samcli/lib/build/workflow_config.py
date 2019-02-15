@@ -124,10 +124,6 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
     Selects a workflow by examining the directories for presence of a supported manifest
     """
 
-    def __init__(self, configs):
-
-        super(ManifestWorkflowSelector, self).__init__(configs)
-
     def get_config(self, code_dir, project_dir):
         """
         Finds a configuration by looking for a manifest in the given directories.
