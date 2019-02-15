@@ -205,7 +205,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                                                        "artifacts_dir",
                                                        "scratch_dir",
                                                        "manifest_path",
-                                                       runtime="runtime")
+                                                       runtime="runtime",
+                                                       executable_search_paths=config_mock.executable_search_paths)
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_raise_on_error(self, lambda_builder_mock):
@@ -273,7 +274,8 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
                                                          "runtime",
                                                          log_level=log_level,
                                                          optimizations=None,
-                                                         options=None)
+                                                         options=None,
+                                                         executable_search_paths=config.executable_search_paths)
 
         self.container_manager.run.assert_called_with(container_mock)
         self.builder._parse_builder_response.assert_called_once_with(stdout_data, container_mock.image)

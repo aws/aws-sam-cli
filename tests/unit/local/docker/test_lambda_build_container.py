@@ -87,7 +87,8 @@ class TestLambdaBuildContainer_make_request(TestCase):
                                                     "manifest_file_name",
                                                     "runtime",
                                                     "optimizations",
-                                                    "options")
+                                                    "options",
+                                                    "executable_search_paths")
 
         self.maxDiff = None  # Print whole json diff
         self.assertEqual(json.loads(result), {
@@ -107,7 +108,8 @@ class TestLambdaBuildContainer_make_request(TestCase):
                 "manifest_path": "manifest_dir/manifest_file_name",
                 "runtime": "runtime",
                 "optimizations": "optimizations",
-                "options": "options"
+                "options": "options",
+                "executable_search_paths": "executable_search_paths"
             }
         })
 

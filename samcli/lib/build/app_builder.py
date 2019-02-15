@@ -144,7 +144,7 @@ class ApplicationBuilder(object):
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
-        config = get_workflow_config(runtime)
+        config = get_workflow_config(runtime, codeuri, self._base_dir)
 
         # Create the arguments to pass to the builder
 
@@ -186,7 +186,8 @@ class ApplicationBuilder(object):
                           artifacts_dir,
                           scratch_dir,
                           manifest_path,
-                          runtime=runtime)
+                          runtime=runtime,
+                          executable_search_paths=config.executable_search_paths)
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 
@@ -212,7 +213,8 @@ class ApplicationBuilder(object):
                                          runtime,
                                          log_level=log_level,
                                          optimizations=None,
-                                         options=None)
+                                         options=None,
+                                         executable_search_paths=config.executable_search_paths)
 
         try:
             try:
