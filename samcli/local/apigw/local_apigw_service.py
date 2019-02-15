@@ -211,7 +211,11 @@ class LocalApigwService(BaseLocalService):
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
-        if not isinstance(status_code, int) or status_code <= 0:
+        try:
+            status_code = int(status_code)
+            if status_code <= 0:
+                raise ValueError
+        except ValueError:
             message = "statusCode must be a positive int"
             LOG.error(message)
             raise TypeError(message)
