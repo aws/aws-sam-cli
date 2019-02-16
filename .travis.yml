@@ -9,6 +9,9 @@ python:
   - "2.7"
   - "3.6"
 
+jdk:
+  - "openjdk8"
+
 # Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
 matrix:
   include:
