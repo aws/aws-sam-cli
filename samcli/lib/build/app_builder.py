@@ -186,7 +186,8 @@ class ApplicationBuilder(object):
                           artifacts_dir,
                           scratch_dir,
                           manifest_path,
-                          runtime=runtime)
+                          runtime=runtime,
+                          options={"artifact_executable_name": "main"})
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 

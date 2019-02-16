@@ -24,6 +24,11 @@ RUBY_BUNDLER_CONFIG = CONFIG(
                 dependency_manager="bundler",
                 application_framework=None,
                 manifest_name="Gemfile")
+GO_MODULE_CONFIG = CONFIG(
+                language="go",
+                dependency_manager="modules",
+                application_framework=None,
+                manifest_name="go.mod"               )
 
 
 class UnsupportedRuntimeException(Exception):
@@ -52,7 +57,8 @@ def get_workflow_config(runtime):
         "nodejs4.3": NODEJS_NPM_CONFIG,
         "nodejs6.10": NODEJS_NPM_CONFIG,
         "nodejs8.10": NODEJS_NPM_CONFIG,
-        "ruby2.5": RUBY_BUNDLER_CONFIG
+        "ruby2.5": RUBY_BUNDLER_CONFIG,
+        "go1.x": GO_MODULE_CONFIG
     }
 
     try:
