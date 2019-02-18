@@ -1,5 +1,4 @@
 # Enable container based builds
-sudo: required
 language: python
 dist: xenial
 
@@ -14,13 +13,18 @@ python:
 addons:
   apt:
     packages:
+      # Xenial images don't have jdk8 installed by default.
       - openjdk-8-jdk
 
-
 before_install:
+  # Use the JDK8 that we installed
+  - JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+  - PATH=$JAVA_HOME/bin:$PATH
+
   - nvm install 8.10
   - npm --version
   - node --version
+  - jdk_switcher use openjdk8
 
 install:
   # Install the code requirements
