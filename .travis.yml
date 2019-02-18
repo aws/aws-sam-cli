@@ -24,7 +24,6 @@ before_install:
   - nvm install 8.10
   - npm --version
   - node --version
-  - jdk_switcher use openjdk8
 
 install:
   # Install the code requirements
