@@ -11,8 +11,11 @@ python:
   - "3.6"
   - "3.7"
 
-jdk:
-  - "openjdk8"
+addons:
+  apt:
+    packages:
+      - openjdk-8-jdk
+
 
 before_install:
   - nvm install 8.10
