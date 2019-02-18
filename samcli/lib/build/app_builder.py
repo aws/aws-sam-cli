@@ -144,12 +144,32 @@ class ApplicationBuilder(object):
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
-        config = get_workflow_config(runtime)
+        """
+        Given the function information, this method will build the Lambda function. Depending on the configuration
+        it will either build the function in process or by spinning up a Docker container.
+
+        Parameters
+        ----------
+        function_name : str
+            Name or LogicalId of the function
+
+        codeuri : str
+            Path to where the code lives
+
+        runtime : str
+            AWS Lambda function runtime
+
+        Returns
+        -------
+        str
+            Path to the location where built artifacts are available
+        """
 
         # Create the arguments to pass to the builder
-
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
+
+        config = get_workflow_config(runtime, code_dir, self._base_dir)
 
         # artifacts directory will be created by the builder
         artifacts_dir = str(pathlib.Path(self._build_dir, function_name))
@@ -186,7 +206,8 @@ class ApplicationBuilder(object):
                           artifacts_dir,
                           scratch_dir,
                           manifest_path,
-                          runtime=runtime)
+                          runtime=runtime,
+                          executable_search_paths=config.executable_search_paths)
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 
@@ -212,7 +233,8 @@ class ApplicationBuilder(object):
                                          runtime,
                                          log_level=log_level,
                                          optimizations=None,
-                                         options=None)
+                                         options=None,
+                                         executable_search_paths=config.executable_search_paths)
 
         try:
             try:
