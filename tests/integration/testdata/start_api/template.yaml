@@ -111,6 +111,19 @@ Resources:
             Method: Get
             Path: /onlysetbody
 
+  StringStatusCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.string_status_code_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        StringStatusCodePath:
+          Type: Api
+          Properties:
+            Method: Get
+            Path: /stringstatuscode
+
   SleepFunction0:
     Type: AWS::Serverless::Function
     Properties:
