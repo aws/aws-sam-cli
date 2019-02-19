@@ -8,6 +8,7 @@ import six
 from .exceptions import InvalidLayerReference
 from .provider import FunctionProvider, Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
+from .sam_function_code_provider import SamFunctionCodeProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -78,6 +79,17 @@ class SamFunctionProvider(FunctionProvider):
             yield function
 
     @staticmethod
+    def _parse_function_code(name, resource_properties, resource_type):
+        """
+        Simple method to wrap SamFunctionCodeProvider instantiation, easier to test
+
+        :param str name: Logical Id of the function
+        :param dict resource_properties: Function Properties Dictionary
+        :param str resource_type: Function type AWS::Serverless::Function || AWS::Lambda::Function
+        """
+        return SamFunctionCodeProvider(name, resource_properties, resource_type)
+
+    @staticmethod
     def _extract_functions(resources):
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
@@ -97,18 +109,24 @@ class SamFunctionProvider(FunctionProvider):
 
             if resource_type == SamFunctionProvider._SERVERLESS_FUNCTION:
                 layers = SamFunctionProvider._parse_layer_info(resource_properties.get("Layers", []), resources)
-                result[name] = SamFunctionProvider._convert_sam_function_resource(name, resource_properties, layers)
+                codeuri = SamFunctionProvider._parse_function_code(name, resource_properties, resource_type)
+                result[name] = SamFunctionProvider._convert_sam_function_resource(
+                    name, resource_properties, layers, codeuri
+                )
 
             elif resource_type == SamFunctionProvider._LAMBDA_FUNCTION:
                 layers = SamFunctionProvider._parse_layer_info(resource_properties.get("Layers", []), resources)
-                result[name] = SamFunctionProvider._convert_lambda_function_resource(name, resource_properties, layers)
+                codeuri = SamFunctionProvider._parse_function_code(name, resource_properties, resource_type)
+                result[name] = SamFunctionProvider._convert_lambda_function_resource(
+                    name, resource_properties, layers, codeuri
+                )
 
             # We don't care about other resource types. Just ignore them
 
         return result
 
     @staticmethod
-    def _convert_sam_function_resource(name, resource_properties, layers):
+    def _convert_sam_function_resource(name, resource_properties, layers, codeuri):
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
@@ -117,8 +135,6 @@ class SamFunctionProvider(FunctionProvider):
         :param dict resource_properties: Properties of this resource
         :return samcli.commands.local.lib.provider.Function: Function configuration
         """
-
-        codeuri = SamFunctionProvider._extract_sam_function_codeuri(name, resource_properties, "CodeUri")
 
         LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
 
@@ -135,35 +151,7 @@ class SamFunctionProvider(FunctionProvider):
         )
 
     @staticmethod
-    def _extract_sam_function_codeuri(name, resource_properties, code_property_key):
-        """
-        Extracts the SAM Function CodeUri from the Resource Properties
-
-        Parameters
-        ----------
-        name str
-            LogicalId of the resource
-        resource_properties dict
-            Dictionary representing the Properties of the Resource
-        code_property_key str
-            Property Key of the code on the Resource
-
-        Returns
-        -------
-        str
-            Representing the local code path
-        """
-        codeuri = resource_properties.get(code_property_key, SamFunctionProvider._DEFAULT_CODEURI)
-        # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
-        if isinstance(codeuri, dict) or \
-                (isinstance(codeuri, six.string_types) and codeuri.startswith("s3://")):
-            codeuri = SamFunctionProvider._DEFAULT_CODEURI
-            LOG.warning("Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
-                        "Using default value of '%s' instead", name, codeuri)
-        return codeuri
-
-    @staticmethod
-    def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
+    def _convert_lambda_function_resource(name, resource_properties, layers, codeuri):  # pylint: disable=invalid-name
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
@@ -172,10 +160,6 @@ class SamFunctionProvider(FunctionProvider):
         :param dict resource_properties: Properties of this resource
         :return samcli.commands.local.lib.provider.Function: Function configuration
         """
-
-        # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
-        # property does not support specifying a local path
-        codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
 
         LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
 
@@ -190,31 +174,6 @@ class SamFunctionProvider(FunctionProvider):
             rolearn=resource_properties.get("Role"),
             layers=layers
         )
-
-    @staticmethod
-    def _extract_lambda_function_code(resource_properties, code_property_key):
-        """
-        Extracts the Lambda Function Code from the Resource Properties
-
-        Parameters
-        ----------
-        resource_properties dict
-            Dictionary representing the Properties of the Resource
-        code_property_key str
-            Property Key of the code on the Resource
-
-        Returns
-        -------
-        str
-            Representing the local code path
-        """
-
-        codeuri = resource_properties.get(code_property_key, SamFunctionProvider._DEFAULT_CODEURI)
-
-        if isinstance(codeuri, dict):
-            codeuri = SamFunctionProvider._DEFAULT_CODEURI
-
-        return codeuri
 
     @staticmethod
     def _parse_layer_info(list_of_layers, resources):
@@ -258,12 +217,17 @@ class SamFunctionProvider(FunctionProvider):
                 codeuri = None
 
                 if resource_type == SamFunctionProvider._LAMBDA_LAYER:
-                    codeuri = SamFunctionProvider._extract_lambda_function_code(layer_properties, "Content")
+                    codeuri = SamFunctionCodeProvider.extract_code(
+                            layer_properties,
+                            "Content"
+                    )
 
                 if resource_type == SamFunctionProvider._SERVERLESS_LAYER:
-                    codeuri = SamFunctionProvider._extract_sam_function_codeuri(layer_logical_id,
-                                                                                layer_properties,
-                                                                                "ContentUri")
+                    codeuri = SamFunctionCodeProvider.extract_codeuri(
+                            layer_logical_id,
+                            layer_properties,
+                            "ContentUri"
+                    )
 
                 layers.append(LayerVersion(layer_logical_id, codeuri))
 

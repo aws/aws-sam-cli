@@ -86,7 +86,8 @@ class LocalLambdaRunner(object):
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        with function.codeuri:
+            self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
 
     def is_debugging(self):
         """

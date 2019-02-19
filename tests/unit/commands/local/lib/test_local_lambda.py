@@ -432,6 +432,8 @@ class TestLocalLambda_invoke(TestCase):
         stdout = "stdout"
         stderr = "stderr"
         function = Mock()
+        function.codeuri.__enter__ = Mock()
+        function.codeuri.__exit__ = Mock()
         invoke_config = "config"
 
         self.function_provider_mock.get.return_value = function
