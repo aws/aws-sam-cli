@@ -8,7 +8,7 @@ information to effectively respond to your bug report or contribution.
 
 ## Development Guide
 
-Refer to the [Development Guide](DEVELOPMENT_GUIDE.rst) for help with environment setup, running tests, submitting a PR, or anything that will make you more productive.
+Refer to the [Development Guide](DEVELOPMENT_GUIDE.md) for help with environment setup, running tests, submitting a PR, or anything that will make you more productive.
 
 
 ## Reporting Bugs/Feature Requests
