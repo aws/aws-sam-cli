@@ -4,20 +4,20 @@ PROJECT OPERATIONS
 
 What is AWS SAM CLI
 -------------------
-``sam`` is the AWS CLI tool for managing Serverless applications. SAM CLI supports you through your entire 
-workflow of developing a serverless app. It allows you to quickly getting started, develop, test, and debug 
-your application locally, build, package, deploy to the cloud, and monitor and troubleshoot a deployed 
-application. It supports applications defined using AWS Serverless Application Model (SAM). 
+``sam`` is the AWS CLI tool for managing Serverless applications. SAM CLI supports you through your entire
+workflow of developing a serverless app. It allows you to quickly getting started, develop, test, and debug
+your application locally, build, package, deploy to the cloud, and monitor and troubleshoot a deployed
+application. It supports applications defined using AWS Serverless Application Model (SAM).
 
 
 Core Team
 ---------
-SAM CLI project is still small enough that we don't have a official team structure or governance. Therefore "Core Team" simply consists of developers who have commit access to the this Github Repository. They know most about the source code and work on it every day. 
+SAM CLI project is still small enough that we don't have a official team structure or governance. Therefore "Core Team" simply consists of developers who have commit access to the this Github Repository. They know most about the source code and work on it every day.
 
 
 Contributors
 ------------
-We are actively looking for contributors to join the project. You could help us fix bugs, write features, improve documentation or even do Marketing/PR activities. Read the DEVELOPMENT_GUIDE.rst file for information on how to get started. 
+We are actively looking for contributors to join the project. You could help us fix bugs, write features, improve documentation or even do Marketing/PR activities. Read the CONTRIBUTING.rst file for information on how to get started.
 
 
 Communication
@@ -92,6 +92,6 @@ Final section of a design document must be breakdown of tasks necessary to imple
 Action Items
 ============
 
-- [ ] Add a PR Checklist to Pull Request Template (owner?)
-- [ ] Add a PR Reviewer checklist to DEVELOPMENT_GUIDE.rst (owner?)
-- [ ] Create a Design Document teamplate (owner?)
+- [x] Add a PR Checklist to Pull Request Template
+- [x] Add a PR Reviewer checklist to DEVELOPMENT_GUIDE.rst
+- [x] Create a Design Document teamplate
