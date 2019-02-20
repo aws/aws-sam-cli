@@ -5,6 +5,7 @@ Base classes that implement the CLI framework
 import logging
 import importlib
 import click
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -110,3 +111,28 @@ class BaseCommand(click.MultiCommand):
             return
 
         return mod.cli
+
+    # NOTE(TheSriram): info_name is always set to "sam". This way when the CLI is invoked as a module,
+    # the help text that is generated still says "sam" instead of "__main__".
+    def make_context(self, info_name, args, parent=None, **extra):
+        """This function when given an info name and arguments will kick
+        off the parsing and create a new :class:`Context`.  It does not
+        invoke the actual command callback though.
+
+        :param info_name: the info name for this invokation.  Generally this
+                          is the most descriptive name for the script or
+                          command.  For the toplevel script it's usually
+                          the name of the script, for commands below it it's
+                          the name of the script.
+        :param args: the arguments to parse as list of strings.
+        :param parent: the parent context if available.
+        :param extra: extra keyword arguments forwarded to the context
+                      constructor.
+        """
+        for key, value in six.iteritems(self.context_settings):
+            if key not in extra:
+                extra[key] = value
+        ctx = click.Context(self, info_name="sam", parent=parent, **extra)
+        with ctx.scope(cleanup=False):
+            self.parse_args(ctx, args)
+        return ctx
