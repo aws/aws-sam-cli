@@ -6,6 +6,7 @@ import os
 import logging
 import boto3
 
+from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -19,7 +20,6 @@ class LocalLambdaRunner(object):
     Runs Lambda functions locally. This class is a wrapper around the `samcli.local` library which takes care
     of actually running the function on a Docker container.
     """
-    PRESENT_DIR = "."
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
 
     def __init__(self,
@@ -27,9 +27,7 @@ class LocalLambdaRunner(object):
                  function_provider,
                  cwd,
                  env_vars_values=None,
-                 aws_profile=None,
-                 debug_context=None,
-                 aws_region=None):
+                 debug_context=None):
         """
         Initializes the class
 
@@ -40,16 +38,12 @@ class LocalLambdaRunner(object):
         :param dict env_vars_values: Optional. Dictionary containing values of environment variables
         :param integer debug_port: Optional. Port to bind the debugger to
         :param string debug_args: Optional. Additional arguments passed to the debugger
-        :param string aws_profile: Optional. AWS Credentials profile to use
-        :param string aws_region: Optional. AWS region to use
         """
 
         self.local_runtime = local_runtime
         self.provider = function_provider
         self.cwd = cwd
         self.env_vars_values = env_vars_values or {}
-        self.aws_profile = aws_profile
-        self.aws_region = aws_region
         self.debug_context = debug_context
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
@@ -59,17 +53,31 @@ class LocalLambdaRunner(object):
 
         This function will block until either the function completes or times out.
 
-        :param string function_name: Name of the Lambda function to invoke
-        :param string event: Event data passed to the function. Must be a valid JSON String.
-        :param io.BaseIO stdout: Stream to write the output of the Lambda function to.
-        :param io.BaseIO stderr: Stream to write the Lambda runtime logs to.
-        :raises FunctionNotfound: When we cannot find a function with the given name
+        Parameters
+        ----------
+        function_name str
+            Name of the Lambda function to invoke
+        event str
+            Event data passed to the function. Must be a valid JSON String.
+        stdout samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer to write the output of the Lambda function to.
+        stderr samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer to write the Lambda runtime logs to.
+
+        Raises
+        ------
+        FunctionNotfound
+            When we cannot find a function with the given name
         """
 
         # Generate the correct configuration based on given inputs
         function = self.provider.get(function_name)
 
         if not function:
+            all_functions = [f.name for f in self.provider.get_all()]
+            available_function_message = "{} not found. Possible options in your template: {}"\
+                .format(function_name, all_functions)
+            LOG.info(available_function_message)
             raise FunctionNotFound("Unable to find a Function with name '%s'", function_name)
 
         LOG.debug("Found one Lambda function with name '%s'", function_name)
@@ -101,7 +109,7 @@ class LocalLambdaRunner(object):
         """
 
         env_vars = self._make_env_vars(function)
-        code_abs_path = self._get_code_path(function.codeuri)
+        code_abs_path = resolve_code_path(self.cwd, function.codeuri)
 
         LOG.debug("Resolved absolute path to code is %s", code_abs_path)
 
@@ -117,6 +125,7 @@ class LocalLambdaRunner(object):
                               runtime=function.runtime,
                               handler=function.handler,
                               code_abs_path=code_abs_path,
+                              layers=function.layers,
                               memory=function.memory,
                               timeout=function_timeout,
                               env_vars=env_vars)
@@ -183,32 +192,6 @@ class LocalLambdaRunner(object):
                                     override_values=overrides,
                                     aws_creds=aws_creds)
 
-    def _get_code_path(self, codeuri):
-        """
-        Returns path to the function code resolved based on current working directory.
-
-        :param string codeuri: CodeURI of the function. This should contain the path to the function code
-        :return string: Absolute path to the function code
-        """
-
-        LOG.debug("Resolving code path. Cwd=%s, CodeUri=%s", self.cwd, codeuri)
-
-        # First, let us figure out the current working directory.
-        # If current working directory is not provided, then default to the directory where the CLI is running from
-        if not self.cwd or self.cwd == self.PRESENT_DIR:
-            self.cwd = os.getcwd()
-
-        # Make sure cwd is an absolute path
-        self.cwd = os.path.abspath(self.cwd)
-
-        # Next, let us get absolute path of function code.
-        # Codepath is always relative to current working directory
-        # If the path is relative, then construct the absolute version
-        if not os.path.isabs(codeuri):
-            codeuri = os.path.normpath(os.path.join(self.cwd, codeuri))
-
-        return codeuri
-
     def get_aws_creds(self):
         """
         Returns AWS credentials obtained from the shell environment or given profile
@@ -219,10 +202,14 @@ class LocalLambdaRunner(object):
         """
         result = {}
 
-        LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
-        # TODO: Consider changing it to use boto3 default session. We already have an annotation
         # to pass command line arguments for region & profile to setup boto3 default session
-        session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
+        if boto3.DEFAULT_SESSION:
+            session = boto3.DEFAULT_SESSION
+        else:
+            session = boto3.session.Session()
+
+        profile_name = session.profile_name if session else None
+        LOG.debug("Loading AWS credentials from session with profile '%s'", profile_name)
 
         if not session:
             return result

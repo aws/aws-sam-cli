@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'sam-app
+
+  Sample SAM Template for sam-app
+
+  '
+Globals:
+  Function:
+    Timeout: 3
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Author: user
+    Description: description
+    HomePageUrl: https://github.com/test/test
+    Labels:
+    - test-app
+    LicenseUrl: s3://<bucket-name>/LICENSE
+    Name: <application-name>
+    ReadmeUrl: s3://<bucket-name>/README.md
+    SemanticVersion: 0.0.2
+    SourceCodeUrl: "https://github.com/test/test-new-version"
+Resources:
+  HelloWorldFunction:
+    Properties:
+      CodeUri: s3://<bucket-name>/main.py
+      Environment:
+        Variables:
+          PARAM1: VALUE
+      Events:
+        HelloWorld:
+          Properties:
+            Method: get
+            Path: /hello
+          Type: Api
+      Handler: main.lambda_handler
+      Runtime: python3.6
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31

@@ -324,6 +324,14 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.json(), {'hello': 'world'})
 
+    def test_string_status_code(self):
+        """
+        Test that an integer-string can be returned as the status code
+        """
+        response = requests.get(self.url + "/stringstatuscode")
+
+        self.assertEquals(response.status_code, 200)
+
     def test_default_body(self):
         """
         Test that if no body is given, the response is 'no data'

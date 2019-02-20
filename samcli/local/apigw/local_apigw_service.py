@@ -7,6 +7,7 @@ import base64
 from flask import Flask, request
 
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 from .service_error_responses import ServiceErrorResponses
@@ -40,16 +41,22 @@ class LocalApigwService(BaseLocalService):
         """
         Creates an ApiGatewayService
 
-        :param list(ApiGatewayCallModel) routing_list: A list of the Model that represent
-          the service paths to create.
-        :param samcli.commands.local.lib.local_lambda.LocalLambdaRunner lambda_runner: The Lambda runner class capable
-            of invoking the function
-        :param str static_dir: Directory from which to serve static files
-        :param int port: Optional. port for the service to start listening on
-          Defaults to 3000
-        :param str host: Optional. host to start the service on
-          Defaults to '127.0.0.1
-        :param io.BaseIO stderr: Optional stream where the stderr from Docker container should be written to
+        Parameters
+        ----------
+        routing_list list(ApiGatewayCallModel)
+            A list of the Model that represent the service paths to create.
+        lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
+            The Lambda runner class capable of invoking the function
+        static_dir str
+            Directory from which to serve static files
+        port int
+            Optional. port for the service to start listening on
+            Defaults to 3000
+        host str
+            Optional. host to start the service on
+            Defaults to '127.0.0.1
+        stderr samcli.lib.utils.stream_writer.StreamWriter
+            Optional stream writer where the stderr from Docker container should be written to
         """
         super(LocalApigwService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.routing_list = routing_list
@@ -123,9 +130,14 @@ class LocalApigwService(BaseLocalService):
         * We then transform the response or errors we get from the Invoke and return the data back to
           the caller
 
-        :param kwargs dict: Keyword Args that are passed to the function from Flask. This happens when we have
-            Path Parameters.
-        :return: Response object
+        Parameters
+        ----------
+        kwargs dict
+            Keyword Args that are passed to the function from Flask. This happens when we have path parameters
+
+        Returns
+        -------
+        Response object
         """
         route = self._get_current_route(request)
 
@@ -135,9 +147,10 @@ class LocalApigwService(BaseLocalService):
             return ServiceErrorResponses.lambda_failure_response()
 
         stdout_stream = io.BytesIO()
+        stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
         try:
-            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream, stderr=self.stderr)
+            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 
@@ -198,7 +211,11 @@ class LocalApigwService(BaseLocalService):
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
-        if not isinstance(status_code, int) or status_code <= 0:
+        try:
+            status_code = int(status_code)
+            if status_code <= 0:
+                raise ValueError
+        except ValueError:
             message = "statusCode must be a positive int"
             LOG.error(message)
             raise TypeError(message)

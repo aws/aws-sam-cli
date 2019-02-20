@@ -1,7 +1,7 @@
 {
   "version": 2,
   "eventType": "SyncTrigger",
-  "region": "{{region}}",
+  "region": "{{{region}}}",
   "identityPoolId": "identityPoolId",
   "identityId": "identityId",
   "datasetName": "datasetName",

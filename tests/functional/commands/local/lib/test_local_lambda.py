@@ -8,10 +8,13 @@ import json
 import shutil
 import logging
 
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib import provider
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.manager import ContainerManager
+from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.local.docker.lambda_image import LambdaImage
 
 from tests.functional.function_code import nodejs_lambda, GET_ENV_VAR
 from unittest import TestCase
@@ -47,7 +50,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.function = provider.Function(name=self.function_name, runtime="nodejs4.3", memory=256, timeout=5,
                                           handler="index.handler", codeuri=self.code_uri,
                                           environment={"Variables": self.variables},
-                                          rolearn=None)
+                                          rolearn=None, layers=[])
 
         self.mock_function_provider = Mock()
         self.mock_function_provider.get.return_value = self.function
@@ -65,9 +68,11 @@ class TestFunctionalLocalLambda(TestCase):
         }
 
         manager = ContainerManager()
-        local_runtime = LambdaRuntime(manager)
+        layer_downloader = LayerDownloader("./", "./")
+        lambda_image = LambdaImage(layer_downloader, False, False)
+        local_runtime = LambdaRuntime(manager, lambda_image)
         runner = LocalLambdaRunner(local_runtime, self.mock_function_provider, self.cwd, self.env_var_overrides,
-                                   debug_context=None, aws_profile=None)
+                                   debug_context=None)
 
         # Append the real AWS credentials to the expected values.
         creds = runner.get_aws_creds()
@@ -78,7 +83,10 @@ class TestFunctionalLocalLambda(TestCase):
 
         stdout_stream = io.BytesIO()
         stderr_stream = io.BytesIO()
-        runner.invoke(self.function_name, input_event, stdout=stdout_stream, stderr=stderr_stream)
+
+        stdout_stream_writer = StreamWriter(stdout_stream)
+        stderr_stream_writer = StreamWriter(stderr_stream)
+        runner.invoke(self.function_name, input_event, stdout=stdout_stream_writer, stderr=stderr_stream_writer)
 
         # stderr is where the Lambda container runtime logs are available. It usually contains requestId, start time
         # etc. So it is non-zero in size
@@ -89,4 +97,4 @@ class TestFunctionalLocalLambda(TestCase):
 
         for key, value in expected_env_vars.items():
             self.assertTrue(key in actual_output, "Key '{}' must be in function output".format(key))
-            self.assertEquals(actual_output.get(key), value)
+            self.assertEqual(actual_output.get(key), value)

@@ -5,17 +5,19 @@ CLI command for "local invoke" command
 import logging
 import click
 
-from samcli.cli.main import pass_context, common_options as cli_framework_options
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options
 from samcli.commands.exceptions import UserException
+from samcli.commands.local.lib.exceptions import InvalidLayerReference
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.local.docker.manager import DockerImagePullFailedException
+from samcli.local.docker.lambda_container import DebuggingNotSupported
 
 
 LOG = logging.getLogger(__name__)
-
 
 HELP_TEXT = """
 You can use this command to execute your function in a Lambda-like environment locally.
@@ -40,22 +42,23 @@ STDIN_FILE_NAME = "-"
 @click.option("--no-event", is_flag=True, default=False, help="Invoke Function with an empty event")
 @invoke_common_options
 @cli_framework_options
+@aws_creds_options
 @click.argument('function_identifier', required=False)
 @pass_context  # pylint: disable=R0914
-def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port,
-        debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
+def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
+        docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
         parameter_overrides):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
-           docker_volume_basedir, docker_network, log_file, skip_pull_image, profile, region,
+           docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
            parameter_overrides)  # pragma: no cover
 
 
 def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port,  # pylint: disable=R0914
-           debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, skip_pull_image, profile,
-           region, parameter_overrides):
+           debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir,
+           skip_pull_image, force_image_build, parameter_overrides):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -81,12 +84,13 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
                            docker_network=docker_network,
                            log_file=log_file,
                            skip_pull_image=skip_pull_image,
-                           aws_profile=profile,
                            debug_port=debug_port,
                            debug_args=debug_args,
                            debugger_path=debugger_path,
-                           aws_region=region,
-                           parameter_overrides=parameter_overrides) as context:
+                           parameter_overrides=parameter_overrides,
+                           layer_cache_basedir=layer_cache_basedir,
+                           force_image_build=force_image_build,
+                           aws_region=ctx.region) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(context.function_name,
@@ -96,7 +100,12 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
 
     except FunctionNotFound:
         raise UserException("Function {} not found in template".format(function_identifier))
-    except (InvalidSamDocumentException, OverridesNotWellDefinedError) as ex:
+    except (InvalidSamDocumentException,
+            OverridesNotWellDefinedError,
+            InvalidLayerReference,
+            DebuggingNotSupported) as ex:
+        raise UserException(str(ex))
+    except DockerImagePullFailedException as ex:
         raise UserException(str(ex))
 
 

@@ -3,6 +3,9 @@ Representation of a generic Docker container
 """
 
 import logging
+import tarfile
+import tempfile
+
 import docker
 
 from samcli.local.docker.attach_api import attach
@@ -121,10 +124,13 @@ class Container(object):
             # Ex: 128m => 128MB
             kwargs["mem_limit"] = "{}m".format(self._memory_limit_mb)
 
+        if self.network_id == 'host':
+            kwargs["network_mode"] = self.network_id
+
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
-        if self.network_id:
+        if self.network_id and self.network_id != 'host':
             network = self.docker_client.networks.get(self.network_id)
             network.connect(self.id)
 
@@ -162,9 +168,10 @@ class Container(object):
         It waits for the container to complete, fetches both stdout and stderr logs and returns through the
         given streams.
 
-        :param input_data: Optional. Input data sent to the container through container's stdin.
-        :param io.StringIO stdout: Optional. IO Stream to that receives stdout text from container.
-        :param io.StringIO stderr: Optional. IO Stream that receives stderr text from container
+        Parameters
+        ----------
+        input_data
+            Optional. Input data sent to the container through container's stdin.
         """
 
         if input_data:
@@ -199,6 +206,25 @@ class Container(object):
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 
+    def copy(self, from_container_path, to_host_path):
+
+        if not self.is_created():
+            raise RuntimeError("Container does not exist. Cannot get logs for this container")
+
+        real_container = self.docker_client.containers.get(self.id)
+
+        LOG.debug("Copying from container: %s -> %s", from_container_path, to_host_path)
+        with tempfile.NamedTemporaryFile() as fp:
+            tar_stream, _ = real_container.get_archive(from_container_path)
+            for data in tar_stream:
+                fp.write(data)
+
+            # Seek the handle back to start of file for tarfile to use
+            fp.seek(0)
+
+            with tarfile.open(fileobj=fp, mode='r') as tar:
+                tar.extractall(path=to_host_path)
+
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):
         """
@@ -208,10 +234,10 @@ class Container(object):
         ----------
         output_itr: Iterator
             Iterator returned by the Docker Attach command
-        stdout: io.BaseIO, optional
-            Stream to write stdout data from Container into
-        stderr: io.BaseIO, optional
-            Stream to write stderr data from the Container into
+        stdout: samcli.lib.utils.stream_writer.StreamWriter, optional
+            Stream writer to write stdout data from Container into
+        stderr: samcli.lib.utils.stream_writer.StreamWriter, optional
+            Stream writer to write stderr data from the Container into
         """
 
         # Iterator returns a tuple of (frame_type, data) where the frame type determines which stream we write output

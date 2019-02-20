@@ -21,8 +21,8 @@
             ]
           },
           "clientIp": "2001:cdba::3257:9652",
-          "uri": "{{uri}}",
-          "method": "{{method}}"
+          "uri": "{{{uri}}}",
+          "method": "{{{method}}}"
         },
         "response": {
           "status": "200",

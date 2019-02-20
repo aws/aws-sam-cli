@@ -1,14 +1,14 @@
 {
-  "body": "{{body}}",
-  "resource": "{{resource}}",
-  "path": "/{{path}}",
-  "httpMethod": "{{method}}",
+  "body": "{{{body}}}",
+  "resource": "{{{resource}}}",
+  "path": "/{{{path}}}",
+  "httpMethod": "{{{method}}}",
   "isBase64Encoded": true,
   "queryStringParameters": {
     "foo": "bar"
   },
   "pathParameters": {
-    "proxy": "/{{path}}"
+    "proxy": "/{{{path}}}"
   },
   "stageVariables": {
     "baz": "qux"
@@ -24,7 +24,7 @@
     "CloudFront-Is-SmartTV-Viewer": "false",
     "CloudFront-Is-Tablet-Viewer": "false",
     "CloudFront-Viewer-Country": "US",
-    "Host": "1234567890.execute-api.{{dns_suffix}}",
+    "Host": "1234567890.execute-api.{{{dns_suffix}}}",
     "Upgrade-Insecure-Requests": "1",
     "User-Agent": "Custom User Agent String",
     "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
@@ -34,9 +34,9 @@
     "X-Forwarded-Proto": "https"
   },
   "requestContext": {
-    "accountId": "{{account_id}}",
+    "accountId": "{{{account_id}}}",
     "resourceId": "123456",
-    "stage": "{{stage}}",
+    "stage": "{{{stage}}}",
     "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
     "requestTime": "09/Apr/2015:12:34:56 +0000",
     "requestTimeEpoch": 1428582896000,
@@ -53,9 +53,9 @@
       "userAgent": "Custom User Agent String",
       "user": null
     },
-    "path": "/{{stage}}/{{path}}",
-    "resourcePath": "{{resource}}",
-    "httpMethod": "{{method}}",
+    "path": "/{{{stage}}}/{{{path}}}",
+    "resourcePath": "{{{resource}}}",
+    "httpMethod": "{{{method}}}",
     "apiId": "1234567890",
     "protocol": "HTTP/1.1"
   }

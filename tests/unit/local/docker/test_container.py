@@ -219,6 +219,12 @@ class TestContainer_create(TestCase):
         Create a container with only required values. Optional values are not provided
         :return:
         """
+        expected_volumes = {
+            self.host_dir: {
+                "bind": self.working_dir,
+                "mode": "ro"
+            }
+        }
 
         network_id = "some id"
         generated_id = "fooobar"
@@ -240,8 +246,57 @@ class TestContainer_create(TestCase):
         container_id = container.create()
         self.assertEquals(container_id, generated_id)
 
+        self.mock_docker_client.containers.create.assert_called_with(self.image,
+                                                                     command=self.cmd,
+                                                                     working_dir=self.working_dir,
+                                                                     tty=False,
+                                                                     volumes=expected_volumes
+                                                                     )
+
         self.mock_docker_client.networks.get.assert_called_with(network_id)
         network_mock.connect.assert_called_with(container_id)
+
+    def test_must_connect_to_host_network_on_create(self):
+        """
+        Create a container with only required values. Optional values are not provided
+        :return:
+        """
+        expected_volumes = {
+            self.host_dir: {
+                "bind": self.working_dir,
+                "mode": "ro"
+            }
+        }
+
+        network_id = "host"
+        generated_id = "fooobar"
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = generated_id
+
+        network_mock = Mock()
+        self.mock_docker_client.networks.get.return_value = network_mock
+        network_mock.connect = Mock()
+
+        container = Container(self.image,
+                              self.cmd,
+                              self.working_dir,
+                              self.host_dir,
+                              docker_client=self.mock_docker_client)
+
+        container.network_id = network_id
+
+        container_id = container.create()
+        self.assertEquals(container_id, generated_id)
+
+        self.mock_docker_client.containers.create.assert_called_with(self.image,
+                                                                     command=self.cmd,
+                                                                     working_dir=self.working_dir,
+                                                                     tty=False,
+                                                                     volumes=expected_volumes,
+                                                                     network_mode='host'
+                                                                     )
+
+        self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_fail_if_already_created(self):
 
@@ -509,3 +564,40 @@ class TestContainer_image(TestCase):
         container = Container(image, "cmd", "dir", "dir")
 
         self.assertEquals(image, container.image)
+
+
+class TestContainer_copy(TestCase):
+
+    def setUp(self):
+        self.mock_client = Mock()
+        self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
+        self.container.id = "containerid"
+
+    @patch('samcli.local.docker.container.tempfile')
+    @patch('samcli.local.docker.container.tarfile')
+    def test_must_copy_files_from_container(self, tarfile_mock, tempfile_mock):
+        source = "source"
+        dest = "dest"
+
+        tar_stream = [1, 2, 3]
+        real_container_mock = self.mock_client.containers.get.return_value = Mock()
+        real_container_mock.get_archive.return_value = (tar_stream, "ignored")
+
+        tempfile_ctxmgr = tempfile_mock.NamedTemporaryFile.return_value = Mock()
+        fp_mock = Mock()
+        tempfile_ctxmgr.__enter__ = Mock(return_value=fp_mock)
+        tempfile_ctxmgr.__exit__ = Mock()
+
+        tarfile_ctxmgr = tarfile_mock.open.return_value = Mock()
+        tar_mock = Mock()
+        tarfile_ctxmgr.return_value.__enter__ = Mock(return_value=tar_mock)
+        tarfile_ctxmgr.return_value.__exit__ = Mock()
+
+        self.container.copy(source, dest)
+
+        # Make sure archive data is written to the file
+        fp_mock.write.assert_has_calls([call(x) for x in tar_stream], any_order=False)
+
+        # Make sure we open the tarfile right and extract to right location
+        tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode='r')
+        tar_mock.extractall(path=dest)
