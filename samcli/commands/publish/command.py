@@ -7,12 +7,14 @@ import boto3
 from botocore.exceptions import ClientError
 from serverlessrepo import publish_application
 from serverlessrepo.publish import CREATE_APPLICATION
+from serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
 from serverlessrepo.exceptions import ServerlessRepoError
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.exceptions import UserException
+from samcli.yamlhelper import yaml_dump
 
 HELP_TEXT = """
 Use this command to publish a packaged AWS SAM template to
@@ -31,20 +33,23 @@ $ sam publish -t packaged.yaml --region <region>
 """
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
 SERVERLESSREPO_CONSOLE_URL = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
+SEMANTIC_VERSION_HELP = "Optional. The value provided here overwrites SemanticVersion in the template metadata."
+SEMANTIC_VERSION = 'SemanticVersion'
 
 
 @click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
 @template_common_option
+@click.option('--semantic-version', help=SEMANTIC_VERSION_HELP)
 @aws_creds_options
 @cli_framework_options
 @pass_context
-def cli(ctx, template):
+def cli(ctx, template, semantic_version):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template)  # pragma: no cover
+    do_cli(ctx, template, semantic_version)  # pragma: no cover
 
 
-def do_cli(ctx, template):
+def do_cli(ctx, template, semantic_version):
     """Publish the application based on command line inputs."""
     try:
         template_data = get_template_data(template)
@@ -52,10 +57,16 @@ def do_cli(ctx, template):
         click.secho("Publish Failed", fg='red')
         raise UserException(str(ex))
 
+    # Overwrite SemanticVersion in template metadata when provided in command input
+    if semantic_version and SERVERLESS_REPO_APPLICATION in template_data.get(METADATA, {}):
+        template_data.get(METADATA).get(SERVERLESS_REPO_APPLICATION)[SEMANTIC_VERSION] = semantic_version
+        with open(template, 'w') as fp:
+            fp.write(yaml_dump(template_data))
+
     try:
         publish_output = publish_application(template_data)
         click.secho("Publish Succeeded", fg="green")
-        click.secho(_gen_success_message(publish_output), fg="yellow")
+        click.secho(_gen_success_message(publish_output))
     except ServerlessRepoError as ex:
         click.secho("Publish Failed", fg='red')
         raise UserException(str(ex))
