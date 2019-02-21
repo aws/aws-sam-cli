@@ -233,6 +233,48 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(return_code, 0)
 
+    def test_invoke_with_docker_network_of_host_in_env_var(self):
+        command_list = self.get_command_list("HelloWorldServerlessFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+        env["SAM_DOCKER_NETWORK"] = 'non-existing-network'
+
+        process = Popen(command_list, stderr=PIPE, env=env)
+        process.wait()
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+
+        self.assertIn('Not Found ("network non-existing-network not found")', process_stderr.decode('utf-8'))
+
+    def test_sam_template_file_env_var_set(self):
+        command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
+
+        self.test_data_path.joinpath("invoke", "sam-template.yaml")
+        env = os.environ.copy()
+        env["SAM_TEMPLATE_FILE"] = str(self.test_data_path.joinpath("invoke", "sam-template.yaml"))
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+
+        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
+
+    def test_skip_pull_image_in_env_var(self):
+        docker.from_env().api.pull('lambci/lambda:python3.6')
+
+        command_list = self.get_command_list("HelloWorldLambdaFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+        env["SAM_SKIP_PULL_IMAGE"] = "True"
+
+        process = Popen(command_list, stderr=PIPE, env=env)
+        process.wait()
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+        self.assertIn("Requested to skip pulling images", process_stderr.decode('utf-8'))
+
 
 class TestUsingConfigFiles(InvokeIntegBase):
     template = Path("template.yml")
@@ -498,6 +540,23 @@ class TestLayerVersion(InvokeIntegBase):
                                              )
 
         process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
+
+    def test_caching_two_layers_with_layer_cache_env_set(self):
+
+        command_list = self.get_command_list("TwoLayerVersionServerlessFunction",
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        env = os.environ.copy()
+        env["SAM_LAYER_CACHE_BASEDIR"] = str(self.layer_cache)
+
+        process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
 
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
