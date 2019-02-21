@@ -256,7 +256,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
-        process_stdout = b"".join(process.stderr.readlines()).strip()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
 
         self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
 
