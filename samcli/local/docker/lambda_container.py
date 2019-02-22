@@ -302,6 +302,14 @@ class LambdaContainer(Container):
                 Runtime.python27.value, Runtime.python36.value}
 
     def should_put_archive(self):
+        """
+        Defines when copying volumes into the container (put_archive) vs mounting the directories into the container
+
+        Returns
+        -------
+        bool:
+            Always returns False
+        """
         return False
 
 

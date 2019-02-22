@@ -64,6 +64,9 @@ class LambdaBuildContainer(Container):
         cmd = []
         additional_volumes = {}
 
+        # In some cases the manifest_dir is also the source_dir. The base container class handles adding the source_dir
+        # to the volumes already. Instead of duplicating this here and overriding what the base class is doing, we only
+        # add the manifest_dir to the additional volumes when needed.
         if container_dirs["manifest_dir"] != container_dirs['source_dir']:
             # Manifest is mounted separately in order to support the case where manifest
             # is outside of source directory
@@ -71,8 +74,6 @@ class LambdaBuildContainer(Container):
                 "bind": container_dirs["manifest_dir"],
                 "mode": "ro"
             }
-
-        LOG.info("manifest is %s", container_dirs["manifest_dir"])
 
         env_vars = None
         if log_level:
@@ -172,4 +173,13 @@ class LambdaBuildContainer(Container):
         return "{}:build-{}".format(LambdaBuildContainer._IMAGE_REPO_NAME, runtime)
 
     def should_put_archive(self):
+        """
+        Defines when copying volumes into the container (put_archive) vs mounting the directories into the container
+
+        Returns
+        -------
+        bool:
+            True if the runtime is Go, otherwise false
+        """
+
         return self.runtime == 'go1.x'
