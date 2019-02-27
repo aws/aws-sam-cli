@@ -67,7 +67,41 @@ class TestCli(TestCase):
     @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.click')
-    def test_must_raise_if_not_s3_uri_error(self, click_mock, publish_application_mock):
+    def test_must_raise_if_invalid_semver_error(self, click_mock, publish_application_mock):
+        publish_application_mock.side_effect = ClientError(
+            {
+                'Error': {
+                    'Code': 'BadRequestException',
+                    'Message': 'version name is a not valid SemVer'
+                }
+            },
+            'create_application'
+        )
+        with self.assertRaises(UserException) as context:
+            publish_cli(self.ctx_mock, self.template, None)
+
+        message = str(context.exception)
+        self.assertIn("The provided SemanticVersion is not a valid version number. Please "
+                      "follow the Semantic Versioning scheme proposed in https://semver.org/", message)
+        click_mock.secho.assert_called_with("Publish Failed", fg="red")
+
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
+    @patch('samcli.commands.publish.command.publish_application')
+    @patch('samcli.commands.publish.command.click')
+    def test_must_raise_if_other_bad_request(self, click_mock, publish_application_mock):
+        publish_application_mock.side_effect = ClientError(
+            {'Error': {'Code': 'BadRequestException', 'Message': 'BadRequestMessage'}},
+            'other_operation'
+        )
+        with self.assertRaises(ClientError):
+            publish_cli(self.ctx_mock, self.template, None)
+
+        click_mock.secho.assert_called_with("Publish Failed", fg="red")
+
+    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
+    @patch('samcli.commands.publish.command.publish_application')
+    @patch('samcli.commands.publish.command.click')
+    def test_must_raise_if_other_client_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = ClientError(
             {'Error': {'Code': 'OtherError', 'Message': 'OtherMessage'}},
             'other_operation'

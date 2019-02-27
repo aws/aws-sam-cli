@@ -72,7 +72,7 @@ def do_cli(ctx, template, semantic_version):
         raise UserException(str(ex))
     except ClientError as ex:
         click.secho("Publish Failed", fg='red')
-        raise _wrap_s3_uri_exception(ex)
+        raise _wrap_exception(ex)
 
     application_id = publish_output.get('application_id')
     _print_console_link(ctx.region, application_id)
@@ -121,9 +121,9 @@ def _print_console_link(region, application_id):
     click.secho(msg, fg="yellow")
 
 
-def _wrap_s3_uri_exception(ex):
+def _wrap_exception(ex):
     """
-    Wrap invalid S3 URI exception with a better error message.
+    Wrap exception with a better error message.
 
     Parameters
     ----------
@@ -133,14 +133,19 @@ def _wrap_s3_uri_exception(ex):
     Returns
     -------
     Exception
-        UserException if found invalid S3 URI or ClientError
+        UserException if found invalid S3 URI or SemVer, else ClientError
     """
     error_code = ex.response.get('Error').get('Code')
     message = ex.response.get('Error').get('Message')
 
-    if error_code == 'BadRequestException' and "Invalid S3 URI" in message:
-        return UserException(
-            "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
-            "artifacts to S3 by packaging the template: 'sam package --template-file <file-path>'.")
+    if error_code == 'BadRequestException':
+        if "Invalid S3 URI" in message:
+            return UserException(
+                "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
+                "artifacts to S3 by packaging the template: 'sam package --template-file <file-path>'.")
+        if "version name is a not valid SemVer" in message:
+            return UserException(
+                "The provided SemanticVersion is not a valid version number. Please follow the Semantic Versioning "
+                "scheme proposed in https://semver.org/")
 
     return ex
