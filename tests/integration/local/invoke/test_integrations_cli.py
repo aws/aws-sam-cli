@@ -296,6 +296,10 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
         env = os.environ.copy()
         env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
         env['AWS_CONFIG_FILE'] = custom_config
         env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
 
@@ -349,6 +353,10 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
         env = os.environ.copy()
         env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
         env['AWS_CONFIG_FILE'] = custom_config
         env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
         env['AWS_PROFILE'] = "custom"
