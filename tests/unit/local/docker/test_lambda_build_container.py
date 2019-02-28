@@ -3,7 +3,11 @@ Unit test for Lambda Build Container management
 """
 
 import json
-import pathlib
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
+
 
 from unittest import TestCase
 from mock import patch
