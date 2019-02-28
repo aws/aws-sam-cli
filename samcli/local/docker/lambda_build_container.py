@@ -46,6 +46,11 @@ class LambdaBuildContainer(Container):
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
 
+        # `executable_search_paths` are provided as a list of paths on the host file system that needs to passed to
+        # the builder. But these paths don't exist within the container. We use the following method to convert the
+        # host paths to container paths. But if a host path is NOT mounted within the container, we will simply ignore
+        # it. In essence, only when the path is already in the mounted path, can the path resolver within the
+        # container even find the executable.
         executable_search_paths = LambdaBuildContainer._convert_to_container_dirs(
             host_paths_to_convert=executable_search_paths,
             host_to_container_path_mapping={
