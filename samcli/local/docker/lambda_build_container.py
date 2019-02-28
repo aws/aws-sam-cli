@@ -211,7 +211,7 @@ class LambdaBuildContainer(Container):
                 result.append(mapping[abspath])
             else:
                 result.append(original_path)
-                LOG.debug("Cannot convert host path '{}' to its equivalent path within the container. "
+                LOG.debug("Cannot convert host path '%s' to its equivalent path within the container. "
                           "Host path is not mounted within the container", abspath)
 
         return result
