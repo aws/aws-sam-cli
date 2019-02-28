@@ -46,10 +46,12 @@ class LambdaBuildContainer(Container):
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
 
-        executable_search_paths = LambdaBuildContainer._convert_to_container_dirs(executable_search_paths, {
-            source_dir: container_dirs["source_dir"],
-            manifest_dir: container_dirs["manifest_dir"]
-        })
+        executable_search_paths = LambdaBuildContainer._convert_to_container_dirs(
+            host_paths_to_convert=executable_search_paths,
+            host_to_container_path_mapping={
+                source_dir: container_dirs["source_dir"],
+                manifest_dir: container_dirs["manifest_dir"]
+            })
 
         request_json = self._make_request(protocol_version,
                                           language,

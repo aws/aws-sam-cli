@@ -3,6 +3,7 @@ Unit test for Lambda Build Container management
 """
 
 import json
+import pathlib
 
 from unittest import TestCase
 from mock import patch
@@ -157,3 +158,44 @@ class TestLambdaBuildContainer_get_entrypoint(TestCase):
     def test_must_get_entrypoint(self):
         self.assertEquals(["lambda-builders", "requestjson"],
                           LambdaBuildContainer._get_entrypoint("requestjson"))
+
+
+class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
+
+    def test_must_work_on_abs_and_relative_paths(self):
+
+        input = [".", "../foo", "/some/abs/path"]
+        mapping = {
+            str(pathlib.Path(".").resolve()): "/first",
+            "../foo": "/second",
+            "/some/abs/path": "/third"
+        }
+
+        expected = ["/first", "/second", "/third"]
+        result = LambdaBuildContainer._convert_to_container_dirs(input, mapping)
+
+        self.assertEquals(result, expected)
+
+    def test_must_skip_unknown_paths(self):
+
+        input = ["/known/path", "/unknown/path"]
+        mapping = {
+            "/known/path": "/first"
+        }
+
+        expected = ["/first", "/unknown/path"]
+        result = LambdaBuildContainer._convert_to_container_dirs(input, mapping)
+
+        self.assertEquals(result, expected)
+
+    def test_must_skip_on_empty_input(self):
+
+        input = None
+        mapping = {
+            "/known/path": "/first"
+        }
+
+        expected = None
+        result = LambdaBuildContainer._convert_to_container_dirs(input, mapping)
+
+        self.assertEquals(result, expected)
