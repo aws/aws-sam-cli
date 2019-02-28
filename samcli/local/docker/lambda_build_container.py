@@ -173,7 +173,7 @@ class LambdaBuildContainer(Container):
     @staticmethod
     def _convert_to_container_dirs(host_paths_to_convert, host_to_container_path_mapping):
         """
-        Use this class to convert a list of host paths to a list of equivalent paths within the container
+        Use this method to convert a list of host paths to a list of equivalent paths within the container
         where the given host path is mounted. This is necessary when SAM CLI needs to pass path information to
         the Lambda Builder running within the container.
 
