@@ -1,6 +1,10 @@
 import os
 import shutil
 import tempfile
+import logging
+import subprocess
+import json
+from unittest import TestCase
 
 import docker
 
@@ -9,7 +13,10 @@ try:
 except ImportError:
     from pathlib2 import Path
 
-from unittest import TestCase
+from samcli.yamlhelper import yaml_parse
+
+
+LOG = logging.getLogger(__name__)
 
 
 class BuildIntegBase(TestCase):
@@ -85,3 +92,21 @@ class BuildIntegBase(TestCase):
         return " ".join([
             "ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()
         ])
+
+    def _verify_resource_property(self, template_path, logical_id, property, expected_value):
+
+        with open(template_path, 'r') as fp:
+            template_dict = yaml_parse(fp.read())
+            self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
+
+    def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
+        LOG.info("Invoking built function '{}'", function_logical_id)
+
+        cmdlist = [self.cmd, "local", "invoke", function_logical_id, "-t", str(template_path), "--no-event",
+                   "--parameter-overrides", overrides]
+
+        process = subprocess.Popen(cmdlist, stdout=subprocess.PIPE)
+        process.wait()
+
+        process_stdout = b"".join(process.stdout.readlines()).strip().decode('utf-8')
+        self.assertEquals(json.loads(process_stdout), expected_result)

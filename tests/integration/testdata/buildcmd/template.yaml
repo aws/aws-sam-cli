@@ -6,13 +6,15 @@ Parameteres:
     Type: String
   CodeUri:
     Type: String
+  Handler:
+    Type: String
 
 Resources:
 
   Function:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: main.handler
+      Handler: !Ref Handler
       Runtime: !Ref Runtime
       CodeUri: !Ref CodeUri
       Timeout: 600

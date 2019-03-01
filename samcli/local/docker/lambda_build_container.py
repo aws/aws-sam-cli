@@ -35,6 +35,7 @@ class LambdaBuildContainer(Container):
                  runtime,
                  optimizations=None,
                  options=None,
+                 executable_search_paths=None,
                  log_level=None):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
@@ -45,6 +46,18 @@ class LambdaBuildContainer(Container):
 
         container_dirs = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
 
+        # `executable_search_paths` are provided as a list of paths on the host file system that needs to passed to
+        # the builder. But these paths don't exist within the container. We use the following method to convert the
+        # host paths to container paths. But if a host path is NOT mounted within the container, we will simply ignore
+        # it. In essence, only when the path is already in the mounted path, can the path resolver within the
+        # container even find the executable.
+        executable_search_paths = LambdaBuildContainer._convert_to_container_dirs(
+            host_paths_to_convert=executable_search_paths,
+            host_to_container_path_mapping={
+                source_dir: container_dirs["source_dir"],
+                manifest_dir: container_dirs["manifest_dir"]
+            })
+
         request_json = self._make_request(protocol_version,
                                           language,
                                           dependency_manager,
@@ -53,7 +66,8 @@ class LambdaBuildContainer(Container):
                                           manifest_file_name,
                                           runtime,
                                           optimizations,
-                                          options)
+                                          options,
+                                          executable_search_paths)
 
         image = LambdaBuildContainer._get_image(runtime)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
@@ -96,7 +110,8 @@ class LambdaBuildContainer(Container):
                       manifest_file_name,
                       runtime,
                       optimizations,
-                      options):
+                      options,
+                      executable_search_paths):
 
         return json.dumps({
             "jsonschema": "2.0",
@@ -119,6 +134,7 @@ class LambdaBuildContainer(Container):
                 "runtime": runtime,
                 "optimizations": optimizations,
                 "options": options,
+                "executable_search_paths": executable_search_paths
             }
         })
 
@@ -156,6 +172,54 @@ class LambdaBuildContainer(Container):
             # It is possible that the manifest resides within the source. In that case, we won't mount the manifest
             # directory separately.
             result["manifest_dir"] = result["source_dir"]
+
+        return result
+
+    @staticmethod
+    def _convert_to_container_dirs(host_paths_to_convert, host_to_container_path_mapping):
+        """
+        Use this method to convert a list of host paths to a list of equivalent paths within the container
+        where the given host path is mounted. This is necessary when SAM CLI needs to pass path information to
+        the Lambda Builder running within the container.
+
+        If a host path is not mounted within the container, then this method simply passes the path to the result
+        without any changes.
+
+        Ex:
+            [ "/home/foo", "/home/bar", "/home/not/mounted"]  => ["/tmp/source", "/tmp/manifest", "/home/not/mounted"]
+
+        Parameters
+        ----------
+        host_paths_to_convert : list
+            List of paths in host that needs to be converted
+
+        host_to_container_path_mapping : dict
+            Mapping of paths in host to the equivalent paths within the container
+
+        Returns
+        -------
+        list
+            Equivalent paths within the container
+        """
+
+        if not host_paths_to_convert:
+            # Nothing to do
+            return host_paths_to_convert
+
+        # Make sure the key is absolute host path. Relative paths are tricky to work with because two different
+        # relative paths can point to the same directory ("../foo", "../../foo")
+        mapping = {str(pathlib.Path(p).resolve()): v for p, v in host_to_container_path_mapping.items()}
+
+        result = []
+        for original_path in host_paths_to_convert:
+            abspath = str(pathlib.Path(original_path).resolve())
+
+            if abspath in mapping:
+                result.append(mapping[abspath])
+            else:
+                result.append(original_path)
+                LOG.debug("Cannot convert host path '%s' to its equivalent path within the container. "
+                          "Host path is not mounted within the container", abspath)
 
         return result
 

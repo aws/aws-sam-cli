@@ -6,7 +6,6 @@ import os
 import io
 import json
 import logging
-from collections import namedtuple
 
 try:
     import pathlib
@@ -20,13 +19,10 @@ from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+from .workflow_config import get_workflow_config
 
 
 LOG = logging.getLogger(__name__)
-
-
-class UnsupportedRuntimeException(Exception):
-    pass
 
 
 class UnsupportedBuilderLibraryVersionError(Exception):
@@ -39,32 +35,6 @@ class UnsupportedBuilderLibraryVersionError(Exception):
 
 class BuildError(Exception):
     pass
-
-
-def _get_workflow_config(runtime):
-
-    config = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name"])
-
-    if runtime.startswith("python"):
-        return config(
-            language="python",
-            dependency_manager="pip",
-            application_framework=None,
-            manifest_name="requirements.txt")
-    elif runtime.startswith("nodejs"):
-        return config(
-            language="nodejs",
-            dependency_manager="npm",
-            application_framework=None,
-            manifest_name="package.json")
-    elif runtime.startswith("ruby"):
-        return config(
-            language="ruby",
-            dependency_manager="bundler",
-            application_framework=None,
-            manifest_name="Gemfile")
-    else:
-        raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 
 
 class ApplicationBuilder(object):
@@ -174,13 +144,32 @@ class ApplicationBuilder(object):
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
+        """
+        Given the function information, this method will build the Lambda function. Depending on the configuration
+        it will either build the function in process or by spinning up a Docker container.
 
-        config = _get_workflow_config(runtime)
+        Parameters
+        ----------
+        function_name : str
+            Name or LogicalId of the function
+
+        codeuri : str
+            Path to where the code lives
+
+        runtime : str
+            AWS Lambda function runtime
+
+        Returns
+        -------
+        str
+            Path to the location where built artifacts are available
+        """
 
         # Create the arguments to pass to the builder
-
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
+
+        config = get_workflow_config(runtime, code_dir, self._base_dir)
 
         # artifacts directory will be created by the builder
         artifacts_dir = str(pathlib.Path(self._build_dir, function_name))
@@ -217,7 +206,8 @@ class ApplicationBuilder(object):
                           artifacts_dir,
                           scratch_dir,
                           manifest_path,
-                          runtime=runtime)
+                          runtime=runtime,
+                          executable_search_paths=config.executable_search_paths)
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 
@@ -243,7 +233,8 @@ class ApplicationBuilder(object):
                                          runtime,
                                          log_level=log_level,
                                          optimizations=None,
-                                         options=None)
+                                         options=None,
+                                         executable_search_paths=config.executable_search_paths)
 
         try:
             try:

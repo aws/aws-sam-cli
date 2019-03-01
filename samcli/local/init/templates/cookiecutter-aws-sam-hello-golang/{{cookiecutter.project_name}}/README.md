@@ -32,7 +32,7 @@ go get -u github.com/aws/aws-lambda-go/...
 
 ### Building
 
-Golang is a staticly compiled language, meaning that in order to run it you have to build the executeable target.
+Golang is a statically compiled language, meaning that in order to run it you have to build the executable target.
 
 You can issue the following command in a shell to build it:
 
@@ -40,7 +40,7 @@ You can issue the following command in a shell to build it:
 GOOS=linux GOARCH=amd64 go build -o hello-world/hello-world ./hello-world
 ```
 
-**NOTE**: If you're not building the function on a Linux machine, you will need to specify the `GOOS` and `GOARCH` environment variables, this allows Golang to build your function for another system architecture and ensure compatability.
+**NOTE**: If you're not building the function on a Linux machine, you will need to specify the `GOOS` and `GOARCH` environment variables, this allows Golang to build your function for another system architecture and ensure compatibility.
 
 ### Local development
 

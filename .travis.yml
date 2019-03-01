@@ -1,6 +1,7 @@
 # Enable container based builds
 sudo: required
 language: python
+dist: xenial
 
 services:
   - docker
@@ -8,15 +9,19 @@ services:
 python:
   - "2.7"
   - "3.6"
+  - "3.7"
 
-# Enable 3.7 without globally enabling sudo and dist: xenial for other build jobs
-matrix:
-  include:
-    - python: 3.7
-      dist: xenial
-      sudo: true
+addons:
+  apt:
+    packages:
+      # Xenial images don't have jdk8 installed by default.
+      - openjdk-8-jdk
 
 before_install:
+  # Use the JDK8 that we installed
+  - JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+  - PATH=$JAVA_HOME/bin:$PATH
+
   - nvm install 8.10
   - npm --version
   - node --version

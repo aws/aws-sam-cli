@@ -35,6 +35,11 @@ def only_set_body_handler(event, context):
     return {"body": json.dumps({"hello": "world"})}
 
 
+def string_status_code_handler(event, context):
+
+    return {"statusCode": "200", "body": json.dumps({"hello": "world"})}
+
+
 def sleep_10_sec_handler(event, context):
     # sleep thread for 10s. This is useful for testing multiple requests
     time.sleep(10)
