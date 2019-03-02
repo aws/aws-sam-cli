@@ -44,7 +44,7 @@ Here is a Python example:
                                   use_ssl=False,
                                   verify=False,
                                   config=Config(signature_version=UNSIGNED,
-                                                read_timeout=0,
+                                                read_timeout=None,
                                                 retries={'max_attempts': 0}))
     self.lambda_client.invoke(FunctionName="HelloWorldFunction")
 """

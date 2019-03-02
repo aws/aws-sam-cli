@@ -114,7 +114,7 @@ if running_locally:
         verify=False,
         config=botocore.client.Config(
             signature_version=botocore.UNSIGNED,
-            read_timeout=0,
+            read_timeout=None,
             retries={'max_attempts': 0},
         )
     )
