@@ -16,23 +16,31 @@ Please see the [currently supported patch of each major version of .NET Core](ht
 * [AWS Toolkit for Visual Studio](https://aws.amazon.com/visualstudio/)
 * [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) which are AWS extensions to the .NET CLI focused on building .NET Core and ASP.NET Core applications and deploying them to AWS services including Amazon Elastic Container Service, AWS Elastic Beanstalk and AWS Lambda.
 
-> **Note: this project uses [Cake Build](https://cakebuild.net/) for build, test and packaging requirements. You do not need to have the [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) installed, but are free to do so if you which to use them. Version 3 of the Amazon.Lambda.Tools does require .NET Core 2.1 for installation, but can be used to deploy older versions of .NET Core.**
+> **Note: You do not need to have the [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) installed, but are free to do so if you which to use them. Version 3 of the Amazon.Lambda.Tools does require .NET Core 2.1 for installation, but can be used to deploy older versions of .NET Core.**
 
 ## Setup process
 
-### Linux & macOS
+### Linux, macOS and Windows (Powershell)
 
 ```bash
-sh build.sh --target=Package
+sam build
 ```
 
-### Windows (Powershell)
-
-```powershell
-build.ps1 --target=Package
-```
 
 ### Local development
+
+**Invoking function locally**
+
+```bash
+sam local invoke --no-event
+```
+
+To invoke with an event you can pass in a json file to the command.
+
+```bash
+sam local invoke -e event.json
+```
+
 
 **Invoking function locally through local API Gateway**
 
@@ -63,7 +71,7 @@ AWS Lambda C# runtime requires a flat folder with all dependencies including the
     HelloWorldFunction:
         Type: AWS::Serverless::Function
         Properties:
-            CodeUri: artifacts/HelloWorld.zip            
+            CodeUri: ./src/HelloWorld
             ...
 ```
 
@@ -104,22 +112,12 @@ aws cloudformation describe-stacks \
 
 For testing our code, we use XUnit and you can use `dotnet test` to run tests defined under `test/`
 
+## Debugging
+
+Take a look at [DotNetCore Debugging](https://github.com/awslabs/aws-sam-cli/blob/develop/designs/dotnetcore-debugging.md)
+
 ```bash
 dotnet test test/HelloWorld.Test
-```
-
-Alternatively, you can use Cake. It discovers and executes all the tests.
-
-### Linux & macOS
-
-```bash
-sh build.sh --target=Test
-```
-
-### Windows (Powershell)
-
-```powershell
-build.ps1 --target=Test
 ```
 
 # Appendix
