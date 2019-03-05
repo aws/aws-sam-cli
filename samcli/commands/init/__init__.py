@@ -2,30 +2,35 @@
 """
 Init command to scaffold a project app from a template
 """
+import itertools
 import logging
 import click
 
 from samcli.cli.main import pass_context, common_options
 from samcli.local.init import generate_project
-from samcli.local.init import RUNTIME_TEMPLATE_MAPPING
+from samcli.local.init import RUNTIME_DEP_MAPPING
 from samcli.local.init.exceptions import GenerateProjectFailedError
 from samcli.commands.exceptions import UserException
 
 LOG = logging.getLogger(__name__)
-SUPPORTED_RUNTIME = [r for r in RUNTIME_TEMPLATE_MAPPING]
+SUPPORTED_RUNTIME = [r for r in RUNTIME_DEP_MAPPING]
+SUPPORTED_DEPENDENCY_MANAGERS = \
+    set(itertools.chain(*[dep_managers for runtime, dep_managers in RUNTIME_DEP_MAPPING.items()]))
 
 
 @click.command(context_settings=dict(help_option_names=[u'-h', u'--help']))
 @click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
 @click.option('-r', '--runtime', type=click.Choice(SUPPORTED_RUNTIME), default="nodejs8.10",
               help="Lambda Runtime of your app")
+@click.option('-r', '--dependency-manager', type=click.Choice(SUPPORTED_DEPENDENCY_MANAGERS), default=None,
+              help="Dependency manager of your Lambda runtime", required=False)
 @click.option('-o', '--output-dir', default='.', type=click.Path(), help="Where to output the initialized app into")
 @click.option('-n', '--name', default="sam-app", help="Name of your project to be generated as a folder")
 @click.option('--no-input', is_flag=True, default=False,
               help="Disable prompting and accept default values defined template config")
 @common_options
 @pass_context
-def cli(ctx, location, runtime, output_dir, name, no_input):
+def cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
     """ \b
         Initialize a serverless application with a SAM template, folder
         structure for your Lambda functions, connected to an event source such as APIs,
@@ -42,6 +47,10 @@ def cli(ctx, location, runtime, output_dir, name, no_input):
         Initializes a new SAM project using Python 3.6 default template runtime
         \b
         $ sam init --runtime python3.6
+        \b
+        Initializes a new SAM project using Java 8 and Gradle dependency manager
+        \b
+        $ sam init --runtime java8 --dependency-manager gradle
         \b
         Initializes a new SAM project using custom template in a Git/Mercurial repository
         \b
@@ -66,11 +75,11 @@ def cli(ctx, location, runtime, output_dir, name, no_input):
 
     """
     # All logic must be implemented in the `do_cli` method. This helps ease unit tests
-    do_cli(ctx, location, runtime, output_dir,
+    do_cli(ctx, location, runtime, dependency_manager, output_dir,
            name, no_input)  # pragma: no cover
 
 
-def do_cli(ctx, location, runtime, output_dir, name, no_input):
+def do_cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -101,7 +110,7 @@ Steps you can take next within the project folder
     next_step_msg = no_build_msg if runtime in no_build_step_required else build_msg
 
     try:
-        generate_project(location, runtime, output_dir, name, no_input)
+        generate_project(location, runtime, dependency_manager, output_dir, name, no_input)
         if not location:
             click.secho(next_step_msg, bold=True)
             click.secho("Read {name}/README.md for further instructions\n".format(name=name), bold=True)

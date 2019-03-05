@@ -4,7 +4,7 @@ from mock import patch
 from cookiecutter.exceptions import CookiecutterException
 from samcli.local.init import generate_project
 from samcli.local.init import GenerateProjectFailedError
-from samcli.local.init import RUNTIME_TEMPLATE_MAPPING
+from samcli.local.init import RUNTIME_DEP_TEMPLATE_MAPPING
 
 
 class TestInit(TestCase):
@@ -12,18 +12,20 @@ class TestInit(TestCase):
     def setUp(self):
         self.location = None
         self.runtime = "python3.6"
+        self.dependency_manager = "pip"
         self.output_dir = "."
         self.name = "testing project"
         self.no_input = True
         self.extra_context = {'project_name': 'testing project', "runtime": self.runtime}
-        self.template = RUNTIME_TEMPLATE_MAPPING[self.runtime]
+        self.template = RUNTIME_DEP_TEMPLATE_MAPPING["{}_{}".format(self.runtime, self.dependency_manager)]
 
     @patch("samcli.local.init.cookiecutter")
     def test_init_successful(self, cookiecutter_patch):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         generate_project(
-            location=self.location, runtime=self.runtime, output_dir=self.output_dir,
+            location=self.location, runtime=self.runtime, dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
             name=self.name, no_input=self.no_input)
 
         # THEN we should receive no errors
@@ -44,7 +46,7 @@ class TestInit(TestCase):
         # THEN we should receive a GenerateProjectFailedError Exception
         with self.assertRaises(GenerateProjectFailedError) as ctx:
             generate_project(
-                    location=self.location, runtime=self.runtime,
+                    location=self.location, runtime=self.runtime, dependency_manager=self.dependency_manager,
                     output_dir=self.output_dir, name=self.name, no_input=self.no_input)
 
         self.assertEquals(expected_msg, str(ctx.exception))
