@@ -22,7 +22,7 @@ SUPPORTED_DEPENDENCY_MANAGERS = \
 @click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
 @click.option('-r', '--runtime', type=click.Choice(SUPPORTED_RUNTIME), default="nodejs8.10",
               help="Lambda Runtime of your app")
-@click.option('-r', '--dependency-manager', type=click.Choice(SUPPORTED_DEPENDENCY_MANAGERS), default=None,
+@click.option('-d', '--dependency-manager', type=click.Choice(SUPPORTED_DEPENDENCY_MANAGERS), default=None,
               help="Dependency manager of your Lambda runtime", required=False)
 @click.option('-o', '--output-dir', default='.', type=click.Path(), help="Where to output the initialized app into")
 @click.option('-n', '--name', default="sam-app", help="Name of your project to be generated as a folder")
