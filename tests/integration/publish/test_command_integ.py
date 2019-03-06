@@ -60,7 +60,7 @@ class TestPublishExistingApp(PublishAppIntegBase):
         app_metadata = json.loads(app_metadata_text)
         self.assert_metadata_details(app_metadata, process_stdout.decode('utf-8'))
 
-    def test_create_application_version_overwrite_template_semantic_version(self):
+    def test_create_application_version_with_semantic_version_option(self):
         template_path = self.temp_dir.joinpath("template_create_app_version.yaml")
         command_list = self.get_command_list(
             template_path=template_path, region=self.region_name, semantic_version='0.1.0')

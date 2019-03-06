@@ -143,8 +143,8 @@ class TestCli(TestCase):
 
     @patch('samcli.commands.publish.command.get_template_data')
     @patch('samcli.commands.publish.command.publish_application')
-    def test_must_overwrite_semantic_version_if_provided(self, publish_application_mock,
-                                                         get_template_data_mock):
+    def test_must_override_template_semantic_version(self, publish_application_mock,
+                                                     get_template_data_mock):
         template_data = {
             METADATA: {
                 SERVERLESS_REPO_APPLICATION: {SEMANTIC_VERSION: '0.1'}

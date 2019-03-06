@@ -36,7 +36,7 @@ $ sam publish -t packaged.yaml --region <region>
 """.format(SAM_PUBLISH_DOC)
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
 SERVERLESSREPO_CONSOLE_URL = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
-SEMANTIC_VERSION_HELP = "Optional. The value provided here overwrites SemanticVersion in the template metadata."
+SEMANTIC_VERSION_HELP = "Optional. The value provided here overrides SemanticVersion in the template metadata."
 SEMANTIC_VERSION = 'SemanticVersion'
 
 
@@ -60,7 +60,7 @@ def do_cli(ctx, template, semantic_version):
         click.secho("Publish Failed", fg='red')
         raise UserException(str(ex))
 
-    # Overwrite SemanticVersion in template metadata when provided in command input
+    # Override SemanticVersion in template metadata when provided in command input
     if semantic_version and SERVERLESS_REPO_APPLICATION in template_data.get(METADATA, {}):
         template_data.get(METADATA).get(SERVERLESS_REPO_APPLICATION)[SEMANTIC_VERSION] = semantic_version
 
