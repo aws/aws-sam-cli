@@ -1,10 +1,9 @@
 """Test sam publish CLI."""
 import json
 from unittest import TestCase
-from mock import patch, call, Mock, mock_open
+from mock import patch, call, Mock
 
-from botocore.exceptions import ClientError
-from serverlessrepo.exceptions import ServerlessRepoError
+from serverlessrepo.exceptions import ServerlessRepoError, InvalidS3UriError
 from serverlessrepo.publish import CREATE_APPLICATION, UPDATE_APPLICATION
 from serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
 
@@ -46,69 +45,13 @@ class TestCli(TestCase):
     @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
     @patch('samcli.commands.publish.command.publish_application')
     @patch('samcli.commands.publish.command.click')
-    def test_must_raise_if_s3_uri_error(self, click_mock, publish_application_mock):
-        publish_application_mock.side_effect = ClientError(
-            {
-                'Error': {
-                    'Code': 'BadRequestException',
-                    'Message': 'Invalid S3 URI'
-                }
-            },
-            'create_application'
-        )
+    def test_must_raise_if_invalid_S3_uri_error(self, click_mock, publish_application_mock):
+        publish_application_mock.side_effect = InvalidS3UriError(message="")
         with self.assertRaises(UserException) as context:
             publish_cli(self.ctx_mock, self.template, None)
 
         message = str(context.exception)
-        self.assertIn("Please make sure that you have uploaded application artifacts "
-                      "to S3 by packaging the template", message)
-        click_mock.secho.assert_called_with("Publish Failed", fg="red")
-
-    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
-    @patch('samcli.commands.publish.command.publish_application')
-    @patch('samcli.commands.publish.command.click')
-    def test_must_raise_if_invalid_semver_error(self, click_mock, publish_application_mock):
-        publish_application_mock.side_effect = ClientError(
-            {
-                'Error': {
-                    'Code': 'BadRequestException',
-                    'Message': 'version name is a not valid SemVer'
-                }
-            },
-            'create_application'
-        )
-        with self.assertRaises(UserException) as context:
-            publish_cli(self.ctx_mock, self.template, None)
-
-        message = str(context.exception)
-        self.assertIn("The provided SemanticVersion is not a valid version number. Please "
-                      "follow the Semantic Versioning scheme proposed in https://semver.org/", message)
-        click_mock.secho.assert_called_with("Publish Failed", fg="red")
-
-    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
-    @patch('samcli.commands.publish.command.publish_application')
-    @patch('samcli.commands.publish.command.click')
-    def test_must_raise_if_other_bad_request(self, click_mock, publish_application_mock):
-        publish_application_mock.side_effect = ClientError(
-            {'Error': {'Code': 'BadRequestException', 'Message': 'BadRequestMessage'}},
-            'other_operation'
-        )
-        with self.assertRaises(ClientError):
-            publish_cli(self.ctx_mock, self.template, None)
-
-        click_mock.secho.assert_called_with("Publish Failed", fg="red")
-
-    @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
-    @patch('samcli.commands.publish.command.publish_application')
-    @patch('samcli.commands.publish.command.click')
-    def test_must_raise_if_other_client_error(self, click_mock, publish_application_mock):
-        publish_application_mock.side_effect = ClientError(
-            {'Error': {'Code': 'OtherError', 'Message': 'OtherMessage'}},
-            'other_operation'
-        )
-        with self.assertRaises(ClientError):
-            publish_cli(self.ctx_mock, self.template, None)
-
+        self.assertTrue("Your SAM template contains invalid S3 URIs" in message)
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch('samcli.commands.publish.command.get_template_data', Mock(return_value={}))
@@ -213,11 +156,7 @@ class TestCli(TestCase):
             'details': {}, 'actions': {}
         }
 
-        m = mock_open()
-        with patch("samcli.commands.publish.command.open", m):
-            publish_cli(self.ctx_mock, self.template, '0.2')
-
-        m.assert_called_with(self.template, 'w')
+        publish_cli(self.ctx_mock, self.template, '0.2')
         expected_template_data = {
             METADATA: {
                 SERVERLESS_REPO_APPLICATION: {SEMANTIC_VERSION: '0.2'}

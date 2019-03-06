@@ -69,9 +69,6 @@ class TestPublishExistingApp(PublishAppIntegBase):
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        overwritten_template_text = template_path.read_text()
-        self.assertIn('{}: 0.1.0'.format(SEMANTIC_VERSION), overwritten_template_text)
-
         expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
         self.assertIn(expected_msg, process_stdout.decode('utf-8'))
 
@@ -79,18 +76,6 @@ class TestPublishExistingApp(PublishAppIntegBase):
         app_metadata = json.loads(app_metadata_text)
         app_metadata[SEMANTIC_VERSION] = '0.1.0'
         self.assert_metadata_details(app_metadata, process_stdout.decode('utf-8'))
-
-    def test_create_application_version_with_invalid_semantic_version(self):
-        template_path = self.temp_dir.joinpath("template_create_app_version.yaml")
-        command_list = self.get_command_list(
-            template_path=template_path, region=self.region_name, semantic_version='1')
-
-        process = Popen(command_list, stderr=PIPE)
-        process.wait()
-        process_stderr = b"".join(process.stderr.readlines()).strip()
-
-        expected_msg = 'The provided SemanticVersion is not a valid version number'
-        self.assertIn(expected_msg, process_stderr.decode('utf-8'))
 
 
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in Travis only")

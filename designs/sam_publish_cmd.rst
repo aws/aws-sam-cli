@@ -133,7 +133,7 @@ Create new version of an existing SAR application
   https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
   Alternatively, you can provide the new version number through the --semantic-version option without manually modifying
-  the template. The command will update the specified template and publish a new application version using it.
+  the template. The command will publish a new application version using the specified value.
 
   >>> sam publish -t ./packaged.yaml --semantic-version 0.0.2
 
@@ -190,7 +190,7 @@ CLI Changes
 
   Options:
     -t, --template PATH       AWS SAM template file  [default: template.[yaml|yml]]
-    --semantic-version TEXT   Optional. The value provided here overwrites SemanticVersion
+    --semantic-version TEXT   Optional. The value provided here overrides SemanticVersion
                               in the template metadata.
     --profile TEXT            Select a specific profile from your credential file to
                               get AWS credentials.
