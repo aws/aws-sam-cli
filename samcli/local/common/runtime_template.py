@@ -65,7 +65,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
             "runtimes": ["java8"],
             "dependency_manager": "maven",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
-            "build": False
+            "build": True
         },
         {
             "runtimes": ["java8"],
