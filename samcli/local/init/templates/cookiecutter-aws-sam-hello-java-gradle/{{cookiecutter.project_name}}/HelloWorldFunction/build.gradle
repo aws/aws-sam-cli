@@ -11,4 +11,13 @@ dependencies {
 	compile (
         'com.amazonaws:aws-lambda-java-core:1.1.0'
     )
+    testCompile 'junit:junit:4.12'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main'
+        }
+    }
 }

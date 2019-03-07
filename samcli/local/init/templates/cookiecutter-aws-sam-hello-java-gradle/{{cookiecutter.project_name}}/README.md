@@ -4,24 +4,25 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ```bash
 .
-├── README.md                                     <-- This instructions file
-├── src                                           <-- Source
-│   ├── build.gradle                              <-- Java Depdencies
-│   ├── gradle                                    <-- Gradle related Boilerplate
+├── HelloWorldFunction
+│   ├── build.gradle                                   <-- Java Dependencies
+│   ├── gradle                                         <-- Gradle related Boilerplate
 │   │   └── wrapper
 │   │       ├── gradle-wrapper.jar
 │   │       └── gradle-wrapper.properties
-│   ├── gradlew                                   <-- Linux/Mac Gradle Wrapper
-│   ├── gradlew.bat                               <-- Windows Gradle Wrapper
-│   ├── main
-│   │   └── java
-│   │       └── helloworld                        <-- Source code for a lambda function
-│   │           ├── App.java                      <-- Lambda function code
-│   │           └── GatewayResponse.java          <-- POJO for API Gateway Responses object 
-│   └── test                                      <-- Unit tests
-│       └── java
-│           └── helloworld
-│               └── AppTest.java
+│   ├── gradlew                                        <-- Linux/Mac Gradle Wrapper
+│   ├── gradlew.bat                                    <-- Windows Gradle Wrapper
+│   └── src
+│       ├── main
+│       │   └── java
+│       │       └── helloworld                         <-- Source code for a lambda function
+│       │           ├── App.java                       <-- Lambda function code
+│       │           └── GatewayResponse.java           <-- POJO for API Gateway Responses object
+│       └── test                                       <-- Unit tests
+│           └── java
+│               └── helloworld
+│                   └── AppTest.java
+├── README.md                                          <-- This instructions file
 └── template.yaml
 ```
 
@@ -38,6 +39,13 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ```bash
 sam build
 ```
+
+You can also build on a Lambda like environment by using:
+
+```bash
+sam build --use-container
+```
+
 ### Local development
 
 **Invoking function locally through local API Gateway**
@@ -61,17 +69,6 @@ Events:
 ```
 
 ## Packaging and deployment
-
-AWS Lambda Java runtime accepts either a zip file or a standalone JAR file - We use the latter in this example. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
-
-```yaml
-...
-    HelloWorldFunction:
-        Type: AWS::Serverless::Function
-        Properties:
-            CodeUri: target/HelloWorld-1.0.jar
-            Handler: helloworld.App::handleRequest
-```
 
 Firstly, we need a `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
 
@@ -111,7 +108,7 @@ aws cloudformation describe-stacks \
 We use `JUnit` for testing our code and you can simply run the following command to run our tests:
 
 ```bash
-mvn test
+gradle test
 ```
 
 # Appendix
