@@ -5,12 +5,15 @@ All-in-one metadata about runtimes
 import itertools
 import os
 
-import pathlib
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
 
 from samcli.lib.build.workflow_config import PYTHON_PIP_CONFIG, RUBY_BUNDLER_CONFIG,\
     NODEJS_NPM_CONFIG, JAVA_GRADLE_CONFIG
 
-_init_path = pathlib.Path(os.path.dirname(__file__)).parent
+_init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
 _templates = os.path.join(_init_path, 'init', 'templates')
 
 # NOTE(TheSriram): Builder configs are only indicative of a builder config that is used for selecting a build workflow.
