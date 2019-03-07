@@ -2,27 +2,24 @@
 """
 Init command to scaffold a project app from a template
 """
-import itertools
 import logging
+
 import click
 
 from samcli.cli.main import pass_context, common_options
-from samcli.local.init import generate_project
-from samcli.local.init import RUNTIME_DEP_MAPPING
-from samcli.local.init.exceptions import GenerateProjectFailedError
 from samcli.commands.exceptions import UserException
+from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS
+from samcli.local.init import generate_project
+from samcli.local.init.exceptions import GenerateProjectFailedError
 
 LOG = logging.getLogger(__name__)
-SUPPORTED_RUNTIME = [r for r in RUNTIME_DEP_MAPPING]
-SUPPORTED_DEPENDENCY_MANAGERS = \
-    set(itertools.chain(*[dep_managers for runtime, dep_managers in RUNTIME_DEP_MAPPING.items()]))
 
 
 @click.command(context_settings=dict(help_option_names=[u'-h', u'--help']))
 @click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
-@click.option('-r', '--runtime', type=click.Choice(SUPPORTED_RUNTIME), default="nodejs8.10",
+@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default="nodejs8.10",
               help="Lambda Runtime of your app")
-@click.option('-d', '--dependency-manager', type=click.Choice(SUPPORTED_DEPENDENCY_MANAGERS), default=None,
+@click.option('-d', '--dependency-manager', type=click.Choice(SUPPORTED_DEP_MANAGERS), default=None,
               help="Dependency manager of your Lambda runtime", required=False)
 @click.option('-o', '--output-dir', default='.', type=click.Path(), help="Where to output the initialized app into")
 @click.option('-n', '--name', default="sam-app", help="Name of your project to be generated as a folder")
