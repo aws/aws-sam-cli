@@ -26,6 +26,11 @@ Please see the [currently supported patch of each major version of .NET Core](ht
 sam build
 ```
 
+You can also build on a Lambda like environment using
+
+```bash
+sam build --use-container
+```
 
 ### Local development
 
@@ -111,10 +116,6 @@ aws cloudformation describe-stacks \
 ## Testing
 
 For testing our code, we use XUnit and you can use `dotnet test` to run tests defined under `test/`
-
-## Debugging
-
-Take a look at [DotNetCore Debugging](https://github.com/awslabs/aws-sam-cli/blob/develop/designs/dotnetcore-debugging.md)
 
 ```bash
 dotnet test test/HelloWorld.Test
