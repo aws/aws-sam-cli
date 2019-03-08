@@ -285,6 +285,40 @@ class TestUsingConfigFiles(InvokeIntegBase):
     def tearDown(self):
         shutil.rmtree(self.config_dir, ignore_errors=True)
 
+    def test_existing_env_variables_precedence_over_profiles(self):
+        profile = "default"
+        custom_config = self._create_config_file(profile)
+        custom_cred = self._create_cred_file(profile)
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+
+        # Explicitly set environment variables beforehand
+        env['AWS_DEFAULT_REGION'] = 'sa-east-1'
+        env['AWS_REGION'] = 'sa-east-1'
+        env['AWS_ACCESS_KEY_ID'] = 'priority_access_key_id'
+        env['AWS_SECRET_ACCESS_KEY'] = 'priority_secret_key_id'
+        env['AWS_SESSION_TOKEN'] = 'priority_secret_token'
+
+        # Setup a custom profile
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        # Environment variables we explicitly set take priority over profiles.
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'sa-east-1')
+        self.assertEquals(environ["AWS_REGION"], 'sa-east-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'priority_access_key_id')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'priority_secret_key_id')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'priority_secret_token')
+
     def test_default_profile_with_custom_configs(self):
         profile = "default"
         custom_config = self._create_config_file(profile)
@@ -295,7 +329,13 @@ class TestUsingConfigFiles(InvokeIntegBase):
                                              event_path=self.event_path)
 
         env = os.environ.copy()
+
+        # Explicitly clean environment variables beforehand
         env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
         env['AWS_CONFIG_FILE'] = custom_config
         env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
 
@@ -320,7 +360,13 @@ class TestUsingConfigFiles(InvokeIntegBase):
                                              profile='custom')
 
         env = os.environ.copy()
+
+        # Explicitly clean environment variables beforehand
         env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
         env['AWS_CONFIG_FILE'] = custom_config
         env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
 
@@ -348,7 +394,13 @@ class TestUsingConfigFiles(InvokeIntegBase):
                                              event_path=self.event_path)
 
         env = os.environ.copy()
+
+        # Explicitly clean environment variables beforehand
         env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
         env['AWS_CONFIG_FILE'] = custom_config
         env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
         env['AWS_PROFILE'] = "custom"
