@@ -3,20 +3,19 @@
 This is a sample template for {{ cookiecutter.project_name }} - Below is a brief explanation of what we have generated for you:
 
 ```bash
-.
-├── HelloWorldFunction
-│   ├── pom.xml                                  <-- Java dependencies
-│   └── src
-│       ├── main
-│       │   └── java
-│       │       └── helloworld                   <-- Source code for a lambda function
-│       │           ├── App.java                 <-- Lambda function code
-│       │           └── GatewayResponse.java     <-- POJO for API Gateway Responses object
-│       └── test                                 <-- Unit tests
-│           └── java
-│               └── helloworld
-│                   └── AppTest.java
-├── README.md                                    <-- This instructions file
+├── README.md                                   <-- This instructions file
+├── HelloWorldFunction                          <-- Source for HelloWorldFunction Lambda Function
+│   ├── pom.xml                                 <-- Java dependencies
+│   └── src
+│       ├── main
+│       │   └── java
+│       │       └── helloworld
+│       │           ├── App.java                <-- Lambda function code
+│       │           └── GatewayResponse.java    <-- POJO for API Gateway Responses object 
+│       └── test                                <-- Unit tests
+│           └── java
+│               └── helloworld
+│                   └── AppTest.java
 └── template.yaml
 ```
 
@@ -31,11 +30,16 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ### Installing dependencies
 
-We use `maven` to install our dependencies and package our application into a JAR file:
+```bash
+sam build
+```
+
+You can also build on a Lambda like environment by using
 
 ```bash
-mvn package
+sam build --use-container
 ```
+
 ### Local development
 
 **Invoking function locally through local API Gateway**
@@ -109,6 +113,7 @@ aws cloudformation describe-stacks \
 We use `JUnit` for testing our code and you can simply run the following command to run our tests:
 
 ```bash
+cd HelloWorldFunction
 mvn test
 ```
 
