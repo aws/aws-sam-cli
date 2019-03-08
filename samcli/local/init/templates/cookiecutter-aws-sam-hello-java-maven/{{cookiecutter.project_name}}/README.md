@@ -4,18 +4,19 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ```bash
 .
-├── README.md                               <-- This instructions file
-├── pom.xml                                 <-- Java dependencies
-├── src
-│   ├── main
-│   │   └── java
-│   │       └── helloworld                  <-- Source code for a lambda function
-│   │           ├── App.java                <-- Lambda function code
-│   │           └── GatewayResponse.java    <-- POJO for API Gateway Responses object 
-│   └── test                                <-- Unit tests
-│       └── java
-│           └── helloworld
-│               └── AppTest.java
+├── HelloWorldFunction
+│   ├── pom.xml                                  <-- Java dependencies
+│   └── src
+│       ├── main
+│       │   └── java
+│       │       └── helloworld                   <-- Source code for a lambda function
+│       │           ├── App.java                 <-- Lambda function code
+│       │           └── GatewayResponse.java     <-- POJO for API Gateway Responses object
+│       └── test                                 <-- Unit tests
+│           └── java
+│               └── helloworld
+│                   └── AppTest.java
+├── README.md                                    <-- This instructions file
 └── template.yaml
 ```
 
