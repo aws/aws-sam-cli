@@ -240,22 +240,26 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
 
 
-class TestBuildCommand_JavaGradle(BuildIntegBase):
+class TestBuildCommand_Java(BuildIntegBase):
 
-    EXPECTED_FILES_PROJECT_MANIFEST = {'aws', 'lib', "META-INF"}
+    EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {'aws', 'lib', "META-INF"}
+    EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {'aws', 'lib'}
     EXPECTED_DEPENDENCIES = {'annotations-2.1.0.jar', "aws-lambda-java-core-1.1.0.jar"}
 
     FUNCTION_LOGICAL_ID = "Function"
     USING_GRADLE_PATH = os.path.join("Java", "gradle")
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
+    USING_MAVEN_PATH = str(Path('Java', 'maven'))
 
     @parameterized.expand([
-        ("java8", USING_GRADLE_PATH, False),
-        ("java8", USING_GRADLEW_PATH, False),
-        ("java8", USING_GRADLE_PATH, "use_container"),
-        ("java8", USING_GRADLEW_PATH, "use_container"),
+        ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+        ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False),
+        ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+        ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, "use_container")
     ])
-    def test_with_gradle(self, runtime, code_path, use_container):
+    def test_with_building_java(self, runtime, code_path, expected_files, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
@@ -265,7 +269,7 @@ class TestBuildCommand_JavaGradle(BuildIntegBase):
         process.wait()
 
         self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
-                                    self.EXPECTED_FILES_PROJECT_MANIFEST, self.EXPECTED_DEPENDENCIES)
+                                    expected_files, self.EXPECTED_DEPENDENCIES)
 
         self._verify_resource_property(str(self.built_template),
                                        "OtherRelativePathResource",
