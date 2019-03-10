@@ -293,13 +293,17 @@ class LambdaContainer(Container):
                        "/var/runtime/awslambda/bootstrap.py"
                    ]
 
+        elif runtime == Runtime.python37.value and debug_args_list:
+
+            entrypoint = ["/var/rapid/init"] + debug_args_list
+
         return entrypoint
 
     @staticmethod
     def _supported_runtimes():
         return {Runtime.java8.value, Runtime.dotnetcore20.value, Runtime.dotnetcore21.value, Runtime.go1x.value,
                 Runtime.nodejs.value, Runtime.nodejs43.value, Runtime.nodejs610.value, Runtime.nodejs810.value,
-                Runtime.python27.value, Runtime.python36.value}
+                Runtime.python27.value, Runtime.python36.value, Runtime.python37.value}
 
 
 class DebuggingNotSupported(Exception):
