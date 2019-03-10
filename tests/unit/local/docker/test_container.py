@@ -76,7 +76,7 @@ class TestContainer_create(TestCase):
         expected_volumes = {
             self.host_dir: {
                 "bind": self.working_dir,
-                "mode": "ro"
+                "mode": "ro,delegated"
             }
         }
         generated_id = "fooobar"
@@ -109,7 +109,7 @@ class TestContainer_create(TestCase):
         expected_volumes = {
             self.host_dir: {
                 "bind": self.working_dir,
-                "mode": "ro"
+                "mode": "ro,delegated"
             },
             '/somepath': {"blah": "blah value"}
         }
@@ -167,7 +167,7 @@ class TestContainer_create(TestCase):
         translated_volumes = {
             "/c/Users/Username/AppData/Local/Temp/tmp1337": {
                 "bind": self.working_dir,
-                "mode": "ro"
+                "mode": "ro,delegated"
             }
         }
 
@@ -222,7 +222,7 @@ class TestContainer_create(TestCase):
         expected_volumes = {
             self.host_dir: {
                 "bind": self.working_dir,
-                "mode": "ro"
+                "mode": "ro,delegated"
             }
         }
 
@@ -264,7 +264,7 @@ class TestContainer_create(TestCase):
         expected_volumes = {
             self.host_dir: {
                 "bind": self.working_dir,
-                "mode": "ro"
+                "mode": "ro,delegated"
             }
         }
 
