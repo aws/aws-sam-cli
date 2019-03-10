@@ -299,7 +299,7 @@ class LambdaContainer(Container):
     def _supported_runtimes():
         return {Runtime.java8.value, Runtime.dotnetcore20.value, Runtime.dotnetcore21.value, Runtime.go1x.value,
                 Runtime.nodejs.value, Runtime.nodejs43.value, Runtime.nodejs610.value, Runtime.nodejs810.value,
-                Runtime.python27.value, Runtime.python36.value}
+                Runtime.python27.value, Runtime.python36.value, Runtime.python37.value}
 
 
 class DebuggingNotSupported(Exception):

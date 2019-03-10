@@ -357,6 +357,8 @@ pip install ptvsd -t hello_world/build/
 cp hello_world/app.py hello_world/build/
 ```
 
+NOTE: `--debug-options` does not currently work with python3.7 runtime.
+
 ### Ptvsd configuration
 
 As we installed ptvsd library in the previous step, we need to enable
