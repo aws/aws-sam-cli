@@ -157,7 +157,7 @@ class LambdaContainer(Container):
         return image_builder.build(runtime, layers)
 
     @staticmethod
-    def _get_entry_point(runtime, debug_options=None):
+    def _get_entry_point(runtime, debug_options=None):  # pylint: disable=R0912
         """
         Returns the entry point for the container. The default value for the entry point is already configured in the
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes
