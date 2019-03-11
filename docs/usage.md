@@ -476,6 +476,15 @@ Then invoke [sam]{.title-ref} similar to the following:
 NOTE: The `--debugger-path` is the path to the directory that contains
 the [dlv]{.title-ref} binary compiled from the above.
 
+**Delve API Version**
+
+[SAM]{.title-ref} now supports to run the [/dlv]{.title-ref} debugger with API verison **'2.0'**, this 
+is important for when debugging in IDEs like Goland, Visual Studio Code, etc.
+
+`sam local start-api -d 5986 --debugger-path <delve folder path> --debug-args "-delveAPI=2"`
+
+**Example**
+
 The following is an example launch configuration for Visual Studio Code
 to attach to a debug session.
 
