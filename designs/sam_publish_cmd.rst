@@ -132,6 +132,11 @@ Create new version of an existing SAR application
   Click the link below to view your application in AWS console:
   https://console.aws.amazon.com/serverlessrepo/home?region=<region>#/published-applications/<arn>
 
+  Alternatively, you can provide the new version number through the --semantic-version option without manually modifying
+  the template. The command will publish a new application version using the specified value.
+
+  >>> sam publish -t ./packaged.yaml --semantic-version 0.0.2
+
 Update the metadata of an existing application without creating new version
   Keep SemanticVersion unchanged, then modify metadata fields like Description or ReadmeUrl, and run
   ``sam publish -t ./packaged.yaml``. SAM CLI prints application metadata updated message, values of updated
@@ -184,13 +189,15 @@ CLI Changes
     $ sam publish -t packaged.yaml --region <region>
 
   Options:
-    -t, --template PATH  AWS SAM template file  [default: template.[yaml|yml]]
-    --profile TEXT       Select a specific profile from your credential file to
-                        get AWS credentials.
-    --region TEXT        Set the AWS Region of the service (e.g. us-east-1).
-    --debug              Turn on debug logging to print debug message generated
-                        by SAM CLI.
-    --help               Show this message and exit.
+    -t, --template PATH       AWS SAM template file  [default: template.[yaml|yml]]
+    --semantic-version TEXT   Optional. The value provided here overrides SemanticVersion
+                              in the template metadata.
+    --profile TEXT            Select a specific profile from your credential file to
+                              get AWS credentials.
+    --region TEXT             Set the AWS Region of the service (e.g. us-east-1).
+    --debug                   Turn on debug logging to print debug message generated
+                              by SAM CLI.
+    --help                    Show this message and exit.
 
 2. Update ``sam package`` (``aws cloudformation package``) command to support uploading locally referenced readme and
 license files to S3.

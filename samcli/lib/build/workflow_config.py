@@ -41,6 +41,13 @@ JAVA_GRADLE_CONFIG = CONFIG(
                 manifest_name="build.gradle",
                 executable_search_paths=None)
 
+JAVA_MAVEN_CONFIG = CONFIG(
+                language="java",
+                dependency_manager="maven",
+                application_framework=None,
+                manifest_name="pom.xml",
+                executable_search_paths=None)
+
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -83,7 +90,8 @@ def get_workflow_config(runtime, code_dir, project_dir):
         # manifest
         "java8": ManifestWorkflowSelector([
             # Gradle builder needs custom executable paths to find `gradlew` binary
-            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir])
+            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_MAVEN_CONFIG
         ]),
     }
 

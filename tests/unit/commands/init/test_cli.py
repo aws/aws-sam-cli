@@ -12,6 +12,7 @@ class TestCli(TestCase):
         self.ctx = None
         self.location = None
         self.runtime = "python3.6"
+        self.dependency_manager = "pip"
         self.output_dir = "."
         self.name = "testing project"
         self.no_input = False
@@ -21,12 +22,13 @@ class TestCli(TestCase):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
-            ctx=self.ctx, location=self.location, runtime=self.runtime, output_dir=self.output_dir,
+            ctx=self.ctx, location=self.location, runtime=self.runtime,
+            dependency_manager=self.dependency_manager, output_dir=self.output_dir,
             name=self.name, no_input=self.no_input)
 
         # THEN we should receive no errors
         generate_project_patch.assert_called_once_with(
-                self.location, self.runtime,
+                self.location, self.runtime, self.dependency_manager,
                 self.output_dir, self.name, self.no_input)
 
     @patch("samcli.commands.init.generate_project")
@@ -42,8 +44,9 @@ class TestCli(TestCase):
         with self.assertRaises(UserException):
             init_cli(
                     self.ctx, location="self.location", runtime=self.runtime,
+                    dependency_manager=self.dependency_manager,
                     output_dir=self.output_dir, name=self.name, no_input=self.no_input)
 
             generate_project_patch.assert_called_with(
-                    self.location, self.runtime,
+                    self.location, self.runtime, self.dependency_manager,
                     self.output_dir, self.name, self.no_input)
