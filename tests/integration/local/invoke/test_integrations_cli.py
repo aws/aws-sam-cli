@@ -2,8 +2,9 @@ import json
 import shutil
 import os
 import copy
-from unittest import skipIf
+import platform
 import tempfile
+from unittest import skipIf
 
 from nose_parameterized import parameterized
 from subprocess import Popen, PIPE
@@ -233,6 +234,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(return_code, 0)
 
+    @skipIf(platform.system().lower() == 'windows',
+            "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
                                              template_path=self.template_path,
