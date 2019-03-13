@@ -2,7 +2,6 @@ import json
 import shutil
 import os
 import copy
-import platform
 import tempfile
 from unittest import skipIf
 
@@ -14,10 +13,11 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_TRAVIS, RUNNING_TEST_FOR_MASTER_ON_TRAVIS
 
 # Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Travis and when the branch is not master.
-SKIP_LAYERS_TESTS = os.environ.get("TRAVIS", False) and os.environ.get("TRAVIS_BRANCH", "master") != "master"
+SKIP_LAYERS_TESTS = RUNNING_ON_TRAVIS and RUNNING_TEST_FOR_MASTER_ON_TRAVIS
 
 try:
     from pathlib import Path
@@ -234,7 +234,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(return_code, 0)
 
-    @skipIf(platform.system().lower() == 'windows',
+    @skipIf(IS_WINDOWS,
             "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
