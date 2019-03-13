@@ -56,7 +56,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
         {
             "runtimes": ["go1.x"],
             "dependency_manager": None,
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-go"),
+            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-golang"),
             "build": False
         }
     ],
