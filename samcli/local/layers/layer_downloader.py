@@ -40,7 +40,8 @@ class LayerDownloader(object):
 
     @property
     def lambda_client(self):
-        return self._lambda_client or boto3.client('lambda')
+        self._lambda_client = self._lambda_client or boto3.client('lambda')
+        return self._lambda_client
 
     @property
     def layer_cache(self):
