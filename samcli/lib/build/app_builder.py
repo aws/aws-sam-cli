@@ -180,7 +180,10 @@ class ApplicationBuilder(object):
             # By default prefer to build in-process for speed
             build_method = self._build_function_in_process
             if self._container_manager:
-                build_method = self._build_function_on_container
+                if self._container_manager.is_docker_reachable:
+                    build_method = self._build_function_on_container
+                else:
+                    raise BuildError("--use-container flag passed but Docker is not running")
 
             return build_method(config,
                                 code_dir,
