@@ -14,9 +14,20 @@ license: Apache-2.0
 base: core18
 
 grade: stable
-confinement: classic
+confinement: strict
+
+plugs:
+  personal-files:
+    read:
+      - $HOME/.aws
 
 parts:
+  launchers:
+    plugin: dump
+    source: snap/local/launchers
+    organize:
+      "*": bin/
+
   sam-cli:
     plugin: python
     python-version: python3
@@ -28,4 +39,12 @@ parts:
 
 apps:
   sam-cli:
+    adapter: full
+    command-chain:
+      - bin/launcher.sh
     command: bin/sam
+    #plugs:
+    #  - home
+    environment:
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
