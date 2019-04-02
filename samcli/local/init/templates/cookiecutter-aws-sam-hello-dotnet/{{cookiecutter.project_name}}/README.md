@@ -20,16 +20,23 @@ Please see the [currently supported patch of each major version of .NET Core](ht
 
 ## Setup process
 
-### Linux, macOS and Windows (Powershell)
+### Folder Structure
+
+AWS Lambda C# runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies. `CodeUri` must be set to the path to folder containing your Lambda function source code and `.csproj` file.
+
+```yaml
+...
+    HelloWorldFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            CodeUri: ./src/HelloWorld
+            ...
+```
+
+### Building your application 
 
 ```bash
 sam build
-```
-
-You can also build on a Lambda like environment using
-
-```bash
-sam build --use-container
 ```
 
 ### Local development
@@ -68,17 +75,6 @@ Events:
 If the previous command run successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
 
 ## Packaging and deployment
-
-AWS Lambda C# runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
-
-```yaml
-...
-    HelloWorldFunction:
-        Type: AWS::Serverless::Function
-        Properties:
-            CodeUri: ./src/HelloWorld
-            ...
-```
 
 First and foremost, we need an `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
 
@@ -121,29 +117,7 @@ For testing our code, we use XUnit and you can use `dotnet test` to run tests de
 dotnet test test/HelloWorld.Test
 ```
 
-# Appendix
-
-## AWS CLI commands
-
-AWS CLI commands to package, deploy and describe outputs defined within the AWS CloudFormation stack:
-
-```bash
-aws cloudformation package \
-    --template-file template.yaml \
-    --output-template-file packaged.yaml \
-    --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
-
-aws cloudformation deploy \
-    --template-file packaged.yaml \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides MyParameterSample=MySampleValue
-
-aws cloudformation describe-stacks \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
-```
-
-## Next Steps
+# Next Steps
 
 Create your own .NET Core solution template to use with SAM CLI. [Cookiecutter for AWS SAM and .NET](https://github.com/aws-samples/cookiecutter-aws-sam-dotnet) provides you with a sample implementation how to use cookiecutter templating library to standardise how you initialise your Serverless projects.
 
