@@ -323,8 +323,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     @parameterized.expand([
         ("dotnetcore2.0", "Dotnetcore2.0", False),
         ("dotnetcore2.1", "Dotnetcore2.1", False),
-        # ("dotnetcore2.0", "Dotnetcore2.0", "use_container"),
-        # ("dotnetcore2.1", "Dotnetcore2.1", "use_container")
     ])
     def test_with_dotnetcore(self, runtime, code_uri, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_uri,
