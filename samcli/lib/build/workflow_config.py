@@ -45,13 +45,15 @@ JAVA_MAVEN_CONFIG = CONFIG(
                 language="java",
                 dependency_manager="maven",
                 application_framework=None,
-                manifest_name="pom.xml")
+                manifest_name="pom.xml",
+                executable_search_paths=None)
 
 DOTNET_CLIPACKAGE_CONFIG = CONFIG(
                 language="dotnet",
                 dependency_manager="cli-package",
                 application_framework=None,
-                manifest_name=".csproj")
+                manifest_name=".csproj",
+                executable_search_paths=None)
 
 
 class UnsupportedRuntimeException(Exception):
