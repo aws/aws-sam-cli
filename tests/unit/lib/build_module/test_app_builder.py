@@ -176,6 +176,47 @@ class TestApplicationBuilder_build_function(TestCase):
                                                                      manifest_path,
                                                                      runtime)
 
+    @patch("samcli.lib.build.app_builder.supports_build_in_container")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_fallback_to_build_in_process_for_unsupported_containers(self,
+                                                                          osutils_mock,
+                                                                          get_workflow_config_mock,
+                                                                          supports_build_in_container_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        scratch_dir = "scratch"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_on_container = Mock()
+        self.builder._build_function_in_process = Mock()
+
+        code_dir = "/base/dir/path/to/source"
+        artifacts_dir = "/build/dir/function_name"
+        manifest_path = os.path.join(code_dir, config_mock.manifest_name)
+
+        # Setting the container manager will make us use the container
+        self.builder._container_manager = Mock()
+
+        # Mark the container build as unsupported
+        supports_build_in_container_mock.return_value = (False, "reason")
+
+        self.builder._build_function(function_name, codeuri, runtime)
+
+        self.builder._build_function_on_container.assert_not_called()
+        self.builder._build_function_in_process.assert_called_with(config_mock,
+                                                                   code_dir,
+                                                                   artifacts_dir,
+                                                                   scratch_dir,
+                                                                   manifest_path,
+                                                                   runtime)
+        supports_build_in_container_mock.assert_called_with(config_mock)
+
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
 

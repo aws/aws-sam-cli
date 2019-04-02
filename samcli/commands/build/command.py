@@ -31,9 +31,10 @@ Supported Resource Types
 Supported Runtimes
 ------------------
 1. Python 2.7, 3.6, 3.7 using PIP\n
-4. Nodejs 8.10, 6.10 using NPM
-4. Ruby 2.5 using Bundler
-5. Java 8 using Gradle
+2. Nodejs 8.10, 6.10 using NPM\n
+3. Ruby 2.5 using Bundler\n
+4. Java 8 using Gradle\n
+5. Dotnetcore2.0 and 2.1 using Dotnet CLI\n
 \b
 Examples
 --------

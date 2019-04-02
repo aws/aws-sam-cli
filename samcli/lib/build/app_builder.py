@@ -19,7 +19,7 @@ from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
-from .workflow_config import get_workflow_config
+from .workflow_config import get_workflow_config, supports_build_in_container
 
 
 LOG = logging.getLogger(__name__)
@@ -180,7 +180,13 @@ class ApplicationBuilder(object):
             # By default prefer to build in-process for speed
             build_method = self._build_function_in_process
             if self._container_manager:
-                build_method = self._build_function_on_container
+
+                container_build_supported, reason = supports_build_in_container(config)
+                if container_build_supported:
+                    build_method = self._build_function_on_container
+                else:
+                    LOG.warning(reason)
+                    LOG.warning("Continuing build without a container")
 
             return build_method(config,
                                 code_dir,

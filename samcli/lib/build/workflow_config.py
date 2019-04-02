@@ -117,6 +117,32 @@ def get_workflow_config(runtime, code_dir, project_dir):
                                           .format(runtime, str(ex)))
 
 
+def supports_build_in_container(config):
+    """
+    Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
+
+    Parameters
+    ----------
+    config namedtuple(Capability)
+        Config specifying the particular build workflow
+
+    Returns
+    -------
+    tuple(bool, str)
+        True, if this workflow can be built inside a container. False, along with a reason message if it cannot be.
+    """
+
+    unsupported = {
+        DOTNET_CLIPACKAGE_CONFIG: "We do not support building dotnet Lambda functions within a container. Most "
+                                  "dotnet functions can be successfully built without a container.",
+    }
+
+    if config in unsupported:
+        return False, unsupported[config]
+
+    return True, None
+
+
 class BasicWorkflowSelector(object):
     """
     Basic workflow selector that returns the first available configuration in the given list of configurations
