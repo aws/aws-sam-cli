@@ -249,14 +249,17 @@ class TestBuildCommand_Java(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     USING_GRADLE_PATH = os.path.join("Java", "gradle")
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
+    USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = str(Path('Java', 'maven'))
 
     @parameterized.expand([
         ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
         ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+        ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
         ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False),
         ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
         ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+        ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
         ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, "use_container")
     ])
     def test_with_building_java(self, runtime, code_path, expected_files, use_container):
