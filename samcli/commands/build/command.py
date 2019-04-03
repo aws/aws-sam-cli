@@ -14,6 +14,7 @@ from samcli.commands.build.build_context import BuildContext
 from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.commands._utils.template import move_template
+from aws_lambda_builders.workflow import BuildMode
 
 LOG = logging.getLogger(__name__)
 
@@ -91,8 +92,10 @@ def cli(ctx,
         parameter_overrides):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
+    # TODO fill this out on what env var
+    mode = BuildMode.DEBUG if os.environ.get("") else BuildMode.RELEASE
     do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network,
-           skip_pull_image, parameter_overrides)  # pragma: no cover
+           skip_pull_image, parameter_overrides, mode)  # pragma: no cover
 
 
 def do_cli(template,  # pylint: disable=too-many-locals
@@ -103,7 +106,8 @@ def do_cli(template,  # pylint: disable=too-many-locals
            manifest_path,
            docker_network,
            skip_pull_image,
-           parameter_overrides):
+           parameter_overrides,
+           mode):
     """
     Implementation of the ``cli`` method
     """
@@ -121,13 +125,15 @@ def do_cli(template,  # pylint: disable=too-many-locals
                       use_container=use_container,
                       parameter_overrides=parameter_overrides,
                       docker_network=docker_network,
-                      skip_pull_image=skip_pull_image) as ctx:
+                      skip_pull_image=skip_pull_image,
+                      mode=mode) as ctx:
 
         builder = ApplicationBuilder(ctx.function_provider,
                                      ctx.build_dir,
                                      ctx.base_dir,
                                      manifest_path_override=ctx.manifest_path_override,
-                                     container_manager=ctx.container_manager
+                                     container_manager=ctx.container_manager,
+                                     mode=ctx.mode
                                      )
         try:
             artifacts = builder.build()

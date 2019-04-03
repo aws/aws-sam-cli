@@ -48,6 +48,7 @@ class ApplicationBuilder(object):
                  function_provider,
                  build_dir,
                  base_dir,
+                 mode,
                  manifest_path_override=None,
                  container_manager=None,
                  parallel=False):
@@ -78,6 +79,7 @@ class ApplicationBuilder(object):
 
         self._container_manager = container_manager
         self._parallel = parallel
+        self._mode = mode
 
     def build(self):
         """
@@ -207,7 +209,8 @@ class ApplicationBuilder(object):
                           scratch_dir,
                           manifest_path,
                           runtime=runtime,
-                          executable_search_paths=config.executable_search_paths)
+                          executable_search_paths=config.executable_search_paths,
+                          mode=self._mode)
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 
@@ -231,6 +234,7 @@ class ApplicationBuilder(object):
                                          source_dir,
                                          manifest_path,
                                          runtime,
+                                         mode=self._mode,
                                          log_level=log_level,
                                          optimizations=None,
                                          options=None,
