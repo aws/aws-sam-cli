@@ -1,4 +1,4 @@
-name: sam-cli
+name: aws-sam-cli
 version: git
 summary: The AWS SAM CLI tool for the AWS Serverless Application Model
 description: >
