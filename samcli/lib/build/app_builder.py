@@ -180,10 +180,7 @@ class ApplicationBuilder(object):
             # By default prefer to build in-process for speed
             build_method = self._build_function_in_process
             if self._container_manager:
-                if self._container_manager.is_docker_reachable:
-                    build_method = self._build_function_on_container
-                else:
-                    raise BuildError("--use-container flag passed but Docker is not running")
+                build_method = self._build_function_on_container
 
             return build_method(config,
                                 code_dir,
@@ -223,6 +220,9 @@ class ApplicationBuilder(object):
                                      scratch_dir,
                                      manifest_path,
                                      runtime):
+
+        if not self._container_manager.is_docker_reachable:
+            raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
 
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
