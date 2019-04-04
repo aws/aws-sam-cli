@@ -28,7 +28,7 @@ parts:
     organize:
       "*": bin/
 
-  sam-cli:
+  aws-sam-cli:
     plugin: python
     python-version: python3
     python-packages:
@@ -38,7 +38,7 @@ parts:
     source: .
 
 apps:
-  sam-cli:
+  aws-sam-cli:
     adapter: full
     command-chain:
       - bin/launcher.sh
