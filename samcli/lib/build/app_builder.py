@@ -221,6 +221,9 @@ class ApplicationBuilder(object):
                                      manifest_path,
                                      runtime):
 
+        if not self._container_manager.is_docker_reachable:
+            raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
+
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 
