@@ -146,8 +146,9 @@ def supports_build_in_container(config):
     # map to identify which workflows can support building within a container.
 
     unsupported = {
-        DOTNET_CLIPACKAGE_CONFIG: "We do not support building dotnet Lambda functions within a container. Most "
-                                  "dotnet functions can be successfully built without a container.",
+        DOTNET_CLIPACKAGE_CONFIG: "We do not support building .NET Core Lambda functions within a container. "
+                                  "Try building without the container. Most .NET Core functions will build "
+                                  "successfully.",
     }
 
     if config in unsupported:

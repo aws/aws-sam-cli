@@ -35,7 +35,7 @@ Supported Runtimes
 2. Nodejs 8.10, 6.10 using NPM\n
 3. Ruby 2.5 using Bundler\n
 4. Java 8 using Gradle\n
-5. Dotnetcore2.0 and 2.1 using Dotnet CLI\n
+5. Dotnetcore2.0 and 2.1 using Dotnet CLI (without --use-container flag)\n
 \b
 Examples
 --------
@@ -149,11 +149,9 @@ def do_cli(template,  # pylint: disable=too-many-locals
 
             click.secho(msg, fg="yellow")
 
-        except ContainerBuildNotSupported as ex:
-            click.secho("--use-container is unsupported: {}".format(str(ex)), fg="red")
-
-        except (UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError) as ex:
-            click.secho("Build Failed", fg="red")
+        except (UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError,
+                ContainerBuildNotSupported) as ex:
+            click.secho("\nBuild Failed", fg="red")
             raise UserException(str(ex))
 
 

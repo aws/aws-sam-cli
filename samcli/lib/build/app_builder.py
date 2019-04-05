@@ -184,13 +184,7 @@ class ApplicationBuilder(object):
             # By default prefer to build in-process for speed
             build_method = self._build_function_in_process
             if self._container_manager:
-
-                container_build_supported, reason = supports_build_in_container(config)
-                if container_build_supported:
-                    build_method = self._build_function_on_container
-                else:
-                    LOG.warning(reason)
-                    LOG.warning("Continuing build without a container")
+                build_method = self._build_function_on_container
 
             return build_method(config,
                                 code_dir,
