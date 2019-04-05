@@ -41,6 +41,13 @@ JAVA_GRADLE_CONFIG = CONFIG(
                 manifest_name="build.gradle",
                 executable_search_paths=None)
 
+JAVA_KOTLIN_GRADLE_CONFIG = CONFIG(
+                language="java",
+                dependency_manager="gradle",
+                application_framework=None,
+                manifest_name="build.gradle.kts",
+                executable_search_paths=None)
+
 JAVA_MAVEN_CONFIG = CONFIG(
                 language="java",
                 dependency_manager="maven",
@@ -100,6 +107,7 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "java8": ManifestWorkflowSelector([
             # Gradle builder needs custom executable paths to find `gradlew` binary
             JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
             JAVA_MAVEN_CONFIG
         ]),
     }

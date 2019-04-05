@@ -7,9 +7,11 @@ SAM CLI (Beta)
 ![Build
 Status](https://travis-ci.org/awslabs/aws-sam-cli.svg?branch=develop)
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
-![Contributers](https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg)
+![Contributors](https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg)
 ![GitHub-release](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg)
 ![PyPI version](https://badge.fury.io/py/aws-sam-cli.svg)
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/aws-sam-cli)
 
 [Join the SAM developers channel (\#samdev) on
 Slack](https://join.slack.com/t/awsdevelopers/shared_invite/enQtMzg3NTc5OTM2MzcxLTdjYTdhYWE3OTQyYTU4Njk1ZWY4Y2ZjYjBhMTUxNGYzNDg5MWQ1ZTc5MTRlOGY0OTI4NTdlZTMwNmI5YTgwOGM/)
