@@ -11,7 +11,8 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import template_option_without_build, docker_common_options, \
     parameter_override_option
 from samcli.commands.build.build_context import BuildContext
-from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError, \
+    ContainerBuildNotSupported
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.commands._utils.template import move_template
 
@@ -147,6 +148,9 @@ def do_cli(template,  # pylint: disable=too-many-locals
                                   os.path.abspath(ctx.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR))
 
             click.secho(msg, fg="yellow")
+
+        except ContainerBuildNotSupported as ex:
+            click.secho("--use-container is unsupported: {}".format(str(ex)), fg="red")
 
         except (UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError) as ex:
             click.secho("Build Failed", fg="red")

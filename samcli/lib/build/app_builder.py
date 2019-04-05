@@ -33,6 +33,10 @@ class UnsupportedBuilderLibraryVersionError(Exception):
         Exception.__init__(self, msg.format(container_name=container_name, error_msg=error_msg))
 
 
+class ContainerBuildNotSupported(Exception):
+    pass
+
+
 class BuildError(Exception):
     pass
 
@@ -229,6 +233,10 @@ class ApplicationBuilder(object):
 
         if not self._container_manager.is_docker_reachable:
             raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
+
+        container_build_supported, reason = supports_build_in_container(config)
+        if not container_build_supported:
+            raise ContainerBuildNotSupported(reason)
 
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()

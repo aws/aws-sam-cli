@@ -140,6 +140,11 @@ def supports_build_in_container(config):
         True, if this workflow can be built inside a container. False, along with a reason message if it cannot be.
     """
 
+    # This information could have beeen bundled inside the Workflow Config object. But we this way because
+    # ultimately the workflow's implementation dictates whether it can run within a container or not.
+    # A "workflow config" is like a primary key to identify the workflow. So we use the config as a key in the
+    # map to identify which workflows can support building within a container.
+
     unsupported = {
         DOTNET_CLIPACKAGE_CONFIG: "We do not support building dotnet Lambda functions within a container. Most "
                                   "dotnet functions can be successfully built without a container.",
