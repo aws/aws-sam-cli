@@ -156,7 +156,7 @@ Design Document
 
 A design document is a written description of the feature/capability you
 are building. We have a [design document
-template](./designs/_template.rst) to help you quickly fill in the
+template](./designs/_template.md) to help you quickly fill in the
 blanks and get you working quickly. We encourage you to write a design
 document for any feature you write, but for some types of features we
 definitely require a design document to proceed with implementation.

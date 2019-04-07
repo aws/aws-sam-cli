@@ -2,6 +2,7 @@ import json
 import shutil
 import os
 import copy
+import tempfile
 from unittest import skipIf
 
 from nose_parameterized import parameterized
@@ -12,10 +13,11 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_TRAVIS, RUNNING_TEST_FOR_MASTER_ON_TRAVIS
 
 # Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Travis and when the branch is not master.
-SKIP_LAYERS_TESTS = os.environ.get("TRAVIS", False) and os.environ.get("TRAVIS_BRANCH", "master") != "master"
+SKIP_LAYERS_TESTS = RUNNING_ON_TRAVIS and RUNNING_TEST_FOR_MASTER_ON_TRAVIS
 
 try:
     from pathlib import Path
@@ -232,6 +234,210 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(return_code, 0)
 
+    @skipIf(IS_WINDOWS,
+            "The test hangs on Windows due to trying to attach to a non-existing network")
+    def test_invoke_with_docker_network_of_host_in_env_var(self):
+        command_list = self.get_command_list("HelloWorldServerlessFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+        env["SAM_DOCKER_NETWORK"] = 'non-existing-network'
+
+        process = Popen(command_list, stderr=PIPE, env=env)
+        process.wait()
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+
+        self.assertIn('Not Found ("network non-existing-network not found")', process_stderr.decode('utf-8'))
+
+    def test_sam_template_file_env_var_set(self):
+        command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
+
+        self.test_data_path.joinpath("invoke", "sam-template.yaml")
+        env = os.environ.copy()
+        env["SAM_TEMPLATE_FILE"] = str(self.test_data_path.joinpath("invoke", "sam-template.yaml"))
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+
+        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
+
+    def test_skip_pull_image_in_env_var(self):
+        docker.from_env().api.pull('lambci/lambda:python3.6')
+
+        command_list = self.get_command_list("HelloWorldLambdaFunction",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+        env["SAM_SKIP_PULL_IMAGE"] = "True"
+
+        process = Popen(command_list, stderr=PIPE, env=env)
+        process.wait()
+        process_stderr = b"".join(process.stderr.readlines()).strip()
+        self.assertIn("Requested to skip pulling images", process_stderr.decode('utf-8'))
+
+
+class TestUsingConfigFiles(InvokeIntegBase):
+    template = Path("template.yml")
+
+    def setUp(self):
+        self.config_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.config_dir, ignore_errors=True)
+
+    def test_existing_env_variables_precedence_over_profiles(self):
+        profile = "default"
+        custom_config = self._create_config_file(profile)
+        custom_cred = self._create_cred_file(profile)
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+
+        # Explicitly set environment variables beforehand
+        env['AWS_DEFAULT_REGION'] = 'sa-east-1'
+        env['AWS_REGION'] = 'sa-east-1'
+        env['AWS_ACCESS_KEY_ID'] = 'priority_access_key_id'
+        env['AWS_SECRET_ACCESS_KEY'] = 'priority_secret_key_id'
+        env['AWS_SESSION_TOKEN'] = 'priority_secret_token'
+
+        # Setup a custom profile
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        # Environment variables we explicitly set take priority over profiles.
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'sa-east-1')
+        self.assertEquals(environ["AWS_REGION"], 'sa-east-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'priority_access_key_id')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'priority_secret_key_id')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'priority_secret_token')
+
+    def test_default_profile_with_custom_configs(self):
+        profile = "default"
+        custom_config = self._create_config_file(profile)
+        custom_cred = self._create_cred_file(profile)
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+
+        # Explicitly clean environment variables beforehand
+        env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+
+    def test_custom_profile_with_custom_configs(self):
+        custom_config = self._create_config_file("custom")
+        custom_cred = self._create_cred_file("custom")
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path,
+                                             profile='custom')
+
+        env = os.environ.copy()
+
+        # Explicitly clean environment variables beforehand
+        env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+
+    def test_custom_profile_through_envrionment_variables(self):
+        # When using a custom profile in a custom location, you need both the config
+        # and credential file otherwise we fail to find a region or the profile (depending
+        # on which one is provided
+        custom_config = self._create_config_file("custom")
+
+        custom_cred = self._create_cred_file("custom")
+
+        command_list = self.get_command_list("EchoEnvWithParameters",
+                                             template_path=self.template_path,
+                                             event_path=self.event_path)
+
+        env = os.environ.copy()
+
+        # Explicitly clean environment variables beforehand
+        env.pop('AWS_DEFAULT_REGION', None)
+        env.pop('AWS_REGION', None)
+        env.pop('AWS_ACCESS_KEY_ID', None)
+        env.pop('AWS_SECRET_ACCESS_KEY', None)
+        env.pop('AWS_SESSION_TOKEN', None)
+        env['AWS_CONFIG_FILE'] = custom_config
+        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+        env['AWS_PROFILE'] = "custom"
+
+        process = Popen(command_list, stdout=PIPE, env=env)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        environ = json.loads(process_stdout.decode('utf-8'))
+
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+
+    def _create_config_file(self, profile):
+        if profile == "default":
+            config_file_content = "[{}]\noutput = json\nregion = us-west-1".format(profile)
+        else:
+            config_file_content = "[profile {}]\noutput = json\nregion = us-west-1".format(profile)
+
+        custom_config = os.path.join(self.config_dir, "customconfig")
+        with open(custom_config, "w") as file:
+            file.write(config_file_content)
+        return custom_config
+
+    def _create_cred_file(self, profile):
+        cred_file_content = "[{}]\naws_access_key_id = someaccesskeyid\naws_secret_access_key = shhhhhthisisasecret \
+        \naws_session_token = sessiontoken".format(profile)
+        custom_cred = os.path.join(self.config_dir, "customcred")
+        with open(custom_cred, "w") as file:
+            file.write(cred_file_content)
+        return custom_cred
+
 
 @skipIf(SKIP_LAYERS_TESTS,
         "Skip layers tests in Travis only")
@@ -389,6 +595,23 @@ class TestLayerVersion(InvokeIntegBase):
                                              )
 
         process = Popen(command_list, stdout=PIPE)
+        process.wait()
+
+        self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
+
+    def test_caching_two_layers_with_layer_cache_env_set(self):
+
+        command_list = self.get_command_list("TwoLayerVersionServerlessFunction",
+                                             template_path=self.template_path,
+                                             no_event=True,
+                                             region=self.region,
+                                             parameter_overrides=self.layer_utils.parameters_overrides
+                                             )
+
+        env = os.environ.copy()
+        env["SAM_LAYER_CACHE_BASEDIR"] = str(self.layer_cache)
+
+        process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
 
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))

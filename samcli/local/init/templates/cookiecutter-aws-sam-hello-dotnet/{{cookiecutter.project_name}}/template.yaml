@@ -12,7 +12,7 @@ Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: ./artifacts/HelloWorld.zip
+      CodeUri: ./src/HelloWorld/
       Handler: HelloWorld::HelloWorld.Function::FunctionHandler
       {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
       Runtime: {{ cookiecutter.runtime }}

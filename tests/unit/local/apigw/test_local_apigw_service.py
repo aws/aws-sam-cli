@@ -341,8 +341,26 @@ class TestServiceParsingLambdaOutput(TestCase):
                                                    binary_types=[],
                                                    flask_request=Mock())
 
+    def test_status_code_int_str(self):
+        lambda_output = '{"statusCode": "200", "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
+                        '"isBase64Encoded": false}'
+
+        (status_code, _, _) = LocalApigwService._parse_lambda_output(lambda_output,
+                                                                     binary_types=[],
+                                                                     flask_request=Mock())
+        self.assertEquals(status_code, 200)
+
     def test_status_code_negative_int(self):
         lambda_output = '{"statusCode": -1, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
+                            '"isBase64Encoded": false}'
+
+        with self.assertRaises(TypeError):
+            LocalApigwService._parse_lambda_output(lambda_output,
+                                                   binary_types=[],
+                                                   flask_request=Mock())
+
+    def test_status_code_negative_int_str(self):
+        lambda_output = '{"statusCode": "-1", "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
                             '"isBase64Encoded": false}'
 
         with self.assertRaises(TypeError):

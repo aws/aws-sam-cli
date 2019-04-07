@@ -90,7 +90,7 @@ class PublishAppIntegBase(TestCase):
 
         return command
 
-    def get_command_list(self, template_path=None, region=None, profile=None):
+    def get_command_list(self, template_path=None, region=None, profile=None, semantic_version=None):
         command_list = [self.base_command(), "publish"]
 
         if template_path:
@@ -101,5 +101,8 @@ class PublishAppIntegBase(TestCase):
 
         if profile:
             command_list = command_list + ["--profile", profile]
+
+        if semantic_version:
+            command_list = command_list + ["--semantic-version", semantic_version]
 
         return command_list

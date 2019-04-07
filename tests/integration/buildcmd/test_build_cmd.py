@@ -1,7 +1,6 @@
 import sys
 import os
 import subprocess
-import json
 import logging
 
 try:
@@ -40,7 +39,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             self.skipTest("Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version,
                                                                                                           runtime))
 
-        overrides = {"Runtime": runtime, "CodeUri": "Python"}
+        overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -68,19 +67,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
                                            self._make_parameter_override_arg(overrides),
                                            expected)
         self.verify_docker_container_cleanedup(runtime)
-
-    def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
-        LOG.info("Invoking built function '{}'", function_logical_id)
-
-        cmdlist = [self.cmd, "local", "invoke", function_logical_id, "-t", str(template_path), "--no-event",
-                   "--parameter-overrides", overrides]
-
-        process = subprocess.Popen(cmdlist, stdout=subprocess.PIPE)
-        process.wait()
-
-        process_stdout = b"".join(process.stdout.readlines()).strip().decode('utf-8')
-        print(process_stdout)
-        self.assertEquals(json.loads(process_stdout), expected_result)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
@@ -141,7 +127,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         ("nodejs8.10", "use_container")
     ])
     def test_with_default_package_json(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": "Node"}
+        overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -200,7 +186,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         ("ruby2.5", "use_container")
     ])
     def test_with_default_gemfile(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": "Ruby"}
+        overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
 
@@ -252,3 +238,141 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         gem_path = ruby_bundled_path.joinpath(ruby_version[0], 'gems')
 
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
+
+
+class TestBuildCommand_Java(BuildIntegBase):
+
+    EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {'aws', 'lib', "META-INF"}
+    EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {'aws', 'lib'}
+    EXPECTED_DEPENDENCIES = {'annotations-2.1.0.jar', "aws-lambda-java-core-1.1.0.jar"}
+
+    FUNCTION_LOGICAL_ID = "Function"
+    USING_GRADLE_PATH = os.path.join("Java", "gradle")
+    USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
+    USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
+    USING_MAVEN_PATH = str(Path('Java', 'maven'))
+
+    @parameterized.expand([
+        ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+        ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+        ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False),
+        ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+        ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+        ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, "use_container")
+    ])
+    def test_with_building_java(self, runtime, code_path, expected_files, use_container):
+        overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
+        cmdlist = self.get_command_list(use_container=use_container,
+                                        parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        process.wait()
+
+        self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
+                                    expected_files, self.EXPECTED_DEPENDENCIES)
+
+        self._verify_resource_property(str(self.built_template),
+                                       "OtherRelativePathResource",
+                                       "BodyS3Location",
+                                       os.path.relpath(
+                                           os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                                           str(self.default_build_dir))
+                                       )
+
+        expected = "Hello World"
+        self._verify_invoke_built_function(self.built_template,
+                                           self.FUNCTION_LOGICAL_ID,
+                                           self._make_parameter_override_arg(overrides),
+                                           expected)
+
+        self.verify_docker_container_cleanedup(runtime)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path),
+                                       function_logical_id,
+                                       "CodeUri",
+                                       function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEquals(actual_files, expected_files)
+
+        lib_dir_contents = set(os.listdir(str(resource_artifact_dir.joinpath("lib"))))
+        self.assertEquals(lib_dir_contents, expected_modules)
+
+
+class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
+
+    FUNCTION_LOGICAL_ID = "Function"
+    EXPECTED_FILES_PROJECT_MANIFEST = {"Amazon.Lambda.APIGatewayEvents.dll", "HelloWorld.pdb",
+                                       "Amazon.Lambda.Core.dll", "HelloWorld.runtimeconfig.json",
+                                       "Amazon.Lambda.Serialization.Json.dll", "Newtonsoft.Json.dll",
+                                       "HelloWorld.deps.json", "HelloWorld.dll"}
+
+    @parameterized.expand([
+        ("dotnetcore2.0", "Dotnetcore2.0", False),
+        ("dotnetcore2.1", "Dotnetcore2.1", False),
+    ])
+    def test_with_dotnetcore(self, runtime, code_uri, use_container):
+        overrides = {"Runtime": runtime, "CodeUri": code_uri,
+                     "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler"}
+        cmdlist = self.get_command_list(use_container=use_container,
+                                        parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        process.wait()
+
+        self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
+                                    self.EXPECTED_FILES_PROJECT_MANIFEST)
+
+        self._verify_resource_property(str(self.built_template),
+                                       "OtherRelativePathResource",
+                                       "BodyS3Location",
+                                       os.path.relpath(
+                                           os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                                           str(self.default_build_dir))
+                                       )
+
+        expected = "{'message': 'Hello World'}"
+        self._verify_invoke_built_function(self.built_template,
+                                           self.FUNCTION_LOGICAL_ID,
+                                           self._make_parameter_override_arg(overrides),
+                                           expected)
+
+        self.verify_docker_container_cleanedup(runtime)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path),
+                                       function_logical_id,
+                                       "CodeUri",
+                                       function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEquals(actual_files, expected_files)
