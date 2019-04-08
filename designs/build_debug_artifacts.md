@@ -16,7 +16,7 @@ We will introduce a way in `sam build` to produce these debuggable artifacts for
 Success criteria for the change
 -------------------------------
 
-1. Artifacts generated will be debuggable for DotNetCore2.1 Runtimes
+1. Artifacts generated will be debuggable for runtimes DotNetCore 2.0 and above. 
 
 Out-of-Scope
 ------------
@@ -55,14 +55,17 @@ We have a couple options to consider:
         * Makes the customer need to think about the artifacts they need to produce (though this can be hidden
         behind the AWS Toolkit in IDEs)
         * Customers running in the command line need to remember what artifacts to produce or what they previously produced
-2. An Environment Variable we read (`SAM_BUILD_DEBUG_ARTIFACT`)
+2. An Environment Variable we read (`SAM_BUILD_DEBUG_ARTIFACT`). IDE Toolkit will set the env var when calling `sam build`
+while debugging.
     * Pros
+        * Reduces cognitive load on customers that don't care about debugging dotnet apps through command line.
         * Could force customers to use AWS Toolkit by default
     * Cons
         * Building debug artifacts becomes a hidden feature (silent contract)
         * Environment Variables tend to be more set and forget.
         * Need to conditionally add Env Var instead of a more convenient flag
-3. `sam build` produces debug artifacts by default and `sam package` will build non debug artifacts by default
+3. Seamless Integration: `sam build` produces debug artifacts by default and `sam package` will build 
+non debug artifacts by default
     * Pros
         * Customers should never have to think about 'when to produce debug artifacts' or forget to add a flag
     * Cons
@@ -72,7 +75,13 @@ We have a couple options to consider:
 Proposal
 --------
 
-My recommendation is to follow Option #1 from above. This is mainly due to #3 not being a reasonable option currently.
+My recommendation is to follow Option #2 from above, mainly because:
+
+- Seamless Integration (#3) is best experience but is large in scope.
+- CLI Option (#1) exposes a flag for what we think will be a rarely used CLI feature. We think so because manually 
+setting up debugging is cumbersome. Given that .NET developers generally prefer to be within the IDE, I find it hard 
+to believe someone will want to go out of the way of setting it up through CLI.
+- Not a one-way-door. We can always add a CLI option to pair with env var later.
 
 `.samrc` Changes
 ----------------

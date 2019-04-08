@@ -78,7 +78,6 @@ Out-of-Scope
     package manager (ex: images, css etc)
 3.  Support to exclude certain files from the built artifact (ex: using
     .gitignore or using regex)
-
 5.  Support caching dependencies & re-installing them only when the
     dependency manifest changes (ex: by maintaining hash of
     package.json)

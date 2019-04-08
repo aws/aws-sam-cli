@@ -48,13 +48,6 @@ JAVA_MAVEN_CONFIG = CONFIG(
                 manifest_name="pom.xml",
                 executable_search_paths=None)
 
-DOTNET_CLIPACKAGE_CONFIG = CONFIG(
-                language="dotnet",
-                dependency_manager="cli-package",
-                application_framework=None,
-                manifest_name=".csproj",
-                executable_search_paths=None)
-
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -92,8 +85,6 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "nodejs6.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs8.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
-        "dotnetcore2.0": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
-        "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
 
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest

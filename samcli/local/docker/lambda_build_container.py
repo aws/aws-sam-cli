@@ -33,11 +33,11 @@ class LambdaBuildContainer(Container):
                  source_dir,
                  manifest_path,
                  runtime,
-                 mode,
                  optimizations=None,
                  options=None,
                  executable_search_paths=None,
-                 log_level=None):
+                 log_level=None,
+                 mode=None):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name

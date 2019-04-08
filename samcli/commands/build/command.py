@@ -14,7 +14,6 @@ from samcli.commands.build.build_context import BuildContext
 from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.commands._utils.template import move_template
-from aws_lambda_builders.workflow import BuildMode
 
 LOG = logging.getLogger(__name__)
 
@@ -89,11 +88,12 @@ def cli(ctx,
         manifest,
         docker_network,
         skip_pull_image,
-        parameter_overrides):
+        parameter_overrides,
+        ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    # TODO fill this out on what env var
-    mode = BuildMode.DEBUG if os.environ.get("") else BuildMode.RELEASE
+    mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", ["debug"])
+
     do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network,
            skip_pull_image, parameter_overrides, mode)  # pragma: no cover
 
@@ -181,3 +181,16 @@ Commands you can use next
                template=output_template_path)
 
     return msg
+
+
+def _get_mode_value_from_envvar(name, choices):
+
+    mode = os.environ.get(name, None)
+    if not mode:
+        return None
+
+    if mode not in choices:
+        raise click.UsageError("Invalid value for 'mode': invalid choice: {}. (choose from {})"
+                               .format(mode, choices))
+
+    return mode

@@ -48,10 +48,10 @@ class ApplicationBuilder(object):
                  function_provider,
                  build_dir,
                  base_dir,
-                 mode,
                  manifest_path_override=None,
                  container_manager=None,
-                 parallel=False):
+                 parallel=False,
+                 mode=None):
         """
         Initialize the class
 
@@ -71,6 +71,9 @@ class ApplicationBuilder(object):
 
         parallel : bool
             Optional. Set to True to build each function in parallel to improve performance
+
+        mode : str
+            Optional, name of the build mode to use ex: 'debug'
         """
         self._function_provider = function_provider
         self._build_dir = build_dir
@@ -234,11 +237,11 @@ class ApplicationBuilder(object):
                                          source_dir,
                                          manifest_path,
                                          runtime,
-                                         mode=self._mode,
                                          log_level=log_level,
                                          optimizations=None,
                                          options=None,
-                                         executable_search_paths=config.executable_search_paths)
+                                         executable_search_paths=config.executable_search_paths,
+                                         mode=self._mode)
 
         try:
             try:
