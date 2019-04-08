@@ -141,7 +141,7 @@ def supports_build_in_container(config):
     """
 
     def _key(c):
-        return c.language + c.dependency_manager + str(c.application_framework)
+        return str(c.language) + str(c.dependency_manager) + str(c.application_framework)
 
     # This information could have beeen bundled inside the Workflow Config object. But we this way because
     # ultimately the workflow's implementation dictates whether it can run within a container or not.
