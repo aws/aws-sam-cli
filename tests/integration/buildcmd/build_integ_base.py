@@ -61,7 +61,7 @@ class BuildIntegBase(TestCase):
         return command
 
     def get_command_list(self, build_dir=None, base_dir=None, manifest_path=None, use_container=None,
-                         parameter_overrides=None):
+                         parameter_overrides=None, mode=None):
 
         command_list = [self.cmd, "build", "-t", self.template_path]
 

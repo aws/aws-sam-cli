@@ -154,8 +154,9 @@ def supports_build_in_container(config):
                                         "successfully.",
     }
 
-    if _key(config) in unsupported:
-        return False, unsupported[config]
+    thiskey = _key(config)
+    if thiskey in unsupported:
+        return False, unsupported[thiskey]
 
     return True, None
 
