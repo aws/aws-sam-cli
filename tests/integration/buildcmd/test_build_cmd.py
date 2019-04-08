@@ -356,6 +356,24 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         self.verify_docker_container_cleanedup(runtime)
 
+    @parameterized.expand([
+        ("dotnetcore2.0", "Dotnetcore2.0"),
+        ("dotnetcore2.1", "Dotnetcore2.1"),
+    ])
+    def test_must_fail_with_container(self, runtime, code_uri):
+        use_container = True
+        overrides = {"Runtime": runtime, "CodeUri": code_uri,
+                     "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler"}
+        cmdlist = self.get_command_list(use_container=use_container,
+                                        parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        process.wait()
+
+        # Must error out, because container builds are not supported
+        self.assertEquals(process.returncode, 1)
+
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
         self.assertTrue(build_dir.exists(), "Build directory should be created")
