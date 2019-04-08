@@ -11,7 +11,8 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import template_option_without_build, docker_common_options, \
     parameter_override_option
 from samcli.commands.build.build_context import BuildContext
-from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError, \
+    ContainerBuildNotSupported
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.commands._utils.template import move_template
 
@@ -31,9 +32,10 @@ Supported Resource Types
 Supported Runtimes
 ------------------
 1. Python 2.7, 3.6, 3.7 using PIP\n
-4. Nodejs 8.10, 6.10 using NPM
-4. Ruby 2.5 using Bundler
-5. Java 8 using Gradle
+2. Nodejs 8.10, 6.10 using NPM\n
+3. Ruby 2.5 using Bundler\n
+4. Java 8 using Gradle\n
+5. Dotnetcore2.0 and 2.1 using Dotnet CLI (without --use-container flag)\n
 \b
 Examples
 --------
@@ -153,8 +155,9 @@ def do_cli(template,  # pylint: disable=too-many-locals
 
             click.secho(msg, fg="yellow")
 
-        except (UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError) as ex:
-            click.secho("Build Failed", fg="red")
+        except (UnsupportedRuntimeException, BuildError, UnsupportedBuilderLibraryVersionError,
+                ContainerBuildNotSupported) as ex:
+            click.secho("\nBuild Failed", fg="red")
             raise UserException(str(ex))
 
 

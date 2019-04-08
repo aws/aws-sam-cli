@@ -12,7 +12,7 @@ def lambda_handler(event:, context:)
 
   # context: object, required
   #     Lambda Context runtime methods and attributes
-  #     Context doc: https://docs.aws.amazon.com/lambda/latest/dg/python-context-object.html
+  #     Context doc: https://docs.aws.amazon.com/lambda/latest/dg/ruby-context.html
 
   # Returns
   # ------

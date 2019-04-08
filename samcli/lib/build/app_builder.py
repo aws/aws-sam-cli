@@ -19,7 +19,7 @@ from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
-from .workflow_config import get_workflow_config
+from .workflow_config import get_workflow_config, supports_build_in_container
 
 
 LOG = logging.getLogger(__name__)
@@ -31,6 +31,10 @@ class UnsupportedBuilderLibraryVersionError(Exception):
         msg = "You are running an outdated version of Docker container '{container_name}' that is not compatible with" \
               "this version of SAM CLI. Please upgrade to continue to continue with build. Reason: '{error_msg}'"
         Exception.__init__(self, msg.format(container_name=container_name, error_msg=error_msg))
+
+
+class ContainerBuildNotSupported(Exception):
+    pass
 
 
 class BuildError(Exception):
@@ -226,6 +230,13 @@ class ApplicationBuilder(object):
                                      scratch_dir,
                                      manifest_path,
                                      runtime):
+
+        if not self._container_manager.is_docker_reachable:
+            raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
+
+        container_build_supported, reason = supports_build_in_container(config)
+        if not container_build_supported:
+            raise ContainerBuildNotSupported(reason)
 
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
