@@ -16,7 +16,7 @@ Resources:
       Handler: HelloWorld::HelloWorld.Function::FunctionHandler
       {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
       Runtime: {{ cookiecutter.runtime }}
-      {%- elif cookiecutter.runtime == 'dotnetcore2.1' or cookiecutter.runtime == 'dotnet' %}
+      {%- else %}
       Runtime: dotnetcore2.1
       {%- endif %}
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
