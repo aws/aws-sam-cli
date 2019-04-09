@@ -55,7 +55,6 @@ class TestBuildContext__enter__(TestCase):
 
 class TestBuildContext_setup_build_dir(TestCase):
 
-
     @patch("samcli.commands.build.build_context.shutil")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.pathlib")

@@ -81,7 +81,7 @@ class BuildContext(object):
 
         build_path.mkdir(mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
 
-        # ensure path resolving is dont after creation: https://bugs.python.org/issue32434
+        # ensure path resolving is done after creation: https://bugs.python.org/issue32434
         return str(build_path.resolve())
 
     @property
