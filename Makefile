@@ -1,5 +1,6 @@
 init:
-	SAM_CLI_DEV=1 pip install -e '.[dev]'
+	SAM_CLI_DEV=1 pip install -e .
+	SAM_CLI_DEV=1 pip install -r requirements/dev.txt
 
 test:
 	# Run unit tests

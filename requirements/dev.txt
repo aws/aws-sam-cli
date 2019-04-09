@@ -1,3 +1,7 @@
+# Following are "dev" version of libraries that SAM CLI consumes for development purposes.
+# For production releases, see prod.txt where these libraries are pinned to a particular version
+-e git://github.com/awslabs/aws-lambda-builders.git@develop#egg=aws_lambda_builders
+
 coverage==4.3.4
 flake8==3.3.0
 tox==2.2.1
