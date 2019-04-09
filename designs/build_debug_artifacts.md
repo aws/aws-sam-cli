@@ -46,7 +46,7 @@ Options considered
 ------------------
 We have a couple options to consider:
 
-1. A command line option (`--debug-artifact`)
+1. A command line option (`--mode`)
     * Pros
         * Customer can control what kind of artifacts are produced.
         * There is no guessing needed by the CLI
@@ -55,7 +55,7 @@ We have a couple options to consider:
         * Makes the customer need to think about the artifacts they need to produce (though this can be hidden
         behind the AWS Toolkit in IDEs)
         * Customers running in the command line need to remember what artifacts to produce or what they previously produced
-2. An Environment Variable we read (`SAM_BUILD_DEBUG_ARTIFACT`). IDE Toolkit will set the env var when calling `sam build`
+2. An Environment Variable we read (`SAM_BUILD_MODE`). IDE Toolkit will set the env var when calling `sam build`
 while debugging.
     * Pros
         * Reduces cognitive load on customers that don't care about debugging dotnet apps through command line.
@@ -96,19 +96,25 @@ Security
 questions to help answer this question better:*
 
 **What new dependencies (libraries/cli) does this change require?**
+No
 
 **What other Docker container images are you using?**
+N/A
 
 **Are you creating a new HTTP endpoint? If so explain how it will be
 created & used**
+No
 
 **Are you connecting to a remote API? If so explain how is this
 connection secured**
+No
 
 **Are you reading/writing to a temporary folder? If so, what is this
 used for and when do you clean up?**
+No
 
 **How do you validate new .samrc configuration?**
+N/A
 
 Documentation Changes
 ---------------------

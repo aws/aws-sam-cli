@@ -94,7 +94,7 @@ def cli(ctx,
         ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", ["debug"])
+    mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
     do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network,
            skip_pull_image, parameter_overrides, mode)  # pragma: no cover
