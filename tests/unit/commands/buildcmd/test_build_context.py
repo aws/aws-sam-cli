@@ -1,5 +1,4 @@
 import os
-
 from unittest import TestCase
 from mock import patch, Mock
 
@@ -52,3 +51,90 @@ class TestBuildContext__enter__(TestCase):
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network",
                                                      skip_pull_image=True)
+
+
+class TestBuildContext_setup_build_dir(TestCase):
+
+
+    @patch("samcli.commands.build.build_context.shutil")
+    @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.pathlib")
+    def test_build_dir_exists_with_non_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
+        path_mock = Mock()
+        pathlib_patch.Path.return_value = path_mock
+        os_patch.listdir.return_value = True
+        path_mock.resolve.return_value = "long/full/path"
+        path_mock.exists.return_value = True
+        build_dir = "/somepath"
+
+        full_build_path = BuildContext._setup_build_dir(build_dir, True)
+
+        self.assertEquals(full_build_path, "long/full/path")
+
+        os_patch.listdir.assert_called_once()
+        path_mock.exists.assert_called_once()
+        path_mock.mkdir.assert_called_once_with(mode=0o755, parents=True, exist_ok=True)
+        pathlib_patch.Path.assert_called_once_with(build_dir)
+        shutil_patch.rmtree.assert_called_once_with(build_dir)
+
+    @patch("samcli.commands.build.build_context.shutil")
+    @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.pathlib")
+    def test_build_dir_exists_with_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
+        path_mock = Mock()
+        pathlib_patch.Path.return_value = path_mock
+        os_patch.listdir.return_value = False
+        path_mock.resolve.return_value = "long/full/path"
+        path_mock.exists.return_value = True
+        build_dir = "/somepath"
+
+        full_build_path = BuildContext._setup_build_dir(build_dir, True)
+
+        self.assertEquals(full_build_path, "long/full/path")
+
+        os_patch.listdir.assert_called_once()
+        path_mock.exists.assert_called_once()
+        path_mock.mkdir.assert_called_once_with(mode=0o755, parents=True, exist_ok=True)
+        pathlib_patch.Path.assert_called_once_with(build_dir)
+        shutil_patch.rmtree.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.shutil")
+    @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.pathlib")
+    def test_build_dir_does_not_exist(self, pathlib_patch, os_patch, shutil_patch):
+        path_mock = Mock()
+        pathlib_patch.Path.return_value = path_mock
+        path_mock.resolve.return_value = "long/full/path"
+        path_mock.exists.return_value = False
+        build_dir = "/somepath"
+
+        full_build_path = BuildContext._setup_build_dir(build_dir, True)
+
+        self.assertEquals(full_build_path, "long/full/path")
+
+        os_patch.listdir.assert_not_called()
+        path_mock.exists.assert_called_once()
+        path_mock.mkdir.assert_called_once_with(mode=0o755, parents=True, exist_ok=True)
+        pathlib_patch.Path.assert_called_once_with(build_dir)
+        shutil_patch.rmtree.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.shutil")
+    @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.pathlib")
+    def test_non_clean_build_when_dir_exists_with_non_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
+        path_mock = Mock()
+        pathlib_patch.Path.return_value = path_mock
+        os_patch.listdir.return_value = True
+        path_mock.resolve.return_value = "long/full/path"
+        path_mock.exists.return_value = True
+        build_dir = "/somepath"
+
+        full_build_path = BuildContext._setup_build_dir(build_dir, False)
+
+        self.assertEquals(full_build_path, "long/full/path")
+
+        os_patch.listdir.assert_called_once()
+        path_mock.exists.assert_called_once()
+        path_mock.mkdir.assert_called_once_with(mode=0o755, parents=True, exist_ok=True)
+        pathlib_patch.Path.assert_called_once_with(build_dir)
+        shutil_patch.rmtree.assert_not_called()
