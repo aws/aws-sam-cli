@@ -1,6 +1,7 @@
 init:
 	SAM_CLI_DEV=1 pip install -e .
 	SAM_CLI_DEV=1 pip install -r requirements/dev.txt
+	SAM_CLI_DEV=1 pip install -r requirements/tools.txt
 
 test:
 	# Run unit tests
