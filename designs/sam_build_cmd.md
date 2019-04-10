@@ -64,6 +64,8 @@ Success criteria for the change
 8.  Integrate build action with `sam local/package/deploy` commands so
     the Lambda functions will be automatically built as part of the
     command without explicitly running the build command.
+9.  Support for building the app for debugging locally with debug
+    symbols (ex: Golang) [see design doc](build_debug_artifacts.md)
 
 Out-of-Scope
 ------------
@@ -76,8 +78,6 @@ Out-of-Scope
     package manager (ex: images, css etc)
 3.  Support to exclude certain files from the built artifact (ex: using
     .gitignore or using regex)
-4.  Support for building the app for debugging locally with debug
-    symbols (ex: Golang)
 5.  Support caching dependencies & re-installing them only when the
     dependency manifest changes (ex: by maintaining hash of
     package.json)

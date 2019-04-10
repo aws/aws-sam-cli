@@ -54,7 +54,8 @@ class ApplicationBuilder(object):
                  base_dir,
                  manifest_path_override=None,
                  container_manager=None,
-                 parallel=False):
+                 parallel=False,
+                 mode=None):
         """
         Initialize the class
 
@@ -74,6 +75,9 @@ class ApplicationBuilder(object):
 
         parallel : bool
             Optional. Set to True to build each function in parallel to improve performance
+
+        mode : str
+            Optional, name of the build mode to use ex: 'debug'
         """
         self._function_provider = function_provider
         self._build_dir = build_dir
@@ -82,6 +86,7 @@ class ApplicationBuilder(object):
 
         self._container_manager = container_manager
         self._parallel = parallel
+        self._mode = mode
 
     def build(self):
         """
@@ -211,7 +216,8 @@ class ApplicationBuilder(object):
                           scratch_dir,
                           manifest_path,
                           runtime=runtime,
-                          executable_search_paths=config.executable_search_paths)
+                          executable_search_paths=config.executable_search_paths,
+                          mode=self._mode)
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 
@@ -245,7 +251,8 @@ class ApplicationBuilder(object):
                                          log_level=log_level,
                                          optimizations=None,
                                          options=None,
-                                         executable_search_paths=config.executable_search_paths)
+                                         executable_search_paths=config.executable_search_paths,
+                                         mode=self._mode)
 
         try:
             try:

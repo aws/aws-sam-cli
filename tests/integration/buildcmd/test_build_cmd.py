@@ -324,17 +324,25 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
                                        "HelloWorld.deps.json", "HelloWorld.dll"}
 
     @parameterized.expand([
-        ("dotnetcore2.0", "Dotnetcore2.0", False),
-        ("dotnetcore2.1", "Dotnetcore2.1", False),
+        ("dotnetcore2.0", "Dotnetcore2.0", None),
+        ("dotnetcore2.1", "Dotnetcore2.1", None),
+        ("dotnetcore2.0", "Dotnetcore2.0", "debug"),
+        ("dotnetcore2.1", "Dotnetcore2.1", "debug"),
     ])
-    def test_with_dotnetcore(self, runtime, code_uri, use_container):
+    def test_with_dotnetcore(self, runtime, code_uri, mode):
         overrides = {"Runtime": runtime, "CodeUri": code_uri,
                      "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler"}
-        cmdlist = self.get_command_list(use_container=use_container,
+        cmdlist = self.get_command_list(use_container=False,
                                         parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
+
+        newenv = os.environ.copy()
+        if mode:
+            newenv["SAM_BUILD_MODE"] = mode
+
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir, env=newenv)
         process.wait()
 
         self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,

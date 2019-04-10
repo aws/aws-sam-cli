@@ -26,6 +26,7 @@ class BuildContext(object):
                  template_file,
                  base_dir,
                  build_dir,
+                 mode,
                  manifest_path=None,
                  clean=False,
                  use_container=False,
@@ -42,6 +43,7 @@ class BuildContext(object):
         self._parameter_overrides = parameter_overrides
         self._docker_network = docker_network
         self._skip_pull_image = skip_pull_image
+        self._mode = mode
 
         self._function_provider = None
         self._template_dict = None
@@ -122,3 +124,7 @@ class BuildContext(object):
             return os.path.abspath(self._manifest_path)
 
         return None
+
+    @property
+    def mode(self):
+        return self._mode
