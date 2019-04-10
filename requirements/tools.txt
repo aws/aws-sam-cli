@@ -1,0 +1,17 @@
+coverage==4.3.4
+flake8==3.3.0
+tox==2.2.1
+pytest-cov==2.4.0
+# astroid > 2.0.4 is not compatible with pylint1.7
+astroid>=1.5.8,<2.1.0
+pylint==1.7.2
+
+# Test requirements
+pytest==3.0.7
+py==1.4.33
+mock==2.0.0
+parameterized==0.6.1
+pathlib2==2.3.2; python_version<"3.4"
+futures==3.2.0; python_version<"3.2.3"
+# Py3.2 backport
+backports.tempfile==1.0
