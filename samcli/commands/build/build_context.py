@@ -73,21 +73,16 @@ class BuildContext(object):
 
     @staticmethod
     def _setup_build_dir(build_dir, clean):
+        build_path = pathlib.Path(build_dir)
 
-        # Get absolute path
-        build_dir = str(pathlib.Path(build_dir).resolve())
-
-        if not pathlib.Path(build_dir).exists():
-            # Build directory does not exist. Create the directory and all intermediate paths
-            os.makedirs(build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
-
-        if os.listdir(build_dir) and clean:
-            # Build folder contains something inside. Clear everything.
+        if build_path.exists() and os.listdir(build_dir) and clean:
+            # build folder contains something inside. Clear everything.
             shutil.rmtree(build_dir)
-            # this would have cleared the parent folder as well. So recreate it.
-            os.mkdir(build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
 
-        return build_dir
+        build_path.mkdir(mode=BuildContext._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+
+        # ensure path resolving is done after creation: https://bugs.python.org/issue32434
+        return str(build_path.resolve())
 
     @property
     def container_manager(self):
