@@ -6,7 +6,7 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 .
 ├── README.MD                   <-- This instructions file
 ├── event.json                  <-- API Gateway Proxy Integration event payload
-├── hello_world                 <-- Source code for a lambda function
+├── hello-world                 <-- Source code for a lambda function
 │   └── app.js                  <-- Lambda function code
 │   └── package.json            <-- NodeJS dependencies and scripts
 │   └── app-deps.js             <-- Lambda function code with dependencies (Bringing to the next level section)
