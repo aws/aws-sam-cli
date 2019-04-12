@@ -19,7 +19,7 @@ def test_project_tree(cookies):
     assert result.project.join('src', 'HelloWorld').isdir()
     assert result.project.join(
         'src', 'HelloWorld', 'HelloWorld.csproj').isfile()
-    assert result.project.join('src', 'HelloWorld', 'Program.cs').isfile()
+    assert result.project.join('src', 'HelloWorld', 'Function.cs').isfile()
     assert result.project.join(
         'src', 'HelloWorld', 'aws-lambda-tools-defaults.json').isfile()
     assert result.project.join(
@@ -30,7 +30,7 @@ def test_project_tree(cookies):
 
 def test_app_content(cookies):
     result = cookies.bake(extra_context={'project_name': 'my_lambda'})
-    app_file = result.project.join('src', 'HelloWorld', 'Program.cs')
+    app_file = result.project.join('src', 'HelloWorld', 'Function.cs')
     app_content = app_file.readlines()
     app_content = ''.join(app_content)
 
