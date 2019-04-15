@@ -28,18 +28,10 @@ def read_version():
     return re.search(r"__version__ = '([^']+)'", content).group(1)
 
 
-base_reqs = read_requirements("base.txt")
-prod_reqs = read_requirements("prod.txt")
-
-requirements = base_reqs + prod_reqs
 cmd_name = "sam"
-
 if os.getenv("SAM_CLI_DEV"):
     # We are installing in a dev environment
     cmd_name = "samdev"
-
-    # Don't install prod requirements for dev release
-    requirements = base_reqs
 
 setup(
     name='aws-sam-cli',
@@ -60,7 +52,10 @@ setup(
             '{}=samcli.cli.main:cli'.format(cmd_name)
         ]
     },
-    install_requires=requirements,
+    install_requires=read_requirements('base.txt'),
+    extras_require={
+        'dev': read_requirements('dev.txt')
+    },
     include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',

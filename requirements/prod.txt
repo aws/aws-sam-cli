@@ -1,4 +1,0 @@
-# SAM CLI depends on these libraries that the team authors/controls. Pinning them to particular version here
-# for production usage.
-
-aws_lambda_builders==0.2.1
