@@ -36,7 +36,8 @@ class LambdaBuildContainer(Container):
                  optimizations=None,
                  options=None,
                  executable_search_paths=None,
-                 log_level=None):
+                 log_level=None,
+                 mode=None):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
         manifest_file_name = abs_manifest_path.name
@@ -67,7 +68,8 @@ class LambdaBuildContainer(Container):
                                           runtime,
                                           optimizations,
                                           options,
-                                          executable_search_paths)
+                                          executable_search_paths,
+                                          mode)
 
         image = LambdaBuildContainer._get_image(runtime)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
@@ -111,7 +113,8 @@ class LambdaBuildContainer(Container):
                       runtime,
                       optimizations,
                       options,
-                      executable_search_paths):
+                      executable_search_paths,
+                      mode):
 
         return json.dumps({
             "jsonschema": "2.0",
@@ -134,7 +137,8 @@ class LambdaBuildContainer(Container):
                 "runtime": runtime,
                 "optimizations": optimizations,
                 "options": options,
-                "executable_search_paths": executable_search_paths
+                "executable_search_paths": executable_search_paths,
+                "mode": mode
             }
         })
 

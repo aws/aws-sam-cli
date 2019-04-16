@@ -46,7 +46,8 @@ class TestLambdaBuildContainer_init(TestCase):
                                          "runtime",
                                          optimizations="optimizations",
                                          options="options",
-                                         log_level="log-level")
+                                         log_level="log-level",
+                                         mode="mode")
 
         self.assertEquals(container.image, image)
         self.assertEquals(container.executable_name, "lambda-builders")
@@ -93,7 +94,8 @@ class TestLambdaBuildContainer_make_request(TestCase):
                                                     "runtime",
                                                     "optimizations",
                                                     "options",
-                                                    "executable_search_paths")
+                                                    "executable_search_paths",
+                                                    "mode")
 
         self.maxDiff = None  # Print whole json diff
         self.assertEqual(json.loads(result), {
@@ -114,7 +116,8 @@ class TestLambdaBuildContainer_make_request(TestCase):
                 "runtime": "runtime",
                 "optimizations": "optimizations",
                 "options": "options",
-                "executable_search_paths": "executable_search_paths"
+                "executable_search_paths": "executable_search_paths",
+                "mode": "mode"
             }
         })
 
