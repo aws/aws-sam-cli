@@ -12,6 +12,7 @@ class TestCli(TestCase):
     def setUp(self):
         self.location = None
         self.runtime = "python3.6"
+        self.dependency_manager = "pip"
         self.output_dir = tempfile.mkdtemp()
         self.name = "testing project {}".format(random.randint(1, 10))
         self.no_input = False
@@ -32,7 +33,8 @@ class TestCli(TestCase):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
-            ctx=None, location=self.location, runtime=self.runtime, output_dir=self.output_dir,
+            ctx=None, location=self.location, runtime=self.runtime,
+            dependency_manager=self.dependency_manager, output_dir=self.output_dir,
             name=self.name, no_input=self.no_input)
 
         # THEN we should see a new project created and a successful return
@@ -45,7 +47,8 @@ class TestCli(TestCase):
         self.location = "https://github.com/aws-samples/cookiecutter-aws-sam-python"
 
         init_cli(
-            ctx=None, location=self.location, runtime=self.runtime, output_dir=self.output_dir,
+            ctx=None, location=self.location, runtime=self.runtime,
+            dependency_manager=self.dependency_manager, output_dir=self.output_dir,
             name=self.name, no_input=True)
 
         # THEN we should see a new project created and a successful return
