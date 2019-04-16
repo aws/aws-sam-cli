@@ -61,7 +61,7 @@ class BuildIntegBase(TestCase):
         return command
 
     def get_command_list(self, build_dir=None, base_dir=None, manifest_path=None, use_container=None,
-                         parameter_overrides=None):
+                         parameter_overrides=None, mode=None):
 
         command_list = [self.cmd, "build", "-t", self.template_path]
 
@@ -100,7 +100,7 @@ class BuildIntegBase(TestCase):
             self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
 
     def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
-        LOG.info("Invoking built function '{}'", function_logical_id)
+        LOG.info("Invoking built function '{}'".format(function_logical_id))
 
         cmdlist = [self.cmd, "local", "invoke", function_logical_id, "-t", str(template_path), "--no-event",
                    "--parameter-overrides", overrides]

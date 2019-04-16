@@ -49,7 +49,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
             "runtimes": ["dotnetcore", "dotnetcore1.0", "dotnetcore2.0", "dotnetcore2.1"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
-            "build": False
+            "build": True
         },
     ],
     "go": [

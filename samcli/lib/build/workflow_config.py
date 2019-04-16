@@ -41,11 +41,25 @@ JAVA_GRADLE_CONFIG = CONFIG(
                 manifest_name="build.gradle",
                 executable_search_paths=None)
 
+JAVA_KOTLIN_GRADLE_CONFIG = CONFIG(
+                language="java",
+                dependency_manager="gradle",
+                application_framework=None,
+                manifest_name="build.gradle.kts",
+                executable_search_paths=None)
+
 JAVA_MAVEN_CONFIG = CONFIG(
                 language="java",
                 dependency_manager="maven",
                 application_framework=None,
                 manifest_name="pom.xml",
+                executable_search_paths=None)
+
+DOTNET_CLIPACKAGE_CONFIG = CONFIG(
+                language="dotnet",
+                dependency_manager="cli-package",
+                application_framework=None,
+                manifest_name=".csproj",
                 executable_search_paths=None)
 
 
@@ -85,12 +99,15 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "nodejs6.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs8.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
+        "dotnetcore2.0": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
 
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
         "java8": ManifestWorkflowSelector([
             # Gradle builder needs custom executable paths to find `gradlew` binary
             JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
             JAVA_MAVEN_CONFIG
         ]),
     }
@@ -106,6 +123,42 @@ def get_workflow_config(runtime, code_dir, project_dir):
     except ValueError as ex:
         raise UnsupportedRuntimeException("Unable to find a supported build workflow for runtime '{}'. Reason: {}"
                                           .format(runtime, str(ex)))
+
+
+def supports_build_in_container(config):
+    """
+    Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
+
+    Parameters
+    ----------
+    config namedtuple(Capability)
+        Config specifying the particular build workflow
+
+    Returns
+    -------
+    tuple(bool, str)
+        True, if this workflow can be built inside a container. False, along with a reason message if it cannot be.
+    """
+
+    def _key(c):
+        return str(c.language) + str(c.dependency_manager) + str(c.application_framework)
+
+    # This information could have beeen bundled inside the Workflow Config object. But we this way because
+    # ultimately the workflow's implementation dictates whether it can run within a container or not.
+    # A "workflow config" is like a primary key to identify the workflow. So we use the config as a key in the
+    # map to identify which workflows can support building within a container.
+
+    unsupported = {
+        _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
+                                        "Try building without the container. Most .NET Core functions will build "
+                                        "successfully.",
+    }
+
+    thiskey = _key(config)
+    if thiskey in unsupported:
+        return False, unsupported[thiskey]
+
+    return True, None
 
 
 class BasicWorkflowSelector(object):

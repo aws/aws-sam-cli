@@ -51,6 +51,7 @@ class Test_get_workflow_config(TestCase):
 
     @parameterized.expand([
         ("java8", "build.gradle", "gradle"),
+        ("java8", "build.gradle.kts", "gradle"),
         ("java8", "pom.xml", "maven")
     ])
     @patch("samcli.lib.build.workflow_config.os")

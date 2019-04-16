@@ -8,7 +8,7 @@ from mock import Mock, call, patch
 
 from samcli.lib.build.app_builder import ApplicationBuilder,\
     UnsupportedBuilderLibraryVersionError, BuildError, \
-    LambdaBuilderError
+    LambdaBuilderError, ContainerBuildNotSupported
 
 
 class TestApplicationBuilder_build(TestCase):
@@ -182,7 +182,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
     def setUp(self):
         self.builder = ApplicationBuilder(Mock(),
                                           "/build/dir",
-                                          "/base/dir")
+                                          "/base/dir",
+                                          mode="mode")
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_use_lambda_builder(self, lambda_builder_mock):
@@ -194,7 +195,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                                                          "artifacts_dir",
                                                          "scratch_dir",
                                                          "manifest_path",
-                                                         "runtime")
+                                                         "runtime",)
         self.assertEquals(result, "artifacts_dir")
 
         lambda_builder_mock.assert_called_with(language=config_mock.language,
@@ -206,7 +207,8 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
                                                        "scratch_dir",
                                                        "manifest_path",
                                                        runtime="runtime",
-                                                       executable_search_paths=config_mock.executable_search_paths)
+                                                       executable_search_paths=config_mock.executable_search_paths,
+                                                       mode="mode")
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_raise_on_error(self, lambda_builder_mock):
@@ -231,7 +233,8 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         self.builder = ApplicationBuilder(Mock(),
                                           "/build/dir",
                                           "/base/dir",
-                                          container_manager=self.container_manager)
+                                          container_manager=self.container_manager,
+                                          mode="mode")
         self.builder._parse_builder_response = Mock()
 
     @patch("samcli.lib.build.app_builder.LambdaBuildContainer")
@@ -275,7 +278,8 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
                                                          log_level=log_level,
                                                          optimizations=None,
                                                          options=None,
-                                                         executable_search_paths=config.executable_search_paths)
+                                                         executable_search_paths=config.executable_search_paths,
+                                                         mode="mode")
 
         self.container_manager.run.assert_called_with(container_mock)
         self.builder._parse_builder_response.assert_called_once_with(stdout_data, container_mock.image)
@@ -308,6 +312,39 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
         self.assertEquals(str(ctx.exception), msg)
         self.container_manager.stop.assert_called_with(container_mock)
+
+    def test_must_raise_on_docker_not_running(self):
+        config = Mock()
+
+        self.container_manager.is_docker_reachable = False
+
+        with self.assertRaises(BuildError) as ctx:
+            self.builder._build_function_on_container(config,
+                                                      "source_dir",
+                                                      "artifacts_dir",
+                                                      "scratch_dir",
+                                                      "manifest_path",
+                                                      "runtime")
+
+        self.assertEquals(str(ctx.exception),
+                          "Docker is unreachable. Docker needs to be running to build inside a container.")
+
+    @patch("samcli.lib.build.app_builder.supports_build_in_container")
+    def test_must_raise_on_unsupported_container_build(self, supports_build_in_container_mock):
+        config = Mock()
+
+        reason = "my reason"
+        supports_build_in_container_mock.return_value = (False, reason)
+
+        with self.assertRaises(ContainerBuildNotSupported) as ctx:
+            self.builder._build_function_on_container(config,
+                                                      "source_dir",
+                                                      "artifacts_dir",
+                                                      "scratch_dir",
+                                                      "manifest_path",
+                                                      "runtime")
+
+        self.assertEquals(str(ctx.exception), reason)
 
 
 class TestApplicationBuilder_parse_builder_response(TestCase):

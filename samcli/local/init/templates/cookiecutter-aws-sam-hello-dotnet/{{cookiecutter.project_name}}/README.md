@@ -16,23 +16,43 @@ Please see the [currently supported patch of each major version of .NET Core](ht
 * [AWS Toolkit for Visual Studio](https://aws.amazon.com/visualstudio/)
 * [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) which are AWS extensions to the .NET CLI focused on building .NET Core and ASP.NET Core applications and deploying them to AWS services including Amazon Elastic Container Service, AWS Elastic Beanstalk and AWS Lambda.
 
-> **Note: this project uses [Cake Build](https://cakebuild.net/) for build, test and packaging requirements. You do not need to have the [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) installed, but are free to do so if you which to use them. Version 3 of the Amazon.Lambda.Tools does require .NET Core 2.1 for installation, but can be used to deploy older versions of .NET Core.**
+> **Note: You do not need to have the [AWS Extensions for .NET CLI](https://github.com/aws/aws-extensions-for-dotnet-cli) installed, but are free to do so if you which to use them. Version 3 of the Amazon.Lambda.Tools does require .NET Core 2.1 for installation, but can be used to deploy older versions of .NET Core.**
 
 ## Setup process
 
-### Linux & macOS
+### Folder Structure
 
-```bash
-sh build.sh --target=Package
+AWS Lambda C# runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies. `CodeUri` must be set to the path to folder containing your Lambda function source code and `.csproj` file.
+
+```yaml
+...
+    HelloWorldFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            CodeUri: ./src/HelloWorld
+            ...
 ```
 
-### Windows (Powershell)
+### Building your application 
 
-```powershell
-build.ps1 --target=Package
+```bash
+sam build
 ```
 
 ### Local development
+
+**Invoking function locally**
+
+```bash
+sam local invoke --no-event
+```
+
+To invoke with an event you can pass in a json file to the command.
+
+```bash
+sam local invoke -e event.json
+```
+
 
 **Invoking function locally through local API Gateway**
 
@@ -55,17 +75,6 @@ Events:
 If the previous command run successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
 
 ## Packaging and deployment
-
-AWS Lambda C# runtime requires a flat folder with all dependencies including the application. SAM will use `CodeUri` property to know where to look up for both application and dependencies:
-
-```yaml
-...
-    HelloWorldFunction:
-        Type: AWS::Serverless::Function
-        Properties:
-            CodeUri: artifacts/HelloWorld.zip            
-            ...
-```
 
 First and foremost, we need an `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
 
@@ -108,43 +117,7 @@ For testing our code, we use XUnit and you can use `dotnet test` to run tests de
 dotnet test test/HelloWorld.Test
 ```
 
-Alternatively, you can use Cake. It discovers and executes all the tests.
-
-### Linux & macOS
-
-```bash
-sh build.sh --target=Test
-```
-
-### Windows (Powershell)
-
-```powershell
-build.ps1 --target=Test
-```
-
-# Appendix
-
-## AWS CLI commands
-
-AWS CLI commands to package, deploy and describe outputs defined within the AWS CloudFormation stack:
-
-```bash
-aws cloudformation package \
-    --template-file template.yaml \
-    --output-template-file packaged.yaml \
-    --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
-
-aws cloudformation deploy \
-    --template-file packaged.yaml \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides MyParameterSample=MySampleValue
-
-aws cloudformation describe-stacks \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
-```
-
-## Next Steps
+# Next Steps
 
 Create your own .NET Core solution template to use with SAM CLI. [Cookiecutter for AWS SAM and .NET](https://github.com/aws-samples/cookiecutter-aws-sam-dotnet) provides you with a sample implementation how to use cookiecutter templating library to standardise how you initialise your Serverless projects.
 
