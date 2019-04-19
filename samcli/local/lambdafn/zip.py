@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 
 S_IFLNK = 0xA
 
+
 def _is_symlink(file_info):
 
 def _is_symlink(file_info):
