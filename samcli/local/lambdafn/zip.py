@@ -20,6 +20,28 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
+S_IFLNK = 0xA
+
+
+def issymlink(file_info):
+    """
+    Check the upper 4 bits of the external attribute for a symlink.
+    See: https://unix.stackexchange.com/questions/14705/the-zip-formats-external-file-attribute
+
+    Parameters
+    ----------
+    file_info : zipfile.ZipInfo
+        The ZipInfo for a ZipFile
+
+    Returns
+    -------
+    bool
+        A response regarding whether the ZipInfo defines a symlink or not.
+    """
+
+    return (file_info.external_attr >> 28) == S_IFLNK
+
+
 def unzip(zip_file_path, output_dir, permission=None):
     """
     Unzip the given file into the given directory while preserving file permissions in the process.
