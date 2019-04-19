@@ -12,6 +12,11 @@ from nose_parameterized import parameterized, param
 from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissions
 
 
+S_IFDIR = 0x4
+S_IFREG = 0x8
+S_IFLNK = 0xA
+
+
 class TestUnzipWithPermissions(TestCase):
 
     """
@@ -35,30 +40,29 @@ class TestUnzipWithPermissions(TestCase):
     """
 
     files_with_external_attr = {
-        "1.txt": {
-            "file_type": 0o10,
+        "folder1/1.txt": {
+            "file_type": S_IFREG,
             "contents": b'foo',
             "permissions": 0o644,
         },
         "folder1/2.txt": {
-            "file_type": 0o10,
+            "file_type": S_IFREG,
             "contents": b'bar',
             "permissions": 0o777,
         },
-        "folder2/subdir/3.txt": {
-            "file_type": 0o10,
+        "folder2/subdir": {
+            "file_type": S_IFDIR,
+            "permissions": 0o755,
+        },
+        "folder2/subdir/1.txt": {
+            "file_type": S_IFREG,
             "contents": b'foo bar',
             "permissions": 0o666,
         },
-        "folder2/subdir/4.txt": {
-            "file_type": 0o10,
+        "folder2/subdir/2.txt": {
+            "file_type": S_IFREG,
             "contents": b'bar foo',
             "permissions": 0o400,
-        },
-        "symlinkToF2": {
-            "file_type": 0o12,
-            "contents": b'1.txt',
-            "permissions": 0o644,
         }
     }
 
@@ -71,15 +75,18 @@ class TestUnzipWithPermissions(TestCase):
     def test_must_unzip(self, verify_external_attributes):
         self._reset(verify_external_attributes)
 
-        with self._create_zip(self.files_with_external_attr, verify_external_attributes) as zip_file_name:
+        with self._create_zip(self.files_with_external_attr, check_permissions) as zip_file_name:
             with self._temp_dir() as extract_dir:
                 unzip(zip_file_name, extract_dir)
 
                 for root, dirs, files in os.walk(extract_dir):
                     for file in files:
-                        self._verify_file(extract_dir, file, root, verify_external_attributes)
+                        filepath = os.path.join(extract_dir, root, file)
+                        perm = oct(stat.S_IMODE(os.stat(filepath).st_mode))
+                        key = os.path.relpath(filepath, extract_dir)
+                        expected_permission = oct(self.files_with_external_attr[key]["permissions"])
 
-        self._verify_file_count(verify_external_attributes)
+                        self.assertIn(key, self.files_with_external_attr)
 
     @contextmanager
     def _reset(self, verify_external_attributes):
@@ -95,21 +102,22 @@ class TestUnzipWithPermissions(TestCase):
                     self.expected_files += 1
 
     @contextmanager
-    def _create_zip(self, file_dict, add_attributes=True):
+    def _create_zip(self, files_with_permissions, add_external_attributes=True):
 
         zipfilename = None
         try:
             zipfilename = NamedTemporaryFile(mode="w+b").name
 
             zf = zipfile.ZipFile(zipfilename, "w", zipfile.ZIP_DEFLATED)
-            for filename, data in file_dict.items():
+            for filename, data in files_with_permissions.items():
 
                 fileinfo = zipfile.ZipInfo(filename)
 
-                if add_attributes:
+                if add_external_attributes:
                     fileinfo.external_attr = (data["file_type"] << 28) | (data["permissions"] << 16)
 
-                zf.writestr(fileinfo, data["contents"])
+                if data["file_type"] == S_IFREG:
+                    zf.writestr(fileinfo, data["contents"])
 
             zf.close()
 
