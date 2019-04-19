@@ -62,10 +62,7 @@ def unzip(zip_file_path, output_dir, permission=None):
 
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
-            name = file_info.filename
-            extracted_path = os.path.join(output_dir, name)
-
-            zip_ref.extract(name, output_dir)
+            extracted_path = zip_ref.extract(file_info, output_dir)
             _set_permissions(file_info, extracted_path)
 
             _override_permissions(extracted_path, permission)
