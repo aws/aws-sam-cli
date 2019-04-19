@@ -12,19 +12,64 @@ from nose_parameterized import parameterized, param
 from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissions
 
 
+S_IFDIR = 0x4
+S_IFREG = 0x8
+S_IFLNK = 0xA
+
+
 class TestUnzipWithPermissions(TestCase):
 
-    files_with_permissions = {
-        "folder1/1.txt": 0o644,
-        "folder1/2.txt": 0o777,
-        "folder2/subdir/1.txt": 0o666,
-        "folder2/subdir/2.txt": 0o400
+    """
+    External Attribute Magic = type + permission + DOS is-dir flag?
+
+    TTTTugsrwxrwxrwx0000000000ADVSHR
+    ^^^^____________________________ File Type [UPPER 4 bits, 29-32]
+        ^___________________________ setuid [bit 28]
+         ^__________________________ setgid [bit 27]
+          ^_________________________ sticky [bit 26]
+           ^^^^^^^^^________________ Permissions [bits 17-25]
+                    ^^^^^^^^________ Other [bits 9-16]
+                            ^^^^^^^^ DOS attribute bits: [LOWER 8 bits]
+
+    Interesting File Types
+    S_IFDIR  0040000  /* directory */
+    S_IFREG  0100000  /* regular */
+    S_IFLNK  0120000  /* symbolic link */
+
+    See: https://unix.stackexchange.com/questions/14705/%20the-zip-formats-external-file-attribute
+    """
+
+    files_with_external_attr = {
+        "folder1/1.txt": {
+            "file_type": S_IFREG,
+            "contents": b'foo',
+            "permissions": 0o644,
+        },
+        "folder1/2.txt": {
+            "file_type": S_IFREG,
+            "contents": b'bar',
+            "permissions": 0o777,
+        },
+        "folder2/subdir": {
+            "file_type": S_IFDIR,
+            "permissions": 0o755,
+        },
+        "folder2/subdir/1.txt": {
+            "file_type": S_IFREG,
+            "contents": b'foo bar',
+            "permissions": 0o666,
+        },
+        "folder2/subdir/2.txt": {
+            "file_type": S_IFREG,
+            "contents": b'bar foo',
+            "permissions": 0o400,
+        }
     }
 
     @parameterized.expand([param(True), param(False)])
     def test_must_unzip(self, check_permissions):
 
-        with self._create_zip(self.files_with_permissions, check_permissions) as zip_file_name:
+        with self._create_zip(self.files_with_external_attr, check_permissions) as zip_file_name:
             with self._temp_dir() as extract_dir:
 
                 unzip(zip_file_name, extract_dir)
@@ -34,9 +79,9 @@ class TestUnzipWithPermissions(TestCase):
                         filepath = os.path.join(extract_dir, root, file)
                         perm = oct(stat.S_IMODE(os.stat(filepath).st_mode))
                         key = os.path.relpath(filepath, extract_dir)
-                        expected_permission = oct(self.files_with_permissions[key])
+                        expected_permission = oct(self.files_with_external_attr[key]["permissions"])
 
-                        self.assertIn(key, self.files_with_permissions)
+                        self.assertIn(key, self.files_with_external_attr)
 
                         if check_permissions:
                             self.assertEquals(expected_permission,
@@ -44,21 +89,22 @@ class TestUnzipWithPermissions(TestCase):
                                               "File {} has wrong permission {}".format(key, perm))
 
     @contextmanager
-    def _create_zip(self, files_with_permissions, add_permissions=True):
+    def _create_zip(self, files_with_permissions, add_external_attributes=True):
 
         zipfilename = None
-        data = b'hello world'
         try:
             zipfilename = NamedTemporaryFile(mode="w+b").name
 
             zf = zipfile.ZipFile(zipfilename, "w", zipfile.ZIP_DEFLATED)
-            for filename, perm in files_with_permissions.items():
+            for filename, data in files_with_permissions.items():
+
                 fileinfo = zipfile.ZipInfo(filename)
 
-                if add_permissions:
-                    fileinfo.external_attr = perm << 16
+                if add_external_attributes:
+                    fileinfo.external_attr = (data["file_type"] << 28) | (data["permissions"] << 16)
 
-                zf.writestr(fileinfo, data)
+                if data["file_type"] == S_IFREG:
+                    zf.writestr(fileinfo, data["contents"])
 
             zf.close()
 
