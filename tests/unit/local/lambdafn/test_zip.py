@@ -124,6 +124,21 @@ class TestUnzipWithPermissions(TestCase):
                 os.remove(zipfilename)
 
     @contextmanager
+    @contextmanager
+    def _verify_file_count(self, verify_external_attributes):
+        if verify_external_attributes:
+            self.assertEqual(
+                self.expected_files,
+                self.actual_files,
+                "Expected {} files but found {}.".format(self.expected_files, self.actual_files)
+            )
+            self.assertEqual(
+                self.expected_symlinks,
+                self.actual_symlinks,
+                "Expected {} symlinks but found {}.".format(self.expected_symlinks, self.actual_symlinks)
+            )
+
+    @contextmanager
     def _temp_dir(self):
         name = None
         try:
