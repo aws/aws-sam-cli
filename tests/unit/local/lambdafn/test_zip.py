@@ -12,11 +12,6 @@ from nose_parameterized import parameterized, param
 from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissions
 
 
-S_IFDIR = 0x4
-S_IFREG = 0x8
-S_IFLNK = 0xA
-
-
 class TestUnzipWithPermissions(TestCase):
 
     """
