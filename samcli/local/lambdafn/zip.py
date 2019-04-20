@@ -125,7 +125,7 @@ def _override_permissions(path, permission):
 
     """
     if permission:
-        os.chmod(path, permission)
+        os.lchmod(path, permission)
 
 
 def _set_permissions(zip_file_info, extracted_path):
@@ -149,7 +149,7 @@ def _set_permissions(zip_file_info, extracted_path):
         LOG.debug("File %s in zipfile does not have permission information", zip_file_info.filename)
         return
 
-    os.chmod(extracted_path, permission)
+    os.lchmod(extracted_path, permission)
 
 
 def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):

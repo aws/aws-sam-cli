@@ -259,10 +259,10 @@ class TestOverridePermissions(TestCase):
     def test_must_override_permissions(self, os_patch):
         _override_permissions(path="./home", permission=0o700)
 
-        os_patch.chmod.assert_called_once_with("./home", 0o700)
+        os_patch.lchmod.assert_called_once_with("./home", 0o700)
 
     @patch('samcli.local.lambdafn.zip.os')
     def test_must_not_override_permissions(self, os_patch):
         _override_permissions(path="./home", permission=None)
 
-        os_patch.chmod.assert_not_called()
+        os_patch.lchmod.assert_not_called()
