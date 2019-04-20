@@ -124,6 +124,20 @@ class TestUnzipWithPermissions(TestCase):
                 os.remove(zipfilename)
 
     @contextmanager
+    def _verify_file(self, extract_dir, file, root, verify_external_attributes):
+        filepath = os.path.join(extract_dir, root, file)
+        key = os.path.relpath(filepath, extract_dir)
+        mode = os.lstat(filepath).st_mode
+        actual_permissions = oct(stat.S_IMODE(mode))
+        expected_permission = oct(self.files_with_external_attr[key]["permissions"])
+        self.assertIn(key, self.files_with_external_attr)
+        if verify_external_attributes:
+            self._verify_external_attributes(
+                actual_permissions,
+                expected_permission,
+                key,
+                mode)
+
     @contextmanager
     def _verify_external_attributes(self, actual_permissions, expected_permission, key,
                                     mode):
