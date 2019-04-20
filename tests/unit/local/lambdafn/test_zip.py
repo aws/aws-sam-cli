@@ -62,6 +62,11 @@ class TestUnzipWithPermissions(TestCase):
         }
     }
 
+    expected_files = 0
+    expected_symlinks = 0
+    actual_files = 0
+    actual_symlinks = 0
+
     @parameterized.expand([param(True), param(False)])
     def test_must_unzip(self, check_permissions):
 
@@ -79,10 +84,18 @@ class TestUnzipWithPermissions(TestCase):
 
                         self.assertIn(key, self.files_with_external_attr)
 
-                        if check_permissions:
+    @contextmanager
                             self.assertEquals(expected_permission,
-                                              perm,
-                                              "File {} has wrong permission {}".format(key, perm))
+        self.expected_files = 0
+        self.expected_symlinks = 0
+        self.actual_files = 0
+        self.actual_symlinks = 0
+        if verify_external_attributes:
+            for filename, data in self.files_with_external_attr.items():
+                if data["file_type"] == 0o12:
+                    self.expected_symlinks += 1
+                elif data["file_type"] == 0o10:
+                    self.expected_files += 1
 
     @contextmanager
     def _create_zip(self, files_with_permissions, add_external_attributes=True):
