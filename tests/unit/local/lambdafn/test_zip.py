@@ -125,6 +125,31 @@ class TestUnzipWithPermissions(TestCase):
 
     @contextmanager
     @contextmanager
+    def _verify_external_attributes(self, actual_permissions, expected_permission, key,
+                                    mode):
+        if stat.S_ISREG(mode):
+            self.assertTrue(
+                self.files_with_external_attr[key]["file_type"] == 0o10,
+                "Expected a regular file."
+            )
+            self.actual_files += 1
+        elif stat.S_ISLNK(mode):
+            self.assertTrue(
+                self.files_with_external_attr[key]["file_type"] == 0o12,
+                "Expected a Symlink."
+            )
+            self.actual_symlinks += 1
+        self.assertEquals(
+            expected_permission,
+            actual_permissions,
+            "File {} has wrong permission {}, expected {}.".format(
+                key,
+                actual_permissions,
+                expected_permission
+            )
+        )
+
+    @contextmanager
     def _verify_file_count(self, verify_external_attributes):
         if verify_external_attributes:
             self.assertEqual(
