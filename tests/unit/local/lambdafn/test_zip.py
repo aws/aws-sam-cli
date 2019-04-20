@@ -71,18 +71,15 @@ class TestUnzipWithPermissions(TestCase):
     def test_must_unzip(self, verify_external_attributes):
         self._reset(verify_external_attributes)
 
-        with self._create_zip(self.files_with_external_attr, check_permissions) as zip_file_name:
+        with self._create_zip(self.files_with_external_attr, verify_external_attributes) as zip_file_name:
             with self._temp_dir() as extract_dir:
                 unzip(zip_file_name, extract_dir)
 
                 for root, dirs, files in os.walk(extract_dir):
                     for file in files:
-                        filepath = os.path.join(extract_dir, root, file)
-                        perm = oct(stat.S_IMODE(os.stat(filepath).st_mode))
-                        key = os.path.relpath(filepath, extract_dir)
-                        expected_permission = oct(self.files_with_external_attr[key]["permissions"])
+                        self._verify_file(extract_dir, file, root, verify_external_attributes)
 
-                        self.assertIn(key, self.files_with_external_attr)
+        self._verify_file_count(verify_external_attributes)
 
     @contextmanager
     def _reset(self, verify_external_attributes):
