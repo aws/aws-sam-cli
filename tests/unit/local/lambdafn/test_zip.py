@@ -98,22 +98,21 @@ class TestUnzipWithPermissions(TestCase):
                     self.expected_files += 1
 
     @contextmanager
-    def _create_zip(self, files_with_permissions, add_external_attributes=True):
+    def _create_zip(self, file_dict, add_attributes=True):
 
         zipfilename = None
         try:
             zipfilename = NamedTemporaryFile(mode="w+b").name
 
             zf = zipfile.ZipFile(zipfilename, "w", zipfile.ZIP_DEFLATED)
-            for filename, data in files_with_permissions.items():
+            for filename, data in file_dict.items():
 
                 fileinfo = zipfile.ZipInfo(filename)
 
-                if add_external_attributes:
+                if add_attributes:
                     fileinfo.external_attr = (data["file_type"] << 28) | (data["permissions"] << 16)
 
-                if data["file_type"] == S_IFREG:
-                    zf.writestr(fileinfo, data["contents"])
+                zf.writestr(fileinfo, data["contents"])
 
             zf.close()
 
