@@ -35,29 +35,30 @@ class TestUnzipWithPermissions(TestCase):
     """
 
     files_with_external_attr = {
-        "folder1/1.txt": {
-            "file_type": S_IFREG,
+        "1.txt": {
+            "file_type": 0o10,
             "contents": b'foo',
             "permissions": 0o644,
         },
         "folder1/2.txt": {
-            "file_type": S_IFREG,
+            "file_type": 0o10,
             "contents": b'bar',
             "permissions": 0o777,
         },
-        "folder2/subdir": {
-            "file_type": S_IFDIR,
-            "permissions": 0o755,
-        },
-        "folder2/subdir/1.txt": {
-            "file_type": S_IFREG,
+        "folder2/subdir/3.txt": {
+            "file_type": 0o10,
             "contents": b'foo bar',
             "permissions": 0o666,
         },
-        "folder2/subdir/2.txt": {
-            "file_type": S_IFREG,
+        "folder2/subdir/4.txt": {
+            "file_type": 0o10,
             "contents": b'bar foo',
             "permissions": 0o400,
+        },
+        "symlinkToF2": {
+            "file_type": 0o12,
+            "contents": b'1.txt',
+            "permissions": 0o644,
         }
     }
 
