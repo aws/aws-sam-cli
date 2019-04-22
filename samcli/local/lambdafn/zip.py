@@ -107,7 +107,8 @@ def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
         Label to use in the Progressbar
     """
     try:
-        get_request = requests.get(uri, stream=True)
+
+        get_request = requests.get(uri, stream=True, verify=os.environ.get('AWS_CA_BUNDLE', True))
 
         with open(layer_zip_path, 'wb') as local_layer_file:
             file_length = int(get_request.headers['Content-length'])

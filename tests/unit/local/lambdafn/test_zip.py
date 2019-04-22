@@ -5,7 +5,7 @@ import shutil
 from unittest import TestCase
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile, mkdtemp
-from mock import Mock, patch
+from mock import Mock, patch, mock
 
 from nose_parameterized import parameterized, param
 
@@ -86,6 +86,7 @@ class TestUnzipFromUri(TestCase):
     @patch('samcli.local.lambdafn.zip.progressbar')
     @patch('samcli.local.lambdafn.zip.requests')
     @patch('samcli.local.lambdafn.zip.open')
+    @mock.patch.dict(os.environ, {})
     def test_successfully_unzip_from_uri(self, open_patch, requests_patch, progressbar_patch, path_patch, unzip_patch):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}
@@ -104,7 +105,7 @@ class TestUnzipFromUri(TestCase):
 
         unzip_from_uri('uri', 'layer_zip_path', 'output_zip_dir', 'layer_arn')
 
-        requests_patch.get.assert_called_with('uri', stream=True)
+        requests_patch.get.assert_called_with('uri', stream=True, verify=os.environ.get('AWS_CA_BUNDLE', True))
         get_request_mock.iter_content.assert_called_with(chunk_size=None)
         open_patch.assert_called_with('layer_zip_path', 'wb')
         file_mock.write.assert_called_with(b'data1')
@@ -118,6 +119,7 @@ class TestUnzipFromUri(TestCase):
     @patch('samcli.local.lambdafn.zip.progressbar')
     @patch('samcli.local.lambdafn.zip.requests')
     @patch('samcli.local.lambdafn.zip.open')
+    @mock.patch.dict(os.environ, {})
     def test_not_unlink_file_when_file_doesnt_exist(self,
                                                     open_patch,
                                                     requests_patch,
@@ -141,7 +143,7 @@ class TestUnzipFromUri(TestCase):
 
         unzip_from_uri('uri', 'layer_zip_path', 'output_zip_dir', 'layer_arn')
 
-        requests_patch.get.assert_called_with('uri', stream=True)
+        requests_patch.get.assert_called_with('uri', stream=True, verify=os.environ.get('AWS_CA_BUNDLE', True))
         get_request_mock.iter_content.assert_called_with(chunk_size=None)
         open_patch.assert_called_with('layer_zip_path', 'wb')
         file_mock.write.assert_called_with(b'data1')

@@ -91,6 +91,10 @@ Move back to your SAM CLI directory and re-run init, If necessary: open requirem
 Running Tests
 -------------
 
+### Unit testing with one Python version
+
+If you're trying to do a quick run, it's ok to use the current python version.  Run `make pr`.
+
 ### Unit testing with multiple Python versions
 
 [tox](http://tox.readthedocs.io/en/latest/) is used to run tests against
