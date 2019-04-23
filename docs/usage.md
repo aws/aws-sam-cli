@@ -451,7 +451,7 @@ Debugging Golang functions
 
 Golang function debugging is slightly different when compared to
 Node.JS, Java, and Python. We require
-[delve](https://github.com/derekparker/delve) as the debugger, and wrap
+[delve](https://github.com/go-delve/delve) as the debugger, and wrap
 your function with it at runtime. The debugger is run in headless mode,
 listening on the debug port.
 
@@ -463,7 +463,7 @@ You must compile [delve]{.title-ref} to run in the container and provide
 its local path via the [\--debugger-path]{.title-ref} argument. Build
 delve locally as follows:
 
-`GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/derekparker/delve/cmd/dlv`
+`GOARCH=amd64 GOOS=linux go build -o <delve folder path>/dlv github.com/go-delve/delve/cmd/dlv`
 
 NOTE: The output path needs to end in [/dlv]{.title-ref}. The docker
 container will expect the dlv binary to be in the \<delve folder path\>
