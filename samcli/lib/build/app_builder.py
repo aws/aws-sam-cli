@@ -49,7 +49,7 @@ class ApplicationBuilder(object):
     """
 
     def __init__(self,
-                 function_provider,
+                 functions_to_build,
                  build_dir,
                  base_dir,
                  manifest_path_override=None,
@@ -61,8 +61,8 @@ class ApplicationBuilder(object):
 
         Parameters
         ----------
-        function_provider : samcli.commands.local.lib.sam_function_provider.SamFunctionProvider
-            Provider that can vend out functions available in the SAM template
+        functions_to_build: Iterator
+            Iterator that can vend out functions available in the SAM template
 
         build_dir : str
             Path to the directory where we will be storing built artifacts
@@ -79,7 +79,7 @@ class ApplicationBuilder(object):
         mode : str
             Optional, name of the build mode to use ex: 'debug'
         """
-        self._function_provider = function_provider
+        self._functions_to_build = functions_to_build
         self._build_dir = build_dir
         self._base_dir = base_dir
         self._manifest_path_override = manifest_path_override
@@ -100,7 +100,7 @@ class ApplicationBuilder(object):
 
         result = {}
 
-        for lambda_function in self._function_provider.get_all():
+        for lambda_function in self._functions_to_build:
 
             LOG.info("Building resource '%s'", lambda_function.name)
             result[lambda_function.name] = self._build_function(lambda_function.name,

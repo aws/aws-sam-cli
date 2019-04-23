@@ -50,7 +50,8 @@ Success criteria for the change
     -   Python with PIP
     -   Golang with Go CLI
     -   Dotnetcore with DotNet CLI
-2.  Each Lambda function in SAM template gets built
+2.  Each Lambda function in SAM template gets built by default unless a `function_identifier` (LogicalID) is passed 
+    to the build command
 3.  Produce stable builds (best effort): If the source files did not
     change, built artifacts should not change.
 4.  Built artifacts should \"just work\" with `sam local` and

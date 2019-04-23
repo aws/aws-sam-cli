@@ -402,3 +402,83 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
         self.assertEquals(actual_files, expected_files)
+
+
+class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
+    template = "many-functions-template.yaml"
+
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+    EXPECTED_FILES_PROJECT_MANIFEST = {'__init__.py', 'main.py', 'numpy',
+                                       # 'cryptography',
+                                       "jinja2",
+                                       'requirements.txt'}
+
+    def test_fucntion_not_found(self):
+        overrides = {"Runtime": 'python3.7', "CodeUri": "Python", "Handler": "main.handler"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides,
+                                        function_identifier="FunctionNotInTemplate")
+
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+
+        self.assertEquals(process.returncode, 1)
+        self.assertIn('FunctionNotInTemplate not found', str(stderr.decode('utf8')))
+
+    @parameterized.expand([
+        ("python3.7", False, "FunctionOne"),
+        ("python3.7", "use_container", "FunctionOne"),
+        ("python3.7", False, "FunctionTwo"),
+        ("python3.7", "use_container", "FunctionTwo")
+    ])
+    def test_build_single_function(self, runtime, use_container, function_identifier):
+        # Don't run test on wrong Python versions
+        py_version = self._get_python_version()
+        if py_version != runtime:
+            self.skipTest("Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version,
+                                                                                                          runtime))
+
+        overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
+        cmdlist = self.get_command_list(use_container=use_container,
+                                        parameter_overrides=overrides,
+                                        function_identifier=function_identifier)
+
+        LOG.info("Running Command: {}", cmdlist)
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        process.wait()
+
+        self._verify_built_artifact(self.default_build_dir, function_identifier,
+                                    self.EXPECTED_FILES_PROJECT_MANIFEST)
+
+        expected = {
+            "pi": "3.14",
+            "jinja": "Hello World"
+        }
+        self._verify_invoke_built_function(self.built_template,
+                                           function_identifier,
+                                           self._make_parameter_override_arg(overrides),
+                                           expected)
+        self.verify_docker_container_cleanedup(runtime)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path),
+                                       function_logical_id,
+                                       "CodeUri",
+                                       function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        print(all_artifacts)
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEquals(actual_files, expected_files)
+
+    def _get_python_version(self):
+        return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
