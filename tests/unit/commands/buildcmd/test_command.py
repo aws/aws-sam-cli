@@ -9,6 +9,7 @@ from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar
 from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import BuildError, UnsupportedBuilderLibraryVersionError
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestDoCli(TestCase):
@@ -30,10 +31,10 @@ class TestDoCli(TestCase):
         artifacts = builder_mock.build.return_value = "artifacts"
         modified_template = builder_mock.update_template.return_value = "modified template"
 
-        do_cli("template", "base_dir", "build_dir", "clean", "use_container",
+        do_cli("function_identifier", "template", "base_dir", "build_dir", "clean", "use_container",
                "manifest_path", "docker_network", "skip_pull", "parameter_overrides", "mode")
 
-        ApplicationBuilderMock.assert_called_once_with(ctx_mock.function_provider,
+        ApplicationBuilderMock.assert_called_once_with(ctx_mock.functions_to_build,
                                                        ctx_mock.build_dir,
                                                        ctx_mock.base_dir,
                                                        manifest_path_override=ctx_mock.manifest_path_override,
@@ -64,10 +65,24 @@ class TestDoCli(TestCase):
         builder_mock.build.side_effect = exception
 
         with self.assertRaises(UserException) as ctx:
-            do_cli("template", "base_dir", "build_dir", "clean", "use_container",
+            do_cli("function_identifier", "template", "base_dir", "build_dir", "clean", "use_container",
                    "manifest_path", "docker_network", "skip_pull", "parameteroverrides", "mode")
 
         self.assertEquals(str(ctx.exception), str(exception))
+
+    @patch("samcli.commands.build.command.BuildContext")
+    @patch("samcli.commands.build.command.ApplicationBuilder")
+    def test_must_catch_function_not_found_exception(self, ApplicationBuilderMock, BuildContextMock):
+        ctx_mock = Mock()
+        BuildContextMock.return_value.__enter__ = Mock()
+        BuildContextMock.return_value.__enter__.return_value = ctx_mock
+        ApplicationBuilderMock.side_effect = FunctionNotFound('Function Not Found')
+
+        with self.assertRaises(UserException) as ctx:
+            do_cli("function_identifier", "template", "base_dir", "build_dir", "clean", "use_container",
+                   "manifest_path", "docker_network", "skip_pull", "parameteroverrides", "mode")
+
+        self.assertEquals(str(ctx.exception), 'Function Not Found')
 
 
 class TestGetModeValueFromEnvvar(TestCase):

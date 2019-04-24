@@ -20,6 +20,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BuildIntegBase(TestCase):
+    template = "template.yaml"
 
     @classmethod
     def setUpClass(cls):
@@ -34,7 +35,7 @@ class BuildIntegBase(TestCase):
         cls.scratch_dir = str(Path(__file__).resolve().parent.joinpath("scratch"))
 
         cls.test_data_path = str(Path(integration_dir, "testdata", "buildcmd"))
-        cls.template_path = str(Path(cls.test_data_path, "template.yaml"))
+        cls.template_path = str(Path(cls.test_data_path, cls.template))
 
     def setUp(self):
 
@@ -61,9 +62,14 @@ class BuildIntegBase(TestCase):
         return command
 
     def get_command_list(self, build_dir=None, base_dir=None, manifest_path=None, use_container=None,
-                         parameter_overrides=None, mode=None):
+                         parameter_overrides=None, mode=None, function_identifier=None):
 
-        command_list = [self.cmd, "build", "-t", self.template_path]
+        command_list = [self.cmd, "build"]
+
+        if function_identifier:
+            command_list += [function_identifier]
+
+        command_list += ["-t", self.template_path]
 
         if parameter_overrides:
             command_list += ["--parameter-overrides", self._make_parameter_override_arg(parameter_overrides)]
