@@ -206,7 +206,7 @@ class LocalApigwService(BaseLocalService):
         if not isinstance(json_output, dict):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
-        status_code = json_output.get("statusCode") or 200
+        status_code = json_output.get("statusCode") or 0
         headers = CaseInsensitiveDict(json_output.get("headers") or {})
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
