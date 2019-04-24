@@ -86,7 +86,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
                                        function_logical_id)
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
-        print(all_artifacts)
         actual_files = all_artifacts.intersection(expected_files)
         self.assertEquals(actual_files, expected_files)
 
@@ -413,7 +412,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
                                        "jinja2",
                                        'requirements.txt'}
 
-    def test_fucntion_not_found(self):
+    def test_function_not_found(self):
         overrides = {"Runtime": 'python3.7', "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(parameter_overrides=overrides,
                                         function_identifier="FunctionNotInTemplate")
@@ -476,7 +475,6 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
                                        function_logical_id)
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
-        print(all_artifacts)
         actual_files = all_artifacts.intersection(expected_files)
         self.assertEquals(actual_files, expected_files)
 
