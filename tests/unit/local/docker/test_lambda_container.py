@@ -7,7 +7,8 @@ from mock import patch, Mock
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.debug_context import DebugContext
-from samcli.local.docker.lambda_container import LambdaContainer, Runtime, DebuggingNotSupported
+from samcli.local.docker.lambda_container import LambdaContainer, Runtime
+from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
 
 RUNTIMES_WITH_ENTRYPOINT = [Runtime.java8.value,
                             Runtime.dotnetcore20.value,
@@ -19,6 +20,10 @@ RUNTIMES_WITH_ENTRYPOINT = [Runtime.java8.value,
                             Runtime.nodejs810.value,
                             Runtime.python36.value,
                             Runtime.python27.value]
+
+RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [Runtime.nodejs10x.value,
+                                      Runtime.python37.value]
+
 
 ALL_RUNTIMES = [r for r in Runtime]
 
@@ -145,7 +150,7 @@ class TestLambdaContainer_get_entry_point(TestCase):
             with self.assertRaises(DebuggingNotSupported):
                 LambdaContainer._get_entry_point(runtime, self.debug_options)
 
-    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
+    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT)])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
         """
         Debug args list is appended starting at second position in the array
@@ -155,6 +160,17 @@ class TestLambdaContainer_get_entry_point(TestCase):
         actual = result[1:4]
 
         self.assertEquals(actual, expected_debug_args)
+
+    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT)])
+    def test_debug_arg_must_be_split_by_spaces_and_appended_to_bootstrap_based_entrypoint(self, runtime):
+        """
+        Debug args list is appended as arguments to bootstrap-args, which is past the fourth position in the array
+        """
+        expected_debug_args = ["a=b", "c=d", "e=f"]
+        result = LambdaContainer._get_entry_point(runtime, self.debug_options)
+        actual = result[4:5][0]
+
+        self.assertTrue(all(debug_arg in actual for debug_arg in expected_debug_args))
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
     def test_must_provide_entrypoint_even_without_debug_args(self, runtime):

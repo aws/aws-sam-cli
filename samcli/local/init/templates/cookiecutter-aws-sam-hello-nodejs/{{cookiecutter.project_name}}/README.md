@@ -18,7 +18,12 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [NodeJS 8.10+ installed](https://nodejs.org/en/download/)
+{%- if cookiecutter.runtime == 'nodejs8.10' %}
+* [NodeJS 8.10+ installed](https://nodejs.org/en/download/releases/)
+{%- else %}
+* [NodeJS 10.10+ installed](https://nodejs.org/en/download/releases/)
+{%- endif %}
+
 * [Docker installed](https://www.docker.com/community-edition)
 
 ## Setup process
