@@ -244,7 +244,7 @@ class LocalApigwService(BaseLocalService):
             "isBase64Encoded"
         ]
         invalid_keys = output.keys() - set(allowable)
-        return invalid_keys != set()
+        return bool(invalid_keys)
 
     @staticmethod
     def _should_base64_decode_body(binary_types, flask_request, lamba_response_headers, is_base_64_encoded):
