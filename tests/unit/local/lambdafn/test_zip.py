@@ -126,6 +126,7 @@ class TestUnzipWithPermissions(TestCase):
         mode = os.lstat(filepath).st_mode
         actual_permissions = oct(stat.S_IMODE(mode))
         expected_permission = oct(self.files_with_external_attr[key]["permissions"])
+
         self.assertIn(key, self.files_with_external_attr)
         if verify_external_attributes:
             self._verify_external_attributes(
@@ -149,6 +150,8 @@ class TestUnzipWithPermissions(TestCase):
                 "Expected a Symlink."
             )
             self.actual_symlinks += 1
+            return
+
         self.assertEquals(
             expected_permission,
             actual_permissions,
@@ -343,10 +346,10 @@ class TestOverridePermissions(TestCase):
     def test_must_override_permissions(self, os_patch):
         _override_permissions(path="./home", permission=0o700)
 
-        os_patch.lchmod.assert_called_once_with("./home", 0o700)
+        os_patch.chmod.assert_called_once_with("./home", 0o700)
 
     @patch('samcli.local.lambdafn.zip.os')
     def test_must_not_override_permissions(self, os_patch):
         _override_permissions(path="./home", permission=None)
 
-        os_patch.lchmod.assert_not_called()
+        os_patch.chmod.assert_not_called()
