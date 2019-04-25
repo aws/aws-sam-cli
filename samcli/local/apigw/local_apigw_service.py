@@ -243,7 +243,7 @@ class LocalApigwService(BaseLocalService):
             "headers",
             "isBase64Encoded"
         ]
-        invalid_keys = set(output) - set(allowable)
+        invalid_keys = output.keys() - set(allowable)
         return invalid_keys != set()
 
     @staticmethod
