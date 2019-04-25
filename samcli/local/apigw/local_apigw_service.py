@@ -206,7 +206,7 @@ class LocalApigwService(BaseLocalService):
         if not isinstance(json_output, dict):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
-        status_code = json_output.get("statusCode") or 0
+        status_code = json_output.get("statusCode") or 200
         headers = CaseInsensitiveDict(json_output.get("headers") or {})
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
@@ -220,6 +220,11 @@ class LocalApigwService(BaseLocalService):
             LOG.error(message)
             raise TypeError(message)
 
+        # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
+        # a response shape.
+        if LocalApigwService._invalid_apig_response(json_output):
+            raise ValueError
+
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
             LOG.info("No Content-Type given. Defaulting to 'application/json'.")
@@ -229,6 +234,17 @@ class LocalApigwService(BaseLocalService):
             body = base64.b64decode(body)
 
         return status_code, headers, body
+
+    @staticmethod
+    def _invalid_apig_response(output):
+        allowable = [
+            "statusCode",
+            "body",
+            "headers",
+            "isBase64Encoded"
+        ]
+        invalid_keys = set(output) - set(allowable)
+        return invalid_keys != set()
 
     @staticmethod
     def _should_base64_decode_body(binary_types, flask_request, lamba_response_headers, is_base_64_encoded):
