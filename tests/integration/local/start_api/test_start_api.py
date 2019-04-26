@@ -86,7 +86,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 502)
         self.assertEquals(response.json(), {"message": "Internal server error"})
 
-    def test_invalid_hash_response_from_lambda(self):
+    def test_invalid_json_response_from_lambda(self):
         response = requests.get(self.url + "/invalidresponsehash")
 
         self.assertEquals(response.status_code, 502)

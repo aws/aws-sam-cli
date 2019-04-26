@@ -223,7 +223,8 @@ class LocalApigwService(BaseLocalService):
         # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
         # a response shape.
         if LocalApigwService._invalid_apig_response(json_output):
-            raise ValueError
+            msg = "Invalid Response: " + str(json_output)
+            raise ValueError(msg)
 
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
@@ -237,13 +238,16 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _invalid_apig_response(output):
-        allowable = [
+        allowable = {
             "statusCode",
             "body",
             "headers",
             "isBase64Encoded"
-        ]
-        invalid_keys = output.keys() - set(allowable)
+        }
+        # In Python 2.7, need to explicitly make the Dictionary keys into a set
+        invalid_keys = set(output.keys()) - allowable
+        if bool(invalid_keys):
+            LOG.error("Invalid API Gateway Response Keys: " + str(invalid_keys))
         return bool(invalid_keys)
 
     @staticmethod
