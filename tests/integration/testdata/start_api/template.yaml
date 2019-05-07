@@ -191,6 +191,19 @@ Resources:
             Method: GET
             Path: /invalidresponsereturned
 
+  InvalidResponseHashFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_hash_response
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        InvalidResponseReturned:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /invalidresponsehash
+
   Base64ResponseFunction:
     Type: AWS::Serverless::Function
     Properties:
