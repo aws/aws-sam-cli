@@ -4,6 +4,7 @@ import json
 import base64
 
 from parameterized import parameterized, param
+from werkzeug.datastructures import Headers
 
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -307,7 +308,7 @@ class TestServiceParsingLambdaOutput(TestCase):
                                                                               flask_request=Mock())
 
         self.assertEquals(status_code, 200)
-        self.assertEquals(headers, {"Content-Type": "application/json"})
+        self.assertEquals(headers, Headers({"Content-Type": "application/json"}))
         self.assertEquals(body, '{"message":"Hello from Lambda"}')
 
     @patch('samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body')
@@ -326,7 +327,7 @@ class TestServiceParsingLambdaOutput(TestCase):
                                                                               flask_request=Mock())
 
         self.assertEquals(status_code, 200)
-        self.assertEquals(headers, {"Content-Type": "application/octet-stream"})
+        self.assertEquals(headers, Headers({"Content-Type": "application/octet-stream"}))
         self.assertEquals(body, binary_body)
 
     def test_status_code_not_int(self):
@@ -388,7 +389,7 @@ class TestServiceParsingLambdaOutput(TestCase):
                                                                               flask_request=Mock())
 
         self.assertEquals(status_code, 200)
-        self.assertEquals(headers, {"Content-Type": "application/json"})
+        self.assertEquals(headers, Headers({"Content-Type": "application/json"}))
         self.assertEquals(body, "no data")
 
 

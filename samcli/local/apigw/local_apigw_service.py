@@ -5,8 +5,9 @@ import logging
 import base64
 
 from flask import Flask, request
+from werkzeug.datastructures import Headers
 
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
@@ -207,7 +208,7 @@ class LocalApigwService(BaseLocalService):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
         status_code = json_output.get("statusCode") or 200
-        headers = CaseInsensitiveDict(json_output.get("headers") or {})
+        headers = Headers(json_output.get("headers") or {})
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
