@@ -130,7 +130,7 @@ class TestLambdaOutputParser(TestCase):
         self.assertEquals(LambdaOutputParser.is_lambda_error_response(input), exected_result)
 
 
-class CaseInsensiveDict(TestCase):
+class TestCaseInsensitiveDict(TestCase):
 
     def setUp(self):
         self.data = CaseInsensitiveDict({
