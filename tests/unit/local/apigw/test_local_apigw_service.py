@@ -261,6 +261,47 @@ class TestApiGatewayModel(TestCase):
         self.assertEquals(self.api_gateway.path, '/')
 
 
+class TestLambdaHeaderDictionaryMerge(TestCase):
+    def test_empty_dictionaries_produce_empty_result(self):
+        headers = {}
+        multi_value_headers = {}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertEquals(result, Headers({}))
+
+    def test_headers_are_merged(self):
+        headers = {"h1": "value1", "h2": "value2"}
+        multi_value_headers = {"h3": ["value3"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertIn("h2", result)
+        self.assertIn("h3", result)
+        self.assertEquals(result["h1"], "value1")
+        self.assertEquals(result["h2"], "value2")
+        self.assertEquals(result["h3"], "value3")
+
+    def test_multivalue_headers_are_turned_into_multiple_headers(self):
+        headers = {}
+        multi_value_headers = {"h1": ["a", "b", "c"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertEquals(str(result), 'h1: a\r\nh1: b\r\nh1: c\r\n\r\n')
+
+    def test_multivalue_headers_override_headers_dict(self):
+        headers = {"h1": "ValueA"}
+        multi_value_headers = {"h1": ["ValueB"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertEquals(result["h1"], "ValueB")
+
+
 class TestServiceParsingLambdaOutput(TestCase):
 
     def test_default_content_type_header_added_with_no_headers(self):
@@ -289,6 +330,33 @@ class TestServiceParsingLambdaOutput(TestCase):
 
         self.assertIn("Content-Type", headers)
         self.assertEquals(headers["Content-Type"], "text/xml")
+
+    def test_custom_content_type_multivalue_header_is_not_modified(self):
+        lambda_output = '{"statusCode": 200, "multiValueHeaders":{"Content-Type": ["text/xml"]}, "body": "{}", ' \
+                        '"isBase64Encoded": false}'
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
+
+        self.assertIn("Content-Type", headers)
+        self.assertEquals(headers["Content-Type"], "text/xml")
+
+    def test_multivalue_headers(self):
+        lambda_output = '{"statusCode": 200, "multiValueHeaders":{"X-Foo": ["bar", "42"]}, ' \
+                        '"body": "{\\"message\\":\\"Hello from Lambda\\"}", "isBase64Encoded": false}'
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
+
+        self.assertEquals(headers, Headers({"Content-Type": "application/json", "X-Foo": ["bar", "42"]}))
+
+    def test_single_and_multivalue_headers(self):
+        lambda_output = '{"statusCode": 200, "headers":{"X-Foo": "foo", "X-Bar": "bar"}, ' \
+                        '"multiValueHeaders":{"X-Foo": ["bar", "42"]}, ' \
+                        '"body": "{\\"message\\":\\"Hello from Lambda\\"}", "isBase64Encoded": false}'
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
+
+        self.assertEquals(
+            headers, Headers({"Content-Type": "application/json", "X-Bar": "bar", "X-Foo": ["bar", "42"]}))
 
     def test_extra_values_raise(self):
         lambda_output = '{"statusCode": 200, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
