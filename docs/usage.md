@@ -309,7 +309,7 @@ template.yaml is present as workspace root in Visual Studio Code:
              "request": "attach",
              "address": "localhost",
              "port": 5858,
-             // From the sam init example, it would be "${workspaceRoot}/hello_world"
+             // From the sam init example, it would be "${workspaceRoot}/hello-world"
              "localRoot": "${workspaceRoot}/{directory of node app}",
              "remoteRoot": "/var/task",
              "protocol": "inspector",
