@@ -13,7 +13,7 @@ from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.local.docker.manager import DockerImagePullFailedException
-from samcli.local.docker.lambda_container import DebuggingNotSupported
+from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
 
 
 STDIN_FILE_NAME = "-"

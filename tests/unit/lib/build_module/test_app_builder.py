@@ -14,29 +14,27 @@ from samcli.lib.build.app_builder import ApplicationBuilder,\
 class TestApplicationBuilder_build(TestCase):
 
     def setUp(self):
-        self.mock_func_provider = Mock()
-        self.builder = ApplicationBuilder(self.mock_func_provider,
+        self.func1 = Mock()
+        self.func2 = Mock()
+        self.builder = ApplicationBuilder([self.func1, self.func2],
                                           "builddir",
                                           "basedir")
 
     def test_must_iterate_on_functions(self):
-        func1 = Mock()
-        func2 = Mock()
         build_function_mock = Mock()
 
-        self.mock_func_provider.get_all.return_value = [func1, func2]
         self.builder._build_function = build_function_mock
 
         result = self.builder.build()
 
         self.assertEquals(result, {
-            func1.name: build_function_mock.return_value,
-            func2.name: build_function_mock.return_value,
+            self.func1.name: build_function_mock.return_value,
+            self.func2.name: build_function_mock.return_value,
         })
 
         build_function_mock.assert_has_calls([
-            call(func1.name, func1.codeuri, func1.runtime),
-            call(func2.name, func2.codeuri, func2.runtime),
+            call(self.func1.name, self.func1.codeuri, self.func1.runtime),
+            call(self.func2.name, self.func2.codeuri, self.func2.runtime),
         ], any_order=False)
 
 

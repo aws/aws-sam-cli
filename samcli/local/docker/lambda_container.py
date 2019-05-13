@@ -2,8 +2,8 @@
 Represents Lambda runtime containers.
 """
 import logging
-import json
 
+from samcli.local.docker.lambda_debug_entrypoint import LambdaDebugEntryPoint
 from .container import Container
 from .lambda_image import Runtime
 
@@ -24,6 +24,9 @@ class LambdaContainer(Container):
     # The Volume Mount path for debug files in docker
     _DEBUGGER_VOLUME_MOUNT_PATH = "/tmp/lambci_debug_files"
     _DEFAULT_CONTAINER_DBG_GO_PATH = _DEBUGGER_VOLUME_MOUNT_PATH + "/dlv"
+
+    # Options for selecting debug entry point
+    _DEBUG_ENTRYPOINT_OPTIONS = {"delvePath": _DEFAULT_CONTAINER_DBG_GO_PATH}
 
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
     _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
@@ -174,10 +177,6 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
-        if runtime not in LambdaContainer._supported_runtimes():
-            raise DebuggingNotSupported(
-                "Debugging is not currently supported for {}".format(runtime))
-
         debug_port = debug_options.debug_port
         debug_args_list = []
 
@@ -186,130 +185,7 @@ class LambdaContainer(Container):
 
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
-        entrypoint = None
-        if runtime == Runtime.java8.value:
-
-            entrypoint = ["/usr/bin/java"] \
-                   + debug_args_list \
-                   + [
-                        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=" + str(debug_port),
-                        "-XX:MaxHeapSize=2834432k",
-                        "-XX:MaxMetaspaceSize=163840k",
-                        "-XX:ReservedCodeCacheSize=81920k",
-                        "-XX:+UseSerialGC",
-                        # "-Xshare:on", doesn't work in conjunction with the debug options
-                        "-XX:-TieredCompilation",
-                        "-Djava.net.preferIPv4Stack=true",
-                        "-jar",
-                        "/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
-                   ]
-
-        elif runtime in (Runtime.dotnetcore20.value, Runtime.dotnetcore21.value):
-            entrypoint = ["/var/lang/bin/dotnet"] \
-                + debug_args_list \
-                + [
-                    "/var/runtime/MockBootstraps.dll",
-                    "--debugger-spin-wait"
-                  ]
-
-        elif runtime == Runtime.go1x.value:
-            entrypoint = ["/var/runtime/aws-lambda-go"] \
-                + debug_args_list \
-                + [
-                    "-debug=true",
-                    "-delvePort=" + str(debug_port),
-                    "-delvePath=" + LambdaContainer._DEFAULT_CONTAINER_DBG_GO_PATH,
-                  ]
-
-        elif runtime == Runtime.nodejs.value:
-
-            entrypoint = ["/usr/bin/node"] \
-                   + debug_args_list \
-                   + [
-                       "--debug-brk=" + str(debug_port),
-                       "--nolazy",
-                       "--max-old-space-size=1229",
-                       "--max-new-space-size=153",
-                       "--max-executable-size=153",
-                       "--expose-gc",
-                       "/var/runtime/node_modules/awslambda/bin/awslambda",
-                   ]
-
-        elif runtime == Runtime.nodejs43.value:
-
-            entrypoint = ["/usr/local/lib64/node-v4.3.x/bin/node"] \
-                   + debug_args_list \
-                   + [
-                       "--debug-brk=" + str(debug_port),
-                       "--nolazy",
-                       "--max-old-space-size=2547",
-                       "--max-semi-space-size=150",
-                       "--max-executable-size=160",
-                       "--expose-gc",
-                       "/var/runtime/node_modules/awslambda/index.js",
-                   ]
-
-        elif runtime == Runtime.nodejs610.value:
-
-            entrypoint = ["/var/lang/bin/node"] \
-                   + debug_args_list \
-                   + [
-                       "--debug-brk=" + str(debug_port),
-                       "--nolazy",
-                       "--max-old-space-size=2547",
-                       "--max-semi-space-size=150",
-                       "--max-executable-size=160",
-                       "--expose-gc",
-                       "/var/runtime/node_modules/awslambda/index.js",
-                   ]
-
-        elif runtime == Runtime.nodejs810.value:
-
-            entrypoint = ["/var/lang/bin/node"] \
-                    + debug_args_list \
-                    + [
-                        # Node8 requires the host to be explicitly set in order to bind to localhost
-                        # instead of 127.0.0.1. https://github.com/nodejs/node/issues/11591#issuecomment-283110138
-                        "--inspect-brk=0.0.0.0:" + str(debug_port),
-                        "--nolazy",
-                        "--expose-gc",
-                        "--max-semi-space-size=150",
-                        "--max-old-space-size=2707",
-                        "/var/runtime/node_modules/awslambda/index.js",
-                    ]
-
-        elif runtime == Runtime.python27.value:
-
-            entrypoint = ["/usr/bin/python2.7"] \
-                   + debug_args_list \
-                   + [
-                       "/var/runtime/awslambda/bootstrap.py"
-                   ]
-
-        elif runtime == Runtime.python36.value:
-
-            entrypoint = ["/var/lang/bin/python3.6"] \
-                   + debug_args_list \
-                   + [
-                       "/var/runtime/awslambda/bootstrap.py"
-                   ]
-
-        elif runtime == Runtime.python37.value:
-            entrypoint = ["/var/rapid/init",
-                          "--bootstrap",
-                          "/var/lang/bin/python3.7",
-                          "--bootstrap-args",
-                          json.dumps(debug_args_list + ["/var/runtime/bootstrap"])
-                          ]
-
-        return entrypoint
-
-    @staticmethod
-    def _supported_runtimes():
-        return {Runtime.java8.value, Runtime.dotnetcore20.value, Runtime.dotnetcore21.value, Runtime.go1x.value,
-                Runtime.nodejs.value, Runtime.nodejs43.value, Runtime.nodejs610.value, Runtime.nodejs810.value,
-                Runtime.python27.value, Runtime.python36.value, Runtime.python37.value}
-
-
-class DebuggingNotSupported(Exception):
-    pass
+        return LambdaDebugEntryPoint.get_entry_point(debug_port=debug_port,
+                                                     debug_args_list=debug_args_list,
+                                                     runtime=runtime,
+                                                     options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS)

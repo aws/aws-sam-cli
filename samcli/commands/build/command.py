@@ -14,6 +14,7 @@ from samcli.commands.build.build_context import BuildContext
 from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError, \
     ContainerBuildNotSupported
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands._utils.template import move_template
 
 LOG = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ Supported Resource Types
 Supported Runtimes
 ------------------
 1. Python 2.7, 3.6, 3.7 using PIP\n
-2. Nodejs 8.10, 6.10 using NPM\n
+2. Nodejs 10.x, 8.10, 6.10 using NPM\n
 3. Ruby 2.5 using Bundler\n
 4. Java 8 using Gradle\n
 5. Dotnetcore2.0 and 2.1 using Dotnet CLI (without --use-container flag)\n
@@ -81,8 +82,10 @@ $ sam build && sam package --s3-bucket <bucketname>
 @docker_common_options
 @cli_framework_options
 @aws_creds_options
+@click.argument('function_identifier', required=False)
 @pass_context
 def cli(ctx,
+        function_identifier,
         template,
         base_dir,
         build_dir,
@@ -96,11 +99,12 @@ def cli(ctx,
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
-    do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network,
+    do_cli(function_identifier, template, base_dir, build_dir, True, use_container, manifest, docker_network,
            skip_pull_image, parameter_overrides, mode)  # pragma: no cover
 
 
-def do_cli(template,  # pylint: disable=too-many-locals
+def do_cli(function_identifier,  # pylint: disable=too-many-locals
+           template,
            base_dir,
            build_dir,
            clean,
@@ -119,7 +123,8 @@ def do_cli(template,  # pylint: disable=too-many-locals
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    with BuildContext(template,
+    with BuildContext(function_identifier,
+                      template,
                       base_dir,
                       build_dir,
                       clean=clean,
@@ -129,14 +134,16 @@ def do_cli(template,  # pylint: disable=too-many-locals
                       docker_network=docker_network,
                       skip_pull_image=skip_pull_image,
                       mode=mode) as ctx:
+        try:
+            builder = ApplicationBuilder(ctx.functions_to_build,
+                                         ctx.build_dir,
+                                         ctx.base_dir,
+                                         manifest_path_override=ctx.manifest_path_override,
+                                         container_manager=ctx.container_manager,
+                                         mode=ctx.mode)
+        except FunctionNotFound as ex:
+            raise UserException(str(ex))
 
-        builder = ApplicationBuilder(ctx.function_provider,
-                                     ctx.build_dir,
-                                     ctx.base_dir,
-                                     manifest_path_override=ctx.manifest_path_override,
-                                     container_manager=ctx.container_manager,
-                                     mode=ctx.mode
-                                     )
         try:
             artifacts = builder.build()
             modified_template = builder.update_template(ctx.template_dict,

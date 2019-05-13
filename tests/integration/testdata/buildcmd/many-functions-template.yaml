@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameteres:
+  Runtime:
+    Type: String
+  CodeUri:
+    Type: String
+  Handler:
+    Type: String
+
+Resources:
+
+  FunctionOne:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600
+
+  FunctionTwo:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: !Ref Handler
+      Runtime: !Ref Runtime
+      CodeUri: !Ref CodeUri
+      Timeout: 600

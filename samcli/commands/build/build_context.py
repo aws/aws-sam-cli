@@ -2,6 +2,7 @@
 Context object used by build command
 """
 
+import logging
 import os
 import shutil
 
@@ -14,6 +15,9 @@ from samcli.local.docker.manager import ContainerManager
 from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.exceptions import UserException
+from samcli.local.lambdafn.exceptions import FunctionNotFound
+
+LOG = logging.getLogger(__name__)
 
 
 class BuildContext(object):
@@ -23,6 +27,7 @@ class BuildContext(object):
     _BUILD_DIR_PERMISSIONS = 0o755
 
     def __init__(self,
+                 function_identifier,
                  template_file,
                  base_dir,
                  build_dir,
@@ -34,6 +39,7 @@ class BuildContext(object):
                  docker_network=None,
                  skip_pull_image=False):
 
+        self._function_identifier = function_identifier
         self._template_file = template_file
         self._base_dir = base_dir
         self._build_dir = build_dir
@@ -128,3 +134,19 @@ class BuildContext(object):
     @property
     def mode(self):
         return self._mode
+
+    @property
+    def functions_to_build(self):
+        if self._function_identifier:
+            function = self._function_provider.get(self._function_identifier)
+
+            if not function:
+                all_functions = [f.name for f in self._function_provider.get_all()]
+                available_function_message = "{} not found. Possible options in your template: {}" \
+                    .format(self._function_identifier, all_functions)
+                LOG.info(available_function_message)
+                raise FunctionNotFound("Unable to find a Function with name '%s'", self._function_identifier)
+
+            return [function]
+
+        return self._function_provider.get_all()

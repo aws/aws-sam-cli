@@ -220,6 +220,14 @@ class LocalApigwService(BaseLocalService):
             LOG.error(message)
             raise TypeError(message)
 
+        # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
+        # a response shape.
+        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
+        if bool(invalid_keys):
+            msg = "Invalid API Gateway Response Keys: " + str(invalid_keys) + " in " + str(json_output)
+            LOG.error(msg)
+            raise ValueError(msg)
+
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
             LOG.info("No Content-Type given. Defaulting to 'application/json'.")
@@ -229,6 +237,18 @@ class LocalApigwService(BaseLocalService):
             body = base64.b64decode(body)
 
         return status_code, headers, body
+
+    @staticmethod
+    def _invalid_apig_response_keys(output):
+        allowable = {
+            "statusCode",
+            "body",
+            "headers",
+            "isBase64Encoded"
+        }
+        # In Python 2.7, need to explicitly make the Dictionary keys into a set
+        invalid_keys = set(output.keys()) - allowable
+        return invalid_keys
 
     @staticmethod
     def _should_base64_decode_body(binary_types, flask_request, lamba_response_headers, is_base_64_encoded):

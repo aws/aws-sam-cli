@@ -13,7 +13,7 @@
   "configuration": "Release",
   {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
   "framework": "netcoreapp2.0",
-  {%- elif cookiecutter.runtime == 'dotnetcore2.1' or cookiecutter.runtime == 'dotnet' %}
+  {%- else %}
   "framework" : "netcoreapp2.1",
   {%- endif %}
   "function-runtime":"{{ cookiecutter.runtime }}",

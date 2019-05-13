@@ -32,7 +32,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs8.10"],
+            "runtimes": ["nodejs8.10", "nodejs10.x"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True

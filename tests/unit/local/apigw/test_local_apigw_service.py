@@ -289,17 +289,14 @@ class TestServiceParsingLambdaOutput(TestCase):
         self.assertIn("Content-Type", headers)
         self.assertEquals(headers["Content-Type"], "text/xml")
 
-    def test_extra_values_ignored(self):
+    def test_extra_values_raise(self):
         lambda_output = '{"statusCode": 200, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
                         '"isBase64Encoded": false, "another_key": "some value"}'
 
-        (status_code, headers, body) = LocalApigwService._parse_lambda_output(lambda_output,
-                                                                              binary_types=[],
-                                                                              flask_request=Mock())
-
-        self.assertEquals(status_code, 200)
-        self.assertEquals(headers, {"Content-Type": "application/json"})
-        self.assertEquals(body, '{"message":"Hello from Lambda"}')
+        with self.assertRaises(ValueError):
+            LocalApigwService._parse_lambda_output(lambda_output,
+                                                   binary_types=[],
+                                                   flask_request=Mock())
 
     def test_parse_returns_correct_tuple(self):
         lambda_output = '{"statusCode": 200, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
