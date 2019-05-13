@@ -10,6 +10,7 @@ A cookiecutter template to create a NodeJS Hello world boilerplate using [Server
 
 Generate a boilerplate template in your current project directory using the following syntax:
 
+* **NodeJS 10**: `sam init --runtime nodejs10.x`
 * **NodeJS 8**: `sam init --runtime nodejs8.10`
 
 > **NOTE**: ``--name`` allows you to specify a different project folder name (`sam-app` is the default)

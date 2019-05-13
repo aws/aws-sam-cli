@@ -98,6 +98,7 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "nodejs4.3": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs6.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs8.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs10.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnetcore2.0": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),

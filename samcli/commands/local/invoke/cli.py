@@ -14,7 +14,7 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.local.docker.manager import DockerImagePullFailedException
-from samcli.local.docker.lambda_container import DebuggingNotSupported
+from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
 
 
 LOG = logging.getLogger(__name__)

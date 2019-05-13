@@ -103,7 +103,9 @@ Steps you can take next within the project folder
 """.format(output_dir=output_dir, name=name)
 
     no_build_step_required = (
-        "python", "python3.7", "python3.6", "python2.7", "nodejs", "nodejs4.3", "nodejs6.10", "nodejs8.10", "ruby2.5")
+        "python", "python3.7", "python3.6", "python2.7", "nodejs",
+        "nodejs4.3", "nodejs6.10", "nodejs8.10", "nodejs10.x", "ruby2.5"
+    )
     next_step_msg = no_build_msg if runtime in no_build_step_required else build_msg
 
     try:

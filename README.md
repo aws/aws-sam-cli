@@ -72,6 +72,7 @@ Project Status
     -   \[x\] `nodejs4.3`
     -   \[x\] `nodejs6.10`
     -   \[x\] `nodejs8.10`
+    -   \[x\] `nodejs10.x`
     -   \[x\] `java8`
     -   \[x\] `python2.7`
     -   \[x\] `python3.6`
@@ -91,6 +92,7 @@ Project Status
     -   \[x\] `nodejs4.3`
     -   \[x\] `nodejs6.10`
     -   \[x\] `nodejs8.10`
+    -   \[x\] `nodejs10.x`
     -   \[x\] `java8`
     -   \[x\] `python2.7`
     -   \[x\] `python3.6`
