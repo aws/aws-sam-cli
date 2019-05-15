@@ -2,10 +2,13 @@
 Builds the application
 """
 
+import base64
+import operator
 import os
 import io
 import json
 import logging
+from itertools import groupby
 
 try:
     import pathlib
@@ -100,12 +103,23 @@ class ApplicationBuilder(object):
 
         result = {}
 
-        for lambda_function in self._functions_to_build:
+        grouped_functions = groupby(sorted(self._functions_to_build,
+                                           key=operator.attrgetter("runtime", "codeuri", "name")),
+                                    operator.attrgetter("runtime", "codeuri"))
 
-            LOG.info("Building resource '%s'", lambda_function.name)
-            result[lambda_function.name] = self._build_function(lambda_function.name,
-                                                                lambda_function.codeuri,
-                                                                lambda_function.runtime)
+        groups = dict()
+        for group_key, iterator in grouped_functions:
+            groups[group_key] = list(iterator)
+
+        for group_key in groups:
+            runtime = group_key[0]
+            codeuri = group_key[1]
+            LOG.info("Building artifact for runtime %s and CodeUri %s used by the following " +
+                     "resources: %s",
+                     runtime, codeuri, ", ".join([x.name for x in groups[group_key]]))
+            artifact_path = self._build_function(codeuri, runtime)
+            for func in groups[group_key]:
+                result[func.name] = artifact_path
 
         return result
 
@@ -152,16 +166,13 @@ class ApplicationBuilder(object):
 
         return template_dict
 
-    def _build_function(self, function_name, codeuri, runtime):
+    def _build_function(self, codeuri, runtime):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
 
         Parameters
         ----------
-        function_name : str
-            Name or LogicalId of the function
-
         codeuri : str
             Path to where the code lives
 
@@ -181,7 +192,9 @@ class ApplicationBuilder(object):
         config = get_workflow_config(runtime, code_dir, self._base_dir)
 
         # artifacts directory will be created by the builder
-        artifacts_dir = str(pathlib.Path(self._build_dir, function_name))
+        artifacts_dir = str(pathlib.Path(
+            self._build_dir,
+            "{}_{}".format(runtime, base64.b64encode(codeuri.encode('utf-8')).decode('utf-8'))))
 
         with osutils.mkdir_temp() as scratch_dir:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)

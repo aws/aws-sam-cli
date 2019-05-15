@@ -1,4 +1,5 @@
 
+import base64
 import os
 import docker
 import json
@@ -6,6 +7,7 @@ import json
 from unittest import TestCase
 from mock import Mock, call, patch
 
+from samcli.commands.local.lib.provider import Function
 from samcli.lib.build.app_builder import ApplicationBuilder,\
     UnsupportedBuilderLibraryVersionError, BuildError, \
     LambdaBuilderError, ContainerBuildNotSupported
@@ -13,29 +15,86 @@ from samcli.lib.build.app_builder import ApplicationBuilder,\
 
 class TestApplicationBuilder_build(TestCase):
 
-    def setUp(self):
-        self.func1 = Mock()
-        self.func2 = Mock()
-        self.builder = ApplicationBuilder([self.func1, self.func2],
-                                          "builddir",
-                                          "basedir")
+    def test_artifacts_for_identical_functions(self):
+        func1 = Function(name="function_name1",
+                         runtime="runtime",
+                         memory=1234,
+                         timeout=12,
+                         handler="handler",
+                         codeuri="codeuri",
+                         environment=None,
+                         rolearn=None,
+                         layers=[])
+        func2 = Function(name="function_name2",
+                         runtime="runtime",
+                         memory=1234,
+                         timeout=12,
+                         handler="handler",
+                         codeuri="codeuri",
+                         environment=None,
+                         rolearn=None,
+                         layers=[])
 
-    def test_must_iterate_on_functions(self):
+        builder = ApplicationBuilder([func1, func2], "builddir", "basedir")
         build_function_mock = Mock()
+        builder._build_function = build_function_mock
 
-        self.builder._build_function = build_function_mock
-
-        result = self.builder.build()
+        result = builder.build()
 
         self.assertEquals(result, {
-            self.func1.name: build_function_mock.return_value,
-            self.func2.name: build_function_mock.return_value,
+            func1.name: build_function_mock.return_value,
+            func2.name: build_function_mock.return_value,
         })
 
         build_function_mock.assert_has_calls([
-            call(self.func1.name, self.func1.codeuri, self.func1.runtime),
-            call(self.func2.name, self.func2.codeuri, self.func2.runtime),
-        ], any_order=False)
+            call(func1.codeuri, func1.runtime)], any_order=False)
+
+    def test_artifacts_for_differing_functions(self):
+        func1 = Function(name="function_name1",
+                         runtime="runtime",
+                         memory=1234,
+                         timeout=12,
+                         handler="handler",
+                         codeuri="codeuri",
+                         environment=None,
+                         rolearn=None,
+                         layers=[])
+        func2 = Function(name="function_name2",
+                         runtime="runtime2",
+                         memory=1234,
+                         timeout=12,
+                         handler="handler",
+                         codeuri="codeuri",
+                         environment=None,
+                         rolearn=None,
+                         layers=[])
+        func3 = Function(name="function_name3",
+                         runtime="runtime3",
+                         memory=1234,
+                         timeout=12,
+                         handler="handler",
+                         codeuri="codeuri3",
+                         environment=None,
+                         rolearn=None,
+                         layers=[])
+
+        builder = ApplicationBuilder([func1, func2, func3], "builddir", "basedir")
+        build_function_mock = Mock()
+        builder._build_function = build_function_mock
+
+        result = builder.build()
+
+        self.assertEquals(result, {
+            func1.name: build_function_mock.return_value,
+            func2.name: build_function_mock.return_value,
+            func3.name: build_function_mock.return_value,
+        })
+
+        build_function_mock.assert_has_calls([
+            call(func1.codeuri, func1.runtime),
+            call(func2.codeuri, func2.runtime),
+            call(func3.codeuri, func3.runtime),
+        ], any_order=True)
 
 
 class TestApplicationBuilder_update_template(TestCase):
@@ -116,10 +175,13 @@ class TestApplicationBuilder_build_function(TestCase):
                                           "/build/dir",
                                           "/base/dir")
 
+    @staticmethod
+    def _build_artifacts_dir(codeuri, runtime):
+        return "{}_{}".format(runtime, base64.b64encode(codeuri.encode('utf-8')).decode('utf-8'))
+
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_build_in_process(self, osutils_mock, get_workflow_config_mock):
-        function_name = "function_name"
         codeuri = "path/to/source"
         runtime = "runtime"
         scratch_dir = "scratch"
@@ -132,10 +194,10 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function_in_process = Mock()
 
         code_dir = "/base/dir/path/to/source"
-        artifacts_dir = "/build/dir/function_name"
+        artifacts_dir = os.path.join("/build/dir/", self._build_artifacts_dir(codeuri, runtime))
         manifest_path = os.path.join(code_dir, config_mock.manifest_name)
 
-        self.builder._build_function(function_name, codeuri, runtime)
+        self.builder._build_function(codeuri, runtime)
 
         self.builder._build_function_in_process.assert_called_with(config_mock,
                                                                    code_dir,
@@ -147,7 +209,6 @@ class TestApplicationBuilder_build_function(TestCase):
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_build_in_container(self, osutils_mock, get_workflow_config_mock):
-        function_name = "function_name"
         codeuri = "path/to/source"
         runtime = "runtime"
         scratch_dir = "scratch"
@@ -160,12 +221,12 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function_on_container = Mock()
 
         code_dir = "/base/dir/path/to/source"
-        artifacts_dir = "/build/dir/function_name"
+        artifacts_dir = os.path.join("/build/dir/", self._build_artifacts_dir(codeuri, runtime))
         manifest_path = os.path.join(code_dir, config_mock.manifest_name)
 
         # Settting the container manager will make us use the container
         self.builder._container_manager = Mock()
-        self.builder._build_function(function_name, codeuri, runtime)
+        self.builder._build_function(codeuri, runtime)
 
         self.builder._build_function_on_container.assert_called_with(config_mock,
                                                                      code_dir,
