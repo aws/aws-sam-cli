@@ -298,6 +298,20 @@ class TestServiceResponses(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    def test_multiple_headers_response(self):
+        response = requests.get(self.url + "/multipleheaders")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "text/plain")
+        self.assertEquals(response.headers.get("MyCustomHeader"), 'Value1, Value2')
+
+    def test_multiple_headers_overrides_headers_response(self):
+        response = requests.get(self.url + "/multipleheadersoverridesheaders")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "text/plain")
+        self.assertEquals(response.headers.get("MyCustomHeader"), 'Value1, Value2')
+
     def test_binary_response(self):
         """
         Binary data is returned correctly

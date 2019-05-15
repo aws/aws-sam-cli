@@ -89,3 +89,21 @@ def echo_base64_event_body(event, context):
         },
         "isBase64Encoded": event["isBase64Encoded"]
     }
+
+
+def multiple_headers(event, context):
+    return {
+        "statusCode": 200,
+        "body": "hello",
+        "headers": {"Content-Type": "text/plain"},
+        "multiValueHeaders": {"MyCustomHeader": ['Value1', 'Value2']}
+    }
+
+
+def multiple_headers_overrides_headers(event, context):
+    return {
+        "statusCode": 200,
+        "body": "hello",
+        "headers": {"Content-Type": "text/plain", "MyCustomHeader": 'Custom'},
+        "multiValueHeaders": {"MyCustomHeader": ['Value1', 'Value2']}
+    }

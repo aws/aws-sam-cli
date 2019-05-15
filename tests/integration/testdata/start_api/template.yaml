@@ -229,3 +229,29 @@ Resources:
           Properties:
             Method: POST
             Path: /echobase64eventbody
+
+  MultipleHeadersResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.multiple_headers
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /multipleheaders
+
+  MultipleHeadersOverridesHeadersResponseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.multiple_headers_overrides_headers
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /multipleheadersoverridesheaders
