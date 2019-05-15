@@ -244,7 +244,8 @@ class LocalApigwService(BaseLocalService):
             "statusCode",
             "body",
             "headers",
-            "isBase64Encoded"
+            "isBase64Encoded",
+            "multiValueHeaders"
         }
         # In Python 2.7, need to explicitly make the Dictionary keys into a set
         invalid_keys = set(output.keys()) - allowable
