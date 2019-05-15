@@ -2,6 +2,7 @@ from unittest import TestCase
 from mock import patch
 from parameterized import parameterized
 
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.commands.local.lib.provider import Function, LayerVersion
 from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
 from samcli.commands.local.lib.exceptions import InvalidLayerReference
@@ -423,6 +424,31 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
     def test_raise_on_invalid_layer_resource(self, resources, layer_reference):
         with self.assertRaises(InvalidLayerReference):
             SamFunctionProvider._parse_layer_info([layer_reference], resources)
+
+    @parameterized.expand([
+        ({
+             "Function": {
+                 "Type": "AWS::Serverless::Function",
+                 "Properties": {
+                 }
+             }
+        }, "arn:aws:lambda:::awslayer:AmazonLinux1703")
+    ])
+    def test_raise_on_AmazonLinux1703_layer_provided(self, resources, layer_reference):
+        with self.assertRaises(InvalidLayerVersionArn):
+            SamFunctionProvider._parse_layer_info([layer_reference], resources)
+
+    def test_must_ignore_opt_in_AmazonLinux1803_layer(self):
+        resources = {}
+
+        list_of_layers = ["arn:aws:lambda:region:account-id:layer:layer-name:1",
+                          "arn:aws:lambda:::awslayer:AmazonLinux1803"]
+        actual = SamFunctionProvider._parse_layer_info(list_of_layers, resources)
+
+        for (actual_layer, expected_layer) in zip(actual, [LayerVersion(
+                                                               "arn:aws:lambda:region:account-id:layer:layer-name:1",
+                                                               None)]):
+            self.assertEquals(actual_layer, expected_layer)
 
     def test_layers_created_from_template_resources(self):
         resources = {

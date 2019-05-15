@@ -5,6 +5,7 @@ Class that provides functions from a given SAM template
 import logging
 import six
 
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from .exceptions import InvalidLayerReference
 from .provider import FunctionProvider, Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
@@ -238,6 +239,14 @@ class SamFunctionProvider(FunctionProvider):
         """
         layers = []
         for layer in list_of_layers:
+            if layer == 'arn:aws:lambda:::awslayer:AmazonLinux1803':
+                LOG.debug('Skipped arn:aws:lambda:::awslayer:AmazonLinux1803 as the containers are AmazonLinux1803')
+                continue
+
+            if layer == 'arn:aws:lambda:::awslayer:AmazonLinux1703':
+                raise InvalidLayerVersionArn('Building and invoking locally only supports AmazonLinux1803. See '
+                                             'https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ for more detials.')  # noqa: E501
+
             # If the layer is a string, assume it is the arn
             if isinstance(layer, six.string_types):
                 layers.append(LayerVersion(layer, None))
