@@ -118,11 +118,9 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @parameterized.expand([
-        ("nodejs4.3", False),
         ("nodejs6.10", False),
         ("nodejs8.10", False),
         ("nodejs10.x", False),
-        ("nodejs4.3", "use_container"),
         ("nodejs6.10", "use_container"),
         ("nodejs8.10", "use_container"),
         ("nodejs10.x", "use_container")
