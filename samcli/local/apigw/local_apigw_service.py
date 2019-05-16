@@ -285,8 +285,7 @@ class LocalApigwService(BaseLocalService):
         Merge multiValueHeaders headers with headers
 
         * If you specify values for both headers and multiValueHeaders, API Gateway merges them into a single list.
-        * If the same key-value pair is specified in both, only the values from multiValueHeaders will
-        * appear in the merged list.
+        * If the same key-value pair is specified in both, the value will only appear once.
 
         Parameters
         ----------
@@ -301,14 +300,15 @@ class LocalApigwService(BaseLocalService):
 
         """
 
-        processed_headers = Headers(headers)
+        processed_headers = Headers(multi_headers)
 
-        # Multi-value headers completely replace any single-value
-        # headers, so remove any key collisions then extend
-        for header in multi_headers:
-            processed_headers.remove(header)
+        for header in headers:
+            # Prevent duplication of values when the key-value pair exists in both
+            # headers and multi_headers, but preserve order from multi_headers
+            if header in multi_headers and headers[header] in multi_headers[header]:
+                continue
 
-        processed_headers.extend(multi_headers)
+            processed_headers.add(header, headers[header])
 
         return processed_headers
 

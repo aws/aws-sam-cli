@@ -69,7 +69,7 @@ class BaseLocalService(object):
         Constructs a Flask Response from the body, headers, and status_code.
 
         :param str body: Response body as a string
-        :param dict headers: headers for the response
+        :param werkzeug.datastructures.Headers headers: headers for the response
         :param int status_code: status_code for response
         :return: Flask Response
         """

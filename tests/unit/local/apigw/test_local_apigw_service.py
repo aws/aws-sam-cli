@@ -262,6 +262,7 @@ class TestApiGatewayModel(TestCase):
 
 
 class TestLambdaHeaderDictionaryMerge(TestCase):
+
     def test_empty_dictionaries_produce_empty_result(self):
         headers = {}
         multi_value_headers = {}
@@ -271,8 +272,8 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         self.assertEquals(result, Headers({}))
 
     def test_headers_are_merged(self):
-        headers = {"h1": "value1", "h2": "value2"}
-        multi_value_headers = {"h3": ["value3"]}
+        headers = {"h1": "value1", "h2": "value2", "h3": "value3"}
+        multi_value_headers = {"h3": ["value4"]}
 
         result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
 
@@ -281,25 +282,16 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         self.assertIn("h3", result)
         self.assertEquals(result["h1"], "value1")
         self.assertEquals(result["h2"], "value2")
-        self.assertEquals(result["h3"], "value3")
+        self.assertEquals(result.get_all("h3"), ["value4", "value3"])
 
-    def test_multivalue_headers_are_turned_into_multiple_headers(self):
-        headers = {}
-        multi_value_headers = {"h1": ["a", "b", "c"]}
-
-        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
-
-        self.assertIn("h1", result)
-        self.assertEquals(str(result), 'h1: a\r\nh1: b\r\nh1: c\r\n\r\n')
-
-    def test_multivalue_headers_override_headers_dict(self):
-        headers = {"h1": "ValueA"}
-        multi_value_headers = {"h1": ["ValueB"]}
+    def test_merge_does_not_duplicate_values(self):
+        headers = {"h1": "ValueB"}
+        multi_value_headers = {"h1": ["ValueA", "ValueB", "ValueC"]}
 
         result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
 
         self.assertIn("h1", result)
-        self.assertEquals(result["h1"], "ValueB")
+        self.assertEquals(result.get_all("h1"), ["ValueA", "ValueB", "ValueC"])
 
 
 class TestServiceParsingLambdaOutput(TestCase):
@@ -356,7 +348,7 @@ class TestServiceParsingLambdaOutput(TestCase):
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
         self.assertEquals(
-            headers, Headers({"Content-Type": "application/json", "X-Bar": "bar", "X-Foo": ["bar", "42"]}))
+            headers, Headers({"Content-Type": "application/json", "X-Bar": "bar", "X-Foo": ["bar", "42", "foo"]}))
 
     def test_extra_values_raise(self):
         lambda_output = '{"statusCode": 200, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
