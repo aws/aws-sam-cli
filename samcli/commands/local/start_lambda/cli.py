@@ -14,6 +14,7 @@ from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
+from samcli.lib.telemetry.metrics import track_command
 
 
 LOG = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ Here is a Python example:
 @cli_framework_options
 @aws_creds_options
 @pass_context
+@track_command
 def cli(ctx,  # pylint: disable=R0914
         # start-lambda Specific Options
         host, port,

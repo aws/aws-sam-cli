@@ -14,6 +14,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.exceptions import UserException
+from samcli.lib.telemetry.metrics import track_command
 
 LOG = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ SEMANTIC_VERSION = 'SemanticVersion'
 @aws_creds_options
 @cli_framework_options
 @pass_context
+@track_command
 def cli(ctx, template, semantic_version):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
