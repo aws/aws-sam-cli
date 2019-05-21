@@ -310,7 +310,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers.get("Content-Type"), "text/plain")
-        self.assertEquals(response.headers.get("MyCustomHeader"), 'Value1, Value2')
+        self.assertEquals(response.headers.get("MyCustomHeader"), 'Value1, Value2, Custom')
 
     def test_binary_response(self):
         """
