@@ -16,6 +16,7 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.lambda_client = boto3.client('lambda',
                                           endpoint_url=self.url,
+                                          region_name='us-east-1',
                                           use_ssl=False,
                                           verify=False,
                                           config=Config(signature_version=UNSIGNED,
@@ -52,6 +53,7 @@ class TestLambdaToLambdaInvoke(StartLambdaIntegBaseClass):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.lambda_client = boto3.client('lambda',
                                           endpoint_url=self.url,
+                                          region_name='us-east-1',
                                           use_ssl=False,
                                           verify=False,
                                           config=Config(signature_version=UNSIGNED,
@@ -69,6 +71,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.lambda_client = boto3.client('lambda',
                                           endpoint_url=self.url,
+                                          region_name='us-east-1',
                                           use_ssl=False,
                                           verify=False,
                                           config=Config(signature_version=UNSIGNED,
@@ -110,6 +113,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.lambda_client = boto3.client('lambda',
                                           endpoint_url=self.url,
+                                          region_name='us-east-1',
                                           use_ssl=False,
                                           verify=False,
                                           config=Config(signature_version=UNSIGNED,
