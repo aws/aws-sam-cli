@@ -421,6 +421,17 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEquals(response_data.get("handler"), 'echo_event_handler_2')
 
+    def test_request_with_multi_value_headers(self):
+        response = requests.get(self.url + "/echoeventbody",
+                                headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"})
+
+        self.assertEquals(response.status_code, 200)
+        response_data = response.json()
+        self.assertEquals(response_data.get("multiValueHeaders").get("Content-Type"),
+                          ["application/x-www-form-urlencoded, image/gif"])
+        self.assertEquals(response_data.get("headers").get("Content-Type"),
+                          "application/x-www-form-urlencoded, image/gif")
+
     def test_request_with_query_params(self):
         """
         Query params given should be put into the Event to Lambda
