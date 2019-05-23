@@ -208,6 +208,8 @@ class LocalLambdaRunner(object):
 
         # to pass command line arguments for region & profile to setup boto3 default session
         LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
+        # boto3.session.Session is not thread safe. To ensure we do not run into a race condition with start-lambda
+        # or start-api, we create the session object here on every invoke.
         session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
 
         if not session:
