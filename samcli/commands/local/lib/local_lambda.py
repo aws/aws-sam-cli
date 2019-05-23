@@ -26,6 +26,8 @@ class LocalLambdaRunner(object):
                  local_runtime,
                  function_provider,
                  cwd,
+                 aws_profile=None,
+                 aws_region=None,
                  env_vars_values=None,
                  debug_context=None):
         """
@@ -43,6 +45,8 @@ class LocalLambdaRunner(object):
         self.local_runtime = local_runtime
         self.provider = function_provider
         self.cwd = cwd
+        self.aws_profile = aws_profile
+        self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
 
@@ -203,13 +207,8 @@ class LocalLambdaRunner(object):
         result = {}
 
         # to pass command line arguments for region & profile to setup boto3 default session
-        if boto3.DEFAULT_SESSION:
-            session = boto3.DEFAULT_SESSION
-        else:
-            session = boto3.session.Session()
-
-        profile_name = session.profile_name if session else None
-        LOG.debug("Loading AWS credentials from session with profile '%s'", profile_name)
+        LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
+        session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
 
         if not session:
             return result
