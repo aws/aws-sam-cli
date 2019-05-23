@@ -3,7 +3,7 @@ from mock import Mock, patch
 
 from parameterized import parameterized, param
 
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 
 
 class TestLocalHostRunner(TestCase):
@@ -128,36 +128,3 @@ class TestLambdaOutputParser(TestCase):
     ])
     def test_is_lambda_error_response(self, input, exected_result):
         self.assertEquals(LambdaOutputParser.is_lambda_error_response(input), exected_result)
-
-
-class CaseInsensiveDict(TestCase):
-
-    def setUp(self):
-        self.data = CaseInsensitiveDict({
-            'Content-Type': 'text/html',
-            'Browser': 'APIGW',
-        })
-
-    def test_contains_lower(self):
-        self.assertTrue('content-type' in self.data)
-
-    def test_contains_title(self):
-        self.assertTrue('Content-Type' in self.data)
-
-    def test_contains_upper(self):
-        self.assertTrue('CONTENT-TYPE' in self.data)
-
-    def test_contains_browser_key(self):
-        self.assertTrue('Browser' in self.data)
-
-    def test_contains_not_in(self):
-        self.assertTrue('Dog-Food' not in self.data)
-
-    def test_setitem_found(self):
-        self.data['Browser'] = 'APIGW'
-
-        self.assertTrue(self.data['browser'])
-
-    def test_keyerror(self):
-        with self.assertRaises(KeyError):
-            self.data['does-not-exist']
