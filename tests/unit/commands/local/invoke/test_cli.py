@@ -38,6 +38,7 @@ class TestCli(TestCase):
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
         self.region_name = "region"
+        self.profile = "profile"
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -47,6 +48,7 @@ class TestCli(TestCase):
 
         ctx_mock = Mock()
         ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -82,7 +84,8 @@ class TestCli(TestCase):
                                              parameter_overrides=self.parameter_overrides,
                                              layer_cache_basedir=self.layer_cache_basedir,
                                              force_image_build=self.force_image_build,
-                                             aws_region=self.region_name)
+                                             aws_region=self.region_name,
+                                             aws_profile=self.profile)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event=event_data,
@@ -97,6 +100,7 @@ class TestCli(TestCase):
 
         ctx_mock = Mock()
         ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -131,7 +135,8 @@ class TestCli(TestCase):
                                              parameter_overrides=self.parameter_overrides,
                                              layer_cache_basedir=self.layer_cache_basedir,
                                              force_image_build=self.force_image_build,
-                                             aws_region=self.region_name)
+                                             aws_region=self.region_name,
+                                             aws_profile=self.profile)
 
         context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
                                                                    event="{}",
@@ -146,6 +151,7 @@ class TestCli(TestCase):
 
         ctx_mock = Mock()
         ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
 
         with self.assertRaises(UserException) as ex_ctx:
 
@@ -185,6 +191,7 @@ class TestCli(TestCase):
 
         ctx_mock = Mock()
         ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
 
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -231,6 +238,7 @@ class TestCli(TestCase):
 
         ctx_mock = Mock()
         ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
 
         InvokeContextMock.side_effect = exeception_to_raise
 
@@ -264,6 +272,7 @@ class TestCli(TestCase):
 
         ctx_mock = Mock()
         ctx_mock.region = self.region_name
+        ctx_mock.profile = self.profile
 
         InvokeContextMock.side_effect = OverridesNotWellDefinedError("bad env vars")
 

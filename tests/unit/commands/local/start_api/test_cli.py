@@ -31,9 +31,11 @@ class TestCli(TestCase):
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
         self.region_name = "region"
+        self.profile = "profile"
 
         self.ctx_mock = Mock()
         self.ctx_mock.region = self.region_name
+        self.ctx_mock.profile = self.profile
 
         self.host = "host"
         self.port = 123
@@ -65,7 +67,8 @@ class TestCli(TestCase):
                                                parameter_overrides=self.parameter_overrides,
                                                layer_cache_basedir=self.layer_cache_basedir,
                                                force_image_build=self.force_image_build,
-                                               aws_region=self.region_name)
+                                               aws_region=self.region_name,
+                                               aws_profile=self.profile)
 
         local_api_service_mock.assert_called_with(lambda_invoke_context=context_mock,
                                                   port=self.port,

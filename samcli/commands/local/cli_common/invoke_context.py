@@ -57,7 +57,9 @@ class InvokeContext(object):
                  parameter_overrides=None,
                  layer_cache_basedir=None,
                  force_image_build=None,
-                 aws_region=None):
+                 aws_region=None,
+                 aws_profile=None,
+                 ):
         """
         Initialize the context
 
@@ -109,6 +111,7 @@ class InvokeContext(object):
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
         self._aws_region = aws_region
+        self._aws_profile = aws_profile
 
         self._template_dict = None
         self._function_provider = None
@@ -197,6 +200,8 @@ class InvokeContext(object):
         return LocalLambdaRunner(local_runtime=lambda_runtime,
                                  function_provider=self._function_provider,
                                  cwd=self.get_cwd(),
+                                 aws_profile=self._aws_profile,
+                                 aws_region=self._aws_region,
                                  env_vars_values=self._env_vars_value,
                                  debug_context=self._debug_context)
 

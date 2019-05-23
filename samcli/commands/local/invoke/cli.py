@@ -90,7 +90,8 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
                            parameter_overrides=parameter_overrides,
                            layer_cache_basedir=layer_cache_basedir,
                            force_image_build=force_image_build,
-                           aws_region=ctx.region) as context:
+                           aws_region=ctx.region,
+                           aws_profile=ctx.profile) as context:
 
             # Invoke the function
             context.local_lambda_runner.invoke(context.function_name,

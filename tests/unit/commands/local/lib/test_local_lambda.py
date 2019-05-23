@@ -31,7 +31,9 @@ class TestLocalLambda_get_aws_creds(TestCase):
                                               self.function_provider_mock,
                                               self.cwd,
                                               env_vars_values=self.env_vars_values,
-                                              debug_context=self.debug_context)
+                                              debug_context=self.debug_context,
+                                              aws_profile=self.aws_profile,
+                                              aws_region=self.aws_region)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_get_from_boto_session(self, boto3_mock):
@@ -43,7 +45,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         mock_session.region_name = self.region
 
-        boto3_mock.DEFAULT_SESSION = mock_session
+        boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
         expected = {
@@ -55,6 +57,8 @@ class TestLocalLambda_get_aws_creds(TestCase):
 
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
+
+        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_region_name(self, boto3_mock):
@@ -66,7 +70,6 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         del mock_session.region_name   # Ask mock to return AttributeError when 'region_name' is accessed
 
-        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
@@ -79,7 +82,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with()
+        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_access_key(self, boto3_mock):
@@ -91,7 +94,6 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         mock_session.region_name = self.region
 
-        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
@@ -104,7 +106,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with()
+        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_secret_key(self, boto3_mock):
@@ -116,7 +118,6 @@ class TestLocalLambda_get_aws_creds(TestCase):
         mock_session = Mock()
         mock_session.region_name = self.region
 
-        boto3_mock.DEFAULT_SESSION = None
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = creds
 
@@ -129,7 +130,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         actual = self.local_lambda.get_aws_creds()
         self.assertEquals(expected, actual)
 
-        boto3_mock.session.Session.assert_called_with()
+        boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_session_token(self, boto3_mock):

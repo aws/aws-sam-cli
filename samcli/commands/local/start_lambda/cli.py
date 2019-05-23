@@ -99,7 +99,8 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
                            parameter_overrides=parameter_overrides,
                            layer_cache_basedir=layer_cache_basedir,
                            force_image_build=force_image_build,
-                           aws_region=ctx.region) as invoke_context:
+                           aws_region=ctx.region,
+                           aws_profile=ctx.profile) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context,
                                          port=port,
