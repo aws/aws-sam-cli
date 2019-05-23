@@ -80,14 +80,32 @@ used for and when do you clean up?**
 
 **How do you validate new .samrc configuration?**
 
+What is your Testing Plan (QA)?
+===============================
+
+Goal
+----
+
+Pre-requesites
+--------------
+
+Test Scenarios/Cases
+--------------------
+
+Expected Results
+----------------
+
+Pass/Fail
+---------
+
 Documentation Changes
----------------------
+=====================
 
 Open Issues
------------
+============
 
 Task Breakdown
---------------
+==============
 
 -   \[x\] Send a Pull Request with this design document
 -   \[ \] Build the command line interface
