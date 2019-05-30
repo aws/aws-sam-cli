@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import base64
+from pprint import pprint
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
@@ -19,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 class Route(object):
 
-    def __init__(self, methods, function_name, path, binary_types=None):
+    def __init__(self, methods, function_name, path, binary_types=None, stage_name="prod", stage_variables=None):
         """
         Creates an ApiGatewayRoute
 
@@ -31,10 +32,11 @@ class Route(object):
         self.function_name = function_name
         self.path = path
         self.binary_types = binary_types or []
+        self.stage_name = stage_name
+        self.stage_variables = stage_variables
 
 
 class LocalApigwService(BaseLocalService):
-
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
 
@@ -143,7 +145,7 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types)
+            event = self._construct_event(request, self.port, route.binary_types, route)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -313,7 +315,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types):
+    def _construct_event(flask_request, port, binary_types, route):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -342,7 +344,7 @@ class LocalApigwService(BaseLocalService):
 
         context = RequestContext(resource_path=endpoint,
                                  http_method=method,
-                                 stage="prod",
+                                 stage=route.stage_name,
                                  identity=identity,
                                  path=endpoint)
 
@@ -363,7 +365,9 @@ class LocalApigwService(BaseLocalService):
                                       headers=event_headers,
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
-                                      is_base_64_encoded=is_base_64)
+                                      is_base_64_encoded=is_base_64,
+                                      stage_variables=route.stage_variables)
+        pprint(event.to_dict(), indent=2)
 
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)

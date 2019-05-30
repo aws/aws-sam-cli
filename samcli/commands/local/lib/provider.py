@@ -216,10 +216,16 @@ _ApiTuple = namedtuple("Api", [
     "cors",
 
     # List(Str). List of the binary media types the API
-    "binary_media_types"
+    "binary_media_types",
+    # The Api stage name
+    "stage_name",
+    # The variables for that stage
+    "stage_variables"
 ])
 _ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
-                                  []     # binary_media_types is optional and defaults to empty
+                                  [],     # binary_media_types is optional and defaults to empty,
+                                  "prod",
+                                  {}
                                   )
 
 

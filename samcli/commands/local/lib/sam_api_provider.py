@@ -15,7 +15,6 @@ LOG = logging.getLogger(__name__)
 
 
 class SamApiProvider(ApiProvider):
-
     _IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
     _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     _SERVERLESS_API = "AWS::Serverless::Api"
@@ -127,6 +126,8 @@ class SamApiProvider(ApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("Variables", {})
 
         if not body and not uri:
             # Swagger is not found anywhere.
@@ -139,7 +140,7 @@ class SamApiProvider(ApiProvider):
                                   working_dir=self.cwd)
         swagger = reader.read()
         parser = SwaggerParser(swagger)
-        apis = parser.get_apis()
+        apis = parser.get_apis(stage_name=stage_name, stage_variables=stage_variables)
         LOG.debug("Found '%s' APIs in resource '%s'", len(apis), logical_id)
 
         collector.add_apis(logical_id, apis)

@@ -9,7 +9,6 @@ LOG = logging.getLogger(__name__)
 
 
 class SwaggerParser(object):
-
     _INTEGRATION_KEY = "x-amazon-apigateway-integration"
     _ANY_METHOD_EXTENSION_KEY = "x-amazon-apigateway-any-method"
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
@@ -35,7 +34,7 @@ class SwaggerParser(object):
         """
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
-    def get_apis(self):
+    def get_apis(self, stage_name="prod", stage_variables=None):
         """
         Parses a swagger document and returns a list of APIs configured in the document.
 
@@ -86,7 +85,7 @@ class SwaggerParser(object):
                     method = self._ANY_METHOD
 
                 api = Api(path=full_path, method=method, function_name=function_name, cors=None,
-                          binary_media_types=binary_media_types)
+                          binary_media_types=binary_media_types, stage_name=stage_name, stage_variables=stage_variables)
                 result.append(api)
 
         return result
