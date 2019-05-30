@@ -50,11 +50,21 @@ SAM CLI to deploy your applications to AWS.
 
 + **Extension of AWS CloudFormation**\. Because AWS SAM is an extension of AWS CloudFormation, you get the reliable deployment capabilities of AWS CloudFormation\. You can define resources by using AWS CloudFormation in your AWS SAM template\. Also, you can use the full suite of resources, intrinsic functions, and other template features that are available in AWS CloudFormation\.
 
+## What is this Github repository?
+This Github Repository contains source code for SAM CLI. Here is the development team talking about this code:
+
+> SAM CLI code is written in Python. Source code is well documented, very modular, with 95% unit test coverage. 
+It uses this awesome Python library called Click to manage the command line interaction and uses Docker to run Lambda functions locally.
+We think you'll like the code base. Clone it and try!
+
 
 ## Contribute to SAM 👷
 
-Contributions and feedback are welcome! Depending on your interest and skill, you can help build the different parts 
-of the SAM project.
+Contributions and feedback are welcome! We have over 100 contributors who have built various parts of the product. 
+Read this [testimonial from @ndobryanskyy](https://www.lohika.com/aws-sam-my-exciting-first-open-source-experience/) to learn
+more about what it was like contributing to SAM. 
+
+Depending on your interest and skill, you can help build the different parts of the SAM project. 
 
 **Enhance the SAM Specification**
 
