@@ -55,7 +55,7 @@ This Github Repository contains source code for SAM CLI. Here is the development
 
 > SAM CLI code is written in Python. Source code is well documented, very modular, with 95% unit test coverage. 
 It uses this awesome Python library called Click to manage the command line interaction and uses Docker to run Lambda functions locally.
-We think you'll like the code base. Clone it and try!
+We think you'll like the code base. Clone it and run `make pr`!
 
 
 ## Contribute to SAM 👷
