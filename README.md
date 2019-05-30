@@ -1,119 +1,84 @@
 <p align="center">
 </p>
 
-SAM CLI (Beta)
-==============
+# AWS SAM (Beta)
 
-![Build
-Status](https://travis-ci.org/awslabs/aws-sam-cli.svg?branch=develop)
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
-![Contributors](https://img.shields.io/github/contributors/awslabs/aws-sam-cli.svg)
 ![GitHub-release](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg)
-![PyPI version](https://badge.fury.io/py/aws-sam-cli.svg)
 
-[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/aws-sam-cli)
+The AWS Serverless Application Model (SAM) is an open-source framework for building serverless applications. 
+It provides shorthand syntax to express functions, APIs, databases, and event source mappings. 
+With just a few lines of configuration, you can define the application you want and model it.
 
-[Join the SAM developers channel (\#samdev) on
-Slack](https://join.slack.com/t/awsdevelopers/shared_invite/enQtMzg3NTc5OTM2MzcxLTdjYTdhYWE3OTQyYTU4Njk1ZWY4Y2ZjYjBhMTUxNGYzNDg5MWQ1ZTc5MTRlOGY0OTI4NTdlZTMwNmI5YTgwOGM/)
-to collaborate with fellow community members and the AWS SAM team.
+[![Getting Started with AWS SAM](./get-started-youtube.png)](https://www.youtube.com/watch?v=1dzihtC5LJ0)
 
-`sam` is the AWS CLI tool for managing Serverless applications written
-with [AWS Serverless Application Model
-(SAM)](https://github.com/awslabs/serverless-application-model). SAM CLI
-can be used to test functions locally, start a local API Gateway from a
-SAM template, validate a SAM template, fetch logs, generate sample
-payloads for various event sources, and generate a SAM project in your
-favorite Lambda Runtime.
+## Get Started
 
-Main features
--------------
+To get started with building SAM-based applications, use the AWS SAM CLI. SAM CLI provides a Lambda-like execution 
+environment that lets you locally build, test, and debug applications defined by SAM templates. You can also use the 
+SAM CLI to deploy your applications to AWS.
 
--   Develop and test your Lambda functions locally with `sam local` and
-    Docker
--   Invoke functions from known event sources such as Amazon S3, Amazon
-    DynamoDB, Amazon Kinesis Streams, etc.
--   Start local API Gateway from a SAM template, and quickly iterate
-    over your functions with hot-reloading
--   Validate SAM templates
--   Get started with boilerplate Serverless Service in your chosen
-    Lambda Runtime `sam init`
+* [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+* [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html)
+* Optionally, [Install AWS Toolkit](https://aws.amazon.com/getting-started/tools-sdks/#IDE_and_IDE_Toolkits) to use SAM with your favorite IDEs.
 
-Get Started
------------
 
-Learn how to get started using the SAM CLI with these guides:
+**Next Steps:** Learn to build a more complex serverless application
+* [Extract text from images and store to database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html)
+* [Detect when records are inserted into database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html)
 
--   [Installation](https://aws.amazon.com/serverless/sam/): Set up your macOS, Linux or
-    Windows Machine to run serverless projects with SAM CLI.
--   [Introduction to SAM and SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html) What is
-    SAM and SAM CLI, and how can you use it to make a simple hello-world
-    app.
--   [Running and debugging serverless applications
-    locally](docs/usage.md): Describes how to use SAM CLI for invoking
-    Lambda functions locally, running automated tests, fetching logs,
-    and debugging applications
--   [Packaging and deploying your
-    application](docs/deploying_serverless_applications.md): Deploy
-    your local application using an S3 bucket, and AWS CloudFormation.
--   [Advanced](docs/advanced_usage.md): Learn how to work with compiled
-    languages (such as Java and .NET), configure IAM credentials,
-    provide environment variables, and more.
--   [Examples](https://github.com/awslabs/serverless-application-model/tree/master/examples/apps)
 
-Project Status
---------------
+**Detailed References:** Explains SAM commands and usage in depth
+* [CLI Commands](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html)
+* [SAM Template Specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md)
+* [Policy Templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html)
 
--   \[x\] Python Versions support
-    -   \[x\] Python 2.7
-    -   \[x\] Python 3.6
-    -   \[x\] Python 3.7
--   \[ \] Supported AWS Lambda Runtimes
-    -   \[x\] `nodejs`
-    -   \[x\] `nodejs4.3`
-    -   \[x\] `nodejs6.10`
-    -   \[x\] `nodejs8.10`
-    -   \[x\] `nodejs10.x`
-    -   \[x\] `java8`
-    -   \[x\] `python2.7`
-    -   \[x\] `python3.6`
-    -   \[x\] `python3.7`
-    -   \[x\] `go1.x`
-    -   \[ \] `dotnetcore1.0`
-    -   \[x\] `dotnetcore2.0`
-    -   \[x\] `dotnetcore2.1`
-    -   \[x\] `ruby2.5`
-    -   \[x\] `Provided`
--   \[x\] AWS credential support
--   \[x\] Debugging support
--   \[x\] Inline Swagger support within SAM templates
--   \[x\] Validating SAM templates locally
--   \[x\] Generating boilerplate templates
-    -   \[x\] `nodejs`
-    -   \[x\] `nodejs4.3`
-    -   \[x\] `nodejs6.10`
-    -   \[x\] `nodejs8.10`
-    -   \[x\] `nodejs10.x`
-    -   \[x\] `java8`
-    -   \[x\] `python2.7`
-    -   \[x\] `python3.6`
-    -   \[x\] `python3.7`
-    -   \[x\] `go1.x`
-    -   \[x\] `dotnetcore1.0`
-    -   \[x\] `dotnetcore2.0`
-    -   \[x\] `ruby2.5`
-    -   \[ \] `Provided`
+## Why SAM
 
-Contributing
-------------
++ **Single\-deployment configuration**\. SAM makes it easy to organize related components and resources, and operate on a single stack\. You can use AWS SAM to share configuration \(such as memory and timeouts\) between resources, and deploy all related resources together as a single, versioned entity\.
+   
++ **Local debugging and testing**\. Use SAM CLI to locally build, test, and debug SAM applications on a Lambda-like execution environment. It helps you catch issues upfront and tightens the feedback loop by making it possible for you to find and troubleshoot issues that you might run into in the cloud.
 
-Contributions and feedback are welcome! Proposals and pull requests will
-be considered and responded to. For more information, see the
-[CONTRIBUTING](CONTRIBUTING.md) file.
++ **Deep integration with development tools**. You can use SAM with a suite of tools you love and use.
+    + IDEs: [PyCharm](https://aws.amazon.com/pycharm/), [IntelliJ](https://aws.amazon.com/intellij/), [Visual Studio Code](https://aws.amazon.com/visualstudiocode/), [Visual Studio](https://aws.amazon.com/visualstudio/), [AWS Cloud9](https://aws.amazon.com/cloud9/)
+    + Build: [CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/)
+    + Deploy: [CodeDeploy](https://docs.aws.amazon.com/codedeploy/latest/userguide/), [Jenkins](https://wiki.jenkins.io/display/JENKINS/AWS+SAM+Plugin)
+    + Continuous Delivery Pipelines: [CodePipeline](https://docs.aws.amazon.com/codepipeline/latest/userguide/) 
+    + Discover Serverless Apps & Patterns: [AWS Serverless Application Repository](https://docs.aws.amazon.com/serverlessrepo/latest/devguide/)
 
-A special thank you
--------------------
++ **Built\-in best practices**\. You can use SAM to define and deploy your infrastructure as configuration. This makes it possible for you to use and enforce best practices through code reviews. Also, with a few lines of configuration, you can enable safe deployments through CodeDeploy, and can enable tracing by using AWS X\-Ray\.
 
-SAM CLI uses the open source
-[docker-lambda](https://github.com/lambci/docker-lambda) Docker images
-created by [@mhart](https://github.com/mhart).
++ **Extension of AWS CloudFormation**\. Because AWS SAM is an extension of AWS CloudFormation, you get the reliable deployment capabilities of AWS CloudFormation\. You can define resources by using AWS CloudFormation in your AWS SAM template\. Also, you can use the full suite of resources, intrinsic functions, and other template features that are available in AWS CloudFormation\.
+
+
+## Contribute to SAM 👷
+
+Contributions and feedback are welcome! Depending on your interest and skill, you can help build the different parts 
+of the SAM project.
+
+### Enhance the SAM Specification
+Make pull requests, report bugs, and share ideas to improve the full AWS SAM template specification.
+
+Source code is located on Github at [awslabs/serverless-application-model](https://github.com/awslabs/serverless-application-model). 
+Read the [SAM Specification Contributing Guide](https://github.com/awslabs/serverless-application-model/blob/master/CONTRIBUTING.md)
+to get started.
+
+### Strengthen SAM CLI
+Add new commands or enhance existing ones, report bugs, or request new features for the SAM CLI.
+
+Source code is located on Github at [awslabs/aws-sam-cli](https://github.com/awslabs/aws-sam-cli). Read the [SAM CLI Contributing Guide](https://github.com/awslabs/aws-sam-cli/blob/develop/CONTRIBUTING.md) to 
+get started. 
+
+### Update SAM Developer Guide 
+SAM Developer guide provides comprehensive getting started guide and reference documentation. It lives here
+https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/index.html 
+
+Source code is located on Github at [awsdocs/aws-sam-developer-guide](https://github.com/awsdocs/aws-sam-developer-guide).
+Read the [SAM Documentation Contribution Guide](https://github.com/awsdocs/aws-sam-developer-guide/blob/master/CONTRIBUTING.md) to get
+started. 
+
+### Join the AWS SAM Community on Slack
+[Join the SAM developers channel (#samdev)](https://join.slack.com/t/awsdevelopers/shared_invite/enQtMzg3NTc5OTM2MzcxLTdjYTdhYWE3OTQyYTU4Njk1ZWY4Y2ZjYjBhMTUxNGYzNDg5MWQ1ZTc5MTRlOGY0OTI4NTdlZTMwNmI5YTgwOGM/) on Slack to collaborate with fellow community members and the AWS SAM team.
+
+
 
