@@ -20,12 +20,12 @@ SAM CLI to deploy your applications to AWS.
 
 * [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 * [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html)
-* Optionally, [Install AWS Toolkit](https://aws.amazon.com/getting-started/tools-sdks/#IDE_and_IDE_Toolkits) to use SAM with your favorite IDEs.
+* [Install AWS Toolkit](https://aws.amazon.com/getting-started/tools-sdks/#IDE_and_IDE_Toolkits) to use SAM with your favorite IDEs.
 
 
 **Next Steps:** Learn to build a more complex serverless application
-* [Extract text from images and store to database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html)
-* [Detect when records are inserted into database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html)
+* [Extract text from images and store to database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-s3.html) using Amazon S3 and Amazon Rekognition services.
+* [Detect when records are inserted into database](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-example-ddb.html) using Amazon DynamoDB database and asynchronous stream processing.
 
 
 **Detailed References:** Explains SAM commands and usage in depth
@@ -56,23 +56,22 @@ SAM CLI to deploy your applications to AWS.
 Contributions and feedback are welcome! Depending on your interest and skill, you can help build the different parts 
 of the SAM project.
 
-### Enhance the SAM Specification
-Make pull requests, report bugs, and share ideas to improve the full AWS SAM template specification.
+**Enhance the SAM Specification**
 
+Make pull requests, report bugs, and share ideas to improve the full AWS SAM template specification.
 Source code is located on Github at [awslabs/serverless-application-model](https://github.com/awslabs/serverless-application-model). 
 Read the [SAM Specification Contributing Guide](https://github.com/awslabs/serverless-application-model/blob/master/CONTRIBUTING.md)
 to get started.
+    
+**Strengthen SAM CLI**
 
-### Strengthen SAM CLI
 Add new commands or enhance existing ones, report bugs, or request new features for the SAM CLI.
-
 Source code is located on Github at [awslabs/aws-sam-cli](https://github.com/awslabs/aws-sam-cli). Read the [SAM CLI Contributing Guide](https://github.com/awslabs/aws-sam-cli/blob/develop/CONTRIBUTING.md) to 
 get started. 
 
-### Update SAM Developer Guide 
-SAM Developer guide provides comprehensive getting started guide and reference documentation. It lives here
-https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/index.html 
+**Update SAM Developer Guide**
 
+[SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/index.html) provides comprehensive getting started guide and reference documentation.
 Source code is located on Github at [awsdocs/aws-sam-developer-guide](https://github.com/awsdocs/aws-sam-developer-guide).
 Read the [SAM Documentation Contribution Guide](https://github.com/awsdocs/aws-sam-developer-guide/blob/master/CONTRIBUTING.md) to get
 started. 
