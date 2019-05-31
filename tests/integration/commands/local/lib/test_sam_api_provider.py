@@ -175,7 +175,7 @@ class TestSamStageValues(TestCase):
         api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
                    stage_name='dev',
                    stage_variables={
-                       "vis": "prod data",
+                       "vis": "data",
                        "random": "test",
                        "foo": "bar"
                    })
