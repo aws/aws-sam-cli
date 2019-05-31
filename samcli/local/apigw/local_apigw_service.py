@@ -34,7 +34,7 @@ class Route(object):
         self.stage_name = stage_name
         self.stage_variables = stage_variables
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other):
         if type(other) is type(self):
             return self.__dict__ == other.__dict__
         return False
