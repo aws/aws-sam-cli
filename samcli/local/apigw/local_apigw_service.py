@@ -35,6 +35,11 @@ class Route(object):
         self.stage_name = stage_name
         self.stage_variables = stage_variables
 
+    def __eq__(self, other: object) -> bool:
+        if type(other) is type(self):
+            return self.__dict__ == other.__dict__
+        return False
+
 
 class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
@@ -341,6 +346,7 @@ class LocalApigwService(BaseLocalService):
         if request_data:
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode('utf-8')
+
         stage_name = route.stage_name if route else "prod"
         stage_variables = route.stage_variables if route else None
 

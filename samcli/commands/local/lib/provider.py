@@ -222,10 +222,10 @@ _ApiTuple = namedtuple("Api", [
     # The variables for that stage
     "stage_variables"
 ])
-_ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
+_ApiTuple.__new__.__defaults__ = (None,   # Cors is optional and defaults to None
                                   [],     # binary_media_types is optional and defaults to empty,
-                                  "prod",
-                                  None
+                                  "prod", # stage name is default prod
+                                  None    # Stage variables is optional with default None
                                   )
 
 
