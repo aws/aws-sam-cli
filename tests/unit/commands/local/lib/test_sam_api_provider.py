@@ -982,7 +982,8 @@ def make_swagger(apis, binary_media_types=None):
         integration = {
             "x-amazon-apigateway-integration": {
                 "type": "aws_proxy",
-                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:{}/invocations".format(
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1"
+                       ":123456789012:function:{}/invocations".format(
                     api.function_name)  # NOQA
             }
         }

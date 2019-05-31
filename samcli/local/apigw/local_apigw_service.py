@@ -3,7 +3,6 @@ import io
 import json
 import logging
 import base64
-from pprint import pprint
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
@@ -335,9 +334,7 @@ class LocalApigwService(BaseLocalService):
 
         request_data = flask_request.get_data()
 
-        request_mimetype = flask_request.mimetype
-
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, flask_request.mimetype)
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -347,12 +344,9 @@ class LocalApigwService(BaseLocalService):
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode('utf-8')
 
-        stage_name = route.stage_name if route else "prod"
-        stage_variables = route.stage_variables if route else None
-
         context = RequestContext(resource_path=endpoint,
                                  http_method=method,
-                                 stage=stage_name,
+                                 stage=route.stage_name if route else "prod",
                                  identity=identity,
                                  path=endpoint)
 
@@ -374,8 +368,7 @@ class LocalApigwService(BaseLocalService):
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
                                       is_base_64_encoded=is_base_64,
-                                      stage_variables=stage_variables)
-        pprint(event.to_dict(), indent=2)
+                                      stage_variables=route.stage_variables if route else None)
 
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)

@@ -25,7 +25,8 @@ class TestSamStageValues(TestCase):
                                             "httpMethod": "POST",
                                             "type": "aws_proxy",
                                             "uri": {
-                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NoApiEventFunction.Arn}/invocations",
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
                                             },
                                             "responses": {},
                                         },
@@ -66,7 +67,8 @@ class TestSamStageValues(TestCase):
                                             "httpMethod": "POST",
                                             "type": "aws_proxy",
                                             "uri": {
-                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NoApiEventFunction.Arn}/invocations",
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
                                             },
                                             "responses": {},
                                         },
@@ -110,13 +112,13 @@ class TestSamStageValues(TestCase):
                                             "httpMethod": "POST",
                                             "type": "aws_proxy",
                                             "uri": {
-                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NoApiEventFunction.Arn}/invocations",
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
                                             },
                                             "responses": {},
                                         },
                                     }
                                 }
-
                             }
                         }
                     }
@@ -138,7 +140,8 @@ class TestSamStageValues(TestCase):
                                             "httpMethod": "POST",
                                             "type": "aws_proxy",
                                             "uri": {
-                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NoApiEventFunction.Arn}/invocations",
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
                                             },
                                             "responses": {},
                                         },
@@ -150,7 +153,8 @@ class TestSamStageValues(TestCase):
                                             "httpMethod": "POST",
                                             "type": "aws_proxy",
                                             "uri": {
-                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NoApiEventFunction.Arn}/invocations",
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
                                             },
                                             "responses": {},
                                         },
@@ -169,11 +173,12 @@ class TestSamStageValues(TestCase):
         result = [f for f in provider.get_all()]
 
         api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='dev', stage_variables={
-                "vis": "data",
-                "random": "test",
-                "foo": "bar"
-            })
+                   stage_name='dev',
+                   stage_variables={
+                       "vis": "prod data",
+                       "random": "test",
+                       "foo": "bar"
+                   })
         api2 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
                    stage_name='Production', stage_variables={'vis': 'prod data', 'random': 'test', 'foo': 'bar'})
         api3 = Api(path='/anotherpath', method='POST', function_name='NoApiEventFunction', cors=None,
@@ -183,7 +188,7 @@ class TestSamStageValues(TestCase):
                        "vis": "prod data",
                        "random": "test",
                        "foo": "bar"
-                   }, )
+                   })
         self.assertEquals(len(result), 3)
         self.assertIn(api1, result)
         self.assertIn(api2, result)
