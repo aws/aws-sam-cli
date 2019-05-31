@@ -315,7 +315,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types, route):
+    def _construct_event(flask_request, port, binary_types, route=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -341,10 +341,12 @@ class LocalApigwService(BaseLocalService):
         if request_data:
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode('utf-8')
+        stage_name = route.stage_name if route else "prod"
+        stage_variables = route.stage_variables if route else None
 
         context = RequestContext(resource_path=endpoint,
                                  http_method=method,
-                                 stage=route.stage_name,
+                                 stage=stage_name,
                                  identity=identity,
                                  path=endpoint)
 
@@ -366,7 +368,7 @@ class LocalApigwService(BaseLocalService):
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
                                       is_base_64_encoded=is_base_64,
-                                      stage_variables=route.stage_variables)
+                                      stage_variables=stage_variables)
         pprint(event.to_dict(), indent=2)
 
         event_str = json.dumps(event.to_dict())

@@ -127,7 +127,7 @@ class SamApiProvider(ApiProvider):
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
         stage_name = properties.get("StageName")
-        stage_variables = properties.get("Variables", {})
+        stage_variables = properties.get("Variables", None)
 
         if not body and not uri:
             # Swagger is not found anywhere.
