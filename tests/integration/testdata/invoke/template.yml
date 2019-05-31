@@ -10,6 +10,10 @@ Parameters:
   MyRuntimeVersion:
     Type: String
 
+  StringValueTimeout:
+      Default: "5"
+      Type: Number
+
 Resources:
   HelloWorldServerlessFunction:
     Type: AWS::Serverless::Function
@@ -122,4 +126,11 @@ Resources:
           Timeout: !Ref DefaultTimeout
           MyRuntimeVersion: !Ref MyRuntimeVersion
 
-
+  TimeoutFunctionWithStringParameter:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.sleep_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout:
+        Ref: StringValueTimeout
