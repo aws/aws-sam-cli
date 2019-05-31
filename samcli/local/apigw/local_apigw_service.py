@@ -39,6 +39,12 @@ class Route(object):
             return self.__dict__ == other.__dict__
         return False
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.methods) * hash(self.path) * hash(self.function_name) * hash(self.stage_name)
+
 
 class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
