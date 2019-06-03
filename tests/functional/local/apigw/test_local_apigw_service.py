@@ -630,8 +630,46 @@ def make_service(list_of_routes, function_provider, cwd):
 
 def make_service_response(port, method, scheme, resourcePath, resolvedResourcePath, pathParameters=None,
                           body=None, headers=None, queryParams=None, isBase64Encoded=False):
-    response_str = '{"httpMethod": "GET", "body": null, "resource": "/something/{event}", "requestContext": {"resourceId": "123456", "apiId": "1234567890", "resourcePath": "/something/{event}", "httpMethod": "GET", "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef", "accountId": "123456789012", "stage": "prod", "identity": {"apiKey": null, "userArn": null, "cognitoAuthenticationType": null, "caller": null, "userAgent": "Custom User Agent String", "user": null, "cognitoIdentityPoolId": null, "cognitoAuthenticationProvider": null, "sourceIp": "127.0.0.1", "accountId": null}, "extendedRequestId": null, "path": "/something/{event}"}, "queryStringParameters": null, "headers": {"Host": "0.0.0.0:33651", "User-Agent": "python-requests/2.20.1", "Accept-Encoding": "gzip, deflate", "Accept": "*/*", "Connection": "keep-alive"}, "pathParameters": {"event": "event1"}, "stageVariables": null, "path": "/something/event1", "isBase64Encoded": false}' # NOQA
-    response = json.loads(response_str)
+    response = {
+        "httpMethod": "GET",
+        "body": None,
+        "resource": "/something/{event}",
+        "requestContext": {
+            "resourceId": "123456",
+            "apiId": "1234567890",
+            "resourcePath": "/something/{event}",
+            "httpMethod": "GET",
+            "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+            "accountId": "123456789012",
+            "stage": "prod",
+            "identity": {
+                "apiKey": None,
+                "userArn": None,
+                "cognitoAuthenticationType": None,
+                "caller": None,
+                "userAgent": "Custom User Agent String",
+                "user": None,
+                "cognitoIdentityPoolId": None,
+                "cognitoAuthenticationProvider": None,
+                "sourceIp": "127.0.0.1",
+                "accountId": None
+            },
+            "extendedRequestId": None,
+            "path": "/something/{event}"
+        },
+        "queryStringParameters": None,
+        "headers": {
+            "Host": "0.0.0.0:33651",
+            "User-Agent": "python-requests/{}".format(requests.__version__),
+            "Accept-Encoding": "gzip, deflate",
+            "Accept": "*/*",
+            "Connection": "keep-alive"
+        },
+        "pathParameters": {"event": "event1"},
+        "stageVariables": None,
+        "path": "/something/event1",
+        "isBase64Encoded": False
+    }
 
     if body:
         response["body"] = body
