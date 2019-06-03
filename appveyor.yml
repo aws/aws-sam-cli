@@ -36,7 +36,7 @@ install:
     - "python -c \"import sys; print(sys.executable)\""
 
     # Actually install SAM CLI's dependencies
-    - "pip install -e '.[dev]'"
+    - "pip install -e \".[dev]\""
 
 test_script:
     - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\\unit"
