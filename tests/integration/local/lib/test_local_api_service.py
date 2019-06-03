@@ -35,15 +35,17 @@ class TestRoutingList(TestCase):
         routing_list = LocalApiService._make_routing_list(self.api_provider_mock)
 
         expected_routes = [
-            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name='prod',
+            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name=None,
                   stage_variables=None),
             Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name='Dev',
                   stage_variables=None),
             Route(function_name=self.function_name, methods=['POST'], path='/post', stage_name='Prod',
                   stage_variables=None),
-            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name='prod',
+            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name=None,
                   stage_variables={'test': 'data'}),
             Route(function_name=self.function_name, methods=['POST'], path='/post', stage_name='Prod',
                   stage_variables={'data': 'more data'}),
         ]
-        assertCountEqual(self, routing_list, expected_routes)
+        self.assertEquals(len(routing_list), len(expected_routes))
+        for index, r in enumerate(routing_list):
+            self.assertEquals(r.__dict__, expected_routes[index].__dict__)

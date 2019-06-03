@@ -43,7 +43,6 @@ class TestLocalApiService_start(TestCase):
                                 make_static_dir_mock,
                                 SamApiProviderMock,
                                 ApiGwServiceMock):
-
         routing_list = [1, 2, 3]  # something
         static_dir_path = "/foo/bar"
 
@@ -86,7 +85,6 @@ class TestLocalApiService_start(TestCase):
                                                make_static_dir_mock,
                                                SamApiProviderMock,
                                                ApiGwServiceMock):
-
         routing_list = []  # Empty
 
         make_routing_list_mock.return_value = routing_list

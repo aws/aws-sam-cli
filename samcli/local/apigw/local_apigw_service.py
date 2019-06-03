@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 class Route(object):
 
-    def __init__(self, methods, function_name, path, binary_types=None, stage_name="prod", stage_variables=None):
+    def __init__(self, methods, function_name, path, binary_types=None, stage_name=None, stage_variables=None):
         """
         Creates an ApiGatewayRoute
 
@@ -33,17 +33,6 @@ class Route(object):
         self.binary_types = binary_types or []
         self.stage_name = stage_name
         self.stage_variables = stage_variables
-
-    def __eq__(self, other):
-        if type(other) is type(self):
-            return self.__dict__ == other.__dict__
-        return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash(self.methods) * hash(self.path) * hash(self.function_name) * hash(self.stage_name)
 
 
 class LocalApigwService(BaseLocalService):
@@ -155,7 +144,8 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types, route)
+            event = self._construct_event(request, self.port, route.binary_types, route.stage_name,
+                                          route.stage_variables)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -325,7 +315,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types, route=None):
+    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -340,7 +330,9 @@ class LocalApigwService(BaseLocalService):
 
         request_data = flask_request.get_data()
 
-        is_base_64 = LocalApigwService._should_base64_encode(binary_types, flask_request.mimetype)
+        request_mimetype = flask_request.mimetype
+
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
 
         if is_base_64:
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
@@ -352,7 +344,7 @@ class LocalApigwService(BaseLocalService):
 
         context = RequestContext(resource_path=endpoint,
                                  http_method=method,
-                                 stage=route.stage_name if route else "prod",
+                                 stage=stage_name,
                                  identity=identity,
                                  path=endpoint)
 
@@ -374,7 +366,7 @@ class LocalApigwService(BaseLocalService):
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
                                       is_base_64_encoded=is_base_64,
-                                      stage_variables=route.stage_variables if route else None)
+                                      stage_variables=stage_variables)
 
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
