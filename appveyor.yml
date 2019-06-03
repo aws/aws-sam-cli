@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: ubuntu
+image: Visual Studio 2017
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
