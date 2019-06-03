@@ -45,7 +45,8 @@ class TestApiGatewayServiceStageSettings(TestCase):
         self.request_mock.get_data.return_value = None
 
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[],
-                                                              route=self.route1)
+                                                              stage_name=self.route1.stage_name,
+                                                              stage_variables=self.route1.stage_variables)
         event_json = json.loads(actual_event_str)
         stage_name = event_json.get("requestContext", {}).get("stage")
         stage_variables = event_json.get("stageVariables")
@@ -57,7 +58,8 @@ class TestApiGatewayServiceStageSettings(TestCase):
         self.request_mock.path = self.route2.path
         self.request_mock.get_data.return_value = None
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[],
-                                                              route=self.route2)
+                                                              stage_name=self.route2.stage_name,
+                                                              stage_variables=self.route2.stage_variables)
         event_json = json.loads(actual_event_str)
         stage_name = event_json.get("requestContext", {}).get("stage")
         stage_variables = event_json.get("stageVariables")

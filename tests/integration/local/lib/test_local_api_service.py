@@ -6,7 +6,6 @@ import logging
 from unittest import TestCase
 
 from mock import Mock
-from six import assertCountEqual
 from samcli.local.apigw.local_apigw_service import Route
 
 from samcli.commands.local.lib import provider
