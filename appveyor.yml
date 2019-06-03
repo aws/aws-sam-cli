@@ -1,0 +1,33 @@
+version: 1.0.{build}
+image: ubuntu
+environment:
+  AWS_DEFAULT_REGION: us-east-1
+  matrix:
+    - PYTHON_HOME: C:\Python27-x64
+      PYTHON_VERSION: '2.7'
+      PYTHON_ARCH: '32'
+
+    - PYTHON_HOME: C:\Python36-x64
+      PYTHON_VERSION: '3.6'
+      PYTHON_ARCH: '64'
+
+    # Testing on both 32bit and 64bit Windows only for Latest Python version, 
+    # because MSIs installers use Latest Python version
+    - PYTHON_HOME: C:\Python37
+      PYTHON_VERSION: '3.7'
+      PYTHON_ARCH: '32'
+
+    - PYTHON_HOME: C:\Python37-x64
+      PYTHON_VERSION: '3.7'
+      PYTHON_ARCH: '64'
+
+build: off
+install:
+- pip install -e '.[dev]'
+test_script:
+- pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\unit
+- flake8 samcli
+- flake8 tests\unit tests\integration
+- pylint --rcfile .pylintrc samcli
+
+
