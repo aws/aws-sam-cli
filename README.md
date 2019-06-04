@@ -29,9 +29,9 @@ SAM CLI to deploy your applications to AWS.
 
 
 **Detailed References:** Explains SAM commands and usage in depth.
-* [CLI Commands](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html)
-* [SAM Template Specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md)
-* [Policy Templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html)
+* 💻 [CLI Commands](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html)
+* 📝 [SAM Template Specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md)
+* 📝 [Policy Templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html)
 
 ## Why SAM
 
@@ -50,7 +50,7 @@ SAM CLI to deploy your applications to AWS.
 
 + **Extension of AWS CloudFormation**\. Because SAM is an extension of AWS CloudFormation, you get the reliable deployment capabilities of AWS CloudFormation\. You can define resources by using CloudFormation in your SAM template\. Also, you can use the full suite of resources, intrinsic functions, and other template features that are available in CloudFormation\.
 
-## What is this Github repository?
+## What is this Github repository? 💻
 This Github Repository contains source code for SAM CLI. Here is the development team talking about this code:
 
 > SAM CLI code is written in Python. Source code is well documented, very modular, with 95% unit test coverage. 
