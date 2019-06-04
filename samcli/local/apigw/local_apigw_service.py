@@ -322,6 +322,7 @@ class LocalApigwService(BaseLocalService):
         :param request flask_request: Flask Request
         :return: String representing the event
         """
+        # pylint: disable-msg=too-many-locals
 
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
