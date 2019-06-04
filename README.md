@@ -15,8 +15,7 @@ With just a few lines of configuration, you can define the application you want 
 ## Get Started
 
 To get started with building SAM-based applications, use the SAM CLI. SAM CLI provides a Lambda-like execution 
-environment that lets you locally build, test, and debug applications defined by SAM templates. You can also use the 
-SAM CLI to deploy your applications to AWS.
+environment that lets you locally build, test, debug, and deploy applications defined by SAM templates.
 
 * [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 * [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html)
@@ -29,9 +28,9 @@ SAM CLI to deploy your applications to AWS.
 
 
 **Detailed References:** Explains SAM commands and usage in depth.
-* 💻 [CLI Commands](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html)
-* 📝 [SAM Template Specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md)
-* 📝 [Policy Templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html)
+* [CLI Commands](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-command-reference.html)
+* [SAM Template Specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md)
+* [Policy Templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html)
 
 ## Why SAM
 
