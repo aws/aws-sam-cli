@@ -7,7 +7,7 @@ import io
 from flask import Flask, request
 
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser, CaseInsensitiveDict
+from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from .lambda_error_responses import LambdaErrorResponses
 
@@ -92,7 +92,7 @@ class LocalLambdaInvokeService(BaseLocalService):
             LOG.debug("Query parameters are in the request but not supported")
             return LambdaErrorResponses.invalid_request_content("Query Parameters are not supported")
 
-        request_headers = CaseInsensitiveDict(flask_request.headers)
+        request_headers = flask_request.headers
 
         log_type = request_headers.get('X-Amz-Log-Type', 'None')
         if log_type != 'None':

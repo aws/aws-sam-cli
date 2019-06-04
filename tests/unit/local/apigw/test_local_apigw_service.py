@@ -4,6 +4,7 @@ import json
 import base64
 
 from parameterized import parameterized, param
+from werkzeug.datastructures import Headers
 
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -260,6 +261,39 @@ class TestApiGatewayModel(TestCase):
         self.assertEquals(self.api_gateway.path, '/')
 
 
+class TestLambdaHeaderDictionaryMerge(TestCase):
+
+    def test_empty_dictionaries_produce_empty_result(self):
+        headers = {}
+        multi_value_headers = {}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertEquals(result, Headers({}))
+
+    def test_headers_are_merged(self):
+        headers = {"h1": "value1", "h2": "value2", "h3": "value3"}
+        multi_value_headers = {"h3": ["value4"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertIn("h2", result)
+        self.assertIn("h3", result)
+        self.assertEquals(result["h1"], "value1")
+        self.assertEquals(result["h2"], "value2")
+        self.assertEquals(result.get_all("h3"), ["value4", "value3"])
+
+    def test_merge_does_not_duplicate_values(self):
+        headers = {"h1": "ValueB"}
+        multi_value_headers = {"h1": ["ValueA", "ValueB", "ValueC"]}
+
+        result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
+
+        self.assertIn("h1", result)
+        self.assertEquals(result.get_all("h1"), ["ValueA", "ValueB", "ValueC"])
+
+
 class TestServiceParsingLambdaOutput(TestCase):
 
     def test_default_content_type_header_added_with_no_headers(self):
@@ -289,6 +323,33 @@ class TestServiceParsingLambdaOutput(TestCase):
         self.assertIn("Content-Type", headers)
         self.assertEquals(headers["Content-Type"], "text/xml")
 
+    def test_custom_content_type_multivalue_header_is_not_modified(self):
+        lambda_output = '{"statusCode": 200, "multiValueHeaders":{"Content-Type": ["text/xml"]}, "body": "{}", ' \
+                        '"isBase64Encoded": false}'
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
+
+        self.assertIn("Content-Type", headers)
+        self.assertEquals(headers["Content-Type"], "text/xml")
+
+    def test_multivalue_headers(self):
+        lambda_output = '{"statusCode": 200, "multiValueHeaders":{"X-Foo": ["bar", "42"]}, ' \
+                        '"body": "{\\"message\\":\\"Hello from Lambda\\"}", "isBase64Encoded": false}'
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
+
+        self.assertEquals(headers, Headers({"Content-Type": "application/json", "X-Foo": ["bar", "42"]}))
+
+    def test_single_and_multivalue_headers(self):
+        lambda_output = '{"statusCode": 200, "headers":{"X-Foo": "foo", "X-Bar": "bar"}, ' \
+                        '"multiValueHeaders":{"X-Foo": ["bar", "42"]}, ' \
+                        '"body": "{\\"message\\":\\"Hello from Lambda\\"}", "isBase64Encoded": false}'
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
+
+        self.assertEquals(
+            headers, Headers({"Content-Type": "application/json", "X-Bar": "bar", "X-Foo": ["bar", "42", "foo"]}))
+
     def test_extra_values_raise(self):
         lambda_output = '{"statusCode": 200, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
                         '"isBase64Encoded": false, "another_key": "some value"}'
@@ -307,7 +368,7 @@ class TestServiceParsingLambdaOutput(TestCase):
                                                                               flask_request=Mock())
 
         self.assertEquals(status_code, 200)
-        self.assertEquals(headers, {"Content-Type": "application/json"})
+        self.assertEquals(headers, Headers({"Content-Type": "application/json"}))
         self.assertEquals(body, '{"message":"Hello from Lambda"}')
 
     @patch('samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body')
@@ -326,7 +387,7 @@ class TestServiceParsingLambdaOutput(TestCase):
                                                                               flask_request=Mock())
 
         self.assertEquals(status_code, 200)
-        self.assertEquals(headers, {"Content-Type": "application/octet-stream"})
+        self.assertEquals(headers, Headers({"Content-Type": "application/octet-stream"}))
         self.assertEquals(body, binary_body)
 
     def test_status_code_not_int(self):
@@ -388,7 +449,7 @@ class TestServiceParsingLambdaOutput(TestCase):
                                                                               flask_request=Mock())
 
         self.assertEquals(status_code, 200)
-        self.assertEquals(headers, {"Content-Type": "application/json"})
+        self.assertEquals(headers, Headers({"Content-Type": "application/json"}))
         self.assertEquals(body, "no data")
 
 
