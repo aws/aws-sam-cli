@@ -116,6 +116,7 @@ class SamFunctionProvider(FunctionProvider):
         :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
             declare a name
         :param dict resource_properties: Properties of this resource
+        :param list layers:
         :return samcli.commands.local.lib.provider.Function: Function configuration
         """
 
@@ -123,24 +124,7 @@ class SamFunctionProvider(FunctionProvider):
 
         LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
 
-        timeout = resource_properties.get("Timeout")
-        if isinstance(timeout, str):
-            try:
-                timeout = ast.literal_eval(timeout)
-            except ValueError:
-                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(timeout))
-
-        return Function(
-            name=name,
-            runtime=resource_properties.get("Runtime"),
-            memory=resource_properties.get("MemorySize"),
-            timeout=timeout,
-            handler=resource_properties.get("Handler"),
-            codeuri=codeuri,
-            environment=resource_properties.get("Environment"),
-            rolearn=resource_properties.get("Role"),
-            layers=layers,
-        )
+        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers)
 
     @staticmethod
     def _extract_sam_function_codeuri(name, resource_properties, code_property_key):
@@ -181,6 +165,7 @@ class SamFunctionProvider(FunctionProvider):
         :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
             declare a name
         :param dict resource_properties: Properties of this resource
+        :param list layers:
         :return samcli.commands.local.lib.provider.Function: Function configuration
         """
 
@@ -190,17 +175,7 @@ class SamFunctionProvider(FunctionProvider):
 
         LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
 
-        return Function(
-            name=name,
-            runtime=resource_properties.get("Runtime"),
-            memory=resource_properties.get("MemorySize"),
-            timeout=resource_properties.get("Timeout"),
-            handler=resource_properties.get("Handler"),
-            codeuri=codeuri,
-            environment=resource_properties.get("Environment"),
-            rolearn=resource_properties.get("Role"),
-            layers=layers,
-        )
+        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers)
 
     @staticmethod
     def _extract_lambda_function_code(resource_properties, code_property_key):
@@ -226,6 +201,31 @@ class SamFunctionProvider(FunctionProvider):
             codeuri = SamFunctionProvider._DEFAULT_CODEURI
 
         return codeuri
+
+    @staticmethod
+    def _build_function_configuration(name, codeuri, resource_properties, layers):
+        """
+        Builds a Function configuration usable by the provider.
+
+        :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
+            declare a name
+        :param string codeuri: Representing the local code path
+        :param dict resource_properties: Properties of this resource
+        :param list layers:
+        :return samcli.commands.local.lib.provider.Function: Function configuration
+        """
+        return Function(
+            name=name,
+            functionname=resource_properties.get("FunctionName", name),
+            runtime=resource_properties.get("Runtime"),
+            memory=resource_properties.get("MemorySize"),
+            timeout=resource_properties.get("Timeout"),
+            handler=resource_properties.get("Handler"),
+            codeuri=codeuri,
+            environment=resource_properties.get("Environment"),
+            rolearn=resource_properties.get("Role"),
+            layers=layers,
+        )
 
     @staticmethod
     def _parse_layer_info(list_of_layers, resources):

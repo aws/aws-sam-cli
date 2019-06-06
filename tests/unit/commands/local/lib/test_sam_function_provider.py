@@ -37,6 +37,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Handler": "index.handler",
                 },
             },
+            "SamFuncWithFunctionNameOverride": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "FunctionName": "overridden-function-name",
+                    "CodeUri": "/usr/foo/bar",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
+            },
             "LambdaFunc1": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
@@ -49,14 +58,21 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 "Type": "AWS::Lambda::Function",
                 "Properties": {"Code": "./some/path/to/code", "Runtime": "nodejs4.3", "Handler": "index.handler"},
             },
+            "LambdaFuncWithFunctionNameOverride": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "FunctionName": "overridden-function-name",
+                    "Code": "./some/path/to/code",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
+            },
             "OtherResource": {
                 "Type": "AWS::Serverless::Api",
                 "Properties": {"StageName": "prod", "DefinitionUri": "s3://bucket/key"},
             },
         }
     }
-
-    EXPECTED_FUNCTIONS = ["SamFunc1", "SamFunc2", "SamFunc3", "LambdaFunc1"]
 
     def setUp(self):
         self.parameter_overrides = {}
@@ -68,6 +84,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 "SamFunc1",
                 Function(
                     name="SamFunc1",
+                    functionname="SamFunc1",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -82,6 +99,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 "SamFunc2",
                 Function(
                     name="SamFunc2",
+                    functionname="SamFunc2",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=".",
@@ -96,6 +114,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 "SamFunc3",
                 Function(
                     name="SamFunc3",
+                    functionname="SamFunc3",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=".",
@@ -107,9 +126,25 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 ),
             ),
             (
+                "SamFuncWithFunctionNameOverride",
+                Function(
+                    name="SamFuncWithFunctionNameOverride",
+                    functionname="overridden-function-name",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                ),
+            ),
+            (
                 "LambdaFunc1",
                 Function(
                     name="LambdaFunc1",
+                    functionname="LambdaFunc1",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri=".",
@@ -124,6 +159,22 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 "LambdaFuncWithLocalPath",
                 Function(
                     name="LambdaFuncWithLocalPath",
+                    functionname="LambdaFuncWithLocalPath",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="./some/path/to/code",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                ),
+            ),
+            (
+                "LambdaFuncWithFunctionNameOverride",
+                Function(
+                    name="LambdaFuncWithFunctionNameOverride",
+                    functionname="overridden-function-name",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="./some/path/to/code",
@@ -144,7 +195,15 @@ class TestSamFunctionProviderEndToEnd(TestCase):
     def test_get_all_must_return_all_functions(self):
 
         result = {f.name for f in self.provider.get_all()}
-        expected = {"SamFunc1", "SamFunc2", "SamFunc3", "LambdaFunc1", "LambdaFuncWithLocalPath"}
+        expected = {
+            "SamFunc1",
+            "SamFunc2",
+            "SamFunc3",
+            "SamFuncWithFunctionNameOverride",
+            "LambdaFunc1",
+            "LambdaFuncWithLocalPath",
+            "LambdaFuncWithFunctionNameOverride",
+        }
 
         self.assertEqual(result, expected)
 
@@ -253,6 +312,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
         expected = Function(
             name="myname",
+            functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
             timeout=30,
@@ -291,6 +351,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
         expected = Function(
             name="myname",
+            functionname="myname",
             runtime=None,
             memory=None,
             timeout=None,
@@ -352,6 +413,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
 
         expected = Function(
             name="myname",
+            functionname="myname",
             runtime="myruntime",
             memory="mymemorysize",
             timeout="30",
@@ -373,6 +435,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
 
         expected = Function(
             name="myname",
+            functionname="myname",
             runtime=None,
             memory=None,
             timeout=None,

@@ -131,7 +131,7 @@ class LocalLambdaRunner:
             function_timeout = self.MAX_DEBUG_TIMEOUT
 
         return FunctionConfig(
-            name=function.name,
+            name=function.functionname,
             runtime=function.runtime,
             handler=function.handler,
             code_abs_path=code_abs_path,
