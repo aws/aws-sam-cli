@@ -346,21 +346,18 @@ class LocalApigwService(BaseLocalService):
                                  identity=identity,
                                  path=endpoint)
 
-        event_headers = dict(flask_request.headers)
-        event_headers["X-Forwarded-Proto"] = flask_request.scheme
-        event_headers["X-Forwarded-Port"] = str(port)
+        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
 
-        # APIGW does not support duplicate query parameters. Flask gives query params as a list so
-        # we need to convert only grab the first item unless many were given, were we grab the last to be consistent
-        # with APIGW
-        query_string_dict = LocalApigwService._query_string_params(flask_request)
+        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
 
         event = ApiGatewayLambdaEvent(http_method=method,
                                       body=request_data,
                                       resource=endpoint,
                                       request_context=context,
                                       query_string_params=query_string_dict,
-                                      headers=event_headers,
+                                      multi_value_query_string_params=multi_value_query_string_dict,
+                                      headers=headers_dict,
+                                      multi_value_headers=multi_value_headers_dict,
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
                                       is_base_64_encoded=is_base_64)
@@ -379,12 +376,13 @@ class LocalApigwService(BaseLocalService):
         flask_request request
             Request from Flask
 
-        Returns dict (str: str)
+        Returns dict (str: str), dict (str: list of str)
         -------
             Empty dict if no query params where in the request otherwise returns a dictionary of key to value
 
         """
         query_string_dict = {}
+        multi_value_query_string_dict = {}
 
         # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
         # a dict(str: list) then iterate over
@@ -394,11 +392,46 @@ class LocalApigwService(BaseLocalService):
             # if the list is empty, default to empty string
             if not query_string_value_length:
                 query_string_dict[query_string_key] = ""
+                multi_value_query_string_dict[query_string_key] = [""]
             else:
-                # APIGW doesn't handle duplicate query string keys, picking the last one in the list
                 query_string_dict[query_string_key] = query_string_list[-1]
+                multi_value_query_string_dict[query_string_key] = query_string_list
 
-        return query_string_dict
+        return query_string_dict, multi_value_query_string_dict
+
+    @staticmethod
+    def _event_headers(flask_request, port):
+        """
+        Constructs an APIGW equivalent headers dictionary
+
+        Parameters
+        ----------
+        flask_request request
+            Request from Flask
+        int port
+            Forwarded Port
+
+        Returns dict (str: str), dict (str: list of str)
+        -------
+            Returns a dictionary of key to list of strings
+
+        """
+        headers_dict = {}
+        multi_value_headers_dict = {}
+
+        # Multi-value request headers is not really supported by Flask.
+        # See https://github.com/pallets/flask/issues/850
+        for header_key in flask_request.headers.keys():
+            headers_dict[header_key] = flask_request.headers.get(header_key)
+            multi_value_headers_dict[header_key] = flask_request.headers.getlist(header_key)
+
+        headers_dict["X-Forwarded-Proto"] = flask_request.scheme
+        multi_value_headers_dict["X-Forwarded-Proto"] = [flask_request.scheme]
+
+        headers_dict["X-Forwarded-Port"] = str(port)
+        multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
+
+        return headers_dict, multi_value_headers_dict
 
     @staticmethod
     def _should_base64_encode(binary_types, request_mimetype):
