@@ -437,10 +437,10 @@ class TestLocalLambda_invoke(TestCase):
         event = "event"
         stdout = "stdout"
         stderr = "stderr"
-        function = Mock()
+        function = Mock(functionname="name")
         invoke_config = "config"
 
-        self.function_provider_mock.get.return_value = function
+        self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda._get_invoke_config = Mock()
         self.local_lambda._get_invoke_config.return_value = invoke_config
 

@@ -79,10 +79,13 @@ class LocalLambdaRunner:
         """
 
         # Generate the correct configuration based on given inputs
-        function = self.provider.get(function_name)
+        function = None
+        for f in self.provider.get_all():
+            if f.functionname == function_name:
+                function = f
 
         if not function:
-            all_functions = [f.name for f in self.provider.get_all()]
+            all_functions = [f.functionname for f in self.provider.get_all()]
             available_function_message = "{} not found. Possible options in your template: {}".format(
                 function_name, all_functions
             )
@@ -161,7 +164,7 @@ class LocalLambdaRunner:
 
         """
 
-        name = function.name
+        name = function.functionname
 
         variables = None
         if function.environment and isinstance(function.environment, dict) and "Variables" in function.environment:
