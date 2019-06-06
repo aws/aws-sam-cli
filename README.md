@@ -4,7 +4,8 @@
 # AWS SAM (Beta)
 
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
-![GitHub-release](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg)
+![SAM CLI Version](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?label=CLI%20Version)
+
 
 The AWS Serverless Application Model (SAM) is an open-source framework for building serverless applications. 
 It provides shorthand syntax to express functions, APIs, databases, and event source mappings. 
