@@ -113,11 +113,19 @@ class SamFunctionProvider(FunctionProvider):
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
-        :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
-            declare a name
-        :param dict resource_properties: Properties of this resource
-        :param list layers:
-        :return samcli.commands.local.lib.provider.Function: Function configuration
+        Parameters
+        ----------
+        name str
+            LogicalID of the resource NOTE: This is *not* the function name because not all functions declare a name
+        resource_properties dict
+            Properties of this resource
+        layers List(samcli.commands.local.lib.provider.Layer)
+            List of the Layer objects created from the template and layer list defined on the function.
+
+        Returns
+        -------
+        samcli.commands.local.lib.provider.Function
+            Function configuration
         """
 
         codeuri = SamFunctionProvider._extract_sam_function_codeuri(name, resource_properties, "CodeUri")
@@ -162,11 +170,19 @@ class SamFunctionProvider(FunctionProvider):
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
-        :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
-            declare a name
-        :param dict resource_properties: Properties of this resource
-        :param list layers:
-        :return samcli.commands.local.lib.provider.Function: Function configuration
+        Parameters
+        ----------
+        name str
+            LogicalID of the resource NOTE: This is *not* the function name because not all functions declare a name
+        resource_properties dict
+            Properties of this resource
+        layers List(samcli.commands.local.lib.provider.Layer)
+            List of the Layer objects created from the template and layer list defined on the function.
+
+        Returns
+        -------
+        samcli.commands.local.lib.provider.Function
+            Function configuration
         """
 
         # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
@@ -207,12 +223,21 @@ class SamFunctionProvider(FunctionProvider):
         """
         Builds a Function configuration usable by the provider.
 
-        :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
-            declare a name
-        :param string codeuri: Representing the local code path
-        :param dict resource_properties: Properties of this resource
-        :param list layers:
-        :return samcli.commands.local.lib.provider.Function: Function configuration
+        Parameters
+        ----------
+        name str
+            LogicalID of the resource NOTE: This is *not* the function name because not all functions declare a name
+        codeuri str
+            Representing the local code path
+        resource_properties dict
+            Properties of this resource
+        layers List(samcli.commands.local.lib.provider.Layer)
+            List of the Layer objects created from the template and layer list defined on the function.
+
+        Returns
+        -------
+        samcli.commands.local.lib.provider.Function
+            Function configuration
         """
         return Function(
             name=name,
