@@ -21,15 +21,6 @@ from samcli.local.docker.lambda_image import LambdaImage
 
 class TestLocalLambdaService(TestCase):
     @classmethod
-    def mocked_function_provider(cls, function_name):
-        if function_name == "HelloWorld":
-            return cls.hello_world_function
-        if function_name == "ThrowError":
-            return cls.throw_error_function
-        else:
-            raise FunctionNotFound("Could not find Function")
-
-    @classmethod
     def setUpClass(cls):
         cls.code_abs_path_for_throw_error = nodejs_lambda(THROW_ERROR_LAMBDA)
 
@@ -49,6 +40,7 @@ class TestLocalLambdaService(TestCase):
 
         cls.hello_world_function = provider.Function(
             name=cls.hello_world_function_name,
+            functionname=None,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -63,6 +55,7 @@ class TestLocalLambdaService(TestCase):
 
         cls.throw_error_function = provider.Function(
             name=cls.throw_error_function_name,
+            functionname=None,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -74,7 +67,7 @@ class TestLocalLambdaService(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.side_effect = cls.mocked_function_provider
+        cls.mock_function_provider.get_all.return_value = [cls.hello_world_function, cls.throw_error_function]
 
         cls.service, cls.port, cls.url, cls.scheme = make_service(cls.mock_function_provider, cls.cwd)
         cls.service.create()
@@ -147,6 +140,7 @@ class TestLocalEchoLambdaService(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=None,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -158,7 +152,7 @@ class TestLocalEchoLambdaService(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function]
 
         cls.service, cls.port, cls.url, cls.scheme = make_service(cls.mock_function_provider, cls.cwd)
         cls.service.create()
@@ -223,6 +217,7 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=None,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -234,7 +229,7 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function]
 
         cls.service, cls.port, cls.url, cls.scheme = make_service(cls.mock_function_provider, cls.cwd)
         cls.service.create()

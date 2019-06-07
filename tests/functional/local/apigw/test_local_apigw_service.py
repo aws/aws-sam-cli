@@ -38,6 +38,7 @@ class TestService_InvalidResponses(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -49,7 +50,7 @@ class TestService_InvalidResponses(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function]
 
         list_of_routes = [
             Route(["POST", "GET"], cls.function_name, "/something"),
@@ -93,6 +94,7 @@ class TestService_ContentType(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -105,6 +107,7 @@ class TestService_ContentType(TestCase):
 
         cls.base64_response_function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -116,7 +119,7 @@ class TestService_ContentType(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function, cls.base64_response_function]
 
         list_of_routes = [Route(["GET"], cls.function_name, "/")]
 
@@ -160,6 +163,7 @@ class TestService_EventSerialization(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -172,6 +176,7 @@ class TestService_EventSerialization(TestCase):
 
         cls.base64_response_function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -183,7 +188,7 @@ class TestService_EventSerialization(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function, cls.base64_response_function]
 
         list_of_routes = [
             Route(["POST", "GET"], cls.function_name, "/something"),
@@ -402,6 +407,7 @@ class TestService_ProxyAtBasePath(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -413,7 +419,7 @@ class TestService_ProxyAtBasePath(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function]
 
         list_of_routes = [Route(["GET"], cls.function_name, "/{proxy+}")]
 
@@ -468,6 +474,7 @@ class TestService_Binary(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -479,7 +486,7 @@ class TestService_Binary(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function]
 
         list_of_routes = [
             Route(["GET"], cls.function_name, "/getimagegifbinarydata", binary_types=["image/gif"]),
@@ -560,6 +567,7 @@ class TestService_PostingBinary(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -571,7 +579,7 @@ class TestService_PostingBinary(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function]
 
         list_of_routes = [
             Route(["POST"], cls.function_name, "/postbinarygif", binary_types=["image/gif"]),
@@ -660,6 +668,7 @@ class TestService_FlaskDefaultOptionsDisabled(TestCase):
 
         cls.function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -672,6 +681,7 @@ class TestService_FlaskDefaultOptionsDisabled(TestCase):
 
         cls.base64_response_function = provider.Function(
             name=cls.function_name,
+            functionname=cls.function_name,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -683,7 +693,7 @@ class TestService_FlaskDefaultOptionsDisabled(TestCase):
         )
 
         cls.mock_function_provider = Mock()
-        cls.mock_function_provider.get.return_value = cls.function
+        cls.mock_function_provider.get_all.return_value = [cls.function, cls.base64_response_function]
 
         list_of_routes = [
             Route(["GET"], cls.function_name, "/something"),

@@ -53,6 +53,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.function_name = "name"
         self.function = provider.Function(
             name=self.function_name,
+            functionname=None,
             runtime="nodejs4.3",
             memory=256,
             timeout=5,
@@ -63,7 +64,7 @@ class TestFunctionalLocalLambda(TestCase):
             layers=[],
         )
         self.mock_function_provider = Mock()
-        self.mock_function_provider.get.return_value = self.function
+        self.mock_function_provider.get_all.return_value = [self.function]
 
         # Setup two APIs pointing to the same function
         routes = [
