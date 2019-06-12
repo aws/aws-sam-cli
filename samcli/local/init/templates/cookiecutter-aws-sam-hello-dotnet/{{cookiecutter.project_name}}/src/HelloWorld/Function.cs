@@ -25,17 +25,16 @@ namespace HelloWorld
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", "AWS Lambda .Net Client");
 
-            var stringTask = client.GetStringAsync("http://checkip.amazonaws.com/").ConfigureAwait(continueOnCapturedContext:false);
+            var msg = await client.GetStringAsync("http://checkip.amazonaws.com/").ConfigureAwait(continueOnCapturedContext:false);
 
-            var msg = await stringTask;
             return msg.Replace("\n","");
         }
 
-        public APIGatewayProxyResponse FunctionHandler(APIGatewayProxyRequest apigProxyEvent, ILambdaContext context)
+        public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest apigProxyEvent, ILambdaContext context)
         {
 
-            string location = GetCallingIP().Result;
-            Dictionary<string, string> body = new Dictionary<string, string>
+            var location = await GetCallingIP();
+            var body = new Dictionary<string, string>
             {
                 { "message", "hello world" },
                 { "location", location },
