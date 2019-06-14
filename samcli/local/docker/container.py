@@ -5,6 +5,7 @@ Representation of a generic Docker container
 import logging
 import tarfile
 import tempfile
+import time
 
 import docker
 
@@ -39,7 +40,8 @@ class Container(object):
                  env_vars=None,
                  docker_client=None,
                  container_opts=None,
-                 additional_volumes=None):
+                 additional_volumes=None,
+                 function_name=None):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
 
@@ -65,6 +67,8 @@ class Container(object):
         self._network_id = None
         self._container_opts = container_opts
         self._additional_volumes = additional_volumes
+        self._function_name = function_name
+        self.start_time = time.time()
 
         # Use the given Docker client or create new one
         self.docker_client = docker_client or docker.from_env()
@@ -82,7 +86,8 @@ class Container(object):
         """
 
         if self.is_created():
-            raise RuntimeError("This container already exists. Cannot create again.")
+            pass
+            # raise RuntimeError("This container already exists. Cannot create again.")
 
         LOG.info("Mounting %s as %s:ro,delegated inside runtime container", self._host_dir, self._working_dir)
 
@@ -129,6 +134,9 @@ class Container(object):
         if self.network_id == 'host':
             kwargs["network_mode"] = self.network_id
 
+        if self._function_name:
+            kwargs['name'] = self._function_name
+
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
@@ -164,6 +172,29 @@ class Container(object):
 
         self.id = None
 
+    def stop(self):
+        if not self.is_created():
+            LOG.debug("Container was not created. Skipping deletion")
+            return
+
+        try:
+            self.docker_client.containers\
+                .get(self.id)\
+                .stop()  # Remove a container, even if it is running
+        except docker.errors.NotFound:
+            # Container is already not there
+            LOG.debug("Container with ID %s does not exist. Skipping deletion", self.id)
+        except docker.errors.APIError as ex:
+            msg = str(ex)
+            removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
+
+            # When removal is already started, Docker API will throw an exception
+            # Skip such exceptions.
+            if not removal_in_progress:
+                raise ex
+
+        # self.id = None
+
     def start(self, input_data=None):
         """
         Calls Docker API to start the container. The container must be created at the first place to run.
@@ -181,6 +212,8 @@ class Container(object):
 
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot start this container")
+
+        self.start_time = time.time()
 
         # Get the underlying container instance from Docker API
         real_container = self.docker_client.containers.get(self.id)
@@ -200,6 +233,8 @@ class Container(object):
         real_container = self.docker_client.containers.get(self.id)
 
         # Fetch both stdout and stderr streams from Docker as a single iterator.
+        # logs_itr = self.docker_client.containers.get(self.id)\
+        #     .logs(stdout=True, stderr=True, stream=True, since=int(self.start_time))
         logs_itr = attach(self.docker_client,
                           container=real_container,
                           stdout=True,
@@ -291,4 +326,9 @@ class Container(object):
 
         :return bool: True if the container was created
         """
-        return self.id is not None
+        try:
+            self.id = self.docker_client.containers.get(self._function_name).id
+        except Exception:
+            return self.id is not None
+        
+        return True

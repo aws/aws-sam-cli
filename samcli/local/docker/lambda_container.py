@@ -37,6 +37,7 @@ class LambdaContainer(Container):
                  code_dir,
                  layers,
                  image_builder,
+                 function_name=None,
                  memory_mb=128,
                  env_vars=None,
                  debug_options=None):
@@ -83,7 +84,8 @@ class LambdaContainer(Container):
                                               entrypoint=entry,
                                               env_vars=env_vars,
                                               container_opts=additional_options,
-                                              additional_volumes=additional_volumes)
+                                              additional_volumes=additional_volumes,
+                                              function_name=function_name)
 
     @staticmethod
     def _get_exposed_ports(debug_options):

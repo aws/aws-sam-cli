@@ -103,7 +103,8 @@ class ContainerManager(object):
 
         :param samcli.local.docker.container.Container container: Container to stop
         """
-        container.delete()
+        # container.delete()
+        container.stop()
 
     def pull_image(self, image_name, stream=None):
         """
