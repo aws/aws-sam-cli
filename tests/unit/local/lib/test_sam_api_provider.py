@@ -1,10 +1,7 @@
-import logging
 from unittest import TestCase
 
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
-
-logging.basicConfig(level=logging.INFO)
 
 
 class TestSamStageValues(TestCase):

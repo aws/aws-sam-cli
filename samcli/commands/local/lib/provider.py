@@ -224,7 +224,7 @@ _ApiTuple = namedtuple("Api", [
 ])
 _ApiTuple.__new__.__defaults__ = (None,    # Cors is optional and defaults to None
                                   [],      # binary_media_types is optional and defaults to empty,
-                                  None,  # stage name is default prod
+                                  None,    # Stage name is optional with default None
                                   None     # Stage variables is optional with default None
                                   )
 

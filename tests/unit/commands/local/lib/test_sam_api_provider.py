@@ -11,10 +11,6 @@ from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
-import logging
-
-logging.basicConfig(level=logging.INFO)
-
 
 class TestSamApiProvider_init(TestCase):
 
@@ -79,7 +75,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = SamApiProvider(template)
 
         self.assertEquals(len(provider.apis), 1)
-        self.assertEquals(list(provider.apis)[0], Api(path="/path", method="GET", function_name="SamFunc1", cors=None))
+        self.assertEquals(list(provider.apis)[0], Api(path="/path", method="GET", function_name="SamFunc1", cors=None,
+                                                      stage_name="Prod"))
 
     def test_provider_creates_api_for_all_events(self):
         template = {
@@ -114,8 +111,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = SamApiProvider(template)
 
-        api_event1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None)
-        api_event2 = Api(path="/path", method="POST", function_name="SamFunc1", cors=None)
+        api_event1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_event2 = Api(path="/path", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod")
 
         self.assertIn(api_event1, provider.apis)
         self.assertIn(api_event2, provider.apis)
@@ -164,8 +161,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = SamApiProvider(template)
 
-        api1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None)
-        api2 = Api(path="/path", method="POST", function_name="SamFunc2", cors=None)
+        api1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api2 = Api(path="/path", method="POST", function_name="SamFunc2", cors=None, stage_name="Prod")
 
         self.assertIn(api1, provider.apis)
         self.assertIn(api2, provider.apis)
@@ -261,8 +258,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         result = [f for f in provider.get_all()]
 
-        api1 = Api(path="/path", method="GET", function_name="SamFunc1")
-        api2 = Api(path="/path", method="POST", function_name="SamFunc2")
+        api1 = Api(path="/path", method="GET", function_name="SamFunc1", stage_name="Prod")
+        api2 = Api(path="/path", method="POST", function_name="SamFunc2", stage_name="Prod")
 
         self.assertIn(api1, result)
         self.assertIn(api2, result)
@@ -303,13 +300,13 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = SamApiProvider(template)
 
-        api_get = Api(path="/path", method="GET", function_name="SamFunc1", cors=None)
-        api_post = Api(path="/path", method="POST", function_name="SamFunc1", cors=None)
-        api_put = Api(path="/path", method="PUT", function_name="SamFunc1", cors=None)
-        api_delete = Api(path="/path", method="DELETE", function_name="SamFunc1", cors=None)
-        api_patch = Api(path="/path", method="PATCH", function_name="SamFunc1", cors=None)
-        api_head = Api(path="/path", method="HEAD", function_name="SamFunc1", cors=None)
-        api_options = Api(path="/path", method="OPTIONS", function_name="SamFunc1", cors=None)
+        api_get = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_post = Api(path="/path", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_put = Api(path="/path", method="PUT", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_delete = Api(path="/path", method="DELETE", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_patch = Api(path="/path", method="PATCH", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_head = Api(path="/path", method="HEAD", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_options = Api(path="/path", method="OPTIONS", function_name="SamFunc1", cors=None, stage_name="Prod")
 
         self.assertEquals(len(provider.apis), 7)
         self.assertIn(api_get, provider.apis)
@@ -358,7 +355,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         self.assertEquals(len(provider.apis), 1)
         self.assertEquals(list(provider.apis)[0], Api(path="/path", method="GET", function_name="SamFunc1",
-                                                      binary_media_types=["image/gif", "image/png"], cors=None))
+                                                      binary_media_types=["image/gif", "image/png"], cors=None,
+                                                      stage_name="Prod"))
 
     def test_provider_must_support_binary_media_types_with_any_method(self):
         template = {
@@ -396,13 +394,13 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         binary = ["image/gif", "image/png", "text/html"]
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="SamFunc1", binary_media_types=binary),
-            Api(path="/path", method="POST", function_name="SamFunc1", binary_media_types=binary),
-            Api(path="/path", method="PUT", function_name="SamFunc1", binary_media_types=binary),
-            Api(path="/path", method="DELETE", function_name="SamFunc1", binary_media_types=binary),
-            Api(path="/path", method="HEAD", function_name="SamFunc1", binary_media_types=binary),
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1", binary_media_types=binary),
-            Api(path="/path", method="PATCH", function_name="SamFunc1", binary_media_types=binary)
+            Api(path="/path", method="GET", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
+            Api(path="/path", method="POST", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
+            Api(path="/path", method="PUT", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
+            Api(path="/path", method="DELETE", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
+            Api(path="/path", method="HEAD", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
+            Api(path="/path", method="OPTIONS", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
+            Api(path="/path", method="PATCH", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod")
         ]
 
         provider = SamApiProvider(template)
@@ -683,9 +681,9 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Api(path="/path2", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
             Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
             # From Implicit APIs
-            Api(path="/path1", method="POST", function_name="ImplicitFunc", cors=None),
-            Api(path="/path2", method="POST", function_name="ImplicitFunc", cors=None),
-            Api(path="/path3", method="POST", function_name="ImplicitFunc", cors=None)
+            Api(path="/path1", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path2", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path3", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod")
         ]
 
         provider = SamApiProvider(self.template)
@@ -715,11 +713,11 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_apis
 
         expected_apis = [
-            Api(path="/path1", method="GET", function_name="ImplicitFunc"),
+            Api(path="/path1", method="GET", function_name="ImplicitFunc", stage_name="Prod"),
             # Comes from Implicit
 
             Api(path="/path2", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="POST", function_name="ImplicitFunc"),
+            Api(path="/path2", method="POST", function_name="ImplicitFunc", stage_name="Prod"),
             # Comes from implicit
 
             Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
@@ -750,13 +748,13 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_apis
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="POST", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="PUT", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="DELETE", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="HEAD", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="OPTIONS", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="PATCH", function_name="ImplicitFunc", cors=None)
+            Api(path="/path", method="GET", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="PUT", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="DELETE", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="HEAD", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="OPTIONS", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="PATCH", function_name="ImplicitFunc", cors=None, stage_name="Prod")
         ]
 
         provider = SamApiProvider(self.template)
@@ -792,19 +790,20 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_apis
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="POST", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="PUT", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="DELETE", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="HEAD", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="OPTIONS", function_name="ImplicitFunc", cors=None),
-            Api(path="/path", method="PATCH", function_name="ImplicitFunc", cors=None),
+            Api(path="/path", method="GET", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="PUT", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="DELETE", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="HEAD", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="OPTIONS", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/path", method="PATCH", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
 
-            Api(path="/path2", method="GET", function_name="ImplicitFunc", cors=None),
+            Api(path="/path2", method="GET", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
             Api(path="/path2", method="POST", function_name="explicitfunction", cors=None, stage_name="Prod")
         ]
 
         provider = SamApiProvider(self.template)
+        print(provider.apis)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_add_explicit_api_when_ref_with_rest_api_id(self):
@@ -837,8 +836,8 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Api(path="/path2", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
             Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
             # From Implicit APIs
-            Api(path="/newpath1", method="POST", function_name="ImplicitFunc", cors=None),
-            Api(path="/newpath2", method="POST", function_name="ImplicitFunc", cors=None)
+            Api(path="/newpath1", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Api(path="/newpath2", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod")
         ]
 
         provider = SamApiProvider(self.template)
@@ -889,9 +888,11 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
                 binary_media_types=expected_explicit_binary_types, stage_name="Prod"),
             # From Implicit APIs
             Api(path="/newpath1", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_implicit_binary_types),
+                binary_media_types=expected_implicit_binary_types,
+                stage_name="Prod"),
             Api(path="/newpath2", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_implicit_binary_types)
+                binary_media_types=expected_implicit_binary_types,
+                stage_name="Prod")
         ]
 
         provider = SamApiProvider(self.template)
@@ -945,11 +946,13 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             # Because of the RestApiId, Implicit APIs will also get the binary media types inherited from
             # the corresponding Explicit API
             Api(path="/connected-to-explicit-path", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_explicit_binary_types),
+                binary_media_types=expected_explicit_binary_types,
+                stage_name="Prod"),
 
             # This is still just a true implicit API because it does not have RestApiId property
             Api(path="/true-implicit-path", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_implicit_binary_types)
+                binary_media_types=expected_implicit_binary_types,
+                stage_name="Prod")
         ]
 
         provider = SamApiProvider(self.template)

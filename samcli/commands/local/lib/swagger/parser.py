@@ -34,7 +34,7 @@ class SwaggerParser(object):
         """
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
-    def get_apis(self, stage_name=None, stage_variables=None):
+    def get_apis(self):
         """
         Parses a swagger document and returns a list of APIs configured in the document.
 
@@ -85,7 +85,7 @@ class SwaggerParser(object):
                     method = self._ANY_METHOD
 
                 api = Api(path=full_path, method=method, function_name=function_name, cors=None,
-                          binary_media_types=binary_media_types, stage_name=stage_name, stage_variables=stage_variables)
+                          binary_media_types=binary_media_types)
                 result.append(api)
 
         return result
