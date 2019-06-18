@@ -44,8 +44,7 @@ Once the user has their  CloudFormation code, they will be running `sam local st
 
 There are a few approaches to supporting the new CloudFormation ApiGateway types such as ApiGateway::RestApi.
 
-### 
-*Approach #1*: Parsing both CloudFormation and SAM Template
+### *Approach #1*: Parsing both CloudFormation and SAM Template
 
 Appending to the current Sam Api code and to have dual support of both the CloudFormation Template and SAM template
 
