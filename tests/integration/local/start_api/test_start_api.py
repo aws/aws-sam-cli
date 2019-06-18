@@ -499,6 +499,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Port"), self.port)
         self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
 
+
 class TestStartApiWithStage(StartApiIntegBaseClass):
     """
     Test Class centered around the different responses that can happen in Lambda and pass through start-api
