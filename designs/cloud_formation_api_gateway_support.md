@@ -304,9 +304,9 @@ The setup is not written for local development.
 
 ## Validation
 
-This can be done via a request or via running a local command/lib.
+There is some basic validation via a request or via running a local command/lib.
 
-Customers can also validate their CloudFormation template using the following command
+Customers can also do basic validation of their CloudFormation template using the following command
 
 ```sh:
 aws cloudformation validate-template --template-url https://s3.amazonaws.com/cloudformation-templates-us-east-1/S3_Bucket.template`
