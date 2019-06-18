@@ -469,11 +469,16 @@ class TestService_construct_event(TestCase):
         query_param_args_mock = Mock()
         query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
         self.request_mock.args = query_param_args_mock
-        self.request_mock.headers = {"Content-Type": "application/json", "X-Test": "Value"}
+        headers_mock = Mock()
+        headers_mock.keys.return_value = ["Content-Type", "X-Test"]
+        headers_mock.get.side_effect = ["application/json", "Value"]
+        headers_mock.getlist.side_effect = [["application/json"], ["Value"]]
+        self.request_mock.headers = headers_mock
         self.request_mock.view_args = {"path": "params"}
         self.request_mock.scheme = "http"
 
         expected = '{"body": "DATA!!!!", "httpMethod": "GET", ' \
+                   '"multiValueQueryStringParameters": {"query": ["params"]}, ' \
                    '"queryStringParameters": {"query": "params"}, "resource": ' \
                    '"endpoint", "requestContext": {"httpMethod": "GET", "requestId": ' \
                    '"c6af9ac6-7b61-11e6-9a41-93e8deadbeef", "path": "endpoint", "extendedRequestId": null, ' \
@@ -483,6 +488,8 @@ class TestService_construct_event(TestCase):
                    '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": ' \
                    '"190.0.0.0", "user": null}, "accountId": "123456789012"}, "headers": {"Content-Type": ' \
                    '"application/json", "X-Test": "Value", "X-Forwarded-Port": "3000", "X-Forwarded-Proto": "http"}, ' \
+                   '"multiValueHeaders": {"Content-Type": ["application/json"], "X-Test": ["Value"], '\
+                   '"X-Forwarded-Port": ["3000"], "X-Forwarded-Proto": ["http"]}, ' \
                    '"stageVariables": null, "path": "path", "pathParameters": {"path": "params"}, ' \
                    '"isBase64Encoded": false}'
 
@@ -509,9 +516,36 @@ class TestService_construct_event(TestCase):
         self.request_mock.get_data.return_value = binary_body
         self.expected_dict["body"] = base64_body
         self.expected_dict["isBase64Encoded"] = True
+        self.maxDiff = None
 
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
         self.assertEquals(json.loads(actual_event_str), self.expected_dict)
+
+    def test_event_headers_with_empty_list(self):
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = []
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
+        self.assertEquals(actual_query_string, ({"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"},
+                                                {"X-Forwarded-Proto": ["http"], "X-Forwarded-Port": ["3000"]}))
+
+    def test_event_headers_with_non_empty_list(self):
+        request_mock = Mock()
+        headers_mock = Mock()
+        headers_mock.keys.return_value = ["Content-Type", "X-Test"]
+        headers_mock.get.side_effect = ["application/json", "Value"]
+        headers_mock.getlist.side_effect = [["application/json"], ["Value"]]
+        request_mock.headers = headers_mock
+        request_mock.scheme = "http"
+
+        actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
+        self.assertEquals(actual_query_string, ({"Content-Type": "application/json", "X-Test": "Value",
+                                                 "X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"},
+                                                {"Content-Type": ["application/json"], "X-Test": ["Value"],
+                                                 "X-Forwarded-Proto": ["http"], "X-Forwarded-Port": ["3000"]}))
 
     def test_query_string_params_with_empty_params(self):
         request_mock = Mock()
@@ -520,7 +554,7 @@ class TestService_construct_event(TestCase):
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
-        self.assertEquals(actual_query_string, {})
+        self.assertEquals(actual_query_string, ({}, {}))
 
     def test_query_string_params_with_param_value_being_empty_list(self):
         request_mock = Mock()
@@ -529,7 +563,7 @@ class TestService_construct_event(TestCase):
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
-        self.assertEquals(actual_query_string, {"param": ""})
+        self.assertEquals(actual_query_string, ({"param": ""}, {"param": [""]}))
 
     def test_query_string_params_with_param_value_being_non_empty_list(self):
         request_mock = Mock()
@@ -538,7 +572,7 @@ class TestService_construct_event(TestCase):
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
-        self.assertEquals(actual_query_string, {"param": "b"})
+        self.assertEquals(actual_query_string, ({"param": "b"}, {"param": ["a", "b"]}))
 
 
 class TestService_should_base64_encode(TestCase):
