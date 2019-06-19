@@ -965,6 +965,203 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
 
+class TestSamApiProviderwithApiGatewayRestApi(TestCase):
+
+    def setUp(self):
+        self.binary_types = ["image/png", "image/jpg"]
+        self.input_apis = [
+            Api(path="/path1", method="GET", function_name="SamFunc1", cors=None),
+            Api(path="/path1", method="POST", function_name="SamFunc1", cors=None),
+
+            Api(path="/path2", method="PUT", function_name="SamFunc1", cors=None),
+            Api(path="/path2", method="GET", function_name="SamFunc1", cors=None),
+
+            Api(path="/path3", method="DELETE", function_name="SamFunc1", cors=None)
+        ]
+
+    def test_with_no_apis(self):
+        template = {
+            "Resources": {
+
+                "Api1": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "StageName": "Prod"
+                    },
+
+                }
+            }
+        }
+
+        provider = SamApiProvider(template)
+
+        self.assertEquals(len(provider.apis), 0)
+        self.assertEquals(provider.apis, [])
+
+    def test_with_inline_swagger_apis(self):
+
+        template = {
+            "Resources": {
+
+                "Api1": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Body": make_swagger(self.input_apis)
+                    }
+                }
+            }
+        }
+
+        provider = SamApiProvider(template)
+        assertCountEqual(self, self.input_apis, provider.apis)
+
+    def test_with_swagger_as_local_file(self):
+
+        with tempfile.NamedTemporaryFile(mode='w') as fp:
+            filename = fp.name
+
+            swagger = make_swagger(self.input_apis)
+            json.dump(swagger, fp)
+            fp.flush()
+
+            template = {
+                "Resources": {
+
+                    "Api1": {
+                        "Type": "AWS::ApiGateway::RestApi",
+                        "Properties": {
+                            "StageName": "Prod",
+                            "Uri": filename
+                        }
+                    }
+                }
+            }
+
+            provider = SamApiProvider(template)
+            assertCountEqual(self, self.input_apis, provider.apis)
+
+    @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
+    def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
+
+        body = {"some": "body"}
+        filename = "somefile.txt"
+
+        template = {
+            "Resources": {
+
+                "Api1": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Uri": filename,
+                        "Body": body
+                    }
+                }
+            }
+        }
+
+        SamSwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_apis)
+
+        cwd = "foo"
+        provider = SamApiProvider(template, cwd=cwd)
+        assertCountEqual(self, self.input_apis, provider.apis)
+        SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
+
+    def test_swagger_with_any_method(self):
+
+        apis = [
+            Api(path="/path", method="any", function_name="SamFunc1", cors=None)
+        ]
+
+        expected_apis = [
+            Api(path="/path", method="GET", function_name="SamFunc1", cors=None),
+            Api(path="/path", method="POST", function_name="SamFunc1", cors=None),
+            Api(path="/path", method="PUT", function_name="SamFunc1", cors=None),
+            Api(path="/path", method="DELETE", function_name="SamFunc1", cors=None),
+            Api(path="/path", method="HEAD", function_name="SamFunc1", cors=None),
+            Api(path="/path", method="OPTIONS", function_name="SamFunc1", cors=None),
+            Api(path="/path", method="PATCH", function_name="SamFunc1", cors=None)
+        ]
+
+        template = {
+            "Resources": {
+                "Api1": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Body": make_swagger(apis)
+                    }
+                }
+            }
+        }
+
+        provider = SamApiProvider(template)
+        assertCountEqual(self, expected_apis, provider.apis)
+
+    def test_with_binary_media_types(self):
+
+        template = {
+            "Resources": {
+
+                "Api1": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Body": make_swagger(self.input_apis, binary_media_types=self.binary_types)
+                    }
+                }
+            }
+        }
+
+        expected_binary_types = sorted(self.binary_types)
+        expected_apis = [
+            Api(path="/path1", method="GET", function_name="SamFunc1", cors=None,
+                binary_media_types=expected_binary_types),
+            Api(path="/path1", method="POST", function_name="SamFunc1", cors=None,
+                binary_media_types=expected_binary_types),
+
+            Api(path="/path2", method="PUT", function_name="SamFunc1", cors=None,
+                binary_media_types=expected_binary_types),
+            Api(path="/path2", method="GET", function_name="SamFunc1", cors=None,
+                binary_media_types=expected_binary_types),
+
+            Api(path="/path3", method="DELETE", function_name="SamFunc1", cors=None,
+                binary_media_types=expected_binary_types)
+        ]
+
+        provider = SamApiProvider(template)
+        assertCountEqual(self, expected_apis, provider.apis)
+
+    def test_with_binary_media_types_in_swagger_and_on_resource(self):
+
+        input_apis = [
+            Api(path="/path", method="OPTIONS", function_name="SamFunc1"),
+        ]
+        extra_binary_types = ["text/html"]
+
+        template = {
+            "Resources": {
+
+                "Api1": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "BinaryMediaTypes": extra_binary_types,
+                        "StageName": "Prod",
+                        "Body": make_swagger(input_apis, binary_media_types=self.binary_types)
+                    }
+                }
+            }
+        }
+
+        expected_binary_types = sorted(self.binary_types + extra_binary_types)
+        expected_apis = [
+            Api(path="/path", method="OPTIONS", function_name="SamFunc1", binary_media_types=expected_binary_types),
+        ]
+
+        provider = SamApiProvider(template)
+        assertCountEqual(self, expected_apis, provider.apis)
+
 def make_swagger(apis, binary_media_types=None):
     """
     Given a list of API configurations named tuples, returns a Swagger document
