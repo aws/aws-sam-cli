@@ -108,7 +108,7 @@ Swagger can also be inlined using the FN::Include Macro. This should also be sup
 ****Feature* #2*: Using a combination of AWS::ApiGateway::Resource with ApiGateway::Methods.**
 
 Although this approach is less common and more verbose, it is still used by some people while defining their resources. Tools 
-such as aws-cdk currently generate Resource and Methods ApiGateway CloudFormation types in their yaml instead of swagger. 
+such as aws-cdk currently generate Resource and Methods ApiGateway CloudFormation Resources in their yaml instead of swagger. 
 
 ```yaml
 UsersResource:
