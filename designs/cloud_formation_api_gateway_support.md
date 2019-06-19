@@ -107,7 +107,8 @@ Properties:
 Swagger can also be inlined using the FN::Include Macro. This should also be supported while defining the CloudFormation template.
 ****Feature* #2*: Using a combination of AWS::ApiGateway::Resource with ApiGateway::Methods.**
 
-Although this approach is less common and more verbose, it is still used by some people while defining their resources.  
+Although this approach is less common and more verbose, it is still used by some people while defining their resources. Tools 
+such as aws-cdk currently generate Resource and Methods ApiGateway CloudFormation types in their yaml instead of swagger. 
 
 ```yaml
 UsersResource:
@@ -354,7 +355,7 @@ Milestone #1D:
 
 * Refactor Code to convert SAM into CloudFormationResource
 
-Milestone #2:
+**Milestone #2: Support Resource and Methods with CloudFormation ApiGateway Resources**
 
 * Add Support for Resource and Methods parsing
 
