@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using Newtonsoft.Json;
 
 using Amazon.Lambda.Core;
@@ -37,7 +35,7 @@ namespace HelloWorld
             var body = new Dictionary<string, string>
             {
                 { "message", "hello world" },
-                { "location", location },
+                { "location", location }
             };
 
             return new APIGatewayProxyResponse
