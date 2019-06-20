@@ -1,5 +1,3 @@
-from pprint import pprint
-
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
@@ -551,5 +549,4 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
 
         response_data = response.json()
-        pprint(response_data.get("stageVariables", {}), indent=2)
         self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
