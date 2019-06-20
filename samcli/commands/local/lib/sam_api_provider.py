@@ -19,7 +19,6 @@ class SamApiProvider(ApiProvider):
     _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     _SERVERLESS_API = "AWS::Serverless::Api"
     _GATEWAY_REST_API = "AWS::ApiGateway::RestApi"
-    _GATEWAY_STAGE_API = "AWS::ApiGateway::Stage"
     _TYPE = "Type"
 
     _FUNCTION_EVENT_TYPE_API = "Api"
