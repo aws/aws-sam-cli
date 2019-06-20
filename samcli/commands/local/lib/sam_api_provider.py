@@ -105,10 +105,7 @@ class SamApiProvider(ApiProvider):
                 self._extract_from_serverless_api(logical_id, resource, collector)
 
             if resource_type == SamApiProvider._GATEWAY_REST_API:
-                self._extract_from_cloudformation_api(logical_id, resource, collector)
-
-            if resource_type == SamApiProvider._GATEWAY_STAGE_API:
-                self._extract_stage_from_cloudformation(logical_id, resource, collector)
+                self._extract_cloud_formation_api(logical_id, resource, collector)
 
         apis = SamApiProvider._merge_apis(collector)
         return self._normalize_apis(apis)
@@ -153,10 +150,10 @@ class SamApiProvider(ApiProvider):
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
 
-    def _extract_from_cloudformation_api(self, logical_id, api_resource, collector):
+    def _extract_cloud_formation_api(self, logical_id, api_resource, collector):
         """
-        Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is added
-        to the collector.
+        Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
+        added to the collector.
 
         Parameters
         ----------
@@ -191,7 +188,6 @@ class SamApiProvider(ApiProvider):
         collector.add_apis(logical_id, apis)
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
-
 
     @staticmethod
     def _merge_apis(collector):

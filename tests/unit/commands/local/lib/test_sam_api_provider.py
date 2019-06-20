@@ -12,6 +12,7 @@ from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 import logging
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -455,7 +456,6 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         self.assertEquals(provider.apis, [])
 
     def test_with_inline_swagger_apis(self):
-
         template = {
             "Resources": {
 
@@ -473,7 +473,6 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         assertCountEqual(self, self.input_apis, provider.apis)
 
     def test_with_swagger_as_local_file(self):
-
         with tempfile.NamedTemporaryFile(mode='w') as fp:
             filename = fp.name
 
@@ -499,7 +498,6 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
     @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
-
         body = {"some": "body"}
         filename = "somefile.txt"
 
@@ -525,7 +523,6 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
-
         apis = [
             Api(path="/path", method="any", function_name="SamFunc1", cors=None)
         ]
@@ -556,7 +553,6 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types(self):
-
         template = {
             "Resources": {
 
@@ -590,7 +586,6 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
-
         input_apis = [
             Api(path="/path", method="OPTIONS", function_name="SamFunc1"),
         ]
@@ -652,7 +647,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         }
 
     def test_must_union_implicit_and_explicit(self):
-
         events = {
             "Event1": {
                 "Type": "Api",
@@ -697,7 +691,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_prefer_implicit_api_over_explicit(self):
-
         implicit_apis = {
             "Event1": {
                 "Type": "Api",
@@ -733,7 +726,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_prefer_implicit_with_any_method(self):
-
         implicit_apis = {
             "Event1": {
                 "Type": "Api",
@@ -768,7 +760,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_any_method_on_both(self):
-
         implicit_apis = {
             "Event1": {
                 "Type": "Api",
@@ -814,7 +805,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_add_explicit_api_when_ref_with_rest_api_id(self):
-
         events = {
             "Event1": {
                 "Type": "Api",
@@ -852,7 +842,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_both_apis_must_get_binary_media_types(self):
-
         events = {
             "Event1": {
                 "Type": "Api",
@@ -906,7 +895,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_binary_media_types_with_rest_api_id_reference(self):
-
         events = {
             "Event1": {
                 "Type": "Api",
@@ -999,7 +987,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         self.assertEquals(provider.apis, [])
 
     def test_with_inline_swagger_apis(self):
-
         template = {
             "Resources": {
 
@@ -1017,7 +1004,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         assertCountEqual(self, self.input_apis, provider.apis)
 
     def test_with_swagger_as_local_file(self):
-
         with tempfile.NamedTemporaryFile(mode='w') as fp:
             filename = fp.name
 
@@ -1043,7 +1029,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
 
     @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
-
         body = {"some": "body"}
         filename = "somefile.txt"
 
@@ -1069,7 +1054,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
-
         apis = [
             Api(path="/path", method="any", function_name="SamFunc1", cors=None)
         ]
@@ -1100,7 +1084,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types(self):
-
         template = {
             "Resources": {
 
@@ -1134,7 +1117,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
-
         input_apis = [
             Api(path="/path", method="OPTIONS", function_name="SamFunc1"),
         ]
@@ -1162,6 +1144,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         provider = SamApiProvider(template)
         assertCountEqual(self, expected_apis, provider.apis)
 
+
 def make_swagger(apis, binary_media_types=None):
     """
     Given a list of API configurations named tuples, returns a Swagger document
@@ -1188,7 +1171,9 @@ def make_swagger(apis, binary_media_types=None):
         integration = {
             "x-amazon-apigateway-integration": {
                 "type": "aws_proxy",
-                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:{}/invocations".format(api.function_name)  # NOQA
+                "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1"
+                       ":123456789012:function:{}/invocations".format(
+                    api.function_name)  # NOQA
             }
         }
 
