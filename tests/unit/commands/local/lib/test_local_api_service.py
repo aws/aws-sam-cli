@@ -4,8 +4,7 @@ Unit test for local API service
 
 from unittest import TestCase
 
-from mock import Mock
-from mock import patch
+from mock import Mock, patch
 
 from samcli.commands.local.lib import provider
 from samcli.commands.local.lib.exceptions import NoApisDefined
