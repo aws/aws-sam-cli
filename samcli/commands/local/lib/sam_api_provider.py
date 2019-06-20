@@ -192,11 +192,6 @@ class SamApiProvider(ApiProvider):
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
 
-    def _extract_stage_from_cloudformation(self,logical_id, api_resource, collector):
-        properties = api_resource.get("Properties", {})
-        stage_name = properties.get("StageName")
-        stage_variables = properties.get("StageVariables")
-        # collector.add_stage_name(logical_id, binary_media)  # Binary media specified on resource in template
 
     @staticmethod
     def _merge_apis(collector):
