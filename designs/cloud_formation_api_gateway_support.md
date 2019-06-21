@@ -8,7 +8,7 @@ Customers that are able to test and run locally can find errors early, reduce de
 
 ## Who are the Customers?
 
-* People who work with tools such as aws cdk, Terraform, and others to generate their CloudFormation templates
+* People who work with tools such as AWS CDK, Terraform, and others to generate their CloudFormation templates
 * People that have hand written CloudFormation templates with ApiGateway Resources
 
 ## Success criteria for the change
@@ -34,7 +34,7 @@ When customers run ```sam local start-api``` with a template that uses raw Cloud
 
 There are two main types of users who are going to benefit from this change.
 
-* Customers can use tools such as aws cdk to generate a template. The customer can create their AWS CDK project with `cdk init app` and then generate their cloud formation code using `cdk synth.`They can input their CloudFormation code to test it locally using the SAM CLI command. 
+* Customers can use tools such as aws cdk to generate a template. The customer can create their AWS CDK project with `cdk init app` and then generate their CloudFormation code using `cdk synth.`They can input their CloudFormation code to test it locally using the SAM CLI command. 
 * Customers can author CloudFormation resources and test them locally by inputting their templates into sam local start-api.
 
 For both cases, The code can be run locally if they have CodeUri's pointing to valid local paths. 
