@@ -2,36 +2,39 @@
 
 ## The Problem
 
-Customers use sam-cli to run/test their applications by defining their resources in the SAM template. The raw CloudFormation ApiGateway resources are not currently supported to run and test locally in sam-cli. The resource types include AWS::ApiGateway::RestApi, AWS::ApiGateway::Stage, etc while SAM only supports the AWS::Serverless::Api flag. This prevents people that are not defining their resources using the SAM(AWS::Serverless::Api) Api Gateway resources from running and testing locally through sam-cli. Specifically, Customers that generate their CloudFormation code using tools and have hand written CloudFormation templates have AWS::ApiGateway::* types preventing them from running locally. 
+Customers use SAM CLI to run/test their applications by defining their resources in a SAM template. The raw CloudFormation ApiGateway resources are not currently supported to run and test locally in SAM CLI. The resource types include AWS::ApiGateway::* while ```sam local start-api``` only supports the AWS::Serverless::Api type. This prevents customers who have built/deployed services using the raw ApiGateway Resources or who have used tools to generate CloudFormation, like AWS CDK, from testing locally through SAM CLI. Specifically, Customers that generate their CloudFormation code using tools and have hand written CloudFormation templates have AWS::ApiGateway::* types preventing them from running locally. 
 
-Customers that are able to test and run locally can find errors early, reduce development time, etc. If customers are not able to test, errors will begin manifesting in breaking bugs only found when hurting their customers in production. 
+Customers that are able to test and run locally can find errors early, reduce development time, etc. If customers are not able to test, the development cycles will be very long with write code, deploy, deploy failed, investigate, fix and repeat.
 
 ## Who are the Customers?
 
-* People who work with tools such as aws cdk, terraform,etc. to generate their CloudFormation code
-* People that have long hand written CloudFormation templates 
+* People who work with tools such as aws cdk, Terraform, and others to generate their CloudFormation templates
+* People that have hand written CloudFormation templates with ApiGateway Resources
 
 ## Success criteria for the change
 
 * Customers would be able to author SAM templates with Api Gateway Resources and test locally through start-api
-* Features that are supported currently through SAM also are supported with CloudFormation resources
-* Sam-cli should support swagger and vanilla CloudFormation Api Gateway resources
+* Feature parity with what is currently supported with start-api on the AWS::Serverless::Api Resource
+* SAM CLI should support swagger and vanilla CloudFormation Api Gateway resources
 
-Overall, Sam-cli should be able to seamlessly support local development and testing with the Api Gateway CloudFormation Resources.
+Overall, SAM CLI should be able to seamlessly support local development and testing with the Api Gateway CloudFormation Resources.
 
 ## What will be changed?
 
-CloudFormation ApiGateway types will be supported in the resource template definition such as AWS::ApiGatway::RestApi in the SAM templates. The CloudFormation resource will be parsed and then apis/stages specified will be processed. Then the cli will be able to spin the api with the resource up. The RestApis that are supported will now parse both the swagger and the pure vanilla implementation of the ApiGateway Resources.
+When customers run ```sam local start-api``` with a template that uses raw CloudFormation AWS::ApiGateway::RestApi and AWS::ApiGateway::Stage resources, they will be able to interact and test their lambda functions as if they were using AWS::Serverless::Api.
 
 ## Out-of-Scope
 
-Anything that sam-cli doesn't currently support in SAM, the design doesn't plan to support it. This includes parts such as authorization and cors. Proper validation of the CloudFormation template so that it does smart validation and not just yaml parsing.
+* Anything that SAM CLI doesn't currently support in SAM 
+* ApiGateway Authorization
+* CORS 
+* Proper validation of the CloudFormation templates so that it does smart validation and not just yaml parsing.
 
 ## User Experience Walkthrough
 
-There are two main types of users who are going to benefit from this code.
+There are two main types of users who are going to benefit from this change.
 
-* Customers can use tools such as aws cdk to generate a template if they meet certain conditions. The customer can create their aws cdk project with `cdk init app` and then generate their cloud formation code using `cdk synth.`They can input their CloudFormation code to test it locally using the sam-cli command. 
+* Customers can use tools such as aws cdk to generate a template. The customer can create their AWS CDK project with `cdk init app` and then generate their cloud formation code using `cdk synth.`They can input their CloudFormation code to test it locally using the SAM CLI command. 
 * Customers can author CloudFormation resources and test them locally by inputting their templates into sam local start-api.
 
 For both cases, The code can be run locally if they have CodeUri's pointing to valid local paths. 
@@ -44,7 +47,7 @@ Once the user has their  CloudFormation code, they will be running `sam local st
 
 There are a few approaches to supporting the new CloudFormation ApiGateway types such as ApiGateway::RestApi.
 
-### *Approach #1*: Parsing both CloudFormation and SAM Template
+### *Approach #1*: Parsing both CloudFormation and SAM Resources
 
 Appending to the current Sam Api code and to have dual support of both the CloudFormation Template and SAM template
 
@@ -62,7 +65,7 @@ Pros:
 This simplifies a lot of the issues with approach #1. This will make it much easier to add and extend the system such as adding ApiGatewayV2, web sockets. The feature would only need to be added once instead of duplicated effort. 
 
 Cons: 
-This will require more work in order to restructure the application such that the template is processed once after it processed to CloudFormation. This could also produce bugs with issues if the SAM to CloudFormation transformation isn't correct in local testing. However, this may not matter as much since there is a direct translation of SAM resources to CloudFormation Resources and only a single point where the bug needs to be fixed. Some other issues are the possible imperfections of the SAM to CloudFormation conversion. In the past, some version of the transformation caused incompatible changes with the sam-cli. If the conversion fails, it could cause users that are currently running their code locally to break.
+This will require more work in order to restructure the application such that the template is processed once after it processed to CloudFormation. This could also produce bugs with issues if the SAM to CloudFormation transformation isn't correct in local testing. However, this may not matter as much since there is a direct translation of SAM resources to CloudFormation Resources and only a single point where the bug needs to be fixed. Some other issues are the possible imperfections of the SAM to CloudFormation conversion. In the past, some version of the transformation caused incompatible changes with the SAM CLI. If the conversion fails, it could cause users that are currently running their code locally to break.
 
 ### *Approach #3*: Abstraction
 
@@ -320,7 +323,7 @@ aws cloudformation validate-template --template-url https://s3.amazonaws.com/clo
 
 * Basic Templates and unit tests to check that CloudFormation templates are covering the data
 * Go through https://github.com/awslabs/serverless-application-model with tests/sample inputs and outputs.
-* Create an example AWS Lambda Project with aws cdk and test the generated CloudFormation code
+* Create an example AWS Lambda Project with AWS CDK and test the generated CloudFormation code
 
 ## Expected Results
 
