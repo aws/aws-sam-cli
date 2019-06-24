@@ -136,18 +136,7 @@ class SamApiProvider(ApiProvider):
             LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
                       logical_id)
             return
-
-        reader = SamSwaggerReader(definition_body=body,
-                                  definition_uri=uri,
-                                  working_dir=self.cwd)
-        swagger = reader.read()
-        parser = SwaggerParser(swagger)
-        apis = parser.get_apis()
-        LOG.debug("Found '%s' APIs in resource '%s'", len(apis), logical_id)
-
-        collector.add_apis(logical_id, apis)
-        collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
-        collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
+        self._extract_swagger_api(logical_id, body, uri, binary_media, collector)
 
     def _extract_cloud_formation_api(self, logical_id, api_resource, collector):
         """
@@ -167,14 +156,17 @@ class SamApiProvider(ApiProvider):
         """
         properties = api_resource.get("Properties", {})
         body = properties.get("Body")
-        uri = properties.get("Uri")
+        s3_location = properties.get("BodyS3Location")
         binary_media = properties.get("BinaryMediaTypes", [])
 
-        if not body and not uri:
+        if not body and not s3_location:
             # Swagger is not found anywhere.
-            LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
+            LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
                       logical_id)
             return
+        self._extract_swagger_api(logical_id, body, s3_location, binary_media, collector)
+
+    def _extract_swagger_api(self, logical_id, body, uri, binary_media, collector):
 
         reader = SamSwaggerReader(definition_body=body,
                                   definition_uri=uri,

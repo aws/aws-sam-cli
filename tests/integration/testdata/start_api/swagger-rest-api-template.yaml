@@ -1,9 +1,5 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
-Globals:
-  Api:
-    BinaryMediaTypes:
-    - image~1png
+
 Resources:
   Base64ResponseFunction:
     Properties:
@@ -70,7 +66,7 @@ Resources:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
         swagger: '2.0'
         x-amazon-apigateway-binary-media-types:
-        - image/gif
+          - image/gif
       StageName: prod
     Type: AWS::ApiGateway::RestApi
   MyLambdaFunction:

@@ -974,7 +974,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                 "Api1": {
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
-                        "StageName": "Prod"
                     },
 
                 }
@@ -983,7 +982,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
 
         provider = SamApiProvider(template)
 
-        self.assertEquals(len(provider.apis), 0)
         self.assertEquals(provider.apis, [])
 
     def test_with_inline_swagger_apis(self):
@@ -993,7 +991,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                 "Api1": {
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
-                        "StageName": "Prod",
                         "Body": make_swagger(self.input_apis)
                     }
                 }
@@ -1017,8 +1014,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                     "Api1": {
                         "Type": "AWS::ApiGateway::RestApi",
                         "Properties": {
-                            "StageName": "Prod",
-                            "Uri": filename
+                            "BodyS3Location": filename
                         }
                     }
                 }
@@ -1038,8 +1034,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                 "Api1": {
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
-                        "StageName": "Prod",
-                        "Uri": filename,
+                        "BodyS3Location": filename,
                         "Body": body
                     }
                 }
@@ -1073,7 +1068,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                 "Api1": {
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
-                        "StageName": "Prod",
                         "Body": make_swagger(apis)
                     }
                 }
@@ -1090,7 +1084,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                 "Api1": {
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
-                        "StageName": "Prod",
                         "Body": make_swagger(self.input_apis, binary_media_types=self.binary_types)
                     }
                 }
@@ -1129,7 +1122,6 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                     "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
                         "BinaryMediaTypes": extra_binary_types,
-                        "StageName": "Prod",
                         "Body": make_swagger(input_apis, binary_media_types=self.binary_types)
                     }
                 }
