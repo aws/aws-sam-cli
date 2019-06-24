@@ -69,6 +69,13 @@ Resources:
           - image/gif
       StageName: prod
     Type: AWS::ApiGateway::RestApi
+  Dev:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: Dev
+      RestApiId: !Ref MyApi
+      Variables:
+      Stack: Dev
   MyLambdaFunction:
     Properties:
       CodeUri: "."
