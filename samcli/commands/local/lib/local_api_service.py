@@ -100,9 +100,9 @@ class LocalApiService(object):
         routes = []
         for api in api_provider.get_all():
             route = Route(methods=[api.method], function_name=api.function_name, path=api.path,
-                          binary_types=api.binary_media_types)
+                          binary_types=api.binary_media_types, stage_name=api.stage_name,
+                          stage_variables=api.stage_variables)
             routes.append(route)
-
         return routes
 
     @staticmethod
@@ -139,11 +139,11 @@ class LocalApiService(object):
         for _, config in grouped_api_configs.items():
             methods_str = "[{}]".format(', '.join(config["methods"]))
             output = "Mounting {} at http://{}:{}{} {}".format(
-                         config["function_name"],
-                         host,
-                         port,
-                         config["path"],
-                         methods_str)
+                config["function_name"],
+                host,
+                port,
+                config["path"],
+                methods_str)
             print_lines.append(output)
 
             LOG.info(output)

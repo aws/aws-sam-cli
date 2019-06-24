@@ -130,6 +130,8 @@ class SamApiProvider(ApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("Variables")
 
         if not body and not uri:
             # Swagger is not found anywhere.
@@ -137,6 +139,8 @@ class SamApiProvider(ApiProvider):
                       logical_id)
             return
         self._extract_swagger_api(logical_id, body, uri, binary_media, collector)
+        collector.add_stage_name(logical_id, stage_name)
+        collector.add_stage_variables(logical_id, stage_variables)
 
     def _extract_cloud_formation_api(self, logical_id, api_resource, collector):
         """
@@ -377,7 +381,7 @@ class ApiCollector(object):
     # This is intentional because it allows us to easily extend this class to support future properties on the API.
     # We will store properties of Implicit APIs also in this format which converges the handling of implicit & explicit
     # APIs.
-    Properties = namedtuple("Properties", ["apis", "binary_media_types", "cors"])
+    Properties = namedtuple("Properties", ["apis", "binary_media_types", "cors", "stage_name", "stage_variables"])
 
     def __init__(self):
         # API properties stored per resource. Key is the LogicalId of the AWS::Serverless::Api resource and
@@ -440,6 +444,40 @@ class ApiCollector(object):
             else:
                 LOG.debug("Unsupported data type of binary media type value of resource '%s'", logical_id)
 
+    def add_stage_name(self, logical_id, stage_name):
+        """
+        Stores the stage name for the API with the given local ID
+
+        Parameters
+        ----------
+        logical_id : str
+            LogicalId of the AWS::Serverless::Api resource
+
+        stage_name : str
+            The stage_name string
+
+        """
+        properties = self._get_properties(logical_id)
+        properties = properties._replace(stage_name=stage_name)
+        self._set_properties(logical_id, properties)
+
+    def add_stage_variables(self, logical_id, stage_variables):
+        """
+        Stores the stage variables for the API with the given local ID
+
+        Parameters
+        ----------
+        logical_id : str
+            LogicalId of the AWS::Serverless::Api resource
+
+        stage_variables : dict
+            A dictionary containing stage variables.
+
+        """
+        properties = self._get_properties(logical_id)
+        properties = properties._replace(stage_variables=stage_variables)
+        self._set_properties(logical_id, properties)
+
     def _get_apis_with_config(self, logical_id):
         """
         Returns the list of APIs in this resource along with other extra configuration such as binary media types,
@@ -463,12 +501,16 @@ class ApiCollector(object):
         # These configs need to be applied to each API
         binary_media = sorted(list(properties.binary_media_types))  # Also sort the list to keep the ordering stable
         cors = properties.cors
+        stage_name = properties.stage_name
+        stage_variables = properties.stage_variables
 
         result = []
         for api in properties.apis:
             # Create a copy of the API with updated configuration
             updated_api = api._replace(binary_media_types=binary_media,
-                                       cors=cors)
+                                       cors=cors,
+                                       stage_name=stage_name,
+                                       stage_variables=stage_variables)
             result.append(updated_api)
 
         return result
@@ -493,9 +535,26 @@ class ApiCollector(object):
             self.by_resource[logical_id] = self.Properties(apis=[],
                                                            # Use a set() to be able to easily de-dupe
                                                            binary_media_types=set(),
-                                                           cors=None)
+                                                           cors=None,
+                                                           stage_name=None,
+                                                           stage_variables=None)
 
         return self.by_resource[logical_id]
+
+    def _set_properties(self, logical_id, properties):
+        """
+        Sets the properties of resource with given logical ID. If a resource is not found, it does nothing
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+        properties : samcli.commands.local.lib.sam_api_provider.ApiCollector.Properties
+             Properties object for this resource.
+        """
+
+        if logical_id in self.by_resource:
+            self.by_resource[logical_id] = properties
 
     @staticmethod
     def _normalize_binary_media_type(value):
