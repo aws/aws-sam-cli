@@ -5,9 +5,9 @@ from collections import namedtuple
 
 from six import string_types
 
-from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.provider import ApiProvider, Api
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
+from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
@@ -19,6 +19,7 @@ class SamApiProvider(ApiProvider):
     _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     _SERVERLESS_API = "AWS::Serverless::Api"
     _GATEWAY_REST_API = "AWS::ApiGateway::RestApi"
+    _GATEWAY_STAGE = "AWS::ApiGateway::Stage"
     _TYPE = "Type"
 
     _FUNCTION_EVENT_TYPE_API = "Api"
@@ -105,6 +106,9 @@ class SamApiProvider(ApiProvider):
 
             if resource_type == SamApiProvider._GATEWAY_REST_API:
                 self._extract_cloud_formation_api(logical_id, resource, collector)
+
+            if resource_type == SamApiProvider._GATEWAY_STAGE:
+                self._extract_cloud_formation_stage(resource, collector)
 
         apis = SamApiProvider._merge_apis(collector)
         return self._normalize_apis(apis)
@@ -202,6 +206,29 @@ class SamApiProvider(ApiProvider):
         collector.add_apis(logical_id, apis)
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
+
+    def _extract_cloud_formation_stage(self, api_resource, collector):
+        """
+        Extract APIs from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
+
+        Parameters
+       ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector: ApiCollector
+            Instance of the API collector that where we will save the API information
+        """
+        properties = api_resource.get("Properties", {})
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("Variables")
+        logical_id = properties.get("RestApiId")
+        if logical_id:
+            collector.add_stage_name(logical_id, stage_name)
+            collector.add_stage_variables(logical_id, stage_variables)
 
     @staticmethod
     def _merge_apis(collector):

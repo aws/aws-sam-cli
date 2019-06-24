@@ -662,3 +662,57 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
 
         response_data = response.json()
         self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+
+
+class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_default_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Prod")
+
+    def test_global_stage_variables(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+
+
+class TestStartApiWithCloudFormationStageAndSwagger(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/cloud-formation-lambda-function.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_swagger_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Prod")
+
+    def test_swagger_stage_variable(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEquals(response_data.get("stageVariables"), None)

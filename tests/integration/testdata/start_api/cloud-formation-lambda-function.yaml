@@ -1,0 +1,258 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Api:
+    BinaryMediaTypes:
+      # These are equivalent to image/gif and image/png when deployed
+      - image~1gif
+      - image~1png
+    Variables:
+      VarName: varValue
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /id
+
+        PathWithAnyMethod:
+          Type: Api
+          Properties:
+            Method: ANY
+            Path: /anyandall
+
+        ProxyPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /proxypath/{proxy+}
+
+  EchoEventFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.echo_event_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        PathWithPathParams:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /id/{id}/user/{user}
+
+        PathWithPathParam:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /id/{id}
+
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /echoeventbody
+
+  EchoEventFunction2:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.echo_event_handler_2
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        EchoEventBodyPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /echoeventbody
+
+  ContentTypeSetterFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.content_type_setter_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        ContentTypeSetter:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /getcontenttype
+
+  OnlySetStatusCodeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.only_set_status_code_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        OnlySetStatusCodePath:
+          Type: Api
+          Properties:
+            Method: Get
+            Path: /onlysetstatuscode
+
+  OnlySetBodyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.only_set_body_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        OnlySetBodyPath:
+          Type: Api
+          Properties:
+            Method: Get
+            Path: /onlysetbody
+
+  StringStatusCodeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.string_status_code_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        StringStatusCodePath:
+          Type: Api
+          Properties:
+            Method: Get
+            Path: /stringstatuscode
+
+  SleepFunction0:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Events:
+        SleepPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /sleepfortenseconds/function0
+
+  SleepFunction1:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.sleep_10_sec_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Events:
+        SleepPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /sleepfortenseconds/function1
+
+  WriteToStderrFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.write_to_stderr
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        WriteToStderrPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /writetostderr
+
+  WriteToStdoutFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.write_to_stdout
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        WriteToStdoutPath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /writetostdout
+
+  InvalidResponseFromLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.invalid_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        InvalidResponseReturned:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /invalidresponsereturned
+
+  InvalidResponseHashFromLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.invalid_hash_response
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        InvalidResponseReturned:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /invalidresponsehash
+
+  Base64ResponseFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.base64_response
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        Base64ResponsePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /base64response
+
+  EchoBase64EventBodyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.echo_base64_event_body
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        EchoBase64EventBodyPath:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /echobase64eventbody
+
+  MultipleHeadersResponseFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.multiple_headers
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /multipleheaders
+
+  MultipleHeadersOverridesHeadersResponseFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: main.multiple_headers_overrides_headers
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: GET
+            Path: /multipleheadersoverridesheaders
