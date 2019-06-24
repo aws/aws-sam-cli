@@ -167,7 +167,26 @@ class SamApiProvider(ApiProvider):
         self._extract_swagger_api(logical_id, body, s3_location, binary_media, collector)
 
     def _extract_swagger_api(self, logical_id, body, uri, binary_media, collector):
+        """
+        Parse the Swagger documents given the Api properties.
 
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        body : dict
+            The body of the RestApi
+
+        uri : str or dict
+            The url to location of the RestApi
+
+        binary_media: list
+            The link to the binary media
+
+        collector: ApiCollector
+            Instance of the API collector that where we will save the API information
+        """
         reader = SamSwaggerReader(definition_body=body,
                                   definition_uri=uri,
                                   working_dir=self.cwd)
