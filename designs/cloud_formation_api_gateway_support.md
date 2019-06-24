@@ -2,9 +2,9 @@
 
 ## The Problem
 
-Customers use SAM CLI to run/test their applications by defining their resources in a SAM template. The raw CloudFormation ApiGateway resources are not currently supported to run and test locally in SAM CLI. The resource types include AWS::ApiGateway::* while ```sam local start-api``` only supports the AWS::Serverless::Api type. This prevents customers who have built/deployed services using the raw ApiGateway Resources or who have used tools to generate CloudFormation, like AWS CDK, from testing locally through SAM CLI. Specifically, Customers that generate their CloudFormation code using tools and have hand written CloudFormation templates have AWS::ApiGateway::* types preventing them from running locally. 
+Customers use SAM CLI to run/test their applications by defining their resources in a SAM template. The raw CloudFormation ApiGateway resources are not currently supported to run and test locally in SAM CLI. The resource types include AWS::ApiGateway::* while ```sam local start-api``` only supports the AWS::Serverless::Api type. This prevents customers who have built/deployed services using the raw ApiGateway Resources or who have used tools to generate CloudFormation, like AWS CDK, from testing locally through SAM CLI. Specifically, Customers that generate their CloudFormation template using tools and have hand written CloudFormation templates have AWS::ApiGateway::* types preventing them from running locally. 
 
-Customers that are able to test and run locally can find errors early, reduce development time, etc. If customers are not able to test, the development cycles will be very long with write code, deploy, deploy failed, investigate, fix and repeat.
+Customers that are able to test and run locally can find errors early, reduce development time, etc. If customers are not able to test, the development cycles will be very long with a process similar to write code, deploy, deploy failed, investigate, fix and repeat.
 
 ## Who are the Customers?
 
@@ -25,16 +25,16 @@ When customers run ```sam local start-api``` with a template that uses raw Cloud
 
 ## Out-of-Scope
 
-* Anything that SAM CLI doesn't currently support in SAM 
-* ApiGateway Authorization
-* CORS 
+Anything that SAM CLI doesn't currently support in SAM 
+* ApiGateway Authorization such as resource policies, IAM roles/tags/policies, Lambda Authorizers, etc.
+* ApiGateway CORS support 
 * Proper validation of the CloudFormation templates so that it does smart validation and not just yaml parsing.
 
 ## User Experience Walkthrough
 
 There are two main types of users who are going to benefit from this change.
 
-* Customers can use tools such as aws cdk to generate a template. The customer can create their AWS CDK project with `cdk init app` and then generate their CloudFormation code using `cdk synth.`They can input their CloudFormation code to test it locally using the SAM CLI command. 
+* Customers can use tools such as AWS CDK to generate a template. The customer can create their AWS CDK project with `cdk init app` and then generate their CloudFormation code using `cdk synth.`They can input their CloudFormation code to test it locally using the SAM CLI command. 
 * Customers can author CloudFormation resources and test them locally by inputting their templates into sam local start-api.
 
 For both cases, The code can be run locally if they have CodeUri's pointing to valid local paths. 
@@ -52,30 +52,34 @@ There are a few approaches to supporting the new CloudFormation ApiGateway types
 Appending to the current Sam Api code and to have dual support of both the CloudFormation Template and SAM template
 
 Pros:
-This approach is something we do for lambda functions such as AWS::Lambda::Function and will provide consistency with our current implementation. 
+* This approach is something we do for lambda functions such as AWS::Lambda::Function and will provide consistency with our current implementation. 
 
 Cons:
-However, managing two different systems/templates require more work to resolve bugs. For example, supporting ApiGatewayV2, which supports web sockets with ApiGateway, the parsing of the template will need to be reimplemented in two places in order to support new functionality. One where it was defined using CloudFormation and the other where it was defined using the SAM template. This will slowly start to incur more and more technical debt as there is now more area to cover and duplication of work and resources. In the short term, it may be easier to implement, but in the long term there may be issues when dealing with support. Another issue is that there may be escape hatches that are implemented in SAM causing additional effort to maintain differing parsing parts of the codebase.
+* Managing two different systems/templates require more work to resolve bugs. For example, supporting ApiGatewayV2, which supports web sockets with ApiGateway, the parsing of the template will need to be reimplemented in two places in order to support new functionality. One where it was defined using CloudFormation and the other where it was defined using the SAM template. This will slowly start to incur more and more technical debt as there is now more area to cover and duplication of work and resources. In the short term, it may be easier to implement, but in the long term there may be issues when dealing with support. 
+* Another issue is that there may be escape hatches that are implemented in SAM causing additional effort to maintain differing parsing parts of the codebase.
 
 ### *Approach #2*: Process Once
 
 Convert the SAM template into CloudFormation code and processes it once.
 
 Pros:
-This simplifies a lot of the issues with approach #1. This will make it much easier to add and extend the system such as adding ApiGatewayV2, web sockets. The feature would only need to be added once instead of duplicated effort. 
+* This simplifies a lot of the issues with approach #1. This will make it much easier to add and extend the system such as adding ApiGatewayV2, web sockets. The feature would only need to be added once instead of duplicated effort. 
 
 Cons: 
-This will require more work in order to restructure the application such that the template is processed once after it processed to CloudFormation. This could also produce bugs with issues if the SAM to CloudFormation transformation isn't correct in local testing. However, this may not matter as much since there is a direct translation of SAM resources to CloudFormation Resources and only a single point where the bug needs to be fixed. Some other issues are the possible imperfections of the SAM to CloudFormation conversion. In the past, some version of the transformation caused incompatible changes with the SAM CLI. If the conversion fails, it could cause users that are currently running their code locally to break.
+* This will require more work in order to restructure the application such that the template is processed once after it processed to CloudFormation. 
+* This could also produce bugs with issues if the SAM to CloudFormation transformation isn't correct in local testing. However, this may not matter as much since there is a direct translation of SAM resources to CloudFormation Resources and only a single point where the bug needs to be fixed.
+* Possible imperfections of the SAM to CloudFormation conversion. In the past, some version of the transformation caused incompatible changes with the SAM CLI. If the conversion fails, it could cause users that are currently running their code locally to break. 
+* The SAM Translator also requires credentials, which would now cause users to login before running a command. Credentials are currently required in sam validate because of this. A local flavor of the translator needs to be created in order to avoid the process.
 
 ### *Approach #3*: Abstraction
 
 Extending the current code to a CloudFormationApiProvider object overriding the CloudFormation processing in certain methods. This will be doing two passes through the code. SAM code can be processed first and the CloudFormation types second.
 
 Pros:
-This provides better abstraction, separating the CloudFormation code and the SamApi code. This can also be easily implemented.
+* This provides better abstraction, separating the CloudFormation code and the SamApi code. This can also be easily implemented.
 
 Cons:
-This falls through the same pitfalls as approach #1. The abstraction for the same types may also be inconsistent with the way we are currently processing CloudFormation resources such as AWS::Lambda::Function.
+* This falls through the same pitfalls as approach #1. The abstraction for the same types may also be inconsistent with the way we are currently processing CloudFormation resources such as AWS::Lambda::Function.
 
 ### Approach RECOMMENDATION
 
@@ -168,7 +172,7 @@ The SAM template requires people to use only a single RestApi to define all of t
 
 ### **AWS::ApiGateway::Stages**
 
-The stage allows for defining environments for different parts of the pipeline in CloudFormation. Since a single stage is attached to a deployment, the behavior of multiple deployment/stages locally is currently undefined, which is similar to the current support or syntax in the SAM template. 
+The stage allows for defining environments for different parts of the pipeline in CloudFormation. Since a single stage is attached to a deployment, the behavior of multiple deployment/stages locally is currently undefined. 
 
 Currently, the SAM template supports only one stage/one deployment and does not /<Stage>/<Serivce Name> as customers could want. One approach is to support additional flags in environments and stage names so they can test the apis locally in multiple environments. This would create a dict such as {“dev”: [models], “prod”: [models]}. However, this may be unnecessary. 
 
@@ -188,7 +192,7 @@ Properties:
 Since the stages can show up in any order as the code is iterating through the resources, There are two approaches to consider too quickly stitch the api and stages together. 
 
 *Approach #1:* 
-Arbitrarily pick one of the stages and use that on all the Api
+Pick the last stage in the template that we find and use that on all the Apis
 Pros: Similar to the current approach
 Cons: The customer may not be able to view their environments in different stages.
 
@@ -204,7 +208,7 @@ The deployment type defines which Apis objects should be available to the public
 
 One approach is to support multiple stages with multiple deployments and the code will filter out the stages that are not deployed or defined. One problem with this approach is that the RestApiId, a characteristic of the RestApi, for a deployment is only localhost and a single endpoint and the current schema doesn't allow deploying on multiple ports and multiple local domains. This will bring in unneeded complexity such as requiring the customer defining N valid ports and N valid domains.
 
-Another approach, which I recommend, is to ignore the flag altogether as it always associated with a stage and to randomly pick a stage. 
+Another approach, which I recommend, is to ignore the resource altogether as it always associated with a stage and to randomly pick a stage. 
 
 ## **Updating the code**
 
@@ -304,16 +308,6 @@ No.
 The setup is not written for local development.
 
 # What is your Testing Plan (QA)?
-
-## Validation
-
-There is some basic validation via a request or via running a local command/lib.
-
-Customers can also do basic validation of their CloudFormation template using the following command
-
-```sh:
-aws cloudformation validate-template --template-url https://s3.amazonaws.com/cloudformation-templates-us-east-1/S3_Bucket.template`
-```
 
 ## Goal
 
