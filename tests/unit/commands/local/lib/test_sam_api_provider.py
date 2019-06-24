@@ -44,7 +44,6 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = SamApiProvider(template)
 
-        self.assertEquals(len(provider.apis), 0)
         self.assertEquals(provider.apis, [])
 
     @parameterized.expand([("GET"), ("get")])
@@ -450,7 +449,6 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         provider = SamApiProvider(template)
 
-        self.assertEquals(len(provider.apis), 0)
         self.assertEquals(provider.apis, [])
 
     def test_with_inline_swagger_apis(self):
@@ -1028,6 +1026,27 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
 
             provider = SamApiProvider(template)
             assertCountEqual(self, self.input_apis, provider.apis)
+
+    def test_body_with_swagger_as_local_file_expect_fail(self):
+        with tempfile.NamedTemporaryFile(mode='w') as fp:
+            filename = fp.name
+
+            swagger = make_swagger(self.input_apis)
+            json.dump(swagger, fp)
+            fp.flush()
+
+            template = {
+                "Resources": {
+
+                    "Api1": {
+                        "Type": "AWS::ApiGateway::RestApi",
+                        "Properties": {
+                            "Body": filename
+                        }
+                    }
+                }
+            }
+            self.assertRaises(Exception, SamApiProvider, template)
 
     @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
