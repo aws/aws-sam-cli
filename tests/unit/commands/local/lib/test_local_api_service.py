@@ -3,10 +3,12 @@ Unit test for local API service
 """
 
 from unittest import TestCase
+
 from mock import Mock, patch
 
-from samcli.commands.local.lib.local_api_service import LocalApiService
+from samcli.commands.local.lib import provider
 from samcli.commands.local.lib.exceptions import NoApisDefined
+from samcli.commands.local.lib.local_api_service import LocalApiService
 from samcli.commands.local.lib.provider import Api
 from samcli.local.apigw.local_apigw_service import Route
 
@@ -43,7 +45,6 @@ class TestLocalApiService_start(TestCase):
                                 make_static_dir_mock,
                                 SamApiProviderMock,
                                 ApiGwServiceMock):
-
         routing_list = [1, 2, 3]  # something
         static_dir_path = "/foo/bar"
 
@@ -86,7 +87,6 @@ class TestLocalApiService_start(TestCase):
                                                make_static_dir_mock,
                                                SamApiProviderMock,
                                                ApiGwServiceMock):
-
         routing_list = []  # Empty
 
         make_routing_list_mock.return_value = routing_list
@@ -181,3 +181,39 @@ class TestLocalApiService_make_static_dir_path(TestCase):
 
         result = LocalApiService._make_static_dir_path(cwd, static_dir)
         self.assertIsNone(result)
+
+
+class TestRoutingList(TestCase):
+
+    def setUp(self):
+        self.function_name = "routingTest"
+        apis = [
+            provider.Api(path="/get", method="GET", function_name=self.function_name, cors="cors"),
+            provider.Api(path="/get", method="GET", function_name=self.function_name, cors="cors", stage_name="Dev"),
+            provider.Api(path="/post", method="POST", function_name=self.function_name, cors="cors", stage_name="Prod"),
+            provider.Api(path="/get", method="GET", function_name=self.function_name, cors="cors",
+                         stage_variables={"test": "data"}),
+            provider.Api(path="/post", method="POST", function_name=self.function_name, cors="cors", stage_name="Prod",
+                         stage_variables={"data": "more data"}),
+        ]
+        self.api_provider_mock = Mock()
+        self.api_provider_mock.get_all.return_value = apis
+
+    def test_make_routing_list(self):
+        routing_list = LocalApiService._make_routing_list(self.api_provider_mock)
+
+        expected_routes = [
+            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name=None,
+                  stage_variables=None),
+            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name='Dev',
+                  stage_variables=None),
+            Route(function_name=self.function_name, methods=['POST'], path='/post', stage_name='Prod',
+                  stage_variables=None),
+            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name=None,
+                  stage_variables={'test': 'data'}),
+            Route(function_name=self.function_name, methods=['POST'], path='/post', stage_name='Prod',
+                  stage_variables={'data': 'more data'}),
+        ]
+        self.assertEquals(len(routing_list), len(expected_routes))
+        for index, r in enumerate(routing_list):
+            self.assertEquals(r.__dict__, expected_routes[index].__dict__)

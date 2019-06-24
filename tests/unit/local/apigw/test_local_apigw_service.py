@@ -52,7 +52,6 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.LambdaOutputParser')
     def test_request_handler_returns_process_stdout_when_making_response(self, lambda_output_parser_mock):
-
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
@@ -151,7 +150,6 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.ServiceErrorResponses')
     def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch):
-
         not_found_response_mock = Mock()
         self.service._construct_event = Mock()
         self.service._get_current_route = Mock()
@@ -213,7 +211,6 @@ class TestApiGatewayService(TestCase):
 
     @patch('samcli.local.apigw.local_apigw_service.request')
     def test_get_current_route(self, request_patch):
-
         request_mock = Mock()
         request_mock.endpoint = "path"
         request_mock.method = "method"
@@ -253,12 +250,19 @@ class TestApiGatewayModel(TestCase):
 
     def setUp(self):
         self.function_name = "name"
-        self.api_gateway = Route(['POST'], self.function_name, '/')
+        self.stage_name = "Dev"
+        self.stage_variables = {
+            "test": "sample"
+        }
+        self.api_gateway = Route(['POST'], self.function_name, '/', stage_name=self.stage_name,
+                                 stage_variables=self.stage_variables)
 
     def test_class_initialization(self):
         self.assertEquals(self.api_gateway.methods, ['POST'])
         self.assertEquals(self.api_gateway.function_name, self.function_name)
         self.assertEquals(self.api_gateway.path, '/')
+        self.assertEqual(self.api_gateway.stage_name, "Dev")
+        self.assertEqual(self.api_gateway.stage_variables, {"test": "sample"})
 
 
 class TestLambdaHeaderDictionaryMerge(TestCase):
@@ -410,7 +414,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
     def test_status_code_negative_int(self):
         lambda_output = '{"statusCode": -1, "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
-                            '"isBase64Encoded": false}'
+                        '"isBase64Encoded": false}'
 
         with self.assertRaises(TypeError):
             LocalApigwService._parse_lambda_output(lambda_output,
@@ -419,7 +423,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
     def test_status_code_negative_int_str(self):
         lambda_output = '{"statusCode": "-1", "headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' \
-                            '"isBase64Encoded": false}'
+                        '"isBase64Encoded": false}'
 
         with self.assertRaises(TypeError):
             LocalApigwService._parse_lambda_output(lambda_output,
@@ -478,7 +482,7 @@ class TestService_construct_event(TestCase):
                    '"queryStringParameters": {"query": "params"}, "resource": ' \
                    '"endpoint", "requestContext": {"httpMethod": "GET", "requestId": ' \
                    '"c6af9ac6-7b61-11e6-9a41-93e8deadbeef", "path": "endpoint", "extendedRequestId": null, ' \
-                   '"resourceId": "123456", "apiId": "1234567890", "stage": "prod", "resourcePath": "endpoint", ' \
+                   '"resourceId": "123456", "apiId": "1234567890", "stage": null, "resourcePath": "endpoint", ' \
                    '"identity": {"accountId": null, "apiKey": null, "userArn": null, ' \
                    '"cognitoAuthenticationProvider": null, "cognitoIdentityPoolId": null, "userAgent": ' \
                    '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": ' \

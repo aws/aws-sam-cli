@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 class Route(object):
 
-    def __init__(self, methods, function_name, path, binary_types=None):
+    def __init__(self, methods, function_name, path, binary_types=None, stage_name=None, stage_variables=None):
         """
         Creates an ApiGatewayRoute
 
@@ -31,10 +31,11 @@ class Route(object):
         self.function_name = function_name
         self.path = path
         self.binary_types = binary_types or []
+        self.stage_name = stage_name
+        self.stage_variables = stage_variables
 
 
 class LocalApigwService(BaseLocalService):
-
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
 
@@ -143,7 +144,8 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types)
+            event = self._construct_event(request, self.port, route.binary_types, route.stage_name,
+                                          route.stage_variables)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -313,13 +315,14 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types):
+    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
         :param request flask_request: Flask Request
         :return: String representing the event
         """
+        # pylint: disable-msg=too-many-locals
 
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
@@ -342,7 +345,7 @@ class LocalApigwService(BaseLocalService):
 
         context = RequestContext(resource_path=endpoint,
                                  http_method=method,
-                                 stage="prod",
+                                 stage=stage_name,
                                  identity=identity,
                                  path=endpoint)
 
@@ -360,7 +363,8 @@ class LocalApigwService(BaseLocalService):
                                       multi_value_headers=multi_value_headers_dict,
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
-                                      is_base_64_encoded=is_base_64)
+                                      is_base_64_encoded=is_base_64,
+                                      stage_variables=stage_variables)
 
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
