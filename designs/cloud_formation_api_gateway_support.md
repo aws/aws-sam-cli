@@ -88,7 +88,7 @@ Although other parts of the project are using approach #1 currently, I recommend
 AWS::ApiGateway::RestApi will be one of the main resources defined in the CloudFormation template. It acts as the main definition for the Api. There are two approaches to consider for defining the RestApi template.
 
 ***Feature #1*: Swagger Method**
-The swagger method is very similar to the support in our current code base. Swagger has many advantageous as it can be exported, do validation, etc. Customers can also link to the other files containing their swagger documentation. Customers, according to the ApiGateway team, tend to define their resources using swagger more than defining it using AWS::ApiGateway::Resource and AWS::ApiGateway::Methods. 
+The swagger method is very similar to the support in our current code base. Swagger has many advantageous as it can be exported, do validation, etc. Customers can also link to the other files containing their swagger documentation. 
 
 ```yaml
 ServerlessRestApi:
