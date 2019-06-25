@@ -5,11 +5,8 @@ from collections import namedtuple
 
 from six import string_types
 
-<<<<<<< HEAD
+
 from samcli.commands.local.lib.provider import AbstractApiProvider, Api
-=======
-from samcli.commands.local.lib.provider import ApiProvider, Api
->>>>>>> Update AWS::ApiGateway::Stage tests
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
@@ -18,17 +15,8 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 LOG = logging.getLogger(__name__)
 
 
-<<<<<<< HEAD
 class ApiProvider(AbstractApiProvider):
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
-=======
-class SamApiProvider(ApiProvider):
-    _IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
-    _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
-    _SERVERLESS_API = "AWS::Serverless::Api"
-    _GATEWAY_REST_API = "AWS::ApiGateway::RestApi"
-    _GATEWAY_STAGE = "AWS::ApiGateway::Stage"
->>>>>>> Update AWS::ApiGateway::Stage tests
     _TYPE = "Type"
     _ANY_HTTP_METHODS = ["GET",
                          "DELETE",
@@ -110,7 +98,6 @@ class SamApiProvider(ApiProvider):
         providers = {Provider.RESOURCE_TYPE: Provider() for Provider in AbstractParserProvider.__subclasses__() if
                      Provider.PROVIDER_TYPE == self.provider_type}
         for logical_id, resource in resources.items():
-<<<<<<< HEAD
             resource_type = resource.get(ApiProvider._TYPE)
             provider = providers.get(resource_type)
             if provider:
@@ -118,143 +105,6 @@ class SamApiProvider(ApiProvider):
         apis = ApiProvider._merge_apis(collector)
         return self._normalize_apis(apis)
 
-=======
-
-            resource_type = resource.get(SamApiProvider._TYPE)
-
-            if resource_type == SamApiProvider._SERVERLESS_FUNCTION:
-                self._extract_apis_from_function(logical_id, resource, collector)
-
-            if resource_type == SamApiProvider._SERVERLESS_API:
-                self._extract_from_serverless_api(logical_id, resource, collector)
-
-            if resource_type == SamApiProvider._GATEWAY_REST_API:
-                self._extract_cloud_formation_api(logical_id, resource, collector)
-
-            if resource_type == SamApiProvider._GATEWAY_STAGE:
-                self._extract_cloud_formation_stage(resource, collector)
-
-        apis = SamApiProvider._merge_apis(collector)
-        return self._normalize_apis(apis)
-
-    def _extract_from_serverless_api(self, logical_id, api_resource, collector):
-        """
-        Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
-        to the collector.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource : dict
-            Resource definition, including its properties
-
-        collector : ApiCollector
-            Instance of the API collector that where we will save the API information
-        """
-
-        properties = api_resource.get("Properties", {})
-        body = properties.get("DefinitionBody")
-        uri = properties.get("DefinitionUri")
-        binary_media = properties.get("BinaryMediaTypes", [])
-        stage_name = properties.get("StageName")
-        stage_variables = properties.get("Variables")
-
-        if not body and not uri:
-            # Swagger is not found anywhere.
-            LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
-                      logical_id)
-            return
-        self._extract_swagger_api(logical_id, body, uri, binary_media, collector)
-        collector.add_stage_name(logical_id, stage_name)
-        collector.add_stage_variables(logical_id, stage_variables)
-
-    def _extract_cloud_formation_api(self, logical_id, api_resource, collector):
-        """
-        Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
-        added to the collector.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource : dict
-            Resource definition, including its properties
-
-        collector : ApiCollector
-            Instance of the API collector that where we will save the API information
-        """
-        properties = api_resource.get("Properties", {})
-        body = properties.get("Body")
-        s3_location = properties.get("BodyS3Location")
-        binary_media = properties.get("BinaryMediaTypes", [])
-
-        if not body and not s3_location:
-            # Swagger is not found anywhere.
-            LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
-                      logical_id)
-            return
-        self._extract_swagger_api(logical_id, body, s3_location, binary_media, collector)
-
-    def _extract_swagger_api(self, logical_id, body, uri, binary_media, collector):
-        """
-        Parse the Swagger documents given the Api properties.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        body : dict
-            The body of the RestApi
-
-        uri : str or dict
-            The url to location of the RestApi
-
-        binary_media: list
-            The link to the binary media
-
-        collector: ApiCollector
-            Instance of the API collector that where we will save the API information
-        """
-        reader = SamSwaggerReader(definition_body=body,
-                                  definition_uri=uri,
-                                  working_dir=self.cwd)
-        swagger = reader.read()
-        parser = SwaggerParser(swagger)
-        apis = parser.get_apis()
-        LOG.debug("Found '%s' APIs in resource '%s'", len(apis), logical_id)
-
-        collector.add_apis(logical_id, apis)
-        collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
-        collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
-
-    def _extract_cloud_formation_stage(self, api_resource, collector):
-        """
-        Extract APIs from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
-
-        Parameters
-       ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource : dict
-            Resource definition, including its properties
-
-        collector: ApiCollector
-            Instance of the API collector that where we will save the API information
-        """
-        properties = api_resource.get("Properties", {})
-        stage_name = properties.get("StageName")
-        stage_variables = properties.get("Variables")
-        logical_id = properties.get("RestApiId")
-        if logical_id:
-            collector.add_stage_name(logical_id, stage_name)
-            collector.add_stage_variables(logical_id, stage_variables)
-
->>>>>>> Update AWS::ApiGateway::Stage tests
     @staticmethod
     def _merge_apis(collector):
         """

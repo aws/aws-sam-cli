@@ -1386,7 +1386,7 @@ class TestCloudFormationStageValues(TestCase):
                 }
             }
         }
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
                    stage_name='dev',
                    stage_variables=None)
@@ -1433,7 +1433,7 @@ class TestCloudFormationStageValues(TestCase):
                 }
             }
         }
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
                    stage_name='dev',
                    stage_variables={
@@ -1531,7 +1531,7 @@ class TestCloudFormationStageValues(TestCase):
                 }
             }
         }
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 
