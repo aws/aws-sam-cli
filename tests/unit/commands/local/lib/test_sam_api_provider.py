@@ -7,7 +7,7 @@ from nose_parameterized import parameterized
 
 from six import assertCountEqual
 
-from samcli.commands.local.lib.sam_api_provider import ApiProvider
+from samcli.commands.local.lib.sam_api_provider import ApiProvider, FunctionParserProvider
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
@@ -417,7 +417,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         }
 
         with self.assertRaises(InvalidSamDocumentException):
-            ApiProvider._convert_event_api("logicalId", properties)
+            FunctionParserProvider._convert_event_api("logicalId", properties)
 
 
 class TestSamApiProviderWithExplicitApis(TestCase):

@@ -116,10 +116,14 @@ class LocalApiService(object):
             Mounting Product at http://127.0.0.1:3000/path1/bar [GET, POST, DELETE]
             Mounting Product at http://127.0.0.1:3000/path2/bar [HEAD]
 
-        :param samcli.commands.local.lib.provider.AbstractApiProvider api_provider: API Provider that can return a list of APIs
-        :param string host: Host name where the service is running
-        :param int port: Port number where the service is running
-        :returns list(string): List of lines that were printed to the console. Helps with testing
+        :param samcli.commands.local.lib.provider.AbstractApiProvider api_provider:
+            API Provider that can return a list of APIs
+        :param string host:
+            Host name where the service is running
+        :param int port:
+            Port number where the service is running
+        :returns list(string):
+            List of lines that were printed to the console. Helps with testing
         """
         grouped_api_configs = {}
 
