@@ -10,11 +10,24 @@ from samtranslator.intrinsics.actions import RefAction
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
-
 LOG = logging.getLogger(__name__)
 
 
-class SamBaseProvider(object):
+class BaseProvider(object):
+    @staticmethod
+    def get_template(template_dict, parameter_overrides=None):
+        pass
+
+    @staticmethod
+    def _get_parameter_values(template_dict, parameter_overrides):
+        pass
+
+    @staticmethod
+    def _get_default_parameter_values(sam_template):
+        pass
+
+
+class SamBaseProvider(BaseProvider):
     """
     Base class for SAM Template providers
     """
@@ -89,7 +102,7 @@ class SamBaseProvider(object):
         supported_intrinsics = {action.intrinsic_name: action() for action in SamBaseProvider._SUPPORTED_INTRINSICS}
 
         # Intrinsics resolver will mutate the original template
-        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics)\
+        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics) \
             .resolve_parameter_refs(template_dict)
 
     @staticmethod
