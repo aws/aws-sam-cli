@@ -238,7 +238,7 @@ class Api(_ApiTuple):
 Cors = namedtuple("Cors", ["AllowOrigin", "AllowMethods", "AllowHeaders"])
 
 
-class ApiProvider(object):
+class AbstractApiProvider(object):
     """
     Abstract base class to return APIs and the functions they route to
     """

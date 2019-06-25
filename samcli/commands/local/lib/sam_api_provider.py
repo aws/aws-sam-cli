@@ -6,7 +6,7 @@ from collections import namedtuple
 from six import string_types
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
-from samcli.commands.local.lib.provider import ApiProvider, Api
+from samcli.commands.local.lib.provider import AbstractApiProvider, Api
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -14,13 +14,8 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 LOG = logging.getLogger(__name__)
 
 
-class SamApiProvider(ApiProvider):
-    _IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
-    _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
-    _SERVERLESS_API = "AWS::Serverless::Api"
-    _GATEWAY_REST_API = "AWS::ApiGateway::RestApi"
+class ApiProvider(AbstractApiProvider):
     _TYPE = "Type"
-
     _FUNCTION_EVENT_TYPE_API = "Api"
     _FUNCTION_EVENT = "Events"
     _EVENT_PATH = "Path"
@@ -34,7 +29,10 @@ class SamApiProvider(ApiProvider):
                          "OPTIONS",
                          "PATCH"]
 
-    def __init__(self, template_dict, parameter_overrides=None, cwd=None):
+    PROVIDER_TYPE_CF = "CF"
+
+    def __init__(self, template_dict, parameter_overrides=None, cwd=None,
+                 provider_type=None):
         """
         Initialize the class with SAM template data. The template_dict (SAM Templated) is assumed
         to be valid, normalized and a dictionary. template_dict should be normalized by running any and all
@@ -51,17 +49,19 @@ class SamApiProvider(ApiProvider):
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
         """
+        self.provider_type = provider_type or self.PROVIDER_TYPE_CF
 
-        self.template_dict = SamBaseProvider.get_template(template_dict, parameter_overrides)
-        self.resources = self.template_dict.get("Resources", {})
+        if provider_type == self.PROVIDER_TYPE_CF:
+            self.template_dict = SamBaseProvider.get_template(template_dict, parameter_overrides)
+            self.resources = self.template_dict.get("Resources", {})
 
-        LOG.debug("%d resources found in the template", len(self.resources))
+            LOG.debug("%d resources found in the template", len(self.resources))
 
-        # Store a set of apis
-        self.cwd = cwd
-        self.apis = self._extract_apis(self.resources)
+            # Store a set of apis
+            self.cwd = cwd
+            self.apis = self._extract_apis(self.resources)
 
-        LOG.debug("%d APIs found in the template", len(self.apis))
+            LOG.debug("%d APIs found in the template", len(self.apis))
 
     def get_all(self):
         """
@@ -92,21 +92,14 @@ class SamApiProvider(ApiProvider):
         # corresponding Serverless::Api resource. This is all done using the ``collector``.
 
         collector = ApiCollector()
-
+        providers = {provider.RESOURCE_TYPE: provider for provider in ParserApiProvider.__subclasses__() if
+                     provider.PROVIDER_TYPE == self.provider_type}
         for logical_id, resource in resources.items():
-
-            resource_type = resource.get(SamApiProvider._TYPE)
-
-            if resource_type == SamApiProvider._SERVERLESS_FUNCTION:
-                self._extract_apis_from_function(logical_id, resource, collector)
-
-            if resource_type == SamApiProvider._SERVERLESS_API:
-                self._extract_from_serverless_api(logical_id, resource, collector)
-
-            if resource_type == SamApiProvider._GATEWAY_REST_API:
-                self._extract_cloud_formation_api(logical_id, resource, collector)
-
-        apis = SamApiProvider._merge_apis(collector)
+            resource_type = resource.get(ApiProvider._TYPE)
+            provider = providers.get(resource_type)
+            if provider:
+                provider.extract_api(logical_id, resource, collector)
+        apis = ApiProvider._merge_apis(collector)
         return self._normalize_apis(apis)
 
     def _extract_from_serverless_api(self, logical_id, api_resource, collector):
@@ -228,7 +221,7 @@ class SamApiProvider(ApiProvider):
         # Store implicit and explicit APIs separately in order to merge them later in the correct order
         # Implicit APIs are defined on a resource with logicalID ServerlessRestApi
         for logical_id, apis in collector:
-            if logical_id == SamApiProvider._IMPLICIT_API_RESOURCE_ID:
+            if logical_id == ApiProvider._IMPLICIT_API_RESOURCE_ID:
                 implicit_apis.extend(apis)
             else:
                 explicit_apis.extend(apis)
@@ -244,7 +237,7 @@ class SamApiProvider(ApiProvider):
         for config in all_configs:
             # Normalize the methods before de-duping to allow an ANY method in implicit API to override a regular HTTP
             # method on explicit API.
-            for normalized_method in SamApiProvider._normalize_http_methods(config.method):
+            for normalized_method in ApiProvider._normalize_http_methods(config.method):
                 key = config.path + normalized_method
                 all_apis[key] = config
 
@@ -272,7 +265,7 @@ class SamApiProvider(ApiProvider):
 
         result = list()
         for api in apis:
-            for normalized_method in SamApiProvider._normalize_http_methods(api.method):
+            for normalized_method in ApiProvider._normalize_http_methods(api.method):
                 # _replace returns a copy of the namedtuple. This is the official way of creating copies of namedtuple
                 result.append(api._replace(method=normalized_method))
 
@@ -296,8 +289,8 @@ class SamApiProvider(ApiProvider):
         """
 
         resource_properties = function_resource.get("Properties", {})
-        serverless_function_events = resource_properties.get(SamApiProvider._FUNCTION_EVENT, {})
-        SamApiProvider._extract_apis_from_events(logical_id, serverless_function_events, collector)
+        serverless_function_events = resource_properties.get(ApiProvider._FUNCTION_EVENT, {})
+        ApiProvider._extract_apis_from_events(logical_id, serverless_function_events, collector)
 
     @staticmethod
     def _extract_apis_from_events(function_logical_id, serverless_function_events, collector):
@@ -319,8 +312,8 @@ class SamApiProvider(ApiProvider):
         count = 0
         for _, event in serverless_function_events.items():
 
-            if SamApiProvider._FUNCTION_EVENT_TYPE_API == event.get(SamApiProvider._TYPE):
-                api_resource_id, api = SamApiProvider._convert_event_api(function_logical_id, event.get("Properties"))
+            if ApiProvider._FUNCTION_EVENT_TYPE_API == event.get(ApiProvider._TYPE):
+                api_resource_id, api = ApiProvider._convert_event_api(function_logical_id, event.get("Properties"))
                 collector.add_apis(api_resource_id, [api])
                 count += 1
 
@@ -335,13 +328,13 @@ class SamApiProvider(ApiProvider):
         :param dict event_properties: Dictionary of the Event's Property
         :return tuple: tuple of API resource name and Api namedTuple
         """
-        path = event_properties.get(SamApiProvider._EVENT_PATH)
-        method = event_properties.get(SamApiProvider._EVENT_METHOD)
+        path = event_properties.get(ApiProvider._EVENT_PATH)
+        method = event_properties.get(ApiProvider._EVENT_METHOD)
 
         # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
         # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
         # "Ref" of the logicalID
-        api_resource_id = event_properties.get("RestApiId", SamApiProvider._IMPLICIT_API_RESOURCE_ID)
+        api_resource_id = event_properties.get("RestApiId", ApiProvider._IMPLICIT_API_RESOURCE_ID)
         if isinstance(api_resource_id, dict) and "Ref" in api_resource_id:
             api_resource_id = api_resource_id["Ref"]
 
@@ -365,7 +358,7 @@ class SamApiProvider(ApiProvider):
         """
 
         if http_method.upper() == 'ANY':
-            for method in SamApiProvider._ANY_HTTP_METHODS:
+            for method in ApiProvider._ANY_HTTP_METHODS:
                 yield method.upper()
         else:
             yield http_method.upper()
@@ -578,3 +571,151 @@ class ApiCollector(object):
             return None
 
         return value.replace("~1", "/")
+
+
+class ParserApiProvider(object):
+
+    def extract_api(self, logical_id, api_resource, collector, cwd=None):
+        pass
+
+    def get_type(self):
+        pass
+
+    def _extract_swagger_api(self, logical_id, body, uri, binary_media, collector, cwd=None):
+        """
+        Parse the Swagger documents given the Api properties.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        body : dict
+            The body of the RestApi
+
+        uri : str or dict
+            The url to location of the RestApi
+
+        binary_media: list
+            The link to the binary media
+
+        collector: ApiCollector
+            Instance of the API collector that where we will save the API information
+        """
+        reader = SamSwaggerReader(definition_body=body,
+                                  definition_uri=uri,
+                                  working_dir=cwd)
+        swagger = reader.read()
+        parser = SwaggerParser(swagger)
+        apis = parser.get_apis()
+        LOG.debug("Found '%s' APIs in resource '%s'", len(apis), logical_id)
+
+        collector.add_apis(logical_id, apis)
+        collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
+        collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
+
+
+class FunctionProvider(ParserApiProvider):
+    RESOURCE_TYPE = "AWS::Serverless::Function"
+    PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CF
+
+    def extract_api(self, logical_id, api_resource, collector, cwd=None):
+        return self._extract_apis_from_function(logical_id, api_resource, collector)
+
+    @staticmethod
+    def _extract_apis_from_function(logical_id, function_resource, collector):
+        """
+        Fetches a list of APIs configured for this SAM Function resource.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        function_resource : dict
+            Contents of the function resource including its properties
+
+        collector : ApiCollector
+            Instance of the API collector that where we will save the API information
+        """
+
+        resource_properties = function_resource.get("Properties", {})
+        serverless_function_events = resource_properties.get(ApiProvider._FUNCTION_EVENT, {})
+        ApiProvider._extract_apis_from_events(logical_id, serverless_function_events, collector)
+
+
+class SAMAParserApiProvider(ParserApiProvider):
+    RESOURCE_TYPE = "AWS::Serverless::Api"
+    PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CF
+
+    def extract_api(self, logical_id, api_resource, collector, cwd=None):
+        return self._extract_from_serverless_api(logical_id, api_resource, collector, cwd)
+
+    def _extract_from_serverless_api(self, logical_id, api_resource, collector, cwd=None):
+        """
+        Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
+        to the collector.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector : ApiCollector
+            Instance of the API collector that where we will save the API information
+        """
+
+        properties = api_resource.get("Properties", {})
+        body = properties.get("DefinitionBody")
+        uri = properties.get("DefinitionUri")
+        binary_media = properties.get("BinaryMediaTypes", [])
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("Variables")
+
+        if not body and not uri:
+            # Swagger is not found anywhere.
+            LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
+                      logical_id)
+            return
+        self._extract_swagger_api(logical_id, body, uri, binary_media, collector, cwd)
+        collector.add_stage_name(logical_id, stage_name)
+        collector.add_stage_variables(logical_id, stage_variables)
+
+
+class CFNAParserpiProvider(ParserApiProvider):
+    RESOURCE_TYPE = "AWS::ApiGateway::RestApi"
+    PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CF
+
+    def extract_api(self, logical_id, api_resource, collector, cwd=None):
+        return self._extract_cloud_formation_api(logical_id, api_resource, collector, cwd)
+
+    def _extract_cloud_formation_api(self, logical_id, api_resource, collector, cwd=None):
+        """
+        Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
+        added to the collector.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector : ApiCollector
+            Instance of the API collector that where we will save the API information
+        """
+        properties = api_resource.get("Properties", {})
+        body = properties.get("Body")
+        s3_location = properties.get("BodyS3Location")
+        binary_media = properties.get("BinaryMediaTypes", [])
+
+        if not body and not s3_location:
+            # Swagger is not found anywhere.
+            LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
+                      logical_id)
+            return
+        self._extract_swagger_api(logical_id, body, s3_location, binary_media, collector, cwd)

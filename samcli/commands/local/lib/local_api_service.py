@@ -6,7 +6,7 @@ import os
 import logging
 
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.sam_api_provider import ApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 
 LOG = logging.getLogger(__name__)
@@ -38,9 +38,9 @@ class LocalApiService(object):
         self.static_dir = static_dir
 
         self.cwd = lambda_invoke_context.get_cwd()
-        self.api_provider = SamApiProvider(lambda_invoke_context.template,
-                                           parameter_overrides=lambda_invoke_context.parameter_overrides,
-                                           cwd=self.cwd)
+        self.api_provider = ApiProvider(lambda_invoke_context.template,
+                                        parameter_overrides=lambda_invoke_context.parameter_overrides,
+                                        cwd=self.cwd)
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 
@@ -89,7 +89,7 @@ class LocalApiService(object):
 
         Parameters
         ----------
-        api_provider : samcli.commands.local.lib.sam_api_provider.SamApiProvider
+        api_provider : samcli.commands.local.lib.sam_api_provider.ApiProvider
 
         Returns
         -------
@@ -116,7 +116,7 @@ class LocalApiService(object):
             Mounting Product at http://127.0.0.1:3000/path1/bar [GET, POST, DELETE]
             Mounting Product at http://127.0.0.1:3000/path2/bar [HEAD]
 
-        :param samcli.commands.local.lib.provider.ApiProvider api_provider: API Provider that can return a list of APIs
+        :param samcli.commands.local.lib.provider.AbstractApiProvider api_provider: API Provider that can return a list of APIs
         :param string host: Host name where the service is running
         :param int port: Port number where the service is running
         :returns list(string): List of lines that were printed to the console. Helps with testing

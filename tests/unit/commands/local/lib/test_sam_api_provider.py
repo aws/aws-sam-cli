@@ -7,14 +7,14 @@ from nose_parameterized import parameterized
 
 from six import assertCountEqual
 
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.sam_api_provider import ApiProvider
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 
 class TestSamApiProvider_init(TestCase):
 
-    @patch.object(SamApiProvider, "_extract_apis")
+    @patch.object(ApiProvider, "_extract_apis")
     @patch("samcli.commands.local.lib.sam_api_provider.SamBaseProvider")
     def test_provider_with_valid_template(self, SamBaseProviderMock, extract_api_mock):
         extract_api_mock.return_value = {"set", "of", "values"}
@@ -22,7 +22,7 @@ class TestSamApiProvider_init(TestCase):
         template = {"Resources": {"a": "b"}}
         SamBaseProviderMock.get_template.return_value = template
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(len(provider.apis), 3)
         self.assertEquals(provider.apis, set(["set", "of", "values"]))
@@ -42,7 +42,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(provider.apis, [])
 
@@ -71,7 +71,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(len(provider.apis), 1)
         self.assertEquals(list(provider.apis)[0], Api(path="/path", method="GET", function_name="SamFunc1", cors=None,
@@ -108,7 +108,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         api_event1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
         api_event2 = Api(path="/path", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod")
@@ -158,7 +158,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         api1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
         api2 = Api(path="/path", method="POST", function_name="SamFunc2", cors=None, stage_name="Prod")
@@ -189,7 +189,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(provider.apis, [])
 
@@ -208,7 +208,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(provider.apis, [])
 
@@ -253,7 +253,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 
@@ -266,7 +266,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
     def test_provider_get_all_with_no_apis(self):
         template = {}
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 
@@ -297,7 +297,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         api_get = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
         api_post = Api(path="/path", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod")
@@ -350,7 +350,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(len(provider.apis), 1)
         self.assertEquals(list(provider.apis)[0], Api(path="/path", method="GET", function_name="SamFunc1",
@@ -402,7 +402,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             Api(path="/path", method="PATCH", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod")
         ]
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         assertCountEqual(self, provider.apis, expected_apis)
 
@@ -417,7 +417,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         }
 
         with self.assertRaises(InvalidSamDocumentException):
-            SamApiProvider._convert_event_api("logicalId", properties)
+            ApiProvider._convert_event_api("logicalId", properties)
 
 
 class TestSamApiProviderWithExplicitApis(TestCase):
@@ -447,7 +447,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(provider.apis, [])
 
@@ -465,7 +465,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, self.input_apis, provider.apis)
 
     def test_with_swagger_as_local_file(self):
@@ -489,7 +489,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
                 }
             }
 
-            provider = SamApiProvider(template)
+            provider = ApiProvider(template)
             assertCountEqual(self, self.input_apis, provider.apis)
 
     @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
@@ -514,7 +514,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         SamSwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_apis)
 
         cwd = "foo"
-        provider = SamApiProvider(template, cwd=cwd)
+        provider = ApiProvider(template, cwd=cwd)
         assertCountEqual(self, self.input_apis, provider.apis)
         SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
@@ -545,7 +545,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types(self):
@@ -578,7 +578,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
                 binary_media_types=expected_binary_types, stage_name="Prod")
         ]
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
@@ -607,7 +607,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
                 stage_name="Prod"),
         ]
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.apis)
 
 
@@ -684,7 +684,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Api(path="/path3", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod")
         ]
 
-        provider = SamApiProvider(self.template)
+        provider = ApiProvider(self.template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_prefer_implicit_api_over_explicit(self):
@@ -721,7 +721,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
         ]
 
-        provider = SamApiProvider(self.template)
+        provider = ApiProvider(self.template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_prefer_implicit_with_any_method(self):
@@ -755,7 +755,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Api(path="/path", method="PATCH", function_name="ImplicitFunc", cors=None, stage_name="Prod")
         ]
 
-        provider = SamApiProvider(self.template)
+        provider = ApiProvider(self.template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_any_method_on_both(self):
@@ -800,7 +800,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Api(path="/path2", method="POST", function_name="explicitfunction", cors=None, stage_name="Prod")
         ]
 
-        provider = SamApiProvider(self.template)
+        provider = ApiProvider(self.template)
         print(provider.apis)
         assertCountEqual(self, expected_apis, provider.apis)
 
@@ -838,7 +838,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Api(path="/newpath2", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod")
         ]
 
-        provider = SamApiProvider(self.template)
+        provider = ApiProvider(self.template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_both_apis_must_get_binary_media_types(self):
@@ -893,7 +893,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
                 stage_name="Prod")
         ]
 
-        provider = SamApiProvider(self.template)
+        provider = ApiProvider(self.template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_binary_media_types_with_rest_api_id_reference(self):
@@ -953,7 +953,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
                 stage_name="Prod")
         ]
 
-        provider = SamApiProvider(self.template)
+        provider = ApiProvider(self.template)
         assertCountEqual(self, expected_apis, provider.apis)
 
 
@@ -984,7 +984,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         self.assertEquals(provider.apis, [])
 
@@ -1001,7 +1001,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, self.input_apis, provider.apis)
 
     def test_with_swagger_as_local_file(self):
@@ -1024,7 +1024,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                 }
             }
 
-            provider = SamApiProvider(template)
+            provider = ApiProvider(template)
             assertCountEqual(self, self.input_apis, provider.apis)
 
     def test_body_with_swagger_as_local_file_expect_fail(self):
@@ -1046,7 +1046,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                     }
                 }
             }
-            self.assertRaises(Exception, SamApiProvider, template)
+            self.assertRaises(Exception, ApiProvider, template)
 
     @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
@@ -1069,7 +1069,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         SamSwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_apis)
 
         cwd = "foo"
-        provider = SamApiProvider(template, cwd=cwd)
+        provider = ApiProvider(template, cwd=cwd)
         assertCountEqual(self, self.input_apis, provider.apis)
         SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
@@ -1099,7 +1099,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types(self):
@@ -1131,7 +1131,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
                 binary_media_types=expected_binary_types)
         ]
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
@@ -1158,7 +1158,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             Api(path="/path", method="OPTIONS", function_name="SamFunc1", binary_media_types=expected_binary_types),
         ]
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.apis)
 
 
@@ -1194,7 +1194,7 @@ class TestSamStageValues(TestCase):
                 }
             }
         }
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
                    stage_name='dev',
                    stage_variables=None)
@@ -1236,7 +1236,7 @@ class TestSamStageValues(TestCase):
                 }
             }
         }
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
         api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
                    stage_name='dev',
                    stage_variables={
@@ -1322,7 +1322,7 @@ class TestSamStageValues(TestCase):
                 }
             }
         }
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 
