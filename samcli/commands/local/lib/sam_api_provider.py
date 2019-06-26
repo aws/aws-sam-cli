@@ -6,7 +6,7 @@ from collections import namedtuple
 from six import string_types
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
-from samcli.commands.local.lib.provider import ApiProvider, Api
+from samcli.commands.local.lib.provider import ApiProvider, Api, Cors
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -15,7 +15,6 @@ LOG = logging.getLogger(__name__)
 
 
 class SamApiProvider(ApiProvider):
-
     _IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
     _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     _SERVERLESS_API = "AWS::Serverless::Api"
@@ -127,6 +126,7 @@ class SamApiProvider(ApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
+        cors = properties.get("Cors", {})
 
         if not body and not uri:
             # Swagger is not found anywhere.
@@ -145,6 +145,12 @@ class SamApiProvider(ApiProvider):
         collector.add_apis(logical_id, apis)
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
+        collector.add_cors(logical_id, Cors(
+            allow_origin=cors.get("AllowOrigin"),
+            allow_methods=cors.get("AllowMethods"),
+            allow_headers=cors.get("AllowHeaders"),
+            max_age=cors.get("MaxAge")
+        ))
 
     @staticmethod
     def _merge_apis(collector):
@@ -361,6 +367,9 @@ class ApiCollector(object):
         """
         properties = self._get_properties(logical_id)
         properties.apis.extend(apis)
+
+    def add_cors(self, logical_id, cors):
+        pass
 
     def add_binary_media_types(self, logical_id, binary_media_types):
         """
