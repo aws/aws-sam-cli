@@ -1,21 +1,19 @@
-import tempfile
 import json
-
+import tempfile
 from unittest import TestCase
+
 from mock import patch
 from nose_parameterized import parameterized
-
 from six import assertCountEqual
 
-from samcli.commands.local.lib.sam_api_provider import ApiProvider, FunctionParserProvider
-from samcli.commands.local.lib.provider import Api
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.local.apigw.local_apigw_service import Route
+from samcli.commands.local.lib.api_provider import ApiProvider
 
 
 class TestSamApiProvider_init(TestCase):
 
-    @patch.object(ApiProvider, "_extract_apis")
-    @patch("samcli.commands.local.lib.sam_api_provider.SamBaseProvider")
+    @patch.object(ApiProvider, "_extract_routes")
+    @patch("samcli.commands.local.lib.api_provider.SamBaseProvider")
     def test_provider_with_valid_template(self, SamBaseProviderMock, extract_api_mock):
         extract_api_mock.return_value = {"set", "of", "values"}
 
@@ -24,8 +22,8 @@ class TestSamApiProvider_init(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(len(provider.apis), 3)
-        self.assertEquals(provider.apis, set(["set", "of", "values"]))
+        self.assertEquals(len(provider.routes), 3)
+        self.assertEquals(provider.routes, set(["set", "of", "values"]))
         self.assertEquals(provider.template_dict, {"Resources": {"a": "b"}})
         self.assertEquals(provider.resources, {"a": "b"})
 
@@ -44,7 +42,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.apis, [])
+        self.assertEquals(provider.routes, [])
 
     @parameterized.expand([("GET"), ("get")])
     def test_provider_has_correct_api(self, method):
@@ -73,9 +71,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(len(provider.apis), 1)
-        self.assertEquals(list(provider.apis)[0], Api(path="/path", method="GET", function_name="SamFunc1", cors=None,
-                                                      stage_name="Prod"))
+        self.assertEquals(len(provider.routes), 1)
+        self.assertEquals(list(provider.routes)[0], Route(path="/path", method="GET", function_name="SamFunc1"))
 
     def test_provider_creates_api_for_all_events(self):
         template = {
@@ -110,12 +107,12 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        api_event1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api_event2 = Api(path="/path", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_event1 = Route(path="/path", method="GET", function_name="SamFunc1")
+        api_event2 = Route(path="/path", method="POST", function_name="SamFunc1")
 
-        self.assertIn(api_event1, provider.apis)
-        self.assertIn(api_event2, provider.apis)
-        self.assertEquals(len(provider.apis), 2)
+        self.assertIn(api_event1, provider.routes)
+        self.assertIn(api_event2, provider.routes)
+        self.assertEquals(len(provider.routes), 2)
 
     def test_provider_has_correct_template(self):
         template = {
@@ -160,11 +157,11 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        api1 = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api2 = Api(path="/path", method="POST", function_name="SamFunc2", cors=None, stage_name="Prod")
+        api1 = Route(path="/path", method="GET", function_name="SamFunc1")
+        api2 = Route(path="/path", method="POST", function_name="SamFunc2")
 
-        self.assertIn(api1, provider.apis)
-        self.assertIn(api2, provider.apis)
+        self.assertIn(api1, provider.routes)
+        self.assertIn(api2, provider.routes)
 
     def test_provider_with_no_api_events(self):
         template = {
@@ -191,7 +188,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.apis, [])
+        self.assertEquals(provider.routes, [])
 
     def test_provider_with_no_serverless_function(self):
         template = {
@@ -210,7 +207,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.apis, [])
+        self.assertEquals(provider.routes, [])
 
     def test_provider_get_all(self):
         template = {
@@ -257,8 +254,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         result = [f for f in provider.get_all()]
 
-        api1 = Api(path="/path", method="GET", function_name="SamFunc1", stage_name="Prod")
-        api2 = Api(path="/path", method="POST", function_name="SamFunc2", stage_name="Prod")
+        api1 = Route(path="/path", method="GET", function_name="SamFunc1")
+        api2 = Route(path="/path", method="POST", function_name="SamFunc2")
 
         self.assertIn(api1, result)
         self.assertIn(api2, result)
@@ -299,22 +296,22 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        api_get = Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api_post = Api(path="/path", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api_put = Api(path="/path", method="PUT", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api_delete = Api(path="/path", method="DELETE", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api_patch = Api(path="/path", method="PATCH", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api_head = Api(path="/path", method="HEAD", function_name="SamFunc1", cors=None, stage_name="Prod")
-        api_options = Api(path="/path", method="OPTIONS", function_name="SamFunc1", cors=None, stage_name="Prod")
+        api_get = Route(path="/path", method="GET", function_name="SamFunc1")
+        api_post = Route(path="/path", method="POST", function_name="SamFunc1")
+        api_put = Route(path="/path", method="PUT", function_name="SamFunc1")
+        api_delete = Route(path="/path", method="DELETE", function_name="SamFunc1")
+        api_patch = Route(path="/path", method="PATCH", function_name="SamFunc1")
+        api_head = Route(path="/path", method="HEAD", function_name="SamFunc1")
+        api_options = Route(path="/path", method="OPTIONS", function_name="SamFunc1")
 
-        self.assertEquals(len(provider.apis), 7)
-        self.assertIn(api_get, provider.apis)
-        self.assertIn(api_post, provider.apis)
-        self.assertIn(api_put, provider.apis)
-        self.assertIn(api_delete, provider.apis)
-        self.assertIn(api_patch, provider.apis)
-        self.assertIn(api_head, provider.apis)
-        self.assertIn(api_options, provider.apis)
+        self.assertEquals(len(provider.routes), 7)
+        self.assertIn(api_get, provider.routes)
+        self.assertIn(api_post, provider.routes)
+        self.assertIn(api_put, provider.routes)
+        self.assertIn(api_delete, provider.routes)
+        self.assertIn(api_patch, provider.routes)
+        self.assertIn(api_head, provider.routes)
+        self.assertIn(api_options, provider.routes)
 
     def test_provider_must_support_binary_media_types(self):
         template = {
@@ -352,10 +349,10 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(len(provider.apis), 1)
-        self.assertEquals(list(provider.apis)[0], Api(path="/path", method="GET", function_name="SamFunc1",
-                                                      binary_media_types=["image/gif", "image/png"], cors=None,
-                                                      stage_name="Prod"))
+        self.assertEquals(len(provider.routes), 1)
+        self.assertEquals(list(provider.routes)[0], Route(path="/path", method="GET", function_name="SamFunc1"))
+        assertCountEqual(self, provider.api.get_binary_media_types(), ["image/gif", "image/png"])
+        self.assertEquals(provider.api.stage_name, "Prod")
 
     def test_provider_must_support_binary_media_types_with_any_method(self):
         template = {
@@ -393,45 +390,34 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         binary = ["image/gif", "image/png", "text/html"]
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
-            Api(path="/path", method="POST", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
-            Api(path="/path", method="PUT", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
-            Api(path="/path", method="DELETE", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
-            Api(path="/path", method="HEAD", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod"),
-            Api(path="/path", method="PATCH", function_name="SamFunc1", binary_media_types=binary, stage_name="Prod")
+            Route(path="/path", method="GET", function_name="SamFunc1"),
+            Route(path="/path", method="POST", function_name="SamFunc1"),
+            Route(path="/path", method="PUT", function_name="SamFunc1"),
+            Route(path="/path", method="DELETE", function_name="SamFunc1"),
+            Route(path="/path", method="HEAD", function_name="SamFunc1"),
+            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
+            Route(path="/path", method="PATCH", function_name="SamFunc1")
         ]
 
         provider = ApiProvider(template)
 
-        assertCountEqual(self, provider.apis, expected_apis)
-
-    def test_convert_event_api_with_invalid_event_properties(self):
-        properties = {
-            "Path": "/foo",
-            "Method": "get",
-            "RestApiId": {
-                # This is not supported. Only Ref is supported
-                "Fn::Sub": "foo"
-            }
-        }
-
-        with self.assertRaises(InvalidSamDocumentException):
-            FunctionParserProvider._convert_event_api("logicalId", properties)
+        assertCountEqual(self, provider.routes, expected_apis)
+        assertCountEqual(self, provider.api.get_binary_media_types(), binary)
 
 
 class TestSamApiProviderWithExplicitApis(TestCase):
 
     def setUp(self):
         self.binary_types = ["image/png", "image/jpg"]
+        self.stage_name = "Prod"
         self.input_apis = [
-            Api(path="/path1", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path1", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod"),
+            Route(path="/path1", method="GET", function_name="SamFunc1"),
+            Route(path="/path1", method="POST", function_name="SamFunc1"),
 
-            Api(path="/path2", method="PUT", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod"),
+            Route(path="/path2", method="PUT", function_name="SamFunc1"),
+            Route(path="/path2", method="GET", function_name="SamFunc1"),
 
-            Api(path="/path3", method="DELETE", function_name="SamFunc1", cors=None, stage_name="Prod")
+            Route(path="/path3", method="DELETE", function_name="SamFunc1")
         ]
 
     def test_with_no_apis(self):
@@ -449,7 +435,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.apis, [])
+        self.assertEquals(provider.routes, [])
 
     def test_with_inline_swagger_apis(self):
         template = {
@@ -466,7 +452,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, self.input_apis, provider.apis)
+        assertCountEqual(self, self.input_apis, provider.routes)
 
     def test_with_swagger_as_local_file(self):
         with tempfile.NamedTemporaryFile(mode='w') as fp:
@@ -490,9 +476,9 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
 
             provider = ApiProvider(template)
-            assertCountEqual(self, self.input_apis, provider.apis)
+            assertCountEqual(self, self.input_apis, provider.routes)
 
-    @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
+    @patch("samcli.commands.local.lib.api_provider.SwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
@@ -515,22 +501,22 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         cwd = "foo"
         provider = ApiProvider(template, cwd=cwd)
-        assertCountEqual(self, self.input_apis, provider.apis)
+        assertCountEqual(self, self.input_apis, provider.routes)
         SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
         apis = [
-            Api(path="/path", method="any", function_name="SamFunc1", cors=None)
+            Route(path="/path", method="any", function_name="SamFunc1")
         ]
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path", method="POST", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path", method="PUT", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path", method="DELETE", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path", method="HEAD", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1", cors=None, stage_name="Prod"),
-            Api(path="/path", method="PATCH", function_name="SamFunc1", cors=None, stage_name="Prod")
+            Route(path="/path", method="GET", function_name="SamFunc1"),
+            Route(path="/path", method="POST", function_name="SamFunc1"),
+            Route(path="/path", method="PUT", function_name="SamFunc1"),
+            Route(path="/path", method="DELETE", function_name="SamFunc1"),
+            Route(path="/path", method="HEAD", function_name="SamFunc1"),
+            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
+            Route(path="/path", method="PATCH", function_name="SamFunc1")
         ]
 
         template = {
@@ -546,7 +532,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
 
     def test_with_binary_media_types(self):
         template = {
@@ -564,26 +550,22 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         expected_binary_types = sorted(self.binary_types)
         expected_apis = [
-            Api(path="/path1", method="GET", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types, stage_name="Prod"),
-            Api(path="/path1", method="POST", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types, stage_name="Prod"),
+            Route(path="/path1", method="GET", function_name="SamFunc1"),
+            Route(path="/path1", method="POST", function_name="SamFunc1"),
 
-            Api(path="/path2", method="PUT", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types, stage_name="Prod"),
-            Api(path="/path2", method="GET", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types, stage_name="Prod"),
+            Route(path="/path2", method="PUT", function_name="SamFunc1"),
+            Route(path="/path2", method="GET", function_name="SamFunc1"),
 
-            Api(path="/path3", method="DELETE", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types, stage_name="Prod")
+            Route(path="/path3", method="DELETE", function_name="SamFunc1")
         ]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
+        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_apis = [
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1", stage_name="Prod"),
+            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
         ]
         extra_binary_types = ["text/html"]
 
@@ -603,21 +585,22 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         expected_binary_types = sorted(self.binary_types + extra_binary_types)
         expected_apis = [
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1", binary_media_types=expected_binary_types,
-                stage_name="Prod"),
+            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
         ]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
+        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
 
 
 class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
     def setUp(self):
+        self.stage_name = "Prod"
         self.explicit_apis = [
-            Api(path="/path1", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod")
+            Route(path="/path1", method="GET", function_name="explicitfunction"),
+            Route(path="/path2", method="GET", function_name="explicitfunction"),
+            Route(path="/path3", method="GET", function_name="explicitfunction")
         ]
 
         self.swagger = make_swagger(self.explicit_apis)
@@ -675,17 +658,17 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         expected_apis = [
             # From Explicit APIs
-            Api(path="/path1", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
+            Route(path="/path1", method="GET", function_name="explicitfunction"),
+            Route(path="/path2", method="GET", function_name="explicitfunction"),
+            Route(path="/path3", method="GET", function_name="explicitfunction"),
             # From Implicit APIs
-            Api(path="/path1", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path3", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod")
+            Route(path="/path1", method="POST", function_name="ImplicitFunc"),
+            Route(path="/path2", method="POST", function_name="ImplicitFunc"),
+            Route(path="/path3", method="POST", function_name="ImplicitFunc")
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
 
     def test_must_prefer_implicit_api_over_explicit(self):
         implicit_apis = {
@@ -711,18 +694,18 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_apis
 
         expected_apis = [
-            Api(path="/path1", method="GET", function_name="ImplicitFunc", stage_name="Prod"),
+            Route(path="/path1", method="GET", function_name="ImplicitFunc"),
             # Comes from Implicit
 
-            Api(path="/path2", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="POST", function_name="ImplicitFunc", stage_name="Prod"),
+            Route(path="/path2", method="GET", function_name="explicitfunction"),
+            Route(path="/path2", method="POST", function_name="ImplicitFunc"),
             # Comes from implicit
 
-            Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
+            Route(path="/path3", method="GET", function_name="explicitfunction"),
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
 
     def test_must_prefer_implicit_with_any_method(self):
         implicit_apis = {
@@ -738,25 +721,25 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         explicit_apis = [
             # Explicit should be over masked completely by implicit, because of "ANY"
-            Api(path="/path", method="GET", function_name="explicitfunction", cors=None),
-            Api(path="/path", method="DELETE", function_name="explicitfunction", cors=None),
+            Route(path="/path", method="GET", function_name="explicitfunction"),
+            Route(path="/path", method="DELETE", function_name="explicitfunction"),
         ]
 
         self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = make_swagger(explicit_apis)
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_apis
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="PUT", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="DELETE", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="HEAD", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="OPTIONS", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="PATCH", function_name="ImplicitFunc", cors=None, stage_name="Prod")
+            Route(path="/path", method="GET", function_name="ImplicitFunc"),
+            Route(path="/path", method="POST", function_name="ImplicitFunc"),
+            Route(path="/path", method="PUT", function_name="ImplicitFunc"),
+            Route(path="/path", method="DELETE", function_name="ImplicitFunc"),
+            Route(path="/path", method="HEAD", function_name="ImplicitFunc"),
+            Route(path="/path", method="OPTIONS", function_name="ImplicitFunc"),
+            Route(path="/path", method="PATCH", function_name="ImplicitFunc")
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
 
     def test_with_any_method_on_both(self):
         implicit_apis = {
@@ -780,29 +763,29 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         explicit_apis = [
             # Explicit should be over masked completely by implicit, because of "ANY"
-            Api(path="/path", method="ANY", function_name="explicitfunction", cors=None),
-            Api(path="/path2", method="POST", function_name="explicitfunction", cors=None),
+            Route(path="/path", method="ANY", function_name="explicitfunction"),
+            Route(path="/path2", method="POST", function_name="explicitfunction"),
         ]
 
         self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = make_swagger(explicit_apis)
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_apis
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="PUT", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="DELETE", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="HEAD", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="OPTIONS", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path", method="PATCH", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
+            Route(path="/path", method="GET", function_name="ImplicitFunc"),
+            Route(path="/path", method="POST", function_name="ImplicitFunc"),
+            Route(path="/path", method="PUT", function_name="ImplicitFunc"),
+            Route(path="/path", method="DELETE", function_name="ImplicitFunc"),
+            Route(path="/path", method="HEAD", function_name="ImplicitFunc"),
+            Route(path="/path", method="OPTIONS", function_name="ImplicitFunc"),
+            Route(path="/path", method="PATCH", function_name="ImplicitFunc"),
 
-            Api(path="/path2", method="GET", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="POST", function_name="explicitfunction", cors=None, stage_name="Prod")
+            Route(path="/path2", method="GET", function_name="ImplicitFunc"),
+            Route(path="/path2", method="POST", function_name="explicitfunction")
         ]
 
         provider = ApiProvider(self.template)
-        print(provider.apis)
-        assertCountEqual(self, expected_apis, provider.apis)
+        print(provider.routes)
+        assertCountEqual(self, expected_apis, provider.routes)
 
     def test_must_add_explicit_api_when_ref_with_rest_api_id(self):
         events = {
@@ -830,16 +813,16 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         expected_apis = [
             # From Explicit APIs
-            Api(path="/path1", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path2", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
-            Api(path="/path3", method="GET", function_name="explicitfunction", cors=None, stage_name="Prod"),
+            Route(path="/path1", method="GET", function_name="explicitfunction"),
+            Route(path="/path2", method="GET", function_name="explicitfunction"),
+            Route(path="/path3", method="GET", function_name="explicitfunction"),
             # From Implicit APIs
-            Api(path="/newpath1", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod"),
-            Api(path="/newpath2", method="POST", function_name="ImplicitFunc", cors=None, stage_name="Prod")
+            Route(path="/newpath1", method="POST", function_name="ImplicitFunc"),
+            Route(path="/newpath2", method="POST", function_name="ImplicitFunc")
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
 
     def test_both_apis_must_get_binary_media_types(self):
         events = {
@@ -874,27 +857,21 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         # Because of Globals, binary types will be concatenated on the explicit API
         expected_explicit_binary_types = ["explicit/type1", "explicit/type2", "image/gif", "image/png"]
-        expected_implicit_binary_types = ["image/gif", "image/png"]
+        # expected_implicit_binary_types = ["image/gif", "image/png"]
 
         expected_apis = [
             # From Explicit APIs
-            Api(path="/path1", method="GET", function_name="explicitfunction",
-                binary_media_types=expected_explicit_binary_types, stage_name="Prod"),
-            Api(path="/path2", method="GET", function_name="explicitfunction",
-                binary_media_types=expected_explicit_binary_types, stage_name="Prod"),
-            Api(path="/path3", method="GET", function_name="explicitfunction",
-                binary_media_types=expected_explicit_binary_types, stage_name="Prod"),
+            Route(path="/path1", method="GET", function_name="explicitfunction"),
+            Route(path="/path2", method="GET", function_name="explicitfunction"),
+            Route(path="/path3", method="GET", function_name="explicitfunction"),
             # From Implicit APIs
-            Api(path="/newpath1", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_implicit_binary_types,
-                stage_name="Prod"),
-            Api(path="/newpath2", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_implicit_binary_types,
-                stage_name="Prod")
+            Route(path="/newpath1", method="POST", function_name="ImplicitFunc"),
+            Route(path="/newpath2", method="POST", function_name="ImplicitFunc")
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
+        assertCountEqual(self, provider.api.get_binary_media_types(), expected_explicit_binary_types)
 
     def test_binary_media_types_with_rest_api_id_reference(self):
         events = {
@@ -930,31 +907,25 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         # Because of Globals, binary types will be concatenated on the explicit API
         expected_explicit_binary_types = ["explicit/type1", "explicit/type2", "image/gif", "image/png"]
-        expected_implicit_binary_types = ["image/gif", "image/png"]
+        # expected_implicit_binary_types = ["image/gif", "image/png"]
 
         expected_apis = [
             # From Explicit APIs
-            Api(path="/path1", method="GET", function_name="explicitfunction",
-                binary_media_types=expected_explicit_binary_types, stage_name="Prod"),
-            Api(path="/path2", method="GET", function_name="explicitfunction",
-                binary_media_types=expected_explicit_binary_types, stage_name="Prod"),
-            Api(path="/path3", method="GET", function_name="explicitfunction",
-                binary_media_types=expected_explicit_binary_types, stage_name="Prod"),
+            Route(path="/path1", method="GET", function_name="explicitfunction"),
+            Route(path="/path2", method="GET", function_name="explicitfunction"),
+            Route(path="/path3", method="GET", function_name="explicitfunction"),
 
             # Because of the RestApiId, Implicit APIs will also get the binary media types inherited from
             # the corresponding Explicit API
-            Api(path="/connected-to-explicit-path", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_explicit_binary_types,
-                stage_name="Prod"),
+            Route(path="/connected-to-explicit-path", method="POST", function_name="ImplicitFunc"),
 
             # This is still just a true implicit API because it does not have RestApiId property
-            Api(path="/true-implicit-path", method="POST", function_name="ImplicitFunc",
-                binary_media_types=expected_implicit_binary_types,
-                stage_name="Prod")
+            Route(path="/true-implicit-path", method="POST", function_name="ImplicitFunc")
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
+        assertCountEqual(self, provider.api.get_binary_media_types(), expected_explicit_binary_types)
 
 
 class TestSamApiProviderwithApiGatewayRestApi(TestCase):
@@ -962,13 +933,13 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
     def setUp(self):
         self.binary_types = ["image/png", "image/jpg"]
         self.input_apis = [
-            Api(path="/path1", method="GET", function_name="SamFunc1", cors=None),
-            Api(path="/path1", method="POST", function_name="SamFunc1", cors=None),
+            Route(path="/path1", method="GET", function_name="SamFunc1"),
+            Route(path="/path1", method="POST", function_name="SamFunc1"),
 
-            Api(path="/path2", method="PUT", function_name="SamFunc1", cors=None),
-            Api(path="/path2", method="GET", function_name="SamFunc1", cors=None),
+            Route(path="/path2", method="PUT", function_name="SamFunc1"),
+            Route(path="/path2", method="GET", function_name="SamFunc1"),
 
-            Api(path="/path3", method="DELETE", function_name="SamFunc1", cors=None)
+            Route(path="/path3", method="DELETE", function_name="SamFunc1")
         ]
 
     def test_with_no_apis(self):
@@ -986,7 +957,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.apis, [])
+        self.assertEquals(provider.routes, [])
 
     def test_with_inline_swagger_apis(self):
         template = {
@@ -1002,7 +973,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, self.input_apis, provider.apis)
+        assertCountEqual(self, self.input_apis, provider.routes)
 
     def test_with_swagger_as_local_file(self):
         with tempfile.NamedTemporaryFile(mode='w') as fp:
@@ -1025,7 +996,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
 
             provider = ApiProvider(template)
-            assertCountEqual(self, self.input_apis, provider.apis)
+            assertCountEqual(self, self.input_apis, provider.routes)
 
     def test_body_with_swagger_as_local_file_expect_fail(self):
         with tempfile.NamedTemporaryFile(mode='w') as fp:
@@ -1048,7 +1019,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
             self.assertRaises(Exception, ApiProvider, template)
 
-    @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
+    @patch("samcli.commands.local.lib.api_provider.SwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
@@ -1070,22 +1041,22 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
 
         cwd = "foo"
         provider = ApiProvider(template, cwd=cwd)
-        assertCountEqual(self, self.input_apis, provider.apis)
+        assertCountEqual(self, self.input_apis, provider.routes)
         SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
         apis = [
-            Api(path="/path", method="any", function_name="SamFunc1", cors=None)
+            Route(path="/path", method="any", function_name="SamFunc1")
         ]
 
         expected_apis = [
-            Api(path="/path", method="GET", function_name="SamFunc1", cors=None),
-            Api(path="/path", method="POST", function_name="SamFunc1", cors=None),
-            Api(path="/path", method="PUT", function_name="SamFunc1", cors=None),
-            Api(path="/path", method="DELETE", function_name="SamFunc1", cors=None),
-            Api(path="/path", method="HEAD", function_name="SamFunc1", cors=None),
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1", cors=None),
-            Api(path="/path", method="PATCH", function_name="SamFunc1", cors=None)
+            Route(path="/path", method="GET", function_name="SamFunc1"),
+            Route(path="/path", method="POST", function_name="SamFunc1"),
+            Route(path="/path", method="PUT", function_name="SamFunc1"),
+            Route(path="/path", method="DELETE", function_name="SamFunc1"),
+            Route(path="/path", method="HEAD", function_name="SamFunc1"),
+            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
+            Route(path="/path", method="PATCH", function_name="SamFunc1")
         ]
 
         template = {
@@ -1100,7 +1071,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
 
     def test_with_binary_media_types(self):
         template = {
@@ -1117,26 +1088,22 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
 
         expected_binary_types = sorted(self.binary_types)
         expected_apis = [
-            Api(path="/path1", method="GET", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types),
-            Api(path="/path1", method="POST", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types),
+            Route(path="/path1", method="GET", function_name="SamFunc1"),
+            Route(path="/path1", method="POST", function_name="SamFunc1"),
 
-            Api(path="/path2", method="PUT", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types),
-            Api(path="/path2", method="GET", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types),
+            Route(path="/path2", method="PUT", function_name="SamFunc1"),
+            Route(path="/path2", method="GET", function_name="SamFunc1"),
 
-            Api(path="/path3", method="DELETE", function_name="SamFunc1", cors=None,
-                binary_media_types=expected_binary_types)
+            Route(path="/path3", method="DELETE", function_name="SamFunc1")
         ]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
+        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_apis = [
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1"),
+            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
         ]
         extra_binary_types = ["text/html"]
 
@@ -1155,11 +1122,12 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
 
         expected_binary_types = sorted(self.binary_types + extra_binary_types)
         expected_apis = [
-            Api(path="/path", method="OPTIONS", function_name="SamFunc1", binary_media_types=expected_binary_types),
+            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
         ]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_apis, provider.apis)
+        assertCountEqual(self, expected_apis, provider.routes)
+        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
 
 
 class TestSamStageValues(TestCase):
@@ -1195,11 +1163,11 @@ class TestSamStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='dev',
-                   stage_variables=None)
+        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
 
-        self.assertIn(api1, provider.apis)
+        self.assertIn(route1, provider.routes)
+        self.assertEquals(provider.api.stage_name, "dev")
+        self.assertEquals(provider.api.stage_variables, None)
 
     def test_provider_stage_variables(self):
         template = {
@@ -1237,15 +1205,15 @@ class TestSamStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='dev',
-                   stage_variables={
-                       "vis": "data",
-                       "random": "test",
-                       "foo": "bar"
-                   })
+        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
 
-        self.assertIn(api1, provider.apis)
+        self.assertIn(route1, provider.routes)
+        self.assertEquals(provider.api.stage_name, "dev")
+        self.assertEquals(provider.api.stage_variables, {
+            "vis": "data",
+            "random": "test",
+            "foo": "bar"
+        })
 
     def test_multi_stage_get_all(self):
         template = {
@@ -1326,27 +1294,20 @@ class TestSamStageValues(TestCase):
 
         result = [f for f in provider.get_all()]
 
-        api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='dev',
-                   stage_variables={
-                       "vis": "data",
-                       "random": "test",
-                       "foo": "bar"
-                   })
-        api2 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='Production', stage_variables={'vis': 'prod data', 'random': 'test', 'foo': 'bar'})
-        api3 = Api(path='/anotherpath', method='POST', function_name='NoApiEventFunction', cors=None,
-                   binary_media_types=[],
-                   stage_name='Production',
-                   stage_variables={
-                       "vis": "prod data",
-                       "random": "test",
-                       "foo": "bar"
-                   })
+        route1 = Route(path='/path2', method='GET', function_name='NoApiEventFunction')
+        route2 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
+        route3 = Route(path='/anotherpath', method='POST', function_name='NoApiEventFunction')
         self.assertEquals(len(result), 3)
-        self.assertIn(api1, result)
-        self.assertIn(api2, result)
-        self.assertIn(api3, result)
+        self.assertIn(route1, result)
+        self.assertIn(route2, result)
+        self.assertIn(route3, result)
+
+        self.assertEquals(provider.api.stage_name, "Production")
+        self.assertEquals(provider.api.stage_variables, {
+            "vis": "prod data",
+            "random": "test",
+            "foo": "bar"
+        })
 
 
 class TestCloudFormationStageValues(TestCase):
@@ -1387,11 +1348,11 @@ class TestCloudFormationStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='dev',
-                   stage_variables=None)
+        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
 
-        self.assertIn(api1, provider.apis)
+        self.assertIn(route1, provider.routes)
+        self.assertEquals(provider.api.stage_name, "dev")
+        self.assertEquals(provider.api.stage_variables, None)
 
     def test_provider_stage_variables(self):
         template = {
@@ -1434,15 +1395,15 @@ class TestCloudFormationStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        api1 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='dev',
-                   stage_variables={
-                       "vis": "data",
-                       "random": "test",
-                       "foo": "bar"
-                   })
+        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
 
-        self.assertIn(api1, provider.apis)
+        self.assertIn(route1, provider.routes)
+        self.assertEquals(provider.api.stage_name, "dev")
+        self.assertEquals(provider.api.stage_variables, {
+            "vis": "data",
+            "random": "test",
+            "foo": "bar"
+        })
 
     def test_multi_stage_get_all(self):
         template = {
@@ -1535,32 +1496,19 @@ class TestCloudFormationStageValues(TestCase):
 
         result = [f for f in provider.get_all()]
 
-        api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='dev',
-                   stage_variables={
-                       "vis": "data",
-                       "random": "test",
-                       "foo": "bar"
-                   })
-        api2 = Api(path='/path', method='GET', function_name='NoApiEventFunction', cors=None, binary_media_types=[],
-                   stage_name='Production',
-                   stage_variables={
-                       "vis": "prod data",
-                       "random": "test",
-                       "foo": "bar"
-                   })
-        api3 = Api(path='/anotherpath', method='POST', function_name='NoApiEventFunction', cors=None,
-                   binary_media_types=[],
-                   stage_name='Production',
-                   stage_variables={
-                       "vis": "prod data",
-                       "random": "test",
-                       "foo": "bar"
-                   })
+        route1 = Route(path='/path2', method='GET', function_name='NoApiEventFunction')
+        route2 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
+        route3 = Route(path='/anotherpath', method='POST', function_name='NoApiEventFunction')
         self.assertEquals(len(result), 3)
-        self.assertIn(api1, result)
-        self.assertIn(api2, result)
-        self.assertIn(api3, result)
+        self.assertIn(route1, result)
+        self.assertIn(route2, result)
+        self.assertIn(route3, result)
+        self.assertEquals(provider.api.stage_name, "Production")
+        self.assertEquals(provider.api.stage_variables, {
+            "vis": "prod data",
+            "random": "test",
+            "foo": "bar"
+        })
 
 
 def make_swagger(apis, binary_media_types=None):
@@ -1569,7 +1517,7 @@ def make_swagger(apis, binary_media_types=None):
 
     Parameters
     ----------
-    apis : list of samcli.commands.local.lib.provider.Api
+    apis : list of samcli.commands.local.agiw.local_agiw_service.Route
     binary_media_types : list of str
 
     Returns

@@ -5,8 +5,8 @@ Connects the CLI with Local API Gateway service.
 import os
 import logging
 
-from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
-from samcli.commands.local.lib.sam_api_provider import ApiProvider
+from samcli.local.apigw.local_apigw_service import LocalApigwService
+from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 
 LOG = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ LOG = logging.getLogger(__name__)
 
 class LocalApiService(object):
     """
-    Implementation of Local API service that is capable of serving APIs defined in a SAM file that invoke a Lambda
-    function.
+    Implementation of Local API service that is capable of serving API defined in a configuration file that invoke a
+    Lambda function.
     """
 
     def __init__(self,
@@ -53,10 +53,8 @@ class LocalApiService(object):
         NOTE: This is a blocking call that will not return until the thread is interrupted with SIGINT/SIGTERM
         """
 
-        routing_list = self._make_routing_list(self.api_provider)
-
-        if not routing_list:
-            raise NoApisDefined("No APIs available in SAM template")
+        if not self.api_provider.api.routes:
+            raise NoApisDefined("No APIs available in template")
 
         static_dir_path = self._make_static_dir_path(self.cwd, self.static_dir)
 
@@ -64,7 +62,7 @@ class LocalApiService(object):
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalApigwService(routing_list=routing_list,
+        service = LocalApigwService(api=self.api_provider.api,
                                     lambda_runner=self.lambda_runner,
                                     static_dir=static_dir_path,
                                     port=self.port,
@@ -81,29 +79,6 @@ class LocalApiService(object):
                  "SAM CLI if you update your AWS SAM template")
 
         service.run()
-
-    @staticmethod
-    def _make_routing_list(api_provider):
-        """
-        Returns a list of routes to configure the Local API Service based on the APIs configured in the template.
-
-        Parameters
-        ----------
-        api_provider : samcli.commands.local.lib.sam_api_provider.ApiProvider
-
-        Returns
-        -------
-        list(samcli.local.apigw.service.Route)
-            List of Routes to pass to the service
-        """
-
-        routes = []
-        for api in api_provider.get_all():
-            route = Route(methods=[api.method], function_name=api.function_name, path=api.path,
-                          binary_types=api.binary_media_types, stage_name=api.stage_name,
-                          stage_variables=api.stage_variables)
-            routes.append(route)
-        return routes
 
     @staticmethod
     def _print_routes(api_provider, host, port):

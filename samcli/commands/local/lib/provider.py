@@ -199,40 +199,31 @@ class FunctionProvider(object):
         raise NotImplementedError("not implemented")
 
 
-_ApiTuple = namedtuple("Api", [
+class Api(object):
+    def __init__(self, routes=None):
+        if routes is None:
+            routes = []
+        self.routes = routes
 
-    # String. Path that this API serves. Ex: /foo, /bar/baz
-    "path",
+        # Optional Dictionary containing CORS configuration on this path+method If this configuration is set,
+        # then API server will automatically respond to OPTIONS HTTP method on this path and respond with appropriate
+        # CORS headers based on configuration.
 
-    # String. HTTP Method this API responds with
-    "method",
+        self.cors = None
+        # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this
+        # path and
 
-    # String. Name of the Function this API connects to
-    "function_name",
+        self.binary_media_types_set = set()
 
-    # Optional Dictionary containing CORS configuration on this path+method
-    # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this path and
-    # respond with appropriate CORS headers based on configuration.
-    "cors",
+        self.stage_name = None
+        self.stage_variables = None
 
-    # List(Str). List of the binary media types the API
-    "binary_media_types",
-    # The Api stage name
-    "stage_name",
-    # The variables for that stage
-    "stage_variables"
-])
-_ApiTuple.__new__.__defaults__ = (None,    # Cors is optional and defaults to None
-                                  [],      # binary_media_types is optional and defaults to empty,
-                                  None,    # Stage name is optional with default None
-                                  None     # Stage variables is optional with default None
-                                  )
-
-
-class Api(_ApiTuple):
     def __hash__(self):
         # Other properties are not a part of the hash
-        return hash(self.path) * hash(self.method) * hash(self.function_name)
+        return hash(self.routes) * hash(self.cors) * hash(self.binary_media_types_set)
+
+    def get_binary_media_types(self):
+        return list(self.binary_media_types_set)
 
 
 Cors = namedtuple("Cors", ["AllowOrigin", "AllowMethods", "AllowHeaders"])
