@@ -1147,6 +1147,24 @@ class TestSamStageValues(TestCase):
         self.assertIn(api3, result)
 
 
+class TestSamCors(TestCase):
+    # TODO
+    def test_provider_parse_cors_string(self):
+        pass
+
+    def test_provider_parse_cors_dict(self):
+        pass
+
+    def test_global_cors(self):
+        pass
+
+    def test_implicit_explicit_cors(self):
+        pass
+
+    def test_multi_cors_get_all(self):
+        pass
+
+
 def make_swagger(apis, binary_media_types=None):
     """
     Given a list of API configurations named tuples, returns a Swagger document

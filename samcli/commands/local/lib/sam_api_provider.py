@@ -336,7 +336,7 @@ class SamApiProvider(ApiProvider):
         else:
             yield http_method.upper()
 
-        if api.cors:
+        if api.cors and http_method.upper() != "OPTIONS":
             yield "OPTIONS"
 
 

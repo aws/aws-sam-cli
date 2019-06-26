@@ -550,3 +550,66 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
 
         response_data = response.json()
         self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+
+
+class TestServiceCorsRequests(StartApiIntegBaseClass):
+    """
+    Test to check that the correct headers are being added with cors
+    """
+    template_path = "/testdata/start_api/template.yaml"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_binary_request(self):
+        """
+        This tests that the service can accept and invoke a lambda when given binary data in a request
+        """
+        input_data = self.get_binary_data(self.binary_data_file)
+        response = requests.post(self.url + '/echobase64eventbody',
+                                 headers={"Content-Type": "image/gif"},
+                                 data=input_data)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, input_data)
+        pass
+
+    def test_request_with_form_data(self):
+        """
+        Form-encoded data should be put into the Event to Lambda
+        """
+        response = requests.post(self.url + "/echoeventbody",
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"},
+                                 data='key=value')
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
+        self.assertEquals(response_data.get("body"), "key=value")
+        pass
+
+    def test_request_to_an_endpoint_with_two_different_handlers(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("handler"), 'echo_event_handler_2')
+        pass
+
+    def test_request_with_multi_value_headers(self):
+        response = requests.get(self.url + "/echoeventbody",
+                                headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"})
+
+        self.assertEquals(response.status_code, 200)
+        response_data = response.json()
+        self.assertEquals(response_data.get("multiValueHeaders").get("Content-Type"),
+                          ["application/x-www-form-urlencoded, image/gif"])
+        self.assertEquals(response_data.get("headers").get("Content-Type"),
+                          "application/x-www-form-urlencoded, image/gif")
+        pass

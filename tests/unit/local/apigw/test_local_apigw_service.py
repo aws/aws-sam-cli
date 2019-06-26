@@ -488,7 +488,7 @@ class TestService_construct_event(TestCase):
                    '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": ' \
                    '"190.0.0.0", "user": null}, "accountId": "123456789012"}, "headers": {"Content-Type": ' \
                    '"application/json", "X-Test": "Value", "X-Forwarded-Port": "3000", "X-Forwarded-Proto": "http"}, ' \
-                   '"multiValueHeaders": {"Content-Type": ["application/json"], "X-Test": ["Value"], '\
+                   '"multiValueHeaders": {"Content-Type": ["application/json"], "X-Test": ["Value"], ' \
                    '"X-Forwarded-Port": ["3000"], "X-Forwarded-Proto": ["http"]}, ' \
                    '"stageVariables": null, "path": "path", "pathParameters": {"path": "params"}, ' \
                    '"isBase64Encoded": false}'
@@ -590,3 +590,5 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
+
+# TODO add test here for cors with mock and add tests for _cors_to_headers to check the conversion
