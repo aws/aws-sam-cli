@@ -236,7 +236,7 @@ class AbstractParserProvider(object):
         collector: RouteCollector
             Instance of the Route collector that where we will save the Route information
 
-        api: Api
+        api: samcli.commands.local.lib.provider.Api
             Instance of the Api object to collect all the attributes associated with it.
 
         cwd : str
@@ -267,7 +267,7 @@ class AbstractParserProvider(object):
         collector: RouteCollector
             Instance of the API collector that where we will save the API information
 
-        api: Api
+        api: samcli.commands.local.lib.provider.Api
             Instance of the Api object to collect all the attributes associated with it.
 
         cwd : str
@@ -312,7 +312,7 @@ class FunctionParserProvider(AbstractParserProvider):
         collector: RouteCollector
             Instance of the API collector that where we will save the API information
 
-        api: Api
+        api: samcli.commands.local.lib.provider.Api
             Instance of the Api object to collect all the attributes associated with it.
 
         cwd : str
@@ -394,6 +394,27 @@ class SAMAParserApiProvider(AbstractParserProvider):
     PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
 
     def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
+        """
+        Extract the Api Object from a given resource and adds it to the ApiCollector.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector: RouteCollector
+            Instance of the Route collector that where we will save the Route information
+
+        api: samcli.commands.local.lib.provider.Api
+            Instance of the Api object to collect all the attributes associated with it.
+
+        cwd : str
+            Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        """
         return self._extract_from_serverless_api(logical_id, api_resource, collector, api, cwd)
 
     def _extract_from_serverless_api(self, logical_id, api_resource, collector, api, cwd=None):
@@ -406,7 +427,7 @@ class SAMAParserApiProvider(AbstractParserProvider):
         logical_id : str
             Logical ID of the resource
 
-        api : Api
+        api : samcli.commands.local.lib.provider.Api
             Resource definition, including its properties
 
         collector : RouteCollector
@@ -435,6 +456,27 @@ class CFParserApiProvider(AbstractParserProvider):
     PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
 
     def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
+        """
+        Extract the Api Object from a given resource and adds it to the ApiCollector.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector: RouteCollector
+            Instance of the Route collector that where we will save the Route information
+
+        api: samcli.commands.local.lib.provider.Api
+            Instance of the Api object to collect all the attributes associated with it.
+
+        cwd : str
+            Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        """
         return self._extract_cloud_formation_api(logical_id, api_resource, collector, api, cwd)
 
     def _extract_cloud_formation_api(self, logical_id, api_resource, collector, api, cwd=None):
@@ -471,9 +513,31 @@ class CFParserStageProvider(AbstractParserProvider):
     PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
 
     def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
+        """
+        Extract the Api Object from a given resource and adds it to the ApiCollector.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector: RouteCollector
+            Instance of the Route collector that where we will save the Route information
+
+        api: samcli.commands.local.lib.provider.Api
+            Instance of the Api object to collect all the attributes associated with it.
+
+        cwd : str
+            Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        """
         return self._extract_cloud_formation_stage(api_resource, api)
 
-    def _extract_cloud_formation_stage(self, api_resource, api):
+    @staticmethod
+    def _extract_cloud_formation_stage(api_resource, api):
         """
         Extract APIs from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
