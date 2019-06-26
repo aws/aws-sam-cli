@@ -1,12 +1,11 @@
 """Class that provides Apis from a SAM Template"""
 
 import logging
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 from six import string_types
 
-
-from samcli.commands.local.lib.provider import AbstractApiProvider, Api
+from samcli.commands.local.lib.provider import AbstractApiProvider, Api, ApiAttributes
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
@@ -62,9 +61,10 @@ class ApiProvider(AbstractApiProvider):
 
         # Store a set of apis
         self.cwd = cwd
-        self.apis = self._extract_apis(self.resources)
+        self.api_attributes = ApiAttributes(binary_media_types=set(), cors=None)
+        self.routes = self._extract_routes(self.resources)
 
-        LOG.debug("%d APIs found in the template", len(self.apis))
+        LOG.debug("%d APIs found in the template", len(self.routes))
 
     def get_all(self):
         """
@@ -73,10 +73,10 @@ class ApiProvider(AbstractApiProvider):
         :yields Api: namedtuple containing the Api information
         """
 
-        for api in self.apis:
+        for api in self.routes:
             yield api
 
-    def _extract_apis(self, resources):
+    def _extract_routes(self, resources):
         """
         Extract all Implicit Apis (Apis defined through Serverless Function with an Api Event
 
@@ -84,17 +84,7 @@ class ApiProvider(AbstractApiProvider):
         :return: List of nametuple Api
         """
 
-        # Some properties like BinaryMediaTypes, Cors are set once on the resource but need to be applied to each API.
-        # For Implicit APIs, which are defined on the Function resource, these properties
-        # are defined on a AWS::Serverless::Api resource with logical ID "ServerlessRestApi". Therefore, no matter
-        # if it is an implicit API or an explicit API, there is a corresponding resource of type AWS::Serverless::Api
-        # that contains these additional configurations.
-        #
-        # We use this assumption in the following loop to collect information from resources of type
-        # AWS::Serverless::Api. We also extract API from Serverless::Function resource and add them to the
-        # corresponding Serverless::Api resource. This is all done using the ``collector``.
-
-        collector = ApiCollector()
+        collector = RouteCollector()
         providers = {Provider.RESOURCE_TYPE: Provider() for Provider in AbstractParserProvider.__subclasses__() if
                      Provider.PROVIDER_TYPE == self.provider_type}
         for logical_id, resource in resources.items():
@@ -102,20 +92,20 @@ class ApiProvider(AbstractApiProvider):
             provider = providers.get(resource_type)
             if provider:
                 provider.extract_api(logical_id, resource, collector, cwd=self.cwd)
-        apis = ApiProvider._merge_apis(collector)
-        return self._normalize_apis(apis)
+        routes = ApiProvider._merge_routes(collector)
+        return self._normalize_routes(routes)
 
     @staticmethod
-    def _merge_apis(collector):
+    def _merge_routes(collector):
         """
-        Quite often, an API is defined both in Implicit and Explicit API definitions. In such cases, Implicit API
-        definition wins because that conveys clear intent that the API is backed by a function. This method will
-        merge two such list of Apis with the right order of precedence. If a Path+Method combination is defined
+        Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit API
+        definition wins because that conveys clear intent that the Route is backed by a function. This method will
+        merge two such list of Routes with the right order of precedence. If a Path+Method combination is defined
         in both the places, only one wins.
 
         Parameters
         ----------
-        collector : ApiCollector
+        collector : RouteCollector
             Collector object that holds all the APIs specified in the template
 
         Returns
@@ -126,7 +116,7 @@ class ApiProvider(AbstractApiProvider):
 
         implicit_apis = []
         explicit_apis = []
-
+        sorted(map(lambda x, y: y, collector))
         # Store implicit and explicit APIs separately in order to merge them later in the correct order
         # Implicit APIs are defined on a resource with logicalID ServerlessRestApi
         for logical_id, apis in collector:
@@ -157,7 +147,7 @@ class ApiProvider(AbstractApiProvider):
         return list(result)
 
     @staticmethod
-    def _normalize_apis(apis):
+    def _normalize_routes(apis):
         """
         Normalize the APIs to use standard method name
 
@@ -196,194 +186,8 @@ class ApiProvider(AbstractApiProvider):
         else:
             yield http_method.upper()
 
-
-class ApiCollector(object):
-    """
-    Class to store the API configurations in the SAM Template. This class helps store both implicit and explicit
-    APIs in a standardized format
-    """
-
-    # Properties of each API. The structure is quite similar to the properties of AWS::Serverless::Api resource.
-    # This is intentional because it allows us to easily extend this class to support future properties on the API.
-    # We will store properties of Implicit APIs also in this format which converges the handling of implicit & explicit
-    # APIs.
-    Properties = namedtuple("Properties", ["apis", "binary_media_types", "cors", "stage_name", "stage_variables"])
-
-    def __init__(self):
-        # API properties stored per resource. Key is the LogicalId of the AWS::Serverless::Api resource and
-        # value is the properties
-        self.by_resource = {}
-
-    def __iter__(self):
-        """
-        Iterator to iterate through all the APIs stored in the collector. In each iteration, this yields the
-        LogicalId of the API resource and a list of APIs available in this resource.
-
-        Yields
-        -------
-        str
-            LogicalID of the AWS::Serverless::Api resource
-        list samcli.commands.local.lib.provider.Api
-            List of the API available in this resource along with additional configuration like binary media types.
-        """
-
-        for logical_id, _ in self.by_resource.items():
-            yield logical_id, self._get_apis_with_config(logical_id)
-
-    def add_apis(self, logical_id, apis):
-        """
-        Stores the given APIs tagged under the given logicalId
-
-        Parameters
-        ----------
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
-
-        apis : list of samcli.commands.local.lib.provider.Api
-            List of APIs available in this resource
-        """
-        properties = self._get_properties(logical_id)
-        properties.apis.extend(apis)
-
-    def add_binary_media_types(self, logical_id, binary_media_types):
-        """
-        Stores the binary media type configuration for the API with given logical ID
-
-        Parameters
-        ----------
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
-
-        binary_media_types : list of str
-            List of binary media types supported by this resource
-
-        """
-        properties = self._get_properties(logical_id)
-
-        binary_media_types = binary_media_types or []
-        for value in binary_media_types:
-            normalized_value = self._normalize_binary_media_type(value)
-
-            # If the value is not supported, then just skip it.
-            if normalized_value:
-                properties.binary_media_types.add(normalized_value)
-            else:
-                LOG.debug("Unsupported data type of binary media type value of resource '%s'", logical_id)
-
-    def add_stage_name(self, logical_id, stage_name):
-        """
-        Stores the stage name for the API with the given local ID
-
-        Parameters
-        ----------
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
-
-        stage_name : str
-            The stage_name string
-
-        """
-        properties = self._get_properties(logical_id)
-        properties = properties._replace(stage_name=stage_name)
-        self._set_properties(logical_id, properties)
-
-    def add_stage_variables(self, logical_id, stage_variables):
-        """
-        Stores the stage variables for the API with the given local ID
-
-        Parameters
-        ----------
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
-
-        stage_variables : dict
-            A dictionary containing stage variables.
-
-        """
-        properties = self._get_properties(logical_id)
-        properties = properties._replace(stage_variables=stage_variables)
-        self._set_properties(logical_id, properties)
-
-    def _get_apis_with_config(self, logical_id):
-        """
-        Returns the list of APIs in this resource along with other extra configuration such as binary media types,
-        cors etc. Additional configuration is merged directly into the API data because these properties, although
-        defined globally, actually apply to each API.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource to fetch data for
-
-        Returns
-        -------
-        list of samcli.commands.local.lib.provider.Api
-            List of APIs with additional configurations for the resource with given logicalId. If there are no APIs,
-            then it returns an empty list
-        """
-
-        properties = self._get_properties(logical_id)
-
-        # These configs need to be applied to each API
-        binary_media = sorted(list(properties.binary_media_types))  # Also sort the list to keep the ordering stable
-        cors = properties.cors
-        stage_name = properties.stage_name
-        stage_variables = properties.stage_variables
-
-        result = []
-        for api in properties.apis:
-            # Create a copy of the API with updated configuration
-            updated_api = api._replace(binary_media_types=binary_media,
-                                       cors=cors,
-                                       stage_name=stage_name,
-                                       stage_variables=stage_variables)
-            result.append(updated_api)
-
-        return result
-
-    def _get_properties(self, logical_id):
-        """
-        Returns the properties of resource with given logical ID. If a resource is not found, then it returns an
-        empty data.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        Returns
-        -------
-        samcli.commands.local.lib.sam_api_provider.ApiCollector.Properties
-            Properties object for this resource.
-        """
-
-        if logical_id not in self.by_resource:
-            self.by_resource[logical_id] = self.Properties(apis=[],
-                                                           # Use a set() to be able to easily de-dupe
-                                                           binary_media_types=set(),
-                                                           cors=None,
-                                                           stage_name=None,
-                                                           stage_variables=None)
-
-        return self.by_resource[logical_id]
-
-    def _set_properties(self, logical_id, properties):
-        """
-        Sets the properties of resource with given logical ID. If a resource is not found, it does nothing
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-        properties : samcli.commands.local.lib.sam_api_provider.ApiCollector.Properties
-             Properties object for this resource.
-        """
-
-        if logical_id in self.by_resource:
-            self.by_resource[logical_id] = properties
-
     @staticmethod
-    def _normalize_binary_media_type(value):
+    def normalize_binary_media_type(value):
         """
         Converts binary media types values to the canonical format. Ex: image~1gif -> image/gif. If the value is not
         a string, then this method just returns None
@@ -406,12 +210,72 @@ class ApiCollector(object):
         return value.replace("~1", "/")
 
 
+class RouteCollector(object):
+    """
+    Class to store the API configurations in the SAM Template. This class helps store both implicit and explicit
+    APIs in a standardized format
+    """
+
+    # Properties of each API. The structure is quite similar to the properties of AWS::Serverless::Api resource.
+    # This is intentional because it allows us to easily extend this class to support future properties on the API.
+    # We will store properties of Implicit APIs also in this format which converges the handling of implicit & explicit
+    # APIs.
+
+    def __init__(self):
+        # API properties stored per resource. Key is the LogicalId of the AWS::Serverless::Api resource and
+        # value is the properties
+        self.by_resource = defaultdict(list)
+
+    def __iter__(self):
+        """
+        Iterator to iterate through all the APIs stored in the collector. In each iteration, this yields the
+        LogicalId of the API resource and a list of APIs available in this resource.
+        Yields
+        -------
+        str
+            LogicalID of the AWS::Serverless::Api resource
+        list samcli.commands.local.lib.provider.Api
+            List of the API available in this resource along with additional configuration like binary media types.
+        """
+
+        for logical_id, _ in self.by_resource.items():
+            yield logical_id, self._get_apis(logical_id)
+
+    def add_apis(self, logical_id, apis):
+        """
+        Stores the given APIs tagged under the given logicalId
+        Parameters
+        ----------
+        logical_id : str
+            LogicalId of the AWS::Serverless::Api resource
+        apis : list of samcli.commands.local.lib.provider.Api
+            List of APIs available in this resource
+        """
+        self._get_apis(logical_id).extend(apis)
+
+    def _get_apis(self, logical_id):
+        """
+        Returns the properties of resource with given logical ID. If a resource is not found, then it returns an
+        empty data.
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+        Returns
+        -------
+        samcli.commands.local.lib.sam_api_provider.ApiCollector.Properties
+            Properties object for this resource.
+        """
+
+        return self.by_resource[logical_id]
+
+
 class AbstractParserProvider(object):
     """
     Abstract Class to parse the api configurations. This makes it an easier transition to supporting multiple formats.
     """
 
-    def extract_api(self, logical_id, api_resource, collector, cwd=None):
+    def extract_api(self, logical_id, api_resource, collector, api_attributes, cwd=None):
         """
         Extract the Api Object from a given resource and adds it to the ApiCollector.
 
@@ -423,7 +287,7 @@ class AbstractParserProvider(object):
         api_resource : dict
             Resource definition, including its properties
 
-        collector: ApiCollector
+        collector: RouteCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
@@ -432,8 +296,7 @@ class AbstractParserProvider(object):
         """
         raise NotImplementedError("not implemented")
 
-    @staticmethod
-    def extract_swagger_api(logical_id, body, uri, binary_media, collector, cwd=None):
+    def extract_swagger_api(self, logical_id, body, uri, binary_media, collector, api_attributes, cwd=None):
         """
         Parse the Swagger documents and adds it to the ApiCollector.
 
@@ -451,7 +314,7 @@ class AbstractParserProvider(object):
         binary_media: list
             The link to the binary media
 
-        collector: ApiCollector
+        collector: RouteCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
@@ -466,8 +329,10 @@ class AbstractParserProvider(object):
         LOG.debug("Found '%s' APIs in resource '%s'", len(apis), logical_id)
 
         collector.add_apis(logical_id, apis)
-        collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
-        collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
+        for media_type in parser.get_binary_media_types() + binary_media:
+            normalized_type = ApiProvider.normalize_binary_media_type(media_type)
+            if normalized_type:
+                api_attributes.binary_media_types.add(normalized_type)
 
 
 class FunctionParserProvider(AbstractParserProvider):
@@ -479,7 +344,7 @@ class FunctionParserProvider(AbstractParserProvider):
     _EVENT_METHOD = "Method"
     _EVENT_TYPE = "Type"
 
-    def extract_api(self, logical_id, api_resource, collector, cwd=None):
+    def extract_api(self, logical_id, api_resource, collector, api_attributes, cwd=None):
         """
         Extract the Api Object from a given resource and adds it to the ApiCollector.
 
@@ -491,7 +356,7 @@ class FunctionParserProvider(AbstractParserProvider):
         api_resource: dict
             Contents of the function resource including its properties\
 
-        collector: ApiCollector
+        collector: RouteCollector
             Instance of the API collector that where we will save the API information
 
         cwd : str
@@ -512,7 +377,7 @@ class FunctionParserProvider(AbstractParserProvider):
         function_resource : dict
             Contents of the function resource including its properties
 
-        collector : ApiCollector
+        collector : RouteCollector
             Instance of the API collector that where we will save the API information
         """
 
@@ -533,7 +398,7 @@ class FunctionParserProvider(AbstractParserProvider):
         serverless_function_events : dict
             Event Dictionary of a AWS::Serverless::Function
 
-        collector : ApiCollector
+        collector : RouteCollector
             Instance of the API collector that where we will save the API information
         """
         count = 0
@@ -579,10 +444,10 @@ class SAMAParserApiProvider(AbstractParserProvider):
     RESOURCE_TYPE = "AWS::Serverless::Api"
     PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
 
-    def extract_api(self, logical_id, api_resource, collector, cwd=None):
-        return self._extract_from_serverless_api(logical_id, api_resource, collector, cwd)
+    def extract_api(self, logical_id, api_resource, collector, api_attributes, cwd=None):
+        return self._extract_from_serverless_api(logical_id, api_resource, collector, api_attributes, cwd)
 
-    def _extract_from_serverless_api(self, logical_id, api_resource, collector, cwd=None):
+    def _extract_from_serverless_api(self, logical_id, api_resource, collector, api_attributes, cwd=None):
         """
         Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
         to the collector.
@@ -595,7 +460,7 @@ class SAMAParserApiProvider(AbstractParserProvider):
         api_resource : dict
             Resource definition, including its properties
 
-        collector : ApiCollector
+        collector : RouteCollector
             Instance of the API collector that where we will save the API information
         """
 
@@ -612,18 +477,18 @@ class SAMAParserApiProvider(AbstractParserProvider):
                       logical_id)
             return
         self.extract_swagger_api(logical_id, body, uri, binary_media, collector, cwd)
-        collector.add_stage_name(logical_id, stage_name)
-        collector.add_stage_variables(logical_id, stage_variables)
+        api_attributes.stage_name = stage_name
+        api_attributes.stage_variables = stage_variables
 
 
 class CFParserApiProvider(AbstractParserProvider):
     RESOURCE_TYPE = "AWS::ApiGateway::RestApi"
     PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
 
-    def extract_api(self, logical_id, api_resource, collector, cwd=None):
-        return self._extract_cloud_formation_api(logical_id, api_resource, collector, cwd)
+    def extract_api(self, logical_id, api_resource, collector, api_attributes, cwd=None):
+        return self._extract_cloud_formation_api(logical_id, api_resource, collector, api_attributes, cwd)
 
-    def _extract_cloud_formation_api(self, logical_id, api_resource, collector, cwd=None):
+    def _extract_cloud_formation_api(self, logical_id, api_resource, collector, api_attributes, cwd=None):
         """
         Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
         added to the collector.
@@ -636,7 +501,7 @@ class CFParserApiProvider(AbstractParserProvider):
         api_resource : dict
             Resource definition, including its properties
 
-        collector : ApiCollector
+        collector : RouteCollector
             Instance of the API collector that where we will save the API information
         """
         properties = api_resource.get("Properties", {})
@@ -649,4 +514,4 @@ class CFParserApiProvider(AbstractParserProvider):
             LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
                       logical_id)
             return
-        self.extract_swagger_api(logical_id, body, s3_location, binary_media, collector, cwd)
+        self.extract_swagger_api(logical_id, body, s3_location, binary_media, collector, api_attributes, cwd)
