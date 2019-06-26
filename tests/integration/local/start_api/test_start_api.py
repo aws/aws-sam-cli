@@ -421,6 +421,17 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEquals(response_data.get("handler"), 'echo_event_handler_2')
 
+    def test_request_with_multi_value_headers(self):
+        response = requests.get(self.url + "/echoeventbody",
+                                headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"})
+
+        self.assertEquals(response.status_code, 200)
+        response_data = response.json()
+        self.assertEquals(response_data.get("multiValueHeaders").get("Content-Type"),
+                          ["application/x-www-form-urlencoded, image/gif"])
+        self.assertEquals(response_data.get("headers").get("Content-Type"),
+                          "application/x-www-form-urlencoded, image/gif")
+
     def test_request_with_query_params(self):
         """
         Query params given should be put into the Event to Lambda
@@ -433,6 +444,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value"})
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value"]})
 
     def test_request_with_list_of_query_params(self):
         """
@@ -446,6 +458,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value2"})
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value", "value2"]})
 
     def test_request_with_path_params(self):
         """
@@ -480,4 +493,60 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Proto"), "http")
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"])
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Port"), self.port)
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
+
+
+class TestStartApiWithStage(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_default_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Prod")
+
+    def test_global_stage_variables(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+
+
+class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/swagger-template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_swagger_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "dev")
+
+    def test_swagger_stage_variable(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})

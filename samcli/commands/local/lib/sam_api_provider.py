@@ -126,8 +126,10 @@ class SamApiProvider(ApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
-        cors = properties.get("Cors", {})
 
+        cors = properties.get("Cors", {})
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("Variables")
         if not body and not uri:
             # Swagger is not found anywhere.
             LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
@@ -151,6 +153,9 @@ class SamApiProvider(ApiProvider):
             allow_headers=cors.get("AllowHeaders"),
             max_age=cors.get("MaxAge")
         ))
+
+        collector.add_stage_name(logical_id, stage_name)
+        collector.add_stage_variables(logical_id, stage_variables)
 
     @staticmethod
     def _merge_apis(collector):
@@ -221,7 +226,8 @@ class SamApiProvider(ApiProvider):
 
         result = list()
         for api in apis:
-            for normalized_method in SamApiProvider._normalize_http_methods(api.method):
+            methods = SamApiProvider._normalize_http_methods(api)
+            for normalized_method in methods:
                 # _replace returns a copy of the namedtuple. This is the official way of creating copies of namedtuple
                 result.append(api._replace(method=normalized_method))
 
@@ -304,20 +310,23 @@ class SamApiProvider(ApiProvider):
         return api_resource_id, Api(path=path, method=method, function_name=lambda_logical_id)
 
     @staticmethod
-    def _normalize_http_methods(http_method):
+    def _normalize_http_methods(api):
         """
         Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
         supported Http Methods on Api Gateway.
 
-        :param str http_method: Http method
+        :param api api: Api
         :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
         """
-
+        http_method = api.method
         if http_method.upper() == 'ANY':
             for method in SamApiProvider._ANY_HTTP_METHODS:
                 yield method.upper()
         else:
             yield http_method.upper()
+
+        if api.cors:
+            yield "OPTIONS"
 
 
 class ApiCollector(object):
@@ -330,7 +339,7 @@ class ApiCollector(object):
     # This is intentional because it allows us to easily extend this class to support future properties on the API.
     # We will store properties of Implicit APIs also in this format which converges the handling of implicit & explicit
     # APIs.
-    Properties = namedtuple("Properties", ["apis", "binary_media_types", "cors"])
+    Properties = namedtuple("Properties", ["apis", "binary_media_types", "cors", "stage_name", "stage_variables"])
 
     def __init__(self):
         # API properties stored per resource. Key is the LogicalId of the AWS::Serverless::Api resource and
@@ -368,9 +377,6 @@ class ApiCollector(object):
         properties = self._get_properties(logical_id)
         properties.apis.extend(apis)
 
-    def add_cors(self, logical_id, cors):
-        pass
-
     def add_binary_media_types(self, logical_id, binary_media_types):
         """
         Stores the binary media type configuration for the API with given logical ID
@@ -396,6 +402,45 @@ class ApiCollector(object):
             else:
                 LOG.debug("Unsupported data type of binary media type value of resource '%s'", logical_id)
 
+    def add_stage_name(self, logical_id, stage_name):
+        """
+        Stores the stage name for the API with the given local ID
+
+        Parameters
+        ----------
+        logical_id : str
+            LogicalId of the AWS::Serverless::Api resource
+
+        stage_name : str
+            The stage_name string
+
+        """
+        properties = self._get_properties(logical_id)
+        properties = properties._replace(stage_name=stage_name)
+        self._set_properties(logical_id, properties)
+
+    def add_stage_variables(self, logical_id, stage_variables):
+        """
+        Stores the stage variables for the API with the given local ID
+
+        Parameters
+        ----------
+        logical_id : str
+            LogicalId of the AWS::Serverless::Api resource
+
+        stage_variables : dict
+            A dictionary containing stage variables.
+
+        """
+        properties = self._get_properties(logical_id)
+        properties = properties._replace(stage_variables=stage_variables)
+        self._set_properties(logical_id, properties)
+
+    def add_cors(self, logical_id, cors):
+        properties = self._get_properties(logical_id)
+        properties = properties._replace(cors=cors)
+        self._set_properties(logical_id, properties)
+
     def _get_apis_with_config(self, logical_id):
         """
         Returns the list of APIs in this resource along with other extra configuration such as binary media types,
@@ -419,12 +464,16 @@ class ApiCollector(object):
         # These configs need to be applied to each API
         binary_media = sorted(list(properties.binary_media_types))  # Also sort the list to keep the ordering stable
         cors = properties.cors
+        stage_name = properties.stage_name
+        stage_variables = properties.stage_variables
 
         result = []
         for api in properties.apis:
             # Create a copy of the API with updated configuration
             updated_api = api._replace(binary_media_types=binary_media,
-                                       cors=cors)
+                                       cors=cors,
+                                       stage_name=stage_name,
+                                       stage_variables=stage_variables)
             result.append(updated_api)
 
         return result
@@ -449,9 +498,26 @@ class ApiCollector(object):
             self.by_resource[logical_id] = self.Properties(apis=[],
                                                            # Use a set() to be able to easily de-dupe
                                                            binary_media_types=set(),
-                                                           cors=None)
+                                                           cors=None,
+                                                           stage_name=None,
+                                                           stage_variables=None)
 
         return self.by_resource[logical_id]
+
+    def _set_properties(self, logical_id, properties):
+        """
+        Sets the properties of resource with given logical ID. If a resource is not found, it does nothing
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+        properties : samcli.commands.local.lib.sam_api_provider.ApiCollector.Properties
+             Properties object for this resource.
+        """
+
+        if logical_id in self.by_resource:
+            self.by_resource[logical_id] = properties
 
     @staticmethod
     def _normalize_binary_media_type(value):

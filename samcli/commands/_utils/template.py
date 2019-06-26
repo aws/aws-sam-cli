@@ -23,6 +23,7 @@ _RESOURCES_WITH_LOCAL_PATHS = {
     "AWS::Serverless::Api": ["DefinitionUri"],
     "AWS::AppSync::GraphQLSchema": ["DefinitionS3Location"],
     "AWS::AppSync::Resolver": ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
+    "AWS::AppSync::FunctionConfiguration": ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
     "AWS::Lambda::Function": ["Code"],
     "AWS::ApiGateway::RestApi": ["BodyS3Location"],
     "AWS::ElasticBeanstalk::ApplicationVersion": ["SourceBundle"],
