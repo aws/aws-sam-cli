@@ -130,11 +130,16 @@ class SamApiProvider(ApiProvider):
         cors_prop = properties.get("Cors")
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
+            allow_methods = cors_prop.get("AllowMethods", SamApiProvider._ANY_HTTP_METHODS)
+            if isinstance(allow_methods, string_types):
+                allow_methods = [allow_methods.upper()]
+            if "OPTIONS" not in allow_methods:
+                allow_methods.append("OPTIONS")
             cors = Cors(
                 allow_origin=cors_prop.get("AllowOrigin"),
-                allow_methods=cors_prop.get("AllowMethods", SamApiProvider._ANY_HTTP_METHODS),
-                allow_headers=cors.get("AllowHeaders"),
-                max_age=cors.get("MaxAge")
+                allow_methods=allow_methods,
+                allow_headers=cors_prop.get("AllowHeaders"),
+                max_age=cors_prop.get("MaxAge")
             )
         elif cors_prop and isinstance(cors_prop, string_types):
             cors = Cors(
@@ -209,7 +214,7 @@ class SamApiProvider(ApiProvider):
         for config in all_configs:
             # Normalize the methods before de-duping to allow an ANY method in implicit API to override a regular HTTP
             # method on explicit API.
-            for normalized_method in SamApiProvider._normalize_http_methods(config.method):
+            for normalized_method in SamApiProvider._normalize_http_methods(config):
                 key = config.path + normalized_method
                 all_apis[key] = config
 

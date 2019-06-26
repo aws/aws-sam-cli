@@ -552,64 +552,48 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
 
 
-class TestServiceCorsRequests(StartApiIntegBaseClass):
+class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     """
     Test to check that the correct headers are being added with cors
     """
-    template_path = "/testdata/start_api/template.yaml"
+    template_path = "/testdata/start_api/swagger-template.yaml"
     binary_data_file = "testdata/start_api/binarydata.gif"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
-    def test_binary_request(self):
+    def test_cors_swagger_options(self):
         """
         This tests that the service can accept and invoke a lambda when given binary data in a request
         """
-        input_data = self.get_binary_data(self.binary_data_file)
-        response = requests.post(self.url + '/echobase64eventbody',
-                                 headers={"Content-Type": "image/gif"},
-                                 data=input_data)
+        response = requests.options(self.url + '/echobase64eventbody')
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
-        self.assertEquals(response.content, input_data)
-        pass
 
-    def test_request_with_form_data(self):
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), '510')
+
+
+class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
+    """
+    Test to check that the correct headers are being added with cors
+    """
+    template_path = "/testdata/start_api/template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_cors_global(self):
         """
-        Form-encoded data should be put into the Event to Lambda
+        This tests that the service can accept and invoke a lambda when given binary data in a request
         """
-        response = requests.post(self.url + "/echoeventbody",
-                                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                                 data='key=value')
+        response = requests.options(self.url + '/echobase64eventbody')
 
         self.assertEquals(response.status_code, 200)
-
-        response_data = response.json()
-
-        self.assertEquals(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
-        self.assertEquals(response_data.get("body"), "key=value")
-        pass
-
-    def test_request_to_an_endpoint_with_two_different_handlers(self):
-        response = requests.get(self.url + "/echoeventbody")
-
-        self.assertEquals(response.status_code, 200)
-
-        response_data = response.json()
-
-        self.assertEquals(response_data.get("handler"), 'echo_event_handler_2')
-        pass
-
-    def test_request_with_multi_value_headers(self):
-        response = requests.get(self.url + "/echoeventbody",
-                                headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"})
-
-        self.assertEquals(response.status_code, 200)
-        response_data = response.json()
-        self.assertEquals(response_data.get("multiValueHeaders").get("Content-Type"),
-                          ["application/x-www-form-urlencoded, image/gif"])
-        self.assertEquals(response_data.get("headers").get("Content-Type"),
-                          "application/x-www-form-urlencoded, image/gif")
-        pass
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
+                          "GET,DELETE,PUT,POST,HEAD,OPTIONS,PATCH")
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)

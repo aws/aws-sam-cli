@@ -218,4 +218,3 @@ class TestRoutingList(TestCase):
         for index, r in enumerate(routing_list):
             self.assertEquals(r.__dict__, expected_routes[index].__dict__)
 
-#TODO add test to check that

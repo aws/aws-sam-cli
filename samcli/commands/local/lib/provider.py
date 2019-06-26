@@ -222,10 +222,10 @@ _ApiTuple = namedtuple("Api", [
     # The variables for that stage
     "stage_variables"
 ])
-_ApiTuple.__new__.__defaults__ = (None,    # Cors is optional and defaults to None
-                                  [],      # binary_media_types is optional and defaults to empty,
-                                  None,    # Stage name is optional with default None
-                                  None     # Stage variables is optional with default None
+_ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
+                                  [],  # binary_media_types is optional and defaults to empty,
+                                  None,  # Stage name is optional with default None
+                                  None  # Stage variables is optional with default None
                                   )
 
 
@@ -235,7 +235,19 @@ class Api(_ApiTuple):
         return hash(self.path) * hash(self.method) * hash(self.function_name)
 
 
-Cors = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
+_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
+
+_CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
+                                   None,  # Allow Methods is optional and defaults to empty
+                                   None,  # Allow Headers is optional and defaults to empty
+                                   None  # MaxAge is optional and defaults to empty
+                                   )
+
+
+class Cors(_CorsTuple):
+    def __hash__(self):
+        # Other properties are not a part of the hash
+        return hash(self.allow_origin) * hash(self.allow_headers) * hash(self.allow_methods) * hash(self.max_age)
 
 
 class ApiProvider(object):

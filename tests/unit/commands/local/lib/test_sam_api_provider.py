@@ -8,7 +8,7 @@ from nose_parameterized import parameterized
 from six import assertCountEqual
 
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
-from samcli.commands.local.lib.provider import Api
+from samcli.commands.local.lib.provider import Api, Cors
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 
@@ -1148,21 +1148,312 @@ class TestSamStageValues(TestCase):
 
 
 class TestSamCors(TestCase):
-    # TODO
     def test_provider_parse_cors_string(self):
-        pass
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": "*",
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                },
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = SamApiProvider(template)
+
+        result = [f for f in provider.get_all()]
+
+        api1 = Api(path='/path2', method='POST', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*", allow_methods=["GET",
+                                                              "DELETE",
+                                                              "PUT",
+                                                              "POST",
+                                                              "HEAD",
+                                                              "OPTIONS",
+                                                              "PATCH"]),
+                   )
+        api2 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*", allow_methods=["GET",
+                                                              "DELETE",
+                                                              "PUT",
+                                                              "POST",
+                                                              "HEAD",
+                                                              "OPTIONS",
+                                                              "PATCH"]),
+                   )
+        api3 = Api(path='/path', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*", allow_methods=["GET",
+                                                              "DELETE",
+                                                              "PUT",
+                                                              "POST",
+                                                              "HEAD",
+                                                              "OPTIONS",
+                                                              "PATCH"]),
+                   )
+
+        api4 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*", allow_methods=["GET",
+                                                              "DELETE",
+                                                              "PUT",
+                                                              "POST",
+                                                              "HEAD",
+                                                              "OPTIONS",
+                                                              "PATCH"]),
+                   )
+        self.assertEquals(len(result), 4)
+        self.assertIn(api1, result)
+        self.assertIn(api2, result)
+        self.assertIn(api3, result)
+        self.assertIn(api4, result)
 
     def test_provider_parse_cors_dict(self):
-        pass
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": {
+                            "AllowMethods": "POST",
+                            "AllowOrigin": "*",
+                            "AllowHeaders": "Upgrade-Insecure-Requests",
+                            "MaxAge": 600
+                        },
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                },
+                                "/path": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = SamApiProvider(template)
+
+        result = [f for f in provider.get_all()]
+
+        api1 = Api(path='/path2', method='POST', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             max_age=600),
+                   )
+        api2 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             max_age=600),
+                   )
+        api3 = Api(path='/path', method='POST', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             max_age=600),
+                   )
+        api4 = Api(path='/path', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             max_age=600),
+                   )
+        self.assertEquals(len(result), 4)
+        self.assertIn(api1, result)
+        self.assertIn(api2, result)
+        self.assertIn(api3, result)
+        self.assertIn(api4, result)
+
+    def test_default_cors_dict_prop(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": {
+                            "AllowOrigin": "www.domain.com",
+                        },
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "httpMethod": "POST",
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = SamApiProvider(template)
+
+        result = [f for f in provider.get_all()]
+
+        api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="www.domain.com", allow_methods=["GET",
+                                                                           "DELETE",
+                                                                           "PUT",
+                                                                           "POST",
+                                                                           "HEAD",
+                                                                           "OPTIONS",
+                                                                           "PATCH"]),
+                   )
+        api2 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="www.domain.com", allow_methods=["GET",
+                                                                           "DELETE",
+                                                                           "PUT",
+                                                                           "POST",
+                                                                           "HEAD",
+                                                                           "OPTIONS",
+                                                                           "PATCH"]),
+                   )
+        self.assertEquals(len(result), 2)
+        self.assertIn(api1, result)
+        self.assertIn(api2, result)
 
     def test_global_cors(self):
-        pass
+        template = {
+            "Global": {
+                "TestApi": {
+                    "Cors": {
+                        "AllowMethods": "POST",
+                        "AllowOrigin": "*",
+                        "AllowHeaders": "Upgrade-Insecure-Requests",
+                        "MaxAge": 600
+                    },
+                }
+            },
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                },
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-    def test_implicit_explicit_cors(self):
-        pass
+        provider = SamApiProvider(template)
 
-    def test_multi_cors_get_all(self):
-        pass
+        result = [f for f in provider.get_all()]
+
+        api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             max_age=600),
+                   )
+        api2 = Api(path='/path', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             max_age=600),
+                   )
+        api3 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             max_age=600),
+                   )
+        api4 = Api(path='/path', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
+                   cors=Cors(allow_origin="*",
+                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             max_age=600),
+                   )
+        self.assertEquals(len(result), 4)
+        self.assertIn(api1, result)
+        self.assertIn(api2, result)
+        self.assertIn(api3, result)
+        self.assertIn(api4, result)
 
 
 def make_swagger(apis, binary_media_types=None):

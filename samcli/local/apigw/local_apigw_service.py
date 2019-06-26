@@ -144,13 +144,14 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
         route = self._get_current_route(request)
-
+        cors_headers = LocalApigwService.cors_to_headers(route.cors)
         if request.method == 'OPTIONS':
-            return self.service_response('', LocalApigwService._cors_to_headers(route.cors), 200)
+            headers = Headers(cors_headers)
+            return self.service_response('', headers, 200)
 
         try:
             event = self._construct_event(request, self.port, route.binary_types, route.stage_name,
-                                          route.stage_variables)
+                                          route.stage_variables, cors_headers)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -320,7 +321,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
+    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None, cors_headers=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -354,7 +355,7 @@ class LocalApigwService(BaseLocalService):
                                  identity=identity,
                                  path=endpoint)
 
-        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
+        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port, cors_headers)
 
         query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
 
@@ -409,7 +410,7 @@ class LocalApigwService(BaseLocalService):
         return query_string_dict, multi_value_query_string_dict
 
     @staticmethod
-    def _event_headers(flask_request, port):
+    def _event_headers(flask_request, port, cors_headers=None):
         """
         Constructs an APIGW equivalent headers dictionary
 
@@ -419,6 +420,8 @@ class LocalApigwService(BaseLocalService):
             Request from Flask
         int port
             Forwarded Port
+        cors_headers dict
+            Dict of the Cors properties
 
         Returns dict (str: str), dict (str: list of str)
         -------
@@ -439,7 +442,9 @@ class LocalApigwService(BaseLocalService):
 
         headers_dict["X-Forwarded-Port"] = str(port)
         multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
-
+        if cors_headers:
+            headers_dict.update(cors_headers)
+            multi_value_headers_dict.update(cors_headers)
         return headers_dict, multi_value_headers_dict
 
     @staticmethod
@@ -462,7 +467,7 @@ class LocalApigwService(BaseLocalService):
         return request_mimetype in binary_types or "*/*" in binary_types
 
     @staticmethod
-    def _cors_to_headers(cors):
+    def cors_to_headers(cors):
         """
         Convert CORS object to headers dictionary
         Parameters
@@ -475,12 +480,12 @@ class LocalApigwService(BaseLocalService):
         """
         headers = {}
         if cors.allow_origin is not None:
-            headers['Access-Control-Allow-Origin'] = cors.allow_origin[1:-1]
+            headers['Access-Control-Allow-Origin'] = cors.allow_origin
         if cors.allow_methods is not None:
-            headers['Access-Control-Allow-Methods'] = cors.allow_methods[1:-1]
+            headers['Access-Control-Allow-Methods'] = ','.join(cors.allow_methods)
         if cors.allow_headers is not None:
-            headers['Access-Control-Allow-Headers'] = cors.allow_headers[1:-1]
+            headers['Access-Control-Allow-Headers'] = cors.allow_headers
         if cors.max_age is not None:
-            headers['Access-Control-Max-Age'] = cors.max_age[1:-1]
+            headers['Access-Control-Max-Age'] = cors.max_age
 
         return headers

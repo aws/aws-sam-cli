@@ -6,6 +6,7 @@ import base64
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
+from commands.local.lib.provider import Cors
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -591,4 +592,18 @@ class TestService_should_base64_encode(TestCase):
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
 
-# TODO add test here for cors with mock and add tests for _cors_to_headers to check the conversion
+
+class TestServiceCorsToHeaders(TestCase):
+    def test_basic_conversion(self):
+        cors = Cors(allow_origin="*", allow_methods=["POST", "OPTIONS"], allow_headers="UPGRADE-HEADER", max_age=6)
+        headers = LocalApigwService.cors_to_headers(cors)
+        self.assertEquals(headers, {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS',
+                                    'Access-Control-Allow-Headers': 'UPGRADE-HEADER', 'Access-Control-Max-Age': 6})
+
+    def test_empty_elements(self):
+        cors = Cors(allow_origin="www.domain.com", allow_methods=["GET", "POST", "OPTIONS"])
+        headers = LocalApigwService.cors_to_headers(cors)
+        self.assertEquals(headers,
+                          {'Access-Control-Allow-Origin': 'www.domain.com',
+                           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+                           'Access-Control-Allow-Headers': None, 'Access-Control-Max-Age': None})
