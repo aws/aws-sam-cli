@@ -127,7 +127,23 @@ class SamApiProvider(ApiProvider):
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
 
-        cors = properties.get("Cors", {})
+        cors_prop = properties.get("Cors")
+        cors = None
+        if cors_prop and isinstance(cors_prop, dict):
+            cors = Cors(
+                allow_origin=cors_prop.get("AllowOrigin"),
+                allow_methods=cors_prop.get("AllowMethods", SamApiProvider._ANY_HTTP_METHODS),
+                allow_headers=cors.get("AllowHeaders"),
+                max_age=cors.get("MaxAge")
+            )
+        elif cors_prop and isinstance(cors_prop, string_types):
+            cors = Cors(
+                allow_origin=cors_prop,
+                allow_methods=SamApiProvider._ANY_HTTP_METHODS,
+                allow_headers=None,
+                max_age=None
+            )
+
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
         if not body and not uri:
@@ -147,15 +163,10 @@ class SamApiProvider(ApiProvider):
         collector.add_apis(logical_id, apis)
         collector.add_binary_media_types(logical_id, parser.get_binary_media_types())  # Binary media from swagger
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
-        collector.add_cors(logical_id, Cors(
-            allow_origin=cors.get("AllowOrigin"),
-            allow_methods=cors.get("AllowMethods"),
-            allow_headers=cors.get("AllowHeaders"),
-            max_age=cors.get("MaxAge")
-        ))
-
         collector.add_stage_name(logical_id, stage_name)
         collector.add_stage_variables(logical_id, stage_variables)
+        if cors:
+            collector.add_cors(logical_id, cors)
 
     @staticmethod
     def _merge_apis(collector):
