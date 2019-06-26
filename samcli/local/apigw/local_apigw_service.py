@@ -145,7 +145,8 @@ class LocalApigwService(BaseLocalService):
         """
         route = self._get_current_route(request)
         cors_headers = LocalApigwService.cors_to_headers(route.cors)
-        if request.method == 'OPTIONS':
+
+        if route.method == 'OPTIONS':
             headers = Headers(cors_headers)
             return self.service_response('', headers, 200)
 
@@ -482,7 +483,7 @@ class LocalApigwService(BaseLocalService):
         if cors.allow_origin is not None:
             headers['Access-Control-Allow-Origin'] = cors.allow_origin
         if cors.allow_methods is not None:
-            headers['Access-Control-Allow-Methods'] = ','.join(cors.allow_methods)
+            headers['Access-Control-Allow-Methods'] = cors.allow_methods
         if cors.allow_headers is not None:
             headers['Access-Control-Allow-Headers'] = cors.allow_headers
         if cors.max_age is not None:

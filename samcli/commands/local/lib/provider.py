@@ -223,9 +223,9 @@ _ApiTuple = namedtuple("Api", [
     "stage_variables"
 ])
 _ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
-                                  [],  # binary_media_types is optional and defaults to empty,
+                                  [],    # binary_media_types is optional and defaults to empty,
                                   None,  # Stage name is optional with default None
-                                  None  # Stage variables is optional with default None
+                                  None   # Stage variables is optional with default None
                                   )
 
 
@@ -240,7 +240,7 @@ _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers
 _CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
                                    None,  # Allow Methods is optional and defaults to empty
                                    None,  # Allow Headers is optional and defaults to empty
-                                   None  # MaxAge is optional and defaults to empty
+                                   None   # MaxAge is optional and defaults to empty
                                    )
 
 

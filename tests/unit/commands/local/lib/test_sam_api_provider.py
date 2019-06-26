@@ -1194,41 +1194,41 @@ class TestSamCors(TestCase):
         result = [f for f in provider.get_all()]
 
         api1 = Api(path='/path2', method='POST', function_name='NoApiEventFunction', stage_name="Prod",
-                   cors=Cors(allow_origin="*", allow_methods=["GET",
-                                                              "DELETE",
-                                                              "PUT",
-                                                              "POST",
-                                                              "HEAD",
-                                                              "OPTIONS",
-                                                              "PATCH"]),
+                   cors=Cors(allow_origin="*", allow_methods=','.join(["GET",
+                                                                       "DELETE",
+                                                                       "PUT",
+                                                                       "POST",
+                                                                       "HEAD",
+                                                                       "OPTIONS",
+                                                                       "PATCH"])),
                    )
         api2 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
-                   cors=Cors(allow_origin="*", allow_methods=["GET",
-                                                              "DELETE",
-                                                              "PUT",
-                                                              "POST",
-                                                              "HEAD",
-                                                              "OPTIONS",
-                                                              "PATCH"]),
+                   cors=Cors(allow_origin="*", allow_methods=','.join(["GET",
+                                                                       "DELETE",
+                                                                       "PUT",
+                                                                       "POST",
+                                                                       "HEAD",
+                                                                       "OPTIONS",
+                                                                       "PATCH"])),
                    )
         api3 = Api(path='/path', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
-                   cors=Cors(allow_origin="*", allow_methods=["GET",
-                                                              "DELETE",
-                                                              "PUT",
-                                                              "POST",
-                                                              "HEAD",
-                                                              "OPTIONS",
-                                                              "PATCH"]),
+                   cors=Cors(allow_origin="*", allow_methods=','.join(["GET",
+                                                                       "DELETE",
+                                                                       "PUT",
+                                                                       "POST",
+                                                                       "HEAD",
+                                                                       "OPTIONS",
+                                                                       "PATCH"])),
                    )
 
         api4 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
-                   cors=Cors(allow_origin="*", allow_methods=["GET",
-                                                              "DELETE",
-                                                              "PUT",
-                                                              "POST",
-                                                              "HEAD",
-                                                              "OPTIONS",
-                                                              "PATCH"]),
+                   cors=Cors(allow_origin="*", allow_methods=','.join(["GET",
+                                                                       "DELETE",
+                                                                       "PUT",
+                                                                       "POST",
+                                                                       "HEAD",
+                                                                       "OPTIONS",
+                                                                       "PATCH"])),
                    )
         self.assertEquals(len(result), 4)
         self.assertIn(api1, result)
@@ -1288,25 +1288,25 @@ class TestSamCors(TestCase):
 
         api1 = Api(path='/path2', method='POST', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
+                             allow_methods=','.join(["POST", "OPTIONS"]),
                              allow_headers="Upgrade-Insecure-Requests",
                              max_age=600),
                    )
         api2 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
+                             allow_methods=','.join(["POST", "OPTIONS"]),
                              allow_headers="Upgrade-Insecure-Requests",
                              max_age=600),
                    )
         api3 = Api(path='/path', method='POST', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
+                             allow_methods=','.join(["POST", "OPTIONS"]),
                              allow_headers="Upgrade-Insecure-Requests",
                              max_age=600),
                    )
         api4 = Api(path='/path', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
+                             allow_methods=','.join(["POST", "OPTIONS"]),
                              allow_headers="Upgrade-Insecure-Requests",
                              max_age=600),
                    )
@@ -1353,22 +1353,22 @@ class TestSamCors(TestCase):
         result = [f for f in provider.get_all()]
 
         api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
-                   cors=Cors(allow_origin="www.domain.com", allow_methods=["GET",
-                                                                           "DELETE",
-                                                                           "PUT",
-                                                                           "POST",
-                                                                           "HEAD",
-                                                                           "OPTIONS",
-                                                                           "PATCH"]),
+                   cors=Cors(allow_origin="www.domain.com", allow_methods=','.join(["GET",
+                                                                                    "DELETE",
+                                                                                    "PUT",
+                                                                                    "POST",
+                                                                                    "HEAD",
+                                                                                    "OPTIONS",
+                                                                                    "PATCH"])),
                    )
         api2 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
-                   cors=Cors(allow_origin="www.domain.com", allow_methods=["GET",
-                                                                           "DELETE",
-                                                                           "PUT",
-                                                                           "POST",
-                                                                           "HEAD",
-                                                                           "OPTIONS",
-                                                                           "PATCH"]),
+                   cors=Cors(allow_origin="www.domain.com", allow_methods=','.join(["GET",
+                                                                                    "DELETE",
+                                                                                    "PUT",
+                                                                                    "POST",
+                                                                                    "HEAD",
+                                                                                    "OPTIONS",
+                                                                                    "PATCH"])),
                    )
         self.assertEquals(len(result), 2)
         self.assertIn(api1, result)
@@ -1376,10 +1376,10 @@ class TestSamCors(TestCase):
 
     def test_global_cors(self):
         template = {
-            "Global": {
-                "TestApi": {
+            "Globals": {
+                "Api": {
                     "Cors": {
-                        "AllowMethods": "POST",
+                        "AllowMethods": "GET",
                         "AllowOrigin": "*",
                         "AllowHeaders": "Upgrade-Insecure-Requests",
                         "MaxAge": 600
@@ -1390,10 +1390,11 @@ class TestSamCors(TestCase):
                 "TestApi": {
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
+                        "StageName": "Prod",
                         "DefinitionBody": {
                             "paths": {
                                 "/path2": {
-                                    "post": {
+                                    "get": {
                                         "x-amazon-apigateway-integration": {
                                             "type": "aws_proxy",
                                             "uri": {
@@ -1429,24 +1430,26 @@ class TestSamCors(TestCase):
 
         api1 = Api(path='/path2', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             allow_methods=','.join(["GET", "OPTIONS"]),
                              max_age=600),
                    )
         api2 = Api(path='/path', method='GET', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
+                             allow_methods=','.join(["GET", "OPTIONS"]),
                              allow_headers="Upgrade-Insecure-Requests",
                              max_age=600),
                    )
         api3 = Api(path='/path2', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
+                             allow_headers="Upgrade-Insecure-Requests",
+                             allow_methods=','.join(["GET", "OPTIONS"]),
                              max_age=600),
                    )
         api4 = Api(path='/path', method='OPTIONS', function_name='NoApiEventFunction', stage_name="Prod",
                    cors=Cors(allow_origin="*",
-                             allow_methods=["POST", "OPTIONS"],
                              allow_headers="Upgrade-Insecure-Requests",
+                             allow_methods=','.join(["GET", "OPTIONS"]),
                              max_age=600),
                    )
         self.assertEquals(len(result), 4)

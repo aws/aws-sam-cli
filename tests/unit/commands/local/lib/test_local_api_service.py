@@ -106,9 +106,9 @@ class TestLocalApiService_make_routing_list(TestCase):
     def test_must_return_routing_list_from_apis(self):
         api_provider = Mock()
         apis = [
-            Api(path="/1", method="GET1", function_name="name1", cors="CORS1"),
-            Api(path="/2", method="GET2", function_name="name2", cors="CORS2"),
-            Api(path="/3", method="GET3", function_name="name3", cors="CORS3"),
+            Api(path="/1", method="GET1", function_name="name1", cors=None),
+            Api(path="/2", method="GET2", function_name="name2", cors=None),
+            Api(path="/3", method="GET3", function_name="name3", cors=None),
         ]
         expected = [
             Route(path="/1", methods=["GET1"], function_name="name1"),
@@ -132,11 +132,11 @@ class TestLocalApiService_print_routes(TestCase):
 
         api_provider = Mock()
         apis = [
-            Api(path="/1", method="GET", function_name="name1", cors="CORS1"),
-            Api(path="/1", method="POST", function_name="name1", cors="CORS1"),
-            Api(path="/1", method="DELETE", function_name="othername1", cors="CORS1"),
-            Api(path="/2", method="GET2", function_name="name2", cors="CORS2"),
-            Api(path="/3", method="GET3", function_name="name3", cors="CORS3"),
+            Api(path="/1", method="GET", function_name="name1"),
+            Api(path="/1", method="POST", function_name="name1"),
+            Api(path="/1", method="DELETE", function_name="othername1"),
+            Api(path="/2", method="GET2", function_name="name2"),
+            Api(path="/3", method="GET3", function_name="name3"),
         ]
         api_provider.get_all.return_value = apis
 
@@ -188,12 +188,12 @@ class TestRoutingList(TestCase):
     def setUp(self):
         self.function_name = "routingTest"
         apis = [
-            provider.Api(path="/get", method="GET", function_name=self.function_name, cors="cors"),
-            provider.Api(path="/get", method="GET", function_name=self.function_name, cors="cors", stage_name="Dev"),
-            provider.Api(path="/post", method="POST", function_name=self.function_name, cors="cors", stage_name="Prod"),
-            provider.Api(path="/get", method="GET", function_name=self.function_name, cors="cors",
+            provider.Api(path="/get", method="GET", function_name=self.function_name),
+            provider.Api(path="/get", method="GET", function_name=self.function_name, stage_name="Dev"),
+            provider.Api(path="/post", method="POST", function_name=self.function_name, stage_name="Prod"),
+            provider.Api(path="/get", method="GET", function_name=self.function_name,
                          stage_variables={"test": "data"}),
-            provider.Api(path="/post", method="POST", function_name=self.function_name, cors="cors", stage_name="Prod",
+            provider.Api(path="/post", method="POST", function_name=self.function_name, stage_name="Prod",
                          stage_variables={"data": "more data"}),
         ]
         self.api_provider_mock = Mock()
@@ -217,4 +217,3 @@ class TestRoutingList(TestCase):
         self.assertEquals(len(routing_list), len(expected_routes))
         for index, r in enumerate(routing_list):
             self.assertEquals(r.__dict__, expected_routes[index].__dict__)
-

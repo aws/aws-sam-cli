@@ -126,29 +126,7 @@ class SamApiProvider(ApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
-
-        cors_prop = properties.get("Cors")
-        cors = None
-        if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = cors_prop.get("AllowMethods", SamApiProvider._ANY_HTTP_METHODS)
-            if isinstance(allow_methods, string_types):
-                allow_methods = [allow_methods.upper()]
-            if "OPTIONS" not in allow_methods:
-                allow_methods.append("OPTIONS")
-            cors = Cors(
-                allow_origin=cors_prop.get("AllowOrigin"),
-                allow_methods=allow_methods,
-                allow_headers=cors_prop.get("AllowHeaders"),
-                max_age=cors_prop.get("MaxAge")
-            )
-        elif cors_prop and isinstance(cors_prop, string_types):
-            cors = Cors(
-                allow_origin=cors_prop,
-                allow_methods=SamApiProvider._ANY_HTTP_METHODS,
-                allow_headers=None,
-                max_age=None
-            )
-
+        cors = self._extract_cors(properties)
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
         if not body and not uri:
@@ -172,6 +150,39 @@ class SamApiProvider(ApiProvider):
         collector.add_stage_variables(logical_id, stage_variables)
         if cors:
             collector.add_cors(logical_id, cors)
+
+    def _extract_cors(self, properties):
+        """
+        Extract Cors property from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result
+        is added to the Api.
+
+        Parameters
+        ----------
+        properties : dict
+            Resource properties
+        """
+        cors_prop = properties.get("Cors")
+        cors = None
+        if cors_prop and isinstance(cors_prop, dict):
+            allow_methods = cors_prop.get("AllowMethods", ','.join(SamApiProvider._ANY_HTTP_METHODS))
+
+            if allow_methods and "OPTIONS" not in allow_methods:
+                allow_methods += ",OPTIONS"
+
+            cors = Cors(
+                allow_origin=cors_prop.get("AllowOrigin"),
+                allow_methods=allow_methods,
+                allow_headers=cors_prop.get("AllowHeaders"),
+                max_age=cors_prop.get("MaxAge")
+            )
+        elif cors_prop and isinstance(cors_prop, string_types):
+            cors = Cors(
+                allow_origin=cors_prop,
+                allow_methods=','.join(SamApiProvider._ANY_HTTP_METHODS),
+                allow_headers=None,
+                max_age=None
+            )
+        return cors
 
     @staticmethod
     def _merge_apis(collector):

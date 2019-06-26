@@ -6,7 +6,7 @@ import base64
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
-from commands.local.lib.provider import Cors
+from samcli.commands.local.lib.provider import Cors
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -154,6 +154,7 @@ class TestApiGatewayService(TestCase):
         not_found_response_mock = Mock()
         self.service._construct_event = Mock()
         self.service._get_current_route = Mock()
+
         service_error_responses_patch.lambda_not_found_response.return_value = not_found_response_mock
 
         self.lambda_runner.invoke.side_effect = FunctionNotFound()
@@ -595,15 +596,17 @@ class TestService_should_base64_encode(TestCase):
 
 class TestServiceCorsToHeaders(TestCase):
     def test_basic_conversion(self):
-        cors = Cors(allow_origin="*", allow_methods=["POST", "OPTIONS"], allow_headers="UPGRADE-HEADER", max_age=6)
+        cors = Cors(allow_origin="*", allow_methods=','.join(["POST", "OPTIONS"]), allow_headers="UPGRADE-HEADER",
+                    max_age=6)
         headers = LocalApigwService.cors_to_headers(cors)
+
         self.assertEquals(headers, {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS',
                                     'Access-Control-Allow-Headers': 'UPGRADE-HEADER', 'Access-Control-Max-Age': 6})
 
     def test_empty_elements(self):
-        cors = Cors(allow_origin="www.domain.com", allow_methods=["GET", "POST", "OPTIONS"])
+        cors = Cors(allow_origin="www.domain.com", allow_methods=','.join(["GET", "POST", "OPTIONS"]))
         headers = LocalApigwService.cors_to_headers(cors)
+
         self.assertEquals(headers,
                           {'Access-Control-Allow-Origin': 'www.domain.com',
-                           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-                           'Access-Control-Allow-Headers': None, 'Access-Control-Max-Age': None})
+                           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'})
