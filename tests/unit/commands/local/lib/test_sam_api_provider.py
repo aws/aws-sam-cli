@@ -7,7 +7,7 @@ from nose_parameterized import parameterized
 
 from six import assertCountEqual
 
-from samcli.commands.local.lib.sam_api_provider import ApiProvider, FunctionParserProvider
+from samcli.commands.local.lib.api_provider import ApiProvider, FunctionParserProvider
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 

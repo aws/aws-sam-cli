@@ -6,7 +6,7 @@ import os
 import logging
 
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
-from samcli.commands.local.lib.sam_api_provider import ApiProvider
+from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 
 LOG = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ class LocalApiService(object):
 
         Parameters
         ----------
-        api_provider : samcli.commands.local.lib.sam_api_provider.ApiProvider
+        api_provider : samcli.commands.local.lib.api_provider.ApiProvider
 
         Returns
         -------
