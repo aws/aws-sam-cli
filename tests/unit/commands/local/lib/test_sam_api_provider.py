@@ -7,7 +7,7 @@ from nose_parameterized import parameterized
 
 from six import assertCountEqual
 
-from samcli.commands.local.lib.api_provider import ApiProvider, FunctionParserProvider
+from samcli.commands.local.lib.api_provider import ApiProvider, SamApiProvider
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
@@ -15,7 +15,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 class TestSamApiProvider_init(TestCase):
 
     @patch.object(ApiProvider, "_extract_apis")
-    @patch("samcli.commands.local.lib.sam_api_provider.SamBaseProvider")
+    @patch("samcli.commands.local.lib.api_provider.SamBaseProvider")
     def test_provider_with_valid_template(self, SamBaseProviderMock, extract_api_mock):
         extract_api_mock.return_value = {"set", "of", "values"}
 
@@ -417,7 +417,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         }
 
         with self.assertRaises(InvalidSamDocumentException):
-            FunctionParserProvider._convert_event_api("logicalId", properties)
+            SamApiProvider._convert_event_api("logicalId", properties)
 
 
 class TestSamApiProviderWithExplicitApis(TestCase):
@@ -492,7 +492,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             provider = ApiProvider(template)
             assertCountEqual(self, self.input_apis, provider.apis)
 
-    @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
+    @patch("samcli.commands.local.lib.api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
@@ -1048,7 +1048,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
             self.assertRaises(Exception, ApiProvider, template)
 
-    @patch("samcli.commands.local.lib.sam_api_provider.SamSwaggerReader")
+    @patch("samcli.commands.local.lib.api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"

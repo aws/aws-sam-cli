@@ -66,12 +66,12 @@ class ApiProvider(AbstractApiProvider):
 
     def _extract_apis(self, resources):
         collector = ApiCollector()
-        providers = {SAMApiProvider.SERVERLESS_API: SAMApiProvider(),
-                     SAMApiProvider.SERVERLESS_FUNCTION: SAMApiProvider(),
+        providers = {SamApiProvider.SERVERLESS_API: SamApiProvider(),
+                     SamApiProvider.SERVERLESS_FUNCTION: SamApiProvider(),
                      CFApiProvider.APIGATEWAY_RESTAPI: CFApiProvider()}
         for logical_id, resource in resources.items():
             resource_type = resource.get(self._TYPE)
-            providers.get(resource_type) \
+            providers.get(resource_type, SamApiProvider()) \
                 .extract_resource_api(resource_type, logical_id, resource, collector,
                                       cwd=self.cwd)
         apis = self._merge_apis(collector)
@@ -142,7 +142,7 @@ class ApiProvider(AbstractApiProvider):
         # Store implicit and explicit APIs separately in order to merge them later in the correct order
         # Implicit APIs are defined on a resource with logicalID ServerlessRestApi
         for logical_id, apis in collector:
-            if logical_id == CFApiProvider.IMPLICIT_API_RESOURCE_ID:
+            if logical_id == ApiProvider.IMPLICIT_API_RESOURCE_ID:
                 implicit_apis.extend(apis)
             else:
                 explicit_apis.extend(apis)
@@ -418,7 +418,7 @@ class CFBaseApiProvider(object):
         collector.add_binary_media_types(logical_id, binary_media)  # Binary media specified on resource in template
 
 
-class SAMApiProvider(CFBaseApiProvider):
+class SamApiProvider(CFBaseApiProvider):
     SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     SERVERLESS_API = "AWS::Serverless::Api"
     TYPES = [
@@ -437,6 +437,8 @@ class SAMApiProvider(CFBaseApiProvider):
 
         Parameters
         ----------
+        resource_type: str
+            The resource property type
         logical_id : str
             Logical ID of the resource
 
@@ -449,10 +451,11 @@ class SAMApiProvider(CFBaseApiProvider):
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
+
         """
-        if resource_type == SAMApiProvider.SERVERLESS_FUNCTION:
+        if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
             return self._extract_apis_from_function(logical_id, api_resource, collector)
-        if resource_type == SAMApiProvider.SERVERLESS_FUNCTION:
+        if resource_type == SamApiProvider.SERVERLESS_API:
             return self._extract_from_serverless_api(logical_id, api_resource, collector, cwd)
 
     def _extract_from_serverless_api(self, logical_id, api_resource, collector, cwd=None):
@@ -543,8 +546,8 @@ class SAMApiProvider(CFBaseApiProvider):
         :param dict event_properties: Dictionary of the Event's Property
         :return tuple: tuple of API resource name and Api namedTuple
         """
-        path = event_properties.get(SAMApiProvider._EVENT_PATH)
-        method = event_properties.get(SAMApiProvider._EVENT_METHOD)
+        path = event_properties.get(SamApiProvider._EVENT_PATH)
+        method = event_properties.get(SamApiProvider._EVENT_METHOD)
 
         # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
         # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
