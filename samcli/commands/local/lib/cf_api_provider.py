@@ -14,33 +14,40 @@ class CFApiProvider(CFBaseApiProvider):
         APIGATEWAY_STAGE
     ]
 
-    def extract_resource(self, resource_type, logical_id, api_resource, collector, api, cwd=None):
+    def extract_resources(self, resources, collector, api, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
         Parameters
         ----------
-        resource_type: str
-            The resource property type
-        logical_id : str
-            Logical ID of the resource
+        resources: dict
+            The dictionary containing the different resources within the template
 
-        api_resource: dict
-            Contents of the function resource including its properties\
-
-        collector: ApiCollector
+        collector: samcli.commands.local.lib.route_collector.RouteCollector
             Instance of the API collector that where we will save the API information
 
-        api: Api
+        api: samcli.commands.local.lib.provider.Api
             Instance of the Api which will save all the api configurations
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        Return
+        -------
+        Returns a list of routes
         """
-        if resource_type == CFApiProvider.APIGATEWAY_RESTAPI:
-            return self._extract_cloud_formation_route(logical_id, api_resource, collector, api, cwd)
-        if resource_type == CFApiProvider.APIGATEWAY_STAGE:
-            return self._extract_cloud_formation_stage(api_resource, api)
+        for logical_id, resource in resources.items():
+            resource_type = resource.get(CFBaseApiProvider.RESOURCE_TYPE)
+            if resource_type == CFApiProvider.APIGATEWAY_RESTAPI:
+                self._extract_cloud_formation_route(logical_id, resource, collector, api=api, cwd=cwd)
+
+            if resource_type == CFApiProvider.APIGATEWAY_STAGE:
+                self._extract_cloud_formation_stage(resource, api)
+
+        all_apis = []
+        for _, apis in collector:
+            all_apis.extend(apis)
+        return all_apis
 
     def _extract_cloud_formation_route(self, logical_id, api_resource, collector, api, cwd=None):
         """
@@ -73,11 +80,9 @@ class CFApiProvider(CFBaseApiProvider):
     @staticmethod
     def _extract_cloud_formation_stage(api_resource, api):
         """
-        Extract APIs from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
+        Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
        ----------
-        logical_id : str
-            Logical ID of the resource
         api_resource : dict
             Resource definition, including its properties
         api: samcli.commands.local.lib.provider.Api

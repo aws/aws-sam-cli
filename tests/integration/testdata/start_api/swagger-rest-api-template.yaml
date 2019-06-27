@@ -6,13 +6,13 @@ Resources:
       CodeUri: "."
       Handler: main.base64_response
       Runtime: python3.6
-    Type: AWS::Serverless::Function
+    Type: AWS::Lambda::Function
   EchoBase64EventBodyFunction:
     Properties:
       CodeUri: "."
       Handler: main.echo_base64_event_body
       Runtime: python3.6
-    Type: AWS::Serverless::Function
+    Type: AWS::Lambda::Function
   MyApi:
     Properties:
       Body:
@@ -89,7 +89,7 @@ Resources:
           Type: Api
       Handler: main.handler
       Runtime: python3.6
-    Type: AWS::Serverless::Function
+    Type: AWS::Lambda::Function
   MyNonServerlessLambdaFunction:
     Properties:
       CodeUri: "."
@@ -101,5 +101,4 @@ Resources:
       CodeUri: "."
       Handler: main.handler
       Runtime: python3.6
-    Type: AWS::Serverless::Function
-Transform: AWS::Serverless-2016-10-31
+    Type: AWS::Lambda::Function

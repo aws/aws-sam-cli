@@ -11,28 +11,29 @@ LOG = logging.getLogger(__name__)
 
 
 class CFBaseApiProvider(object):
-    def extract_resource(self, resource_type, logical_id, api_resource, collector, api, cwd=None):
+    RESOURCE_TYPE = "Type"
+
+    def extract_resources(self, resources, collector, api, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
         Parameters
         ----------
-        resource_type: str
-            The resource property type
-        logical_id : str
-            Logical ID of the resource
+        resources: dict
+            The dictionary containing the different resources within the template
 
-        api_resource: dict
-            Contents of the function resource including its properties\
-
-        collector: ApiCollector
+        collector: samcli.commands.local.lib.route_collector.RouteCollector
             Instance of the API collector that where we will save the API information
 
-        api: Api
+        api: samcli.commands.local.lib.provider.Api
             Instance of the Api which will save all the api configurations
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        Return
+        -------
+        Returns a list of routes
         """
         raise NotImplementedError("not implemented")
 
@@ -75,10 +76,10 @@ class CFBaseApiProvider(object):
         binary_media: list
             The link to the binary media
 
-        collector: RouteCollector
+        collector: samcli.commands.local.lib.route_collector.RouteCollector
             Instance of the Route collector that where we will save the route information
 
-        api: Api
+        api: samcli.commands.local.lib.provider.Api
             Instance of the Api which will save all the api configurations
 
         cwd : str

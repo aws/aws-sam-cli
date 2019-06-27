@@ -18,7 +18,7 @@ class RouteCollector(object):
     def __iter__(self):
         """
         Iterator to iterate through all the routes stored in the collector. In each iteration, this yields the
-        LogicalId of the API resource and a list of routes available in this resource.
+        LogicalId of the route resource and a list of routes available in this resource.
         Yields
         -------
         str

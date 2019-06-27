@@ -7,6 +7,7 @@ from collections import namedtuple
 
 import six
 
+from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 # Named Tuple to representing the properties of a Lambda Function
@@ -266,25 +267,24 @@ class AbstractApiProvider(object):
             yield http_method.upper()
 
     @staticmethod
-    def normalize_apis(apis):
+    def normalize_routes(routes):
         """
         Normalize the APIs to use standard method name
 
         Parameters
         ----------
-        apis : list of samcli.commands.local.lib.provider.Api
-            List of APIs to replace normalize
+        apis : list of samcli.local.apigw.local_apigw_service.Route
+            List of routes to replace normalize
 
         Returns
         -------
-        list of samcli.commands.local.lib.provider.Api
-            List of normalized APIs
+        list of samcli.local.apigw.local_apigw_service.Route
+            List of normalized routes
         """
 
         result = list()
-        for api in apis:
-            for normalized_method in AbstractApiProvider.normalize_http_methods(api.method):
-                # _replace returns a copy of the namedtuple. This is the official way of creating copies of namedtuple
-                result.append(api._replace(method=normalized_method))
+        for route in routes:
+            for normalized_method in Route.normalize_http_methods(route.method):
+                result.append(Route(method=normalized_method, function_name=route.function_name, path=route.path))
 
         return result
