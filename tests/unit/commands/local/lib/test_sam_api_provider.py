@@ -492,7 +492,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             provider = ApiProvider(template)
             assertCountEqual(self, self.input_apis, provider.apis)
 
-    @patch("samcli.commands.local.lib.api_provider.SamSwaggerReader")
+    @patch("samcli.commands.local.lib.cf_base_api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
@@ -1048,7 +1048,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
             self.assertRaises(Exception, ApiProvider, template)
 
-    @patch("samcli.commands.local.lib.api_provider.SamSwaggerReader")
+    @patch("samcli.commands.local.lib.cf_base_api_provider.SamSwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
