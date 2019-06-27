@@ -575,6 +575,23 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
         self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), '510')
 
+    def test_cors_swagger_post(self):
+        """
+        This tests that the service can accept and invoke a lambda when given binary data in a request
+        """
+        input_data = self.get_binary_data(self.binary_data_file)
+        response = requests.post(self.url + '/echobase64eventbody',
+                                 headers={"Content-Type": "image/gif"},
+                                 data=input_data)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, input_data)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), '510')
+
 
 class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
     """
@@ -592,6 +609,21 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         response = requests.options(self.url + '/echobase64eventbody')
 
         self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
+                          "GET,DELETE,PUT,POST,HEAD,OPTIONS,PATCH")
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
+
+    def test_cors_global_get(self):
+        """
+        This tests that the service can accept and invoke a lambda when given binary data in a request
+        """
+        response = requests.get(self.url + "/onlysetstatuscode")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode('utf-8'), "no data")
+        self.assertEquals(response.headers.get("Content-Type"), "application/json")
         self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),

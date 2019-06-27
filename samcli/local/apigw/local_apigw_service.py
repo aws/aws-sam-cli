@@ -146,7 +146,7 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
         cors_headers = LocalApigwService.cors_to_headers(route.cors)
 
-        if route.method == 'OPTIONS':
+        if 'OPTIONS' in route.methods:
             headers = Headers(cors_headers)
             return self.service_response('', headers, 200)
 
@@ -174,6 +174,8 @@ class LocalApigwService(BaseLocalService):
             (status_code, headers, body) = self._parse_lambda_output(lambda_response,
                                                                      route.binary_types,
                                                                      request)
+            if cors_headers:
+                headers.extend(cors_headers)
         except (KeyError, TypeError, ValueError):
             LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
                       "statusCode in the response object). Response received: %s", lambda_response)
