@@ -23,19 +23,14 @@ class SamApiProvider(CFBaseApiProvider):
     _EVENT_TYPE = "Type"
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
 
-    def extract_resource_api(self, resource_type, logical_id, api_resource, collector, cwd=None):
+    def extract_resource_api(self, resources, collector, cwd=None):
         """
         Extract the Api Object from a given resource and adds it to the ApiCollector.
 
         Parameters
         ----------
-        resource_type: str
-            The resource property type
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource: dict
-            Contents of the function resource including its properties\
+        resources: dict
+            The dictionary containing the different resources within the template
 
         collector: ApiCollector
             Instance of the API collector that where we will save the API information
@@ -43,12 +38,21 @@ class SamApiProvider(CFBaseApiProvider):
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
-
+        Return
+        -------
+        Returns a list of Apis
         """
-        if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
-            return self._extract_apis_from_function(logical_id, api_resource, collector)
-        if resource_type == SamApiProvider.SERVERLESS_API:
-            return self._extract_from_serverless_api(logical_id, api_resource, collector, cwd)
+        # AWS::Serverless::Function is currently included when parsing of Apis because when SamBaseProvider is run on
+        # the template we are creating the implicit apis due to plugins that translate it in the SAM repo,
+        # which we later merge with the explicit ones in SamApiProvider.merge_apis. This requires the code to be
+        # parsed here and in InvokeContext.
+        for logical_id, resource in resources.items():
+            resource_type = resource.get(CFBaseApiProvider.RESOURCE_TYPE)
+            if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
+                self._extract_apis_from_function(logical_id, resource, collector)
+            if resource_type == SamApiProvider.SERVERLESS_API:
+                self._extract_from_serverless_api(logical_id, resource, collector, cwd)
+        return self.merge_apis(collector)
 
     def _extract_from_serverless_api(self, logical_id, api_resource, collector, cwd=None):
         """

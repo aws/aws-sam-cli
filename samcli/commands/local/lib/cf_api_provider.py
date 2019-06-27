@@ -12,9 +12,33 @@ class CFApiProvider(CFBaseApiProvider):
         APIGATEWAY_RESTAPI
     ]
 
-    def extract_resource_api(self, resource_type, logical_id, api_resource, collector, cwd=None):
-        if resource_type == CFApiProvider.APIGATEWAY_RESTAPI:
-            return self._extract_cloud_formation_api(logical_id, api_resource, collector, cwd)
+    def extract_resource_api(self, resources, collector, cwd=None):
+        """
+        Extract the Api Object from a given resource and adds it to the ApiCollector.
+
+        Parameters
+        ----------
+        resources: dict
+            The dictionary containing the different resources within the template
+
+        collector: ApiCollector
+            Instance of the API collector that where we will save the API information
+
+        cwd : str
+            Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        Return
+        -------
+        Returns a list of Apis
+        """
+        for logical_id, resource in resources.items():
+            resource_type = resource.get(CFBaseApiProvider.RESOURCE_TYPE)
+            if resource_type == CFApiProvider.APIGATEWAY_RESTAPI:
+                self._extract_cloud_formation_api(logical_id, resource, collector, cwd)
+        all_apis = []
+        for _, apis in collector:
+            all_apis.extend(apis)
+        return all_apis
 
     def _extract_cloud_formation_api(self, logical_id, api_resource, collector, cwd=None):
         """

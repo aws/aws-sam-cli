@@ -8,6 +8,7 @@ LOG = logging.getLogger(__name__)
 
 
 class CFBaseApiProvider(object):
+    RESOURCE_TYPE = "Type"
 
     @staticmethod
     def extract_swagger_api(logical_id, body, uri, binary_media, collector, cwd=None):

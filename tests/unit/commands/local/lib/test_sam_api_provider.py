@@ -7,6 +7,7 @@ from nose_parameterized import parameterized
 
 from six import assertCountEqual
 
+from samcli.commands.local.lib.cf_api_provider import CFApiProvider
 from samcli.commands.local.lib.api_provider import ApiProvider, SamApiProvider
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -801,7 +802,6 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        print(provider.apis)
         assertCountEqual(self, expected_apis, provider.apis)
 
     def test_must_add_explicit_api_when_ref_with_rest_api_id(self):
@@ -1347,6 +1347,157 @@ class TestSamStageValues(TestCase):
         self.assertIn(api1, result)
         self.assertIn(api2, result)
         self.assertIn(api3, result)
+
+
+class TestApiProviderSelection(TestCase):
+    def test_api_provider_sam_api(self):
+        resources = {
+            "TestApi": {
+                "Type": "AWS::Serverless::Api",
+                "Properties": {
+                    "StageName": "dev",
+                    "DefinitionBody": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider.find_correct_api_provider(resources)
+        self.assertTrue(isinstance(provider, SamApiProvider))
+
+    def test_api_provider_sam_function(self):
+        resources = {
+            "TestApi": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {
+                    "StageName": "dev",
+                    "DefinitionBody": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider.find_correct_api_provider(resources)
+
+        self.assertTrue(isinstance(provider, SamApiProvider))
+
+    def test_api_provider_cloud_formation(self):
+        resources = {
+            "TestApi": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                    "StageName": "dev",
+                    "Body": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider.find_correct_api_provider(resources)
+        self.assertTrue(isinstance(provider, CFApiProvider))
+
+    def test_multiple_api_provider_cloud_formation(self):
+        resources = {
+            "TestApi": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                    "StageName": "dev",
+                    "Body": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            }
+
+                        }
+                    }
+                }
+            },
+            "OtherApi": {
+                "Type": "AWS::Serverless::Api",
+                "Properties": {
+                    "StageName": "dev",
+                    "DefinitionBody": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider.find_correct_api_provider(resources)
+        self.assertTrue(isinstance(provider, CFApiProvider))
 
 
 def make_swagger(apis, binary_media_types=None):

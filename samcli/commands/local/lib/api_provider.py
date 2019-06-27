@@ -2,17 +2,17 @@
 
 import logging
 
+from samcli.commands.local.lib.cf_base_api_provider import CFBaseApiProvider
 from samcli.commands.local.lib.api_collector import ApiCollector
-from samcli.commands.local.lib.cf_api_provider import CFApiProvider
 from samcli.commands.local.lib.provider import AbstractApiProvider
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.cf_api_provider import CFApiProvider
 
 LOG = logging.getLogger(__name__)
 
 
 class ApiProvider(AbstractApiProvider):
-    _TYPE = "Type"
 
     def __init__(self, template_dict, parameter_overrides=None, cwd=None):
         """
@@ -55,8 +55,8 @@ class ApiProvider(AbstractApiProvider):
 
     def _extract_apis(self, resources):
         """
-        Extracts all the Apis by running through the different providers. The different providers parse the output and
-        the relevant Apis to the collector
+        Extracts all the Apis by running through the one providers. The provider that has the first type matched
+        will be run across all the resources
 
         Parameters
         ----------
@@ -67,18 +67,29 @@ class ApiProvider(AbstractApiProvider):
         list of Apis extracted from the resources
         """
         collector = ApiCollector()
-        # AWS::Serverless::Function is currently included when parsing of Apis because when SamBaseProvider is run on
-        # the template we are creating the implicit apis due to plugins that translate it in the SAM repo,
-        # which we later merge with the explicit ones in SamApiProvider.merge_apis. This requires the code to be
-        # parsed here and in InvokeContext.
-
-        providers = {SamApiProvider.SERVERLESS_API: SamApiProvider(),
-                     SamApiProvider.SERVERLESS_FUNCTION: SamApiProvider(),
-                     CFApiProvider.APIGATEWAY_RESTAPI: CFApiProvider()}
-        for logical_id, resource in resources.items():
-            resource_type = resource.get(self._TYPE)
-            providers.get(resource_type, SamApiProvider()) \
-                .extract_resource_api(resource_type, logical_id, resource, collector,
-                                      cwd=self.cwd)
-        apis = SamApiProvider.merge_apis(collector)
+        provider = self.find_correct_api_provider(resources)
+        apis = provider.extract_resource_api(resources, collector, cwd=self.cwd)
         return self.normalize_apis(apis)
+
+    @staticmethod
+    def find_correct_api_provider(resources):
+        """
+        Finds the correct ApiProvider given the type of the first resource
+
+        Parameters
+        -----------
+        resources: dict
+            The dictionary containing the different resources within the template
+
+        Return
+        ----------
+        Instance of the ApiProvider that will be run on the template
+        :return:
+        """
+        for _, resource in resources.items():
+            if resource.get(CFBaseApiProvider.RESOURCE_TYPE) in SamApiProvider.TYPES:
+                return SamApiProvider()
+            elif resource.get(CFBaseApiProvider.RESOURCE_TYPE) in CFApiProvider.TYPES:
+                return CFApiProvider()
+
+        return SamApiProvider()
