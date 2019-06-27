@@ -3,11 +3,11 @@
 import logging
 
 from samcli.commands.local.lib.route_collector import RouteCollector
-from samcli.commands.local.lib.cf_base_api_provider import CFBaseApiProvider
+from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.local.lib.provider import AbstractApiProvider, Api
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
-from samcli.commands.local.lib.cf_api_provider import CFApiProvider
+from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -68,14 +68,14 @@ class ApiProvider(AbstractApiProvider):
         list of routes extracted from the resources
         """
         collector = RouteCollector()
-        provider = self.find_correct_api_provider(resources)
+        provider = self.find_api_provider(resources)
         routes = provider.extract_resources(resources, collector, api=self.api, cwd=self.cwd)
         return self.normalize_routes(routes)
 
     @staticmethod
-    def find_correct_api_provider(resources):
+    def find_api_provider(resources):
         """
-        Finds the correct ApiProvider given the type of the first resource
+        Finds the ApiProvider given the first api type of the resource
 
         Parameters
         -----------
@@ -84,13 +84,12 @@ class ApiProvider(AbstractApiProvider):
 
         Return
         ----------
-        Instance of the ApiProvider that will be run on the template
-        :return:
+        Instance of the ApiProvider that will be run on the template with a default of SamApiProvider
         """
         for _, resource in resources.items():
-            if resource.get(CFBaseApiProvider.RESOURCE_TYPE) in SamApiProvider.TYPES:
+            if resource.get(CfnBaseApiProvider.RESOURCE_TYPE) in SamApiProvider.TYPES:
                 return SamApiProvider()
-            elif resource.get(CFBaseApiProvider.RESOURCE_TYPE) in CFApiProvider.TYPES:
-                return CFApiProvider()
+            elif resource.get(CfnBaseApiProvider.RESOURCE_TYPE) in CfnApiProvider.TYPES:
+                return CfnApiProvider()
 
         return SamApiProvider()

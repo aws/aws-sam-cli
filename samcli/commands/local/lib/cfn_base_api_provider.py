@@ -1,5 +1,4 @@
 """Class that parses the CloudFormation Api Template"""
-
 import logging
 
 from six import string_types
@@ -10,7 +9,7 @@ from samcli.commands.local.lib.swagger.reader import SwaggerReader
 LOG = logging.getLogger(__name__)
 
 
-class CFBaseApiProvider(object):
+class CfnBaseApiProvider(object):
     RESOURCE_TYPE = "Type"
 
     def extract_resources(self, resources, collector, api, cwd=None):

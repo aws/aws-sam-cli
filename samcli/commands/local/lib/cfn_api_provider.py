@@ -1,12 +1,12 @@
 """Parses SAM given a template"""
 import logging
 
-from samcli.commands.local.lib.cf_base_api_provider import CFBaseApiProvider
+from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 
 LOG = logging.getLogger(__name__)
 
 
-class CFApiProvider(CFBaseApiProvider):
+class CfnApiProvider(CfnBaseApiProvider):
     APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
     APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
     TYPES = [
@@ -37,11 +37,11 @@ class CFApiProvider(CFBaseApiProvider):
         Returns a list of routes
         """
         for logical_id, resource in resources.items():
-            resource_type = resource.get(CFBaseApiProvider.RESOURCE_TYPE)
-            if resource_type == CFApiProvider.APIGATEWAY_RESTAPI:
+            resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
+            if resource_type == CfnApiProvider.APIGATEWAY_RESTAPI:
                 self._extract_cloud_formation_route(logical_id, resource, collector, api=api, cwd=cwd)
 
-            if resource_type == CFApiProvider.APIGATEWAY_STAGE:
+            if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
                 self._extract_cloud_formation_stage(resource, api)
 
         all_apis = []
@@ -67,15 +67,15 @@ class CFApiProvider(CFBaseApiProvider):
         """
         properties = api_resource.get("Properties", {})
         body = properties.get("Body")
-        s3_location = properties.get("BodyS3Location")
+        body_s3_location = properties.get("BodyS3Location")
         binary_media = properties.get("BinaryMediaTypes", [])
 
-        if not body and not s3_location:
+        if not body and not body_s3_location:
             # Swagger is not found anywhere.
             LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
                       logical_id)
             return
-        self.extract_swagger_route(logical_id, body, s3_location, binary_media, collector, api, cwd)
+        self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, api, cwd)
 
     @staticmethod
     def _extract_cloud_formation_stage(api_resource, api):
