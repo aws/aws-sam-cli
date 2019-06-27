@@ -481,14 +481,11 @@ class LocalApigwService(BaseLocalService):
         -------
             Dictionary with CORS headers
         """
-        headers = {}
-        if cors.allow_origin is not None:
-            headers['Access-Control-Allow-Origin'] = cors.allow_origin
-        if cors.allow_methods is not None:
-            headers['Access-Control-Allow-Methods'] = cors.allow_methods
-        if cors.allow_headers is not None:
-            headers['Access-Control-Allow-Headers'] = cors.allow_headers
-        if cors.max_age is not None:
-            headers['Access-Control-Max-Age'] = cors.max_age
+        headers = {
+            'Access-Control-Allow-Origin': cors.allow_origin,
+            'Access-Control-Allow-Methods': cors.allow_methods,
+            'Access-Control-Allow-Headers': cors.allow_headers,
+            'Access-Control-Max-Age': cors.max_age
+        }
 
-        return headers
+        return {h_key: h_value for h_key, h_value in headers.items() if h_value is not None}

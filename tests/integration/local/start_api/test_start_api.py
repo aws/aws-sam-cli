@@ -554,7 +554,7 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
 
 class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     """
-    Test to check that the correct headers are being added with cors
+    Test to check that the correct headers are being added with Cors with swagger code
     """
     template_path = "/testdata/start_api/swagger-template.yaml"
     binary_data_file = "testdata/start_api/binarydata.gif"
@@ -564,7 +564,7 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
 
     def test_cors_swagger_options(self):
         """
-        This tests that the service can accept and invoke a lambda when given binary data in a request
+        This tests that the Cors are added to option requests in the swagger template
         """
         response = requests.options(self.url + '/echobase64eventbody')
 
@@ -577,7 +577,7 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
 
     def test_cors_swagger_post(self):
         """
-        This tests that the service can accept and invoke a lambda when given binary data in a request
+        This tests that the Cors are added to post requests in the swagger template
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(self.url + '/echobase64eventbody',
@@ -595,7 +595,7 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
 
 class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
     """
-    Test to check that the correct headers are being added with cors
+    Test to check that the correct headers are being added with Cors with the global property
     """
     template_path = "/testdata/start_api/template.yaml"
 
@@ -604,7 +604,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
 
     def test_cors_global(self):
         """
-        This tests that the service can accept and invoke a lambda when given binary data in a request
+        This tests that the Cors are added to options requests when the global property is set
         """
         response = requests.options(self.url + '/echobase64eventbody')
 
@@ -617,7 +617,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
 
     def test_cors_global_get(self):
         """
-        This tests that the service can accept and invoke a lambda when given binary data in a request
+        This tests that the Cors are added to post requests when the global property is set
         """
         response = requests.get(self.url + "/onlysetstatuscode")
 
