@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, ANY
+from mock import Mock, patch, ANY, MagicMock
 import json
 import base64
 
@@ -32,11 +32,12 @@ class TestApiGatewayService(TestCase):
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
         self.service._construct_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", "headers", "body")
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.service._parse_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -56,11 +57,13 @@ class TestApiGatewayService(TestCase):
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
+
         self.service._construct_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", "headers", "body")
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.service._parse_lambda_output = parse_output_mock
 
         lambda_logs = "logs"
@@ -85,11 +88,12 @@ class TestApiGatewayService(TestCase):
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
         self.service._construct_event = Mock()
+        self.service._get_current_route.methods = []
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", "headers", "body")
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.service._parse_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
@@ -153,7 +157,8 @@ class TestApiGatewayService(TestCase):
     def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch):
         not_found_response_mock = Mock()
         self.service._construct_event = Mock()
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
 
         service_error_responses_patch.lambda_not_found_response.return_value = not_found_response_mock
 
@@ -183,7 +188,8 @@ class TestApiGatewayService(TestCase):
         service_error_responses_patch.lambda_failure_response.return_value = failure_response_mock
 
         self.service._construct_event = Mock()
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
 
         result = self.service._request_handler()
 
@@ -202,7 +208,9 @@ class TestApiGatewayService(TestCase):
     def test_request_handler_errors_when_unable_to_read_binary_data(self, service_error_responses_patch):
         _construct_event = Mock()
         _construct_event.side_effect = UnicodeDecodeError("utf8", b"obj", 1, 2, "reason")
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
+
         self.service._construct_event = _construct_event
 
         failure_mock = Mock()
