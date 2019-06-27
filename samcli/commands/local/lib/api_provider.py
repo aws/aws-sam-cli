@@ -54,7 +54,24 @@ class ApiProvider(AbstractApiProvider):
             yield api
 
     def _extract_apis(self, resources):
+        """
+        Extracts all the Apis by running through the different providers. The different providers parse the output and
+        the relevant Apis to the collector
+
+        Parameters
+        ----------
+        resources: dict
+            The dictionary containing the different resources within the template
+        Returns
+        ---------
+        list of Apis extracted from the resources
+        """
         collector = ApiCollector()
+        # AWS::Serverless::Function is currently included when parsing of Apis because when SamBaseProvider is run on
+        # the template we are creating the implicit apis due to plugins that translate it in the SAM repo,
+        # which we later merge with the explicit ones in SamApiProvider.merge_apis. This requires the code to be
+        # parsed here and in InvokeContext.
+
         providers = {SamApiProvider.SERVERLESS_API: SamApiProvider(),
                      SamApiProvider.SERVERLESS_FUNCTION: SamApiProvider(),
                      CFApiProvider.APIGATEWAY_RESTAPI: CFApiProvider()}
