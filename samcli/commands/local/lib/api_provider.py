@@ -18,10 +18,7 @@ class ApiProvider(AbstractApiProvider):
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
     _TYPE = "Type"
 
-    PROVIDER_TYPE_CLOUD_FORMATION = "CF"
-
-    def __init__(self, template_dict, parameter_overrides=None, cwd=None,
-                 provider_type=None):
+    def __init__(self, template_dict, parameter_overrides=None, cwd=None):
         """
         Initialize the class with template data. The template_dict is assumed
         to be valid, normalized and a dictionary. template_dict should be normalized by running any and all
@@ -38,15 +35,7 @@ class ApiProvider(AbstractApiProvider):
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
-
-        provider_type: AbstractParserProvider
-            Object to parse the api configurations
         """
-        self.provider_type = provider_type or self.PROVIDER_TYPE_CLOUD_FORMATION
-
-        if self.provider_type != self.PROVIDER_TYPE_CLOUD_FORMATION:
-            raise NotImplementedError("not implemented")
-
         self.template_dict = SamBaseProvider.get_template(template_dict, parameter_overrides)
         self.resources = self.template_dict.get("Resources", {})
 
@@ -66,36 +55,66 @@ class ApiProvider(AbstractApiProvider):
         :yields Api: namedtuple containing the Api information
         """
 
-        for api in self.routes:
-            yield api
+        for route in self.routes:
+            yield route
 
     def _extract_routes(self, resources):
-        """
-        Extract all Routes from the resource
-
-        :param dict resources: Dictionary of resources
-        :return: List of nametuple Api
-        """
-
         collector = RouteCollector()
-        providers = {Provider.RESOURCE_TYPE: Provider() for Provider in AbstractParserProvider.__subclasses__() if
-                     Provider.PROVIDER_TYPE == self.provider_type}
-
+        providers = {SamApiProvider.SERVERLESS_API: SamApiProvider(),
+                     SamApiProvider.SERVERLESS_FUNCTION: SamApiProvider(),
+                     CFApiProvider.APIGATEWAY_RESTAPI: CFApiProvider()}
         for logical_id, resource in resources.items():
-            resource_type = resource.get(ApiProvider._TYPE)
-            provider = providers.get(resource_type)
-            if provider:
-                provider.extract_route(logical_id, resource, collector, api=self.api, cwd=self.cwd)
+            resource_type = resource.get(self._TYPE)
+            providers.get(resource_type, SamApiProvider()) \
+                .extract_resource_route(resource_type, logical_id, resource, collector, self.api,
+                                        cwd=self.cwd)
+        apis = self._merge_apis(collector)
+        return self._normalize_apis(apis)
 
-        routes = ApiProvider._merge_routes(collector)
+    @staticmethod
+    def _normalize_http_methods(http_method):
+        """
+        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
+        supported Http Methods on Api Gateway.
+
+        :param str http_method: Http method
+        :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        """
+
+        if http_method.upper() == 'ANY':
+            for method in Route.ANY_HTTP_METHODS:
+                yield method.upper()
+        else:
+            yield http_method.upper()
+
+    @staticmethod
+    def _normalize_apis(routes):
+        """
+        Normalize the APIs to use standard method name
+
+        Parameters
+        ----------
+        apis : list of local.apigw.local_apigw_service.Route
+            List of Routes to replace normalize
+
+        Returns
+        -------
+        list of local.apigw.local_apigw_service.Route
+            List of normalized Routes
+        """
+
+        for route in routes:
+            for normalized_method in ApiProvider._normalize_http_methods(route.method):
+                # _replace returns a copy of the namedtuple. This is the official way of creating copies of namedtuple
+                route.method = normalized_method
         return routes
 
     @staticmethod
-    def _merge_routes(collector):
+    def _merge_apis(collector):
         """
-        Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit Route
-        definition wins because that conveys clear intent that the Route is backed by a function. This method will
-        merge two such list of Routes with the right order of precedence. If a Path+Method combination is defined
+        Quite often, an API is defined both in Implicit and Explicit API definitions. In such cases, Implicit API
+        definition wins because that conveys clear intent that the API is backed by a function. This method will
+        merge two such list of Apis with the right order of precedence. If a Path+Method combination is defined
         in both the places, only one wins.
 
         Parameters
@@ -216,60 +235,26 @@ class RouteCollector(object):
         return self.by_resource[logical_id]
 
 
-class AbstractParserProvider(object):
-    """
-    Abstract Class to parse the api configurations. This makes it an easier transition to supporting multiple formats.
-    """
-
-    def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
-        """
-        Extract the Api Object from a given resource and adds it to the ApiCollector.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource : dict
-            Resource definition, including its properties
-
-        collector: RouteCollector
-            Instance of the Route collector that where we will save the Route information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api object to collect all the attributes associated with it.
-
-        cwd : str
-            Optional working directory with respect to which we will resolve relative path to Swagger file
-
-        """
-        raise NotImplementedError("not implemented")
+class CFBaseApiProvider(object):
 
     @staticmethod
     def extract_swagger_routes(logical_id, body, uri, binary_media, collector, api, cwd=None):
         """
         Parse the Swagger documents and adds it to the ApiCollector.
-
         Parameters
         ----------
         logical_id : str
             Logical ID of the resource
-
         body : dict
             The body of the RestApi
-
         uri : str or dict
             The url to location of the RestApi
-
         binary_media: list
             The link to the binary media
-
-        collector: RouteCollector
+        collector: ApiCollector
             Instance of the API collector that where we will save the API information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api object to collect all the attributes associated with it.
-
+        api: Api
+            Instace of Api object to hold the properties
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
         """
@@ -282,46 +267,88 @@ class AbstractParserProvider(object):
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
 
         collector.add_routes(logical_id, routes)
-        for media_type in parser.get_binary_media_types() + binary_media:
-            normalized_type = ApiProvider.normalize_binary_media_type(media_type)
-            if normalized_type:
-                api.binary_media_types_set.add(normalized_type)
+        api.binary_media_types_set.add(parser.get_binary_media_types())  # Binary media from swagger
+        api.binary_media_types_set.add(binary_media)  # Binary media specified on resource in template
+
+    def extract_resource_route(self, resource_type, logical_id, api_resource, collector, api, cwd=None):
+        raise NotImplementedError("not implemented")
 
 
-class FunctionParserProvider(AbstractParserProvider):
-    RESOURCE_TYPE = "AWS::Serverless::Function"
-    PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
-    _FUNCTION_EVENT_TYPE_ROUTE = "Api"
+class SamApiProvider(CFBaseApiProvider):
+    SERVERLESS_FUNCTION = "AWS::Serverless::Function"
+    SERVERLESS_API = "AWS::Serverless::Api"
+    TYPES = [
+        SERVERLESS_FUNCTION,
+        SERVERLESS_API
+    ]
+    _FUNCTION_EVENT_TYPE_API = "Api"
     _FUNCTION_EVENT = "Events"
     _EVENT_PATH = "Path"
     _EVENT_METHOD = "Method"
     _EVENT_TYPE = "Type"
 
-    def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
+    def extract_resource_route(self, resource_type, logical_id, api_resource, collector, api, cwd=None):
         """
         Extract the Api Object from a given resource and adds it to the ApiCollector.
 
         Parameters
         ----------
+        resource_type: str
+            The resource property type
         logical_id : str
             Logical ID of the resource
 
         api_resource: dict
             Contents of the function resource including its properties\
 
-        collector: RouteCollector
+        collector: ApiCollector
             Instance of the API collector that where we will save the API information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api object to collect all the attributes associated with it.
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
-        """
-        return self._extract_routes_from_function(logical_id, api_resource, collector)
 
-    def _extract_routes_from_function(self, logical_id, function_resource, collector):
+        """
+        if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
+            return self._extract_apis_from_function(logical_id, api_resource, collector)
+
+        if resource_type == SamApiProvider.SERVERLESS_API:
+            return self._extract_from_serverless_api(logical_id, api_resource, collector, api, cwd)
+
+    def _extract_from_serverless_api(self, logical_id, api_resource, collector, api, cwd=None):
+        """
+        Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
+        to the collector.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector : ApiCollector
+            Instance of the API collector that where we will save the API information
+        """
+
+        properties = api_resource.get("Properties", {})
+        body = properties.get("DefinitionBody")
+        uri = properties.get("DefinitionUri")
+        binary_media = properties.get("BinaryMediaTypes", [])
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("Variables")
+
+        if not body and not uri:
+            # Swagger is not found anywhere.
+            LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
+                      logical_id)
+            return
+        self.extract_swagger_routes(logical_id, body, uri, binary_media, collector, cwd)
+        api.stage_name = stage_name
+        api.stage_variables = stage_variables
+
+    def _extract_apis_from_function(self, logical_id, function_resource, collector):
         """
         Fetches a list of APIs configured for this SAM Function resource.
 
@@ -360,9 +387,9 @@ class FunctionParserProvider(AbstractParserProvider):
         count = 0
         for _, event in serverless_function_events.items():
 
-            if self._FUNCTION_EVENT_TYPE_ROUTE == event.get(self._EVENT_TYPE):
-                api_resource_id, routes = self._convert_event_route(function_logical_id, event.get("Properties"))
-                collector.add_routes(api_resource_id, routes)
+            if self._FUNCTION_EVENT_TYPE_API == event.get(self._EVENT_TYPE):
+                api_resource_id, route = self._convert_event_route(function_logical_id, event.get("Properties"))
+                collector.add_routes(api_resource_id, [route])
                 count += 1
 
         LOG.debug("Found '%d' API Events in Serverless function with name '%s'", count, function_logical_id)
@@ -376,108 +403,33 @@ class FunctionParserProvider(AbstractParserProvider):
         :param dict event_properties: Dictionary of the Event's Property
         :return tuple: tuple of API resource name and Api namedTuple
         """
-        path = event_properties.get(FunctionParserProvider._EVENT_PATH)
-        method = event_properties.get(FunctionParserProvider._EVENT_METHOD)
+        path = event_properties.get(SamApiProvider._EVENT_PATH)
+        method = event_properties.get(SamApiProvider._EVENT_METHOD)
 
         # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
         # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
         # "Ref" of the logicalID
-        resource_id = event_properties.get("RestApiId", ApiProvider.IMPLICIT_API_RESOURCE_ID)
-        if isinstance(resource_id, dict) and "Ref" in resource_id:
-            resource_id = resource_id["Ref"]
-        routes = Route.get_normalized_routes(function_name=lambda_logical_id, path=path, method=method)
-        return resource_id, routes
+        api_resource_id = event_properties.get("RestApiId", ApiProvider.IMPLICIT_API_RESOURCE_ID)
+        if isinstance(api_resource_id, dict) and "Ref" in api_resource_id:
+            api_resource_id = api_resource_id["Ref"]
+
+        return api_resource_id, Route(path=path, method=method, function_name=lambda_logical_id)
 
 
-class SAMAParserApiProvider(AbstractParserProvider):
-    RESOURCE_TYPE = "AWS::Serverless::Api"
-    PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
+class CFApiProvider(CFBaseApiProvider):
+    APIGATEWAY_RESTAPI = "AWS::ApiGateway::RestApi"
+    APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
+    TYPES = [
+        APIGATEWAY_RESTAPI,
+        APIGATEWAY_STAGE
+    ]
 
-    def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
-        """
-        Extract the Api Object from a given resource and adds it to the ApiCollector.
+    def extract_resource_route(self, resource_type, logical_id, api_resource, collector, api, cwd=None):
+        if resource_type == CFApiProvider.APIGATEWAY_RESTAPI:
+            return self._extract_cloud_formation_api(logical_id, api_resource, collector, api, cwd)
 
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource : dict
-            Resource definition, including its properties
-
-        collector: RouteCollector
-            Instance of the Route collector that where we will save the Route information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api object to collect all the attributes associated with it.
-
-        cwd : str
-            Optional working directory with respect to which we will resolve relative path to Swagger file
-
-        """
-        return self._extract_from_serverless_api(logical_id, api_resource, collector, api, cwd)
-
-    def _extract_from_serverless_api(self, logical_id, api_resource, collector, api, cwd=None):
-        """
-        Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
-        to the collector.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api : samcli.commands.local.lib.provider.Api
-            Resource definition, including its properties
-
-        collector : RouteCollector
-            Instance of the API collector that where we will save the API information
-        """
-
-        properties = api_resource.get("Properties", {})
-        body = properties.get("DefinitionBody")
-        uri = properties.get("DefinitionUri")
-        binary_media = properties.get("BinaryMediaTypes", [])
-        stage_name = properties.get("StageName")
-        stage_variables = properties.get("Variables")
-
-        if not body and not uri:
-            # Swagger is not found anywhere.
-            LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
-                      logical_id)
-            return
-        self.extract_swagger_routes(logical_id, body, uri, binary_media, collector, api, cwd)
-        api.stage_name = stage_name
-        api.stage_variables = stage_variables
-
-
-class CFParserApiProvider(AbstractParserProvider):
-    RESOURCE_TYPE = "AWS::ApiGateway::RestApi"
-    PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
-
-    def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
-        """
-        Extract the Api Object from a given resource and adds it to the ApiCollector.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource : dict
-            Resource definition, including its properties
-
-        collector: RouteCollector
-            Instance of the Route collector that where we will save the Route information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api object to collect all the attributes associated with it.
-
-        cwd : str
-            Optional working directory with respect to which we will resolve relative path to Swagger file
-
-        """
-        return self._extract_cloud_formation_api(logical_id, api_resource, collector, api, cwd)
+        if resource_type == CFApiProvider.APIGATEWAY_STAGE:
+            return self._extract_cloud_formation_stage(api_resource, api)
 
     def _extract_cloud_formation_api(self, logical_id, api_resource, collector, api, cwd=None):
         """
@@ -506,35 +458,6 @@ class CFParserApiProvider(AbstractParserProvider):
                       logical_id)
             return
         self.extract_swagger_routes(logical_id, body, s3_location, binary_media, collector, api, cwd)
-
-
-class CFParserStageProvider(AbstractParserProvider):
-    RESOURCE_TYPE = "AWS::ApiGateway::Stage"
-    PROVIDER_TYPE = ApiProvider.PROVIDER_TYPE_CLOUD_FORMATION
-
-    def extract_route(self, logical_id, api_resource, collector, api, cwd=None):
-        """
-        Extract the Api Object from a given resource and adds it to the ApiCollector.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        api_resource : dict
-            Resource definition, including its properties
-
-        collector: RouteCollector
-            Instance of the Route collector that where we will save the Route information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api object to collect all the attributes associated with it.
-
-        cwd : str
-            Optional working directory with respect to which we will resolve relative path to Swagger file
-
-        """
-        return self._extract_cloud_formation_stage(api_resource, api)
 
     @staticmethod
     def _extract_cloud_formation_stage(api_resource, api):

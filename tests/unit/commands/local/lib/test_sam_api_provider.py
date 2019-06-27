@@ -6,8 +6,8 @@ from mock import patch
 from nose_parameterized import parameterized
 from six import assertCountEqual
 
-from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib.api_provider import ApiProvider
+from samcli.local.apigw.local_apigw_service import Route
 
 
 class TestSamApiProvider_init(TestCase):

@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
-    _ANY_HTTP_METHODS = ["GET",
+    ANY_HTTP_METHODS = ["GET",
                          "DELETE",
                          "PUT",
                          "POST",
@@ -56,7 +56,7 @@ class Route(object):
         """
 
         if http_method.upper() == 'ANY':
-            return Route._ANY_HTTP_METHODS
+            return Route.ANY_HTTP_METHODS
         return [http_method.upper()]
 
     @staticmethod
