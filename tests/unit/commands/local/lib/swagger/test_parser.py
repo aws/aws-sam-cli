@@ -1,7 +1,7 @@
 """
 Test the swagger parser
 """
-
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.provider import Api
 
@@ -41,6 +41,23 @@ class TestSwaggerParser_get_apis(TestCase):
                 "uri": "someuri"
             }
         })
+
+    def test_validation_error_type(self):
+        swagger = {
+            "paths": {
+                "/path1": {
+                    "get": {
+                        "x-amazon-apigateway-integration": {
+                            "type": "aws",
+                            "uri": "someuri"
+                        }
+                    }
+                }
+            }
+        }
+
+        parser = SwaggerParser(swagger)
+        self.assertRaises(parser.get_apis(), InvalidSamDocumentException)
 
     def test_with_combination_of_paths_methods(self):
         function_name = "myfunction"
@@ -146,7 +163,6 @@ class TestSwaggerParser_get_apis(TestCase):
         }})
     ])
     def test_invalid_swagger(self, test_case_name, swagger):
-
         parser = SwaggerParser(swagger)
         result = parser.get_apis()
 

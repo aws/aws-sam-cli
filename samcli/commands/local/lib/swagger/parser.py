@@ -2,6 +2,7 @@
 
 import logging
 
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri, IntegrationType
 
@@ -9,7 +10,6 @@ LOG = logging.getLogger(__name__)
 
 
 class SwaggerParser(object):
-
     _INTEGRATION_KEY = "x-amazon-apigateway-integration"
     _ANY_METHOD_EXTENSION_KEY = "x-amazon-apigateway-any-method"
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
@@ -113,9 +113,12 @@ class SwaggerParser(object):
             return None
 
         integration = method_config[self._INTEGRATION_KEY]
+        if integration and isinstance(integration, dict):
 
-        if integration \
-                and isinstance(integration, dict) \
-                and integration.get("type") == IntegrationType.aws_proxy.value:
-            # Integration must be "aws_proxy" otherwise we don't care about it
+            if integration.get("type") != IntegrationType.aws_proxy.value:
+                raise InvalidSamDocumentException(
+                    "The property {} is currently not supported in the swagger definition. Only type: aws_proxy is "
+                    "supported".format(
+                        integration.get("type")))
+
             return LambdaUri.get_function_name(integration.get("uri"))
