@@ -13,21 +13,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNorma
 LOG = logging.getLogger(__name__)
 
 
-class BaseProvider(object):
-    @staticmethod
-    def get_template(template_dict, parameter_overrides=None):
-        pass
-
-    @staticmethod
-    def _get_parameter_values(template_dict, parameter_overrides):
-        pass
-
-    @staticmethod
-    def _get_default_parameter_values(sam_template):
-        pass
-
-
-class SamBaseProvider(BaseProvider):
+class SamBaseProvider(object):
     """
     Base class for SAM Template providers
     """
