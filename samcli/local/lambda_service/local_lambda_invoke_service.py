@@ -3,6 +3,7 @@
 import json
 import logging
 import io
+import time
 
 from flask import Flask, request
 
@@ -142,7 +143,9 @@ class LocalLambdaInvokeService(BaseLocalService):
         stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
         try:
+            start_time = time.time()
             self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
+            LOG.info("Running the function took: %s", str(time.time() - start_time))
         except FunctionNotFound:
             LOG.debug('%s was not found to invoke.', function_name)
             return LambdaErrorResponses.resource_not_found(function_name)
