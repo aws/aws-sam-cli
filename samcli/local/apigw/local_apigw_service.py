@@ -81,7 +81,8 @@ class Route(object):
 
     @staticmethod
     def get_normalized_routes(function_name, path, method):
-        return [Route(function_name, path, method) for method in Route.normalize_http_methods(method)]
+        return [Route(function_name, path, normalized_method) for normalized_method in
+                Route.normalize_http_methods(method)]
 
 
 class LocalApigwService(BaseLocalService):
