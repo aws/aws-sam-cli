@@ -1,14 +1,36 @@
 """Class that parses the CloudFormation Api Template"""
 
 import logging
+
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
 
 LOG = logging.getLogger(__name__)
 
 
-class CFBaseApiProvider(object):
+class CfnBaseApiProvider(object):
     RESOURCE_TYPE = "Type"
+
+    def extract_resource_api(self, resources, collector, cwd=None):
+        """
+        Extract the Api Object from a given resource and adds it to the ApiCollector.
+
+        Parameters
+        ----------
+        resources: dict
+            The dictionary containing the different resources within the template
+
+        collector: ApiCollector
+            Instance of the API collector that where we will save the API information
+
+        cwd : str
+            Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        Return
+        -------
+        Returns a list of Apis
+        """
+        raise NotImplementedError("not implemented")
 
     @staticmethod
     def extract_swagger_api(logical_id, body, uri, binary_media, collector, cwd=None):

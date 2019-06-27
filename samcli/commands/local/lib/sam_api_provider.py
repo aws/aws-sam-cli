@@ -4,12 +4,12 @@ import logging
 
 from samcli.commands.local.lib.provider import Api, AbstractApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.lib.cf_base_api_provider import CFBaseApiProvider
+from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 
 LOG = logging.getLogger(__name__)
 
 
-class SamApiProvider(CFBaseApiProvider):
+class SamApiProvider(CfnBaseApiProvider):
     SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     SERVERLESS_API = "AWS::Serverless::Api"
     TYPES = [
@@ -47,7 +47,7 @@ class SamApiProvider(CFBaseApiProvider):
         # which we later merge with the explicit ones in SamApiProvider.merge_apis. This requires the code to be
         # parsed here and in InvokeContext.
         for logical_id, resource in resources.items():
-            resource_type = resource.get(CFBaseApiProvider.RESOURCE_TYPE)
+            resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
             if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
                 self._extract_apis_from_function(logical_id, resource, collector)
             if resource_type == SamApiProvider.SERVERLESS_API:
