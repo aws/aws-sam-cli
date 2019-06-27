@@ -57,7 +57,8 @@ class TestSwaggerParser_get_apis(TestCase):
         }
 
         parser = SwaggerParser(swagger)
-        self.assertRaises(parser.get_apis(), InvalidSamDocumentException)
+        with self.assertRaises(InvalidSamDocumentException):
+            parser.get_apis()
 
     def test_with_combination_of_paths_methods(self):
         function_name = "myfunction"
@@ -195,9 +196,6 @@ class TestSwaggerParser_get_integration_function_name(TestCase):
         param("integration key is not in config", {"key": "value"}),
         param("integration value is empty", {"x-amazon-apigateway-integration": {}}),
         param("integration value is not dict", {"x-amazon-apigateway-integration": "someval"}),
-        param("integration type is not aws_proxy", {"x-amazon-apigateway-integration": {
-            "type": "mock",
-        }}),
         param("integration uri is not present", {"x-amazon-apigateway-integration": {
             "type": "aws_proxy"
         }})
@@ -208,8 +206,17 @@ class TestSwaggerParser_get_integration_function_name(TestCase):
 
         parser = SwaggerParser({})
         result = parser._get_integration_function_name(method_config)
-
         self.assertIsNone(result, "must not parse invalid integration")
+
+    @patch('samcli.commands.local.lib.swagger.parser.LambdaUri')
+    def test_invalid_integration_type(self, LambdaUriMock):
+        LambdaUriMock.get_function_name.return_value = None
+        method_config = {"x-amazon-apigateway-integration": {
+            "type": "mock",
+        }}
+        parser = SwaggerParser({})
+        with self.assertRaises(InvalidSamDocumentException):
+            parser._get_integration_function_name(method_config)
 
 
 class TestSwaggerParser_get_binary_media_types(TestCase):
