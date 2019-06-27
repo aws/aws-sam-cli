@@ -19,12 +19,12 @@ LOG = logging.getLogger(__name__)
 
 class Route(object):
     ANY_HTTP_METHODS = ["GET",
-                         "DELETE",
-                         "PUT",
-                         "POST",
-                         "HEAD",
-                         "OPTIONS",
-                         "PATCH"]
+                        "DELETE",
+                        "PUT",
+                        "POST",
+                        "HEAD",
+                        "OPTIONS",
+                        "PATCH"]
 
     def __init__(self, function_name, path, method):
         """
@@ -37,6 +37,26 @@ class Route(object):
         self.method = method.upper()
         self.function_name = function_name
         self.path = path
+
+    @staticmethod
+    def normalize_routes(routes):
+        """
+        Normalize the Routes to use standard method name
+        Parameters
+        ----------
+        route : list of samcli.commands.local.apigw.local_apigw_service.Route
+            List of Routes to replace normalize
+        Returns
+        -------
+        list of list of samcli.commands.local.apigw.local_apigw_service.Route
+            List of normalized Routes
+        """
+
+        result = list()
+        for route in routes:
+            for normalized_method in Route.normalize_http_methods(route.method):
+                result.append(Route(method=normalized_method, function_name=route.function_name, path=route.path))
+        return result
 
     def __eq__(self, other):
         return isinstance(other, Route) and \

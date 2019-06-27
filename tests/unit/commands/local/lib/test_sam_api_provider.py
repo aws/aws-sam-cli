@@ -478,7 +478,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             provider = ApiProvider(template)
             assertCountEqual(self, self.input_apis, provider.routes)
 
-    @patch("samcli.commands.local.lib.api_provider.SwaggerReader")
+    @patch("samcli.commands.local.lib.cf_base_api_provider.SwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
@@ -1019,7 +1019,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             }
             self.assertRaises(Exception, ApiProvider, template)
 
-    @patch("samcli.commands.local.lib.api_provider.SwaggerReader")
+    @patch("samcli.commands.local.lib.cf_base_api_provider.SwaggerReader")
     def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
@@ -1396,7 +1396,6 @@ class TestCloudFormationStageValues(TestCase):
         }
         provider = ApiProvider(template)
         route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
-
         self.assertIn(route1, provider.routes)
         self.assertEquals(provider.api.stage_name, "dev")
         self.assertEquals(provider.api.stage_variables, {

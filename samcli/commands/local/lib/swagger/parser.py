@@ -62,7 +62,7 @@ class SwaggerParser(object):
 
         Returns
         -------
-        list of samcli.commands.local.lib.provider.Api
+        list of list of samcli.commands.local.apigw.local_apigw_service.Route
             List of APIs that are configured in the Swagger document
         """
 
