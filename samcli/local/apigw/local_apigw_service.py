@@ -26,7 +26,7 @@ class Route(object):
                         "OPTIONS",
                         "PATCH"]
 
-    def __init__(self, function_name, path, method):
+    def __init__(self, function_name, path, method, resource_id=None):
         """
         Creates an ApiGatewayRoute
 
@@ -37,6 +37,7 @@ class Route(object):
         self.method = method.upper()
         self.function_name = function_name
         self.path = path
+        self.resource_id = resource_id
 
     @staticmethod
     def normalize_routes(routes):
