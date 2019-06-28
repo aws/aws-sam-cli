@@ -52,7 +52,7 @@ class CfnApiProvider(CfnBaseApiProvider):
                 self._extract_cloud_formation_stage(resource, api)
 
             if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
-                self._extract_cloud_formation_method(logical_id, resource, collector, cwd=cwd)
+                self._extract_cloud_formation_method(resource, collector, cwd=cwd)
 
         all_apis = []
         for _, apis in collector:
@@ -140,7 +140,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         path_part = properties.get("PathPart")
 
         if parent_id:
-            return self.resolve_resource_path(properties.get(parent_id), path_part + current_path)
+            return self.resolve_resource_path(properties.get(parent_id), path_part + "/" + current_path)
         return current_path
 
     def _get_integration_function_name(self, integration):
