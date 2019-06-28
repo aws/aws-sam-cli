@@ -362,12 +362,6 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 502)
         self.assertEquals(response.json(), {"message": "No function defined for resource method"})
 
-    def test_function_with_no_api_event_is_reachable(self):
-        response = requests.get(self.url + "/functionwithnoapievent")
-
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.json(), {'hello': 'world'})
-
     def test_lambda_function_resource_is_reachable(self):
         response = requests.get(self.url + "/nonserverlessfunction")
 

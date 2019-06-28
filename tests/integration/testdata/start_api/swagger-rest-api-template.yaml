@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   Base64ResponseFunction:
     Properties:
-      CodeUri: "."
+      Code: "."
       Handler: main.base64_response
       Runtime: python3.6
     Type: AWS::Lambda::Function
@@ -27,7 +27,7 @@ Resources:
                 responses: {}
                 type: aws_proxy
                 uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyLambdaFunction.Arn}/invocations
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
           "/base64response":
             get:
               x-amazon-apigateway-integration:
@@ -42,14 +42,6 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
-          "/functionwithnoapievent":
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                responses: {}
-                type: aws_proxy
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NoApiEventFunction.Arn}/invocations
           "/nofunctionfound":
             get:
               x-amazon-apigateway-integration:
@@ -76,29 +68,9 @@ Resources:
       RestApiId: !Ref MyApi
       Variables:
       Stack: Dev
-  MyLambdaFunction:
-    Properties:
-      CodeUri: "."
-      Events:
-        GetApi:
-          Properties:
-            Method: GET
-            Path: "/get"
-            RestApiId:
-              Ref: MyApi
-          Type: Api
-      Handler: main.handler
-      Runtime: python3.6
-    Type: AWS::Lambda::Function
   MyNonServerlessLambdaFunction:
     Properties:
-      CodeUri: "."
-      Handler: main.handler
-      Runtime: python3.6
-    Type: AWS::Lambda::Function
-  NoApiEventFunction:
-    Properties:
-      CodeUri: "."
+      Code: "."
       Handler: main.handler
       Runtime: python3.6
     Type: AWS::Lambda::Function
