@@ -1,6 +1,8 @@
 """Parses SAM given a template"""
 import logging
 
+from commands.local.lib.swagger.integration_uri import IntegrationType, LambdaUri
+from local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 
 LOG = logging.getLogger(__name__)
@@ -104,7 +106,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             api.stage_name = stage_name
             api.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, logical_id, api_resource, collector, cwd=None):
+    def _extract_cloud_formation_method(self, api_resource, collector):
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
@@ -120,47 +122,48 @@ class CfnApiProvider(CfnBaseApiProvider):
             Instance of the API collector that where we will save the API information
         """
 
-        def resolve_resource_path(resource, current_path):
-            properties = resource.get("Properties", {})
-            parent_id = properties.get("ParentId")
-            rest_api_id = properties.get("RestApiId")
-            path_part = properties.get("PathPart")
-
-            if parent_id:
-                return resolve_resource_path(properties.get(parent_id), path_part + current_path)
-            return current_path
-
         properties = api_resource.get("Properties", {})
-        parent_resource = api_resource.get("ResourceId")
-        rest_api_id = api_resource.get("RestApiId")
-        method = api_resource.get("HttpMethod")
-        resource_path = resolve_resource_path(parent_resource, "")
+        parent_resource = properties.get("ResourceId")
+        rest_api_id = properties.get("RestApiId")
+        method = properties.get("HttpMethod")
+        resource_path = self.resolve_resource_path(parent_resource, "")
 
-        integration = api_resource.get("Integration")
-        integration_type = api_resource.get("Type")
+        integration = properties.get("Integration")
+        function_name = self._get_integration_function_name(integration)
 
-        #       Integration:
-        #         Type: MOCK
+        route = Route(method=method, function_name=function_name, path=resource_path)
+        collector.add_routes(rest_api_id, [route])
 
-        # {
-        #   "Type" : "AWS::ApiGateway::Method",
-        #   "Properties" : {
-        #       "ApiKeyRequired (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-apikeyrequired)" : Boolean,
-        #       "AuthorizationScopes (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-authorizationscopes)" : [ String, ... ],
-        #       "AuthorizationType (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-authorizationtype)" : String,
-        #       "AuthorizerId (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-authorizerid)" : String,
-        #       "HttpMethod (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-httpmethod)" : String,
-        #       "Integration (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-integration)" : Integration (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html),
-        #       "MethodResponses (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-methodresponses)" : [ MethodResponse (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-methodresponse.html), ... ],
-        #       "OperationName (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-operationname)" : String,
-        #       "RequestModels (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-requestmodels)" : {Key : Value, ...},
-        #       "RequestParameters (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-requestparameters)" : {Key : Value, ...},
-        #       "RequestValidatorId (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-requestvalidatorid)" : String,
-        #       "ResourceId (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-resourceid)" : String,
-        #       "RestApiId (https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigateway-method.html#cfn-apigateway-method-restapiid)" : String
-        #     }
-        # }
+    def resolve_resource_path(self, resource, current_path):
+        properties = resource.get("Properties", {})
+        parent_id = properties.get("ParentId")
+        path_part = properties.get("PathPart")
 
-        body = properties.get("Body")
-        body_s3_location = properties.get("BodyS3Location")
-        binary_media = properties.get("BinaryMediaTypes", [])
+        if parent_id:
+            return self.resolve_resource_path(properties.get(parent_id), path_part + current_path)
+        return current_path
+
+    def _get_integration_function_name(self, integration):
+        """
+        Tries to parse the Lambda Function name from the Integration defined in the method configuration.
+        Integration configuration is defined under the special "x-amazon-apigateway-integration" key. We care only
+        about Lambda integrations, which are of type aws_proxy, and ignore the rest. Integration URI is complex and
+        hard to parse. Hence we do our best to extract function name out of integration URI. If not possible, we
+        return None.
+
+        Parameters
+        ----------
+        method_config : dict
+            Dictionary containing the method configuration which might contain integration settings
+
+        Returns
+        -------
+        string or None
+            Lambda function name, if possible. None, if not.
+        """
+
+        if integration \
+                and isinstance(integration, dict) \
+                and integration.get("type") == IntegrationType.aws_proxy.value:
+            # Integration must be "aws_proxy" otherwise we don't care about it
+            return LambdaUri.get_function_name(integration.get("uri"))
