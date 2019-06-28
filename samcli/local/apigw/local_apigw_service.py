@@ -66,6 +66,10 @@ class Route(object):
     def __hash__(self):
         return hash(self.function_name) * hash(self.path) * hash(self.method)
 
+    def __repr__(self):
+        return "Method: {}, Function Name: {}, Path: {}".format(self.method or "", self.function_name or "",
+                                                                self.path or "")
+
     @staticmethod
     def normalize_http_methods(http_method):
         """
@@ -215,7 +219,7 @@ class LocalApigwService(BaseLocalService):
 
         try:
             (status_code, headers, body) = self._parse_lambda_output(lambda_response,
-                                                                     route.binary_types,
+                                                                     self.api.get_binary_media_types(),
                                                                      request)
         except (KeyError, TypeError, ValueError):
             LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "

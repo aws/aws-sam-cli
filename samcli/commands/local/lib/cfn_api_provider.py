@@ -1,8 +1,8 @@
 """Parses SAM given a template"""
 import logging
 
-from commands.local.lib.swagger.integration_uri import IntegrationType, LambdaUri
-from local.apigw.local_apigw_service import Route
+from samcli.commands.local.lib.swagger.integration_uri import IntegrationType, LambdaUri
+from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 
 LOG = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class CfnApiProvider(CfnBaseApiProvider):
                 self._extract_cloud_formation_stage(resource, api)
 
             if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
-                self._extract_cloud_formation_method(resource, collector, cwd=cwd)
+                self._extract_cloud_formation_method(resources, resource, collector)
 
         all_apis = []
         for _, apis in collector:
@@ -106,7 +106,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             api.stage_name = stage_name
             api.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, api_resource, collector):
+    def _extract_cloud_formation_method(self, resources, api_resource, collector):
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
@@ -123,33 +123,47 @@ class CfnApiProvider(CfnBaseApiProvider):
         """
 
         properties = api_resource.get("Properties", {})
-        parent_resource = properties.get("ResourceId")
+        resource_id = properties.get("ResourceId")
         rest_api_id = properties.get("RestApiId")
         method = properties.get("HttpMethod")
-        resource_path = self.resolve_resource_path(parent_resource, "")
+        resource_path = self.resolve_resource_path(resources, resources.get(resource_id), "")
 
         integration = properties.get("Integration")
         function_name = self._get_integration_function_name(integration)
 
-        route = Route(method=method, function_name=function_name, path=resource_path)
-        collector.add_routes(rest_api_id, [route])
+        routes = Route.get_normalized_routes(method=method, function_name=function_name, path=resource_path)
+        collector.add_routes(rest_api_id, routes)
 
-    def resolve_resource_path(self, resource, current_path):
+    def resolve_resource_path(self, resources, resource, current_path):
+        """
+        Extract path from the Resource object by going up the tree
+
+        Parameters
+        ----------
+        resources: dict
+            Dictionary containing all the resources to resolve
+
+        resource : dict
+            AWS::ApiGateway::Resource definition and its properties
+
+        current_path : str
+            Current path resolved so far
+        """
         properties = resource.get("Properties", {})
         parent_id = properties.get("ParentId")
         path_part = properties.get("PathPart")
 
         if parent_id:
-            return self.resolve_resource_path(properties.get(parent_id), path_part + "/" + current_path)
-        return current_path
+            return self.resolve_resource_path(resources, resources.get(parent_id), "/" + path_part + current_path)
+        return path_part + current_path
 
-    def _get_integration_function_name(self, integration):
+    @staticmethod
+    def _get_integration_function_name(integration):
         """
-        Tries to parse the Lambda Function name from the Integration defined in the method configuration.
-        Integration configuration is defined under the special "x-amazon-apigateway-integration" key. We care only
-        about Lambda integrations, which are of type aws_proxy, and ignore the rest. Integration URI is complex and
-        hard to parse. Hence we do our best to extract function name out of integration URI. If not possible, we
-        return None.
+        Tries to parse the Lambda Function name from the Integration defined in the method configuration. Integration
+        configuration. We care only about Lambda integrations, which are of type aws_proxy, and ignore the rest.
+        Integration URI is complex and hard to parse. Hence we do our best to extract function name out of
+        integration URI. If not possible, we return None.
 
         Parameters
         ----------
@@ -163,7 +177,6 @@ class CfnApiProvider(CfnBaseApiProvider):
         """
 
         if integration \
-                and isinstance(integration, dict) \
-                and integration.get("type") == IntegrationType.aws_proxy.value:
+                and isinstance(integration, dict):
             # Integration must be "aws_proxy" otherwise we don't care about it
-            return LambdaUri.get_function_name(integration.get("uri"))
+            return LambdaUri.get_function_name(integration.get("Uri"))
