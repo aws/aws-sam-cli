@@ -475,7 +475,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             assertCountEqual(self, self.input_apis, provider.apis)
 
     @patch("samcli.commands.local.lib.cfn_base_api_provider.SamSwaggerReader")
-    def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
+    def test_with_swagger_as_both_body_and_uri_called(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
 

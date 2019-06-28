@@ -3,7 +3,9 @@ from unittest import TestCase
 
 from mock import patch
 
-from samcli.commands.local.lib.api_provider import ApiProvider, SamApiProvider, CfnApiProvider
+from samcli.commands.local.lib.api_provider import ApiProvider
+from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
 
 
 class TestApiProvider_init(TestCase):
@@ -25,6 +27,37 @@ class TestApiProvider_init(TestCase):
 
 
 class TestApiProviderSelection(TestCase):
+    def test_default_provider(self):
+        resources = {
+            "TestApi": {
+                "Type": "AWS::UNKNOWN_TYPE",
+                "Properties": {
+                    "StageName": "dev",
+                    "DefinitionBody": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider.find_api_provider(resources)
+        self.assertTrue(isinstance(provider, SamApiProvider))
+
     def test_api_provider_sam_api(self):
         resources = {
             "TestApi": {

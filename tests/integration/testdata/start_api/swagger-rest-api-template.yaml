@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   Base64ResponseFunction:
     Properties:
-      CodeUri: "."
+      Code: "."
       Handler: main.base64_response
       Runtime: python3.6
     Type: AWS::Lambda::Function
@@ -71,27 +71,21 @@ Resources:
     Type: AWS::ApiGateway::RestApi
   MyLambdaFunction:
     Properties:
-      CodeUri: "."
-      Events:
-        GetApi:
-          Properties:
-            Method: GET
-            Path: "/get"
-            RestApiId:
-              Ref: MyApi
-          Type: Api
+      Code: "."
+      RestApiId:
+        Ref: MyApi
       Handler: main.handler
       Runtime: python3.6
     Type: AWS::Lambda::Function
   MyNonServerlessLambdaFunction:
     Properties:
-      CodeUri: "."
+      Code: "."
       Handler: main.handler
       Runtime: python3.6
     Type: AWS::Lambda::Function
   NoApiEventFunction:
     Properties:
-      CodeUri: "."
+      Code: "."
       Handler: main.handler
       Runtime: python3.6
     Type: AWS::Lambda::Function

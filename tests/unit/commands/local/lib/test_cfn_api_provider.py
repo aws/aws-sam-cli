@@ -10,7 +10,7 @@ from samcli.commands.local.lib.provider import Api
 from tests.unit.commands.local.lib.test_sam_api_provider import make_swagger
 
 
-class TestSamApiProviderwithApiGatewayRestApi(TestCase):
+class TestApiProviderWithApiGatewayRestApi(TestCase):
 
     def setUp(self):
         self.binary_types = ["image/png", "image/jpg"]
@@ -102,7 +102,7 @@ class TestSamApiProviderwithApiGatewayRestApi(TestCase):
             self.assertRaises(Exception, ApiProvider, template)
 
     @patch("samcli.commands.local.lib.cfn_base_api_provider.SamSwaggerReader")
-    def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
+    def test_with_swagger_as_both_body_and_uri_called(self, SamSwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
 
