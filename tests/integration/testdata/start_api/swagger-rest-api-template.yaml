@@ -42,14 +42,6 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
-          "/functionwithnoapievent":
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                responses: {}
-                type: aws_proxy
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NoApiEventFunction.Arn}/invocations
           "/nofunctionfound":
             get:
               x-amazon-apigateway-integration:
@@ -78,12 +70,6 @@ Resources:
       Runtime: python3.6
     Type: AWS::Lambda::Function
   MyNonServerlessLambdaFunction:
-    Properties:
-      Code: "."
-      Handler: main.handler
-      Runtime: python3.6
-    Type: AWS::Lambda::Function
-  NoApiEventFunction:
     Properties:
       Code: "."
       Handler: main.handler
