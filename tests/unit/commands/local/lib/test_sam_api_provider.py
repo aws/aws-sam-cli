@@ -1,5 +1,6 @@
 import json
 import tempfile
+from collections import OrderedDict
 from unittest import TestCase
 
 from mock import patch
@@ -461,7 +462,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             assertCountEqual(self, self.input_routes, provider.routes)
 
     @patch("samcli.commands.local.lib.cfn_base_api_provider.SwaggerReader")
-    def test_with_swagger_as_both_body_and_uri(self, SamSwaggerReaderMock):
+    def test_with_swagger_as_both_body_and_uri_called(self, SwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"
 
@@ -479,12 +480,12 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
         }
 
-        SamSwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_routes)
+        SwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_routes)
 
         cwd = "foo"
         provider = ApiProvider(template, cwd=cwd)
         assertCountEqual(self, self.input_routes, provider.routes)
-        SamSwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
+        SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
         routes = [
@@ -907,6 +908,187 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         provider = ApiProvider(self.template)
         assertCountEqual(self, expected_routes, provider.routes)
         assertCountEqual(self, provider.api.get_binary_media_types(), expected_explicit_binary_types)
+
+
+class TestSamStageValues(TestCase):
+
+    def test_provider_parse_stage_name(self):
+        template = {
+            "Resources": {
+
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "dev",
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "httpMethod": "POST",
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        provider = ApiProvider(template)
+        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
+
+        self.assertIn(route1, provider.routes)
+        self.assertEquals(provider.api.stage_name, "dev")
+        self.assertEquals(provider.api.stage_variables, None)
+
+    def test_provider_stage_variables(self):
+        template = {
+            "Resources": {
+
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "dev",
+                        "Variables": {
+                            "vis": "data",
+                            "random": "test",
+                            "foo": "bar"
+                        },
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "httpMethod": "POST",
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        provider = ApiProvider(template)
+        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
+
+        self.assertIn(route1, provider.routes)
+        self.assertEquals(provider.api.stage_name, "dev")
+        self.assertEquals(provider.api.stage_variables, {
+            "vis": "data",
+            "random": "test",
+            "foo": "bar"
+        })
+
+    def test_multi_stage_get_all(self):
+        template = OrderedDict({
+            "Resources": {}
+        })
+        template["Resources"]["TestApi"] = {
+            "Type": "AWS::Serverless::Api",
+            "Properties": {
+                "StageName": "dev",
+                "Variables": {
+                    "vis": "data",
+                    "random": "test",
+                    "foo": "bar"
+                },
+                "DefinitionBody": {
+                    "paths": {
+                        "/path2": {
+                            "get": {
+                                "x-amazon-apigateway-integration": {
+                                    "httpMethod": "POST",
+                                    "type": "aws_proxy",
+                                    "uri": {
+                                        "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
+                                    },
+                                    "responses": {},
+                                },
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        template["Resources"]["ProductionApi"] = {
+            "Type": "AWS::Serverless::Api",
+            "Properties": {
+                "StageName": "Production",
+                "Variables": {
+                    "vis": "prod data",
+                    "random": "test",
+                    "foo": "bar"
+                },
+                "DefinitionBody": {
+                    "paths": {
+                        "/path": {
+                            "get": {
+                                "x-amazon-apigateway-integration": {
+                                    "httpMethod": "POST",
+                                    "type": "aws_proxy",
+                                    "uri": {
+                                        "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
+                                    },
+                                    "responses": {},
+                                },
+                            }
+                        },
+                        "/anotherpath": {
+                            "post": {
+                                "x-amazon-apigateway-integration": {
+                                    "httpMethod": "POST",
+                                    "type": "aws_proxy",
+                                    "uri": {
+                                        "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
+                                    },
+                                    "responses": {},
+                                },
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider(template)
+
+        result = [f for f in provider.get_all()]
+
+        route1 = Route(path='/path2', method='GET', function_name='NoApiEventFunction')
+        route2 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
+        route3 = Route(path='/anotherpath', method='POST', function_name='NoApiEventFunction')
+        self.assertEquals(len(result), 3)
+        self.assertIn(route1, result)
+        self.assertIn(route2, result)
+        self.assertIn(route3, result)
+
+        self.assertEquals(provider.api.stage_name, "Production")
+        self.assertEquals(provider.api.stage_variables, {
+            "vis": "prod data",
+            "random": "test",
+            "foo": "bar"
+        })
 
 
 def make_swagger(routes, binary_media_types=None):
