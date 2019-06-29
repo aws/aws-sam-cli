@@ -1,3 +1,5 @@
+AWSTemplateFormatVersion : '2010-09-09'
+
 Resources:
   HelloHandlerServiceRole11EF7C63:
     Type: AWS::IAM::Role
@@ -20,23 +22,8 @@ Resources:
   HelloHandler2E4FBA4D:
     Type: AWS::Lambda::Function
     Properties:
-      Code:
-        S3Bucket:
-          Ref: HelloHandlerCodeS3Bucket4359A483
-        S3Key:
-          Fn::Join:
-            - ""
-            - - Fn::Select:
-                  - 0
-                  - Fn::Split:
-                      - "||"
-                      - Ref: HelloHandlerCodeS3VersionKey07D12610
-              - Fn::Select:
-                  - 1
-                  - Fn::Split:
-                      - "||"
-                      - Ref: HelloHandlerCodeS3VersionKey07D12610
-      Handler: hello.handler
+      Code: "."
+      Handler: main.handler
       Role:
         Fn::GetAtt:
           - HelloHandlerServiceRole11EF7C63

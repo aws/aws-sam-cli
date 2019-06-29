@@ -816,3 +816,20 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers.get("Content-Type"), "image/gif")
         self.assertEquals(response.content, expected)
+
+
+class TestCDKApiGateway(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cdk-sample-output.yaml"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_get_call_with_path_setup_with_any_swagger(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
