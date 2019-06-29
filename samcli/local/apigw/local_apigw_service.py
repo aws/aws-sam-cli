@@ -195,6 +195,7 @@ class LocalApigwService(BaseLocalService):
         -------
         Response object
         """
+
         route = self._get_current_route(request)
 
         try:

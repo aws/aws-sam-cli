@@ -66,10 +66,11 @@ Resources:
       Integration:
         Uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Base64ResponseFunction.Arn}/invocations
+        ContentType: "image~1gif"
+        ContentHandling: "CONVERT_TO_BINARY"
       ResourceId: "Base64ResponseResource"
       RestApiId: "TestApi"
-      ContentType: "image~1jpg"
-      ContentHandling: "CONVERT_TO_BINARY"
+
 
   EchoBase64ResponseResource:
     Type: "AWS::ApiGateway::Resource"
@@ -84,10 +85,11 @@ Resources:
       Integration:
         Uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
+        ContentType: "image~1gif"
+        ContentHandling: "CONVERT_TO_BINARY"
       ResourceId: "EchoBase64ResponseResource"
       RestApiId: "TestApi"
-      ContentType: "image~1png"
-      ContentHandling: "CONVERT_TO_BINARY"
+
 
 
   NoFunctionFoundResource:

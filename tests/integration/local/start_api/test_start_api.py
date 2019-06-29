@@ -797,7 +797,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         This tests that the service can accept and invoke a lambda when given binary data in a request
         """
         input_data = self.get_binary_data(self.binary_data_file)
-        response = requests.post(self.url + '/echobase64eventbody',
+        response = requests.post(self.url + '/root/echobase64eventbody',
                                  headers={"Content-Type": "image/gif"},
                                  data=input_data)
 
@@ -811,7 +811,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         """
         expected = self.get_binary_data(self.binary_data_file)
 
-        response = requests.get(self.url + '/base64response')
+        response = requests.get(self.url + '/root/base64response')
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers.get("Content-Type"), "image/gif")
