@@ -374,11 +374,11 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(self.url + '/echobase64eventbody',
-                                 headers={"Content-Type": "image/gif"},
+                                 headers={"Content-Type": "image/png"},
                                  data=input_data)
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.headers.get("Content-Type"), "image/png")
         self.assertEquals(response.content, input_data)
 
     def test_binary_response(self):
@@ -390,7 +390,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         response = requests.get(self.url + '/base64response')
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.headers.get("Content-Type"), "image/jpg")
         self.assertEquals(response.content, expected)
 
 
@@ -792,28 +792,27 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.json(), {'hello': 'world'})
 
-    # def test_binary_request(self):
-    #     """
-    #     This tests that the service can accept and invoke a lambda when given binary data in a request
-    #     """
-    #     input_data = self.get_binary_data(self.binary_data_file)
-    #     response = requests.post(self.url + '/echobase64eventbody',
-    #                              headers={"Content-Type": "image/gif"},
-    #                              data=input_data)
-    #
-    #     self.assertEquals(response.status_code, 200)
-    #     self.assertEquals(response.headers.get("Content-Type"), "image/gif")
-    #     self.assertEquals(response.content, input_data)
-    #
-    # def test_binary_response(self):
-    #     """
-    #     Binary data is returned correctly
-    #     """
-    #     expected = self.get_binary_data(self.binary_data_file)
-    #
-    #     response = requests.get(self.url + '/base64response')
-    #
-    #     self.assertEquals(response.status_code, 200)
-    #     self.assertEquals(response.headers.get("Content-Type"), "image/gif")
-    #     self.assertEquals(response.content, expected)
+    def test_binary_request(self):
+        """
+        This tests that the service can accept and invoke a lambda when given binary data in a request
+        """
+        input_data = self.get_binary_data(self.binary_data_file)
+        response = requests.post(self.url + '/echobase64eventbody',
+                                 headers={"Content-Type": "image/gif"},
+                                 data=input_data)
 
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, input_data)
+
+    def test_binary_response(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + '/base64response')
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, expected)

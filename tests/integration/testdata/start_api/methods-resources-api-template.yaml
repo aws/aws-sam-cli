@@ -30,6 +30,7 @@ Resources:
   TestApi:
     Type: "AWS::ApiGateway::RestApi"
 
+
   RootApiResource:
     Type: "AWS::ApiGateway::Resource"
     Properties:
@@ -67,6 +68,8 @@ Resources:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Base64ResponseFunction.Arn}/invocations
       ResourceId: "Base64ResponseResource"
       RestApiId: "TestApi"
+      ContentType: "image~1jpg"
+      ContentHandling: "CONVERT_TO_BINARY"
 
   EchoBase64ResponseResource:
     Type: "AWS::ApiGateway::Resource"
@@ -83,6 +86,9 @@ Resources:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
       ResourceId: "EchoBase64ResponseResource"
       RestApiId: "TestApi"
+      ContentType: "image~1png"
+      ContentHandling: "CONVERT_TO_BINARY"
+
 
   NoFunctionFoundResource:
     Type: "AWS::ApiGateway::Resource"

@@ -427,22 +427,25 @@ class TestCloudFormationResourceMethod(TestCase):
             Route(path="/path3", method="DELETE", function_name="SamFunc1")
         ]
 
-    def test_with_no_apis(self):
+    def test_basic_rest_api_resource_method(self):
         template = {
             "Resources": {
                 "TestApi": {
-                    "Type": "AWS::ApiGateway::Resource",
+                    "Type": "AWS::ApiGateway::RestApi",
                     "Properties": {
                         "StageName": "Prod"
                     }
                 },
                 "ApiResource": {
-                    "PathPart": "{proxy+}",
-                    "ResourceId": "TestApi",
+                    "Properties": {
+                        "PathPart": "/{proxy+}",
+                        "RestApiId": "TestApi",
+                    }
                 },
                 "ApiMethod": {
                     "Type": "AWS::ApiGateway::Method",
                     "Properties": {
+                        "HttpMethod": "POST",
                         "RestApiId": "TestApi",
                         "ResourceId": "ApiResource"
                     },
@@ -452,23 +455,29 @@ class TestCloudFormationResourceMethod(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [])
+        self.assertEquals(provider.routes, [Route(function_name=None, path="/{proxy+}", method="POST")])
 
     def test_resolve_correct_resource_path(self):
         resources = {
             "RootApiResource": {
-                "PathPart": "/root",
-                "ResourceId": "TestApi",
+                "Tyoe": "AWS::ApiGateway::Resource",
+                "Properties": {
+                    "PathPart": "/root",
+                    "ResourceId": "TestApi",
+                }
             }
         }
         beta_resource = {
-            "PathPart": "beta",
-            "ResourceId": "TestApi",
-            "ParentId": "RootApiResource"
+            "Tyoe": "AWS::ApiGateway::Resource",
+            "Properties": {
+                "PathPart": "beta",
+                "ResourceId": "TestApi",
+                "ParentId": "RootApiResource"
+            }
         }
         resources["BetaApiResource"] = beta_resource
         provider = CfnApiProvider()
-        full_path = provider.resolve_resource_path(resources, beta_resource, "test")
+        full_path = provider.resolve_resource_path(resources, beta_resource, "/test")
         self.assertEquals(full_path, "/root/beta/test")
 
     def test_resolve_correct_multi_parent_resource_path(self):
@@ -664,3 +673,99 @@ class TestCloudFormationResourceMethod(TestCase):
         assertCountEqual(self, provider.routes,
                          [Route(path="/root/v1/beta", method="POST", function_name="AWSLambdaFunction"),
                           Route(path="/root/v1/alpha", method="GET", function_name="AWSBetaLambdaFunction")])
+
+    def test_binary_media_types_method(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "StageName": "Prod"
+                    }
+                },
+                "RootApiResource": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "PathPart": "/root",
+                        "ResourceId": "TestApi",
+                    }
+                },
+                "V1ApiResource": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "PathPart": "v1",
+                        "ResourceId": "TestApi",
+                        "ParentId": "RootApiResource"
+                    }
+                },
+                "AlphaApiResource": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "PathPart": "alpha",
+                        "ResourceId": "TestApi",
+                        "ParentId": "V1ApiResource"
+                    }
+                },
+                "BetaApiResource": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "PathPart": "beta",
+                        "ResourceId": "TestApi",
+                        "ParentId": "V1ApiResource"
+                    }
+                },
+                "AlphaApiMethod": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "GET",
+                        "RestApiId": "TestApi",
+                        "ResourceId": "AlphaApiResource",
+                        "Integration": {
+                            "Uri": {
+                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/"
+                                           "functions"
+                                           "/${AWSBetaLambdaFunction.Arn}/invocations} "
+                            },
+                            "ContentHandling": "CONVERT_TO_BINARY",
+                            "ContentType": "image~1jpg"
+                        }
+                    },
+                },
+                "BetaAlphaApiMethod": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "POST",
+                        "RestApiId": "TestApi",
+                        "ResourceId": "BetaApiResource",
+                        "Integration": {
+                            "Uri": {
+                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/"
+                                           "functions"
+                                           "/${AWSLambdaFunction.Arn}/invocations}"
+                            },
+                            "ContentHandling": "CONVERT_TO_BINARY",
+                            "ContentType": "image~1png"
+                        }
+                    },
+                },
+                "AWSAlphaLambdaFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": ".",
+                        "Handler": "main.run_test",
+                        "Runtime": "Python3.6"
+                    }
+                },
+                "AWSBetaLambdaFunction": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": ".",
+                        "Handler": "main.run_test",
+                        "Runtime": "Python3.6"
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider(template)
+        assertCountEqual(self, provider.api.get_binary_media_types(), ["image/png", "image/jpg"])

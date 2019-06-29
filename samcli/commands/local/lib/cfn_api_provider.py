@@ -1,7 +1,7 @@
 """Parses SAM given a template"""
 import logging
 
-from samcli.commands.local.lib.swagger.integration_uri import IntegrationType, LambdaUri
+from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 
@@ -13,7 +13,7 @@ class CfnApiProvider(CfnBaseApiProvider):
     APIGATEWAY_STAGE = "AWS::ApiGateway::Stage"
     APIGATEWAY_RESOURCE = "AWS::ApiGateway::Resource"
     APIGATEWAY_METHOD = "AWS::ApiGateway::Method"
-
+    METHOD_BINARY_TYPE = "CONVERT_TO_BINARY"
     TYPES = [
         APIGATEWAY_RESTAPI,
         APIGATEWAY_STAGE,
@@ -52,7 +52,7 @@ class CfnApiProvider(CfnBaseApiProvider):
                 self._extract_cloud_formation_stage(resource, api)
 
             if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
-                self._extract_cloud_formation_method(resources, resource, collector)
+                self._extract_cloud_formation_method(resources, resource, collector, api=api)
 
         all_apis = []
         for _, apis in collector:
@@ -106,7 +106,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             api.stage_name = stage_name
             api.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, resources, api_resource, collector):
+    def _extract_cloud_formation_method(self, resources, api_resource, collector, api):
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
@@ -128,7 +128,15 @@ class CfnApiProvider(CfnBaseApiProvider):
         method = properties.get("HttpMethod")
         resource_path = self.resolve_resource_path(resources, resources.get(resource_id), "")
 
-        integration = properties.get("Integration")
+        integration = properties.get("Integration", {})
+        content_type = integration.get("ContentType")
+
+        content_handling = integration.get("ContentHandling")
+        if content_handling == CfnApiProvider.METHOD_BINARY_TYPE and content_type:
+            normalized_type = self.normalize_binary_media_type(content_type)
+            if normalized_type:
+                api.binary_media_types_set.add(normalized_type)
+
         function_name = self._get_integration_function_name(integration)
 
         routes = Route.get_normalized_routes(method=method, function_name=function_name, path=resource_path)
