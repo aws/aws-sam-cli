@@ -196,10 +196,8 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       HttpMethod: ANY
-      ResourceId:
-        Ref: Endpointproxy39E2174E
-      RestApiId:
-        Ref: EndpointEEF1FD8F
+      ResourceId: !Ref Endpointproxy39E2174E
+      RestApiId: !Ref EndpointEEF1FD8F
       AuthorizationType: NONE
       Integration:
         IntegrationHttpMethod: POST

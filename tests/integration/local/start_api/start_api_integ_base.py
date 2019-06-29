@@ -33,9 +33,9 @@ class StartApiIntegBaseClass(TestCase):
 
     @classmethod
     def start_api(cls):
-        # command = "sam"
-        # if os.getenv("SAM_CLI_DEV"):
-        command = "samdev"
+        command = "sam"
+        if os.getenv("SAM_CLI_DEV"):
+            command = "samdev"
 
         cls.start_api_process = Popen([command, "local", "start-api", "-t", cls.template, "-p", cls.port, "--debug"])
         # we need to wait some time for start-api to start, hence the sleep
