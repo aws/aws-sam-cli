@@ -34,7 +34,7 @@ Resources:
   RootApiResource:
     Type: "AWS::ApiGateway::Resource"
     Properties:
-      PathPart: "/root"
+      PathPart: "root"
       ResourceId: "TestApi"
 
   AnyAndAllResource:

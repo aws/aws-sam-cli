@@ -438,7 +438,7 @@ class TestCloudFormationResourceMethod(TestCase):
                 },
                 "ApiResource": {
                     "Properties": {
-                        "PathPart": "/{proxy+}",
+                        "PathPart": "{proxy+}",
                         "RestApiId": "TestApi",
                     }
                 },
@@ -462,7 +462,7 @@ class TestCloudFormationResourceMethod(TestCase):
             "RootApiResource": {
                 "Tyoe": "AWS::ApiGateway::Resource",
                 "Properties": {
-                    "PathPart": "/root",
+                    "PathPart": "root",
                     "ResourceId": "TestApi",
                 }
             }
@@ -492,7 +492,7 @@ class TestCloudFormationResourceMethod(TestCase):
                 "RootApiResource": {
                     "Type": "AWS::ApiGateway::Resource",
                     "Properties": {
-                        "PathPart": "/root",
+                        "PathPart": "root",
                         "ResourceId": "TestApi",
                     }
                 },
@@ -555,7 +555,7 @@ class TestCloudFormationResourceMethod(TestCase):
                 "BetaApiResource": {
                     "Type": "AWS::ApiGateway::Resource",
                     "Properties": {
-                        "PathPart": "/beta",
+                        "PathPart": "beta",
                         "ResourceId": "TestApi",
                     }
                 },
@@ -592,7 +592,7 @@ class TestCloudFormationResourceMethod(TestCase):
                 "RootApiResource": {
                     "Type": "AWS::ApiGateway::Resource",
                     "Properties": {
-                        "PathPart": "/root",
+                        "PathPart": "root",
                         "ResourceId": "TestApi",
                     }
                 },
@@ -686,7 +686,7 @@ class TestCloudFormationResourceMethod(TestCase):
                 "RootApiResource": {
                     "Type": "AWS::ApiGateway::Resource",
                     "Properties": {
-                        "PathPart": "/root",
+                        "PathPart": "root",
                         "ResourceId": "TestApi",
                     }
                 },

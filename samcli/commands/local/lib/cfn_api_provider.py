@@ -163,7 +163,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         if parent_id:
             return self.resolve_resource_path(resources, resources.get(parent_id), "/" + path_part + current_path)
-        return path_part + current_path
+        return "/" + path_part + current_path
 
     @staticmethod
     def _get_integration_function_name(integration):
