@@ -123,12 +123,14 @@ Resources:
             - /test-invoke-stage/*/{proxy+}
     Metadata:
       aws:cdk:path: CdkWorkshopStack/HelloHandler/ApiPermission.Test.ANY..{proxy+}
+
   EndpointEEF1FD8F:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: Endpoint
     Metadata:
       aws:cdk:path: CdkWorkshopStack/Endpoint/Resource
+
   EndpointDeployment318525DA37c0e38727e25b4317827bf43e918fbf:
     Type: AWS::ApiGateway::Deployment
     Properties:
@@ -141,6 +143,8 @@ Resources:
       - EndpointproxyANYC09721C5
     Metadata:
       aws:cdk:path: CdkWorkshopStack/Endpoint/Deployment/Resource
+
+
   EndpointDeploymentStageprodB78BEEA0:
     Type: AWS::ApiGateway::Stage
     Properties:
@@ -151,6 +155,7 @@ Resources:
       StageName: prod
     Metadata:
       aws:cdk:path: CdkWorkshopStack/Endpoint/DeploymentStage.prod/Resource
+
   EndpointCloudWatchRoleC3C64E0F:
     Type: AWS::IAM::Role
     Properties:
@@ -169,6 +174,8 @@ Resources:
               - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
     Metadata:
       aws:cdk:path: CdkWorkshopStack/Endpoint/CloudWatchRole/Resource
+
+
   EndpointAccountB8304247:
     Type: AWS::ApiGateway::Account
     Properties:
@@ -180,6 +187,7 @@ Resources:
       - EndpointEEF1FD8F
     Metadata:
       aws:cdk:path: CdkWorkshopStack/Endpoint/Account
+
   Endpointproxy39E2174E:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -196,8 +204,10 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       HttpMethod: ANY
-      ResourceId: !Ref Endpointproxy39E2174E
-      RestApiId: !Ref EndpointEEF1FD8F
+      ResourceId:
+        Ref: Endpointproxy39E2174E
+      RestApiId:
+        Ref: EndpointEEF1FD8F
       AuthorizationType: NONE
       Integration:
         IntegrationHttpMethod: POST

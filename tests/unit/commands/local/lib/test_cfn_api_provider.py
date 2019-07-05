@@ -1100,9 +1100,7 @@ class TestCloudFormationResourceMethod(TestCase):
                     "Type": "AWS::ApiGateway::Method",
                     "Properties": {
                         "HttpMethod": "ANY",
-                        "ResourceId": {
-                            "Ref": "Endpointproxy39E2174E"
-                        },
+                        "ResourceId": "!Ref Endpointproxy39E2174E",
                         "RestApiId": {
                             "Ref": "EndpointEEF1FD8F"
                         },
