@@ -4,12 +4,12 @@ Process and simplifies CloudFormation intrinsic properties such as FN::* and Ref
 import base64
 import re
 
-from flask import json
 from six import string_types
 
 from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, \
     verify_intrinsic_type_list, verify_non_null, verify_intrinsic_type_int, verify_in_bounds, \
-    verify_number_arguments, verify_intrinsic_type_str, verify_intrinsic_type_dict, verify_intrinsic_type_bool
+    verify_number_arguments, verify_intrinsic_type_str, verify_intrinsic_type_dict, verify_intrinsic_type_bool, \
+    verify_all_list_intrinsic_type
 
 
 class IntrinsicResolver(object):
@@ -87,7 +87,8 @@ class IntrinsicResolver(object):
         FN_NOT
     ]
 
-    def __init__(self, symbol_resolver, template=None,
+    def __init__(self, symbol_resolver,
+                 template=None,
                  resources=None,
                  mappings=None,
                  parameters=None,
@@ -119,11 +120,11 @@ class IntrinsicResolver(object):
         conditions: dict
             Dictionary containing the CloudFormation conditions. This is used in the Boolean Intrinsics section
         """
-        self.template = template
-        self.resources = resources or template.get("Resources", {})
-        self.mapping = mappings or template.get("Mapping", {})
-        self.parameters = parameters or template.get("Parameters")
-        self.conditions = conditions or template.get("Conditions")
+        self.template = template or {}
+        self.resources = resources or self.template.get("Resources", {})
+        self.mapping = mappings or self.template.get("Mapping", {})
+        self.parameters = parameters or self.template.get("Parameters")
+        self.conditions = conditions or self.template.get("Conditions")
 
         self.symbol_resolver = symbol_resolver
 
@@ -189,10 +190,10 @@ class IntrinsicResolver(object):
 
         if key in self.intrinsic_key_function_map:
             intrinsic_value = intrinsic.get(key)
-            self.intrinsic_key_function_map.get(key)(intrinsic_value)
+            return self.intrinsic_key_function_map.get(key)(intrinsic_value)
         elif key in self.conditional_key_function_map:
             intrinsic_value = intrinsic.get(key)
-            self.intrinsic_key_function_map.get(key)(intrinsic_value)
+            return self.intrinsic_key_function_map.get(key)(intrinsic_value)
         else:
             # In this case, it is a dictionary that doesn't directly contain an intrinsic resolver and must be
             # re-parsed to resolve.
@@ -205,7 +206,6 @@ class IntrinsicResolver(object):
                                           .format(sanitized_key, parent_function))
                 sanitized_dict[sanitized_key] = sanitized_val
             return sanitized_dict
-        return intrinsic
 
     def resolve_template(self, ignore_errors=False):
         """
@@ -248,7 +248,6 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        # TODO if any item in the list of values returns a list flatten it
         arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_JOIN)
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_JOIN)
@@ -263,8 +262,12 @@ class IntrinsicResolver(object):
                                    message="The list of values in {} after the "
                                            "delimiter must be a list".format(IntrinsicResolver.FN_JOIN))
 
-        return delimiter.join(
-            [self.intrinsic_property_resolver(item, parent_function=IntrinsicResolver.FN_JOIN) for item in value_list])
+        sanitized_value_list = [self.intrinsic_property_resolver(item, parent_function=IntrinsicResolver.FN_JOIN) for
+                                item in value_list]
+        verify_all_list_intrinsic_type(sanitized_value_list, verification_func=verify_intrinsic_type_str,
+                                       property_type=IntrinsicResolver.FN_JOIN)
+
+        return delimiter.join(sanitized_value_list)
 
     def handle_fn_split(self, intrinsic_value):
         """
@@ -281,7 +284,6 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        # TODO if any item in the list of values returns a list flatten it
         arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_SPLIT)
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SPLIT)
@@ -292,7 +294,7 @@ class IntrinsicResolver(object):
 
         source_string = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_SPLIT)
 
-        verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_SPLIT, position_in_list="second")
+        verify_intrinsic_type_str(source_string, IntrinsicResolver.FN_SPLIT, position_in_list="second")
 
         return source_string.split(delimiter)
 
@@ -314,8 +316,8 @@ class IntrinsicResolver(object):
         data = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_BASE64)
 
         verify_intrinsic_type_str(data, IntrinsicResolver.FN_BASE64)
-
-        return base64.b64encode(data.encode("utf-8"))
+        # Encoding then decoding is required to return a string of the data
+        return base64.b64encode(data.encode()).decode()
 
     def handle_fn_select(self, intrinsic_value):
         """
@@ -331,7 +333,6 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        # TODO if any item in the list of values returns a list flatten it
         arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_SELECT)
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SELECT)
@@ -340,15 +341,16 @@ class IntrinsicResolver(object):
 
         verify_intrinsic_type_int(index, IntrinsicResolver.FN_SELECT)
 
-        list_of_objects = self.intrinsic_property_resolver(arguments[1:], parent_function=IntrinsicResolver.FN_SELECT)
+        list_of_objects = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_SELECT)
         verify_intrinsic_type_list(list_of_objects, IntrinsicResolver.FN_SELECT)
 
-        objects = [self.intrinsic_property_resolver(item, parent_function=IntrinsicResolver.FN_SELECT) for item in
-                   list_of_objects]
+        sanitized_objects = [self.intrinsic_property_resolver(item, parent_function=IntrinsicResolver.FN_SELECT) for
+                             item in
+                             list_of_objects]
 
-        verify_in_bounds(index, objects, IntrinsicResolver.FN_SELECT)
+        verify_in_bounds(index=index, objects=sanitized_objects, property_type=IntrinsicResolver.FN_SELECT)
 
-        return objects[index]
+        return sanitized_objects[index]
 
     def handle_find_in_map(self, intrinsic_value):
         """
@@ -735,4 +737,3 @@ class IntrinsicResolver(object):
                     return True
 
         return False
-

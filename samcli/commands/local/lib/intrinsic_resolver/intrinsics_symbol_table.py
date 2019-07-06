@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 from random import randint
@@ -7,10 +8,9 @@ from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver im
 
 
 class IntrinsicsSymbolTable(object):
-    def __init__(self, parameters=None):
-        if parameters is None:
-            parameters = {}
-        self.parameters = parameters
+    def __init__(self, parameters=None, resources=None):
+        self.parameters = parameters or {}
+        self.resources = resources or {}
 
     def verify_valid_fn_get_attribute(self, logical_id, resource_type):
         """"
