@@ -1,10 +1,12 @@
-from unittest import TestCase
+from unittest import TestCase, mock
+from unittest.mock import mock_open
 
+from mock import patch
 from parameterized import parameterized
 
+from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
-from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 
 
 class TestIntrinsicFnJoinResolver(TestCase):
@@ -337,42 +339,327 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
 
 
 class TestIntrinsicFnAzsResolver(TestCase):
-    pass
+    def setUp(self):
+        logical_id_translator = {
+            "AWS::Region": "us-east-1"
+        }
+        self.resolver = IntrinsicResolver(
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator))
 
+    def test_basic_azs(self):
+        intrinsic = {
+            "Ref": "AWS::Region"
+        }
+        result = self.resolver.intrinsic_property_resolver({
+            "Fn::Azs": intrinsic
+        })
+        self.assertEquals(result, ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"])
 
-class TestIntrinsicFnSubResolver(TestCase):
-    pass
+    @parameterized.expand([
+        ("Invalid Types to the string argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None]
+    ])
+    def test_fn_azs_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Azs": intrinsic
+            })
 
 
 class TestIntrinsicFnRefResolver(TestCase):
-    pass
+    def setUp(self):
+        logical_id_translator = {
+            "RestApi": {
+                "Ref": "NewRestApi"
+            },
+            "AWS::StackId": "12301230123"
+        }
+        resources = {
+            "RestApi": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                },
+            }
+        }
+
+        self.resolver = IntrinsicResolver(
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
+
+    def test_basic_ref_translation(self):
+        intrinsic = {
+            "Ref": "RestApi"
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result, "NewRestApi")
+
+    def test_default_ref_translation(self):
+        intrinsic = {
+            "Ref": "UnknownApi"
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result, "UnknownApi")
+
+    @parameterized.expand([
+        ("Invalid Types to the string argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None]
+    ])
+    def test_ref_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Ref": intrinsic
+            })
 
 
 class TestIntrinsicFnGetAttResolver(TestCase):
-    pass
+    def setUp(self):
+        logical_id_translator = {
+            "RestApi": {
+                "Ref": "NewRestApi"
+            },
+            "LambdaFunction": {
+                "Arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
+                       "-1:123456789012:LambdaFunction/invocations"
+            },
+            "AWS::StackId": "12301230123",
+            "AWS::Region": "us-east-1",
+            "AWS::AccountId": "406033500479"
+        }
+        resources = {
+            "RestApi": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                },
+            },
+            "HelloHandler2E4FBA4D": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "handler": "main.handle"
+                }
+            },
+            "LambdaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Uri": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "arn:",
+                                {
+                                    "Ref": "AWS::Partition"
+                                },
+                                ":apigateway:",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                ":lambda:path/2015-03-31/functions/",
+                                {
+                                    "Fn::GetAtt": [
+                                        "HelloHandler2E4FBA4D",
+                                        "Arn"
+                                    ]
+                                },
+                                "/invocations"
+                            ]
+                        ]
+                    }
+                }
+            }
+        }
+        IntrinsicsSymbolTable.verify_valid_fn_get_attribute = mock.Mock(return_value=True)
+        self.resources = resources
+        self.resolver = IntrinsicResolver(
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
+
+    def test_basic_fn_getatt_translation(self):
+        intrinsic = {
+            "Fn::GetAtt": ["RestApi", "RootResourceId"]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result, "/")
+
+    def test_logical_id_translated_fn_getatt(self):
+        intrinsic = {
+            "Fn::GetAtt": ["LambdaFunction", "Arn"]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result, "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
+                                  "-1:123456789012:LambdaFunction/invocations")
+
+    def test_fn_join_getatt(self):
+        intrinsic = self.resources.get("LambdaFunction").get("Properties").get("Uri")
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result, "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us"
+                                  "-east-1:406033500479:HelloHandler2E4FBA4D/invocations")
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, "test", 42, object, None]
+    ])
+    def test_fn_getatt_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::GetAtt": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail. Only 2 arguments to Fn::GetAtt will work"
+         .format(primitive), primitive)
+        for primitive in
+        [[""] * i for i in [0, 1, 3, 4, 5, 6, 7, 8, 9, 10]]
+    ])
+    def test_fn_getatt_invalid_number_arguments(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::GetAtt": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the first argument with type {} if not a string should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, [], 42, object, None]
+    ])
+    def test_fn_getatt_first_arguments_invalid(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::GetAtt": [intrinsic, IntrinsicResolver.REF]
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the first argument with type {} if not a string should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, [], 42, object, None]
+    ])
+    def test_fn_getatt_second_arguments_invalid(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::GetAtt": ["some logical Id", intrinsic]
+            })
+
+
+class TestIntrinsicFnSubResolver(TestCase):
+    def setUp(self):
+        logical_id_translator = {
+            "AWS::Region": "us-east-1",
+            "AWS::AccountId": "123456789012"
+        }
+        resources = {
+            "LambdaFunction": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                    "Uri": "test"
+                },
+            }
+        }
+        IntrinsicsSymbolTable.verify_valid_fn_get_attribute = mock.Mock(return_value=True)
+        self.resolver = IntrinsicResolver(
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
+
+    def test_basic_fn_sub_uri(self):
+        intrinsic = {
+            "Fn::Sub":
+                "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result,
+                          "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
+                          "-1:123456789012:LambdaFunction/invocations")
+
+    def test_argument_fn_sub_uri(self):
+        intrinsic = {
+            "Fn::Sub":
+                ["arn:aws:apigateway:${MyItem}:lambda:path/2015-03-31/functions/${MyOtherItem}/invocations",
+                 {"MyItem": {"Ref": "AWS::Region"}, "MyOtherItem": "LambdaFunction.Arn"}]
+
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result,
+                          "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
+                          "-1:123456789012:LambdaFunction/invocations")
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None]
+    ])
+    def test_fn_sub_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Sub": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the first argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None]
+    ])
+    def test_fn_sub_first_argument_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Sub": [intrinsic, {}]
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the second argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, "Another str", [], 42, object, None]
+    ])
+    def test_fn_sub_first_argument_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Sub": ["some str", intrinsic]
+            })
+
+    @parameterized.expand([
+        ("Invalid Number of arguments to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [[""] * i for i in [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]]
+    ])
+    def test_fn_sub_invalid_number_arguments(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Sub": ["test"] + intrinsic
+            })
 
 
 class TestIntrinsicFnImportValueResolver(TestCase):
-    pass
+    def setUp(self):
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+
+    def test_fn_import_value_unsupported(self):
+        with self.assertRaises(InvalidIntrinsicException, msg="Fn::ImportValue should be unsupported"):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::ImportValue": ""
+            })
 
 
 class TestIntrinsicFnAndResolver(TestCase):
-    pass
+    def setUp(self):
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+
+    def test_fn_and(self):
+        pass
 
 
 class TestIntrinsicFnOrResolver(TestCase):
     pass
 
 
-class TestIntrinsicFnIfResolver(TestCase):
-    pass
-
-
 class TestIntrinsicFnEqualsResolver(TestCase):
-    pass
+    def setUp(self):
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+
+    def test_fn_and(self):
+        pass
 
 
 class TestIntrinsicFnNotResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnIfResolver(TestCase):
     pass
 
 

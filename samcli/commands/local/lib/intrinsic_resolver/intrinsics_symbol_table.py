@@ -183,7 +183,7 @@ class IntrinsicsSymbolTable(object):
             if translated:
                 return translated
             else:
-                translated = self.default_pseudo_resolver.get(logical_id)
+                translated = self.default_pseudo_resolver.get(logical_id)()
                 self.logical_id_translator[logical_id] = translated
 
             return translated
@@ -201,7 +201,7 @@ class IntrinsicsSymbolTable(object):
             return translated
 
         resource_type = self.resources.get(logical_id, {}).get(IntrinsicsSymbolTable.CFN_RESOURCE_TYPE)
-        resolver = self.default_type_resolver.get(resource_type).get(resource_attribute) if resource_type else {}
+        resolver = self.default_type_resolver.get(resource_type, {}).get(resource_attribute) if resource_type else {}
         if resolver:
             if callable(resolver):
                 return resolver(logical_id, resource_attribute)
@@ -209,9 +209,9 @@ class IntrinsicsSymbolTable(object):
 
         attribute_resolver = self.common_attribute_resolver.get(resource_attribute, {})
         if attribute_resolver:
-            if callable(resolver):
-                return resolver(logical_id)
-            return resolver
+            if callable(attribute_resolver):
+                return attribute_resolver(logical_id)
+            return attribute_resolver
 
         if ignore_errors:
             return "${}".format(logical_id + "." + resource_attribute)
@@ -294,8 +294,7 @@ class IntrinsicsSymbolTable(object):
         """
         return IntrinsicsSymbolTable.REGIONS.get(region)
 
-    @staticmethod
-    def handle_pseudo_account_id():
+    def handle_pseudo_account_id(self):
         """
         This gets the account id for the attribute AWS::AccountId.
         This calls the
@@ -308,6 +307,10 @@ class IntrinsicsSymbolTable(object):
         -------
         A pseudo account id
         """
+        translated = self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
+        if translated:
+            return translated
+
         process = Popen(["aws", "sts", "get-caller-identity", "--output", "text", "--query", 'Account'],
                         stdout=PIPE)
         (output, err) = process.communicate()
@@ -320,6 +323,7 @@ class IntrinsicsSymbolTable(object):
 
         if not account_id:
             account_id = ''.join(["%s" % randint(0, 9) for _ in range(12)])
+
         return str(account_id)
 
     def handle_pseudo_region(self):

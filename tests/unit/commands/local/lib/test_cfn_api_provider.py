@@ -1166,7 +1166,7 @@ class TestCloudFormationResourceMethod(TestCase):
                                         {
                                             "Ref": "AWS::Region"
                                         },
-                                        "lambda:path/2015-03-31/functions/",
+                                        ":lambda:path/2015-03-31/functions/",
                                         {
                                             "Fn::GetAtt": [
                                                 "HelloHandler2E4FBA4D",

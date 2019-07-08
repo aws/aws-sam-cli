@@ -15,7 +15,7 @@ from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception im
 class IntrinsicResolver(object):
     AWS_INCLUDE = "AWS::Include"
     SUPPORTED_MACRO_TRANSFORMATIONS = [AWS_INCLUDE]
-    _REGEX_SUB_FUNCTION = r'\$\{([A-Za-z0-9]+)\)\}'
+    _REGEX_SUB_FUNCTION = r'\$\{(.*?)\}'
 
     FN_JOIN = "Fn::Join"
     FN_SPLIT = "Fn::Split"
@@ -150,13 +150,14 @@ class IntrinsicResolver(object):
         if any(isinstance(intrinsic, object_type) for object_type in [string_types, list, bool, int]):
             return intrinsic
 
+        if intrinsic == {}:
+            return intrinsic
+
         if not isinstance(intrinsic, dict):
             raise InvalidIntrinsicException(
                 "Invalid Intrinsic type. It is not a int, list, str, or dict {}".format(intrinsic))
 
         keys = list(intrinsic.keys())
-        if len(keys) != 1:
-            raise InvalidIntrinsicException("The Intrinsic dictionary must only have one key: {}".format(keys))
         key = keys[0]
 
         if key in self.intrinsic_key_function_map:
@@ -541,12 +542,11 @@ class IntrinsicResolver(object):
 
         sanitized_variables = self.intrinsic_property_resolver(variables, parent_function=IntrinsicResolver.FN_SUB)
 
-        subable_props = re.findall(sub_str, IntrinsicResolver._REGEX_SUB_FUNCTION)
-        for item in subable_props:
-            if item in sanitized_variables:
-                item = sanitized_variables[item]
-            result = resolve_sub_attribute(item, self.symbol_resolver)
-            re.sub(sub_str, "${" + item + "}", result)
+        subable_props = re.findall(string=sub_str, pattern=IntrinsicResolver._REGEX_SUB_FUNCTION)
+        for sub_item in subable_props:
+            sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
+            result = resolve_sub_attribute(sanitized_item, self.symbol_resolver)
+            sub_str = re.sub(pattern=r"\$\{" + sub_item + "\}", string=sub_str, repl=result)
         return sub_str
 
     def handle_fn_if(self, intrinsic_value):
