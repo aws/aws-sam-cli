@@ -261,3 +261,79 @@ class TestIntrinsicFnSelectResolver(TestCase):
             })
 
 
+class TestIntrinsicFnFindInMapResolver(TestCase):
+    def setUp(self):
+        self.resolver = IntrinsicResolver(symbol_resolver={}, mappings={
+            "Basic": {
+                "Test": {
+                    "key": "value"
+                }
+            },
+            "value": {
+                "anotherkey": {
+                    "key": "result"
+                }
+            },
+            "result": {
+                "value": {
+                    "key": "final"
+                }
+            }
+        })
+
+    def test_basic_find_in_map(self):
+        intrinsic = {
+            "Fn::FindInMap": ["Basic", "Test", "key"]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result, "value")
+
+    def test_nested_find_in_map(self):
+        intrinsic_base_1 = {
+            "Fn::FindInMap": ["Basic", "Test", "key"]
+        }
+        intrinsic_base_2 = {
+            "Fn::FindInMap": [intrinsic_base_1, "anotherkey", "key"]
+        }
+        intrinsic = {
+            "Fn::FindInMap": [intrinsic_base_2, intrinsic_base_1, "key"]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertEquals(result, "final")
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, "Test", {}, 42, object, None]
+    ])
+    def test_fn_find_in_map_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::FindInMap": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [[""] * i for i in [0, 1, 2, 4, 5, 6, 7, 8, 9, 10]]
+    ])
+    def test_fn_find_in_map_invalid_number_arguments(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::FindInMap": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [["<UNKOWN_VALUE>", "Test", "key"], ["Basic", "<UNKOWN_VALUE>", "key"], ["Basic", "Test", "<UNKOWN_VALUE>"]]
+    ])
+    def test_fn_find_in_map_invalid_key_entries(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::FindInMap": intrinsic
+            })
+
+
+class TestIntrinsicFnAzsResolver(TestCase):
+    pass

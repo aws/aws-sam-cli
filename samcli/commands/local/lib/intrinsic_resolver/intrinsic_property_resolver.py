@@ -67,6 +67,7 @@ class IntrinsicResolver(object):
         REF,
         FN_GET_ATT
     ]
+
     # TODO add Fn::ImportValue, Fn::Cidr
     #  Support Rule Intrinsics: Fn::Contains, Fn::EachMemberEquals, Fn::EachMemberIn,
     #  Fn::RefAll, Fn::ValueOf, Fn::ValueOfAll - parse the rules section
@@ -381,7 +382,7 @@ class IntrinsicResolver(object):
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_FIND_IN_MAP)
 
-        verify_number_arguments(arguments, 3, IntrinsicResolver.FN_FIND_IN_MAP)
+        verify_number_arguments(arguments, num=3, property_type=IntrinsicResolver.FN_FIND_IN_MAP)
 
         map_name = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_FIND_IN_MAP)
         top_level_key = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_FIND_IN_MAP)
@@ -403,7 +404,7 @@ class IntrinsicResolver(object):
                                        IntrinsicResolver.FN_FIND_IN_MAP))
 
         second_level_value = top_level_value.get(second_level_key)
-        verify_intrinsic_type_str(top_level_value, IntrinsicResolver.FN_FIND_IN_MAP,
+        verify_intrinsic_type_str(second_level_value, IntrinsicResolver.FN_FIND_IN_MAP,
                                   message="The SecondLevelKey is missing in the Mappings dictionary for {}".format(
                                       IntrinsicResolver.FN_FIND_IN_MAP))
 

@@ -9,8 +9,18 @@ from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver im
 
 class IntrinsicsSymbolTable(object):
     def __init__(self, parameters=None, resources=None):
+
         self.parameters = parameters or {}
         self.resources = resources or {}
+
+    def resolve_str(self):
+        pass
+
+    def resolve_attribute(self):
+        pass
+
+    def resolve_ref(self):
+        pass
 
     def verify_valid_fn_get_attribute(self, logical_id, resource_type):
         """"
