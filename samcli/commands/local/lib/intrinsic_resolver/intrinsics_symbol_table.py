@@ -378,7 +378,8 @@ class IntrinsicsSymbolTable(object):
             return self.GOV_PARTITION
         return self.DEFAULT_PARTITION
 
-    def get_random_string(self):
+    @staticmethod
+    def get_random_string():
         """
         This generates a random string to be used as defaults in functions
 

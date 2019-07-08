@@ -2,13 +2,14 @@ from unittest import TestCase
 
 from parameterized import parameterized
 
+from samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
 from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 
 
 class TestIntrinsicFnJoinResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver={})
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_join(self):
         intrinsic = {
@@ -87,7 +88,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
 
 class TestIntrinsicFnSplitResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver={})
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_split(self):
         intrinsic = {
@@ -156,7 +157,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
 
 class TestIntrinsicFnBase64Resolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver={})
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_split(self):
         intrinsic = {
@@ -194,7 +195,7 @@ class TestIntrinsicFnBase64Resolver(TestCase):
 
 class TestIntrinsicFnSelectResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver={})
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_select(self):
         intrinsic = {
@@ -263,7 +264,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
 
 class TestIntrinsicFnFindInMapResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver={}, mappings={
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable(), mappings={
             "Basic": {
                 "Test": {
                     "key": "value"
@@ -336,4 +337,44 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
 
 
 class TestIntrinsicFnAzsResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnSubResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnRefResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnGetAttResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnImportValueResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnAndResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnOrResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnIfResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnEqualsResolver(TestCase):
+    pass
+
+
+class TestIntrinsicFnNotResolver(TestCase):
+    pass
+
+
+class TestIntrinsicTemplateResolution(TestCase):
     pass

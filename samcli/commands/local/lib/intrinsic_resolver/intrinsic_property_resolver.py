@@ -6,7 +6,6 @@ import re
 
 from six import string_types
 
-from commands.local.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, \
     verify_intrinsic_type_list, verify_non_null, verify_intrinsic_type_int, verify_in_bounds, \
     verify_number_arguments, verify_intrinsic_type_str, verify_intrinsic_type_dict, verify_intrinsic_type_bool, \
@@ -143,7 +142,7 @@ class IntrinsicResolver(object):
 
         Return
         ---------
-        The simplified version of the intrinsic function. This could be a list,str,dict depending on the format required.
+        The simplified version of the intrinsic function. This could be a list,str,dict depending on the format required
         """
         if intrinsic is None:
             raise InvalidIntrinsicException("Missing Intrinsic property in {}".format(parent_function))
@@ -403,11 +402,11 @@ class IntrinsicResolver(object):
                                                            parent_function=IntrinsicResolver.FN_GET_AZS)
         verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)
 
-        if intrinsic_value not in IntrinsicsSymbolTable.REGIONS:
+        if intrinsic_value not in self.symbol_resolver.REGIONS:
             raise InvalidIntrinsicException(
                 "Invalid region string passed in to {}".format(IntrinsicResolver.FN_GET_AZS))
 
-        return IntrinsicsSymbolTable.REGIONS.get(intrinsic_value)
+        return self.symbol_resolver.REGIONS.get(intrinsic_value)
 
     def handle_fn_transform(self, intrinsic_value):
         """
@@ -613,8 +612,9 @@ class IntrinsicResolver(object):
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_EQUALS)
         verify_number_arguments(arguments, IntrinsicResolver.FN_EQUALS, num=2)
 
-        return self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_EQUALS) == \
-               self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_EQUALS)
+        value_1 = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_EQUALS)
+        value_2 = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_EQUALS)
+        return value_1 == value_2
 
     def handle_fn_not(self, intrinsic_value):
         """
