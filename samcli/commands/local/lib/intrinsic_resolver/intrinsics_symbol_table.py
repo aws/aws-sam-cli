@@ -7,6 +7,8 @@ import uuid
 from random import randint
 from subprocess import Popen, PIPE
 
+from six import string_types
+
 from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
 
@@ -95,7 +97,7 @@ class IntrinsicsSymbolTable(object):
             }
         parameters: dict
             After the logical Id translator is checked, the parameters dictionary that is provided within the
-            CloudFormation stack is used.
+            CloudFormation stack is used. This is usually used with the default parameter
             The format of parameters is
             "Parameters" : {
               "ParameterLogicalID" : {
@@ -178,15 +180,15 @@ class IntrinsicsSymbolTable(object):
         -------
         This resolves the attribute
         """
-        if logical_id in self.SUPPORTED_PSEUDO_TYPES:
-            translated = self.logical_id_translator.get(logical_id)
-            if translated:
-                return translated
-            else:
-                translated = self.default_pseudo_resolver.get(logical_id)()
-                self.logical_id_translator[logical_id] = translated
-
+        translated = self.get_translation(logical_id, resource_attribute)
+        if translated:
             return translated
+
+        if logical_id in self.SUPPORTED_PSEUDO_TYPES:
+            translated = self.default_pseudo_resolver.get(logical_id)()
+            self.logical_id_translator[logical_id] = translated
+            return translated
+
         if resource_attribute != IntrinsicResolver.REF and not self.verify_valid_fn_get_attribute(logical_id,
                                                                                                   resource_attribute):
             if ignore_errors:
@@ -195,8 +197,7 @@ class IntrinsicsSymbolTable(object):
                 "The attribute {} is not currently supported CloudFormation Resource Specification".format(
                     resource_attribute))
 
-        translated = self.get_translation(logical_id, resource_attribute)
-        translated = translated or self.parameters.get(logical_id, {}).get(resource_attribute)
+        translated = self.parameters.get(logical_id, {}).get("Default")
         if translated:
             return translated
 
@@ -276,7 +277,10 @@ class IntrinsicsSymbolTable(object):
         :param resource_attributes:
         :return:
         """
-        return self.logical_id_translator.get(logical_id, {}).get(resource_attributes)
+        logical_id_item = self.logical_id_translator.get(logical_id, {})
+        if isinstance(logical_id_item, string_types):
+            return logical_id_item
+        return logical_id_item.get(resource_attributes)
 
     @staticmethod
     def get_availability_zone(region):

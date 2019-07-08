@@ -165,7 +165,7 @@ class IntrinsicResolver(object):
             return self.intrinsic_key_function_map.get(key)(intrinsic_value)
         elif key in self.conditional_key_function_map:
             intrinsic_value = intrinsic.get(key)
-            return self.intrinsic_key_function_map.get(key)(intrinsic_value)
+            return self.conditional_key_function_map.get(key)(intrinsic_value)
         else:
             # In this case, it is a dictionary that doesn't directly contain an intrinsic resolver and must be
             # re-parsed to resolve.
@@ -635,17 +635,20 @@ class IntrinsicResolver(object):
         arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_NOT)
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_NOT)
         verify_number_arguments(arguments, IntrinsicResolver.FN_NOT, num=1)
+        argument_sanitised = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_NOT)
+        if isinstance(argument_sanitised, dict) and "Condition" in arguments[0]:
+            condition_name = argument_sanitised.get("Condition")
+            verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_NOT)
 
-        condition_name = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_NOT)
-        verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_NOT)
+            condition = self.conditions.get(condition_name)
+            verify_non_null(condition, IntrinsicResolver.FN_NOT, position_in_list="first")
 
-        condition = self.conditions.get(condition_name)
-        verify_non_null(condition, IntrinsicResolver.FN_NOT, position_in_list="first")
+            argument_sanitised = self.intrinsic_property_resolver(condition, parent_function=IntrinsicResolver.FN_NOT)
 
-        condition_evaluated = self.intrinsic_property_resolver(condition, parent_function=IntrinsicResolver.FN_NOT)
-        verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_NOT,
-                                   message="The result of {} must evaluate to bool".format(IntrinsicResolver.FN_NOT))
-        return not condition_evaluated
+        verify_intrinsic_type_bool(argument_sanitised, IntrinsicResolver.FN_NOT,
+                                   message="The result of {} must evaluate to bool".format(
+                                       IntrinsicResolver.FN_NOT))
+        return not argument_sanitised
 
     def handle_fn_and(self, intrinsic_value):
         """
@@ -689,7 +692,7 @@ class IntrinsicResolver(object):
                 if not condition_evaluated:
                     return False
             else:
-                condition = self.intrinsic_property_resolver(arguments, parent_function=IntrinsicResolver.FN_AND)
+                condition = self.intrinsic_property_resolver(argument, parent_function=IntrinsicResolver.FN_AND)
                 verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_AND)
 
                 if not condition:
@@ -739,7 +742,7 @@ class IntrinsicResolver(object):
                 if condition_evaluated:
                     return True
             else:
-                condition = self.intrinsic_property_resolver(arguments, parent_function=IntrinsicResolver.FN_OR)
+                condition = self.intrinsic_property_resolver(argument, parent_function=IntrinsicResolver.FN_OR)
                 verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_OR)
 
                 if condition:

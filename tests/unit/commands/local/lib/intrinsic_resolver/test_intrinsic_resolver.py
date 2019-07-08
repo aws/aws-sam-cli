@@ -635,28 +635,447 @@ class TestIntrinsicFnImportValueResolver(TestCase):
             })
 
 
-class TestIntrinsicFnAndResolver(TestCase):
-    def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
-
-    def test_fn_and(self):
-        pass
-
-
-class TestIntrinsicFnOrResolver(TestCase):
-    pass
-
-
 class TestIntrinsicFnEqualsResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+        logical_id_translator = {
+            "EnvironmentType": "prod",
+            "AWS::AccountId": "123456789012"
+        }
+        self.resolver = IntrinsicResolver(
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator))
 
-    def test_fn_and(self):
-        pass
+    def test_basic_fn_equals_true(self):
+        intrinsic = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_basic_fn_equals_false(self):
+        intrinsic = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "NotProd"
+        ]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    def test_nested_fn_equals_true(self):
+        intrinsic_base_1 = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        intrinsic_base_2 = {"Fn::Equals": [
+            {"Ref": "AWS::AccountId"},
+            "123456789012"
+        ]}
+
+        intrinsic = {"Fn::Equals": [
+            intrinsic_base_1,
+            intrinsic_base_2
+        ]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_nested_fn_equals_false(self):
+        intrinsic_base_1 = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        intrinsic_base_2 = {"Fn::Equals": [
+            {"Ref": "AWS::AccountId"},
+            "NOT_A_VALID_ACCOUNT_ID"
+        ]}
+
+        intrinsic = {"Fn::Equals": [
+            intrinsic_base_1,
+            intrinsic_base_2
+        ]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None, "test"]
+    ])
+    def test_fn_equals_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Equals": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Number of arguments to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [["t"] * i for i in [0, 1, 3, 4, 5, 6, 7, 8, 9, 10]]
+    ])
+    def test_fn_sub_invalid_number_arguments(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Equals": intrinsic
+            })
 
 
 class TestIntrinsicFnNotResolver(TestCase):
-    pass
+    def setUp(self):
+        logical_id_translator = {
+            "EnvironmentType": "prod",
+            "AWS::AccountId": "123456789012"
+        }
+        conditions = {
+            "TestCondition": {"Fn::Equals": [
+                {"Ref": "EnvironmentType"},
+                "prod"
+            ]},
+            "NotTestCondition": {
+                "Fn::Not": [
+                    {
+                        "Condition": "TestCondition"
+                    }
+                ]
+            }
+        }
+        self.resolver = IntrinsicResolver(conditions=conditions,
+                                          symbol_resolver=IntrinsicsSymbolTable(
+                                              logical_id_translator=logical_id_translator))
+
+    def test_basic_fn_not_false(self):
+        intrinsic = {"Fn::Not": [{"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    def test_basic_fn_not_true(self):
+        intrinsic = {"Fn::Not": [{"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "NotProd"
+        ]}]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_nested_fn_not_true(self):
+        intrinsic_base_1 = {"Fn::Not": [{"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}]}
+        intrinsic_base_2 = {"Fn::Equals": [
+            {"Ref": "AWS::AccountId"},
+            "123456789012"
+        ]}
+        # !(True && True)
+        intrinsic = {"Fn::Not": [{"Fn::Equals": [
+            intrinsic_base_1,
+            intrinsic_base_2
+        ]}]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_nested_fn_not_false(self):
+        intrinsic_base_1 = {"Fn::Not": [{"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}]}
+        intrinsic_base_2 = {"Fn::Not": [{"Fn::Equals": [
+            {"Ref": "AWS::AccountId"},
+            "123456789012"
+        ]}]}
+
+        intrinsic = {"Fn::Not": [{"Fn::Equals": [
+            intrinsic_base_1,
+            intrinsic_base_2
+        ]}]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    def test_fn_not_condition_false(self):
+        intrinsic = {
+            "Fn::Not": [{
+                "Condition": "TestCondition"
+            }]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    def test_fn_not_condition_true(self):
+        intrinsic = {
+            "Fn::Not": [{
+                "Condition": "NotTestCondition"
+            }]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None, "test"]
+    ])
+    def test_fn_not_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Not": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the first bool argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [{}, 42, object, None, "test"]
+    ])
+    def test_fn_not_first_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Not": [intrinsic]
+            })
+
+    @parameterized.expand([
+        ("Invalid Number of arguments to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [[True] * i for i in [0, 3, 4, 5, 6, 7, 8, 9, 10]]
+    ])
+    def test_fn_not_invalid_number_arguments(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Not": intrinsic
+            })
+
+    def test_fn_not_invalid_condition(self):
+        with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Not": [{"Condition": "NOT_VALID_CONDITION"}]
+            })
+
+
+class TestIntrinsicFnAndResolver(TestCase):
+    def setUp(self):
+        logical_id_translator = {
+            "EnvironmentType": "prod",
+            "AWS::AccountId": "123456789012"
+        }
+        conditions = {
+            "TestCondition": {"Fn::Equals": [
+                {"Ref": "EnvironmentType"},
+                "prod"
+            ]},
+            "NotTestCondition": {
+                "Fn::Not": [
+                    {
+                        "Condition": "TestCondition"
+                    }
+                ]
+            }
+        }
+        self.resolver = IntrinsicResolver(conditions=conditions,
+                                          symbol_resolver=IntrinsicsSymbolTable(
+                                              logical_id_translator=logical_id_translator))
+
+    def test_basic_fn_and_true(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        intrinsic = {
+            "Fn::And": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_basic_fn_and_false(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        intrinsic = {
+            "Fn::And": [prod_fn_equals, {"Condition": "NotTestCondition"}, prod_fn_equals]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    def test_nested_fn_and_true(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        intrinsic_base = {
+            "Fn::And": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]
+        }
+        fn_not_intrinsic = {"Fn::Not": [{
+            "Condition": "NotTestCondition"
+        }]}
+        intrinsic = {
+            "Fn::And": [intrinsic_base, fn_not_intrinsic, prod_fn_equals]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_nested_fn_and_false(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        prod_fn_not_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "NOT_EQUAL"
+        ]}
+        intrinsic_base = {
+            "Fn::And": [prod_fn_equals, {"Condition": "NotTestCondition"}, prod_fn_equals]
+        }
+        intrinsic = {
+            "Fn::And": [{"Fn::Not": [intrinsic_base]}, prod_fn_not_equals]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None, "test"]
+    ])
+    def test_fn_and_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::And": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the first bool argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [{}, 42, object, None, "test"]
+    ])
+    def test_fn_and_first_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::And": [intrinsic, intrinsic, intrinsic]
+            })
+
+    def test_fn_and_invalid_condition(self):
+        with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::And": [{"Condition": "NOT_VALID_CONDITION"}]
+            })
+
+
+class TestIntrinsicFnOrResolver(TestCase):
+    def setUp(self):
+        logical_id_translator = {
+            "EnvironmentType": "prod",
+            "AWS::AccountId": "123456789012"
+        }
+        conditions = {
+            "TestCondition": {"Fn::Equals": [
+                {"Ref": "EnvironmentType"},
+                "prod"
+            ]},
+            "NotTestCondition": {
+                "Fn::Not": [
+                    {
+                        "Condition": "TestCondition"
+                    }
+                ]
+            }
+        }
+        self.resolver = IntrinsicResolver(conditions=conditions,
+                                          symbol_resolver=IntrinsicsSymbolTable(
+                                              logical_id_translator=logical_id_translator))
+
+    def test_basic_fn_or_true(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        intrinsic = {
+            "Fn::Or": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_basic_fn_or_single_true(self):
+        intrinsic = {
+            "Fn::Or": [False, False, {"Condition": "TestCondition"}, False]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_basic_fn_or_false(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        intrinsic = {
+            "Fn::Or": [{"Fn::Not": [prod_fn_equals]}, {"Condition": "NotTestCondition"}, {"Fn::Not": [prod_fn_equals]}]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    def test_nested_fn_or_true(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        failed_intrinsic_or = {
+            "Fn::Or": [{"Fn::Not": [prod_fn_equals]}, {"Condition": "NotTestCondition"}, {"Fn::Not": [prod_fn_equals]}]
+        }
+        intrinsic_base = {
+            "Fn::Or": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]
+        }
+        fn_not_intrinsic = {"Fn::Not": [{
+            "Condition": "NotTestCondition"
+        }]}
+        intrinsic = {
+            "Fn::Or": [failed_intrinsic_or, intrinsic_base, fn_not_intrinsic, fn_not_intrinsic]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_nested_fn_and_false(self):
+        prod_fn_equals = {"Fn::Equals": [
+            {"Ref": "EnvironmentType"},
+            "prod"
+        ]}
+        failed_intrinsic_or = {
+            "Fn::Or": [{"Fn::Not": [prod_fn_equals]}, {"Condition": "NotTestCondition"}, {"Fn::Not": [prod_fn_equals]}]
+        }
+        intrinsic_base = {
+            "Fn::Or": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]
+        }
+        fn_not_intrinsic = {"Fn::Not": [{
+            "Condition": "NotTestCondition"
+        }]}
+        intrinsic = {
+            "Fn::Or": [failed_intrinsic_or, {"Fn::Not": [intrinsic_base]}]
+        }
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None, "test"]
+    ])
+    def test_fn_or_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Or": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the first bool argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [{}, 42, object, None, "test"]
+    ])
+    def test_fn_or_first_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Or": [intrinsic, intrinsic, intrinsic]
+            })
+
+    def test_fn_or_invalid_condition(self):
+        with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Or": [{"Condition": "NOT_VALID_CONDITION"}]
+            })
 
 
 class TestIntrinsicFnIfResolver(TestCase):
