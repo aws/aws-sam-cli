@@ -1,6 +1,6 @@
 """
-A custom Exception to display Invalid Intrinsics format.
-It also has a list of helper functions that cleanup the processing in IntrinsicResolver
+A custom Exception to display Invalid Intrinsics and Symbol Table format.
+It also has a list of helper functions that cleanup the processing in IntrinsicResolver and IntrinsicSymbolTable
 """
 from six import string_types
 
@@ -65,3 +65,7 @@ def verify_number_arguments(arguments, property_type="", num=0):
 def verify_all_list_intrinsic_type(arguments, verification_func, property_type="", message="", position_in_list=""):
     for argument in arguments:
         verification_func(argument, property_type, message, position_in_list)
+
+
+class InvalidSymbolException(Exception):
+    pass

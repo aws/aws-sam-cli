@@ -6,40 +6,14 @@ import re
 
 from six import string_types
 
+from commands.local.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, \
     verify_intrinsic_type_list, verify_non_null, verify_intrinsic_type_int, verify_in_bounds, \
     verify_number_arguments, verify_intrinsic_type_str, verify_intrinsic_type_dict, verify_intrinsic_type_bool, \
-    verify_all_list_intrinsic_type
+    verify_all_list_intrinsic_type, InvalidSymbolException
 
 
 class IntrinsicResolver(object):
-    SUPPORTED_PSEUDO_TYPES = [
-        "AWS::AccountId",
-        "AWS::NotificationArn",
-        "AWS::Partition",
-        "AWS::Region",
-        "AWS::StackId",
-        "AWS::StackName",
-        "AWS::URLSuffix"
-    ]
-    REGIONS = {"us-east-1": ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"],
-               "us-west-1": ["us-west-1b", "us-west-1c"],
-               "eu-north-1": ["eu-north-1a", "eu-north-1b", "eu-north-1c"],
-               "ap-northeast-3": ["ap-northeast-3a"],
-               "ap-northeast-2": ["ap-northeast-2a", "ap-northeast-2b", "ap-northeast-2c"],
-               "ap-northeast-1": ["ap-northeast-1a", "ap-northeast-1c", "ap-northeast-1d"],
-               "sa-east-1": ["sa-east-1a", "sa-east-1c"],
-               "ap-southeast-1": ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"],
-               "ca-central-1": ["ca-central-1a", "ca-central-1b"],
-               "ap-southeast-2": ["ap-southeast-2a", "ap-southeast-2b", "ap-southeast-2c"],
-               "us-west-2": ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"],
-               "us-east-2": ["us-east-2a", "us-east-2b", "us-east-2c"],
-               "ap-south-1": ["ap-south-1a", "ap-south-1b", "ap-south-1c"],
-               "eu-central-1": ["eu-central-1a", "eu-central-1b", "eu-central-1c"],
-               "eu-west-1": ["eu-west-1a", "eu-west-1b", "eu-west-1c"],
-               "eu-west-2": ["eu-west-2a", "eu-west-2b", "eu-west-2c"],
-               "eu-west-3": ["eu-west-3a", "eu-west-3b", "eu-west-3c"],
-               "cn-north-1": []}
     AWS_INCLUDE = "AWS::Include"
     SUPPORTED_MACRO_TRANSFORMATIONS = [AWS_INCLUDE]
     _REGEX_SUB_FUNCTION = r'\$\{([A-Za-z0-9]+)\)\}'
@@ -54,6 +28,7 @@ class IntrinsicResolver(object):
     FN_GET_AZS = "Fn::GetAzs"
     REF = "Ref"
     FN_GET_ATT = "Fn::GetAtt"
+    FN_IMPORT_VALUE = "Fn::ImportValue"
 
     SUPPORTED_INTRINSIC_FUNCTIONS = [
         FN_JOIN,
@@ -65,14 +40,9 @@ class IntrinsicResolver(object):
         FN_TRANSFORM,
         FN_GET_AZS,
         REF,
-        FN_GET_ATT
+        FN_GET_ATT,
+        FN_IMPORT_VALUE
     ]
-
-    # TODO add Fn::ImportValue, Fn::Cidr
-    #  Support Rule Intrinsics: Fn::Contains, Fn::EachMemberEquals, Fn::EachMemberIn,
-    #  Fn::RefAll, Fn::ValueOf, Fn::ValueOfAll - parse the rules section
-    #  https://docs.aws.amazon.com/servicecatalog/latest/adminguide/intrinsic-function-reference-rules.html#fn-contains
-    # TODO support list of input regions
 
     FN_AND = "Fn::And"
     FN_OR = "Fn::Or"
@@ -105,10 +75,10 @@ class IntrinsicResolver(object):
         into the function.
         Parameters
         -----------
-        symbol_resolver: dict
+        symbol_resolver: IntrinsicsSymbolTable
             This is a required property that is the crux of the intrinsics resolver. It acts as a mapping between
             resource_type and object to the Ref, Arn, etc.
-        template: dict # TODO resolve list of templates
+        template: dict
             A dictionary containing all the resources and the attributes of the CloudFormation template.
             Customers can pass in the template or the individual properties like resources, mapping, parameters,
             conditions.
@@ -140,6 +110,7 @@ class IntrinsicResolver(object):
             IntrinsicResolver.FN_GET_AZS: self.handle_fn_get_azs,
             IntrinsicResolver.REF: self.handle_fn_ref,
             IntrinsicResolver.FN_GET_ATT: self.handle_fn_getatt,
+            IntrinsicResolver.FN_IMPORT_VALUE: self.handle_fn_import_value
         }
 
         self.conditional_key_function_map = {
@@ -219,11 +190,11 @@ class IntrinsicResolver(object):
         """
         processed_template = {}
         for key, val in self.resources:
-            processed_key = self.symbol_resolver.get(key) or key
+            processed_key = self.symbol_resolver.get_translation(key, IntrinsicResolver.REF) or key
             try:
                 processed_resource = self.intrinsic_property_resolver(val)
                 processed_template[processed_key] = processed_resource
-            except InvalidIntrinsicException as e:
+            except (InvalidIntrinsicException, InvalidSymbolException) as e:
                 resource_type = val.get("Type", "")
                 if ignore_errors:
                     print("Unable to process properties of {}.{}".format(key, resource_type))
@@ -279,7 +250,7 @@ class IntrinsicResolver(object):
         Parameter
         ----------
         intrinsic_value: list, dict
-            This is the value of the object inside the Fn::Join intrinsic function property
+            This is the value of the object inside the Fn::Split intrinsic function property
 
         Return
         -------
@@ -308,7 +279,7 @@ class IntrinsicResolver(object):
         Parameter
         ----------
         intrinsic_value: list, dict
-           This is the value of the object inside the Fn::Join intrinsic function property
+           This is the value of the object inside the Fn::Base64 intrinsic function property
 
         Return
         -------
@@ -328,7 +299,7 @@ class IntrinsicResolver(object):
         Parameter
         ----------
         intrinsic_value: list, dict
-           This is the value of the object inside the Fn::Join intrinsic function property
+           This is the value of the object inside the Fn::Select intrinsic function property
 
         Return
         -------
@@ -372,7 +343,7 @@ class IntrinsicResolver(object):
         Parameter
         ----------
         intrinsic_value: list, dict
-           This is the value of the object inside the Fn::Join intrinsic function property
+           This is the value of the object inside the Fn::FindInMap intrinsic function property
 
         Return
         -------
@@ -422,7 +393,7 @@ class IntrinsicResolver(object):
         Parameter
         ----------
         intrinsic_value: list, dict
-           This is the value of the object inside the Fn::Join intrinsic function property
+           This is the value of the object inside the Fn::GetAzs intrinsic function property
 
         Return
         -------
@@ -432,11 +403,11 @@ class IntrinsicResolver(object):
                                                            parent_function=IntrinsicResolver.FN_GET_AZS)
         verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)
 
-        if intrinsic_value not in IntrinsicResolver.REGIONS:
+        if intrinsic_value not in IntrinsicsSymbolTable.REGIONS:
             raise InvalidIntrinsicException(
                 "Invalid region string passed in to {}".format(IntrinsicResolver.FN_GET_AZS))
 
-        return IntrinsicResolver.REGIONS.get(intrinsic_value)
+        return IntrinsicsSymbolTable.REGIONS.get(intrinsic_value)
 
     def handle_fn_transform(self, intrinsic_value):
         """
@@ -447,7 +418,7 @@ class IntrinsicResolver(object):
         Parameter
         ----------
         intrinsic_value: list, dict
-           This is the value of the object inside the Fn::Join intrinsic function property
+           This is the value of the object inside the Fn::Transform intrinsic function property
 
         Return
         -------
@@ -468,16 +439,30 @@ class IntrinsicResolver(object):
             location = self.intrinsic_property_resolver(parameters.get("Location"))
             return location
 
+    def handle_fn_import_value(self, intrinsic_value):
+        """
+        { "Fn::ImportValue" : sharedValueToImport }
+        This intrinsic function requires handling multiple stacks, which is not currently supported by SAM-CLI.
+        Thus, it will thrown an exception.
+
+        Return
+        -------
+        An InvalidIntrinsicException
+        """
+        raise InvalidIntrinsicException("Fn::ImportValue is currently not supported by IntrinsicResolver")
+
     def handle_fn_getatt(self, intrinsic_value):
         """
         { "Fn::GetAtt" : [ "logicalNameOfResource", "attributeName" ] }
-        This intrinsic function gets the attribute for logical_resource specified.
+        This intrinsic function gets the attribute for logical_resource specified. Each attribute might have a different
+        functionality depending on the type.
 
         This intrinsic function will resolve all the objects within the function's value and check their type.
+        This calls the symbol resolver in order to resolve the relevant attribute.
         Parameter
         ----------
         intrinsic_value: list, dict
-           This is the value of the object inside the Fn::Join intrinsic function property
+           This is the value of the object inside the Fn::GetAtt intrinsic function property
 
         Return
         -------
@@ -489,16 +474,33 @@ class IntrinsicResolver(object):
 
         logical_id = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_GET_ATT)
         resource_type = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_GET_ATT)
-        self.symbol_resolver.get(logical_id, resource_type)
-        # if not self.verify_valid_fn_get_attribute(logical_id, resource_type):
-        #     raise InvalidIntrinsicException("The type {} does not have a valid associated resource "
-        #                                     "property of {}".format(logical_id, resource_type))
-        #
-        # # TODO handle refs
-        # return self.default_attribute_resolver(logical_id, resource_type)
+
+        verify_intrinsic_type_str(logical_id, IntrinsicResolver.FN_GET_ATT)
+        verify_intrinsic_type_str(resource_type, IntrinsicResolver.FN_GET_ATT)
+
+        return self.symbol_resolver.resolve_symbols(logical_id, resource_type)
 
     def handle_fn_ref(self, intrinsic_value):
-        pass
+        """
+        {"Ref": "Logical ID"}
+        This intrinsic function gets the reference to a certain attribute. Some Ref's have different functionality with
+        different resource types.
+
+        This intrinsic function will resolve all the objects within the function's value and check their type.
+        This calls the symbol resolver in order to resolve the relevant attribute.
+        Parameter
+        ----------
+        intrinsic_value: str
+           This is the value of the object inside the Ref intrinsic function property
+
+        Return
+        -------
+        A string with the resolved attributes
+        """
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.REF)
+        verify_intrinsic_type_str(arguments, IntrinsicResolver.REF)
+
+        return self.symbol_resolver.resolve_symbols(arguments, IntrinsicResolver.REF)
 
     def handle_fn_sub(self, intrinsic_value):
         """
@@ -516,6 +518,14 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
+
+        def resolve_sub_attribute(intrinsic_item, symbol_resolver):
+            if "." in intrinsic_item:
+                (logical_id, attribute_type) = intrinsic_item.rsplit('.', 1)
+            else:
+                (logical_id, attribute_type) = intrinsic_item, IntrinsicResolver.REF
+            return symbol_resolver.resolve_symbols(logical_id, attribute_type, ignore_errors=True)
+
         if isinstance(intrinsic_value, string_types):
             intrinsic_value = [intrinsic_value, {}]
 
@@ -524,24 +534,22 @@ class IntrinsicResolver(object):
 
         verify_number_arguments(intrinsic_value, IntrinsicResolver.FN_SUB, num=2)
 
-        sub_str_type = self.intrinsic_property_resolver(intrinsic_value[0], parent_function=IntrinsicResolver.FN_SUB)
-        verify_intrinsic_type_str(sub_str_type, IntrinsicResolver.FN_SUB, position_in_list="first")
+        sub_str = self.intrinsic_property_resolver(intrinsic_value[0], parent_function=IntrinsicResolver.FN_SUB)
+        verify_intrinsic_type_str(sub_str, IntrinsicResolver.FN_SUB, position_in_list="first")
 
         variables = intrinsic_value[1]
         verify_intrinsic_type_dict(variables, IntrinsicResolver.FN_SUB, position_in_list="second")
 
         sanitized_variables = self.intrinsic_property_resolver(variables, parent_function=IntrinsicResolver.FN_SUB)
 
-        # TODO handles refs
-        subable_props = re.findall(sub_str_type, IntrinsicResolver._REGEX_SUB_FUNCTION)
+        subable_props = re.findall(sub_str, IntrinsicResolver._REGEX_SUB_FUNCTION)
         for item in subable_props:
             if item in sanitized_variables:
-                re.sub(sub_str_type, "${" + item + "}", sanitized_variables[item])
-            if item in IntrinsicResolver.SUPPORTED_PSEUDO_TYPES:
-                re.sub(sub_str_type, "${" + item + "}", self.handle_pseudo_parameters(self.parameters, item))
-        return sub_str_type
+                item = sanitized_variables[item]
+            result = resolve_sub_attribute(item, self.symbol_resolver)
+            re.sub(sub_str, "${" + item + "}", result)
+        return sub_str
 
-    # Boolean Logic
     def handle_fn_if(self, intrinsic_value):
         """
         {"Fn::If": [condition_name, value_if_true, value_if_false]}
