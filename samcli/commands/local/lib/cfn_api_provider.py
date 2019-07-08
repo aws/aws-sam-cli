@@ -161,10 +161,10 @@ class CfnApiProvider(CfnBaseApiProvider):
         parent_id = properties.get("ParentId")
         path_part = properties.get("PathPart")
         parent = resources.get(parent_id)
-        if not parent:
-            return parent + path_part + current_path
+        if parent:
+            return self.resolve_resource_path(resources, parent, "/" + path_part + current_path)
         if parent_id:
-            return self.resolve_resource_path(resources, resources.get(parent_id), "/" + path_part + current_path)
+            return parent_id + path_part + current_path
         return "/" + path_part + current_path
 
     @staticmethod

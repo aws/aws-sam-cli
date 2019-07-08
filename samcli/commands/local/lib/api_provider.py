@@ -2,6 +2,8 @@
 
 import logging
 
+from samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.commands.local.lib.route_collector import RouteCollector
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.local.lib.provider import AbstractApiProvider, Api
@@ -33,7 +35,8 @@ class ApiProvider(AbstractApiProvider):
             Optional working directory with respect to which we will resolve relative path to Swagger file
         """
         self.template_dict = SamBaseProvider.get_template(template_dict, parameter_overrides)
-        self.resources = self.template_dict.get("Resources", {})
+        self.resources = IntrinsicResolver(template=self.template_dict,
+                                           symbol_resolver=IntrinsicsSymbolTable()).resolve_template(ignore_errors=True)
 
         LOG.debug("%d resources found in the template", len(self.resources))
 

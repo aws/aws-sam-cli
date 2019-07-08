@@ -1,6 +1,6 @@
 from copy import deepcopy
-from pprint import pprint
 from unittest import TestCase
+
 import mock
 from parameterized import parameterized
 
@@ -467,7 +467,6 @@ class TestIntrinsicFnGetAttResolver(TestCase):
                 }
             }
         }
-        IntrinsicsSymbolTable.verify_valid_fn_get_attribute = mock.Mock(return_value=True)
         self.resources = resources
         self.resolver = IntrinsicResolver(resources=resources,
                                           symbol_resolver=IntrinsicsSymbolTable(
@@ -554,7 +553,6 @@ class TestIntrinsicFnSubResolver(TestCase):
                 },
             }
         }
-        IntrinsicsSymbolTable.verify_valid_fn_get_attribute = mock.Mock(return_value=True)
         self.resolver = IntrinsicResolver(
             symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
 
@@ -607,7 +605,7 @@ class TestIntrinsicFnSubResolver(TestCase):
         for primitive in
         [True, False, "Another str", [], 42, object, None]
     ])
-    def test_fn_sub_first_argument_invalid_formats(self, name, intrinsic):
+    def test_fn_sub_second_argument_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
             self.resolver.intrinsic_property_resolver({
                 "Fn::Sub": ["some str", intrinsic]
@@ -1251,14 +1249,15 @@ class TestIntrinsicTemplateResolution(TestCase):
             "RestApi.Deployment": {
                 "Type": "AWS::ApiGateway::RestApi",
                 "Properties": {
-                    "Body": {"Fn::Base64":  # Becomes a;e;f;d
-                                 {"Fn::Join": [";", {"Fn::Split": [
-                                     {"Fn::Select":
-                                          [1,
-                                           [";", ","]
-                                           ]},
-                                     {"Fn::Join": [",", ["a", "e", "f", "d"]]}]}]}
-                             },
+                    "Body":
+                        {"Fn::Base64":  # Becomes a;e;f;d
+                             {"Fn::Join": [";",  # NOQA
+                                           {"Fn::Split": [
+                                               {"Fn::Select": [1, [";", ","]]},
+                                               {"Fn::Join": [",", ["a", "e", "f", "d"]]}]}
+                                           ]
+                              }
+                         },
                     "BodyS3Location": {
                         "Fn::FindInMap": ["TopLevel", "SecondLevelKey", "key"]
                     }
@@ -1320,12 +1319,11 @@ class TestIntrinsicTemplateResolution(TestCase):
         conditions = {
             "ComplexCondition": {"Fn::And": [
                 {"Fn::Equals": [
-                    {"Fn::Or":
+                    {"Fn::Or":  # NOQA
                         [
                             {"Condition": "NotTestCondition"},
                             {"Condition": "TestCondition"}]
-                    },
-                    False]
+                    }, False]
                 },
                 True,
                 {"Fn::If": ["TestCondition", True, False]}
@@ -1351,7 +1349,6 @@ class TestIntrinsicTemplateResolution(TestCase):
         self.resources = resources
         self.conditions = conditions
         self.mappings = mappings
-        IntrinsicsSymbolTable.verify_valid_fn_get_attribute = mock.Mock(return_value=True)
         self.resolver = IntrinsicResolver(template=template,
                                           symbol_resolver=IntrinsicsSymbolTable(
                                               logical_id_translator=logical_id_translator))
@@ -1409,7 +1406,7 @@ class TestIntrinsicTemplateResolution(TestCase):
                                  'Type': 'AWS::Lambda::Function'},
                              'RestApi.Deployment': {
                                  'Properties': {'Body': {'Fn::Base64':
-                                                             {'Fn::Join': [';',
+                                                             {'Fn::Join': [';',  # NOQA
                                                                            {'Fn::Split': [{
                                                                                'Fn::Select': [
                                                                                    1,

@@ -374,14 +374,12 @@ class IntrinsicResolver(object):
         top_level_value = map_value.get(top_level_key)
         verify_intrinsic_type_dict(top_level_value, IntrinsicResolver.FN_FIND_IN_MAP,
                                    message="The TopLevelKey is missing in the Mappings dictionary in Fn::FindInMap "
-                                           "for {}".format(
-                                       top_level_key))
+                                           "for {}".format(top_level_key))
 
         second_level_value = top_level_value.get(second_level_key)
         verify_intrinsic_type_str(second_level_value, IntrinsicResolver.FN_FIND_IN_MAP,
                                   message="The SecondLevelKey is missing in the Mappings dictionary in Fn::FindInMap  "
-                                          "for {}".format(
-                                      second_level_key))
+                                          "for {}".format(second_level_key))
 
         return second_level_value
 

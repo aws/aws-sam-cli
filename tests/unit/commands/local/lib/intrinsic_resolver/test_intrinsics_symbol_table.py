@@ -1,5 +1,3 @@
-import os
-import subprocess
 from unittest import TestCase
 
 import mock
@@ -147,8 +145,8 @@ class TestIntrinsicsSymbolTableValidAttributes(TestCase):
         m = MagicMock(side_effect=[self.sample_resource_spec])
         p2 = patch("json.load", m)
 
-        with p1 as _:
-            with p2 as _:
+        with p1 as _:  # NOQA
+            with p2 as _:  # NOQA
                 result = self.resolver.symbol_resolver.verify_valid_fn_get_attribute(logical_id="RestApi",
                                                                                      resource_type="RootResourceId")
                 self.assertEquals(result, True)
@@ -159,8 +157,8 @@ class TestIntrinsicsSymbolTableValidAttributes(TestCase):
         m = MagicMock(side_effect=[self.sample_resource_spec])
         p2 = patch("json.load", m)
 
-        with p1 as _:
-            with p2 as _:
+        with p1 as _:  # NOQA
+            with p2 as _: # NOQA
                 result = self.resolver.symbol_resolver.verify_valid_fn_get_attribute(logical_id="RestApi",
                                                                                      resource_type="UNKNOWN_PROPERTY")
                 self.assertEquals(result, False)

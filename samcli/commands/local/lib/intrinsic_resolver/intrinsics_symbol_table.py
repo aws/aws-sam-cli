@@ -190,8 +190,7 @@ class IntrinsicsSymbolTable(object):
             self.logical_id_translator[logical_id] = translated
             return translated
 
-        if resource_attribute != IntrinsicResolver.REF and not self.verify_valid_fn_get_attribute(logical_id,
-                                                                                                  resource_attribute):
+        if resource_attribute != IntrinsicResolver.REF:
             if ignore_errors:
                 return "${}".format(logical_id + "." + resource_attribute)
             raise InvalidSymbolException(
@@ -224,7 +223,9 @@ class IntrinsicsSymbolTable(object):
     def verify_valid_fn_get_attribute(self, logical_id, resource_type):
         """"
         This function uses a CloudFormationResourceSpecification.json, which contains the list of attributes that can
-        be allowed in an Fn::Get
+        be allowed in an Fn::Get.
+
+        This is currently not used because of filepath issues
 
         Parameters
         -----------
