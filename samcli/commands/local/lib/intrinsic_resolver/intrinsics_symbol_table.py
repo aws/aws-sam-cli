@@ -128,6 +128,7 @@ class IntrinsicsSymbolTable(object):
             }
         """
         self.logical_id_translator = logical_id_translator or {}
+
         self.parameters = parameters or {}
         self.resources = resources or {}
 
@@ -254,9 +255,9 @@ class IntrinsicsSymbolTable(object):
         service_name: str
             This is the service name used such as lambda or sns
 
-        :param logical_id:
-        :param service_name:
-        :return:
+        Return
+        -------
+        The resolved Arn
         """
         aws_region = self.handle_pseudo_region()
         account_id = self.handle_pseudo_account_id()
@@ -270,15 +271,26 @@ class IntrinsicsSymbolTable(object):
             account_id=account_id,
             function_name=function_name)
 
-    def get_translation(self, logical_id, resource_attributes):
+    def get_translation(self, logical_id, resource_attributes=IntrinsicResolver.REF):
         """
-        This gets the logical_id_translation of the logical id and resource_attribute
-        :param logical_id:
-        :param resource_attributes:
-        :return:
+        This gets the logical_id_translation of the logical id and resource_attributes.
+
+        Parameters
+        ----------
+        logical_id: str
+            This is the logical id of the resource in question
+        resource_attributes: str
+            This is the attribute required. By default, it is a REF type
+
+        Returns
+        --------
+        This returns the translated item if it already exists
+
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
         if isinstance(logical_id_item, string_types):
+            if resource_attributes != IntrinsicResolver.REF and resource_attributes != "":
+                return None
             return logical_id_item
         return logical_id_item.get(resource_attributes)
 
@@ -326,7 +338,7 @@ class IntrinsicsSymbolTable(object):
             pass
 
         if not account_id:
-            account_id = ''.join(["%s" % randint(0, 9) for _ in range(12)])
+            account_id = ''.join([str(randint(0, 9)) for _ in range(12)])
 
         return str(account_id)
 
@@ -351,7 +363,7 @@ class IntrinsicsSymbolTable(object):
         -------
         The url prefix of amazonaws.com or amazonaws.com.cn
         """
-        aws_region = self.logical_id_translator.get(self.AWS_REGION) or self.DEFAULT_REGION
+        aws_region = self.logical_id_translator.get(self.AWS_REGION) or self.handle_pseudo_region()
         if self.CHINA_PREFIX in aws_region:
             return self.CHINA_URL_PREFIX
         return self.DEFAULT_URL_PREFIX

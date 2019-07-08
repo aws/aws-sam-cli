@@ -1,7 +1,7 @@
-from unittest import TestCase, mock
-from unittest.mock import mock_open
-
-from mock import patch
+from copy import deepcopy
+from pprint import pprint
+from unittest import TestCase
+import mock
 from parameterized import parameterized
 
 from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
@@ -351,7 +351,7 @@ class TestIntrinsicFnAzsResolver(TestCase):
             "Ref": "AWS::Region"
         }
         result = self.resolver.intrinsic_property_resolver({
-            "Fn::Azs": intrinsic
+            "Fn::GetAZs": intrinsic
         })
         self.assertEquals(result, ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"])
 
@@ -363,7 +363,7 @@ class TestIntrinsicFnAzsResolver(TestCase):
     def test_fn_azs_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
             self.resolver.intrinsic_property_resolver({
-                "Fn::Azs": intrinsic
+                "Fn::GetAZs": intrinsic
             })
 
 
@@ -469,8 +469,9 @@ class TestIntrinsicFnGetAttResolver(TestCase):
         }
         IntrinsicsSymbolTable.verify_valid_fn_get_attribute = mock.Mock(return_value=True)
         self.resources = resources
-        self.resolver = IntrinsicResolver(
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
+        self.resolver = IntrinsicResolver(resources=resources,
+                                          symbol_resolver=IntrinsicsSymbolTable(
+                                              logical_id_translator=logical_id_translator))
 
     def test_basic_fn_getatt_translation(self):
         intrinsic = {
@@ -1040,9 +1041,6 @@ class TestIntrinsicFnOrResolver(TestCase):
         intrinsic_base = {
             "Fn::Or": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]
         }
-        fn_not_intrinsic = {"Fn::Not": [{
-            "Condition": "NotTestCondition"
-        }]}
         intrinsic = {
             "Fn::Or": [failed_intrinsic_or, {"Fn::Not": [intrinsic_base]}]
         }
@@ -1079,8 +1077,355 @@ class TestIntrinsicFnOrResolver(TestCase):
 
 
 class TestIntrinsicFnIfResolver(TestCase):
-    pass
+    def setUp(self):
+        logical_id_translator = {
+            "EnvironmentType": "prod",
+            "AWS::AccountId": "123456789012"
+        }
+        conditions = {
+            "TestCondition": {"Fn::Equals": [
+                {"Ref": "EnvironmentType"},
+                "prod"
+            ]},
+            "NotTestCondition": {
+                "Fn::Not": [
+                    {
+                        "Condition": "TestCondition"
+                    }
+                ]
+            },
+            "InvalidCondition": ["random items"]
+        }
+        self.resolver = IntrinsicResolver(conditions=conditions,
+                                          symbol_resolver=IntrinsicsSymbolTable(
+                                              logical_id_translator=logical_id_translator))
+
+    def test_basic_fn_or_true(self):
+        intrinsic = {
+            "Fn::If": [
+                "TestCondition",
+                True,
+                False
+            ]
+        }
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_basic_fn_or_false(self):
+        intrinsic = {
+            "Fn::If": [
+                "NotTestCondition",
+                True,
+                False
+            ]
+        }
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    def test_nested_fn_if_true(self):
+        intrinsic_base_1 = {
+            "Fn::If": [
+                "NotTestCondition",
+                True,
+                False
+            ]
+        }
+        intrinsic_base_2 = {
+            "Fn::If": [
+                "TestCondition",
+                True,
+                False
+            ]
+        }
+        intrinsic = {
+            "Fn::If": [
+                "TestCondition",
+                intrinsic_base_2,
+                intrinsic_base_1
+            ]
+        }
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertTrue(result)
+
+    def test_nested_fn_if_false(self):
+        intrinsic_base_1 = {
+            "Fn::If": [
+                "NotTestCondition",
+                True,
+                False
+            ]
+        }
+        intrinsic_base_2 = {
+            "Fn::If": [
+                "TestCondition",
+                True,
+                False
+            ]
+        }
+        intrinsic = {
+            "Fn::If": [
+                "TestCondition",
+                intrinsic_base_1,
+                intrinsic_base_2
+            ]
+        }
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        self.assertFalse(result)
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None, "test"]
+    ])
+    def test_fn_if_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::If": intrinsic
+            })
+
+    @parameterized.expand([
+        ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [True, False, {}, 42, object, None, "test", []]
+    ])
+    def test_fn_if_first_arguments_invalid_formats(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::If": [intrinsic, True, False]
+            })
+
+    def test_fn_if_invalid_condition(self):
+        with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::If": ["NOT_VALID_CONDITION", "test", "test"]
+            })
+
+    @parameterized.expand([
+        ("Invalid Number of arguments to the list argument with type {} should fail".format(primitive), primitive)
+        for primitive in
+        [[True] * i for i in [0, 1, 3, 4, 5, 6, 7, 8, 9, 10]]
+    ])
+    def test_fn_if_invalid_number_arguments(self, name, intrinsic):
+        with self.assertRaises(InvalidIntrinsicException, msg=name):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::Not": ["TestCondition"] + intrinsic
+            })
+
+    def test_fn_if_condition_not_bool_fail(self):
+        with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
+            self.resolver.intrinsic_property_resolver({
+                "Fn::If": ["InvalidCondition", "test", "test"]
+            })
 
 
 class TestIntrinsicTemplateResolution(TestCase):
-    pass
+    def setUp(self):
+        logical_id_translator = {
+            "RestApi": {
+                "Ref": "NewRestApi"
+            },
+            "LambdaFunction": {
+                "Arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
+                       "-1:123456789012:LambdaFunction/invocations"
+            },
+            "AWS::StackId": "12301230123",
+            "AWS::Region": "us-east-1",
+            "AWS::AccountId": "406033500479",
+            "RestApi.Deployment": {
+                "Ref": "RestApi"
+            }
+        }
+        self.logical_id_translator = logical_id_translator
+        mappings = {
+            "TopLevel": {
+                "SecondLevelKey": {
+                    "key": "https://s3location/"
+                }
+            }
+        }
+        resources = {
+            "RestApi.Deployment": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                    "Body": {"Fn::Base64":  # Becomes a;e;f;d
+                                 {"Fn::Join": [";", {"Fn::Split": [
+                                     {"Fn::Select":
+                                          [1,
+                                           [";", ","]
+                                           ]},
+                                     {"Fn::Join": [",", ["a", "e", "f", "d"]]}]}]}
+                             },
+                    "BodyS3Location": {
+                        "Fn::FindInMap": ["TopLevel", "SecondLevelKey", "key"]
+                    }
+                },
+            },
+            "RestApiResource": {
+                "Properties": {
+                    "parentId": {
+                        "Fn::GetAtt": [
+                            "RestApi.Deployment", "RootResourceId"
+                        ]
+                    },
+                    "PathPart": "{proxy+}",
+                    "RestApiId": {
+                        "Ref": "RestApi.Deployment"
+                    },
+                }
+            },
+            "HelloHandler2E4FBA4D": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "handler": "main.handle"
+                }
+            },
+            "LambdaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Uri": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "arn:",
+                                {
+                                    "Ref": "AWS::Partition"
+                                },
+                                ":apigateway:",
+                                {
+                                    "Fn::Select": [0,
+                                                   {
+                                                       "Fn::GetAZs": {
+                                                           "Ref": "AWS::Region"
+                                                       }
+                                                   }]
+                                },
+                                ":lambda:path/2015-03-31/functions/",
+                                {
+                                    "Fn::GetAtt": [
+                                        "HelloHandler2E4FBA4D",
+                                        "Arn"
+                                    ]
+                                },
+                                "/invocations"
+                            ]
+                        ]
+                    }
+                }
+            }
+        }
+        conditions = {
+            "ComplexCondition": {"Fn::And": [
+                {"Fn::Equals": [
+                    {"Fn::Or":
+                        [
+                            {"Condition": "NotTestCondition"},
+                            {"Condition": "TestCondition"}]
+                    },
+                    False]
+                },
+                True,
+                {"Fn::If": ["TestCondition", True, False]}
+            ]},
+            "TestCondition": {"Fn::Equals": [
+                {"Ref": "EnvironmentType"},
+                "prod"
+            ]},
+            "NotTestCondition": {
+                "Fn::Not": [
+                    {
+                        "Condition": "TestCondition"
+                    }
+                ]
+            },
+            "InvalidCondition": ["random items"]
+        }
+        template = {
+            "Mappings": mappings,
+            "Conditions": conditions,
+            "Resources": resources,
+        }
+        self.resources = resources
+        self.conditions = conditions
+        self.mappings = mappings
+        IntrinsicsSymbolTable.verify_valid_fn_get_attribute = mock.Mock(return_value=True)
+        self.resolver = IntrinsicResolver(template=template,
+                                          symbol_resolver=IntrinsicsSymbolTable(
+                                              logical_id_translator=logical_id_translator))
+
+    def test_basic_template_resolution(self):
+        resolved_template = self.resolver.resolve_template(ignore_errors=False)
+        expected_resources = {'HelloHandler2E4FBA4D': {'Properties': {'handler': 'main.handle'},
+                                                       'Type': 'AWS::Lambda::Function'},
+                              'LambdaFunction': {'Properties': {
+                                  'Uri': 'arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31/functions/arn:aws'
+                                         ':lambda:us-east-1:406033500479:HelloHandler2E4FBA4D/invocations'},
+                                  'Type': 'AWS::Lambda::Function'},
+                              'RestApi': {'Properties': {'Body': 'YTtlO2Y7ZA==',
+                                                         'BodyS3Location': 'https://s3location/'},
+                                          'Type': 'AWS::ApiGateway::RestApi'},
+                              'RestApiResource': {'Properties': {'PathPart': '{proxy+}',
+                                                                 'RestApiId': 'RestApi',
+                                                                 'parentId': '/'}}}
+        self.assertEquals(resolved_template, expected_resources)
+
+    def test_template_fail_errors(self):
+        resources = deepcopy(self.resources)
+        resources["RestApi.Deployment"]["Properties"]["BodyS3Location"] = {"Fn::FindInMap": []}
+        template = {
+            "Mappings": self.mappings,
+            "Conditions": self.conditions,
+            "Resources": resources,
+        }
+
+        resolver = IntrinsicResolver(template=template,
+                                     symbol_resolver=IntrinsicsSymbolTable(
+                                         logical_id_translator=self.logical_id_translator))
+        with self.assertRaises(InvalidIntrinsicException, msg="Invalid Find In Map"):
+            resolver.resolve_template(ignore_errors=False)
+
+    def test_template_ignore_errors(self):
+        resources = deepcopy(self.resources)
+        resources["RestApi.Deployment"]["Properties"]["BodyS3Location"] = {"Fn::FindInMap": []}
+        template = {
+            "Mappings": self.mappings,
+            "Conditions": self.conditions,
+            "Resources": resources,
+        }
+
+        resolver = IntrinsicResolver(template=template,
+                                     symbol_resolver=IntrinsicsSymbolTable(
+                                         logical_id_translator=self.logical_id_translator))
+        result = resolver.resolve_template(ignore_errors=True)
+        expected_template = {'HelloHandler2E4FBA4D': {'Properties': {'handler': 'main.handle'},
+                                                      'Type': 'AWS::Lambda::Function'},
+                             'LambdaFunction': {'Properties': {
+                                 'Uri': 'arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31'
+                                        '/functions/arn:aws:lambda:us-east-1:406033500479'
+                                        ':HelloHandler2E4FBA4D/invocations'},
+                                 'Type': 'AWS::Lambda::Function'},
+                             'RestApi.Deployment': {
+                                 'Properties': {'Body': {'Fn::Base64':
+                                                             {'Fn::Join': [';',
+                                                                           {'Fn::Split': [{
+                                                                               'Fn::Select': [
+                                                                                   1,
+                                                                                   [
+                                                                                       ';',
+                                                                                       ',']]},
+                                                                               {
+                                                                                   'Fn::Join': [
+                                                                                       ',',
+                                                                                       ['a',
+                                                                                        'e',
+                                                                                        'f',
+                                                                                        'd']]}]}]}},
+                                                'BodyS3Location': {'Fn::FindInMap': []}},
+                                 'Type': 'AWS::ApiGateway::RestApi'},
+                             'RestApiResource': {'Properties': {'PathPart': '{proxy+}',
+                                                                'RestApiId': 'RestApi',
+                                                                'parentId': '/'}}}
+        self.assertEquals(expected_template, result)

@@ -24,7 +24,7 @@ class IntrinsicResolver(object):
     FN_BASE64 = "Fn::Base64"
     FN_FIND_IN_MAP = "Fn::FindInMap"
     FN_TRANSFORM = "Fn::Transform"
-    FN_GET_AZS = "Fn::GetAzs"
+    FN_GET_AZS = "Fn::GetAZs"
     REF = "Ref"
     FN_GET_ATT = "Fn::GetAtt"
     FN_IMPORT_VALUE = "Fn::ImportValue"
@@ -92,11 +92,13 @@ class IntrinsicResolver(object):
         """
         self.template = template or {}
         self.resources = resources or self.template.get("Resources", {})
-        self.mapping = mappings or self.template.get("Mapping", {})
-        self.parameters = parameters or self.template.get("Parameters")
-        self.conditions = conditions or self.template.get("Conditions")
+        self.mapping = mappings or self.template.get("Mappings", {})
+        self.parameters = parameters or self.template.get("Parameters", {})
+        self.conditions = conditions or self.template.get("Conditions", {})
 
         self.symbol_resolver = symbol_resolver
+        self.symbol_resolver.resources = self.resources
+        self.symbol_resolver.parameters = self.parameters
 
         self.intrinsic_key_function_map = {
             IntrinsicResolver.FN_JOIN: self.handle_fn_join,
@@ -189,7 +191,7 @@ class IntrinsicResolver(object):
         A resolved template with all references possible simplified
         """
         processed_template = {}
-        for key, val in self.resources:
+        for key, val in self.resources.items():
             processed_key = self.symbol_resolver.get_translation(key, IntrinsicResolver.REF) or key
             try:
                 processed_resource = self.intrinsic_property_resolver(val)
@@ -366,18 +368,20 @@ class IntrinsicResolver(object):
 
         map_value = self.mapping.get(map_name)
         verify_intrinsic_type_dict(map_value, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="first",
-                                   message="The MapName is missing in the Mappings dictionary for {}".format(
-                                       IntrinsicResolver.FN_FIND_IN_MAP))
+                                   message="The MapName is missing in the Mappings dictionary in Fn::FindInMap  for {}"
+                                   .format(map_name))
 
         top_level_value = map_value.get(top_level_key)
         verify_intrinsic_type_dict(top_level_value, IntrinsicResolver.FN_FIND_IN_MAP,
-                                   message="The TopLevelKey is missing in the Mappings dictionary for {}".format(
-                                       IntrinsicResolver.FN_FIND_IN_MAP))
+                                   message="The TopLevelKey is missing in the Mappings dictionary in Fn::FindInMap "
+                                           "for {}".format(
+                                       top_level_key))
 
         second_level_value = top_level_value.get(second_level_key)
         verify_intrinsic_type_str(second_level_value, IntrinsicResolver.FN_FIND_IN_MAP,
-                                  message="The SecondLevelKey is missing in the Mappings dictionary for {}".format(
-                                      IntrinsicResolver.FN_FIND_IN_MAP))
+                                  message="The SecondLevelKey is missing in the Mappings dictionary in Fn::FindInMap  "
+                                          "for {}".format(
+                                      second_level_key))
 
         return second_level_value
 
@@ -393,7 +397,7 @@ class IntrinsicResolver(object):
         Parameter
         ----------
         intrinsic_value: list, dict
-           This is the value of the object inside the Fn::GetAzs intrinsic function property
+           This is the value of the object inside the Fn::GetAZs intrinsic function property
 
         Return
         -------
@@ -587,7 +591,7 @@ class IntrinsicResolver(object):
                                    message="The condition is missing in the Conditions dictionary for {}".format(
                                        IntrinsicResolver.FN_IF))
 
-        condition_evaluated = self.intrinsic_property_resolver(condition_name, parent_function=IntrinsicResolver.FN_IF)
+        condition_evaluated = self.intrinsic_property_resolver(condition, parent_function=IntrinsicResolver.FN_IF)
         verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_IF,
                                    message="The result of {} must evaluate to bool".format(IntrinsicResolver.FN_IF))
 

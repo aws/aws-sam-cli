@@ -1,5 +1,8 @@
+import os
+import subprocess
 from unittest import TestCase
 
+import mock
 from mock import patch, MagicMock
 
 from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
@@ -164,4 +167,65 @@ class TestIntrinsicsSymbolTableValidAttributes(TestCase):
 
 
 class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
-    pass
+    def setUp(self):
+        self.symbol_table = IntrinsicsSymbolTable()
+
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.Popen')
+    def test_handle_account_id_system(self, mock_subproc_popen):
+        process_mock = mock.Mock()
+        attrs = {'communicate.return_value': ('12312312312', 0)}
+        process_mock.configure_mock(**attrs)
+        mock_subproc_popen.return_value = process_mock
+
+        result = self.symbol_table.handle_pseudo_account_id()
+        self.assertEquals(result, '12312312312')
+
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.Popen')
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.randint')
+    def test_handle_account_id_default(self, random_call, mock_subproc_popen):
+        random_call.return_value = 1
+
+        process_mock = mock.Mock()
+        attrs = {'communicate.return_value': ('', 0)}
+        process_mock.configure_mock(**attrs)
+        mock_subproc_popen.return_value = process_mock
+
+        result = self.symbol_table.handle_pseudo_account_id()
+        self.assertEquals(result, '111111111111')
+
+    def test_pseudo_notification_arns(self):
+        pass
+
+    def test_pseudo_partition(self):
+        self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws")
+
+    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
+                     {'AWS_REGION': 'us-west-gov-1'})
+    def test_pseudo_partition_gov(self):
+        self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws-us-gov")
+
+    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
+                     {'AWS_REGION': 'cn-west-1'})
+    def test_pseudo_partition_china(self):
+        self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws-cn")
+
+    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
+                     {'AWS_REGION': 'mytemp'})
+    def test_pseudo_region_environ(self):
+        self.assertEquals(self.symbol_table.handle_pseudo_region(), "mytemp")
+
+    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
+                     {})
+    def test_pseudo_default_region(self):
+        self.assertEquals(self.symbol_table.handle_pseudo_region(), "us-east-1")
+
+    def test_pseudo_no_value(self):
+        self.assertIsNone(self.symbol_table.handle_pseudo_no_value())
+
+    def test_pseudo_url_prefix_default(self):
+        self.assertEquals(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com")
+
+    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
+                     {'AWS_REGION': 'cn-west-1'})
+    def test_pseudo_url_prefix_china(self):
+        self.assertEquals(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com.cn")
