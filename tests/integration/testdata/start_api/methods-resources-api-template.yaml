@@ -9,7 +9,7 @@ Resources:
     Type: AWS::Lambda::Function
   EchoBase64EventBodyFunction:
     Properties:
-      CodeUri: "."
+      Code: "."
       Handler: main.echo_base64_event_body
       Runtime: python3.6
     Type: AWS::Lambda::Function
@@ -122,5 +122,5 @@ Resources:
         Uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
       ResourceId: "NoServerlessFunctionResource"
-      RestApiId: "TestApi"
-
+      RestApiId:
+        Ref: "TestApi"

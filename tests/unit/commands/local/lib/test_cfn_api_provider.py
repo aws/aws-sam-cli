@@ -6,8 +6,8 @@ from unittest import TestCase
 from mock import patch
 from six import assertCountEqual
 
-from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
 from samcli.commands.local.lib.api_provider import ApiProvider
+from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
 from samcli.local.apigw.local_apigw_service import Route
 from tests.unit.commands.local.lib.test_sam_api_provider import make_swagger
 
@@ -774,217 +774,16 @@ class TestCloudFormationResourceMethod(TestCase):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
-                "HelloHandlerServiceRole11EF7C63": {
-                    "Type": "AWS::IAM::Role",
-                    "Properties": {
-                        "AssumeRolePolicyDocument": {
-                            "Statement": [
-                                {
-                                    "Action": "sts:AssumeRole",
-                                    "Effect": "Allow",
-                                    "Principal": {
-                                        "Service": "lambda.amazonaws.com"
-                                    }
-                                }
-                            ],
-                            "Version": "2012-10-17"
-                        },
-                        "ManagedPolicyArns": [
-                            {
-                                "Fn::Join": [
-                                    "",
-                                    [
-                                        "arn:",
-                                        {
-                                            "Ref": "AWS::Partition"
-                                        },
-                                        "iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-                                    ]
-                                ]
-                            }
-                        ]
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ServiceRole/Resource"
-                    }
-                },
                 "HelloHandler2E4FBA4D": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {
                         "Code": ".",
                         "Handler": "main.handler",
-                        "Role": {
-                            "Fn::GetAtt": [
-                                "HelloHandlerServiceRole11EF7C63",
-                                "Arn"
-                            ]
-                        },
-                        "Runtime": "nodejs8.10"
+                        "Runtime": "python3.6",
                     },
                     "DependsOn": [
                         "HelloHandlerServiceRole11EF7C63"
                     ],
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/Resource",
-                        "aws:asset:path": "/Users/viksriva/Documents/cdk-workshop/lambda",
-                        "aws:asset:property": "Code"
-                    }
-                },
-                "HelloHandlerApiPermissionANYAC4E141E": {
-                    "Type": "AWS::Lambda::Permission",
-                    "Properties": {
-                        "Action": "lambda:InvokeFunction",
-                        "FunctionName": {
-                            "Ref": "HelloHandler2E4FBA4D"
-                        },
-                        "Principal": "apigateway.amazonaws.com",
-                        "SourceArn": {
-                            "Fn::Join": [
-                                "",
-                                [
-                                    "arn:",
-                                    {
-                                        "Ref": "AWS::Partition"
-                                    },
-                                    ":execute-api:",
-                                    {
-                                        "Ref": "AWS::Region"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "AWS::AccountId"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "EndpointEEF1FD8F"
-                                    },
-                                    "/",
-                                    {
-                                        "Ref": "EndpointDeploymentStageprodB78BEEA0"
-                                    },
-                                    "/*/"
-                                ]
-                            ]
-                        }
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.ANY.."
-                    }
-                },
-                "HelloHandlerApiPermissionTestANYDDD56D72": {
-                    "Type": "AWS::Lambda::Permission",
-                    "Properties": {
-                        "Action": "lambda:InvokeFunction",
-                        "FunctionName": {
-                            "Ref": "HelloHandler2E4FBA4D"
-                        },
-                        "Principal": "apigateway.amazonaws.com",
-                        "SourceArn": {
-                            "Fn::Join": [
-                                "",
-                                [
-                                    "arn:",
-                                    {
-                                        "Ref": "AWS::Partition"
-                                    },
-                                    ":execute-api:",
-                                    {
-                                        "Ref": "AWS::Region"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "AWS::AccountId"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "EndpointEEF1FD8F"
-                                    },
-                                    "/test-invoke-stage/*/"
-                                ]
-                            ]
-                        }
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.Test.ANY.."
-                    }
-                },
-                "HelloHandlerApiPermissionANYproxy90E90CD6": {
-                    "Type": "AWS::Lambda::Permission",
-                    "Properties": {
-                        "Action": "lambda:InvokeFunction",
-                        "FunctionName": {
-                            "Ref": "HelloHandler2E4FBA4D"
-                        },
-                        "Principal": "apigateway.amazonaws.com",
-                        "SourceArn": {
-                            "Fn::Join": [
-                                "",
-                                [
-                                    "arn:",
-                                    {
-                                        "Ref": "AWS::Partition"
-                                    },
-                                    ":execute-api:",
-                                    {
-                                        "Ref": "AWS::Region"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "AWS::AccountId"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "EndpointEEF1FD8F"
-                                    },
-                                    "/",
-                                    {
-                                        "Ref": "EndpointDeploymentStageprodB78BEEA0"
-                                    },
-                                    "/*/{proxy+}"
-                                ]
-                            ]
-                        }
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.ANY..{proxy+}"
-                    }
-                },
-                "HelloHandlerApiPermissionTestANYproxy9803526C": {
-                    "Type": "AWS::Lambda::Permission",
-                    "Properties": {
-                        "Action": "lambda:InvokeFunction",
-                        "FunctionName": {
-                            "Ref": "HelloHandler2E4FBA4D"
-                        },
-                        "Principal": "apigateway.amazonaws.com",
-                        "SourceArn": {
-                            "Fn::Join": [
-                                "",
-                                [
-                                    "arn:",
-                                    {
-                                        "Ref": "AWS::Partition"
-                                    },
-                                    ":execute-api:",
-                                    {
-                                        "Ref": "AWS::Region"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "AWS::AccountId"
-                                    },
-                                    ":",
-                                    {
-                                        "Ref": "EndpointEEF1FD8F"
-                                    },
-                                    "/test-invoke-stage/*/{proxy+}"
-                                ]
-                            ]
-                        }
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.Test.ANY..{proxy+}"
-                    }
                 },
                 "EndpointEEF1FD8F": {
                     "Type": "AWS::ApiGateway::RestApi",
@@ -993,23 +792,6 @@ class TestCloudFormationResourceMethod(TestCase):
                     },
                     "Metadata": {
                         "aws:cdk:path": "CdkWorkshopStack/Endpoint/Resource"
-                    }
-                },
-                "EndpointDeployment318525DA37c0e38727e25b4317827bf43e918fbf": {
-                    "Type": "AWS::ApiGateway::Deployment",
-                    "Properties": {
-                        "RestApiId": {
-                            "Ref": "EndpointEEF1FD8F"
-                        },
-                        "Description": "Automatically created by the RestApi construct"
-                    },
-                    "DependsOn": [
-                        "Endpointproxy39E2174E",
-                        "EndpointANY485C938B",
-                        "EndpointproxyANYC09721C5"
-                    ],
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/Deployment/Resource"
                     }
                 },
                 "EndpointDeploymentStageprodB78BEEA0": {
@@ -1025,57 +807,6 @@ class TestCloudFormationResourceMethod(TestCase):
                     },
                     "Metadata": {
                         "aws:cdk:path": "CdkWorkshopStack/Endpoint/DeploymentStage.prod/Resource"
-                    }
-                },
-                "EndpointCloudWatchRoleC3C64E0F": {
-                    "Type": "AWS::IAM::Role",
-                    "Properties": {
-                        "AssumeRolePolicyDocument": {
-                            "Statement": [
-                                {
-                                    "Action": "sts:AssumeRole",
-                                    "Effect": "Allow",
-                                    "Principal": {
-                                        "Service": "apigateway.amazonaws.com"
-                                    }
-                                }
-                            ],
-                            "Version": "2012-10-17"
-                        },
-                        "ManagedPolicyArns": [
-                            {
-                                "Fn::Join": [
-                                    "",
-                                    [
-                                        "arn:",
-                                        {
-                                            "Ref": "AWS::Partition"
-                                        },
-                                        "iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
-                                    ]
-                                ]
-                            }
-                        ]
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/CloudWatchRole/Resource"
-                    }
-                },
-                "EndpointAccountB8304247": {
-                    "Type": "AWS::ApiGateway::Account",
-                    "Properties": {
-                        "CloudWatchRoleArn": {
-                            "Fn::GetAtt": [
-                                "EndpointCloudWatchRoleC3C64E0F",
-                                "Arn"
-                            ]
-                        }
-                    },
-                    "DependsOn": [
-                        "EndpointEEF1FD8F"
-                    ],
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/Account"
                     }
                 },
                 "Endpointproxy39E2174E": {
@@ -1235,3 +966,9 @@ class TestCloudFormationResourceMethod(TestCase):
             }
         }
         provider = ApiProvider(template)
+        proxy_paths = [Route(path="/{proxy+}", method=method, function_name="HelloHandler2E4FBA4D") for method in
+                       Route.ANY_HTTP_METHODS]
+        root_paths = [Route(path="/", method=method, function_name="HelloHandler2E4FBA4D") for method in
+                      Route.ANY_HTTP_METHODS]
+
+        assertCountEqual(self, provider.routes, proxy_paths + root_paths)
