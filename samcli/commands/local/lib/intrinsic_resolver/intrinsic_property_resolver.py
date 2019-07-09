@@ -389,7 +389,7 @@ class IntrinsicResolver(object):
         { "Fn::GetAZs" : { "Ref" : "AWS::Region" } }
         { "Fn::GetAZs" : "us-east-1" }
         This intrinsic function will get the availability zones specified for the specified region. This is usually used
-        with {"Ref": "AWS::Region"}
+        with {"Ref": "AWS::Region"}. If it is an empty string, it will get the default region.
 
         This intrinsic function will resolve all the objects within the function's value and check their type.
         Parameter
@@ -404,6 +404,9 @@ class IntrinsicResolver(object):
         intrinsic_value = self.intrinsic_property_resolver(intrinsic_value,
                                                            parent_function=IntrinsicResolver.FN_GET_AZS)
         verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)
+
+        if intrinsic_value == "":
+            intrinsic_value = self.symbol_resolver.DEFAULT_REGION
 
         if intrinsic_value not in self.symbol_resolver.REGIONS:
             raise InvalidIntrinsicException(
@@ -622,7 +625,6 @@ class IntrinsicResolver(object):
         """
         {"Fn::Not": [{condition}]}
         This intrinsic function will negate the evaluation of the condition specified.
-        # TODO check if a condition_name can be specified
 
         This intrinsic function will resolve all the objects within the function's value and check their type.
         Parameter
