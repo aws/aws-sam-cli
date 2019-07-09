@@ -813,13 +813,13 @@ class TestCloudFormationResourceMethod(TestCase):
                     "Properties": {
                         "Code": ".",
                         "Handler": "main.handler",
+                        "Runtime": "python3.6",
                         "Role": {
                             "Fn::GetAtt": [
                                 "HelloHandlerServiceRole11EF7C63",
                                 "Arn"
                             ]
-                        },
-                        "Runtime": "nodejs8.10"
+                        }
                     },
                     "DependsOn": [
                         "HelloHandlerServiceRole11EF7C63"
@@ -1168,7 +1168,7 @@ class TestCloudFormationResourceMethod(TestCase):
                                         {
                                             "Ref": "AWS::Region"
                                         },
-                                        ":lambda:path/2015-03-31/functions/",
+                                        "lambda:path/2015-03-31/functions/",
                                         {
                                             "Fn::GetAtt": [
                                                 "HelloHandler2E4FBA4D",
@@ -1202,5 +1202,37 @@ class TestCloudFormationResourceMethod(TestCase):
                     "Description": "S3 key for asset version \"CdkWorkshopStack/HelloHandler/Code\""
                 }
             },
+            "Outputs": {
+                "Endpoint8024A810": {
+                    "Value": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "https://",
+                                {
+                                    "Ref": "EndpointEEF1FD8F"
+                                },
+                                ".execute-api.",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                ".",
+                                {
+                                    "Ref": "AWS::URLSuffix"
+                                },
+                                "/",
+                                {
+                                    "Ref": "EndpointDeploymentStageprodB78BEEA0"
+                                },
+                                "/"
+                            ]
+                        ]
+                    },
+                    "Export": {
+                        "Name": "CdkWorkshopStack:Endpoint8024A810"
+                    }
+                }
+            }
         }
-        ApiProvider(template)
+        provider = ApiProvider(template)
+

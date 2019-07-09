@@ -130,12 +130,12 @@ class CfnApiProvider(CfnBaseApiProvider):
         method = properties.get("HttpMethod")
 
         resource_path = ""
-        if isinstance(rest_api_id, string_types):
+        if isinstance(resource_id, string_types):
             resource = resources.get(resource_id)
             if resource:
                 resource_path = self.resolve_resource_path(resources, resource, "")
             else:
-                resource_path = resource  # In this case, the path was resolved to a string
+                resource_path = resource_id  # In this case, the path was resolved to a string
 
         integration = properties.get("Integration", {})
         content_type = integration.get("ContentType")

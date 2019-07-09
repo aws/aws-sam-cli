@@ -9,7 +9,7 @@ Resources:
     Type: AWS::Lambda::Function
   EchoBase64EventBodyFunction:
     Properties:
-      CodeUri: "."
+      Code: "."
       Handler: main.echo_base64_event_body
       Runtime: python3.6
     Type: AWS::Lambda::Function

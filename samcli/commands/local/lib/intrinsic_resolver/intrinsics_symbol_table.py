@@ -5,7 +5,7 @@ import json
 import os
 import uuid
 from random import randint
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, DEVNULL
 
 from six import string_types
 
@@ -326,7 +326,7 @@ class IntrinsicsSymbolTable(object):
             return translated
 
         process = Popen(["aws", "sts", "get-caller-identity", "--output", "text", "--query", 'Account'],
-                        stdout=PIPE)
+                        stdout=PIPE, stderr=DEVNULL)
         (output, err) = process.communicate()
         process.wait()
         account_id = None
