@@ -65,7 +65,6 @@ Resources:
         - IamRoleLambdaExecution
         - Arn
       Runtime: python3.6
-      Timeout: 6
     DependsOn:
     - HelloWorldLogGroup
     - IamRoleLambdaExecution
