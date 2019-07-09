@@ -328,7 +328,7 @@ class IntrinsicsSymbolTable(object):
 
         process = Popen(["aws", "sts", "get-caller-identity", "--output", "text", "--query", 'Account'],
                         stdout=PIPE, stderr=DEVNULL)
-        (output, _) = process.communicate()
+        output = process.communicate()[0]
         process.wait()
         account_id = None
         try:
