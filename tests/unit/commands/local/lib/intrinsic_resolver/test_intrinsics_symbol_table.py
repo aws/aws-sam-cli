@@ -173,24 +173,24 @@ class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
     def test_pseudo_partition(self):
         self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws")
 
-    @mock.patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os')
-    def test_pseudo_partition_gov(self, os_mock):
-        os_mock.environ.getenv.return_value = {'AWS_REGION': 'us-west-gov-1'}
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os')
+    def test_pseudo_partition_gov(self, mock_os):
+        mock_os.getenv.return_value = 'us-west-gov-1'
         self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws-us-gov")
 
-    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
-                     {'AWS_REGION': 'cn-west-1'})
-    def test_pseudo_partition_china(self):
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os')
+    def test_pseudo_partition_china(self, mock_os):
+        mock_os.getenv.return_value = 'cn-west-1'
         self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws-cn")
 
-    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
-                     {'AWS_REGION': 'mytemp'})
-    def test_pseudo_region_environ(self):
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os')
+    def test_pseudo_region_environ(self, mock_os):
+        mock_os.getenv.return_value = "mytemp"
         self.assertEquals(self.symbol_table.handle_pseudo_region(), "mytemp")
 
-    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
-                     {})
-    def test_pseudo_default_region(self):
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os')
+    def test_pseudo_default_region(self, mock_os):
+        mock_os.getenv.return_value = None
         self.assertEquals(self.symbol_table.handle_pseudo_region(), "us-east-1")
 
     def test_pseudo_no_value(self):
@@ -199,7 +199,7 @@ class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
     def test_pseudo_url_prefix_default(self):
         self.assertEquals(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com")
 
-    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
-                     {'AWS_REGION': 'cn-west-1'})
-    def test_pseudo_url_prefix_china(self):
+    @patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os')
+    def test_pseudo_url_prefix_china(self, mock_os):
+        mock_os.getenv.return_value = "cn-west-1"
         self.assertEquals(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com.cn")
