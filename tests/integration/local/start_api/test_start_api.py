@@ -373,6 +373,12 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.json(), {'hello': 'world'})
 
+    def test_integer_body(self):
+        response = requests.get(self.url + "/echo_integer_body")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode('utf-8'), '42')
+
 
 class TestServiceRequests(StartApiIntegBaseClass):
     """

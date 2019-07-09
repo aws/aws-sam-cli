@@ -202,6 +202,7 @@ class LocalApigwService(BaseLocalService):
         :param str lambda_output: Output from Lambda Invoke
         :return: Tuple(int, dict, str, bool)
         """
+        # pylint: disable-msg=too-many-statements
         json_output = json.loads(lambda_output)
 
         if not isinstance(json_output, dict):
@@ -219,6 +220,14 @@ class LocalApigwService(BaseLocalService):
                 raise ValueError
         except ValueError:
             message = "statusCode must be a positive int"
+            LOG.error(message)
+            raise TypeError(message)
+
+        try:
+            if body:
+                body = str(body)
+        except ValueError:
+            message = "Non null response bodies should be able to convert to string: {}".format(body)
             LOG.error(message)
             raise TypeError(message)
 
