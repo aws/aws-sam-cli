@@ -1,6 +1,8 @@
 """Parses SAM given a template"""
 import logging
 
+from six import string_types
+
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
@@ -126,7 +128,14 @@ class CfnApiProvider(CfnBaseApiProvider):
         resource_id = properties.get("ResourceId")
         rest_api_id = properties.get("RestApiId")
         method = properties.get("HttpMethod")
-        resource_path = self.resolve_resource_path(resources, resources.get(resource_id), "")
+
+        resource_path = ""
+        if isinstance(rest_api_id, string_types):
+            resource = resources.get(resource_id)
+            if resource:
+                resource_path = self.resolve_resource_path(resources, resource, "")
+            else:
+                resource_path = resource  # In this case, the path was resolved to a string
 
         integration = properties.get("Integration", {})
         content_type = integration.get("ContentType")
@@ -137,9 +146,9 @@ class CfnApiProvider(CfnBaseApiProvider):
             if normalized_type:
                 api.binary_media_types_set.add(normalized_type)
 
-        function_name = self._get_integration_function_name(integration)
-
-        routes = Route.get_normalized_routes(method=method, function_name=function_name, path=resource_path)
+        routes = Route.get_normalized_routes(method=method,
+                                             function_name=self._get_integration_function_name(integration),
+                                             path=resource_path)
         collector.add_routes(rest_api_id, routes)
 
     def resolve_resource_path(self, resources, resource, current_path):
@@ -152,11 +161,12 @@ class CfnApiProvider(CfnBaseApiProvider):
             Dictionary containing all the resources to resolve
 
         resource : dict
-            AWS::ApiGateway::Resource definition and its properties
+            AWS::ApiGateway::Resource definition and its properties.
 
         current_path : str
             Current path resolved so far
         """
+
         properties = resource.get("Properties", {})
         parent_id = properties.get("ParentId")
         path_part = properties.get("PathPart")

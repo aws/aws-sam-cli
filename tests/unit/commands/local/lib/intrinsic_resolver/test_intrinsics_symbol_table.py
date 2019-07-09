@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import mock
-from mock import patch, MagicMock
+from mock import patch
 
 from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -139,30 +139,6 @@ class TestIntrinsicsSymbolTableValidAttributes(TestCase):
         self.resolver = IntrinsicResolver(
             symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
 
-    def test_valid_attributes_correct_attribute(self):
-        p1 = patch("builtins.open", MagicMock())
-
-        m = MagicMock(side_effect=[self.sample_resource_spec])
-        p2 = patch("json.load", m)
-
-        with p1 as _:  # NOQA
-            with p2 as _:  # NOQA
-                result = self.resolver.symbol_resolver.verify_valid_fn_get_attribute(logical_id="RestApi",
-                                                                                     resource_type="RootResourceId")
-                self.assertEquals(result, True)
-
-    def test_valid_attributes_incorrect_attribute(self):
-        p1 = patch("builtins.open", MagicMock())
-
-        m = MagicMock(side_effect=[self.sample_resource_spec])
-        p2 = patch("json.load", m)
-
-        with p1 as _:  # NOQA
-            with p2 as _: # NOQA
-                result = self.resolver.symbol_resolver.verify_valid_fn_get_attribute(logical_id="RestApi",
-                                                                                     resource_type="UNKNOWN_PROPERTY")
-                self.assertEquals(result, False)
-
 
 class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
     def setUp(self):
@@ -197,9 +173,9 @@ class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
     def test_pseudo_partition(self):
         self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws")
 
-    @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',
-                     {'AWS_REGION': 'us-west-gov-1'})
-    def test_pseudo_partition_gov(self):
+    @mock.patch('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os')
+    def test_pseudo_partition_gov(self, os_mock):
+        os_mock.environ.getenv.return_value = {'AWS_REGION': 'us-west-gov-1'}
         self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws-us-gov")
 
     @mock.patch.dict('samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table.os.environ',

@@ -1,7 +1,6 @@
 from copy import deepcopy
 from unittest import TestCase
 
-import mock
 from parameterized import parameterized
 
 from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
@@ -491,7 +490,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
         intrinsic = self.resources.get("LambdaFunction").get("Properties").get("Uri")
         result = self.resolver.intrinsic_property_resolver(intrinsic)
         self.assertEquals(result, "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us"
-                                  "-east-1:406033500479:HelloHandler2E4FBA4D/invocations")
+                                  "-east-1:406033500479:function:HelloHandler2E4FBA4D/invocations")
 
     @parameterized.expand([
         ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
@@ -564,7 +563,7 @@ class TestIntrinsicFnSubResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic)
         self.assertEquals(result,
                           "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-                          "-1:123456789012:LambdaFunction/invocations")
+                          "-1:123456789012:function:LambdaFunction/invocations")
 
     def test_argument_fn_sub_uri(self):
         intrinsic = {
@@ -576,7 +575,7 @@ class TestIntrinsicFnSubResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic)
         self.assertEquals(result,
                           "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-                          "-1:123456789012:LambdaFunction/invocations")
+                          "-1:123456789012:function:LambdaFunction/invocations")
 
     @parameterized.expand([
         ("Invalid Types to the list argument with type {} should fail".format(primitive), primitive)
@@ -1359,7 +1358,7 @@ class TestIntrinsicTemplateResolution(TestCase):
                                                        'Type': 'AWS::Lambda::Function'},
                               'LambdaFunction': {'Properties': {
                                   'Uri': 'arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31/functions/arn:aws'
-                                         ':lambda:us-east-1:406033500479:HelloHandler2E4FBA4D/invocations'},
+                                         ':lambda:us-east-1:406033500479:function:HelloHandler2E4FBA4D/invocations'},
                                   'Type': 'AWS::Lambda::Function'},
                               'RestApi': {'Properties': {'Body': 'YTtlO2Y7ZA==',
                                                          'BodyS3Location': 'https://s3location/'},
@@ -1402,7 +1401,7 @@ class TestIntrinsicTemplateResolution(TestCase):
                              'LambdaFunction': {'Properties': {
                                  'Uri': 'arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31'
                                         '/functions/arn:aws:lambda:us-east-1:406033500479'
-                                        ':HelloHandler2E4FBA4D/invocations'},
+                                        ':function:HelloHandler2E4FBA4D/invocations'},
                                  'Type': 'AWS::Lambda::Function'},
                              'RestApi.Deployment': {
                                  'Properties': {'Body': {'Fn::Base64':

@@ -190,13 +190,6 @@ class IntrinsicsSymbolTable(object):
             self.logical_id_translator[logical_id] = translated
             return translated
 
-        if resource_attribute != IntrinsicResolver.REF:
-            if ignore_errors:
-                return "${}".format(logical_id + "." + resource_attribute)
-            raise InvalidSymbolException(
-                "The attribute {} is not currently supported CloudFormation Resource Specification".format(
-                    resource_attribute))
-
         translated = self.parameters.get(logical_id, {}).get("Default")
         if translated:
             return translated
@@ -265,7 +258,11 @@ class IntrinsicsSymbolTable(object):
         partition_name = self.handle_pseudo_partition()
         function_name = logical_id
         function_name = self.logical_id_translator.get(function_name) or function_name
-        return "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{function_name}".format(
+        str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{function_name}"
+        if service_name == "lambda":
+            str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:function:{function_name}"
+
+        return str_format.format(
             partition_name=partition_name,
             service_name=service_name,
             aws_region=aws_region,

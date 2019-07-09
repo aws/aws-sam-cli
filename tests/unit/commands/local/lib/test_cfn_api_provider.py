@@ -630,7 +630,7 @@ class TestCloudFormationResourceMethod(TestCase):
                             "Uri": {
                                 "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/"
                                            "functions"
-                                           "/${AWSBetaLambdaFunction.Arn}/invocations} "
+                                           "/${AWSBetaLambdaFunction.Arn}/invocations"
                             }
                         }
                     },
@@ -645,7 +645,7 @@ class TestCloudFormationResourceMethod(TestCase):
                             "Uri": {
                                 "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/"
                                            "functions"
-                                           "/${AWSLambdaFunction.Arn}/invocations}"
+                                           "/${AWSLambdaFunction.Arn}/invocations"
                             }
                         }
                     },
@@ -1100,7 +1100,9 @@ class TestCloudFormationResourceMethod(TestCase):
                     "Type": "AWS::ApiGateway::Method",
                     "Properties": {
                         "HttpMethod": "ANY",
-                        "ResourceId": "!Ref Endpointproxy39E2174E",
+                        "ResourceId": {
+                            "Ref": "Endpointproxy39E2174E"
+                        },
                         "RestApiId": {
                             "Ref": "EndpointEEF1FD8F"
                         },
