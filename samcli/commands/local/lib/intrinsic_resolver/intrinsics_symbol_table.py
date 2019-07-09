@@ -181,6 +181,7 @@ class IntrinsicsSymbolTable(object):
         -------
         This resolves the attribute
         """
+        # pylint: disable-msg=too-many-return-statements
         translated = self.get_translation(logical_id, resource_attribute)
         if translated:
             return translated
@@ -327,7 +328,7 @@ class IntrinsicsSymbolTable(object):
 
         process = Popen(["aws", "sts", "get-caller-identity", "--output", "text", "--query", 'Account'],
                         stdout=PIPE, stderr=DEVNULL)
-        (output, err) = process.communicate()
+        (output, _) = process.communicate()
         process.wait()
         account_id = None
         try:

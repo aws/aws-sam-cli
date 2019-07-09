@@ -53,7 +53,7 @@ class IntrinsicResolver(object):
     FN_EQUALS = "Fn::Equals"
     FN_NOT = "Fn::Not"
 
-    SUPPORTED_CONDITIONAL_PROPERTIES = [
+    CONDITIONAL_FUNCTIONS = [
         FN_AND,
         FN_OR,
         FN_IF,
@@ -172,18 +172,18 @@ class IntrinsicResolver(object):
         elif key in self.conditional_key_function_map:
             intrinsic_value = intrinsic.get(key)
             return self.conditional_key_function_map.get(key)(intrinsic_value)
-        else:
-            # In this case, it is a dictionary that doesn't directly contain an intrinsic resolver and must be
-            # re-parsed to resolve.
-            sanitized_dict = {}
-            for key, val in intrinsic.items():
-                sanitized_key = self.intrinsic_property_resolver(key, parent_function=parent_function)
-                sanitized_val = self.intrinsic_property_resolver(val, parent_function=parent_function)
-                verify_intrinsic_type_str(sanitized_key,
-                                          message="The keys of the dictionary {} in {} must all resolve to a string"
-                                          .format(sanitized_key, parent_function))
-                sanitized_dict[sanitized_key] = sanitized_val
-            return sanitized_dict
+
+        # In this case, it is a dictionary that doesn't directly contain an intrinsic resolver and must be
+        # re-parsed to resolve.
+        sanitized_dict = {}
+        for key, val in intrinsic.items():
+            sanitized_key = self.intrinsic_property_resolver(key, parent_function=parent_function)
+            sanitized_val = self.intrinsic_property_resolver(val, parent_function=parent_function)
+            verify_intrinsic_type_str(sanitized_key,
+                                      message="The keys of the dictionary {} in {} must all resolve to a string"
+                                      .format(sanitized_key, parent_function))
+            sanitized_dict[sanitized_key] = sanitized_val
+        return sanitized_dict
 
     def resolve_template(self, ignore_errors=False):
         """
@@ -203,7 +203,7 @@ class IntrinsicResolver(object):
             except (InvalidIntrinsicException, InvalidSymbolException) as e:
                 resource_type = val.get("Type", "")
                 if ignore_errors:
-                    LOG.error("Unable to process properties of {}.{}".format(key, resource_type))
+                    LOG.error("Unable to process properties of %s.%s", key, resource_type)
                     processed_template[key] = val
                 else:
                     raise InvalidIntrinsicException(
@@ -555,7 +555,7 @@ class IntrinsicResolver(object):
         for sub_item in subable_props:
             sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
             result = resolve_sub_attribute(sanitized_item, self.symbol_resolver)
-            sub_str = re.sub(pattern=r"\$\{" + sub_item + "\}", string=sub_str, repl=result)
+            sub_str = re.sub(pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=result)
         return sub_str
 
     def handle_fn_if(self, intrinsic_value):
