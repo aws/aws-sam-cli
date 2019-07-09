@@ -49,17 +49,19 @@ Once the user has their  CloudFormation code, they will be running `sam local st
 ### Fn::Join
 
 ```
-{ "Fn::Join" : [ "`delimiter`", [ *`comma-delimited list *of* values`* ] ] }
-!Join `[ "`delimiter`", [ *`comma-delimited list *of* values`* ] ]``
+{ "Fn::Join" : [ "delimiter", [ comma-delimited list of values ] ] }
+!Join [ "delimiter", [comma-delimited list of values ] ]``
 ```
 
-This intrinsic function will first verify the objects are a list. Then for every item in the list, it will recursively run the intrinsic function resolver. After verifying the types, It will join the items in the list together based on the string. 
+This intrinsic function will first verify the objects are a list.
+Then for every item in the list, it will recursively run the intrinsic function resolver.
+After verifying the types, It will join the items in the list together based on the string. 
 
 ### Fn::Split
 
 ```
-{ "Fn::Split" : [ "`*`delimiter`*`", "*`source *string*`*" ] }
-!Split `[ "`*`delimiter`*`", "*`source *string*`*" ]``
+{ "Fn::Split" : [ "delimiter", "source string" ] }
+!Split `[ "delimiter", "source string" ]``
 ```
 
 This intrinsic function will recursively resolve every item in the list and then split the source string based on the delimiter.
@@ -67,7 +69,7 @@ This intrinsic function will recursively resolve every item in the list and then
 ### Fn::Base64
 
 ```
-{ "Fn::Base64" : *`valueToEncode`* }
+{ "Fn::Base64" : `valueToEncode` }
 !Base64 valueToEncode
 ```
 
@@ -76,8 +78,8 @@ This intrinsic function will resolve the valueToEncode property and then run a p
 ### Fn::Select
 
 ```
-{ "Fn::Select" : [ *`*index*`*, *`listOfObjects`* ] }
-!Select `[ *`*index*`*, *`listOfObjects`* ]``
+{ "Fn::Select" : [ index, listOfObjects ] }
+!Select [ index, listOfObjects]``
 ```
 
 This intrinsic function will recursively resolve every item in the list and verify the type of the index element. Then it will select a single item from the listOfObjects that were resolved.
@@ -98,7 +100,7 @@ regions = {"us-east-1": ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d",
 
 ```
 "Fn::GetAtt": ["logical_id", "resource_property_type"]
-!GetAtt ["`logical_id`", "`resource_property_type`"]`
+!GetAtt ["logical_id", "resource_property_type"]
 ```
 
 This intrinsic function is one of the harder properties to resolve. There is a list of supported properties at https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json. These properties will be read and verified if existed. In strings they are usually represented as ${MyInstance.PublicIp}. My suggestion is to leave it in this format and have it resolved by a seperate resolver for each type.
@@ -109,7 +111,7 @@ Different Types have different paramaters attached with them. This feels like it
 ### `Fn::Sub`
 
 ```
-{ "Fn::Sub" : *`*String*`* } or { "Fn::Sub" : [string, "{test}", "{test2}"] }``
+{ "Fn::Sub" : String } or { "Fn::Sub" : [string, "{test}", "{test2}"] }
 ```
 
 This intrinsic does string substitution. Both types are supported. For the string, Regex will be used to replace the property of the string with the variables that are refs or pseudo refs such as ${AWS::RegionName}. This same process is done with the list, but every item in the list is recursively resolved and then approached the same way. 
@@ -117,8 +119,7 @@ This intrinsic does string substitution. Both types are supported. For the strin
 ### Fn::Transform
 
 ```
-*Fn::Transform
-*
+Fn::Transform
 ```
 
 This allows for transforming properties of properties from one format to another. This can allow for many different macro types. However, only *AWS::INCLUDE* is in scope for this project. 
@@ -152,7 +153,7 @@ Different Types have different paramaters attached with them. This feels like it
 ### Fn::FindInMap
 
 ```
-{ "Fn::FindInMap" : [ "*`MapName`*", "*`TopLevelKey`*", "*`SecondLevelKey`*"] }`
+{ "Fn::FindInMap" : [ "MapName", "TopLevelKey", "SecondLevelKey"] }
 ```
 
 This resource allows for finding keys and values in a Mappings dictionary. This requires recurcively resolving each property and then getting the property. 
@@ -164,7 +165,7 @@ Customers can also specify boolean logic when trying to resolve the templates. T
 ### FN::And
 
 ```
-"Fn::And": [{*`condition`*}, {*`...`*}]`
+"Fn::And": [{condition}, {...}]
 ```
 
 This will recursively resolve every property in the list in Fn::And and verify each one returns a boolean true value. The items in the list support both other Intrinsics like Fn::Equals or conditionals of the format {Conditional: ConditionName}.
@@ -172,7 +173,7 @@ This will recursively resolve every property in the list in Fn::And and verify e
 ### FN::Equals
 
 ```
-"Fn::Equals" : ["*`value_1`*", "*`value_2`*"]`
+"Fn::Equals" : ["value_1", "value_2"]
 ```
 
 This will check that both items in the list will recursively resolve to the same thing. This will return a boolean value.
@@ -180,7 +181,7 @@ This will check that both items in the list will recursively resolve to the same
 ### FN::If
 
 ```
-"Fn::If": [*`condition_name`*, *`value_if_true`*, *`value_if_false`*]`
+"Fn::If": [condition_name, value_if_true, value_if_false]
 ```
 
 This intrinsic boolean property will first resolve every item in the list, resolving the Conditions part of the template and then selecting value_if_true or value_if_false depending on the attribute.
@@ -188,7 +189,7 @@ This intrinsic boolean property will first resolve every item in the list, resol
 ### FN::Not
 
 ```
-"Fn::Not": [{*`condition`*}]`
+"Fn::Not": [{condition}]
 ```
 
 This intrinsic function will resolve the condition in the list and then return the opposite boolean value returned. 
@@ -196,7 +197,7 @@ This intrinsic function will resolve the condition in the list and then return t
 ### FN::Or
 
 ```
-"Fn::Or": [{*`condition`*}, {*`...`*}]`
+"Fn::Or": [{condition}, {...}]
 ```
 
 This intrinsic function is very similar to the Fn::And function, but will check that at least one of the items in the last returns a truthy value. 
@@ -265,7 +266,7 @@ The IntrinsicsResolver will recursively parse the template and all the attribute
 
 ```
 {    "Ref": lambda p,r: "",
-     "Arn:"**: arn_resolver}
+     "Arn:": arn_resolver}
 ```
 
 
@@ -380,8 +381,11 @@ https://github.com/awslabs/aws-sam-cli/issues/194
 ### Time Breakdown
 
 Milestone 1 ~ 1 Week
+
 Milestone 2 ~ 1 Week
+
 Milestone 3 ~ 1 Week
+
 Milestone 4 ~ 1 Week
 
 
