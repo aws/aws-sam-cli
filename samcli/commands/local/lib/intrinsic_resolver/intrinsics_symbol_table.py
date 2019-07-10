@@ -2,15 +2,14 @@
 The symbol table that is used in IntrinsicResolver in order to resolve runtime attributes
 """
 import json
+import os
 import uuid
 from random import randint
 from subprocess import Popen, PIPE
 
 try:
-    from subprocess import DEVNULL  # py3k
+    from subprocess import DEVNULL
 except ImportError:
-    import os
-
     DEVNULL = open(os.devnull, 'wb')
 
 from six import string_types
