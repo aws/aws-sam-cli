@@ -288,6 +288,112 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEquals(response.content, expected)
 
 
+class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_get_call_with_path_setup_with_any_swagger(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_post_call_with_path_setup_with_any_swagger(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.post(self.url + "/anyandall", json={})
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_put_call_with_path_setup_with_any_swagger(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.put(self.url + "/anyandall", json={})
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_head_call_with_path_setup_with_any_swagger(self):
+        """
+        Head Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.head(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+
+    def test_delete_call_with_path_setup_with_any_swagger(self):
+        """
+        Delete Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.delete(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_options_call_with_path_setup_with_any_swagger(self):
+        """
+        Options Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.options(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+
+    def test_patch_call_with_path_setup_with_any_swagger(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.patch(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_function_not_defined_in_template(self):
+        response = requests.get(self.url + "/nofunctionfound")
+
+        self.assertEquals(response.status_code, 502)
+        self.assertEquals(response.json(), {"message": "No function defined for resource method"})
+
+    def test_lambda_function_resource_is_reachable(self):
+        response = requests.get(self.url + "/nonserverlessfunction")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_binary_request(self):
+        """
+        This tests that the service can accept and invoke a lambda when given binary data in a request
+        """
+        input_data = self.get_binary_data(self.binary_data_file)
+        response = requests.post(self.url + '/echobase64eventbody',
+                                 headers={"Content-Type": "image/gif"},
+                                 data=input_data)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, input_data)
+
+    def test_binary_response(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + '/base64response')
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, expected)
+
+
 class TestServiceResponses(StartApiIntegBaseClass):
     """
     Test Class centered around the different responses that can happen in Lambda and pass through start-api
