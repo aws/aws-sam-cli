@@ -42,7 +42,6 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         self.assertEquals(provider.routes, [])
 
-
     def test_with_inline_swagger_apis(self):
         template = {
             "Resources": {
@@ -58,7 +57,6 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, self.input_routes, provider.routes)
-
 
     def test_with_swagger_as_local_file(self):
         with tempfile.NamedTemporaryFile(mode='w') as fp:
@@ -83,7 +81,6 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
             provider = ApiProvider(template)
             assertCountEqual(self, self.input_routes, provider.routes)
-
 
     def test_body_with_swagger_as_local_file_expect_fail(self):
         with tempfile.NamedTemporaryFile(mode='w') as fp:
@@ -160,7 +157,6 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_routes, provider.routes)
-
 
     def test_with_binary_media_types(self):
         template = {
@@ -417,4 +413,3 @@ class TestCloudFormationStageValues(TestCase):
             "random": "test",
             "foo": "bar"
         })
-
