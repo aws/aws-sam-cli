@@ -212,11 +212,7 @@ If the item is specified as an environment setting optionally or it is specified
 
 ### AWS::AccountId
 
-This property will be resolved by running an aws command to figure out the configuration. If there is an error, a randomly such as non-authenticated, a randomly generated string will take its place. 
-
-```
-["aws", "sts", "get-caller-identity", "--output", "text", "--query", 'Account']
-```
+This will be a static id used for local settings. 
 
 ### AWs::NotificationArns
 
@@ -236,11 +232,11 @@ This property will first be attempted to be read from the enviroment settings. I
 
 ### AWS::StackId
 
-Currently, there is no real way to figure this one out. It will be a randomly generated String
+This will be a static id used for local settings. 
 
 ### AWS::StackName
 
-Currently, there is no real way to figure this one out. It will be a randomly generated String
+This will be a static id used for local settings. 
 
 ### AWS::URLSuffix
 
