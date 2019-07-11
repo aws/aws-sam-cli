@@ -151,7 +151,7 @@ or
 This intrinsics allows for getting the reference to another resource or parameter. Locally, if it’s a pseudo parameter we should be able to generate a random resolution or come up with the best possible alternative.
 These can also be resolved at runtime, so it’s best to make them dynamic functions that are passed in. Unresolved items can be returned as a string of the format ${}. 
 
-Different Types have different paramaters attached with them. This feels like it needs to be hardcoded for each one. This can be built dynamically
+Different Types have different parameters attached with them. This feels like it needs to be hardcoded for each one. This can be built dynamically
 
 ### Fn::FindInMap
 
@@ -228,7 +228,7 @@ This is resource specific and seperates regions like US and China into subgroups
 
 ### AWS::REGION
 
-This property will first be attempted to be read from the enviroment settings. If it’s not there, it becomes randomly chosen from the list of regions.
+This property will first be attempted to be read from the environment settings. If it’s not there, it becomes randomly chosen from the list of regions.
 
 ### AWS::StackId
 
