@@ -2,22 +2,22 @@
 
 ## The Problem
 
-Customers can define their CloudFormation resources in many ways. Intrinsic Functions allow for greater templating and modularity of the CloudFormation template by injecting properties at runtime.  Intrinsic Functions have the properties `Fn::Base64, Fn::FindInMap, Ref, Fn::Join, etc.`  This is also true in the SAM template, which supports a small parts of the Intrinsic functions. Although customers use a variety of attributes like `Fn::Join, `Ref regularly, SAM-CLI is unable to run and resolve it locally. This prevents customers from testing and running their code locally, leading in frustration and problems.
+Customers can define their CloudFormation resources in many ways. Intrinsic Functions allow for greater templating and modularity of the CloudFormation template by injecting properties at runtime.  Intrinsic Functions have the properties `Fn::Base64, Fn::FindInMap, Ref, Fn::Join, etc.`  This is also true in the SAM template, which supports a small parts of the Intrinsic functions. Although customers use a variety of attributes like Fn::Join, Ref regularly, SAM-CLI is unable to run and resolve it locally. This prevents customers from testing and running their code locally, leading in frustration and problems.
 
 Intrinsic Functions are also used in many of the tools that generate CloudFormation. For example, AWS-CDK generates their CloudFormation resources using   `Fn::Join, Fn::GetAtt, Ref` with AWS::ApiGateway::Resource and AWS::ApiGateway::Methods, which fails to resolve and run locally. Supporting this will allow for greater interoperability with other tools, creating a better local developer experience.
 
-In terms of resolving intrinsic properties, there are no other tools for local space . This makes it difficult for other tools to build any code that resolves that resolves intrinsic functions. The code can be abstracted to not allow help this codebase, but separated to its own library. 
+In terms of resolving intrinsic properties, there are no other tools for local space. This makes it difficult for other tools to build any code that has intrinsic functions. 
 
 ## Who are the Customers?
 
-* People who work with tools such as Serverless, AWS CDK, Terraform, and others to generate their CloudFormation templates due to the increased interoperability with SAM-CLI
-* People who create tools such as Serverless, AWS CDK, etc. to resolve Intrinsic properties to create their systems, improving the developer tooling space.
-* People who work create SAM/CloudFormation templates that involve intrinsics
+* Customers who work with tools such as Serverless, AWS CDK, Terraform, and others to generate their CloudFormation templates due to the increased interoperability with SAM-CLI
+* Customers who create tools such as Serverless, AWS CDK, etc. to resolve Intrinsic properties to create their systems, improving the developer tooling space.
+* Customers who work create SAM/CloudFormation templates that involve intrinsics
 
 ## Success criteria for the change
 
 * The intrinsic properties Fn::Base64, Fn::And, Fn::Equals, Fn::If ,Fn::Not. Fn::Or, Fn::GetAtt, Fn::GetAZs, Fn::Join, Fn::Select, Fn::Split, Fn::Sub, Ref will all work locally, mirroring the attributes CloudFormation does.
-* AWS-CDK and Serverless generate code can be processed and run locally directly
+* AWS-CDK and Serverless generate templates that can be processed and run locally directly within SAM-CLI
 
 ## What will be changed?
 
@@ -25,12 +25,11 @@ The code will now recursively parse the different intrinsic function properties 
 
 ## Out-of-Scope
 
-There are some Intrinsic Function attributes that are out of scope.
+The following intrinsics are out of scope:
 
 * Macros with Fn::Transform other than AWS::Include
 * Fn::ImportValue and dealing with nested stacks
 * Fn::Cidr 
-* Valid CloudFormation syntax verification
 * The service based intrinsics https://docs.aws.amazon.com/servicecatalog/latest/adminguide/intrinsic-function-reference-rules.html
 
 ## User Experience Walkthrough
@@ -135,7 +134,7 @@ This allows for transforming properties of properties from one format to another
 }
 ```
 
-We currently parse this format to figure out the location of the swagger. However, the location paramater can also be resolved as a ref. There isn’t to much work left to resolve this property. All that’s left is to run the recursive resolver.
+We currently parse this format to figure out the location of the swagger. However, the location paramater can also be resolved as a ref. All that’s left is to run the recursive resolver.
 
 ### Ref
 
@@ -270,7 +269,7 @@ The IntrinsicsResolver will recursively parse the template and all the attribute
 ```
 
 
-First pseudo types are checked. If item is present in the logical_id_translator it is returned.Otherwise, it falls back to the default_pseudo_resolverThen the default_type_resolver is checked, which has common attributes and functions for each types.Then the common_attribute_resolver is run, which has functions that are common for each attribute.
+First pseudo types are checked. If item is present in the logical_id_translator it is returned. Otherwise, it falls back to the default_pseudo_resolver. Then the default_type_resolver is checked, which has common attributes and functions for each types. Then the common_attribute_resolver is run, which has functions that are common for each attribute.
 
 ### Intrinsic Resolver
 
@@ -302,7 +301,7 @@ If there is an error with the resource, the item will be ignored and processed.
 
 ## Integration into SAM-CLI
 
-This can be very easily plugged into the current SAM-CLI code. This needs to be run after the SamBaseTranslator runs in the ApiProvider. This will go through every property and check if it requires intrinsic resolution. 
+This can be very easily plugged into the current SAM-CLI code. This needs to be run after the SamBaseTranslator runs. This will go through every property and check if it requires intrinsic resolution. 
 
 This can also be plugged in into specific areas such as the Body section of a Api and the Uri section in a function to handle the Arn. 
 
