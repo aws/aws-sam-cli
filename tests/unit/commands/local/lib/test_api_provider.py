@@ -22,6 +22,7 @@ class TestApiProvider_init(TestCase):
 
         self.assertEquals(len(provider.routes), 3)
         self.assertEquals(provider.routes, set(["set", "of", "values"]))
+
         self.assertEquals(provider.template_dict, {"Resources": {"a": "b"}})
         self.assertEquals(provider.resources, {"a": "b"})
 

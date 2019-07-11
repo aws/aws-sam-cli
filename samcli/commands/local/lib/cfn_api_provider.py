@@ -28,7 +28,6 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         api: samcli.commands.local.lib.provider.Api
             Instance of the Api which will save all the api configurations
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
@@ -44,10 +43,10 @@ class CfnApiProvider(CfnBaseApiProvider):
             if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
                 self._extract_cloud_formation_stage(resource, api)
 
-        all_apis = []
-        for _, apis in collector:
-            all_apis.extend(apis)
-        return all_apis
+        all_routes = []
+        for _, routes in collector:
+            all_routes.extend(routes)
+        return all_routes
 
     def _extract_cloud_formation_route(self, logical_id, api_resource, collector, api, cwd=None):
         """

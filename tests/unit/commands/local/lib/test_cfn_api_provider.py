@@ -42,6 +42,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         self.assertEquals(provider.routes, [])
 
+
     def test_with_inline_swagger_apis(self):
         template = {
             "Resources": {
@@ -58,11 +59,13 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         provider = ApiProvider(template)
         assertCountEqual(self, self.input_routes, provider.routes)
 
+
     def test_with_swagger_as_local_file(self):
         with tempfile.NamedTemporaryFile(mode='w') as fp:
             filename = fp.name
 
             swagger = make_swagger(self.input_routes)
+
             json.dump(swagger, fp)
             fp.flush()
 
@@ -81,11 +84,13 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             provider = ApiProvider(template)
             assertCountEqual(self, self.input_routes, provider.routes)
 
+
     def test_body_with_swagger_as_local_file_expect_fail(self):
         with tempfile.NamedTemporaryFile(mode='w') as fp:
             filename = fp.name
 
             swagger = make_swagger(self.input_routes)
+
             json.dump(swagger, fp)
             fp.flush()
 
@@ -156,6 +161,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         provider = ApiProvider(template)
         assertCountEqual(self, expected_routes, provider.routes)
 
+
     def test_with_binary_media_types(self):
         template = {
             "Resources": {
@@ -186,6 +192,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_routes = [
             Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
+
         ]
         extra_binary_types = ["text/html"]
 
@@ -410,3 +417,4 @@ class TestCloudFormationStageValues(TestCase):
             "random": "test",
             "foo": "bar"
         })
+

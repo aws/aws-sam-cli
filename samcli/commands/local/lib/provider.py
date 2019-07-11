@@ -226,7 +226,6 @@ class Api(object):
     def get_binary_media_types(self):
         return list(self.binary_media_types_set)
 
-
 Cors = namedtuple("Cors", ["AllowOrigin", "AllowMethods", "AllowHeaders"])
 
 

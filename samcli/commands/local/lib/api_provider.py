@@ -5,9 +5,6 @@ import logging
 from samcli.commands.local.lib.route_collector import RouteCollector
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.local.lib.provider import AbstractApiProvider, Api
-from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
-from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -71,6 +68,7 @@ class ApiProvider(AbstractApiProvider):
         provider = self.find_api_provider(resources)
         routes = provider.extract_resources(resources, collector, api=self.api, cwd=self.cwd)
         return self.normalize_routes(routes)
+
 
     @staticmethod
     def find_api_provider(resources):

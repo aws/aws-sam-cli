@@ -1,4 +1,5 @@
 """Parses SAM given the template"""
+
 import logging
 
 from samcli.commands.local.lib.provider import AbstractApiProvider
