@@ -102,10 +102,14 @@ regions = {"us-east-1": ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d",
 !GetAtt ["logical_id", "resource_property_type"]
 ```
 
-This intrinsic function is one of the harder properties to resolve. There is a list of supported properties at https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json. These properties will be read and verified if existed. In strings they are usually represented as ${MyInstance.PublicIp}. My suggestion is to leave it in this format and have it resolved by a seperate resolver for each type.
+This intrinsic function is one of the harder properties to resolve as it can be injected at runtime. 
+There is a list of supported properties at https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json. 
+These properties will be read and verified if existed in the ResourceSpecification. In strings, they are usually represented as ${MyInstance.PublicIp}.
+Different Types have different parameters attached with them. 
 
+After parsing the logical_id and resource_property_type, a separate symbol table can be used to translate logical_id and resource_id into the injected runtime property.
+The symbol resolver will be passed in at runtime separate from the intrinsic_resolver. 
 
-Different Types have different paramaters attached with them. This feels like it needs to be hardcoded for each one.
 
 ### `Fn::Sub`
 
@@ -244,7 +248,7 @@ This will be replaces by the corresponding [amazonaws.com](http://amazonaws.com/
 
 ## Implementing the Code
 
-This can be seperated into a Intrinsics resolver and a SymbolResolver.
+This can be separated into a IntrinsicsResolver and a SymbolResolver. The SymbolResolver is an abstraction that holds all the translation of the references and attributes inside the template. 
 The IntrinsicsResolver will recursively parse the template and all the attributes and the symbol table will be injected in at runtime. 
 
 ### Intrinsic Symbol Table
