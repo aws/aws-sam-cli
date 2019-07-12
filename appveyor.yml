@@ -1,6 +1,9 @@
 version: 1.0.{build}
-image: Visual Studio 2017
+image: Windows Server 2019
 build: off
+
+# Change the clone folder to somewhere in "D:\" because this is shared by default with Docker. We need this to mount folders.
+clone_folder: D:\source
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -26,7 +29,11 @@ environment:
       PYTHON_ARCH: '64'
 
 install:
-
+    # Make sure we are in the correct directory
+    - ps: Get-Location
+    - "cd D:\\source"
+    - ps: Switch-DockerLinux
+  
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
@@ -38,11 +45,11 @@ install:
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
-
+   
 test_script:
     - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\\unit"
     - "flake8 samcli"
     - "flake8 tests\\unit tests\\integration"
     - "pylint --rcfile .pylintrc samcli"
-
+    - "pytest -s -vv tests\\integration"
 
