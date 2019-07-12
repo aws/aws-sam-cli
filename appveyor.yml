@@ -29,9 +29,7 @@ environment:
       PYTHON_ARCH: '64'
 
 install:
-    # Make sure we are in the correct directory
-    - ps: Get-Location
-    - "cd D:\\source"
+    # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
   
     # Upgrade setuptools, wheel and virtualenv
