@@ -673,8 +673,8 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
 
         response_data = response.json()
-
-        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Prod")
+        print(response_data)
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Dev")
 
     def test_global_stage_variables(self):
         response = requests.get(self.url + "/echoeventbody")
@@ -683,4 +683,4 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+        self.assertEquals(response_data.get("stageVariables"), {"Stack": "Dev"})
