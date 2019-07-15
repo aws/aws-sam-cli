@@ -4,7 +4,7 @@
 
 Customers can define their CloudFormation resources in many ways. Intrinsic Functions allow for greater templating and modularity of the CloudFormation template by injecting properties at runtime.  Intrinsic Functions have the properties `Fn::Base64, Fn::FindInMap, Ref, Fn::Join, etc.`  This is also true in the SAM template, which supports a small parts of the Intrinsic functions. Although customers use a variety of attributes like Fn::Join, Ref regularly, SAM-CLI is unable to run and resolve it locally. This prevents customers from testing and running their code locally, leading in frustration and problems.
 
-Intrinsic Functions are also used in many of the tools that generate CloudFormation. For example, AWS-CDK generates their CloudFormation resources using   `Fn::Join, Fn::GetAtt, Ref` with AWS::ApiGateway::Resource and AWS::ApiGateway::Methods, which fails to resolve and run locally. Supporting this will allow for greater interoperability with other tools, creating a better local developer experience.
+Intrinsic Functions are also used in many of the tools that generate CloudFormation. For example, AWS-CDK generates their CloudFormation resources using `Fn::Join, Fn::GetAtt, Ref` with AWS::ApiGateway::Resource and AWS::ApiGateway::Methods, which fails to resolve and run locally. Supporting this will allow for greater interoperability with other tools, creating a better local developer experience.
 
 In terms of resolving intrinsic properties, there are no other tools for local space. This makes it difficult for other tools to build any code that has intrinsic functions. 
 
@@ -33,11 +33,11 @@ The following intrinsics are out of scope:
 * The service based intrinsics https://docs.aws.amazon.com/servicecatalog/latest/adminguide/intrinsic-function-reference-rules.html
 
 ## User Experience Walkthrough
+The customer can input a CloudFormation template into SAM-CLI containing intrinsic functions like `Fn::Join, Fn::GetAtt, Ref`. This includes sam build, sam local start-api, etc. 
 
-There are two main types of users who are going to benefit from this change.
-
+Example walkthrough with `sam local start-api`: 
 * Customers can use tools such as AWS CDK to generate a template. The templates will have intrinsic properties. The customer can create their AWS CDK project with `cdk init app` and then generate their CloudFormation code using `cdk synth.`They can input their CloudFormation code to test it locally using the SAM CLI command. 
-* Customers can author CloudFormation resources and test them locally by inputting their templates into sam local start-api.
+* Customers can author CloudFormation resources with intrinsics functions and test them locally by inputting their templates into sam local start-api.
 
 Once the user has their  CloudFormation code, they will be running `sam local start-api --template /path/to/template.yaml`
 
@@ -207,12 +207,27 @@ This intrinsic function is very similar to the Fn::And function, but will check 
 
 ## Pseudo Parameters
 
-Pseudo Parameters are predefined by AWS CloudFormation such as the AccountId and such. These will be resolved separately and is heavily used with Refs!. The result will cached in the properties dictionary so that there is conflict in there
-If the item is specified as an environment setting optionally or it is specified in the Paramater section it will be read there. Otherwise, These will be resolved whenever a !Ref Psuedo Paramater or Ref: Psuedo Paramater or ${Psuedo Paramater} is in the template.
+Pseudo Parameters are predefined by AWS CloudFormation such as the AccountId and such. These will be resolved separately and is heavily used with Refs!. 
+If the item is specified as an environment setting optionally or it is specified in the Parameter section it will be read there. 
+Otherwise, These will be resolved whenever a !Ref Psuedo Paramater or Ref: Psuedo Paramater or ${Psuedo Paramater} is in the template.
 
+The default values for parameters will be
+```python
+    _DEFAULT_PSEUDO_PARAM_VALUES = {
+        "AWS::AccountId": "123456789012",
+        "AWS::Partition": "aws",
+
+        "AWS::Region": "us-east-1",
+
+        "AWS::StackName": "local",
+        "AWS::StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/"
+                        "local/51af3dc0-da77-11e4-872e-1234567db123",
+        "AWS::URLSuffix": "localhost"
+    }
+```
 ### AWS::AccountId
 
-This will be a static id used for local settings. 
+This will be a account id from the __DEFAULT_PSEUDO_PARAM_VALUES.
 
 ### AWs::NotificationArns
 
@@ -224,19 +239,20 @@ This will return the None python value.
 
 ### AWS::Partition
 
-This is resource specific and seperates regions like US and China into subgroups. This will be found in a large dictionary.
+This is resource specific and separates regions like US and China into subgroups. This will be found in a large dictionary.
 
 ### AWS::REGION
 
-This property will first be attempted to be read from the environment settings. If it’s not there, it becomes randomly chosen from the list of regions.
+This property will first be attempted to be read from the environment settings. Otherwise, It will use the default region.
 
 ### AWS::StackId
 
-This will be a static id used for local settings. 
+This will be a stack id from the __DEFAULT_PSEUDO_PARAM_VALUES.
+
 
 ### AWS::StackName
 
-This will be a static id used for local settings. 
+This will be a stack name from the __DEFAULT_PSEUDO_PARAM_VALUES.
 
 ### AWS::URLSuffix
 
@@ -269,7 +285,11 @@ The IntrinsicsResolver will recursively parse the template and all the attribute
 ```
 
 
-First pseudo types are checked. If item is present in the logical_id_translator it is returned. Otherwise, it falls back to the default_pseudo_resolver. Then the default_type_resolver is checked, which has common attributes and functions for each types. Then the common_attribute_resolver is run, which has functions that are common for each attribute.
+First pseudo types are checked. If item is present in the logical_id_translator it is returned. Otherwise, it falls back to the default_pseudo_resolver. 
+
+Then the default_type_resolver is checked, which has common attributes and functions for each types.
+ 
+Then the common_attribute_resolver is run, which has functions that are common for each attribute.
 
 ### Intrinsic Resolver
 
@@ -296,8 +316,8 @@ for key, val in self.resources.items():
     processed_resource = self.intrinsic_property_resolver(val)
     processed_template[processed_key] = processed_resource
 ```
-
-If there is an error with the resource, the item will be ignored and processed.
+If there is an error with the resource, the item will be ignored and processed. This is because we don't want to break any workflows that have errors with unresolved symbol tables. This is especially true for refs that exist to cloud instances. The error will be printed in the console tho. 
+Currently, in SAM these properties are ignored and would not cause any errors, so by ignoring the errors we are using the same functionality. To ignore the error, we just copy the resource as is.
 
 ## Integration into SAM-CLI
 
