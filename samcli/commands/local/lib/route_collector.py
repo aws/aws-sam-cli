@@ -22,7 +22,7 @@ class RouteCollector(object):
         Yields
         -------
         str
-            LogicalID of the AWS::Serverless::Api resource
+            LogicalID of the AWS::Serverless::Api or AWS::ApiGateway::RestApi resource
         list samcli.commands.local.lib.provider.Api
             List of the API available in this resource along with additional configuration like binary media types.
         """
