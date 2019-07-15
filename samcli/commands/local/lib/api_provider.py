@@ -70,7 +70,7 @@ class ApiProvider(AbstractApiProvider):
         collector = RouteCollector()
         provider = self.find_api_provider(resources)
         routes = provider.extract_resources(resources, collector, api=self.api, cwd=self.cwd)
-        return self.normalize_routes(routes)
+        return routes
 
     @staticmethod
     def find_api_provider(resources):

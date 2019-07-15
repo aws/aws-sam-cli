@@ -18,71 +18,28 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
-    ANY_HTTP_METHODS = ["GET",
-                        "DELETE",
-                        "PUT",
-                        "POST",
-                        "HEAD",
-                        "OPTIONS",
-                        "PATCH"]
-
-    def __init__(self, function_name, path, method):
+    def __init__(self, function_name, path, methods):
         """
         Creates an ApiGatewayRoute
 
-        :param list(str) methods: List of HTTP Methods
+        :param list(str) methods: http method
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
         """
-        self.method = method.upper()
+        self.methods = [method.upper() for method in methods]
         self.function_name = function_name
         self.path = path
 
-    @staticmethod
-    def normalize_routes(routes):
-        """
-        Normalize the Routes to use standard method name
-        Parameters
-        ----------
-        route : list of samcli.commands.local.apigw.local_apigw_service.Route
-            List of Routes to replace normalize
-        Returns
-        -------
-        list of list of samcli.commands.local.apigw.local_apigw_service.Route
-            List of normalized Routes
-        """
-
-        result = list()
-        for route in routes:
-            for normalized_method in Route.normalize_http_methods(route.method):
-                result.append(Route(method=normalized_method, function_name=route.function_name, path=route.path))
-        return result
-
     def __eq__(self, other):
         return isinstance(other, Route) and \
-               self.method == other.method and self.function_name == other.function_name and self.path == other.path
+               sorted(self.methods) == sorted(
+            other.methods) and self.function_name == other.function_name and self.path == other.path
 
     def __hash__(self):
-        return hash(self.function_name) * hash(self.path) * hash(self.method)
-
-    @staticmethod
-    def normalize_http_methods(http_method):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
-        supported Http Methods on Api Gateway.
-
-        :param str http_method: Http method
-        :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
-        """
-
-        if http_method.upper() == 'ANY':
-            return Route.ANY_HTTP_METHODS
-        return [http_method.upper()]
-
-    @staticmethod
-    def get_normalized_routes(function_name, path, method):
-        return [Route(function_name, path, normalized_method) for normalized_method in
-                Route.normalize_http_methods(method)]
+        route_hash = hash(self.function_name) * hash(self.path)
+        for method in self.methods:
+            route_hash *= hash(method)
+        return route_hash
 
 
 class LocalApigwService(BaseLocalService):
@@ -129,13 +86,13 @@ class LocalApigwService(BaseLocalService):
 
         for api_gateway_route in self.api.routes:
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
-            route_key = self._route_key(api_gateway_route.method, path)
-            self._dict_of_routes[route_key] = api_gateway_route
-
+            for route_key in self._generate_route_keys(api_gateway_route.methods,
+                                                       path):
+                self._dict_of_routes[route_key] = api_gateway_route
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
-                                   methods=[api_gateway_route.method],
+                                   methods=api_gateway_route.methods,
                                    provide_automatic_options=False)
 
         self._construct_error_handling()

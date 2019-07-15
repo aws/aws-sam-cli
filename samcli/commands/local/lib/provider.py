@@ -257,17 +257,15 @@ class AbstractApiProvider(object):
         supported Http Methods on Api Gateway.
 
         :param str http_method: Http method
-        :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
         """
 
         if http_method.upper() == 'ANY':
-            for method in AbstractApiProvider._ANY_HTTP_METHODS:
-                yield method.upper()
-        else:
-            yield http_method.upper()
+            return AbstractApiProvider._ANY_HTTP_METHODS
+        return [http_method.upper()]
 
     @staticmethod
-    def normalize_routes(routes):
+    def get_normalized_route(function_name, path, method):
         """
         Normalize the APIs to use standard method name
 
@@ -275,16 +273,15 @@ class AbstractApiProvider(object):
         ----------
         apis : list of samcli.local.apigw.local_apigw_service.Route
             List of routes to replace normalize
-
+        function_name: str
+            Function name of the Route
+        path: str
+            Path of the Route
+        method: str
+            The ApiGateway route method
         Returns
         -------
         list of samcli.local.apigw.local_apigw_service.Route
             List of normalized routes
         """
-
-        result = list()
-        for route in routes:
-            for normalized_method in Route.normalize_http_methods(route.method):
-                result.append(Route(method=normalized_method, function_name=route.function_name, path=route.path))
-
-        return result
+        return Route(function_name, path, methods=AbstractApiProvider.normalize_http_methods(method))

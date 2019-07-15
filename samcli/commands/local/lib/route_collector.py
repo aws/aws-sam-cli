@@ -13,7 +13,7 @@ class RouteCollector(object):
 
     def __init__(self):
         # Route properties stored per resource.
-        self.by_resource = defaultdict(list)
+        self._route_per_resource = defaultdict(list)
 
     def __iter__(self):
         """
@@ -27,7 +27,7 @@ class RouteCollector(object):
             List of the API available in this resource along with additional configuration like binary media types.
         """
 
-        for logical_id, _ in self.by_resource.items():
+        for logical_id, _ in self._route_per_resource.items():
             yield logical_id, self._get_routes(logical_id)
 
     def add_routes(self, logical_id, routes):
@@ -36,7 +36,7 @@ class RouteCollector(object):
         Parameters
         ----------
         logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
+            LogicalId of the AWS::Serverless::Api or AWS::ApiGateway::RestApi resource
         routes : list of samcli.commands.local.agiw.local_apigw_service.Route
             List of routes available in this resource
         """
@@ -56,4 +56,4 @@ class RouteCollector(object):
             Properties object for this resource.
         """
 
-        return self.by_resource[logical_id]
+        return self._route_per_resource[logical_id]

@@ -662,7 +662,7 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
     """
     Test Class centered around the different responses that can happen in Lambda and pass through start-api
     """
-    template_path = "/testdata/start_api/template.yaml"
+    template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)

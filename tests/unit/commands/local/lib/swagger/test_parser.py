@@ -6,6 +6,7 @@ from unittest import TestCase
 from mock import patch, Mock
 from parameterized import parameterized, param
 
+from samcli.commands.local.lib.provider import AbstractApiProvider
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 
@@ -31,7 +32,7 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [Route(path="/path1", method="get", function_name=function_name)]
+        expected = [Route(path="/path1", methods=["get"], function_name=function_name)]
         result = parser.get_routes()
 
         self.assertEquals(expected, result)
@@ -77,9 +78,9 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name.return_value = function_name
 
         expected = {
-            Route(path="/path1", method="get", function_name=function_name),
-            Route(path="/path1", method="delete", function_name=function_name),
-            Route(path="/path2", method="post", function_name=function_name),
+            Route(path="/path1", methods=["get"], function_name=function_name),
+            Route(path="/path1", methods=["delete"], function_name=function_name),
+            Route(path="/path2", methods=["post"], function_name=function_name),
         }
         result = parser.get_routes()
 
@@ -104,7 +105,7 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = Route.get_normalized_routes(method="ANY", path="/path1", function_name=function_name)
+        expected = [AbstractApiProvider.get_normalized_route(method="ANY", path="/path1", function_name=function_name)]
         result = parser.get_routes()
 
         self.assertEquals(expected, result)

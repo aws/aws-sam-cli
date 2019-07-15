@@ -110,7 +110,7 @@ class LocalApiService(object):
 
             config["function_name"] = api.function_name
             config["path"] = api.path
-            config["methods"].append(api.method)
+            config["methods"].extend(api.methods)
 
             grouped_api_configs[key] = config
 

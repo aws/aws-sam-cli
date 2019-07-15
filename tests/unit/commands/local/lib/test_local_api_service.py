@@ -105,11 +105,11 @@ class TestLocalApiService_print_routes(TestCase):
 
         api_provider = Mock()
         apis = [
-            Route(path="/1", method="GET", function_name="name1"),
-            Route(path="/1", method="POST", function_name="name1"),
-            Route(path="/1", method="DELETE", function_name="othername1"),
-            Route(path="/2", method="GET2", function_name="name2"),
-            Route(path="/3", method="GET3", function_name="name3"),
+            Route(path="/1", methods=["GET"], function_name="name1"),
+            Route(path="/1", methods=["POST"], function_name="name1"),
+            Route(path="/1", methods=["DELETE"], function_name="othername1"),
+            Route(path="/2", methods=["GET2"], function_name="name2"),
+            Route(path="/3", methods=["GET3"], function_name="name3"),
         ]
         api_provider.get_all.return_value = apis
 

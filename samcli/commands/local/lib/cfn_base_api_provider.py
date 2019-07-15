@@ -6,12 +6,18 @@ from six import string_types
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
 
-
 LOG = logging.getLogger(__name__)
 
 
 class CfnBaseApiProvider(object):
     RESOURCE_TYPE = "Type"
+    ANY_HTTP_METHODS = ["GET",
+                        "DELETE",
+                        "PUT",
+                        "POST",
+                        "HEAD",
+                        "OPTIONS",
+                        "PATCH"]
 
     def extract_resources(self, resources, collector, api, cwd=None):
         """

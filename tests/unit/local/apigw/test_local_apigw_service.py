@@ -15,7 +15,7 @@ class TestApiGatewayService(TestCase):
 
     def setUp(self):
         self.function_name = Mock()
-        self.api_gateway_route = Route(method='GET', function_name=self.function_name, path='/')
+        self.api_gateway_route = Route(methods=['GET'], function_name=self.function_name, path='/')
         self.list_of_routes = [self.api_gateway_route]
 
         self.lambda_runner = Mock()
@@ -104,8 +104,8 @@ class TestApiGatewayService(TestCase):
     def test_create_creates_dict_of_routes(self):
         function_name_1 = Mock()
         function_name_2 = Mock()
-        api_gateway_route_1 = Route(method="GET", function_name=function_name_1, path='/')
-        api_gateway_route_2 = Route(method="POST", function_name=function_name_2, path='/')
+        api_gateway_route_1 = Route(methods=["GET"], function_name=function_name_1, path='/')
+        api_gateway_route_2 = Route(methods=["POST"], function_name=function_name_2, path='/')
 
         list_of_routes = [api_gateway_route_1, api_gateway_route_2]
 
@@ -253,10 +253,10 @@ class TestApiGatewayModel(TestCase):
 
     def setUp(self):
         self.function_name = "name"
-        self.api_gateway = Route(function_name=self.function_name, method="Post", path="/")
+        self.api_gateway = Route(function_name=self.function_name, methods=["Post"], path="/")
 
     def test_class_initialization(self):
-        self.assertEquals(self.api_gateway.method, 'POST')
+        self.assertEquals(self.api_gateway.methods, ['POST'])
         self.assertEquals(self.api_gateway.function_name, self.function_name)
         self.assertEquals(self.api_gateway.path, '/')
 

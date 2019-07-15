@@ -170,12 +170,13 @@ class SamApiProvider(CfnBaseApiProvider):
                                               "It should either be a LogicalId string or a Ref of a Logical Id string"
                                               .format(lambda_logical_id))
 
-        return api_resource_id, Route(path=path, method=method, function_name=lambda_logical_id)
+        return api_resource_id, Route(path=path, methods=AbstractApiProvider.normalize_http_methods(method),
+                                      function_name=lambda_logical_id)
 
     @staticmethod
     def merge_routes(collector):
         """
-        Quite often, an API is defined both in Implicit and Explicit API definitions. In such cases, Implicit API
+        Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit API
         definition wins because that conveys clear intent that the API is backed by a function. This method will
         merge two such list of routes with the right order of precedence. If a Path+Method combination is defined
         in both the places, only one wins.
@@ -191,34 +192,46 @@ class SamApiProvider(CfnBaseApiProvider):
             List of routes obtained by combining both the input lists.
         """
 
-        implicit_apis = []
-        explicit_apis = []
+        implicit_routes = []
+        explicit_routes = []
 
         # Store implicit and explicit APIs separately in order to merge them later in the correct order
         # Implicit APIs are defined on a resource with logicalID ServerlessRestApi
         for logical_id, apis in collector:
             if logical_id == SamApiProvider.IMPLICIT_API_RESOURCE_ID:
-                implicit_apis.extend(apis)
+                implicit_routes.extend(apis)
             else:
-                explicit_apis.extend(apis)
+                explicit_routes.extend(apis)
 
         # We will use "path+method" combination as key to this dictionary and store the Api config for this combination.
         # If an path+method combo already exists, then overwrite it if and only if this is an implicit API
-        all_apis = {}
+        all_routes = {}
 
         # By adding implicit APIs to the end of the list, they will be iterated last. If a configuration was already
         # written by explicit API, it will be overriden by implicit API, just by virtue of order of iteration.
-        all_configs = explicit_apis + implicit_apis
+        all_configs = explicit_routes + implicit_routes
 
         for config in all_configs:
             # Normalize the methods before de-duping to allow an ANY method in implicit API to override a regular HTTP
-            # method on explicit API.
-            for normalized_method in AbstractApiProvider.normalize_http_methods(config.method):
+            # method on explicit route.
+            for normalized_method in config.methods:
                 key = config.path + normalized_method
-                all_apis[key] = config
+                all_routes[key] = config
 
-        result = set(all_apis.values())  # Assign to a set() to de-dupe
+        result = set(all_routes.values())  # Assign to a set() to de-dupe
         LOG.debug("Removed duplicates from '%d' Explicit APIs and '%d' Implicit APIs to produce '%d' APIs",
-                  len(explicit_apis), len(implicit_apis), len(result))
+                  len(explicit_routes), len(implicit_routes), len(result))
 
+        # Merge route methods so that the combo of path and function_name is unique
+        # This is accomplished by combining the methods
+        merged_route_methods = {}
+        for route in result:
+            key = route.function_name + route.path
+            if key in merged_route_methods:
+                new_methods = list(set(merged_route_methods[key].methods + route.methods))
+                merged_route_methods[key].methods = new_methods
+            else:
+                merged_route_methods[key] = route
+
+        result = list(merged_route_methods.values())
         return list(result)

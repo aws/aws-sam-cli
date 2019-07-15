@@ -77,17 +77,17 @@ class CfnApiProvider(CfnBaseApiProvider):
         self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, api, cwd)
 
     @staticmethod
-    def _extract_cloud_formation_stage(api_resource, api):
+    def _extract_cloud_formation_stage(stage_resource, api):
         """
         Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
        ----------
-        api_resource : dict
-            Resource definition, including its properties
+        stage_resource : dict
+            Stage Resource definition, including its properties
         api: samcli.commands.local.lib.provider.Api
             Resource definition, including its properties
         """
-        properties = api_resource.get("Properties", {})
+        properties = stage_resource.get("Properties", {})
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
         logical_id = properties.get("RestApiId")

@@ -67,7 +67,7 @@ Resources:
       StageName: Dev
       RestApiId: !Ref MyApi
       Variables:
-      Stack: Dev
+        Stack: Dev
   MyNonServerlessLambdaFunction:
     Properties:
       Code: "."
