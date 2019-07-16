@@ -36,8 +36,9 @@ install:
     - ps: Install-Product node 10
 
     - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
-    - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
-    - "%PYTHON%\\python.exe -m pip install -e ."
+    - "python --version"
+    - "python -m pip install -r requirements/dev.txt"
+    - "python -m pip install -e ."
     - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
     - "gem --version"
     - "gem install bundler -v 1.17.3"
