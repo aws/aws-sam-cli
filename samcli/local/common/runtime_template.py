@@ -13,10 +13,12 @@ except ImportError:
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
 _templates = os.path.join(_init_path, 'init', 'templates')
 
+
+# Note(TheSriram): The ordering of the runtimes list per language is based on the latest to oldest.
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python2.7", "python3.6", "python3.7"],
+            "runtimes": ["python3.7", "python3.6", "python2.7"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True
@@ -46,7 +48,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnetcore", "dotnetcore1.0", "dotnetcore2.0", "dotnetcore2.1"],
+            "runtimes": ["dotnetcore2.1", "dotnetcore2.0", "dotnetcore1.0", "dotnetcore"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True
