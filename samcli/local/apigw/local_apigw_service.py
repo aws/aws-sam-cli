@@ -481,6 +481,8 @@ class LocalApigwService(BaseLocalService):
         -------
             Dictionary with CORS headers
         """
+        if not cors:
+            return {}
         headers = {
             'Access-Control-Allow-Origin': cors.allow_origin,
             'Access-Control-Allow-Methods': cors.allow_methods,
