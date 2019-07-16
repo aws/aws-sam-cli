@@ -7,6 +7,7 @@ from nose_parameterized import parameterized
 
 from six import assertCountEqual
 
+from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.provider import Api, Cors
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -1167,7 +1168,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 
@@ -1260,7 +1261,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 
@@ -1326,7 +1327,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 
@@ -1402,7 +1403,7 @@ class TestSamCors(TestCase):
             }
         }
 
-        provider = SamApiProvider(template)
+        provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
 

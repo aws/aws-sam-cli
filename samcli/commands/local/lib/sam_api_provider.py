@@ -4,14 +4,10 @@ import logging
 
 from six import string_types
 
-from samcli.commands.local.lib.swagger.parser import SwaggerParser
-from samcli.commands.local.lib.provider import ApiProvider, Api, Cors
-from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
-from samcli.commands.local.lib.swagger.reader import SamSwaggerReader
-from samcli.commands.local.lib.provider import Api, AbstractApiProvider
-
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.commands.local.lib.provider import Api, AbstractApiProvider
+from samcli.commands.local.lib.provider import Cors
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 
@@ -109,7 +105,7 @@ class SamApiProvider(CfnBaseApiProvider):
         cors_prop = properties.get("Cors")
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = cors_prop.get("AllowMethods", ','.join(SamApiProvider._ANY_HTTP_METHODS))
+            allow_methods = cors_prop.get("AllowMethods", ','.join(AbstractApiProvider.ANY_HTTP_METHODS))
 
             if allow_methods and "OPTIONS" not in allow_methods:
                 allow_methods += ",OPTIONS"
@@ -123,7 +119,7 @@ class SamApiProvider(CfnBaseApiProvider):
         elif cors_prop and isinstance(cors_prop, string_types):
             cors = Cors(
                 allow_origin=cors_prop,
-                allow_methods=','.join(SamApiProvider._ANY_HTTP_METHODS),
+                allow_methods=','.join(AbstractApiProvider.ANY_HTTP_METHODS),
                 allow_headers=None,
                 max_age=None
             )
@@ -244,7 +240,7 @@ class SamApiProvider(CfnBaseApiProvider):
         for config in all_configs:
             # Normalize the methods before de-duping to allow an ANY method in implicit API to override a regular HTTP
             # method on explicit API.
-            for normalized_method in AbstractApiProvider.normalize_http_methods(config.method):
+            for normalized_method in AbstractApiProvider.normalize_http_methods(config):
                 key = config.path + normalized_method
                 all_apis[key] = config
 

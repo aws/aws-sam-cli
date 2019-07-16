@@ -223,9 +223,9 @@ _ApiTuple = namedtuple("Api", [
     "stage_variables"
 ])
 _ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
-                                  [],    # binary_media_types is optional and defaults to empty,
+                                  [],  # binary_media_types is optional and defaults to empty,
                                   None,  # Stage name is optional with default None
-                                  None   # Stage variables is optional with default None
+                                  None  # Stage variables is optional with default None
                                   )
 
 
@@ -240,7 +240,7 @@ _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers
 _CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
                                    None,  # Allow Methods is optional and defaults to empty
                                    None,  # Allow Headers is optional and defaults to empty
-                                   None   # MaxAge is optional and defaults to empty
+                                   None  # MaxAge is optional and defaults to empty
                                    )
 
 
@@ -254,13 +254,13 @@ class AbstractApiProvider(object):
     """
     Abstract base class to return APIs and the functions they route to
     """
-    _ANY_HTTP_METHODS = ["GET",
-                         "DELETE",
-                         "PUT",
-                         "POST",
-                         "HEAD",
-                         "OPTIONS",
-                         "PATCH"]
+    ANY_HTTP_METHODS = ["GET",
+                        "DELETE",
+                        "PUT",
+                        "POST",
+                        "HEAD",
+                        "OPTIONS",
+                        "PATCH"]
 
     def get_all(self):
         """
@@ -271,20 +271,22 @@ class AbstractApiProvider(object):
         raise NotImplementedError("not implemented")
 
     @staticmethod
-    def normalize_http_methods(http_method):
+    def normalize_http_methods(api):
         """
         Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
         supported Http Methods on Api Gateway.
-
-        :param str http_method: Http method
+        :param api api: Api
         :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
         """
-
+        http_method = api.method
         if http_method.upper() == 'ANY':
-            for method in AbstractApiProvider._ANY_HTTP_METHODS:
+            for method in AbstractApiProvider.ANY_HTTP_METHODS:
                 yield method.upper()
         else:
             yield http_method.upper()
+
+        if api.cors and http_method.upper() != "OPTIONS":
+            yield "OPTIONS"
 
     @staticmethod
     def normalize_apis(apis):
@@ -304,7 +306,7 @@ class AbstractApiProvider(object):
 
         result = list()
         for api in apis:
-            for normalized_method in AbstractApiProvider.normalize_http_methods(api.method):
+            for normalized_method in AbstractApiProvider.normalize_http_methods(api):
                 # _replace returns a copy of the namedtuple. This is the official way of creating copies of namedtuple
                 result.append(api._replace(method=normalized_method))
 

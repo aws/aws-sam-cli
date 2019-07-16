@@ -113,6 +113,11 @@ class ApiCollector(object):
         properties = properties._replace(stage_variables=stage_variables)
         self._set_properties(logical_id, properties)
 
+    def add_cors(self, logical_id, cors):
+        properties = self._get_properties(logical_id)
+        properties = properties._replace(cors=cors)
+        self._set_properties(logical_id, properties)
+
     def _get_apis_with_config(self, logical_id):
         """
         Returns the list of APIs in this resource along with other extra configuration such as binary media types,
