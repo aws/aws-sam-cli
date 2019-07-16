@@ -33,7 +33,7 @@ environment:
 
 install:
     # To run Nodejs workflow integ tests
-    - ps: Install-Product node 8.10
+    - ps: Install-Product node 10
 
     - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
     - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
