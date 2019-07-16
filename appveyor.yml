@@ -47,12 +47,12 @@ install:
 
     # setup go
     # - rmdir c:\go /s /q
-    - "choco install golang"
-    - "choco install bzr"
-    - "choco install dep"
-    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
-    - "go version"
-    - "go env"
+    # - "choco install golang"
+    # - "choco install bzr"
+    # - "choco install dep"
+    # - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+    # - "go version"
+    # - "go env"
 
     # setup Gradle
     - "choco install gradle"
