@@ -8,7 +8,7 @@ import re
 
 from six import string_types
 
-from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, \
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, \
     verify_intrinsic_type_list, verify_non_null, verify_intrinsic_type_int, verify_in_bounds, \
     verify_number_arguments, verify_intrinsic_type_str, verify_intrinsic_type_dict, verify_intrinsic_type_bool, \
     verify_all_list_intrinsic_type, InvalidSymbolException
@@ -19,7 +19,9 @@ LOG = logging.getLogger(__name__)
 class IntrinsicResolver(object):
     AWS_INCLUDE = "AWS::Include"
     SUPPORTED_MACRO_TRANSFORMATIONS = [AWS_INCLUDE]
-    _REGEX_SUB_FUNCTION = r'\$\{(.*?)\}'
+    _PSEUDO_REGEX = r'AWS::.*?'
+    _ATTRIBUTE_REGEX = r"[a-zA-Z0-9]*?\.?[a-zA-Z0-9]*?"
+    _REGEX_SUB_FUNCTION = r'\$\{(' + _PSEUDO_REGEX + '||' + _ATTRIBUTE_REGEX + r')\}'
 
     FN_JOIN = "Fn::Join"
     FN_SPLIT = "Fn::Split"
@@ -61,12 +63,7 @@ class IntrinsicResolver(object):
         FN_NOT
     ]
 
-    def __init__(self, symbol_resolver,
-                 template=None,
-                 resources=None,
-                 mappings=None,
-                 parameters=None,
-                 conditions=None):
+    def __init__(self, symbol_resolver, template=None):
         """
         Initializes the Intrinsic Property class. Customers can pass in their own ref_resolver or attribute_resolver
         to customize the behavior of ref resolution. This can also be done by extending the definition.
@@ -82,27 +79,18 @@ class IntrinsicResolver(object):
             This is a required property that is the crux of the intrinsics resolver. It acts as a mapping between
             resource_type and object to the Ref, Arn, etc.
         template: dict
-            A dictionary containing all the resources and the attributes of the CloudFormation template.
-            Customers can pass in the template or the individual properties like resources, mapping, parameters,
-            conditions.
-        resources: dict
-            Dictionary containing the CloudFormation resources
-        mappings: dict
-            Dictionary containing the CloudFormation mappings. This is used in the Fn::FindInMap section
-        parameters: dict
-            Dictionary containing the CloudFormation parameters. This is used in the Ref section
-        conditions: dict
-            Dictionary containing the CloudFormation conditions. This is used in the Boolean Intrinsics section
+            A dictionary containing all the resources and the attributes of the CloudFormation template. The class does
+            not mutate the template.
         """
-        self.template = template or {}
-        self.resources = resources or self.template.get("Resources", {})
-        self.mapping = mappings or self.template.get("Mappings", {})
-        self.parameters = parameters or self.template.get("Parameters", {})
-        self.conditions = conditions or self.template.get("Conditions", {})
+        self._template = template or {}
+        self._resources = self._template.get("Resources", {})
+        self._mapping = self._template.get("Mappings", {})
+        self._parameters = self._template.get("Parameters", {})
+        self._conditions = self._template.get("Conditions", {})
 
-        self.symbol_resolver = symbol_resolver
-        self.symbol_resolver.resources = self.resources
-        self.symbol_resolver.parameters = self.parameters
+        self._symbol_resolver = symbol_resolver
+        self._symbol_resolver.resources = self._resources
+        self._symbol_resolver.parameters = self._parameters
 
         self.intrinsic_key_function_map = {
             IntrinsicResolver.FN_JOIN: self.handle_fn_join,
@@ -159,10 +147,6 @@ class IntrinsicResolver(object):
         if intrinsic == {}:
             return intrinsic
 
-        if not isinstance(intrinsic, dict):
-            raise InvalidIntrinsicException(
-                "Invalid Intrinsic type. It is not a int, list, str, or dict {}".format(intrinsic))
-
         keys = list(intrinsic.keys())
         key = keys[0]
 
@@ -195,8 +179,8 @@ class IntrinsicResolver(object):
         A resolved template with all references possible simplified
         """
         processed_template = {}
-        for key, val in self.resources.items():
-            processed_key = self.symbol_resolver.get_translation(key, IntrinsicResolver.REF) or key
+        for key, val in self._resources.items():
+            processed_key = self._symbol_resolver.get_translation(key) or key
             try:
                 processed_resource = self.intrinsic_property_resolver(val)
                 processed_template[processed_key] = processed_resource
@@ -370,7 +354,7 @@ class IntrinsicResolver(object):
         verify_intrinsic_type_str(top_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="second")
         verify_intrinsic_type_str(second_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="third")
 
-        map_value = self.mapping.get(map_name)
+        map_value = self._mapping.get(map_name)
         verify_intrinsic_type_dict(map_value, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="first",
                                    message="The MapName is missing in the Mappings dictionary in Fn::FindInMap  for {}"
                                    .format(map_name))
@@ -410,13 +394,13 @@ class IntrinsicResolver(object):
         verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)
 
         if intrinsic_value == "":
-            intrinsic_value = self.symbol_resolver.DEFAULT_REGION
+            intrinsic_value = self._symbol_resolver.DEFAULT_REGION
 
-        if intrinsic_value not in self.symbol_resolver.REGIONS:
+        if intrinsic_value not in self._symbol_resolver.REGIONS:
             raise InvalidIntrinsicException(
                 "Invalid region string passed in to {}".format(IntrinsicResolver.FN_GET_AZS))
 
-        return self.symbol_resolver.REGIONS.get(intrinsic_value)
+        return self._symbol_resolver.REGIONS.get(intrinsic_value)
 
     def handle_fn_transform(self, intrinsic_value):
         """
@@ -487,7 +471,7 @@ class IntrinsicResolver(object):
         verify_intrinsic_type_str(logical_id, IntrinsicResolver.FN_GET_ATT)
         verify_intrinsic_type_str(resource_type, IntrinsicResolver.FN_GET_ATT)
 
-        return self.symbol_resolver.resolve_symbols(logical_id, resource_type)
+        return self._symbol_resolver.resolve_symbols(logical_id, resource_type)
 
     def handle_fn_ref(self, intrinsic_value):
         """
@@ -509,7 +493,7 @@ class IntrinsicResolver(object):
         arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.REF)
         verify_intrinsic_type_str(arguments, IntrinsicResolver.REF)
 
-        return self.symbol_resolver.resolve_symbols(arguments, IntrinsicResolver.REF)
+        return self._symbol_resolver.resolve_symbols(arguments, IntrinsicResolver.REF)
 
     def handle_fn_sub(self, intrinsic_value):
         """
@@ -554,7 +538,7 @@ class IntrinsicResolver(object):
         subable_props = re.findall(string=sub_str, pattern=IntrinsicResolver._REGEX_SUB_FUNCTION)
         for sub_item in subable_props:
             sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
-            result = resolve_sub_attribute(sanitized_item, self.symbol_resolver)
+            result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
             sub_str = re.sub(pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=result)
         return sub_str
 
@@ -591,7 +575,7 @@ class IntrinsicResolver(object):
         value_if_true = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_IF)
         value_if_false = self.intrinsic_property_resolver(arguments[2], parent_function=IntrinsicResolver.FN_IF)
 
-        condition = self.conditions.get(condition_name)
+        condition = self._conditions.get(condition_name)
         verify_intrinsic_type_dict(condition, IntrinsicResolver.FN_IF,
                                    message="The condition is missing in the Conditions dictionary for {}".format(
                                        IntrinsicResolver.FN_IF))
@@ -648,7 +632,7 @@ class IntrinsicResolver(object):
             condition_name = argument_sanitised.get("Condition")
             verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_NOT)
 
-            condition = self.conditions.get(condition_name)
+            condition = self._conditions.get(condition_name)
             verify_non_null(condition, IntrinsicResolver.FN_NOT, position_in_list="first")
 
             argument_sanitised = self.intrinsic_property_resolver(condition, parent_function=IntrinsicResolver.FN_NOT)
@@ -690,7 +674,7 @@ class IntrinsicResolver(object):
                 condition_name = argument.get("Condition")
                 verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_AND)
 
-                condition = self.conditions.get(condition_name)
+                condition = self._conditions.get(condition_name)
                 verify_non_null(condition, IntrinsicResolver.FN_AND, position_in_list="{} th".format(str(i)))
 
                 condition_evaluated = self.intrinsic_property_resolver(condition,
@@ -740,7 +724,7 @@ class IntrinsicResolver(object):
                 condition_name = argument.get("Condition")
                 verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_OR)
 
-                condition = self.conditions.get(condition_name)
+                condition = self._conditions.get(condition_name)
                 verify_non_null(condition, IntrinsicResolver.FN_OR, position_in_list="{} th".format(str(i)))
 
                 condition_evaluated = self.intrinsic_property_resolver(condition,

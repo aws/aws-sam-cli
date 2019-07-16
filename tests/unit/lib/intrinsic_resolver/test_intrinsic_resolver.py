@@ -3,9 +3,9 @@ from unittest import TestCase
 
 from parameterized import parameterized
 
-from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
-from samcli.commands.local.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
+from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
 
 
 class TestIntrinsicFnJoinResolver(TestCase):
@@ -45,7 +45,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
     @parameterized.expand([
         ("Fn::Join should fail for values that are not lists: {}".format(item), item)
         for item in
-        [True, False, "Test", {}, 42, object, None]
+        [True, False, "Test", {}, 42, None]
     ])
     def test_fn_join_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -56,7 +56,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
     @parameterized.expand([
         ("Fn::Join should fail if the first argument does not resolve to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None]
+        [True, False, {}, 42, None]
     ])
     def test_fn_join_delimiter_invalid_type(self, name, delimiter):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -67,7 +67,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
     @parameterized.expand([
         ("Fn::Join should fail if the list_of_objects is not a valid list: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, "t", None]
+        [True, False, {}, 42, "t", None]
     ])
     def test_fn_list_of_objects_invalid_type(self, name, list_of_objects):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -79,7 +79,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
         ("Fn::Join should require that all items in the list_of_objects resolve to string: {}".format(item),
          item)
         for item in
-        [True, False, {}, 42, object, None]
+        [True, False, {}, 42, None]
     ])
     def test_fn_join_items_all_str(self, name, single_obj):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -126,7 +126,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
     @parameterized.expand([
         ("Fn::Split should fail for values that are not lists: {}".format(item), item)
         for item in
-        [True, False, "Test", {}, 42, object]
+        [True, False, "Test", {}, 42]
     ])
     def test_fn_split_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -137,7 +137,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
     @parameterized.expand([
         ("Fn::Split should fail if the first argument does not resolve to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object]
+        [True, False, {}, 42]
     ])
     def test_fn_split_delimiter_invalid_type(self, name, delimiter):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -148,7 +148,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
     @parameterized.expand([
         ("Fn::Split should fail if the second argument does not resolve to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object]
+        [True, False, {}, 42]
     ])
     def test_fn_split_source_string_invalid_type(self, name, source_string):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -186,7 +186,7 @@ class TestIntrinsicFnBase64Resolver(TestCase):
     @parameterized.expand([
         ("Fn::Base64 must have a value that resolves to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None]
+        [True, False, {}, 42, None]
     ])
     def test_fn_base64_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -222,7 +222,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
     @parameterized.expand([
         ("Fn::Select should fail for values that are not lists: {}".format(item), item)
         for item in
-        [True, False, "Test", {}, 42, object, None]
+        [True, False, "Test", {}, 42, None]
     ])
     def test_fn_select_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -233,7 +233,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
     @parameterized.expand([
         ("Fn::Select should fail if the first argument does not resolve to a int: {}".format(item), item)
         for item in
-        [True, False, {}, object, "3", None]
+        [True, False, {}, "3", None]
     ])
     def test_fn_select_index_invalid_index_type(self, name, index):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -255,7 +255,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
     @parameterized.expand([
         ("Fn::Select should fail if the second argument does not resolve to a list: {}".format(item), item)
         for item in
-        [True, False, {}, object, "3", 33, None]
+        [True, False, {}, "3", 33, None]
     ])
     def test_fn_select_second_argument_invalid_type(self, name, argument):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -266,23 +266,26 @@ class TestIntrinsicFnSelectResolver(TestCase):
 
 class TestIntrinsicFnFindInMapResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable(), mappings={
-            "Basic": {
-                "Test": {
-                    "key": "value"
-                }
-            },
-            "value": {
-                "anotherkey": {
-                    "key": "result"
-                }
-            },
-            "result": {
+        template = {
+            "Mappings": {
+                "Basic": {
+                    "Test": {
+                        "key": "value"
+                    }
+                },
                 "value": {
-                    "key": "final"
+                    "anotherkey": {
+                        "key": "result"
+                    }
+                },
+                "result": {
+                    "value": {
+                        "key": "final"
+                    }
                 }
             }
-        })
+        }
+        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable(), template=template)
 
     def test_basic_find_in_map(self):
         intrinsic = {
@@ -307,7 +310,7 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
     @parameterized.expand([
         ("Fn::FindInMap should fail if the list does not resolve to a string: {}".format(item), item)
         for item in
-        [True, False, "Test", {}, 42, object, None]
+        [True, False, "Test", {}, 42, None]
     ])
     def test_fn_find_in_map_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -364,7 +367,7 @@ class TestIntrinsicFnAzsResolver(TestCase):
     @parameterized.expand([
         ("Fn::GetAZs should fail if it not given a string type".format(item), item)
         for item in
-        [True, False, {}, 42, object, None]
+        [True, False, {}, 42, None]
     ])
     def test_fn_azs_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -409,7 +412,7 @@ class TestIntrinsicFnRefResolver(TestCase):
     @parameterized.expand([
         ("Ref must have arguments that resolve to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None, []]
+        [True, False, {}, 42, None, []]
     ])
     def test_ref_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -473,8 +476,9 @@ class TestIntrinsicFnGetAttResolver(TestCase):
                 }
             }
         }
+        template = {"Resources": resources}
         self.resources = resources
-        self.resolver = IntrinsicResolver(resources=resources,
+        self.resolver = IntrinsicResolver(template=template,
                                           symbol_resolver=IntrinsicsSymbolTable(
                                               logical_id_translator=logical_id_translator))
 
@@ -502,7 +506,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     @parameterized.expand([
         ("Fn::GetAtt must fail if the argument does not resolve to a list: {}".format(item), item)
         for item in
-        [True, False, {}, "test", 42, object, None]
+        [True, False, {}, "test", 42, None]
     ])
     def test_fn_getatt_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -525,7 +529,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     @parameterized.expand([
         ("Fn::GetAtt first argument must resolve to a valid string: {}".format(item), item)
         for item in
-        [True, False, {}, [], 42, object, None]
+        [True, False, {}, [], 42, None]
     ])
     def test_fn_getatt_first_arguments_invalid(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -536,7 +540,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     @parameterized.expand([
         ("Fn::GetAtt second argument must resolve to a string:{}".format(item), item)
         for item in
-        [True, False, {}, [], 42, object, None]
+        [True, False, {}, [], 42, None]
     ])
     def test_fn_getatt_second_arguments_invalid(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -569,8 +573,8 @@ class TestIntrinsicFnSubResolver(TestCase):
         }
         result = self.resolver.intrinsic_property_resolver(intrinsic)
         self.assertEquals(result,
-                          "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-                          "-1:123456789012:function:LambdaFunction/invocations")
+                          "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1"
+                          ":123456789012:function:LambdaFunction/invocations")
 
     def test_fn_sub_uri_arguments(self):
         intrinsic = {
@@ -587,7 +591,7 @@ class TestIntrinsicFnSubResolver(TestCase):
     @parameterized.expand([
         ("Fn::Sub arguments must either resolve to a string or a list".format(item), item)
         for item in
-        [True, False, {}, 42, object, None]
+        [True, False, {}, 42, None]
     ])
     def test_fn_sub_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -598,7 +602,7 @@ class TestIntrinsicFnSubResolver(TestCase):
     @parameterized.expand([
         ("If Fn::Sub is a list, first argument must resolve to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None]
+        [True, False, {}, 42, None]
     ])
     def test_fn_sub_first_argument_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -609,7 +613,7 @@ class TestIntrinsicFnSubResolver(TestCase):
     @parameterized.expand([
         ("If Fn::Sub is a list, second argument must resolve to a dictionary".format(item), item)
         for item in
-        [True, False, "Another str", [], 42, object, None]
+        [True, False, "Another str", [], 42, None]
     ])
     def test_fn_sub_second_argument_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -702,7 +706,7 @@ class TestIntrinsicFnEqualsResolver(TestCase):
     @parameterized.expand([
         ("Fn::Equals must have arguments that resolve to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None, "test"]
+        [True, False, {}, 42, None, "test"]
     ])
     def test_fn_equals_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -741,7 +745,8 @@ class TestIntrinsicFnNotResolver(TestCase):
                 ]
             }
         }
-        self.resolver = IntrinsicResolver(conditions=conditions,
+        template = {"Conditions": conditions}
+        self.resolver = IntrinsicResolver(template=template,
                                           symbol_resolver=IntrinsicsSymbolTable(
                                               logical_id_translator=logical_id_translator))
 
@@ -816,7 +821,7 @@ class TestIntrinsicFnNotResolver(TestCase):
     @parameterized.expand([
         ("Fn::Not must have an argument that resolves to a list: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None, "test"]
+        [True, False, {}, 42, None, "test"]
     ])
     def test_fn_not_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -827,7 +832,7 @@ class TestIntrinsicFnNotResolver(TestCase):
     @parameterized.expand([
         ("Fn::Not items in the list must resolve to booleans: {}".format(item), item)
         for item in
-        [{}, 42, object, None, "test"]
+        [{}, 42, None, "test"]
     ])
     def test_fn_not_first_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -872,7 +877,8 @@ class TestIntrinsicFnAndResolver(TestCase):
                 ]
             }
         }
-        self.resolver = IntrinsicResolver(conditions=conditions,
+        template = {"Conditions": conditions}
+        self.resolver = IntrinsicResolver(template=template,
                                           symbol_resolver=IntrinsicsSymbolTable(
                                               logical_id_translator=logical_id_translator))
 
@@ -936,7 +942,7 @@ class TestIntrinsicFnAndResolver(TestCase):
     @parameterized.expand([
         ("Fn::And must have value that resolves to a list: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None, "test"]
+        [True, False, {}, 42, None, "test"]
     ])
     def test_fn_and_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -947,7 +953,7 @@ class TestIntrinsicFnAndResolver(TestCase):
     @parameterized.expand([
         ("Fn:And must have all arguments that resolves to booleans".format(item), item)
         for item in
-        [{}, 42, object, None, "test"]
+        [{}, 42, None, "test"]
     ])
     def test_fn_and_all_arguments_bool(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -981,7 +987,8 @@ class TestIntrinsicFnOrResolver(TestCase):
                 ]
             }
         }
-        self.resolver = IntrinsicResolver(conditions=conditions,
+        template = {"Conditions": conditions}
+        self.resolver = IntrinsicResolver(template=template,
                                           symbol_resolver=IntrinsicsSymbolTable(
                                               logical_id_translator=logical_id_translator))
 
@@ -1054,7 +1061,7 @@ class TestIntrinsicFnOrResolver(TestCase):
     @parameterized.expand([
         ("Fn::Or must have an argument that resolves to a list: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None, "test"]
+        [True, False, {}, 42, None, "test"]
     ])
     def test_fn_or_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -1065,7 +1072,7 @@ class TestIntrinsicFnOrResolver(TestCase):
     @parameterized.expand([
         ("Fn::Or must have all arguments resolve to booleans: {}".format(item), item)
         for item in
-        [{}, 42, object, None, "test"]
+        [{}, 42, None, "test"]
     ])
     def test_fn_or_all_arguments_bool(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -1100,7 +1107,8 @@ class TestIntrinsicFnIfResolver(TestCase):
             },
             "InvalidCondition": ["random items"]
         }
-        self.resolver = IntrinsicResolver(conditions=conditions,
+        template = {"Conditions": conditions}
+        self.resolver = IntrinsicResolver(template=template,
                                           symbol_resolver=IntrinsicsSymbolTable(
                                               logical_id_translator=logical_id_translator))
 
@@ -1183,7 +1191,7 @@ class TestIntrinsicFnIfResolver(TestCase):
     @parameterized.expand([
         ("Fn::If must an argument that resolves to a list: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None, "test"]
+        [True, False, {}, 42, None, "test"]
     ])
     def test_fn_if_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -1194,7 +1202,7 @@ class TestIntrinsicFnIfResolver(TestCase):
     @parameterized.expand([
         ("Fn::If must have the argument resolve to a string: {}".format(item), item)
         for item in
-        [True, False, {}, 42, object, None, "test", []]
+        [True, False, {}, 42, None, "test", []]
     ])
     def test_fn_if_condition_arguments_invalid_type(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
@@ -1431,4 +1439,5 @@ class TestIntrinsicTemplateResolution(TestCase):
                              'RestApiResource': {'Properties': {'PathPart': '{proxy+}',
                                                                 'RestApiId': 'RestApi',
                                                                 'parentId': '/'}}}
+        self.maxDiff = None
         self.assertEquals(expected_template, result)

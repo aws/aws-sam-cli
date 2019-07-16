@@ -5,17 +5,12 @@ import json
 import os
 import uuid
 from random import randint
-from subprocess import Popen, PIPE
-
-try:
-    from subprocess import DEVNULL
-except ImportError:
-    DEVNULL = open(os.devnull, 'wb')
 
 from six import string_types
 
-from samcli.commands.local.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
-from samcli.commands.local.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
+from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
+from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
 
 
 class IntrinsicsSymbolTable(object):
@@ -259,8 +254,9 @@ class IntrinsicsSymbolTable(object):
         -------
         The resolved Arn
         """
-        aws_region = self.handle_pseudo_region()
-        account_id = self.handle_pseudo_account_id()
+        aws_region = self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or self.handle_pseudo_region()
+        account_id = self.logical_id_translator.get(
+            IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
         partition_name = self.handle_pseudo_partition()
         function_name = logical_id
         function_name = self.logical_id_translator.get(function_name) or function_name
@@ -316,35 +312,12 @@ class IntrinsicsSymbolTable(object):
 
     def handle_pseudo_account_id(self):
         """
-        This gets the account id for the attribute AWS::AccountId.
-        This calls the
-        aws sts get-caller-identity --output text --query Account
-        If an id cannot be found in the current system, it defaults to a random string.
-
-        This is only run if it is not specified by the logical_id_translator as a default.
-
+        This gets a default account id from SamBaseProvider.
         Return
         -------
         A pseudo account id
         """
-        translated = self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
-        if translated:
-            return translated
-
-        process = Popen(["aws", "sts", "get-caller-identity", "--output", "text", "--query", 'Account'],
-                        stdout=PIPE, stderr=DEVNULL)
-        output = process.communicate()[0]
-        process.wait()
-        account_id = None
-        try:
-            account_id = int(output)
-        except ValueError:
-            pass
-
-        if not account_id:
-            account_id = ''.join([str(randint(0, 9)) for _ in range(12)])
-
-        return str(account_id)
+        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
 
     def handle_pseudo_region(self):
         """
@@ -356,7 +329,8 @@ class IntrinsicsSymbolTable(object):
         -------
         The region from the environment or a default one
         """
-        return os.getenv("AWS_REGION") or self.DEFAULT_REGION
+        return os.getenv("AWS_REGION") or SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+            IntrinsicsSymbolTable.AWS_REGION)
 
     def handle_pseudo_url_prefix(self):
         """
@@ -415,8 +389,7 @@ class IntrinsicsSymbolTable(object):
 
     def handle_pseudo_stack_id(self):
         """
-        This resolves AWS::StackId by generating a random string. There is no real way to resolve this if it's not in
-        the logical_id_translator
+        This resolves AWS::StackId by using the SamBaseProvider as the default value.
 
         This is only run if it is not specified by the logical_id_translator as a default.
 
@@ -424,12 +397,11 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return self.get_random_string()
+        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_ID)
 
     def handle_pseudo_stack_name(self):
         """
-        This resolves AWS::StackName by generating a random string. There is no real way to resolve this if it's not in
-        the logical_id_translator
+        This resolves AWS::StackName by using the SamBaseProvider as the default value.
 
         This is only run if it is not specified by the logical_id_translator as a default.
 
@@ -437,7 +409,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return self.get_random_string()
+        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_NAME)
 
     @staticmethod
     def handle_pseudo_no_value():
