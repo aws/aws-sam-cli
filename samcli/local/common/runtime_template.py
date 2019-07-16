@@ -32,7 +32,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs8.10", "nodejs10.x"],
+            "runtimes": ["nodejs10.x", "nodejs8.10"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True
@@ -81,3 +81,6 @@ SUPPORTED_DEP_MANAGERS = set([c['dependency_manager'] for c in list(
 RUNTIMES = set(itertools.chain(*[c['runtimes'] for c in list(
     itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))]))
 INIT_RUNTIMES = RUNTIMES.union(RUNTIME_DEP_TEMPLATE_MAPPING.keys())
+
+# NOTE(TheSriram): Default Runtime Choice when runtime is not chosen
+DEFAULT_RUNTIME = RUNTIME_DEP_TEMPLATE_MAPPING['nodejs'][0]['runtimes'][0]
