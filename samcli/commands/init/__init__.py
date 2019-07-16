@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 @click.command(context_settings=dict(help_option_names=[u'-h', u'--help']))
 @click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
-@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default="nodejs8.10",
+@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default="nodejs10.x",
               help="Lambda Runtime of your app")
 @click.option('-d', '--dependency-manager', type=click.Choice(SUPPORTED_DEP_MANAGERS), default=None,
               help="Dependency manager of your Lambda runtime", required=False)
