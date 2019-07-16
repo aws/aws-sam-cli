@@ -6,6 +6,9 @@ build: off
 clone_folder: D:\source
 
 environment:
+  GOPATH: c:\gopath
+  GOVERSION: 1.11
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   
@@ -14,21 +17,48 @@ environment:
       PYTHON_VERSION: '2.7'
       PYTHON_ARCH: '32'
 
+    # Testing on both 32bit and 64bit Windows only for Latest Python version,
+    # because MSIs installers use the latest Python3.6 version
+    - PYTHON_HOME: "C:\\Python36"
+      PYTHON_VERSION: '3.6'
+      PYTHON_ARCH: '32'
+
     - PYTHON_HOME: "C:\\Python36-x64"
       PYTHON_VERSION: '3.6'
       PYTHON_ARCH: '64'
-
-    # Testing on both 32bit and 64bit Windows only for Latest Python version,
-    # because MSIs installers use Latest Python version
-    - PYTHON_HOME: "C:\\Python37"
-      PYTHON_VERSION: '3.7'
-      PYTHON_ARCH: '32'
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7'
       PYTHON_ARCH: '64'
 
 install:
+    # To run Nodejs workflow integ tests
+    - ps: Install-Product node 8.10
+
+    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+    - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
+    - "%PYTHON%\\python.exe -m pip install -e ."
+    - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
+    - "gem --version"
+    - "gem install bundler -v 1.17.3"
+    - "bundler --version"
+    - "echo %PATH%"
+
+    # setup go
+    - rmdir c:\go /s /q
+    - "choco install golang"
+    - "choco install bzr"
+    - "choco install dep"
+    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+    - "go version"
+    - "go env"
+
+    # setup Gradle
+    - "choco install gradle"
+
+    # Echo final Path
+    - "echo %PATH%"
+
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
   
