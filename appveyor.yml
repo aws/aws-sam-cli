@@ -46,7 +46,7 @@ install:
     - "echo %PATH%"
 
     # setup go
-    - rmdir c:\go /s /q
+    # - rmdir c:\go /s /q
     - "choco install golang"
     - "choco install bzr"
     - "choco install dep"
