@@ -55,12 +55,12 @@ install:
     # - "go env"
 
     # setup Gradle
-    - "choco install gradle"
-    - "choco install maven"
+    # - "choco install gradle"
+    # - "choco install maven"
 
     - "refreshenv"
-    - "gradle -v"
-    - "mvn --version"
+    # - "gradle -v"
+    # - "mvn --version"
 
     # Echo final Path
     - "echo %PATH%"
