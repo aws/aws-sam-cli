@@ -245,9 +245,7 @@ _CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
 
 
 class Cors(_CorsTuple):
-    def __hash__(self):
-        # Other properties are not a part of the hash
-        return hash(self.allow_origin) * hash(self.allow_headers) * hash(self.allow_methods) * hash(self.max_age)
+    pass
 
 
 class AbstractApiProvider(object):
@@ -285,8 +283,8 @@ class AbstractApiProvider(object):
         else:
             yield http_method.upper()
 
-        if api.cors and http_method.upper() != "OPTIONS":
-            yield "OPTIONS"
+            if api.cors and http_method.upper() != "OPTIONS":
+                yield "OPTIONS"
 
     @staticmethod
     def normalize_apis(apis):
