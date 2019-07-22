@@ -112,11 +112,14 @@ def get_workflow_config(runtime, code_dir, project_dir):
             JAVA_MAVEN_CONFIG
         ]),
 
-         "provided": ManifestWorkflowSelector([
+        "provided": ManifestWorkflowSelector([
             PYTHON_PIP_CONFIG,
             RUBY_BUNDLER_CONFIG,
             DOTNET_CLIPACKAGE_CONFIG,
             NODEJS_NPM_CONFIG,
+            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_MAVEN_CONFIG,
         ]),
     }
 
