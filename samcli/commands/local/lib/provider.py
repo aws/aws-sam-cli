@@ -222,10 +222,10 @@ _ApiTuple = namedtuple("Api", [
     # The variables for that stage
     "stage_variables"
 ])
-_ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
-                                  [],  # binary_media_types is optional and defaults to empty,
-                                  None,  # Stage name is optional with default None
-                                  None  # Stage variables is optional with default None
+_ApiTuple.__new__.__defaults__ = (None,    # Cors is optional and defaults to None
+                                  [],      # binary_media_types is optional and defaults to empty,
+                                  None,    # Stage name is optional with default None
+                                  None     # Stage variables is optional with default None
                                   )
 
 
@@ -238,17 +238,10 @@ class Api(_ApiTuple):
 Cors = namedtuple("Cors", ["AllowOrigin", "AllowMethods", "AllowHeaders"])
 
 
-class AbstractApiProvider(object):
+class ApiProvider(object):
     """
     Abstract base class to return APIs and the functions they route to
     """
-    _ANY_HTTP_METHODS = ["GET",
-                         "DELETE",
-                         "PUT",
-                         "POST",
-                         "HEAD",
-                         "OPTIONS",
-                         "PATCH"]
 
     def get_all(self):
         """
@@ -257,43 +250,3 @@ class AbstractApiProvider(object):
         :yields Api: namedtuple containing the API information
         """
         raise NotImplementedError("not implemented")
-
-    @staticmethod
-    def normalize_http_methods(http_method):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
-        supported Http Methods on Api Gateway.
-
-        :param str http_method: Http method
-        :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
-        """
-
-        if http_method.upper() == 'ANY':
-            for method in AbstractApiProvider._ANY_HTTP_METHODS:
-                yield method.upper()
-        else:
-            yield http_method.upper()
-
-    @staticmethod
-    def normalize_apis(apis):
-        """
-        Normalize the APIs to use standard method name
-
-        Parameters
-        ----------
-        apis : list of samcli.commands.local.lib.provider.Api
-            List of APIs to replace normalize
-
-        Returns
-        -------
-        list of samcli.commands.local.lib.provider.Api
-            List of normalized APIs
-        """
-
-        result = list()
-        for api in apis:
-            for normalized_method in AbstractApiProvider.normalize_http_methods(api.method):
-                # _replace returns a copy of the namedtuple. This is the official way of creating copies of namedtuple
-                result.append(api._replace(method=normalized_method))
-
-        return result

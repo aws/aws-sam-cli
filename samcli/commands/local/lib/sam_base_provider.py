@@ -10,6 +10,7 @@ from samtranslator.intrinsics.actions import RefAction
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
+
 LOG = logging.getLogger(__name__)
 
 
@@ -88,7 +89,7 @@ class SamBaseProvider(object):
         supported_intrinsics = {action.intrinsic_name: action() for action in SamBaseProvider._SUPPORTED_INTRINSICS}
 
         # Intrinsics resolver will mutate the original template
-        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics) \
+        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics)\
             .resolve_parameter_refs(template_dict)
 
     @staticmethod
