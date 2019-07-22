@@ -1,6 +1,7 @@
 """Parses SAM given a template"""
 import logging
 
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 
 LOG = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class CfnApiProvider(CfnBaseApiProvider):
                 self._extract_cloud_formation_route(logical_id, resource, collector, api=api, cwd=cwd)
 
             if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
-                self._extract_cloud_formation_stage(resource, api)
+                self._extract_cloud_formation_stage(resources, resource, api)
 
         all_routes = []
         for _, routes in collector:
@@ -77,11 +78,13 @@ class CfnApiProvider(CfnBaseApiProvider):
         self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, api, cwd)
 
     @staticmethod
-    def _extract_cloud_formation_stage(stage_resource, api):
+    def _extract_cloud_formation_stage(resources, stage_resource, api):
         """
         Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
        ----------
+        resources: dict
+            All Resource definition, including its properties
         stage_resource : dict
             Stage Resource definition, including its properties
         api: samcli.commands.local.lib.provider.Api
@@ -91,6 +94,14 @@ class CfnApiProvider(CfnBaseApiProvider):
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
         logical_id = properties.get("RestApiId")
-        if logical_id:
-            api.stage_name = stage_name
-            api.stage_variables = stage_variables
+        if not logical_id:
+            raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")
+
+        rest_api_resource = resources.get(logical_id, {}).get("Type")
+        if rest_api_resource != CfnApiProvider.APIGATEWAY_RESTAPI:
+            raise InvalidSamTemplateException(
+                "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
+                    logical_id))
+
+        api.stage_name = stage_name
+        api.stage_variables = stage_variables

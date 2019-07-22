@@ -105,7 +105,8 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [AbstractApiProvider.get_normalized_route(method="ANY", path="/path1", function_name=function_name)]
+        expected = [Route(methods=AbstractApiProvider.normalize_http_methods("ANY"), path="/path1",
+                          function_name=function_name)]
         result = parser.get_routes()
 
         self.assertEquals(expected, result)

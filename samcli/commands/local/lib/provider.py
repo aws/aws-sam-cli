@@ -7,7 +7,6 @@ from collections import namedtuple
 
 import six
 
-from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 # Named Tuple to representing the properties of a Lambda Function
@@ -263,25 +262,3 @@ class AbstractApiProvider(object):
         if http_method.upper() == 'ANY':
             return AbstractApiProvider._ANY_HTTP_METHODS
         return [http_method.upper()]
-
-    @staticmethod
-    def get_normalized_route(function_name, path, method):
-        """
-        Normalize the APIs to use standard method name
-
-        Parameters
-        ----------
-        apis : list of samcli.local.apigw.local_apigw_service.Route
-            List of routes to replace normalize
-        function_name: str
-            Function name of the Route
-        path: str
-            Path of the Route
-        method: str
-            The ApiGateway route method
-        Returns
-        -------
-        list of samcli.local.apigw.local_apigw_service.Route
-            List of normalized routes
-        """
-        return Route(function_name, path, methods=AbstractApiProvider.normalize_http_methods(method))

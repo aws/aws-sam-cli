@@ -56,7 +56,10 @@ class SamApiProvider(CfnBaseApiProvider):
                 self._extract_routes_from_function(logical_id, resource, collector)
             if resource_type == SamApiProvider.SERVERLESS_API:
                 self._extract_from_serverless_api(logical_id, resource, collector, api=api, cwd=cwd)
-        return self.merge_routes(collector)
+
+        merge_implicit_routes = self.merge_routes(collector)
+        grouped_routes = self.dedupe_function_routes(merge_implicit_routes)
+        return grouped_routes
 
     def _extract_from_serverless_api(self, logical_id, api_resource, collector, api, cwd=None):
         """
@@ -221,17 +224,28 @@ class SamApiProvider(CfnBaseApiProvider):
         result = set(all_routes.values())  # Assign to a set() to de-dupe
         LOG.debug("Removed duplicates from '%d' Explicit APIs and '%d' Implicit APIs to produce '%d' APIs",
                   len(explicit_routes), len(implicit_routes), len(result))
-
-        # Merge route methods so that the combo of path and function_name is unique
-        # This is accomplished by combining the methods
-        merged_route_methods = {}
-        for route in result:
-            key = route.function_name + route.path
-            if key in merged_route_methods:
-                new_methods = list(set(merged_route_methods[key].methods + route.methods))
-                merged_route_methods[key].methods = new_methods
-            else:
-                merged_route_methods[key] = route
-
-        result = list(merged_route_methods.values())
         return list(result)
+
+    @staticmethod
+    def dedupe_function_routes(routes):
+        """
+        Remove duplicate routes that have the same function_name and method
+
+        route: list(Route)
+            List of Routes
+
+       Return
+       -------
+       A list of routes without duplicate routes with the same function_name and method
+        """
+        grouped_routes = {}
+
+        for route in routes:
+            key = "{}-{}".format(route.function_name, route.path)
+            config = grouped_routes.get(key, None)
+            methods = route.methods
+            if config:
+                methods += config.methods
+            sorted_methods = sorted(methods)
+            grouped_routes[key] = Route(function_name=route.function_name, path=route.path, methods=sorted_methods)
+        return list(grouped_routes.values())

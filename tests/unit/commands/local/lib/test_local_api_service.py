@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from mock import Mock, patch
 
+from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.local.lib.local_api_service import LocalApiService
@@ -60,7 +61,7 @@ class TestLocalApiService_start(TestCase):
                                               cwd=self.cwd,
                                               parameter_overrides=self.lambda_invoke_context_mock.parameter_overrides)
 
-        log_routes_mock.assert_called_with(self.api_provider_mock, self.host, self.port)
+        log_routes_mock.assert_called_with(routing_list, self.host, self.port)
         make_static_dir_mock.assert_called_with(self.cwd, self.static_dir)
         ApiGwServiceMock.assert_called_with(api=self.api_provider_mock.api,
                                             lambda_runner=self.lambda_runner_mock,
@@ -103,7 +104,6 @@ class TestLocalApiService_print_routes(TestCase):
         host = "host"
         port = 123
 
-        api_provider = Mock()
         apis = [
             Route(path="/1", methods=["GET"], function_name="name1"),
             Route(path="/1", methods=["POST"], function_name="name1"),
@@ -111,14 +111,13 @@ class TestLocalApiService_print_routes(TestCase):
             Route(path="/2", methods=["GET2"], function_name="name2"),
             Route(path="/3", methods=["GET3"], function_name="name3"),
         ]
-        api_provider.get_all.return_value = apis
-
+        apis = SamApiProvider.dedupe_function_routes(apis)
         expected = {"Mounting name1 at http://host:123/1 [GET, POST]",
                     "Mounting othername1 at http://host:123/1 [DELETE]",
                     "Mounting name2 at http://host:123/2 [GET2]",
                     "Mounting name3 at http://host:123/3 [GET3]"}
 
-        actual = LocalApiService._print_routes(api_provider, host, port)
+        actual = LocalApiService._print_routes(apis, host, port)
         self.assertEquals(expected, set(actual))
 
 

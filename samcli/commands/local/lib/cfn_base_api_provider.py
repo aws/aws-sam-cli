@@ -100,7 +100,32 @@ class CfnBaseApiProvider(object):
         LOG.debug("Found '%s' APIs in resource '%s'", len(routes), logical_id)
 
         collector.add_routes(logical_id, routes)
-        for media_type in parser.get_binary_media_types() + binary_media:
-            normalized_type = self.normalize_binary_media_type(media_type)
-            if normalized_type:
-                api.binary_media_types_set.add(normalized_type)
+
+        self.add_binary_media_types(logical_id, api, parser.get_binary_media_types())  # Binary media from swagger
+        self.add_binary_media_types(logical_id, api, binary_media)  # Binary media specified on resource in template
+
+    def add_binary_media_types(self, logical_id, api, binary_media_types):
+        """
+        Stores the binary media type configuration for the API with given logical ID
+        Parameters
+        ----------
+
+        logical_id : str
+            LogicalId of the AWS::Serverless::Api resource
+
+        api: samcli.commands.local.lib.provider.Api
+            Instance of the Api which will save all the api configurations
+
+        binary_media_types : list of str
+            List of binary media types supported by this resource
+        """
+
+        binary_media_types = binary_media_types or []
+        for value in binary_media_types:
+            normalized_value = self.normalize_binary_media_type(value)
+
+            # If the value is not supported, then just skip it.
+            if normalized_value:
+                api.binary_media_types_set.add(normalized_value)
+            else:
+                LOG.debug("Unsupported data type of binary media type value of resource '%s'", logical_id)

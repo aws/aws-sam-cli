@@ -72,7 +72,7 @@ class LocalApiService(object):
         service.create()
 
         # Print out the list of routes that will be mounted
-        self._print_routes(self.api_provider, self.host, self.port)
+        self._print_routes(self.api_provider.api.routes, self.host, self.port)
         LOG.info("You can now browse to the above endpoints to invoke your functions. "
                  "You do not need to restart/reload SAM CLI while working on your functions, "
                  "changes will be reflected instantly/automatically. You only need to restart "
@@ -81,7 +81,7 @@ class LocalApiService(object):
         service.run()
 
     @staticmethod
-    def _print_routes(api_provider, host, port):
+    def _print_routes(routes, host, port):
         """
         Helper method to print the APIs that will be mounted. This method is purely for printing purposes.
         This method takes in a list of Route Configurations and prints out the Routes grouped by path.
@@ -91,8 +91,8 @@ class LocalApiService(object):
             Mounting Product at http://127.0.0.1:3000/path1/bar [GET, POST, DELETE]
             Mounting Product at http://127.0.0.1:3000/path2/bar [HEAD]
 
-        :param samcli.commands.local.lib.provider.AbstractApiProvider api_provider:
-            API Provider that can return a list of APIs
+        :param list(Route) routes:
+            List of routes grouped by the same function_name and path
         :param string host:
             Host name where the service is running
         :param int port:
@@ -100,28 +100,15 @@ class LocalApiService(object):
         :returns list(string):
             List of lines that were printed to the console. Helps with testing
         """
-        grouped_api_configs = {}
-
-        for api in api_provider.get_all():
-            key = "{}-{}".format(api.function_name, api.path)
-
-            config = grouped_api_configs.get(key, {})
-            config.setdefault("methods", [])
-
-            config["function_name"] = api.function_name
-            config["path"] = api.path
-            config["methods"].extend(api.methods)
-
-            grouped_api_configs[key] = config
 
         print_lines = []
-        for _, config in grouped_api_configs.items():
-            methods_str = "[{}]".format(', '.join(config["methods"]))
+        for route in routes:
+            methods_str = "[{}]".format(', '.join(route.methods))
             output = "Mounting {} at http://{}:{}{} {}".format(
-                config["function_name"],
+                route.function_name,
                 host,
                 port,
-                config["path"],
+                route.path,
                 methods_str)
             print_lines.append(output)
 
