@@ -15,7 +15,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         APIGATEWAY_STAGE
     ]
 
-    def extract_resources(self, resources, collector, api, cwd=None):
+    def extract_resources(self, resources, collector, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -27,8 +27,6 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector: samcli.commands.local.lib.route_collector.RouteCollector
             Instance of the API collector that where we will save the API information
 
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api which will save all the api configurations
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
@@ -39,17 +37,12 @@ class CfnApiProvider(CfnBaseApiProvider):
         for logical_id, resource in resources.items():
             resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
             if resource_type == CfnApiProvider.APIGATEWAY_RESTAPI:
-                self._extract_cloud_formation_route(logical_id, resource, collector, api=api, cwd=cwd)
+                self._extract_cloud_formation_route(logical_id, resource, collector, cwd=cwd)
 
             if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
-                self._extract_cloud_formation_stage(resources, resource, api)
+                self._extract_cloud_formation_stage(resources, resource, collector)
 
-        all_routes = []
-        for _, routes in collector:
-            all_routes.extend(routes)
-        return all_routes
-
-    def _extract_cloud_formation_route(self, logical_id, api_resource, collector, api, cwd=None):
+    def _extract_cloud_formation_route(self, logical_id, api_resource, collector, cwd=None):
         """
         Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
         added to the collector.
@@ -75,20 +68,22 @@ class CfnApiProvider(CfnBaseApiProvider):
             LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
                       logical_id)
             return
-        self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, api, cwd)
+        self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, cwd)
 
     @staticmethod
-    def _extract_cloud_formation_stage(resources, stage_resource, api):
+    def _extract_cloud_formation_stage(resources, stage_resource, collector):
         """
         Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
        ----------
         resources: dict
             All Resource definition, including its properties
+
         stage_resource : dict
             Stage Resource definition, including its properties
-        api: samcli.commands.local.lib.provider.Api
-            Resource definition, including its properties
+
+        collector : ApiCollector
+            Instance of the API collector that where we will save the API information
         """
         properties = stage_resource.get("Properties", {})
         stage_name = properties.get("StageName")
@@ -103,5 +98,5 @@ class CfnApiProvider(CfnBaseApiProvider):
                 "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
                     logical_id))
 
-        api.stage_name = stage_name
-        api.stage_variables = stage_variables
+        collector.stage_name = stage_name
+        collector.stage_variables = stage_variables

@@ -234,12 +234,12 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
+        routes = result[0].routes
+        route1 = Route(path="/path", methods=["GET"], function_name="SamFunc1")
+        route2 = Route(path="/path", methods=["POST"], function_name="SamFunc2")
 
-        api1 = Route(path="/path", methods=["GET"], function_name="SamFunc1")
-        api2 = Route(path="/path", methods=["POST"], function_name="SamFunc2")
-
-        self.assertIn(api1, result)
-        self.assertIn(api2, result)
+        self.assertIn(route1, routes)
+        self.assertIn(route2, routes)
 
     def test_provider_get_all_with_no_routes(self):
         template = {}
@@ -247,8 +247,9 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
+        routes = result[0].routes
 
-        self.assertEquals(result, [])
+        self.assertEquals(routes, [])
 
     @parameterized.expand([("ANY"), ("any")])
     def test_provider_with_any_method(self, method):
@@ -1061,14 +1062,15 @@ class TestSamStageValues(TestCase):
         provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
+        routes = result[0].routes
 
         route1 = Route(path='/path2', methods=['GET'], function_name='NoApiEventFunction')
         route2 = Route(path='/path', methods=['GET'], function_name='NoApiEventFunction')
         route3 = Route(path='/anotherpath', methods=['POST'], function_name='NoApiEventFunction')
-        self.assertEquals(len(result), 3)
-        self.assertIn(route1, result)
-        self.assertIn(route2, result)
-        self.assertIn(route3, result)
+        self.assertEquals(len(routes), 3)
+        self.assertIn(route1, routes)
+        self.assertIn(route2, routes)
+        self.assertIn(route3, routes)
 
         self.assertEquals(provider.api.stage_name, "Production")
         self.assertEquals(provider.api.stage_variables, {

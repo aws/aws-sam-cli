@@ -18,6 +18,14 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
+    _ANY_HTTP_METHODS = ["GET",
+                         "DELETE",
+                         "PUT",
+                         "POST",
+                         "HEAD",
+                         "OPTIONS",
+                         "PATCH"]
+
     def __init__(self, function_name, path, methods):
         """
         Creates an ApiGatewayRoute
@@ -26,7 +34,7 @@ class Route(object):
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
         """
-        self.methods = [method.upper() for method in methods]
+        self.methods = self.normalize_method(methods)
         self.function_name = function_name
         self.path = path
 
@@ -40,6 +48,19 @@ class Route(object):
         for method in self.methods:
             route_hash *= hash(method)
         return route_hash
+
+    def normalize_method(self, methods):
+        """
+        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
+        supported Http Methods on Api Gateway.
+
+        :param list methods: Http methods
+        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        """
+        methods = [method.upper() for method in methods]
+        if "ANY" in methods:
+            return self._ANY_HTTP_METHODS
+        return methods
 
 
 class LocalApigwService(BaseLocalService):

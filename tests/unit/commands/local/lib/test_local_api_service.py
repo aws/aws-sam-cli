@@ -6,7 +6,8 @@ from unittest import TestCase
 
 from mock import Mock, patch
 
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.provider import Api
+from samcli.commands.local.lib.api_collector import ApiCollector
 from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.local.lib.local_api_service import LocalApiService
@@ -77,17 +78,17 @@ class TestLocalApiService_start(TestCase):
     @patch("samcli.commands.local.lib.local_api_service.ApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
-    @patch.object(ApiProvider, "_extract_routes")
+    @patch.object(ApiProvider, "_extract_api")
     def test_must_raise_if_route_not_available(self,
-                                               extract_routes,
+                                               extract_api,
                                                log_routes_mock,
                                                make_static_dir_mock,
                                                SamApiProviderMock,
                                                ApiGwServiceMock):
         routing_list = []  # Empty
-
-        extract_routes.return_value = routing_list
-        SamApiProviderMock.extract_routes.return_value = routing_list
+        api = Api()
+        extract_api.return_value = api
+        SamApiProviderMock.extract_api.return_value = api
         SamApiProviderMock.return_value = self.api_provider_mock
         ApiGwServiceMock.return_value = self.apigw_service
 
@@ -111,7 +112,7 @@ class TestLocalApiService_print_routes(TestCase):
             Route(path="/2", methods=["GET2"], function_name="name2"),
             Route(path="/3", methods=["GET3"], function_name="name3"),
         ]
-        apis = SamApiProvider.dedupe_function_routes(apis)
+        apis = ApiCollector.dedupe_function_routes(apis)
         expected = {"Mounting name1 at http://host:123/1 [GET, POST]",
                     "Mounting othername1 at http://host:123/1 [DELETE]",
                     "Mounting name2 at http://host:123/2 [GET2]",

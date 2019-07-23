@@ -2,9 +2,8 @@
 
 import logging
 
-from samcli.commands.local.lib.provider import AbstractApiProvider
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.local.apigw.local_apigw_service import Route
 
 LOG = logging.getLogger(__name__)
@@ -24,7 +23,7 @@ class SamApiProvider(CfnBaseApiProvider):
     _EVENT_TYPE = "Type"
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
 
-    def extract_resources(self, resources, collector, api, cwd=None):
+    def extract_resources(self, resources, collector, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -33,18 +32,12 @@ class SamApiProvider(CfnBaseApiProvider):
         resources: dict
             The dictionary containing the different resources within the template
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector: samcli.commands.local.lib.route_collector.ApiCollector
             Instance of the API collector that where we will save the API information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api which will save all the api configurations
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
-        Return
-        -------
-        Returns a list of routes
         """
         # AWS::Serverless::Function is currently included when parsing of Apis because when SamBaseProvider is run on
         # the template we are creating the implicit apis due to plugins that translate it in the SAM repo,
@@ -55,13 +48,11 @@ class SamApiProvider(CfnBaseApiProvider):
             if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
                 self._extract_routes_from_function(logical_id, resource, collector)
             if resource_type == SamApiProvider.SERVERLESS_API:
-                self._extract_from_serverless_api(logical_id, resource, collector, api=api, cwd=cwd)
+                self._extract_from_serverless_api(logical_id, resource, collector, cwd=cwd)
 
-        merge_implicit_routes = self.merge_routes(collector)
-        grouped_routes = self.dedupe_function_routes(merge_implicit_routes)
-        return grouped_routes
+        collector.normalised_routes = self.merge_routes(collector)
 
-    def _extract_from_serverless_api(self, logical_id, api_resource, collector, api, cwd=None):
+    def _extract_from_serverless_api(self, logical_id, api_resource, collector, cwd=None):
         """
         Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
         to the collector.
@@ -97,9 +88,9 @@ class SamApiProvider(CfnBaseApiProvider):
             LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
                       logical_id)
             return
-        self.extract_swagger_route(logical_id, body, uri, binary_media, collector, api=api, cwd=cwd)
-        api.stage_name = stage_name
-        api.stage_variables = stage_variables
+        self.extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=cwd)
+        collector.stage_name = stage_name
+        collector.stage_variables = stage_variables
 
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
         """
@@ -173,8 +164,7 @@ class SamApiProvider(CfnBaseApiProvider):
                                               "It should either be a LogicalId string or a Ref of a Logical Id string"
                                               .format(lambda_logical_id))
 
-        return api_resource_id, Route(path=path, methods=AbstractApiProvider.normalize_http_methods(method),
-                                      function_name=lambda_logical_id)
+        return api_resource_id, Route(path=path, methods=[method], function_name=lambda_logical_id)
 
     @staticmethod
     def merge_routes(collector):
@@ -225,27 +215,3 @@ class SamApiProvider(CfnBaseApiProvider):
         LOG.debug("Removed duplicates from '%d' Explicit APIs and '%d' Implicit APIs to produce '%d' APIs",
                   len(explicit_routes), len(implicit_routes), len(result))
         return list(result)
-
-    @staticmethod
-    def dedupe_function_routes(routes):
-        """
-        Remove duplicate routes that have the same function_name and method
-
-        route: list(Route)
-            List of Routes
-
-       Return
-       -------
-       A list of routes without duplicate routes with the same function_name and method
-        """
-        grouped_routes = {}
-
-        for route in routes:
-            key = "{}-{}".format(route.function_name, route.path)
-            config = grouped_routes.get(key, None)
-            methods = route.methods
-            if config:
-                methods += config.methods
-            sorted_methods = sorted(methods)
-            grouped_routes[key] = Route(function_name=route.function_name, path=route.path, methods=sorted_methods)
-        return list(grouped_routes.values())

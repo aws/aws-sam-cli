@@ -16,12 +16,8 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
     def setUp(self):
         self.binary_types = ["image/png", "image/jpg"]
         self.input_routes = [
-            Route(path="/path1", methods=["GET"], function_name="SamFunc1"),
-            Route(path="/path1", methods=["POST"], function_name="SamFunc1"),
-
-            Route(path="/path2", methods=["PUT"], function_name="SamFunc1"),
-            Route(path="/path2", methods=["GET"], function_name="SamFunc1"),
-
+            Route(path="/path1", methods=["GET", "POST"], function_name="SamFunc1"),
+            Route(path="/path2", methods=["PUT", "GET"], function_name="SamFunc1"),
             Route(path="/path3", methods=["DELETE"], function_name="SamFunc1")
         ]
 
@@ -173,11 +169,8 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         expected_binary_types = sorted(self.binary_types)
         expected_apis = [
-            Route(path="/path1", methods=["GET"], function_name="SamFunc1"),
-            Route(path="/path1", methods=["POST"], function_name="SamFunc1"),
-            Route(path="/path2", methods=["PUT"], function_name="SamFunc1"),
-            Route(path="/path2", methods=["GET"], function_name="SamFunc1"),
-
+            Route(path="/path1", methods=["GET", "POST"], function_name="SamFunc1"),
+            Route(path="/path2", methods=["PUT", "GET"], function_name="SamFunc1"),
             Route(path="/path3", methods=["DELETE"], function_name="SamFunc1")
         ]
 
@@ -219,12 +212,8 @@ class TestCloudFormationStageValues(TestCase):
     def setUp(self):
         self.binary_types = ["image/png", "image/jpg"]
         self.input_routes = [
-            Route(path="/path1", methods=["GET"], function_name="SamFunc1"),
-            Route(path="/path1", methods=["POST"], function_name="SamFunc1"),
-
-            Route(path="/path2", methods=["PUT"], function_name="SamFunc1"),
-            Route(path="/path2", methods=["GET"], function_name="SamFunc1"),
-
+            Route(path="/path1", methods=["GET", "POST"], function_name="SamFunc1"),
+            Route(path="/path2", methods=["PUT", "GET"], function_name="SamFunc1"),
             Route(path="/path3", methods=["DELETE"], function_name="SamFunc1")
         ]
 
@@ -389,12 +378,13 @@ class TestCloudFormationStageValues(TestCase):
         provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
+        routes = result[0].routes
 
         route1 = Route(path='/path', methods=['GET'], function_name='NoApiEventFunction')
         route2 = Route(path='/anotherpath', methods=['POST'], function_name='NoApiEventFunction')
-        self.assertEquals(len(result), 2)
-        self.assertIn(route1, result)
-        self.assertIn(route2, result)
+        self.assertEquals(len(routes), 2)
+        self.assertIn(route1, routes)
+        self.assertIn(route2, routes)
         self.assertEquals(provider.api.stage_name, "Production")
         self.assertEquals(provider.api.stage_variables, {
             "vis": "prod data",

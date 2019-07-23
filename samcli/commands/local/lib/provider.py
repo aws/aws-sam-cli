@@ -233,13 +233,6 @@ class AbstractApiProvider(object):
     """
     Abstract base class to return APIs and the functions they route to
     """
-    _ANY_HTTP_METHODS = ["GET",
-                         "DELETE",
-                         "PUT",
-                         "POST",
-                         "HEAD",
-                         "OPTIONS",
-                         "PATCH"]
 
     def get_all(self):
         """
@@ -248,17 +241,3 @@ class AbstractApiProvider(object):
         :yields Api: namedtuple containing the API information
         """
         raise NotImplementedError("not implemented")
-
-    @staticmethod
-    def normalize_http_methods(http_method):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
-        supported Http Methods on Api Gateway.
-
-        :param str http_method: Http method
-        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
-        """
-
-        if http_method.upper() == 'ANY':
-            return AbstractApiProvider._ANY_HTTP_METHODS
-        return [http_method.upper()]
