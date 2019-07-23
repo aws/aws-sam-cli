@@ -88,12 +88,15 @@ class CfnApiProvider(CfnBaseApiProvider):
         properties = stage_resource.get("Properties", {})
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
+
+        # Currently, we aren't resolving any Refs or other intrinsic properties that come with it
+        # A separate pr will need to fully resolve intrinsics
         logical_id = properties.get("RestApiId")
         if not logical_id:
             raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")
 
-        rest_api_resource = resources.get(logical_id, {}).get("Type")
-        if rest_api_resource != CfnApiProvider.APIGATEWAY_RESTAPI:
+        rest_api_resource_type = resources.get(logical_id, {}).get("Type")
+        if rest_api_resource_type != CfnApiProvider.APIGATEWAY_RESTAPI:
             raise InvalidSamTemplateException(
                 "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
                     logical_id))

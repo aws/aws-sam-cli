@@ -586,3 +586,23 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
+
+
+class TestRouteEqualsHash(TestCase):
+
+    def test_route_in_list(self):
+        route = Route(function_name="test", path="/test", methods=["POST"])
+        routes = [route]
+        self.assertIn(route, routes)
+
+    def test_route_method_order(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        self.assertEquals(route1, route2)
+
+    def test_route_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        dic = {
+            route1: "test"
+        }
+        self.assertEquals(dic[route1], "test")

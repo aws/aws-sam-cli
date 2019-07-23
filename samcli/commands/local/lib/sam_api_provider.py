@@ -50,7 +50,7 @@ class SamApiProvider(CfnBaseApiProvider):
             if resource_type == SamApiProvider.SERVERLESS_API:
                 self._extract_from_serverless_api(logical_id, resource, collector, cwd=cwd)
 
-        collector.normalised_routes = self.merge_routes(collector)
+        collector.routes = self.merge_routes(collector)
 
     def _extract_from_serverless_api(self, logical_id, api_resource, collector, cwd=None):
         """

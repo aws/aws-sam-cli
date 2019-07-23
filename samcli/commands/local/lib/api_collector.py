@@ -21,7 +21,7 @@ class ApiCollector(object):
         self._route_per_resource = defaultdict(list)
 
         # processed values to be set before creating the api
-        self.normalised_routes = []
+        self._routes = []
         self.binary_media_types_set = set()
         self.stage_name = None
         self.stage_variables = None
@@ -40,12 +40,6 @@ class ApiCollector(object):
 
         for logical_id, _ in self._route_per_resource.items():
             yield logical_id, self._get_routes(logical_id)
-
-    def all_routes(self):
-        routes = []
-        for logical_id in self._route_per_resource.keys():
-            routes.extend(self._get_routes(logical_id))
-        return routes
 
     def add_routes(self, logical_id, routes):
         """
@@ -75,6 +69,27 @@ class ApiCollector(object):
 
         return self._route_per_resource[logical_id]
 
+    @property
+    def routes(self):
+        return self._routes if self._routes else self.all_routes()
+
+    @routes.setter
+    def routes(self, routes):
+        self._routes = routes
+
+    def all_routes(self):
+        """
+        Gets all the routes within the _route_per_resource
+
+        Return
+        -------
+        All the routes within the _route_per_resource
+        """
+        routes = []
+        for logical_id in self._route_per_resource.keys():
+            routes.extend(self._get_routes(logical_id))
+        return routes
+
     def get_api(self):
         """
         Creates the api using the parts from the ApiCollector. The routes are also deduped so that there is no
@@ -88,9 +103,7 @@ class ApiCollector(object):
         An Api object with all the properties
         """
         api = Api()
-        if not self.normalised_routes:
-            self.normalised_routes = self.all_routes()
-        api.routes = self.dedupe_function_routes(self.normalised_routes)
+        api.routes = self.dedupe_function_routes(self.routes)
         api.binary_media_types_set = self.binary_media_types_set
         api.stage_name = self.stage_name
         api.stage_variables = self.stage_variables
