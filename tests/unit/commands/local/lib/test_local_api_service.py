@@ -35,7 +35,7 @@ class TestLocalApiService_start(TestCase):
         self.lambda_invoke_context_mock.stderr = self.stderr_mock
 
     @patch("samcli.commands.local.lib.local_api_service.LocalApigwService")
-    @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
+    @patch("samcli.commands.local.lib.local_api_service.ApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
     @patch.object(LocalApiService, "_make_routing_list")
@@ -77,7 +77,7 @@ class TestLocalApiService_start(TestCase):
         self.apigw_service.run.assert_called_with()
 
     @patch("samcli.commands.local.lib.local_api_service.LocalApigwService")
-    @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
+    @patch("samcli.commands.local.lib.local_api_service.ApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
     @patch.object(LocalApiService, "_make_routing_list")
