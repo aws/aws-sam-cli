@@ -71,6 +71,30 @@ class Test_get_workflow_config(TestCase):
             self.assertIsNone(result.executable_search_paths)
 
     @parameterized.expand([
+        ("provided", "requirements.txt", "pip", "python"),
+        ("provided", "package.json", "npm", "nodejs"),
+        ("provided", "Gemfile", "bundler", "ruby"),
+        ("provided", "build.gradle", "gradle", "java"),
+        ("provided", "build.gradle.kts", "gradle", "java"),
+        ("provided", "pom.xml", "maven", "java")
+    ])
+    @patch("samcli.lib.build.workflow_config.os")
+    def test_must_work_for_provided_runtime(self, runtime, build_file, dep_manager, language, os_mock):
+        os_mock.path.join.side_effect = lambda dirname, v: v
+        os_mock.path.exists.side_effect = lambda v: v == build_file
+
+        result = get_workflow_config(runtime, self.code_dir, self.project_dir)
+        self.assertEquals(result.language, language)
+        self.assertEquals(result.dependency_manager, dep_manager)
+        self.assertEquals(result.application_framework, None)
+        self.assertEquals(result.manifest_name, build_file)
+
+        if dep_manager == "gradle":
+            self.assertEquals(result.executable_search_paths, [self.code_dir, self.project_dir])
+        else:
+            self.assertIsNone(result.executable_search_paths)
+
+    @parameterized.expand([
         ("java8", "unknown.manifest")
     ])
     @patch("samcli.lib.build.workflow_config.os")
