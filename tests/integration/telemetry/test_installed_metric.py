@@ -1,9 +1,8 @@
 import platform
 
 from mock import ANY
-from .integ_base import IntegBase, TelemetryServer
+from .integ_base import IntegBase, TelemetryServer, EXPECTED_TELEMETRY_PROMPT
 from samcli import __version__ as SAM_CLI_VERSION
-from samcli.cli.main import TELEMETRY_PROMPT
 
 
 class TestSendInstalledMetric(IntegBase):
@@ -24,7 +23,7 @@ class TestSendInstalledMetric(IntegBase):
             self.assertEquals(retcode, 0, "Command should successfully complete")
 
             # Make sure the prompt was printed. Otherwise this test is not valid
-            self.assertIn(TELEMETRY_PROMPT, stderrdata.decode())
+            self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
             all_requests = server.get_all_requests()
             self.assertEquals(2, len(all_requests), "There should be exactly two metrics request")
@@ -71,8 +70,8 @@ class TestSendInstalledMetric(IntegBase):
 
             retcode = process.poll()
             self.assertEquals(retcode, 0, "Command should successfully complete")
-            self.assertNotIn(TELEMETRY_PROMPT, stdoutdata.decode())
-            self.assertNotIn(TELEMETRY_PROMPT, stderrdata.decode())
+            self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
+            self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
             requests = filter_installed_metric_requests(server.get_all_requests())
             self.assertEquals(0, len(requests), "'installed' metric should NOT be sent")
@@ -92,7 +91,7 @@ class TestSendInstalledMetric(IntegBase):
             (_, stderrdata) = process1.communicate()
             retcode = process1.poll()
             self.assertEquals(retcode, 0, "Command should successfully complete")
-            self.assertIn(TELEMETRY_PROMPT, stderrdata.decode())
+            self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
             self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())),
                               "'installed' metric should be sent")
 
@@ -101,8 +100,8 @@ class TestSendInstalledMetric(IntegBase):
             (stdoutdata, stderrdata) = process2.communicate()
             retcode = process2.poll()
             self.assertEquals(retcode, 0)
-            self.assertNotIn(TELEMETRY_PROMPT, stdoutdata.decode())
-            self.assertNotIn(TELEMETRY_PROMPT, stderrdata.decode())
+            self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
+            self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
             self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())),
                               "Only one 'installed' metric should be sent")
 

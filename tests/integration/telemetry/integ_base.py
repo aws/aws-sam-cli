@@ -6,6 +6,7 @@ import subprocess
 import timeit
 import time
 import requests
+import re
 
 from flask import Flask, request, Response
 from threading import Thread
@@ -18,12 +19,16 @@ except ImportError:
     from pathlib2 import Path
 
 from samcli.cli.global_config import GlobalConfig
+from samcli.cli.main import TELEMETRY_PROMPT
 
 
 LOG = logging.getLogger(__name__)
 TELEMETRY_ENDPOINT_PORT = "18298"
 TELEMETRY_ENDPOINT_HOST = "localhost"
 TELEMETRY_ENDPOINT_URL = "http://{}:{}".format(TELEMETRY_ENDPOINT_HOST, TELEMETRY_ENDPOINT_PORT)
+
+# Convert line separators to work with Windows \r\n
+EXPECTED_TELEMETRY_PROMPT = re.sub(r'\n', os.linesep, TELEMETRY_PROMPT)
 
 
 class IntegBase(TestCase):

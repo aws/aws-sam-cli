@@ -1,7 +1,6 @@
 
 from parameterized import parameterized
-from .integ_base import IntegBase
-from samcli.cli.main import TELEMETRY_PROMPT
+from .integ_base import IntegBase, EXPECTED_TELEMETRY_PROMPT
 
 
 class TestTelemetryPrompt(IntegBase):
@@ -16,7 +15,7 @@ class TestTelemetryPrompt(IntegBase):
         (stdoutdata, stderrdata) = process.communicate()
 
         # Telemetry prompt should be printed to the terminal
-        self.assertIn(TELEMETRY_PROMPT, stderrdata.decode())
+        self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
     @parameterized.expand([
         (True, "Enable Telemetry"),
@@ -33,8 +32,8 @@ class TestTelemetryPrompt(IntegBase):
         process = self.run_cmd()
         (stdoutdata, stderrdata) = process.communicate()
 
-        self.assertNotIn(TELEMETRY_PROMPT, stdoutdata.decode())
-        self.assertNotIn(TELEMETRY_PROMPT, stderrdata.decode())
+        self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
+        self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
     def test_prompt_must_not_display_on_second_run(self):
         """
@@ -45,10 +44,10 @@ class TestTelemetryPrompt(IntegBase):
         # First Run
         process = self.run_cmd()
         (stdoutdata, stderrdata) = process.communicate()
-        self.assertIn(TELEMETRY_PROMPT, stderrdata.decode())
+        self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
         # Second Run
         process = self.run_cmd()
         (stdoutdata, stderrdata) = process.communicate()
-        self.assertNotIn(TELEMETRY_PROMPT, stdoutdata.decode())
-        self.assertNotIn(TELEMETRY_PROMPT, stderrdata.decode())
+        self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
+        self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
