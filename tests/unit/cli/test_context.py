@@ -58,3 +58,39 @@ class TestContext(TestCase):
         ctx.profile = profile
         ctx.region = region
         boto_mock.setup_default_session.assert_called_with(region_name=region, profile_name=profile)
+
+    @patch("samcli.cli.context.uuid")
+    def test_must_set_session_id_to_uuid(self, uuid_mock):
+        uuid_mock.uuid4.return_value = "abcd"
+        ctx = Context()
+
+        self.assertEquals(ctx.session_id, "abcd")
+
+    @patch("samcli.cli.context.click")
+    def test_must_find_context(self, click_mock):
+
+        ctx = Context()
+        result = ctx.get_current_context()
+
+        self.assertEquals(click_mock.get_current_context.return_value.find_object.return_value, result)
+        click_mock.get_current_context.return_value.find_object.assert_called_once_with(Context)
+
+    @patch("samcli.cli.context.click")
+    def test_create_new_context_if_not_found(self, click_mock):
+
+        # Context can't be found
+        click_mock.get_current_context.return_value.find_object.return_value = None
+
+        ctx = Context()
+        result = ctx.get_current_context()
+
+        self.assertEquals(click_mock.get_current_context.return_value.ensure_object.return_value, result)
+        click_mock.get_current_context.return_value.ensure_object.assert_called_once_with(Context)
+
+    @patch("samcli.cli.context.click")
+    def test_get_current_context_from_outside_of_click(self, click_mock):
+        click_mock.get_current_context.return_value = None
+        ctx = Context()
+
+        # Context can't be found
+        self.assertIsNone(ctx.get_current_context())
