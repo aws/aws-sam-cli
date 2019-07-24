@@ -93,8 +93,8 @@ class TestSendInstalledMetric(IntegBase):
             retcode = process1.poll()
             self.assertEquals(retcode, 0, "Command should successfully complete")
             self.assertIn(TELEMETRY_PROMPT, stderrdata.decode())
-            self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())), 
-                "'installed' metric should be sent")
+            self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())),
+                              "'installed' metric should be sent")
 
             # Second Run
             process2 = self.run_cmd()
@@ -103,8 +103,8 @@ class TestSendInstalledMetric(IntegBase):
             self.assertEquals(retcode, 0)
             self.assertNotIn(TELEMETRY_PROMPT, stdoutdata.decode())
             self.assertNotIn(TELEMETRY_PROMPT, stderrdata.decode())
-            self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())), 
-                "Only one 'installed' metric should be sent")
+            self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())),
+                              "Only one 'installed' metric should be sent")
 
 
 def filter_installed_metric_requests(all_requests):
