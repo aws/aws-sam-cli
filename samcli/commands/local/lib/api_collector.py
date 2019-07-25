@@ -1,5 +1,5 @@
 """
-Class to store the Route list in the SAM Template. This class helps store both implicit and explicit
+Class to store the API configurations in the SAM Template. This class helps store both implicit and explicit
 routes in a standardized format
 """
 
