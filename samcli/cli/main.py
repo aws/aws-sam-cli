@@ -55,10 +55,11 @@ def print_info(ctx, param, value):
 
 # Keep the message to 80chars wide to it prints well on most terminals
 TELEMETRY_PROMPT = """
-\tTelemetry has been enabled for SAM CLI.
-\t
-\tYou can OPT OUT of telemetry by setting the environment variable
-\tSAM_CLI_TELEMETRY=0 in your shell.
+\tSAM CLI now collects telemetry to better understand customer needs.
+
+\tYou can OPT OUT and disable telemetry collection by setting the
+\tenvironment variable SAM_CLI_TELEMETRY=0 in your shell.
+\tThanks for your help!
 
 \tLearn More: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-telemetry.html
 """  # noqa
