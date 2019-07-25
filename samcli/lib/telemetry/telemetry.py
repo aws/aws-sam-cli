@@ -78,7 +78,7 @@ class Telemetry(object):
         payload = {"metrics": [metric]}
         LOG.debug("Sending Telemetry: %s", payload)
 
-        timeout_ms = 2000 if wait_for_response else 1  # 2 seconds to wait for response or 1ms
+        timeout_ms = 2000 if wait_for_response else 100  # 2 seconds to wait for response or 100ms
 
         timeout = (2,  # connection timeout. Always set to 2 seconds
                    timeout_ms / 1000.0  # Read timeout. Tweaked based on input.
@@ -86,8 +86,9 @@ class Telemetry(object):
         try:
             r = requests.post(self._url, json=payload, timeout=timeout)
             LOG.debug("Telemetry response: %d", r.status_code)
-        except requests.exceptions.Timeout as ex:
-            # Expected if request times out. Just print debug log and ignore the exception.
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as ex:
+            # Expected if request times out OR cannot connect to the backend (offline).
+            # Just print debug log and ignore the exception.
             LOG.debug(str(ex))
 
     def _add_common_metric_attributes(self, attrs):

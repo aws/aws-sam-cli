@@ -100,7 +100,7 @@ class TestTelemetry(TestCase):
         telemetry = Telemetry(url=self.url)
 
         telemetry.emit("metric_name", {})
-        requests_mock.post.assert_called_once_with(ANY, json=ANY, timeout=(2, 0.001))   # 1ms response timeout
+        requests_mock.post.assert_called_once_with(ANY, json=ANY, timeout=(2, 0.1))   # 100ms response timeout
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_request_must_wait_for_2_seconds_for_response(self, requests_mock):
@@ -121,7 +121,18 @@ class TestTelemetry(TestCase):
         #
 
         requests_mock.exceptions.Timeout = requests.exceptions.Timeout
+        requests_mock.exceptions.ConnectionError = requests.exceptions.ConnectionError
         requests_mock.post.side_effect = requests.exceptions.Timeout()
+
+        telemetry.emit("metric_name", {})
+
+    @patch("samcli.lib.telemetry.telemetry.requests")
+    def test_must_swallow_connection_error_exception(self, requests_mock):
+        telemetry = Telemetry(url=self.url)
+
+        requests_mock.exceptions.Timeout = requests.exceptions.Timeout
+        requests_mock.exceptions.ConnectionError = requests.exceptions.ConnectionError
+        requests_mock.post.side_effect = requests.exceptions.ConnectionError()
 
         telemetry.emit("metric_name", {})
 
@@ -130,6 +141,7 @@ class TestTelemetry(TestCase):
         telemetry = Telemetry(url=self.url)
 
         requests_mock.exceptions.Timeout = requests.exceptions.Timeout
+        requests_mock.exceptions.ConnectionError = requests.exceptions.ConnectionError
         requests_mock.post.side_effect = IOError()
 
         with self.assertRaises(IOError):
