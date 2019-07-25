@@ -54,14 +54,17 @@ class IntegBase(TestCase):
 
         return command
 
-    def run_cmd(self, stdin_data=""):
+    def run_cmd(self, stdin_data="", optout_envvar_value=None):
         # Any command will work for this test suite
         cmd_list = [self.cmd, "local", "generate-event", "s3", "put"]
 
         env = os.environ.copy()
 
-        # remove the envvar which usually is set in Travis. This interferes with tests.
+        # remove the envvar which usually is set in Travis. This interferes with tests
         env.pop("SAM_CLI_TELEMETRY", None)
+        if optout_envvar_value:
+            # But if the caller explicitly asked us to opt-out via EnvVar, then set it here
+            env["SAM_CLI_TELEMETRY"] = optout_envvar_value
 
         env["__SAM_CLI_APP_DIR"] = self.config_dir
         env["__SAM_CLI_TELEMETRY_ENDPOINT_URL"] = "{}/metrics".format(TELEMETRY_ENDPOINT_URL)
