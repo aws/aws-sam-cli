@@ -171,7 +171,7 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, self.api.get_binary_media_types(), self.api.stage_name,
+            event = self._construct_event(request, self.port, self.api.binary_media_types, self.api.stage_name,
                                           self.api.stage_variables)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
@@ -192,7 +192,7 @@ class LocalApigwService(BaseLocalService):
 
         try:
             (status_code, headers, body) = self._parse_lambda_output(lambda_response,
-                                                                     self.api.get_binary_media_types(),
+                                                                     self.api.binary_media_types,
                                                                      request)
         except (KeyError, TypeError, ValueError):
             LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "

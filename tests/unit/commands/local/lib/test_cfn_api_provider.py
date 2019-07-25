@@ -176,7 +176,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_routes = [
@@ -205,7 +205,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
 
 
 class TestCloudFormationStageValues(TestCase):
@@ -310,47 +310,45 @@ class TestCloudFormationStageValues(TestCase):
         })
 
     def test_multi_stage_get_all(self):
-        template = OrderedDict({
-            "Resources": {
-                "ProductionApi": {
-                    "Type": "AWS::ApiGateway::RestApi",
-                    "Properties": {
-                        "Body": {
-                            "paths": {
-                                "/path": {
-                                    "get": {
-                                        "x-amazon-apigateway-integration": {
-                                            "httpMethod": "POST",
-                                            "type": "aws_proxy",
-                                            "uri": {
-                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
-                                            },
-                                            "responses": {},
+        resources = OrderedDict({
+            "ProductionApi": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                    "Body": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
                                         },
-                                    }
-                                },
-                                "/anotherpath": {
-                                    "post": {
-                                        "x-amazon-apigateway-integration": {
-                                            "httpMethod": "POST",
-                                            "type": "aws_proxy",
-                                            "uri": {
-                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
-                                            },
-                                            "responses": {},
-                                        },
-                                    }
+                                        "responses": {},
+                                    },
                                 }
-
+                            },
+                            "/anotherpath": {
+                                "post": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
                             }
+
                         }
                     }
                 }
             }
         })
-        template["Resources"]["StageDev"] = {
+        resources["StageDev"] = {
             "Type": "AWS::ApiGateway::Stage",
             "Properties": {
                 "StageName": "dev",
@@ -362,7 +360,7 @@ class TestCloudFormationStageValues(TestCase):
                 "RestApiId": "ProductionApi"
             }
         }
-        template["Resources"]["StageProd"] = {
+        resources["StageProd"] = {
             "Type": "AWS::ApiGateway::Stage",
             "Properties": {
                 "StageName": "Production",
@@ -374,7 +372,7 @@ class TestCloudFormationStageValues(TestCase):
                 "RestApiId": "ProductionApi"
             },
         }
-
+        template = {"Resources": resources}
         provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
@@ -385,6 +383,7 @@ class TestCloudFormationStageValues(TestCase):
         self.assertEquals(len(routes), 2)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
+
         self.assertEquals(provider.api.stage_name, "Production")
         self.assertEquals(provider.api.stage_variables, {
             "vis": "prod data",

@@ -327,7 +327,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         self.assertEquals(len(provider.routes), 1)
         self.assertEquals(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
-        assertCountEqual(self, provider.api.get_binary_media_types(), ["image/gif", "image/png"])
+        assertCountEqual(self, provider.api.binary_media_types, ["image/gif", "image/png"])
         self.assertEquals(provider.api.stage_name, "Prod")
 
     def test_provider_must_support_binary_media_types_with_any_method(self):
@@ -378,7 +378,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = ApiProvider(template)
 
         assertCountEqual(self, provider.routes, expected_routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), binary)
+        assertCountEqual(self, provider.api.binary_media_types, binary)
 
 
 class TestSamApiProviderWithExplicitApis(TestCase):
@@ -530,7 +530,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_routes = [
@@ -559,7 +559,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
 
 
 class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
@@ -841,7 +841,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         provider = ApiProvider(self.template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_explicit_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_explicit_binary_types)
 
     def test_binary_media_types_with_rest_api_id_reference(self):
         events = {
@@ -895,7 +895,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         provider = ApiProvider(self.template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_explicit_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_explicit_binary_types)
 
 
 class TestSamStageValues(TestCase):
