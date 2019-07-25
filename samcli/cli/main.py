@@ -61,7 +61,7 @@ TELEMETRY_PROMPT = """
 \tenvironment variable SAM_CLI_TELEMETRY=0 in your shell.
 \tThanks for your help!
 
-\tLearn More: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-telemetry.html
+\tLearn More: https://github.com/awslabs/aws-sam-cli/issues/1272
 """  # noqa
 
 
