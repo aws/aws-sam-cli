@@ -60,8 +60,8 @@ TELEMETRY_PROMPT = """
 \tYou can OPT OUT of telemetry by setting the environment variable
 \tSAM_CLI_TELEMETRY=0 in your shell.
 
-\tLearn More: http://docs.aws.amazon.com/serverless-application-model/latest/developerguide/telemetry-opt-out
-"""
+\tLearn More: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-telemetry.html
+"""  # noqa
 
 
 @click.command(cls=BaseCommand)
