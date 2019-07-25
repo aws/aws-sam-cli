@@ -63,7 +63,7 @@ class ApiProvider(AbstractApiProvider):
             The dictionary containing the different resources within the template
         Returns
         ---------
-        The modified api
+        An Api from the parsed template
         """
         collector = ApiCollector()
         provider = self.find_api_provider(resources)

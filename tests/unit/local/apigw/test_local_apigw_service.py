@@ -1,3 +1,4 @@
+import copy
 from unittest import TestCase
 from mock import Mock, patch, ANY
 import json
@@ -595,14 +596,51 @@ class TestRouteEqualsHash(TestCase):
         routes = [route]
         self.assertIn(route, routes)
 
-    def test_route_method_order(self):
+    def test_route_method_order_equals(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
         route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
         self.assertEquals(route1, route2)
 
     def test_route_hash(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
-        dic = {
-            route1: "test"
-        }
+        dic = {route1: "test"}
         self.assertEquals(dic[route1], "test")
+
+    def test_route_object_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = type('obj', (object,), {'function_name': 'test', "path": "/test", "methods": ["GET", "POST"]})
+
+        self.assertNotEqual(route1, route2)
+
+    def test_route_function_name_equals(self):
+        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        self.assertNotEqual(route1, route2)
+
+    def test_route_different_path_equals(self):
+        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        self.assertNotEqual(route1, route2)
+
+    def test_same_object_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        self.assertEquals(route1, copy.deepcopy(route1))
+
+    def test_route_function_name_hash(self):
+        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+    def test_route_different_path_hash(self):
+        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+    def test_same_object_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        self.assertEquals(route1.__hash__(), copy.deepcopy(route1).__hash__())
+
+    def test_route_method_order_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        self.assertEquals(route1.__hash__(), route2.__hash__())

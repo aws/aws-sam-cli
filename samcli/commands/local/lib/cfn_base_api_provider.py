@@ -9,13 +9,6 @@ LOG = logging.getLogger(__name__)
 
 class CfnBaseApiProvider(object):
     RESOURCE_TYPE = "Type"
-    ANY_HTTP_METHODS = ["GET",
-                        "DELETE",
-                        "PUT",
-                        "POST",
-                        "HEAD",
-                        "OPTIONS",
-                        "PATCH"]
 
     def extract_resources(self, resources, collector, cwd=None):
         """

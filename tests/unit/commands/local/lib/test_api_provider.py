@@ -19,7 +19,6 @@ class TestApiProvider_init(TestCase):
         SamBaseProviderMock.get_template.return_value = template
 
         provider = ApiProvider(template)
-        print(provider.routes)
         self.assertEquals(len(provider.routes), 3)
         self.assertEquals(provider.routes, set(["set", "of", "values"]))
 

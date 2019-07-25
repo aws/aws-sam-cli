@@ -45,7 +45,7 @@ class Route(object):
 
     def __hash__(self):
         route_hash = hash(self.function_name) * hash(self.path)
-        for method in self.methods:
+        for method in sorted(self.methods):
             route_hash *= hash(method)
         return route_hash
 

@@ -68,9 +68,6 @@ class SamApiProvider(CfnBaseApiProvider):
         collector: samcli.commands.local.lib.route_collector.RouteCollector
             Instance of the API collector that where we will save the API information
 
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api which will save all the api configurations
-
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
 
