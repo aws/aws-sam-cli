@@ -232,12 +232,34 @@ _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers
 _CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
                                    None,  # Allow Methods is optional and defaults to empty
                                    None,  # Allow Headers is optional and defaults to empty
-                                   None   # MaxAge is optional and defaults to empty
+                                   None  # MaxAge is optional and defaults to empty
                                    )
 
 
 class Cors(_CorsTuple):
-    pass
+
+    @staticmethod
+    def cors_to_headers(cors):
+        """
+        Convert CORS object to headers dictionary
+        Parameters
+        ----------
+        cors list(samcli.commands.local.lib.provider.Cors)
+            CORS configuration objcet
+        Returns
+        -------
+            Dictionary with CORS headers
+        """
+        if not cors:
+            return {}
+        headers = {
+            'Access-Control-Allow-Origin': cors.allow_origin,
+            'Access-Control-Allow-Methods': cors.allow_methods,
+            'Access-Control-Allow-Headers': cors.allow_headers,
+            'Access-Control-Max-Age': cors.max_age
+        }
+
+        return {h_key: h_value for h_key, h_value in headers.items() if h_value is not None}
 
 
 class AbstractApiProvider(object):

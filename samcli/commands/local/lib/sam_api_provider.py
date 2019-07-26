@@ -104,11 +104,11 @@ class SamApiProvider(CfnBaseApiProvider):
         cors_prop : dict
             Resource properties for Cors
         """
-        cors = {}
+        cors = None
         if cors_prop and isinstance(cors_prop, dict):
             allow_methods = cors_prop.get("AllowMethods", ','.join(Route.ANY_HTTP_METHODS))
 
-            if allow_methods and "OPTIONS" not in allow_methods:
+            if allow_methods and "OPTIONS" not in allow_methods and "options" not in allow_methods:
                 allow_methods += ",OPTIONS"
 
             cors = Cors(
