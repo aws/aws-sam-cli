@@ -217,7 +217,7 @@ class LocalApigwService(BaseLocalService):
         :param request flask_request: Flask Request
         :return: Route matching the endpoint and method of the request
         """
-        endpoint, method = self.get_request_methods_endpoints(flask_request)
+        method, endpoint = self.get_request_methods_endpoints(flask_request)
 
         route_key = self._route_key(method, endpoint)
         route = self._dict_of_routes.get(route_key, None)

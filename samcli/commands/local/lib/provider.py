@@ -258,7 +258,8 @@ class Cors(_CorsTuple):
             'Access-Control-Allow-Headers': cors.allow_headers,
             'Access-Control-Max-Age': cors.max_age
         }
-
+        # Filters out items in the headers dictionary that isn't empty.
+        # This is required because the flask Headers dict will send an invalid 'None' string
         return {h_key: h_value for h_key, h_value in headers.items() if h_value is not None}
 
 
