@@ -6,10 +6,11 @@ from unittest import TestCase
 
 from mock import Mock, patch
 
-from samcli.commands.local.lib import provider
+from samcli.commands.local.lib.provider import Api
+from samcli.commands.local.lib.api_collector import ApiCollector
+from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.local.lib.local_api_service import LocalApiService
-from samcli.commands.local.lib.provider import Api
 from samcli.local.apigw.local_apigw_service import Route
 
 
@@ -38,9 +39,7 @@ class TestLocalApiService_start(TestCase):
     @patch("samcli.commands.local.lib.local_api_service.ApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
-    @patch.object(LocalApiService, "_make_routing_list")
     def test_must_start_service(self,
-                                make_routing_list_mock,
                                 log_routes_mock,
                                 make_static_dir_mock,
                                 SamApiProviderMock,
@@ -48,7 +47,6 @@ class TestLocalApiService_start(TestCase):
         routing_list = [1, 2, 3]  # something
         static_dir_path = "/foo/bar"
 
-        make_routing_list_mock.return_value = routing_list
         make_static_dir_mock.return_value = static_dir_path
 
         SamApiProviderMock.return_value = self.api_provider_mock
@@ -56,6 +54,7 @@ class TestLocalApiService_start(TestCase):
 
         # Now start the service
         local_service = LocalApiService(self.lambda_invoke_context_mock, self.port, self.host, self.static_dir)
+        local_service.api_provider.api.routes = routing_list
         local_service.start()
 
         # Make sure the right methods are called
@@ -63,10 +62,9 @@ class TestLocalApiService_start(TestCase):
                                               cwd=self.cwd,
                                               parameter_overrides=self.lambda_invoke_context_mock.parameter_overrides)
 
-        make_routing_list_mock.assert_called_with(self.api_provider_mock)
-        log_routes_mock.assert_called_with(self.api_provider_mock, self.host, self.port)
+        log_routes_mock.assert_called_with(routing_list, self.host, self.port)
         make_static_dir_mock.assert_called_with(self.cwd, self.static_dir)
-        ApiGwServiceMock.assert_called_with(routing_list=routing_list,
+        ApiGwServiceMock.assert_called_with(api=self.api_provider_mock.api,
                                             lambda_runner=self.lambda_runner_mock,
                                             static_dir=static_dir_path,
                                             port=self.port,
@@ -80,48 +78,25 @@ class TestLocalApiService_start(TestCase):
     @patch("samcli.commands.local.lib.local_api_service.ApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
-    @patch.object(LocalApiService, "_make_routing_list")
+    @patch.object(ApiProvider, "_extract_api")
     def test_must_raise_if_route_not_available(self,
-                                               make_routing_list_mock,
+                                               extract_api,
                                                log_routes_mock,
                                                make_static_dir_mock,
                                                SamApiProviderMock,
                                                ApiGwServiceMock):
         routing_list = []  # Empty
-
-        make_routing_list_mock.return_value = routing_list
-
+        api = Api()
+        extract_api.return_value = api
+        SamApiProviderMock.extract_api.return_value = api
         SamApiProviderMock.return_value = self.api_provider_mock
         ApiGwServiceMock.return_value = self.apigw_service
 
         # Now start the service
         local_service = LocalApiService(self.lambda_invoke_context_mock, self.port, self.host, self.static_dir)
-
+        local_service.api_provider.api.routes = routing_list
         with self.assertRaises(NoApisDefined):
             local_service.start()
-
-
-class TestLocalApiService_make_routing_list(TestCase):
-
-    def test_must_return_routing_list_from_apis(self):
-        api_provider = Mock()
-        apis = [
-            Api(path="/1", method="GET1", function_name="name1", cors=None),
-            Api(path="/2", method="GET2", function_name="name2", cors=None),
-            Api(path="/3", method="GET3", function_name="name3", cors=None),
-        ]
-        expected = [
-            Route(path="/1", methods=["GET1"], function_name="name1"),
-            Route(path="/2", methods=["GET2"], function_name="name2"),
-            Route(path="/3", methods=["GET3"], function_name="name3")
-        ]
-
-        api_provider.get_all.return_value = apis
-
-        result = LocalApiService._make_routing_list(api_provider)
-        self.assertEquals(len(result), len(expected))
-        for index, r in enumerate(result):
-            self.assertEquals(r.__dict__, expected[index].__dict__)
 
 
 class TestLocalApiService_print_routes(TestCase):
@@ -130,22 +105,20 @@ class TestLocalApiService_print_routes(TestCase):
         host = "host"
         port = 123
 
-        api_provider = Mock()
         apis = [
-            Api(path="/1", method="GET", function_name="name1"),
-            Api(path="/1", method="POST", function_name="name1"),
-            Api(path="/1", method="DELETE", function_name="othername1"),
-            Api(path="/2", method="GET2", function_name="name2"),
-            Api(path="/3", method="GET3", function_name="name3"),
+            Route(path="/1", methods=["GET"], function_name="name1"),
+            Route(path="/1", methods=["POST"], function_name="name1"),
+            Route(path="/1", methods=["DELETE"], function_name="othername1"),
+            Route(path="/2", methods=["GET2"], function_name="name2"),
+            Route(path="/3", methods=["GET3"], function_name="name3"),
         ]
-        api_provider.get_all.return_value = apis
-
+        apis = ApiCollector.dedupe_function_routes(apis)
         expected = {"Mounting name1 at http://host:123/1 [GET, POST]",
                     "Mounting othername1 at http://host:123/1 [DELETE]",
                     "Mounting name2 at http://host:123/2 [GET2]",
                     "Mounting name3 at http://host:123/3 [GET3]"}
 
-        actual = LocalApiService._print_routes(api_provider, host, port)
+        actual = LocalApiService._print_routes(apis, host, port)
         self.assertEquals(expected, set(actual))
 
 
@@ -181,39 +154,3 @@ class TestLocalApiService_make_static_dir_path(TestCase):
 
         result = LocalApiService._make_static_dir_path(cwd, static_dir)
         self.assertIsNone(result)
-
-
-class TestRoutingList(TestCase):
-
-    def setUp(self):
-        self.function_name = "routingTest"
-        apis = [
-            provider.Api(path="/get", method="GET", function_name=self.function_name),
-            provider.Api(path="/get", method="GET", function_name=self.function_name, stage_name="Dev"),
-            provider.Api(path="/post", method="POST", function_name=self.function_name, stage_name="Prod"),
-            provider.Api(path="/get", method="GET", function_name=self.function_name,
-                         stage_variables={"test": "data"}),
-            provider.Api(path="/post", method="POST", function_name=self.function_name, stage_name="Prod",
-                         stage_variables={"data": "more data"}),
-        ]
-        self.api_provider_mock = Mock()
-        self.api_provider_mock.get_all.return_value = apis
-
-    def test_make_routing_list(self):
-        routing_list = LocalApiService._make_routing_list(self.api_provider_mock)
-
-        expected_routes = [
-            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name=None,
-                  stage_variables=None),
-            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name='Dev',
-                  stage_variables=None),
-            Route(function_name=self.function_name, methods=['POST'], path='/post', stage_name='Prod',
-                  stage_variables=None),
-            Route(function_name=self.function_name, methods=['GET'], path='/get', stage_name=None,
-                  stage_variables={'test': 'data'}),
-            Route(function_name=self.function_name, methods=['POST'], path='/post', stage_name='Prod',
-                  stage_variables={'data': 'more data'}),
-        ]
-        self.assertEquals(len(routing_list), len(expected_routes))
-        for index, r in enumerate(routing_list):
-            self.assertEquals(r.__dict__, expected_routes[index].__dict__)

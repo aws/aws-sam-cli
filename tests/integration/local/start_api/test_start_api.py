@@ -665,9 +665,6 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-template.yaml"
     binary_data_file = "testdata/start_api/binarydata.gif"
 
-    def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-
     def test_cors_swagger_options(self):
         """
         This tests that the Cors are added to option requests in the swagger template
@@ -735,3 +732,31 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
                           "GET,DELETE,PUT,POST,HEAD,OPTIONS,PATCH")
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
+
+
+class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_default_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        print(response_data)
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Dev")
+
+    def test_global_stage_variables(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("stageVariables"), {"Stack": "Dev"})

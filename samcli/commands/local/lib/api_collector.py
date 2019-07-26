@@ -1,212 +1,204 @@
 """
 Class to store the API configurations in the SAM Template. This class helps store both implicit and explicit
-APIs in a standardized format
+routes in a standardized format
 """
 
 import logging
-from collections import namedtuple
+from collections import defaultdict
 
 from six import string_types
+
+from samcli.local.apigw.local_apigw_service import Route
+from samcli.commands.local.lib.provider import Api
 
 LOG = logging.getLogger(__name__)
 
 
 class ApiCollector(object):
-    # Properties of each API. The structure is quite similar to the properties of AWS::Serverless::Api resource.
-    # This is intentional because it allows us to easily extend this class to support future properties on the API.
-    # We will store properties of Implicit APIs also in this format which converges the handling of implicit & explicit
-    # APIs.
-    Properties = namedtuple("Properties", ["apis", "binary_media_types", "cors", "stage_name", "stage_variables"])
 
     def __init__(self):
-        # API properties stored per resource. Key is the LogicalId of the AWS::Serverless::Api resource and
-        # value is the properties
-        self.by_resource = {}
+        # Route properties stored per resource.
+        self._route_per_resource = defaultdict(list)
+
+        # processed values to be set before creating the api
+        self._routes = []
+        self.binary_media_types_set = set()
+        self.stage_name = None
+        self.stage_variables = None
+        self.cors = None
 
     def __iter__(self):
         """
-        Iterator to iterate through all the APIs stored in the collector. In each iteration, this yields the
-        LogicalId of the API resource and a list of APIs available in this resource.
-
+        Iterator to iterate through all the routes stored in the collector. In each iteration, this yields the
+        LogicalId of the route resource and a list of routes available in this resource.
         Yields
         -------
         str
-            LogicalID of the AWS::Serverless::Api resource
+            LogicalID of the AWS::Serverless::Api or AWS::ApiGateway::RestApi resource
         list samcli.commands.local.lib.provider.Api
             List of the API available in this resource along with additional configuration like binary media types.
         """
 
-        for logical_id, _ in self.by_resource.items():
-            yield logical_id, self._get_apis_with_config(logical_id)
+        for logical_id, _ in self._route_per_resource.items():
+            yield logical_id, self._get_routes(logical_id)
 
-    def add_apis(self, logical_id, apis):
+    def add_routes(self, logical_id, routes):
         """
-        Stores the given APIs tagged under the given logicalId
-
+        Stores the given routes tagged under the given logicalId
         Parameters
         ----------
         logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
-
-        apis : list of samcli.commands.local.lib.provider.Api
-            List of APIs available in this resource
+            LogicalId of the AWS::Serverless::Api or AWS::ApiGateway::RestApi resource
+        routes : list of samcli.commands.local.agiw.local_apigw_service.Route
+            List of routes available in this resource
         """
-        properties = self._get_properties(logical_id)
-        properties.apis.extend(apis)
+        self._get_routes(logical_id).extend(routes)
+
+    def _get_routes(self, logical_id):
+        """
+        Returns the properties of resource with given logical ID. If a resource is not found, then it returns an
+        empty data.
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+        Returns
+        -------
+        samcli.commands.local.lib.Routes
+            Properties object for this resource.
+        """
+
+        return self._route_per_resource[logical_id]
+
+    @property
+    def routes(self):
+        return self._routes if self._routes else self.all_routes()
+
+    @routes.setter
+    def routes(self, routes):
+        self._routes = routes
+
+    def all_routes(self):
+        """
+        Gets all the routes within the _route_per_resource
+
+        Return
+        -------
+        All the routes within the _route_per_resource
+        """
+        routes = []
+        for logical_id in self._route_per_resource.keys():
+            routes.extend(self._get_routes(logical_id))
+        return routes
+
+    def get_api(self):
+        """
+        Creates the api using the parts from the ApiCollector. The routes are also deduped so that there is no
+        duplicate routes with the same function name, path, but different method.
+
+        The normalised_routes are the routes that have been processed. By default, this will get all the routes.
+        However, it can be changed to override the default value of normalised routes such as in SamApiProvider
+
+        Return
+        -------
+        An Api object with all the properties
+        """
+        api = Api()
+        routes = self.dedupe_function_routes(self.routes)
+        routes = self.normalize_cors_methods(routes, self.cors)
+        api.routes = routes
+        api.binary_media_types_set = self.binary_media_types_set
+        api.stage_name = self.stage_name
+        api.stage_variables = self.stage_variables
+        api.cors = self.cors
+        return api
+
+    @staticmethod
+    def normalize_cors_methods(routes, cors):
+        """
+        Adds OPTIONS method to all the route methods if cors exists
+
+        Parameters
+        -----------
+        routes: list(samcli.local.apigw.local_apigw_service.Route)
+            List of Routes
+
+        cors: samcli.commands.local.lib.provider.Cors
+            the cors object for the api
+
+        Return
+        -------
+        A list of routes without duplicate routes with the same function_name and method
+        """
+
+        def add_options_to_route(route):
+            if "OPTIONS" not in route.methods:
+                route.methods.append("OPTIONS")
+            return route
+
+        return routes if not cors else [add_options_to_route(route) for route in routes]
+
+    @staticmethod
+    def dedupe_function_routes(routes):
+        """
+        Remove duplicate routes that have the same function_name and method
+
+        Parameters
+        -----------
+        routes: list(Route)
+            List of Routes
+
+        Return
+        -------
+        A list of routes without duplicate routes with the same function_name and method
+        """
+        grouped_routes = {}
+
+        for route in routes:
+            key = "{}-{}".format(route.function_name, route.path)
+            config = grouped_routes.get(key, None)
+            methods = route.methods
+            if config:
+                methods += config.methods
+            sorted_methods = sorted(methods)
+            grouped_routes[key] = Route(function_name=route.function_name, path=route.path, methods=sorted_methods)
+        return list(grouped_routes.values())
 
     def add_binary_media_types(self, logical_id, binary_media_types):
         """
         Stores the binary media type configuration for the API with given logical ID
-
         Parameters
         ----------
+
         logical_id : str
             LogicalId of the AWS::Serverless::Api resource
+
+        api: samcli.commands.local.lib.provider.Api
+            Instance of the Api which will save all the api configurations
 
         binary_media_types : list of str
             List of binary media types supported by this resource
-
         """
-        properties = self._get_properties(logical_id)
 
         binary_media_types = binary_media_types or []
         for value in binary_media_types:
-            normalized_value = self._normalize_binary_media_type(value)
+            normalized_value = self.normalize_binary_media_type(value)
 
             # If the value is not supported, then just skip it.
             if normalized_value:
-                properties.binary_media_types.add(normalized_value)
+                self.binary_media_types_set.add(normalized_value)
             else:
                 LOG.debug("Unsupported data type of binary media type value of resource '%s'", logical_id)
 
-    def add_stage_name(self, logical_id, stage_name):
-        """
-        Stores the stage name for the API with the given local ID
-
-        Parameters
-        ----------
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
-
-        stage_name : str
-            The stage_name string
-
-        """
-        properties = self._get_properties(logical_id)
-        properties = properties._replace(stage_name=stage_name)
-        self._set_properties(logical_id, properties)
-
-    def add_stage_variables(self, logical_id, stage_variables):
-        """
-        Stores the stage variables for the API with the given local ID
-
-        Parameters
-        ----------
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
-
-        stage_variables : dict
-            A dictionary containing stage variables.
-
-        """
-        properties = self._get_properties(logical_id)
-        properties = properties._replace(stage_variables=stage_variables)
-        self._set_properties(logical_id, properties)
-
-    def add_cors(self, logical_id, cors):
-        properties = self._get_properties(logical_id)
-        properties = properties._replace(cors=cors)
-        self._set_properties(logical_id, properties)
-
-    def _get_apis_with_config(self, logical_id):
-        """
-        Returns the list of APIs in this resource along with other extra configuration such as binary media types,
-        cors etc. Additional configuration is merged directly into the API data because these properties, although
-        defined globally, actually apply to each API.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource to fetch data for
-
-        Returns
-        -------
-        list of samcli.commands.local.lib.provider.Api
-            List of APIs with additional configurations for the resource with given logicalId. If there are no APIs,
-            then it returns an empty list
-        """
-
-        properties = self._get_properties(logical_id)
-
-        # These configs need to be applied to each API
-        binary_media = sorted(list(properties.binary_media_types))  # Also sort the list to keep the ordering stable
-        cors = properties.cors
-        stage_name = properties.stage_name
-        stage_variables = properties.stage_variables
-
-        result = []
-        for api in properties.apis:
-            # Create a copy of the API with updated configuration
-            updated_api = api._replace(binary_media_types=binary_media,
-                                       cors=cors,
-                                       stage_name=stage_name,
-                                       stage_variables=stage_variables)
-            result.append(updated_api)
-
-        return result
-
-    def _get_properties(self, logical_id):
-        """
-        Returns the properties of resource with given logical ID. If a resource is not found, then it returns an
-        empty data.
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-
-        Returns
-        -------
-        samcli.commands.local.lib.sam_api_provider.ApiCollector.Properties
-            Properties object for this resource.
-        """
-
-        if logical_id not in self.by_resource:
-            self.by_resource[logical_id] = self.Properties(apis=[],
-                                                           # Use a set() to be able to easily de-dupe
-                                                           binary_media_types=set(),
-                                                           cors=None,
-                                                           stage_name=None,
-                                                           stage_variables=None)
-
-        return self.by_resource[logical_id]
-
-    def _set_properties(self, logical_id, properties):
-        """
-        Sets the properties of resource with given logical ID. If a resource is not found, it does nothing
-
-        Parameters
-        ----------
-        logical_id : str
-            Logical ID of the resource
-        properties : samcli.commands.local.lib.sam_api_provider.ApiCollector.Properties
-             Properties object for this resource.
-        """
-
-        if logical_id in self.by_resource:
-            self.by_resource[logical_id] = properties
-
     @staticmethod
-    def _normalize_binary_media_type(value):
+    def normalize_binary_media_type(value):
         """
         Converts binary media types values to the canonical format. Ex: image~1gif -> image/gif. If the value is not
         a string, then this method just returns None
-
         Parameters
         ----------
         value : str
             Value to be normalized
-
         Returns
         -------
         str or None

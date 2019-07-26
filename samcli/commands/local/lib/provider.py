@@ -199,40 +199,32 @@ class FunctionProvider(object):
         raise NotImplementedError("not implemented")
 
 
-_ApiTuple = namedtuple("Api", [
+class Api(object):
+    def __init__(self, routes=None):
+        if routes is None:
+            routes = []
+        self.routes = routes
 
-    # String. Path that this API serves. Ex: /foo, /bar/baz
-    "path",
+        # Optional Dictionary containing CORS configuration on this path+method If this configuration is set,
+        # then API server will automatically respond to OPTIONS HTTP method on this path and respond with appropriate
+        # CORS headers based on configuration.
 
-    # String. HTTP Method this API responds with
-    "method",
+        self.cors = None
+        # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this
+        # path and
 
-    # String. Name of the Function this API connects to
-    "function_name",
+        self.binary_media_types_set = set()
 
-    # Optional Dictionary containing CORS configuration on this path+method
-    # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this path and
-    # respond with appropriate CORS headers based on configuration.
-    "cors",
+        self.stage_name = None
+        self.stage_variables = None
 
-    # List(Str). List of the binary media types the API
-    "binary_media_types",
-    # The Api stage name
-    "stage_name",
-    # The variables for that stage
-    "stage_variables"
-])
-_ApiTuple.__new__.__defaults__ = (None,  # Cors is optional and defaults to None
-                                  [],  # binary_media_types is optional and defaults to empty,
-                                  None,  # Stage name is optional with default None
-                                  None  # Stage variables is optional with default None
-                                  )
-
-
-class Api(_ApiTuple):
     def __hash__(self):
         # Other properties are not a part of the hash
-        return hash(self.path) * hash(self.method) * hash(self.function_name)
+        return hash(self.routes) * hash(self.cors) * hash(self.binary_media_types_set)
+
+    @property
+    def binary_media_types(self):
+        return list(self.binary_media_types_set)
 
 
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
@@ -240,7 +232,7 @@ _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers
 _CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
                                    None,  # Allow Methods is optional and defaults to empty
                                    None,  # Allow Headers is optional and defaults to empty
-                                   None  # MaxAge is optional and defaults to empty
+                                   None   # MaxAge is optional and defaults to empty
                                    )
 
 
@@ -252,13 +244,6 @@ class AbstractApiProvider(object):
     """
     Abstract base class to return APIs and the functions they route to
     """
-    ANY_HTTP_METHODS = ["GET",
-                        "DELETE",
-                        "PUT",
-                        "POST",
-                        "HEAD",
-                        "OPTIONS",
-                        "PATCH"]
 
     def get_all(self):
         """
@@ -276,36 +261,3 @@ class AbstractApiProvider(object):
         :param api api: Api
         :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
         """
-        http_method = api.method
-        if http_method.upper() == 'ANY':
-            for method in AbstractApiProvider.ANY_HTTP_METHODS:
-                yield method.upper()
-        else:
-            yield http_method.upper()
-
-            if api.cors and http_method.upper() != "OPTIONS":
-                yield "OPTIONS"
-
-    @staticmethod
-    def normalize_apis(apis):
-        """
-        Normalize the APIs to use standard method name
-
-        Parameters
-        ----------
-        apis : list of samcli.commands.local.lib.provider.Api
-            List of APIs to replace normalize
-
-        Returns
-        -------
-        list of samcli.commands.local.lib.provider.Api
-            List of normalized APIs
-        """
-
-        result = list()
-        for api in apis:
-            for normalized_method in AbstractApiProvider.normalize_http_methods(api):
-                # _replace returns a copy of the namedtuple. This is the official way of creating copies of namedtuple
-                result.append(api._replace(method=normalized_method))
-
-        return result
