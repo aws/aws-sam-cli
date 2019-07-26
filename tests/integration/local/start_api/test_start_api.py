@@ -665,6 +665,9 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-template.yaml"
     binary_data_file = "testdata/start_api/binarydata.gif"
 
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
     def test_cors_swagger_options(self):
         """
         This tests that the Cors are added to option requests in the swagger template
