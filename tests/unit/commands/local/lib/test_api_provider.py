@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from mock import patch
 
+from samcli.commands.local.lib.provider import Api
 from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
@@ -10,18 +11,17 @@ from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
 
 class TestApiProvider_init(TestCase):
 
-    @patch.object(ApiProvider, "_extract_apis")
+    @patch.object(ApiProvider, "_extract_api")
     @patch("samcli.commands.local.lib.api_provider.SamBaseProvider")
     def test_provider_with_valid_template(self, SamBaseProviderMock, extract_api_mock):
-        extract_api_mock.return_value = {"set", "of", "values"}
-
+        extract_api_mock.return_value = Api(routes={"set", "of", "values"})
         template = {"Resources": {"a": "b"}}
         SamBaseProviderMock.get_template.return_value = template
 
         provider = ApiProvider(template)
+        self.assertEquals(len(provider.routes), 3)
+        self.assertEquals(provider.routes, set(["set", "of", "values"]))
 
-        self.assertEquals(len(provider.apis), 3)
-        self.assertEquals(provider.apis, set(["set", "of", "values"]))
         self.assertEquals(provider.template_dict, {"Resources": {"a": "b"}})
         self.assertEquals(provider.resources, {"a": "b"})
 

@@ -57,7 +57,7 @@ def parse_aws_include_transform(data):
         return location
 
 
-class SamSwaggerReader(object):
+class SwaggerReader(object):
     """
     Class to read and parse Swagger document from a variety of sources. This class accepts the same data formats as
     available in Serverless::Api SAM resource
