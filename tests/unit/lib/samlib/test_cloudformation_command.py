@@ -111,7 +111,8 @@ class TestFindExecutable(TestCase):
         with self.assertRaises(OSError) as ctx:
             find_executable(execname)
 
-        expected = "Unable to find AWS CLI installation under following names: {}".format(["foo.cmd", "foo.exe", "foo"])
+        expected = "Cannot find AWS CLI installation, was looking at executables with names: {}".format(
+            ["foo.cmd", "foo.exe", "foo"])
         self.assertEquals(expected, str(ctx.exception))
 
         self.assertEquals(popen_mock.mock_calls, [
