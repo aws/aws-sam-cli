@@ -18,35 +18,63 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
+    _ANY_HTTP_METHODS = ["GET",
+                         "DELETE",
+                         "PUT",
+                         "POST",
+                         "HEAD",
+                         "OPTIONS",
+                         "PATCH"]
 
-    def __init__(self, methods, function_name, path, binary_types=None, stage_name=None, stage_variables=None):
+    def __init__(self, function_name, path, methods):
         """
         Creates an ApiGatewayRoute
 
-        :param list(str) methods: List of HTTP Methods
+        :param list(str) methods: http method
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
         """
-        self.methods = methods
+        self.methods = self.normalize_method(methods)
         self.function_name = function_name
         self.path = path
-        self.binary_types = binary_types or []
-        self.stage_name = stage_name
-        self.stage_variables = stage_variables
+
+    def __eq__(self, other):
+        return isinstance(other, Route) and \
+               sorted(self.methods) == sorted(
+            other.methods) and self.function_name == other.function_name and self.path == other.path
+
+    def __hash__(self):
+        route_hash = hash(self.function_name) * hash(self.path)
+        for method in sorted(self.methods):
+            route_hash *= hash(method)
+        return route_hash
+
+    def normalize_method(self, methods):
+        """
+        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
+        supported Http Methods on Api Gateway.
+
+        :param list methods: Http methods
+        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        """
+        methods = [method.upper() for method in methods]
+        if "ANY" in methods:
+            return self._ANY_HTTP_METHODS
+        return methods
 
 
 class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
 
-    def __init__(self, routing_list, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
         """
         Creates an ApiGatewayService
 
         Parameters
         ----------
-        routing_list list(ApiGatewayCallModel)
-            A list of the Model that represent the service paths to create.
+        api: Api
+           an Api object that contains the list of routes and properties
         lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
             The Lambda runner class capable of invoking the function
         static_dir str
@@ -61,7 +89,7 @@ class LocalApigwService(BaseLocalService):
             Optional stream writer where the stderr from Docker container should be written to
         """
         super(LocalApigwService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
-        self.routing_list = routing_list
+        self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
         self._dict_of_routes = {}
@@ -77,12 +105,11 @@ class LocalApigwService(BaseLocalService):
                           static_folder=self.static_dir  # Serve static files from this directory
                           )
 
-        for api_gateway_route in self.routing_list:
+        for api_gateway_route in self.api.routes:
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods,
                                                        path):
                 self._dict_of_routes[route_key] = api_gateway_route
-
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
@@ -144,8 +171,8 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types, route.stage_name,
-                                          route.stage_variables)
+            event = self._construct_event(request, self.port, self.api.binary_media_types, self.api.stage_name,
+                                          self.api.stage_variables)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -165,7 +192,7 @@ class LocalApigwService(BaseLocalService):
 
         try:
             (status_code, headers, body) = self._parse_lambda_output(lambda_response,
-                                                                     route.binary_types,
+                                                                     self.api.binary_media_types,
                                                                      request)
         except (KeyError, TypeError, ValueError):
             LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
