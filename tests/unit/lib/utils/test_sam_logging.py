@@ -1,12 +1,12 @@
 from unittest import TestCase
 from mock import patch, Mock
 
-from samcli.lib.utils.logging import SamCliLogger
+from samcli.lib.utils.sam_logging import SamCliLogger
 
 
 class TestSamCliLogger(TestCase):
 
-    @patch("samcli.lib.utils.logging.logging")
+    @patch("samcli.lib.utils.sam_logging.logging")
     def test_configure_samcli_logger(self, logging_patch):
         formatter_mock = Mock()
         logger_mock = Mock()

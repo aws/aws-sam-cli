@@ -8,7 +8,7 @@ import click
 
 from samcli import __version__
 from samcli.lib.telemetry.metrics import send_installed_metric
-from samcli.lib.utils.logging import SamCliLogger
+from samcli.lib.utils.sam_logging import SamCliLogger
 from .options import debug_option, region_option, profile_option
 from .context import Context
 from .command import BaseCommand
