@@ -18,7 +18,8 @@ _SAM_CLI_COMMAND_PACKAGES = {
     "samcli.commands.package",
     "samcli.commands.logs",
     "samcli.commands.build",
-    "samcli.commands.publish"
+    "samcli.commands.publish",
+    "samcli.commands.destroy"
 }
 
 DEPRECATION_NOTICE = (
