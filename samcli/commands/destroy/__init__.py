@@ -3,21 +3,28 @@
 Init command to scaffold a project app from a template
 """
 import logging
+import sys
 
 import boto3
 import click
+from botocore.exceptions import ClientError, WaiterError
+from click import secho
 
 from samcli.cli.main import pass_context, common_options
-from samcli.commands.exceptions import UserException
-from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS
-from samcli.local.init import generate_project
-from samcli.local.init.exceptions import GenerateProjectFailedError
 from samcli.lib.telemetry.metrics import track_command
 
 LOG = logging.getLogger(__name__)
 
+SHORT_HELP = "Deploy a deployed CloudFormation stack."
 
-@click.command("destroy", short_help="", context_settings={"ignore_unknown_options": True}, help="")
+HELP_TEXT = """The sam destroy command destroys a Cloudformation Stack.
+
+\b
+e.g. sam destroy -stack-name sam-app
+"""
+
+
+@click.command("destroy", short_help=SHORT_HELP, context_settings={"ignore_unknown_options": True}, help=HELP_TEXT)
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @click.option('--stack-name',
               required=True,
@@ -26,6 +33,8 @@ LOG = logging.getLogger(__name__)
                    "If you specify a new stack, the command creates it.")
 @click.option('--retain-resources',
               required=False,
+              multiple=True,
+              default=[],
               help="For  stacks  in  the DELETE_FAILED state, a list of resource logical"
                    "IDs that are associated with the resources you want to retain.  During  deletion,  "
                    "AWS  CloudFormation  deletes  the stack but does not "
@@ -60,29 +69,96 @@ LOG = logging.getLogger(__name__)
           stack using the console, each stack event would be assigned the same
           token     in     the     following     format:      Console-CreateS-
           tack-7f59c3cf-00d2-40c7-b2ff-e75db0987002 .""")
+@click.option('-w', '--wait', required=False, is_flag=True, help="Option to wait for Stack deletion")
+@click.option('--wait-time', required=False,
+              help="The time to wait for stack to delete. Used with --wait. The default is 5 minutes")
 @common_options
 @pass_context
 @track_command
-def cli(ctx, stack_name, retain_resources=None, role_arn=None, client_request_token=None):
+def cli(ctx, args, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time=300):
     """
     Destroys the stack
     """
     # All logic must be implemented in the `do_cli` method. This helps ease unit tests
-    do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token)  # pragma: no cover
+    do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time)  # pragma: no cover
 
 
-def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token):
+def stack_exists(client, stack_name, retain_resources=None, required_status=None):
+    try:
+        described_stack = client.describe_stacks(StackName=stack_name)
+
+        paginator = client.get_paginator('describe_stack_events')
+        response_iterator = paginator.paginate(
+            StackName=stack_name
+        )
+        events = [event for event in response_iterator.get("StackEvents") if
+                  event.get("ResourceStatus") == "DELETE_FAILED"]
+        for event in events:
+            logical_id = event.get("LogicalResourceId")
+            if logical_id not in retain_resources:
+                secho("The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
+                      "deletion failed".format(logical_id, stack_name), fg="red")
+                sys.exit(1)
+
+    except ClientError:
+        secho("The stack {} must exist in order to be deleted".format(stack_name), fg="red")
+        sys.exit(1)
+
+    if required_status and described_stack['Stacks'][0]['StackStatus'] != required_status:
+        return False
+    return True
+
+
+def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
     click.confirm('Are you sure you want to delete the stack {}?'.format(stack_name), default=True, abort=True)
-    cfn = boto3.client('cloudformation')
+    cfn = boto3.client('cloudformation', region_name='us-west-1')
+
+    stack_exists(cfn, stack_name, retain_resources)
+
+    args = {'RoleARN': role_arn, 'ClientRequestToken': client_request_token, 'RetainResources': retain_resources}
+    args = {k: v for k, v in args.items() if v is not None}
     try:
-        response = cfn.delete_stack(
-            StackName=stack_name,
-            RetainResources=retain_resources,
-            RoleARN=role_arn,
-            ClientRequestToken=client_request_token,
-        )
-    except Exception as e:
-        pass
+        cfn.delete_stack(StackName=stack_name, **args)
+    except ClientError as e:
+        if "TerminationProtection" in e.response["Error"]["Message"]:
+            secho("""The stack {stack_name} has TerminationProtection turned on. Disable it on the aws console at 
+              https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws 
+              cloudformation update-termination-protection --stack-name {stack_name} 
+              --no-enable-termination-protection 
+            """.format(stack_name=stack_name), fg="red")
+        if "AccessDeniedException" in e.response["Error"]["Message"]:
+            secho("""
+                The user account does not have access to delete the stack. Add the cloudformation:delete policy 
+                with the following format to the user account.
+                { 
+                    "Version": "2012-10-17", 
+                    "Statement": [ 
+                        { 
+                            "Effect": "Allow", 
+                            "Action": [ 
+                            "cloudformation:delete" 
+                            ], 
+                            "Resource": "*" 
+                        } 
+                    ] 
+                }
+            """)
+        else:
+            secho("Delete Failed: {}".format(str(e)))
+
+        sys.exit(1)
+
+    if wait:
+        waiter = cfn.get_waiter('stack_delete_complete')
+        try:
+            delay = 15
+            waiter.wait(StackName=stack_name,
+                        WaiterConfig={
+                            'Delay': delay,
+                            'MaxAttemps': wait_time / delay
+                        })
+        except WaiterError as e:
+            secho("Failed to delete stack {} because {}".format(stack_name, str(e)))
