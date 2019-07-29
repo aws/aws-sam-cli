@@ -681,23 +681,6 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
         self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), '510')
 
-    def test_cors_swagger_post(self):
-        """
-        This tests that the Cors are added to post requests in the swagger template
-        """
-        input_data = self.get_binary_data(self.binary_data_file)
-        response = requests.post(self.url + '/echobase64eventbody',
-                                 headers={"Content-Type": "image/gif"},
-                                 data=input_data)
-
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
-        self.assertEquals(response.content, input_data)
-        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
-        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
-        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
-        self.assertEquals(response.headers.get("Access-Control-Max-Age"), '510')
-
 
 class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
     """

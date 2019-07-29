@@ -7,6 +7,7 @@ from mock import patch
 from nose_parameterized import parameterized
 from six import assertCountEqual
 
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.api_provider import ApiProvider
 
 from samcli.commands.local.lib.provider import Cors
@@ -1150,7 +1151,7 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "Cors": {
-                            "AllowMethods": "POST",
+                            "AllowMethods": "POST, GET",
                             "AllowOrigin": "*",
                             "AllowHeaders": "Upgrade-Insecure-Requests",
                             "MaxAge": 600
@@ -1192,7 +1193,7 @@ class TestSamCors(TestCase):
 
         routes = provider.routes
         cors = Cors(allow_origin="*",
-                    allow_methods=','.join(["POST", "OPTIONS"]),
+                    allow_methods=','.join(sorted(["POST", "GET", "OPTIONS"])),
                     allow_headers="Upgrade-Insecure-Requests",
                     max_age=600)
         route1 = Route(path='/path2', methods=['POST', 'OPTIONS'], function_name='NoApiEventFunction')
@@ -1202,6 +1203,116 @@ class TestSamCors(TestCase):
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
         self.assertEquals(provider.api.cors, cors)
+
+    def test_provider_parse_cors_dict_star_allow(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": {
+                            "AllowMethods": "*",
+                            "AllowOrigin": "*",
+                            "AllowHeaders": "Upgrade-Insecure-Requests",
+                            "MaxAge": 600
+                        },
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                },
+                                "/path": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        provider = ApiProvider(template)
+
+        routes = provider.routes
+        cors = Cors(allow_origin="*",
+                    allow_methods='*',
+                    allow_headers="Upgrade-Insecure-Requests",
+                    max_age=600)
+        route1 = Route(path='/path2', methods=['POST', 'OPTIONS'], function_name='NoApiEventFunction')
+        route2 = Route(path='/path', methods=['POST', 'OPTIONS'], function_name='NoApiEventFunction')
+
+        self.assertEquals(len(routes), 2)
+        self.assertIn(route1, routes)
+        self.assertIn(route2, routes)
+        self.assertEquals(provider.api.cors, cors)
+
+    def test_invalid_cors_dict_allow_methods(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": {
+                            "AllowMethods": "GET, INVALID_METHOD",
+                            "AllowOrigin": "*",
+                            "AllowHeaders": "Upgrade-Insecure-Requests",
+                            "MaxAge": 600
+                        },
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                },
+                                "/path": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                           "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            },
+                                            "responses": {},
+                                        },
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        with self.assertRaises(InvalidSamDocumentException,
+                               msg="ApiProvider should fail for Invalid Cors Allow method"):
+            ApiProvider(template)
 
     def test_default_cors_dict_prop(self):
         template = {
@@ -1238,13 +1349,7 @@ class TestSamCors(TestCase):
         provider = ApiProvider(template)
 
         routes = provider.routes
-        cors = Cors(allow_origin="www.domain.com", allow_methods=','.join(["GET",
-                                                                           "DELETE",
-                                                                           "PUT",
-                                                                           "POST",
-                                                                           "HEAD",
-                                                                           "OPTIONS",
-                                                                           "PATCH"]))
+        cors = Cors(allow_origin="www.domain.com", allow_methods=','.join(sorted(Route.ANY_HTTP_METHODS)))
         route1 = Route(path='/path2', methods=['GET', 'OPTIONS'], function_name='NoApiEventFunction')
         self.assertEquals(len(routes), 1)
         self.assertIn(route1, routes)

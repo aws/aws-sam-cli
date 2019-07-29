@@ -80,7 +80,7 @@ class SamApiProvider(CfnBaseApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
-        cors = self._extract_cors(properties.get("Cors", {}))
+        cors = self.extract_cors(properties.get("Cors", {}))
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
         if not body and not uri:
@@ -94,7 +94,7 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
         collector.cors = cors
 
-    def _extract_cors(self, cors_prop):
+    def extract_cors(self, cors_prop):
         """
         Extract Cors property from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result
         is added to the Api.
@@ -123,7 +123,8 @@ class SamApiProvider(CfnBaseApiProvider):
             )
         return cors
 
-    def normalize_cors_allow_methods(self, allow_methods):
+    @staticmethod
+    def normalize_cors_allow_methods(allow_methods):
         """
         Normalize cors AllowMethods and Options to the methods if it's missing.
 
@@ -141,7 +142,7 @@ class SamApiProvider(CfnBaseApiProvider):
         methods = allow_methods.split(",")
         normalized_methods = []
         for method in methods:
-            normalized_method = method.upper()
+            normalized_method = method.strip().upper()
             if normalized_method not in Route.ANY_HTTP_METHODS:
                 raise InvalidSamDocumentException("The method {} is not a valid CORS method".format(normalized_method))
             normalized_methods.append(normalized_method)
@@ -149,7 +150,7 @@ class SamApiProvider(CfnBaseApiProvider):
         if "OPTIONS" not in normalized_methods:
             normalized_methods.append("OPTIONS")
 
-        return ','.join(normalized_methods)
+        return ','.join(sorted(normalized_methods))
 
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
         """
