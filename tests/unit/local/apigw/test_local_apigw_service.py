@@ -105,7 +105,6 @@ class TestApiGatewayService(TestCase):
     def test_create_creates_dict_of_routes(self):
         function_name_1 = Mock()
         function_name_2 = Mock()
-        
         api_gateway_route_1 = Route(methods=["GET"], function_name=function_name_1, path='/')
         api_gateway_route_2 = Route(methods=["POST"], function_name=function_name_2, path='/')
 
@@ -258,7 +257,7 @@ class TestApiGatewayModel(TestCase):
         self.api_gateway = Route(function_name=self.function_name, methods=["Post"], path="/")
 
     def test_class_initialization(self):
-        self.assertEquals(self.api_gateway.method, 'POST')
+        self.assertEquals(self.api_gateway.methods, ['POST'])
         self.assertEquals(self.api_gateway.function_name, self.function_name)
         self.assertEquals(self.api_gateway.path, '/')
 

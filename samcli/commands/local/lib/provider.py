@@ -7,7 +7,6 @@ from collections import namedtuple
 
 import six
 
-from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 # Named Tuple to representing the properties of a Lambda Function
@@ -235,13 +234,6 @@ class AbstractApiProvider(object):
     """
     Abstract base class to return APIs and the functions they route to
     """
-    _ANY_HTTP_METHODS = ["GET",
-                         "DELETE",
-                         "PUT",
-                         "POST",
-                         "HEAD",
-                         "OPTIONS",
-                         "PATCH"]
 
     def get_all(self):
         """
@@ -250,42 +242,3 @@ class AbstractApiProvider(object):
         :yields Api: namedtuple containing the API information
         """
         raise NotImplementedError("not implemented")
-
-    @staticmethod
-    def normalize_http_methods(http_method):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
-        supported Http Methods on Api Gateway.
-
-        :param str http_method: Http method
-        :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
-        """
-
-        if http_method.upper() == 'ANY':
-            for method in AbstractApiProvider._ANY_HTTP_METHODS:
-                yield method.upper()
-        else:
-            yield http_method.upper()
-
-    @staticmethod
-    def normalize_routes(routes):
-        """
-        Normalize the APIs to use standard method name
-
-        Parameters
-        ----------
-        apis : list of samcli.local.apigw.local_apigw_service.Route
-            List of routes to replace normalize
-
-        Returns
-        -------
-        list of samcli.local.apigw.local_apigw_service.Route
-            List of normalized routes
-        """
-
-        result = list()
-        for route in routes:
-            for normalized_method in Route.normalize_http_methods(route.method):
-                result.append(Route(method=normalized_method, function_name=route.function_name, path=route.path))
-
-        return result

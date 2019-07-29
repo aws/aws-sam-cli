@@ -78,9 +78,9 @@ class TestLocalApiService_start(TestCase):
     @patch("samcli.commands.local.lib.local_api_service.ApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
-    @patch.object(ApiProvider, "_extract_routes")
+    @patch.object(ApiProvider, "_extract_api")
     def test_must_raise_if_route_not_available(self,
-                                               extract_routes,
+                                               extract_api,
                                                log_routes_mock,
                                                make_static_dir_mock,
                                                SamApiProviderMock,

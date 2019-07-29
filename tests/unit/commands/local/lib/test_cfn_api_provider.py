@@ -84,7 +84,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             filename = fp.name
 
             swagger = make_swagger(self.input_routes)
-            
+
             json.dump(swagger, fp)
             fp.flush()
 
@@ -397,13 +397,9 @@ class TestCloudFormationResourceMethod(TestCase):
     def setUp(self):
         self.binary_types = ["image/png", "image/jpg"]
         self.input_routes = [
-            Route(path="/path1", method="GET", function_name="SamFunc1"),
-            Route(path="/path1", method="POST", function_name="SamFunc1"),
-
-            Route(path="/path2", method="PUT", function_name="SamFunc1"),
-            Route(path="/path2", method="GET", function_name="SamFunc1"),
-
-            Route(path="/path3", method="DELETE", function_name="SamFunc1")
+            Route(path="/path1", methods=["GET", "POST"], function_name="SamFunc1"),
+            Route(path="/path2", methods=["PUT", "GET"], function_name="SamFunc1"),
+            Route(path="/path3", methods=["DELETE"], function_name="SamFunc1")
         ]
 
     def test_basic_rest_api_resource_method(self):
@@ -434,7 +430,7 @@ class TestCloudFormationResourceMethod(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [Route(function_name=None, path="/{proxy+}", method="POST")])
+        self.assertEquals(provider.routes, [Route(function_name=None, path="/{proxy+}", methods=["POST"])])
 
     def test_resolve_correct_resource_path(self):
         resources = {
@@ -519,8 +515,8 @@ class TestCloudFormationResourceMethod(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, provider.routes, [Route(path="/root/v1/beta", method="POST", function_name=None),
-                                                 Route(path="/root/v1/alpha", method="GET", function_name=None)])
+        assertCountEqual(self, provider.routes, [Route(path="/root/v1/beta", methods=["POST"], function_name=None),
+                                                 Route(path="/root/v1/alpha", methods=["GET"], function_name=None)])
 
     def test_resource_with_method_correct_routes(self):
         template = {
@@ -550,13 +546,8 @@ class TestCloudFormationResourceMethod(TestCase):
         }
         provider = ApiProvider(template)
         assertCountEqual(self, provider.routes,
-                         [Route(path="/beta", method="POST", function_name=None),
-                          Route(path="/beta", method="GET", function_name=None),
-                          Route(path="/beta", method="DELETE", function_name=None),
-                          Route(path="/beta", method="HEAD", function_name=None),
-                          Route(path="/beta", method="OPTIONS", function_name=None),
-                          Route(path="/beta", method="PATCH", function_name=None),
-                          Route(path="/beta", method="PUT", function_name=None),
+                         [Route(path="/beta", methods=["POST", "GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "PUT"],
+                                function_name=None),
                           ])
 
     def test_method_integration_uri(self):
@@ -650,8 +641,8 @@ class TestCloudFormationResourceMethod(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, provider.routes,
-                         [Route(path="/root/v1/beta", method="POST", function_name="AWSLambdaFunction"),
-                          Route(path="/root/v1/alpha", method="GET", function_name="AWSBetaLambdaFunction")])
+                         [Route(path="/root/v1/beta", methods=["POST"], function_name="AWSLambdaFunction"),
+                          Route(path="/root/v1/alpha", methods=["GET"], function_name="AWSBetaLambdaFunction")])
 
     def test_binary_media_types_method(self):
         template = {
@@ -747,207 +738,4 @@ class TestCloudFormationResourceMethod(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, provider.api.get_binary_media_types(), ["image/png", "image/jpg"])
-
-    def test_cdk(self):
-        template = {
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Resources": {
-                "HelloHandler2E4FBA4D": {
-                    "Type": "AWS::Lambda::Function",
-                    "Properties": {
-                        "Code": ".",
-                        "Handler": "main.handler",
-                        "Runtime": "python3.6",
-                    },
-                    "DependsOn": [
-                        "HelloHandlerServiceRole11EF7C63"
-                    ],
-                },
-                "EndpointEEF1FD8F": {
-                    "Type": "AWS::ApiGateway::RestApi",
-                    "Properties": {
-                        "Name": "Endpoint"
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/Resource"
-                    }
-                },
-                "EndpointDeploymentStageprodB78BEEA0": {
-                    "Type": "AWS::ApiGateway::Stage",
-                    "Properties": {
-                        "RestApiId": {
-                            "Ref": "EndpointEEF1FD8F"
-                        },
-                        "DeploymentId": {
-                            "Ref": "EndpointDeployment318525DA37c0e38727e25b4317827bf43e918fbf"
-                        },
-                        "StageName": "prod"
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/DeploymentStage.prod/Resource"
-                    }
-                },
-                "Endpointproxy39E2174E": {
-                    "Type": "AWS::ApiGateway::Resource",
-                    "Properties": {
-                        "ParentId": {
-                            "Fn::GetAtt": [
-                                "EndpointEEF1FD8F",
-                                "RootResourceId"
-                            ]
-                        },
-                        "PathPart": "{proxy+}",
-                        "RestApiId": {
-                            "Ref": "EndpointEEF1FD8F"
-                        }
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/{proxy+}/Resource"
-                    }
-                },
-                "EndpointproxyANYC09721C5": {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {
-                        "HttpMethod": "ANY",
-                        "ResourceId": {
-                            "Ref": "Endpointproxy39E2174E"
-                        },
-                        "RestApiId": {
-                            "Ref": "EndpointEEF1FD8F"
-                        },
-                        "AuthorizationType": "NONE",
-                        "Integration": {
-                            "IntegrationHttpMethod": "POST",
-                            "Type": "AWS_PROXY",
-                            "Uri": {
-                                "Fn::Join": [
-                                    "",
-                                    [
-                                        "arn:",
-                                        {
-                                            "Ref": "AWS::Partition"
-                                        },
-                                        ":apigateway:",
-                                        {
-                                            "Ref": "AWS::Region"
-                                        },
-                                        "lambda:path/2015-03-31/functions/",
-                                        {
-                                            "Fn::GetAtt": [
-                                                "HelloHandler2E4FBA4D",
-                                                "Arn"
-                                            ]
-                                        },
-                                        "/invocations"
-                                    ]
-                                ]
-                            }
-                        }
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/{proxy+}/ANY/Resource"
-                    }
-                },
-                "EndpointANY485C938B": {
-                    "Type": "AWS::ApiGateway::Method",
-                    "Properties": {
-                        "HttpMethod": "ANY",
-                        "ResourceId": {
-                            "Fn::GetAtt": [
-                                "EndpointEEF1FD8F",
-                                "RootResourceId"
-                            ]
-                        },
-                        "RestApiId": {
-                            "Ref": "EndpointEEF1FD8F"
-                        },
-                        "AuthorizationType": "NONE",
-                        "Integration": {
-                            "IntegrationHttpMethod": "POST",
-                            "Type": "AWS_PROXY",
-                            "Uri": {
-                                "Fn::Join": [
-                                    "",
-                                    [
-                                        "arn:",
-                                        {
-                                            "Ref": "AWS::Partition"
-                                        },
-                                        ":apigateway:",
-                                        {
-                                            "Ref": "AWS::Region"
-                                        },
-                                        "lambda:path/2015-03-31/functions/",
-                                        {
-                                            "Fn::GetAtt": [
-                                                "HelloHandler2E4FBA4D",
-                                                "Arn"
-                                            ]
-                                        },
-                                        "/invocations"
-                                    ]
-                                ]
-                            }
-                        }
-                    },
-                    "Metadata": {
-                        "aws:cdk:path": "CdkWorkshopStack/Endpoint/ANY/Resource"
-                    }
-                },
-                "CDKMetadata": {
-                    "Type": "AWS::CDK::Metadata",
-                    "Properties": {
-                        "Modules": "aws-cdk=0.22.0,jsii-runtime=node.js/v12.4.0"
-                    }
-                }
-            },
-            "Parameters": {
-                "HelloHandlerCodeS3Bucket4359A483": {
-                    "Type": "String",
-                    "Description": "S3 bucket for asset \"CdkWorkshopStack/HelloHandler/Code\""
-                },
-                "HelloHandlerCodeS3VersionKey07D12610": {
-                    "Type": "String",
-                    "Description": "S3 key for asset version \"CdkWorkshopStack/HelloHandler/Code\""
-                }
-            },
-            "Outputs": {
-                "Endpoint8024A810": {
-                    "Value": {
-                        "Fn::Join": [
-                            "",
-                            [
-                                "https://",
-                                {
-                                    "Ref": "EndpointEEF1FD8F"
-                                },
-                                ".execute-api.",
-                                {
-                                    "Ref": "AWS::Region"
-                                },
-                                ".",
-                                {
-                                    "Ref": "AWS::URLSuffix"
-                                },
-                                "/",
-                                {
-                                    "Ref": "EndpointDeploymentStageprodB78BEEA0"
-                                },
-                                "/"
-                            ]
-                        ]
-                    },
-                    "Export": {
-                        "Name": "CdkWorkshopStack:Endpoint8024A810"
-                    }
-                }
-            }
-        }
-        provider = ApiProvider(template)
-        proxy_paths = [Route(path="/{proxy+}", method=method, function_name="HelloHandler2E4FBA4D") for method in
-                       Route.ANY_HTTP_METHODS]
-        root_paths = [Route(path="/", method=method, function_name="HelloHandler2E4FBA4D") for method in
-                      Route.ANY_HTTP_METHODS]
-
-        assertCountEqual(self, provider.routes, proxy_paths + root_paths)
+        assertCountEqual(self, provider.api.binary_media_types, ["image/png", "image/jpg"])

@@ -896,7 +896,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         provider = ApiProvider(self.template)
         assertCountEqual(self, expected_routes, provider.routes)
         assertCountEqual(self, provider.api.binary_media_types, expected_explicit_binary_types)
-  
+
 
 class TestSamStageValues(TestCase):
 

@@ -52,7 +52,7 @@ class CfnApiProvider(CfnBaseApiProvider):
                 self._extract_cloud_formation_stage(resources, resource, collector)
 
             if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
-                self._extract_cloud_formation_method(resources, resource, collector)
+                self._extract_cloud_formation_method(resources, logical_id, resource, collector)
 
         all_apis = []
         for _, apis in collector:
@@ -92,10 +92,10 @@ class CfnApiProvider(CfnBaseApiProvider):
         """
         Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
-       ----------
+        ----------
         resources : dict
             Resource definition, including its properties
-        
+
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
         """
@@ -118,7 +118,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, resources, api_resource, collector):
+    def _extract_cloud_formation_method(self, resources, logical_id, api_resource, collector):
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
@@ -159,12 +159,12 @@ class CfnApiProvider(CfnBaseApiProvider):
         content_handling = integration.get("ContentHandling")
 
         if content_handling == CfnApiProvider.METHOD_BINARY_TYPE and content_type:
-            collector.add_binary_media_types(content_type)
+            collector.add_binary_media_types(logical_id, [content_type])
 
         routes = Route(methods=[method],
                        function_name=self._get_integration_function_name(integration),
                        path=resource_path)
-        collector.add_routes(rest_api_id, routes)
+        collector.add_routes(rest_api_id, [routes])
 
     def resolve_resource_path(self, resources, resource, current_path):
         """

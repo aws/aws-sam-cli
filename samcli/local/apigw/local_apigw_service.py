@@ -18,13 +18,13 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
-    _ANY_HTTP_METHODS = ["GET",
-                         "DELETE",
-                         "PUT",
-                         "POST",
-                         "HEAD",
-                         "OPTIONS",
-                         "PATCH"]
+    ANY_HTTP_METHODS = ["GET",
+                        "DELETE",
+                        "PUT",
+                        "POST",
+                        "HEAD",
+                        "OPTIONS",
+                        "PATCH"]
 
     def __init__(self, function_name, path, methods):
         """
@@ -59,7 +59,7 @@ class Route(object):
         """
         methods = [method.upper() for method in methods]
         if "ANY" in methods:
-            return self._ANY_HTTP_METHODS
+            return self.ANY_HTTP_METHODS
         return methods
 
 
@@ -113,7 +113,7 @@ class LocalApigwService(BaseLocalService):
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
-                                   methods=[api_gateway_route.method],
+                                   methods=api_gateway_route.methods,
                                    provide_automatic_options=False)
 
         self._construct_error_handling()
