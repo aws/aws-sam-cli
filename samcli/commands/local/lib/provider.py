@@ -275,12 +275,3 @@ class AbstractApiProvider(object):
         :yields Api: namedtuple containing the API information
         """
         raise NotImplementedError("not implemented")
-
-    @staticmethod
-    def normalize_http_methods(api):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
-        supported Http Methods on Api Gateway.
-        :param api api: Api
-        :yield str: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
-        """
