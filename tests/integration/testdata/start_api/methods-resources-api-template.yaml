@@ -13,13 +13,15 @@ Resources:
       Handler: main.echo_base64_event_body
       Runtime: python3.6
     Type: AWS::Lambda::Function
+
   Dev:
     Type: AWS::ApiGateway::Stage
     Properties:
       StageName: Dev
-      RestApiId: !Ref MyApi
+      RestApiId: TestApi
       Variables:
       Stack: Dev
+
   MyNonServerlessLambdaFunction:
     Properties:
       Code: "."
@@ -122,5 +124,4 @@ Resources:
         Uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
       ResourceId: "NoServerlessFunctionResource"
-      RestApiId:
-        Ref: "TestApi"
+      RestApiId: "TestApi"
