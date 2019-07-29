@@ -24,7 +24,6 @@ class CfnApiProvider(CfnBaseApiProvider):
         APIGATEWAY_METHOD
     ]
 
-
     def extract_resources(self, resources, collector, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
@@ -47,13 +46,13 @@ class CfnApiProvider(CfnBaseApiProvider):
         for logical_id, resource in resources.items():
             resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
             if resource_type == CfnApiProvider.APIGATEWAY_RESTAPI:
-                self._extract_cloud_formation_route(logical_id, resource, collector, api=api, cwd=cwd)
+                self._extract_cloud_formation_route(logical_id, resource, collector, cwd=cwd)
 
             if resource_type == CfnApiProvider.APIGATEWAY_STAGE:
-                self._extract_cloud_formation_stage(resource, api)
+                self._extract_cloud_formation_stage(resources, resource, collector)
 
             if resource_type == CfnApiProvider.APIGATEWAY_METHOD:
-                self._extract_cloud_formation_method(resources, resource, collector, api=api)
+                self._extract_cloud_formation_method(resources, resource, collector)
 
         all_apis = []
         for _, apis in collector:
@@ -103,10 +102,21 @@ class CfnApiProvider(CfnBaseApiProvider):
         properties = stage_resource.get("Properties", {})
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
+
+        # Currently, we aren't resolving any Refs or other intrinsic properties that come with it
+        # A separate pr will need to fully resolve intrinsics
         logical_id = properties.get("RestApiId")
-        if logical_id:
-            collector.stage_name = stage_name
-            collector.stage_variables = stage_variables
+        if not logical_id:
+            raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")
+
+        rest_api_resource_type = resources.get(logical_id, {}).get("Type")
+        if rest_api_resource_type != CfnApiProvider.APIGATEWAY_RESTAPI:
+            raise InvalidSamTemplateException(
+                "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
+                    logical_id))
+
+        collector.stage_name = stage_name
+        collector.stage_variables = stage_variables
 
     def _extract_cloud_formation_method(self, resources, api_resource, collector):
         """
@@ -147,14 +157,13 @@ class CfnApiProvider(CfnBaseApiProvider):
         content_type = integration.get("ContentType")
 
         content_handling = integration.get("ContentHandling")
-        
+
         if content_handling == CfnApiProvider.METHOD_BINARY_TYPE and content_type:
             collector.add_binary_media_types(content_type)
-            
 
-        routes = Route.get_normalized_routes(method=method,
-                                             function_name=self._get_integration_function_name(integration),
-                                             path=resource_path)
+        routes = Route(methods=[method],
+                       function_name=self._get_integration_function_name(integration),
+                       path=resource_path)
         collector.add_routes(rest_api_id, routes)
 
     def resolve_resource_path(self, resources, resource, current_path):
@@ -207,21 +216,3 @@ class CfnApiProvider(CfnBaseApiProvider):
                 and isinstance(integration, dict):
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("Uri"))
-        properties = stage_resource.get("Properties", {})
-        stage_name = properties.get("StageName")
-        stage_variables = properties.get("Variables")
-
-        # Currently, we aren't resolving any Refs or other intrinsic properties that come with it
-        # A separate pr will need to fully resolve intrinsics
-        logical_id = properties.get("RestApiId")
-        if not logical_id:
-            raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")
-
-        rest_api_resource_type = resources.get(logical_id, {}).get("Type")
-        if rest_api_resource_type != CfnApiProvider.APIGATEWAY_RESTAPI:
-            raise InvalidSamTemplateException(
-                "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
-                    logical_id))
-
-        collector.stage_name = stage_name
-        collector.stage_variables = stage_variables
