@@ -13,6 +13,12 @@ Resources:
       Handler: main.echo_base64_event_body
       Runtime: python3.6
     Type: AWS::Lambda::Function
+  EchoEventBodyFunction:
+    Properties:
+      Code: "."
+      Handler: main.echo_event_handler
+      Runtime: python3.6
+    Type: AWS::Lambda::Function
   MyApi:
     Properties:
       Body:
@@ -35,6 +41,13 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Base64ResponseFunction.Arn}/invocations
+          "/echoeventbody":
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventBodyFunction.Arn}/invocations
           "/echobase64eventbody":
             post:
               x-amazon-apigateway-integration:
@@ -65,9 +78,9 @@ Resources:
     Type: AWS::ApiGateway::Stage
     Properties:
       StageName: Dev
-      RestApiId: !Ref MyApi
+      RestApiId: MyApi
       Variables:
-      Stack: Dev
+        Stack: Dev
   MyNonServerlessLambdaFunction:
     Properties:
       Code: "."

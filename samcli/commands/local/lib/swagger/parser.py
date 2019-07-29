@@ -81,8 +81,8 @@ class SwaggerParser(object):
                 if method.lower() == self._ANY_METHOD_EXTENSION_KEY:
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
-                routes = Route.get_normalized_routes(function_name=function_name, path=full_path, method=method)
-                result.extend(routes)
+                route = Route(function_name, full_path, methods=[method])
+                result.append(route)
         return result
 
     def _get_integration_function_name(self, method_config):

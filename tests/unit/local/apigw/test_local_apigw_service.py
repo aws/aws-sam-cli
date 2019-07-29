@@ -1,3 +1,4 @@
+import copy
 from unittest import TestCase
 from mock import Mock, patch, ANY
 import json
@@ -15,7 +16,7 @@ class TestApiGatewayService(TestCase):
 
     def setUp(self):
         self.function_name = Mock()
-        self.api_gateway_route = Route(method='GET', function_name=self.function_name, path='/')
+        self.api_gateway_route = Route(methods=['GET'], function_name=self.function_name, path='/')
         self.list_of_routes = [self.api_gateway_route]
 
         self.lambda_runner = Mock()
@@ -104,8 +105,9 @@ class TestApiGatewayService(TestCase):
     def test_create_creates_dict_of_routes(self):
         function_name_1 = Mock()
         function_name_2 = Mock()
-        api_gateway_route_1 = Route(method="GET", function_name=function_name_1, path='/')
-        api_gateway_route_2 = Route(method="POST", function_name=function_name_2, path='/')
+        
+        api_gateway_route_1 = Route(methods=["GET"], function_name=function_name_1, path='/')
+        api_gateway_route_2 = Route(methods=["POST"], function_name=function_name_2, path='/')
 
         list_of_routes = [api_gateway_route_1, api_gateway_route_2]
 
@@ -253,7 +255,7 @@ class TestApiGatewayModel(TestCase):
 
     def setUp(self):
         self.function_name = "name"
-        self.api_gateway = Route(function_name=self.function_name, method="Post", path="/")
+        self.api_gateway = Route(function_name=self.function_name, methods=["Post"], path="/")
 
     def test_class_initialization(self):
         self.assertEquals(self.api_gateway.method, 'POST')
@@ -586,3 +588,60 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
+
+
+class TestRouteEqualsHash(TestCase):
+
+    def test_route_in_list(self):
+        route = Route(function_name="test", path="/test", methods=["POST"])
+        routes = [route]
+        self.assertIn(route, routes)
+
+    def test_route_method_order_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        self.assertEquals(route1, route2)
+
+    def test_route_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        dic = {route1: "test"}
+        self.assertEquals(dic[route1], "test")
+
+    def test_route_object_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = type('obj', (object,), {'function_name': 'test', "path": "/test", "methods": ["GET", "POST"]})
+
+        self.assertNotEqual(route1, route2)
+
+    def test_route_function_name_equals(self):
+        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        self.assertNotEqual(route1, route2)
+
+    def test_route_different_path_equals(self):
+        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        self.assertNotEqual(route1, route2)
+
+    def test_same_object_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        self.assertEquals(route1, copy.deepcopy(route1))
+
+    def test_route_function_name_hash(self):
+        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+    def test_route_different_path_hash(self):
+        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+    def test_same_object_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        self.assertEquals(route1.__hash__(), copy.deepcopy(route1).__hash__())
+
+    def test_route_method_order_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        self.assertEquals(route1.__hash__(), route2.__hash__())

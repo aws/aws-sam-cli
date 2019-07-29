@@ -5,6 +5,7 @@ from six import string_types
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.local.apigw.local_apigw_service import Route
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 
 LOG = logging.getLogger(__name__)
@@ -23,7 +24,8 @@ class CfnApiProvider(CfnBaseApiProvider):
         APIGATEWAY_METHOD
     ]
 
-    def extract_resources(self, resources, collector, api, cwd=None):
+
+    def extract_resources(self, resources, collector, cwd=None):
         """
         Extract the Route Object from a given resource and adds it to the RouteCollector.
 
@@ -34,9 +36,6 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         collector: samcli.commands.local.lib.route_collector.RouteCollector
             Instance of the API collector that where we will save the API information
-
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api which will save all the api configurations
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
@@ -61,7 +60,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             all_apis.extend(apis)
         return all_apis
 
-    def _extract_cloud_formation_route(self, logical_id, api_resource, collector, api, cwd=None):
+    def _extract_cloud_formation_route(self, logical_id, api_resource, collector, cwd=None):
         """
         Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
         added to the collector.
@@ -87,28 +86,29 @@ class CfnApiProvider(CfnBaseApiProvider):
             LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
                       logical_id)
             return
-        self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, api, cwd)
+        self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, cwd)
 
     @staticmethod
-    def _extract_cloud_formation_stage(api_resource, api):
+    def _extract_cloud_formation_stage(resources, stage_resource, collector):
         """
         Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
        ----------
-        api_resource : dict
+        resources : dict
             Resource definition, including its properties
-        api: samcli.commands.local.lib.provider.Api
-            Resource definition, including its properties
+        
+        collector : ApiCollector
+            Instance of the API collector that where we will save the API information
         """
-        properties = api_resource.get("Properties", {})
+        properties = stage_resource.get("Properties", {})
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
         logical_id = properties.get("RestApiId")
         if logical_id:
-            api.stage_name = stage_name
-            api.stage_variables = stage_variables
+            collector.stage_name = stage_name
+            collector.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, resources, api_resource, collector, api):
+    def _extract_cloud_formation_method(self, resources, api_resource, collector):
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
@@ -119,6 +119,12 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         api_resource : dict
             Resource definition, including its properties
+
+        resources: dict
+            All Resource definition, including its properties
+
+        stage_resource : dict
+            Stage Resource definition, including its properties
 
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
@@ -141,10 +147,10 @@ class CfnApiProvider(CfnBaseApiProvider):
         content_type = integration.get("ContentType")
 
         content_handling = integration.get("ContentHandling")
+        
         if content_handling == CfnApiProvider.METHOD_BINARY_TYPE and content_type:
-            normalized_type = self.normalize_binary_media_type(content_type)
-            if normalized_type:
-                api.binary_media_types_set.add(normalized_type)
+            collector.add_binary_media_types(content_type)
+            
 
         routes = Route.get_normalized_routes(method=method,
                                              function_name=self._get_integration_function_name(integration),
@@ -201,3 +207,21 @@ class CfnApiProvider(CfnBaseApiProvider):
                 and isinstance(integration, dict):
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("Uri"))
+        properties = stage_resource.get("Properties", {})
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("Variables")
+
+        # Currently, we aren't resolving any Refs or other intrinsic properties that come with it
+        # A separate pr will need to fully resolve intrinsics
+        logical_id = properties.get("RestApiId")
+        if not logical_id:
+            raise InvalidSamTemplateException("The AWS::ApiGateway::Stage must have a RestApiId property")
+
+        rest_api_resource_type = resources.get(logical_id, {}).get("Type")
+        if rest_api_resource_type != CfnApiProvider.APIGATEWAY_RESTAPI:
+            raise InvalidSamTemplateException(
+                "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
+                    logical_id))
+
+        collector.stage_name = stage_name
+        collector.stage_variables = stage_variables

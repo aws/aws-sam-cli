@@ -223,7 +223,8 @@ class Api(object):
         # Other properties are not a part of the hash
         return hash(self.routes) * hash(self.cors) * hash(self.binary_media_types_set)
 
-    def get_binary_media_types(self):
+    @property
+    def binary_media_types(self):
         return list(self.binary_media_types_set)
 
 

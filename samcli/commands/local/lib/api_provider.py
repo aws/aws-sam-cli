@@ -2,12 +2,12 @@
 
 import logging
 
-from samcli.commands.local.lib.route_collector import RouteCollector
-from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.commands.local.lib.provider import AbstractApiProvider, Api
-from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.api_collector import ApiCollector
 from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
+from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.commands.local.lib.provider import AbstractApiProvider
+from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -39,22 +39,20 @@ class ApiProvider(AbstractApiProvider):
 
         # Store a set of apis
         self.cwd = cwd
-        self.api = Api()
-        self.routes = self._extract_routes(self.resources)
-        self.api.routes = self.routes
+        self.api = self._extract_api(self.resources)
+        self.routes = self.api.routes
         LOG.debug("%d APIs found in the template", len(self.routes))
 
     def get_all(self):
         """
-        Yields all the Lambda functions with Routes Events available in the Template.
+        Yields all the Apis in the current Provider
 
-        :yields route: namedtuple containing the Route information
+        :yields api: an Api object with routes and properties
         """
 
-        for route in self.routes:
-            yield route
+        yield self.api
 
-    def _extract_routes(self, resources):
+    def _extract_api(self, resources):
         """
         Extracts all the routes by running through the one providers. The provider that has the first type matched
         will be run across all the resources
@@ -65,12 +63,12 @@ class ApiProvider(AbstractApiProvider):
             The dictionary containing the different resources within the template
         Returns
         ---------
-        list of routes extracted from the resources
+        An Api from the parsed template
         """
-        collector = RouteCollector()
+        collector = ApiCollector()
         provider = self.find_api_provider(resources)
-        routes = provider.extract_resources(resources, collector, api=self.api, cwd=self.cwd)
-        return self.normalize_routes(routes)
+        provider.extract_resources(resources, collector, cwd=self.cwd)
+        return collector.get_api()
 
     @staticmethod
     def find_api_provider(resources):

@@ -17,13 +17,9 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
     def setUp(self):
         self.binary_types = ["image/png", "image/jpg"]
         self.input_routes = [
-            Route(path="/path1", method="GET", function_name="SamFunc1"),
-            Route(path="/path1", method="POST", function_name="SamFunc1"),
-
-            Route(path="/path2", method="PUT", function_name="SamFunc1"),
-            Route(path="/path2", method="GET", function_name="SamFunc1"),
-
-            Route(path="/path3", method="DELETE", function_name="SamFunc1")
+            Route(path="/path1", methods=["GET", "POST"], function_name="SamFunc1"),
+            Route(path="/path2", methods=["PUT", "GET"], function_name="SamFunc1"),
+            Route(path="/path3", methods=["DELETE"], function_name="SamFunc1")
         ]
 
     def test_with_no_apis(self):
@@ -64,6 +60,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             filename = fp.name
 
             swagger = make_swagger(self.input_routes)
+
             json.dump(swagger, fp)
             fp.flush()
 
@@ -87,6 +84,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             filename = fp.name
 
             swagger = make_swagger(self.input_routes)
+            
             json.dump(swagger, fp)
             fp.flush()
 
@@ -130,17 +128,17 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
     def test_swagger_with_any_method(self):
         routes = [
-            Route(path="/path", method="any", function_name="SamFunc1")
+            Route(path="/path", methods=["any"], function_name="SamFunc1")
         ]
 
         expected_routes = [
-            Route(path="/path", method="GET", function_name="SamFunc1"),
-            Route(path="/path", method="POST", function_name="SamFunc1"),
-            Route(path="/path", method="PUT", function_name="SamFunc1"),
-            Route(path="/path", method="DELETE", function_name="SamFunc1"),
-            Route(path="/path", method="HEAD", function_name="SamFunc1"),
-            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
-            Route(path="/path", method="PATCH", function_name="SamFunc1")
+            Route(path="/path", methods=["GET",
+                                         "DELETE",
+                                         "PUT",
+                                         "POST",
+                                         "HEAD",
+                                         "OPTIONS",
+                                         "PATCH"], function_name="SamFunc1")
         ]
 
         template = {
@@ -172,21 +170,18 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         expected_binary_types = sorted(self.binary_types)
         expected_apis = [
-            Route(path="/path1", method="GET", function_name="SamFunc1"),
-            Route(path="/path1", method="POST", function_name="SamFunc1"),
-            Route(path="/path2", method="PUT", function_name="SamFunc1"),
-            Route(path="/path2", method="GET", function_name="SamFunc1"),
-
-            Route(path="/path3", method="DELETE", function_name="SamFunc1")
+            Route(path="/path1", methods=["GET", "POST"], function_name="SamFunc1"),
+            Route(path="/path2", methods=["PUT", "GET"], function_name="SamFunc1"),
+            Route(path="/path3", methods=["DELETE"], function_name="SamFunc1")
         ]
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_apis, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_routes = [
-            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
+            Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1"),
         ]
         extra_binary_types = ["text/html"]
 
@@ -205,15 +200,22 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         expected_binary_types = sorted(self.binary_types + extra_binary_types)
         expected_routes = [
-            Route(path="/path", method="OPTIONS", function_name="SamFunc1"),
+            Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1"),
         ]
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.get_binary_media_types(), expected_binary_types)
+        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
 
 
 class TestCloudFormationStageValues(TestCase):
+    def setUp(self):
+        self.binary_types = ["image/png", "image/jpg"]
+        self.input_routes = [
+            Route(path="/path1", methods=["GET", "POST"], function_name="SamFunc1"),
+            Route(path="/path2", methods=["PUT", "GET"], function_name="SamFunc1"),
+            Route(path="/path3", methods=["DELETE"], function_name="SamFunc1")
+        ]
 
     def test_provider_parse_stage_name(self):
         template = {
@@ -251,7 +253,7 @@ class TestCloudFormationStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
+        route1 = Route(path='/path', methods=['GET'], function_name='NoApiEventFunction')
 
         self.assertIn(route1, provider.routes)
         self.assertEquals(provider.api.stage_name, "dev")
@@ -298,7 +300,7 @@ class TestCloudFormationStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        route1 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
+        route1 = Route(path='/path', methods=['GET'], function_name='NoApiEventFunction')
         self.assertIn(route1, provider.routes)
         self.assertEquals(provider.api.stage_name, "dev")
         self.assertEquals(provider.api.stage_variables, {
@@ -308,10 +310,45 @@ class TestCloudFormationStageValues(TestCase):
         })
 
     def test_multi_stage_get_all(self):
-        template = OrderedDict({
-            "Resources": {}
+        resources = OrderedDict({
+            "ProductionApi": {
+                "Type": "AWS::ApiGateway::RestApi",
+                "Properties": {
+                    "Body": {
+                        "paths": {
+                            "/path": {
+                                "get": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            },
+                            "/anotherpath": {
+                                "post": {
+                                    "x-amazon-apigateway-integration": {
+                                        "httpMethod": "POST",
+                                        "type": "aws_proxy",
+                                        "uri": {
+                                            "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        },
+                                        "responses": {},
+                                    },
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
         })
-        template["Resources"]["StageDev"] = {
+        resources["StageDev"] = {
             "Type": "AWS::ApiGateway::Stage",
             "Properties": {
                 "StageName": "dev",
@@ -320,10 +357,10 @@ class TestCloudFormationStageValues(TestCase):
                     "random": "test",
                     "foo": "bar"
                 },
-                "RestApiId": "TestApi"
+                "RestApiId": "ProductionApi"
             }
         }
-        template["Resources"]["StageProd"] = {
+        resources["StageProd"] = {
             "Type": "AWS::ApiGateway::Stage",
             "Properties": {
                 "StageName": "Production",
@@ -335,76 +372,18 @@ class TestCloudFormationStageValues(TestCase):
                 "RestApiId": "ProductionApi"
             },
         }
-        template["Resources"]["TestApi"] = {
-            "Type": "AWS::ApiGateway::RestApi",
-            "Properties": {
-                "Body": {
-                    "paths": {
-                        "/path2": {
-                            "get": {
-                                "x-amazon-apigateway-integration": {
-                                    "httpMethod": "POST",
-                                    "type": "aws_proxy",
-                                    "uri": {
-                                        "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
-                                    },
-                                    "responses": {},
-                                },
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        template["Resources"]["ProductionApi"] = {
-            "Type": "AWS::ApiGateway::RestApi",
-            "Properties": {
-                "Body": {
-                    "paths": {
-                        "/path": {
-                            "get": {
-                                "x-amazon-apigateway-integration": {
-                                    "httpMethod": "POST",
-                                    "type": "aws_proxy",
-                                    "uri": {
-                                        "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
-                                    },
-                                    "responses": {},
-                                },
-                            }
-                        },
-                        "/anotherpath": {
-                            "post": {
-                                "x-amazon-apigateway-integration": {
-                                    "httpMethod": "POST",
-                                    "type": "aws_proxy",
-                                    "uri": {
-                                        "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
-                                    },
-                                    "responses": {},
-                                },
-                            }
-                        }
-
-                    }
-                }
-            }
-        }
-
+        template = {"Resources": resources}
         provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
+        routes = result[0].routes
 
-        route1 = Route(path='/path2', method='GET', function_name='NoApiEventFunction')
-        route2 = Route(path='/path', method='GET', function_name='NoApiEventFunction')
-        route3 = Route(path='/anotherpath', method='POST', function_name='NoApiEventFunction')
-        self.assertEquals(len(result), 3)
-        self.assertIn(route1, result)
-        self.assertIn(route2, result)
-        self.assertIn(route3, result)
+        route1 = Route(path='/path', methods=['GET'], function_name='NoApiEventFunction')
+        route2 = Route(path='/anotherpath', methods=['POST'], function_name='NoApiEventFunction')
+        self.assertEquals(len(routes), 2)
+        self.assertIn(route1, routes)
+        self.assertIn(route2, routes)
+
         self.assertEquals(provider.api.stage_name, "Production")
         self.assertEquals(provider.api.stage_variables, {
             "vis": "prod data",

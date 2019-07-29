@@ -374,11 +374,11 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(self.url + '/echobase64eventbody',
-                                 headers={"Content-Type": "image/png"},
+                                 headers={"Content-Type": "image/gif"},
                                  data=input_data)
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.headers.get("Content-Type"), "image/png")
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
         self.assertEquals(response.content, input_data)
 
     def test_binary_response(self):
@@ -390,7 +390,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         response = requests.get(self.url + '/base64response')
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.headers.get("Content-Type"), "image/jpg")
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
         self.assertEquals(response.content, expected)
 
 
@@ -662,7 +662,7 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
     """
     Test Class centered around the different responses that can happen in Lambda and pass through start-api
     """
-    template_path = "/testdata/start_api/template.yaml"
+    template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -673,8 +673,7 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
 
         response_data = response.json()
-
-        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Prod")
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Dev")
 
     def test_global_stage_variables(self):
         response = requests.get(self.url + "/echoeventbody")
@@ -848,3 +847,4 @@ class TestServerlessApiGateway(StartApiIntegBaseClass):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.json(), {'hello': 'world'})
+        self.assertEquals(response_data.get("stageVariables"), {"Stack": "Dev"})
