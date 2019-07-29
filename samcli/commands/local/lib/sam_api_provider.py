@@ -107,10 +107,7 @@ class SamApiProvider(CfnBaseApiProvider):
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
             allow_methods = cors_prop.get("AllowMethods", ','.join(Route.ANY_HTTP_METHODS))
-
-            if allow_methods and "OPTIONS" not in allow_methods and "options" not in allow_methods:
-                allow_methods += ",OPTIONS"
-
+            allow_methods = self.normalize_cors_allow_methods(allow_methods)
             cors = Cors(
                 allow_origin=cors_prop.get("AllowOrigin"),
                 allow_methods=allow_methods,
@@ -125,6 +122,34 @@ class SamApiProvider(CfnBaseApiProvider):
                 max_age=None
             )
         return cors
+
+    def normalize_cors_allow_methods(self, allow_methods):
+        """
+        Normalize cors AllowMethods and Options to the methods if it's missing.
+
+        Parameters
+        ----------
+        allow_methods : str
+            The allow_methods string provided in the query
+
+        Return
+        -------
+        A string with normalized route
+        """
+        if allow_methods == "*":
+            return allow_methods
+        methods = allow_methods.split(",")
+        normalized_methods = []
+        for method in methods:
+            normalized_method = method.upper()
+            if normalized_method not in Route.ANY_HTTP_METHODS:
+                raise InvalidSamDocumentException("The method {} is not a valid CORS method".format(normalized_method))
+            normalized_methods.append(normalized_method)
+
+        if "OPTIONS" not in normalized_methods:
+            normalized_methods.append("OPTIONS")
+
+        return ','.join(normalized_methods)
 
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
         """

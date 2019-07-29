@@ -179,7 +179,7 @@ class LocalApigwService(BaseLocalService):
 
         try:
             event = self._construct_event(request, self.port, self.api.binary_media_types, self.api.stage_name,
-                                          self.api.stage_variables, cors_headers)
+                                          self.api.stage_variables)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -360,7 +360,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None, cors_headers=None):
+    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -394,7 +394,7 @@ class LocalApigwService(BaseLocalService):
                                  identity=identity,
                                  path=endpoint)
 
-        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port, cors_headers)
+        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
 
         query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
 
@@ -449,7 +449,7 @@ class LocalApigwService(BaseLocalService):
         return query_string_dict, multi_value_query_string_dict
 
     @staticmethod
-    def _event_headers(flask_request, port, cors_headers):
+    def _event_headers(flask_request, port):
         """
         Constructs an APIGW equivalent headers dictionary
 
@@ -481,8 +481,6 @@ class LocalApigwService(BaseLocalService):
 
         headers_dict["X-Forwarded-Port"] = str(port)
         multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
-        if cors_headers:
-            headers_dict.update(cors_headers)
         return headers_dict, multi_value_headers_dict
 
     @staticmethod

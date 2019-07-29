@@ -549,7 +549,7 @@ class TestService_construct_event(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = LocalApigwService._event_headers(request_mock, "3000", {})
+        actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
         self.assertEquals(actual_query_string, ({"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"},
                                                 {"X-Forwarded-Proto": ["http"], "X-Forwarded-Port": ["3000"]}))
 
@@ -562,7 +562,7 @@ class TestService_construct_event(TestCase):
         request_mock.headers = headers_mock
         request_mock.scheme = "http"
 
-        actual_query_string = LocalApigwService._event_headers(request_mock, "3000", {})
+        actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
         self.assertEquals(actual_query_string, ({"Content-Type": "application/json", "X-Test": "Value",
                                                  "X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"},
                                                 {"Content-Type": ["application/json"], "X-Test": ["Value"],
