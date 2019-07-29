@@ -483,7 +483,6 @@ class LocalApigwService(BaseLocalService):
         multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
         if cors_headers:
             headers_dict.update(cors_headers)
-            multi_value_headers_dict.update(cors_headers)
         return headers_dict, multi_value_headers_dict
 
     @staticmethod
