@@ -2,6 +2,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 
+from local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass
 
 
@@ -701,7 +702,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
-                          "GET,DELETE,PUT,POST,HEAD,OPTIONS,PATCH")
+                          sorted(Route.ANY_HTTP_METHODS))
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
 
     def test_cors_global_get(self):
