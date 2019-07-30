@@ -2,7 +2,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 
-from local.apigw.local_apigw_service import Route
+from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass
 
 
