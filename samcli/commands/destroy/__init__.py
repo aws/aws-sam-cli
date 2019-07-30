@@ -101,7 +101,7 @@ def verify_stack_exists(client, stack_name, required_status=None):
         sys.exit(1)
 
 
-def veryify_stack_retain_resources(client, stack_name, retain_resources=None):
+def verify_stack_retain_resources(client, stack_name, retain_resources=None):
     """
     Checks that if any of the resources are in a state of DELETE_FAILED, they need to be in the retain_resources section.
 
@@ -138,7 +138,7 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
     cfn = boto3.client('cloudformation', region_name='us-west-1')
 
     verify_stack_exists(cfn, stack_name)
-    veryify_stack_retain_resources(cfn, stack_name, retain_resources)
+    verify_stack_retain_resources(cfn, stack_name, retain_resources)
 
     args = {'RoleARN': role_arn, 'ClientRequestToken': client_request_token, 'RetainResources': retain_resources}
 
@@ -178,7 +178,6 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
 
         sys.exit(1)
 
-    # Wait a certain amount of time for the stack to be deleted
     if wait:
         waiter = cfn.get_waiter('stack_delete_complete')
         try:
@@ -189,4 +188,7 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
                             'MaxAttemps': wait_time / delay
                         })
         except WaiterError as e:
-            secho("Failed to delete stack {} because {}".format(stack_name, str(e)))
+            secho("Failed to delete stack {} because {}".format(stack_name, str(e)), fg="red")
+            sys.exit(1)
+
+    secho("Destroyed stack {}!".format(stack_name), fg="cyan")
