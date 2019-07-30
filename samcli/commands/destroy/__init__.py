@@ -73,30 +73,61 @@ def cli(ctx, args, stack_name, retain_resources, role_arn, client_request_token,
     do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time)  # pragma: no cover
 
 
-def stack_exists(client, stack_name, retain_resources=None, required_status=None):
+def verify_stack_exists(client, stack_name, required_status=None):
+    """
+    Checks that the stack exists
+
+    If any of the resources are in a state of  DELETE_FAILED, they need to be in the retain_resources section.
+
+    The stack must also exist in order to be deleted
+    Parameters
+    -----------
+    client: boto3 client
+        The cloudformation boto3 client used for making calls
+    stack_name: str
+        The stack name of the stack to check
+    required_status: str
+        A status that should be checked for by the stack
+
+    """
     try:
         described_stack = client.describe_stacks(StackName=stack_name)
-
-        paginator = client.get_paginator('describe_stack_events')
-        response_iterator = paginator.paginate(
-            StackName=stack_name
-        )
-        events = [event for event in response_iterator.get("StackEvents") if
-                  event.get("ResourceStatus") == "DELETE_FAILED"]
-        for event in events:
-            logical_id = event.get("LogicalResourceId")
-            if logical_id not in retain_resources:
-                secho("The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
-                      "deletion failed".format(logical_id, stack_name), fg="red")
-                sys.exit(1)
-
     except ClientError:
         secho("The stack {} must exist in order to be deleted".format(stack_name), fg="red")
         sys.exit(1)
 
     if required_status and described_stack['Stacks'][0]['StackStatus'] != required_status:
-        return False
-    return True
+        secho("The stack {} does not have the correct status {}".format(stack_name, required_status), fg="red")
+        sys.exit(1)
+
+
+def veryify_stack_retain_resources(client, stack_name, retain_resources=None):
+    """
+    Checks that if any of the resources are in a state of DELETE_FAILED, they need to be in the retain_resources section.
+
+    The stack must also exist in order to be deleted
+    Parameters
+    -----------
+    client: boto3 client
+        The cloudformation boto3 client used for making calls
+    stack_name: str
+        The stack name of the stack to check
+    retain_resources: list
+        A list of resources that should be reatined. This is used when checking if all DELETE_FAILED are in the
+        retain_resources
+    """
+    paginator = client.get_paginator('describe_stack_events')
+    response_iterator = paginator.paginate(
+        StackName=stack_name
+    )
+    events = [event for event in response_iterator.get("StackEvents") if
+              event.get("ResourceStatus") == "DELETE_FAILED"]
+    for event in events:
+        logical_id = event.get("LogicalResourceId")
+        if logical_id not in retain_resources:
+            secho("The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
+                  "deletion failed".format(logical_id, stack_name), fg="red")
+            sys.exit(1)
 
 
 def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time):
@@ -106,13 +137,19 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
     click.confirm('Are you sure you want to delete the stack {}?'.format(stack_name), default=True, abort=True)
     cfn = boto3.client('cloudformation', region_name='us-west-1')
 
-    stack_exists(cfn, stack_name, retain_resources)
+    verify_stack_exists(cfn, stack_name)
+    veryify_stack_retain_resources(cfn, stack_name, retain_resources)
 
     args = {'RoleARN': role_arn, 'ClientRequestToken': client_request_token, 'RetainResources': retain_resources}
+
+    # Filters the args dictionary so that no argument with type `None` is passed in. This is because deleting a stack
+    # with boto3 only accepts non `None` arguments.
     args = {k: v for k, v in args.items() if v is not None}
+
     try:
         cfn.delete_stack(StackName=stack_name, **args)
     except ClientError as e:
+
         if "TerminationProtection" in e.response["Error"]["Message"]:
             secho("""The stack {stack_name} has TerminationProtection turned on. Disable it on the aws console at 
               https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws 
@@ -141,6 +178,7 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
 
         sys.exit(1)
 
+    # Wait a certain amount of time for the stack to be deleted
     if wait:
         waiter = cfn.get_waiter('stack_delete_complete')
         try:
