@@ -1254,7 +1254,7 @@ class TestSamCors(TestCase):
 
         routes = provider.routes
         cors = Cors(allow_origin="*",
-                    allow_methods='*',
+                    allow_methods=','.join(sorted(Route.ANY_HTTP_METHODS)),
                     allow_headers="Upgrade-Insecure-Requests",
                     max_age=600)
         route1 = Route(path='/path2', methods=['POST', 'OPTIONS'], function_name='NoApiEventFunction')
