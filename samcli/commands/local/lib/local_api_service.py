@@ -5,6 +5,9 @@ Connects the CLI with Local API Gateway service.
 import os
 import logging
 
+import docker
+import requests
+
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
@@ -79,7 +82,6 @@ class LocalApiService(object):
                  "You do not need to restart/reload SAM CLI while working on your functions, "
                  "changes will be reflected instantly/automatically. You only need to restart "
                  "SAM CLI if you update your AWS SAM template")
-
         service.run()
 
     @staticmethod

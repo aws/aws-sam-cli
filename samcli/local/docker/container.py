@@ -173,17 +173,20 @@ class Container(object):
         self.id = None
 
     def stop(self):
+        """
+        Stops a container that was created earlier.
+        """
         if not self.is_created():
-            LOG.debug("Container was not created. Skipping deletion")
+            LOG.debug("Container was not created, skip stopping")
             return
 
         try:
             self.docker_client.containers\
                 .get(self.id)\
-                .stop()  # Remove a container, even if it is running
+                .stop()  # stop a container, even if it is running
         except docker.errors.NotFound:
-            # Container is already not there
-            LOG.debug("Container with ID %s does not exist. Skipping deletion", self.id)
+            # Container is not there
+            LOG.debug("Container with ID %s does not exist. Skip stopping", self.id)
         except docker.errors.APIError as ex:
             msg = str(ex)
             removal_in_progress = ("removal of container" in msg) and ("is already in progress" in msg)
@@ -192,8 +195,6 @@ class Container(object):
             # Skip such exceptions.
             if not removal_in_progress:
                 raise ex
-
-        # self.id = None
 
     def start(self, input_data=None):
         """

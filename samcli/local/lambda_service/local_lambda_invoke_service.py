@@ -5,6 +5,7 @@ import logging
 import io
 import time
 
+import docker
 from flask import Flask, request
 
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -35,6 +36,14 @@ class LocalLambdaInvokeService(BaseLocalService):
         super(LocalLambdaInvokeService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.lambda_runner = lambda_runner
         self.stderr = stderr
+        self._list_of_run_functions=set()
+
+    def cleanup(self):
+        docker_client = docker.from_env()
+        for function_name in self._list_of_run_functions:
+            LOG.info("Deleting stopped container %s", function_name)
+            container = docker_client.containers.get(function_name)
+            container.remove()
 
     def create(self):
         """
@@ -131,6 +140,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         A Flask Response response object as if it was returned from Lambda
         """
         flask_request = request
+        self._list_of_run_functions.add(function_name)
 
         request_data = flask_request.get_data()
 

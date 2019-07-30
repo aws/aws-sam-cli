@@ -4,6 +4,8 @@ import json
 import logging
 import os
 
+import docker
+
 from flask import Response
 
 LOG = logging.getLogger(__name__)
@@ -61,7 +63,13 @@ class BaseLocalService(object):
         # our cli and not on a production server.
         os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
-        self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
+        try:
+            self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
+        finally:
+            self.cleanup()
+
+    def cleanup(self):
+        pass
 
     @staticmethod
     def service_response(body, headers, status_code):

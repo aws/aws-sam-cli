@@ -4,6 +4,7 @@ import json
 import logging
 import base64
 
+import docker
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 
@@ -64,7 +65,15 @@ class LocalApigwService(BaseLocalService):
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
         self._dict_of_routes = {}
-        self.stderr = stderr
+        self.stderr = stderr  
+        self._list_of_run_functions=set()
+
+    def cleanup(self):
+        docker_client = docker.from_env()
+        for function_name in self._list_of_run_functions:
+            LOG.info("Deleting stopped container %s", function_name)
+            container = docker_client.containers.get(function_name)
+            container.remove()
 
     def create(self):
         """
@@ -141,6 +150,7 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
         route = self._get_current_route(request)
+        self._list_of_run_functions.add(route.function_name)
 
         try:
             event = self._construct_event(request, self.port, route.binary_types)
