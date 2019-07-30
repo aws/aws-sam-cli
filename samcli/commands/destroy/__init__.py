@@ -62,15 +62,19 @@ e.g. sam destroy -stack-name sam-app
 @click.option('-w', '--wait', required=False, is_flag=True, help="Option to wait for Stack deletion")
 @click.option('--wait-time', required=False,
               help="The time to wait for stack to delete in seconds. Used with --wait. The default is 5 minutes")
+@click.option('-y', '--yes', 'ignore_cli_prompt', required=False, is_flag=True,
+              help="Deletes the Stack without cli prompt")
 @common_options
 @pass_context
 @track_command
-def cli(ctx, args, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time=300):
+def cli(ctx, args, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time=300,
+        ignore_cli_prompt=False):
     """
     Destroys the stack
     """
     # All logic must be implemented in the `do_cli` method. This helps ease unit tests
-    do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time)  # pragma: no cover
+    do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time,
+           ignore_cli_prompt)  # pragma: no cover
 
 
 def verify_stack_exists(client, stack_name, required_status=None):
@@ -130,11 +134,12 @@ def verify_stack_retain_resources(client, stack_name, retain_resources=None):
             sys.exit(1)
 
 
-def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time):
+def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time, ignore_cli_prompt):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
-    click.confirm('Are you sure you want to delete the stack {}?'.format(stack_name), default=True, abort=True)
+    if not ignore_cli_prompt:
+        click.confirm('Are you sure you want to delete the stack {}?'.format(stack_name), default=True, abort=True)
     cfn = boto3.client('cloudformation', region_name='us-west-1')
 
     verify_stack_exists(cfn, stack_name)
