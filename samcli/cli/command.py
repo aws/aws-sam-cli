@@ -4,6 +4,7 @@ Base classes that implement the CLI framework
 
 import logging
 import importlib
+import sys
 import click
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,9 @@ _SAM_CLI_COMMAND_PACKAGES = {
     "samcli.commands.build",
     "samcli.commands.publish"
 }
+
+DEPRECATION_NOTICE = "Warning : AWS SAM CLI will no longer support " \
+                     "installations on Python 2.7 starting on October 1st, 2019. \n"
 
 
 class BaseCommand(click.MultiCommand):
@@ -57,6 +61,9 @@ class BaseCommand(click.MultiCommand):
 
         self._commands = {}
         self._commands = BaseCommand._set_commands(cmd_packages)
+
+        if sys.version_info.major == 2:
+            click.secho(DEPRECATION_NOTICE, fg="yellow", err=True)
 
     @staticmethod
     def _set_commands(package_names):
