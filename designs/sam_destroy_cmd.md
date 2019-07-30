@@ -72,6 +72,18 @@ with the following format to the user account.
 }
 ```
 
+Customers that delete the stack may want to wait for the stack to be deleted before continuing. The following waiter
+can be used to wait for the stack to be deleted.
+```python
+waiter = cfn.get_waiter('stack_delete_complete')   
+delay = 15
+waiter.wait(StackName=stack_name,
+            WaiterConfig={
+                'Delay': delay,
+                'MaxAttemps': wait_time / delay
+})
+
+```
 
 CLI Changes
 -----------
