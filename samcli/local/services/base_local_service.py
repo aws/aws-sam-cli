@@ -4,8 +4,6 @@ import json
 import logging
 import os
 
-import docker
-
 from flask import Response
 
 LOG = logging.getLogger(__name__)

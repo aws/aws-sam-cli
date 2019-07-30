@@ -65,8 +65,8 @@ class LocalApigwService(BaseLocalService):
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
         self._dict_of_routes = {}
-        self.stderr = stderr  
-        self._list_of_run_functions=set()
+        self.stderr = stderr
+        self._list_of_run_functions = set()
 
     def cleanup(self):
         docker_client = docker.from_env()

@@ -5,9 +5,6 @@ Connects the CLI with Local API Gateway service.
 import os
 import logging
 
-import docker
-import requests
-
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined

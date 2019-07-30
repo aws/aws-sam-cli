@@ -36,7 +36,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         super(LocalLambdaInvokeService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.lambda_runner = lambda_runner
         self.stderr = stderr
-        self._list_of_run_functions=set()
+        self._list_of_run_functions = set()
 
     def cleanup(self):
         docker_client = docker.from_env()

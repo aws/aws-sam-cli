@@ -221,7 +221,7 @@ notes=FIXME,XXX
 [SIMILARITIES]
 
 # Minimum lines number of a similarity.
-min-similarity-lines=6
+min-similarity-lines=15
 
 # Ignore comments when computing similarities.
 ignore-comments=yes

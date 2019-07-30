@@ -9,7 +9,6 @@ import time
 
 import docker
 
-from samcli.local.docker.attach_api import attach
 from .utils import to_posix_path
 
 LOG = logging.getLogger(__name__)
@@ -234,13 +233,7 @@ class Container(object):
         real_container = self.docker_client.containers.get(self.id)
 
         # Fetch both stdout and stderr streams from Docker as a single iterator.
-        # logs_itr = self.docker_client.containers.get(self.id)\
-        #     .logs(stdout=True, stderr=True, stream=True, since=int(self.start_time))
-        logs_itr = attach(self.docker_client,
-                          container=real_container,
-                          stdout=True,
-                          stderr=True,
-                          logs=True)
+        logs_itr = real_container.attach(stream=True, logs=False, demux=True)
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 
@@ -278,22 +271,14 @@ class Container(object):
             Stream writer to write stderr data from the Container into
         """
 
-        # Iterator returns a tuple of (frame_type, data) where the frame type determines which stream we write output
-        # to
-        for frame_type, data in output_itr:
+        # Iterator returns a tuple of (stdout, stderr)
+        for stdout_data, stderr_data in output_itr:
 
-            if frame_type == Container._STDOUT_FRAME_TYPE and stdout:
-                # Frame type 1 is stdout data.
-                stdout.write(data)
+            if stdout_data:
+                stdout.write(stdout_data)
 
-            elif frame_type == Container._STDERR_FRAME_TYPE and stderr:
-                # Frame type 2 is stderr data.
-                stderr.write(data)
-
-            else:
-                # Either an unsupported frame type or stream for this frame type is not configured
-                LOG.debug("Dropping Docker container output because of unconfigured frame type. "
-                          "Frame Type: %s. Data: %s", frame_type, data)
+            if stderr_data:
+                stderr.write(stderr_data)
 
     @property
     def network_id(self):
@@ -331,5 +316,5 @@ class Container(object):
             self.id = self.docker_client.containers.get(self._function_name).id
         except Exception:
             return self.id is not None
-        
+
         return True
