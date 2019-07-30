@@ -8,7 +8,6 @@ import sys
 import boto3
 import click
 from botocore.exceptions import ClientError, WaiterError
-from click import secho
 
 from samcli.cli.main import pass_context, common_options
 from samcli.lib.telemetry.metrics import track_command
@@ -44,10 +43,10 @@ e.g. sam destroy -stack-name sam-app
                    "such as a non-empty S3 bucket, but you want to delete the stack.")
 @click.option('--role-arn',
               required=False,
-              help="""The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that AWS 
-              CloudFormation assumes to delete the stack. AWS CloudFormation uses the role's credentials to make 
-              calls on your behalf. If you don't specify a value, AWS CloudFormation uses the role  that was  
-              previously  associated with the stack. If no role is available, AWS CloudFormation uses a temporary 
+              help="""The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that AWS
+              CloudFormation assumes to delete the stack. AWS CloudFormation uses the role's credentials to make
+              calls on your behalf. If you don't specify a value, AWS CloudFormation uses the role  that was
+              previously  associated with the stack. If no role is available, AWS CloudFormation uses a temporary
               session that is  generated  from your user credentials.""")
 @click.option('--client-request-token',
               required=False,
@@ -56,7 +55,7 @@ e.g. sam destroy -stack-name sam-app
                   you're  not  attempting  to  delete  a stack with the same name. You
                   might retry DeleteStack requests to ensure that  AWS  CloudFormation
                   successfully received them.
-                  
+
                   Learn more at aws cloudformation destroy help
                   """)
 @click.option('-w', '--wait', required=False, is_flag=True, help="Option to wait for Stack deletion")
@@ -97,17 +96,17 @@ def verify_stack_exists(client, stack_name, required_status=None):
     try:
         described_stack = client.describe_stacks(StackName=stack_name)
     except ClientError:
-        secho("The stack {} must exist in order to be deleted".format(stack_name), fg="red")
+        click.secho("The stack {} must exist in order to be deleted".format(stack_name), fg="red")
         sys.exit(1)
 
     if required_status and described_stack['Stacks'][0]['StackStatus'] != required_status:
-        secho("The stack {} does not have the correct status {}".format(stack_name, required_status), fg="red")
+        click.secho("The stack {} does not have the correct status {}".format(stack_name, required_status), fg="red")
         sys.exit(1)
 
 
 def verify_stack_retain_resources(client, stack_name, retain_resources=None):
     """
-    Checks that if any of the resources are in a state of DELETE_FAILED, they need to be in the retain_resources section.
+    Checks that if any of the resources are in a state of DELETE_FAILED, they need to be in the retain_resources section
 
     The stack must also exist in order to be deleted
     Parameters
@@ -129,8 +128,9 @@ def verify_stack_retain_resources(client, stack_name, retain_resources=None):
     for event in events:
         logical_id = event.get("LogicalResourceId")
         if logical_id not in retain_resources:
-            secho("The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
-                  "deletion failed".format(logical_id, stack_name), fg="red")
+            click.secho(
+                "The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
+                "deletion failed".format(logical_id, stack_name), fg="red")
             sys.exit(1)
 
 
@@ -154,32 +154,31 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
     try:
         cfn.delete_stack(StackName=stack_name, **args)
     except ClientError as e:
-
         if "TerminationProtection" in e.response["Error"]["Message"]:
-            secho("""The stack {stack_name} has TerminationProtection turned on. Disable it on the aws console at 
-              https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws 
-              cloudformation update-termination-protection --stack-name {stack_name} 
-              --no-enable-termination-protection 
+            click.secho("""The stack {stack_name} has TerminationProtection turned on. Disable it on the aws console at
+              https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws
+              cloudformation update-termination-protection --stack-name {stack_name}
+              --no-enable-termination-protection
             """.format(stack_name=stack_name), fg="red")
         if "AccessDeniedException" in e.response["Error"]["Message"]:
-            secho("""
-                The user account does not have access to delete the stack. Add the cloudformation:delete policy 
+            click.secho("""
+                The user account does not have access to delete the stack. Add the cloudformation:delete policy
                 with the following format to the user account.
-                { 
-                    "Version": "2012-10-17", 
-                    "Statement": [ 
-                        { 
-                            "Effect": "Allow", 
-                            "Action": [ 
-                            "cloudformation:delete" 
-                            ], 
-                            "Resource": "*" 
-                        } 
-                    ] 
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                            "cloudformation:delete"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
                 }
             """)
         else:
-            secho("Delete Failed: {}".format(str(e)))
+            click.secho("Delete Failed: {}".format(str(e)))
 
         sys.exit(1)
 
@@ -193,7 +192,7 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
                             'MaxAttemps': wait_time / delay
                         })
         except WaiterError as e:
-            secho("Failed to delete stack {} because {}".format(stack_name, str(e)), fg="red")
+            click.secho("Failed to delete stack {} because {}".format(stack_name, str(e)), fg="red")
             sys.exit(1)
 
-    secho("Destroyed stack {}!".format(stack_name), fg="cyan")
+    click.secho("Destroyed stack {}!".format(stack_name), fg="cyan")
