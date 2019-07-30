@@ -201,8 +201,6 @@ class LocalApigwService(BaseLocalService):
             (status_code, headers, body) = self._parse_lambda_output(lambda_response,
                                                                      self.api.binary_media_types,
                                                                      request)
-            if cors_headers:
-                headers.extend(cors_headers)
         except (KeyError, TypeError, ValueError):
             LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
                       "statusCode in the response object). Response received: %s", lambda_response)

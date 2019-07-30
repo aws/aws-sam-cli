@@ -138,7 +138,7 @@ class SamApiProvider(CfnBaseApiProvider):
         A string with normalized route
         """
         if allow_methods == "*":
-            return allow_methods
+            return ','.join(sorted(Route.ANY_HTTP_METHODS))
         methods = allow_methods.split(",")
         normalized_methods = []
         for method in methods:
