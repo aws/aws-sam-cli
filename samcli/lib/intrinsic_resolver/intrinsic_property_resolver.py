@@ -1,6 +1,7 @@
 """
 Process and simplifies CloudFormation intrinsic properties such as FN::* and Ref
 """
+import copy
 import logging
 
 import base64
@@ -82,7 +83,7 @@ class IntrinsicResolver(object):
             A dictionary containing all the resources and the attributes of the CloudFormation template. The class does
             not mutate the template.
         """
-        self._template = template or {}
+        self._template = copy.deepcopy(template or {})
         self._resources = self._template.get("Resources", {})
         self._mapping = self._template.get("Mappings", {})
         self._parameters = self._template.get("Parameters", {})
@@ -141,10 +142,8 @@ class IntrinsicResolver(object):
         if intrinsic is None:
             raise InvalidIntrinsicException("Missing Intrinsic property in {}".format(parent_function))
 
-        if any(isinstance(intrinsic, object_type) for object_type in [string_types, list, bool, int]):
-            return intrinsic
-
-        if intrinsic == {}:
+        if any(isinstance(intrinsic, object_type) for object_type in
+               [string_types, list, bool, int]) or intrinsic == {}:
             return intrinsic
 
         keys = list(intrinsic.keys())
@@ -157,8 +156,8 @@ class IntrinsicResolver(object):
             intrinsic_value = intrinsic.get(key)
             return self.conditional_key_function_map.get(key)(intrinsic_value)
 
-        # In this case, it is a dictionary that doesn't directly contain an intrinsic resolver and must be
-        # re-parsed to resolve.
+        # In this case, it is a dictionary that doesn't directly contain an intrinsic resolver, we must recursively
+        # resolve each of it's sub properties.
         sanitized_dict = {}
         for key, val in intrinsic.items():
             sanitized_key = self.intrinsic_property_resolver(key, parent_function=parent_function)
