@@ -106,7 +106,7 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = cors_prop.get("AllowMethods", ','.join(Route.ANY_HTTP_METHODS))
+            allow_methods = cors_prop.get("AllowMethods", ','.join(sorted(Route.ANY_HTTP_METHODS)))
             allow_methods = self.normalize_cors_allow_methods(allow_methods)
             cors = Cors(
                 allow_origin=cors_prop.get("AllowOrigin"),
@@ -117,7 +117,7 @@ class SamApiProvider(CfnBaseApiProvider):
         elif cors_prop and isinstance(cors_prop, string_types):
             cors = Cors(
                 allow_origin=cors_prop,
-                allow_methods=','.join(Route.ANY_HTTP_METHODS),
+                allow_methods=','.join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
                 max_age=None
             )

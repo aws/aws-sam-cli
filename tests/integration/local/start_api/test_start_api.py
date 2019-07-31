@@ -702,7 +702,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
-                          sorted(Route.ANY_HTTP_METHODS))
+                          ','.join(sorted(Route.ANY_HTTP_METHODS)))
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
 
     def test_cors_global_get(self):
@@ -714,10 +714,9 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.content.decode('utf-8'), "no data")
         self.assertEquals(response.headers.get("Content-Type"), "application/json")
-        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), None)
         self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
-        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
-                          "GET,DELETE,PUT,POST,HEAD,OPTIONS,PATCH")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), None)
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
 
 
