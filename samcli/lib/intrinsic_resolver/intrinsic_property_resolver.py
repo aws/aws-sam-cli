@@ -213,7 +213,7 @@ class IntrinsicResolver(object):
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_JOIN)
 
-        delimiter = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_JOIN)
+        delimiter = arguments[0]
 
         verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_JOIN, position_in_list="first")
 
@@ -249,7 +249,7 @@ class IntrinsicResolver(object):
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SPLIT)
 
-        delimiter = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_SPLIT)
+        delimiter = arguments[0]
 
         verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_SPLIT, position_in_list="first")
 

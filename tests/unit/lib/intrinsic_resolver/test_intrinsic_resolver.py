@@ -32,16 +32,6 @@ class TestIntrinsicFnJoinResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic)
         self.assertEquals(result, "a,b,c,d:e:f:g;h;i;a,b,c,d")
 
-    def test_delimiter_fn_join(self):
-        intrinsic_base_1 = {
-            "Fn::Join": ["", ["t", "e", "s", "t"]]
-        }
-        intrinsic = {
-            "Fn::Join": [intrinsic_base_1, ["a", "e", "f", "d"]]
-        }
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
-        self.assertEquals(result, "atestetestftestd")
-
     @parameterized.expand([
         ("Fn::Join should fail for values that are not lists: {}".format(item), item)
         for item in
@@ -112,16 +102,6 @@ class TestIntrinsicFnSplitResolver(TestCase):
         }
         result = self.resolver.intrinsic_property_resolver(intrinsic)
         self.assertEquals(result, ['a', 'b', 'c', '', 'e', '', 'f', '', 'a', 'b', 'c'])
-
-    def test_delimiter_fn_split(self):
-        intrinsic_base_1 = {
-            "Fn::Join": ["", [","]]
-        }
-        intrinsic = {
-            "Fn::Split": [intrinsic_base_1, {"Fn::Join": [",", ["a", "e", "f", "d"]]}]
-        }
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
-        self.assertEquals(result, ['a', 'e', 'f', 'd'])
 
     @parameterized.expand([
         ("Fn::Split should fail for values that are not lists: {}".format(item), item)
@@ -1267,7 +1247,7 @@ class TestIntrinsicTemplateResolution(TestCase):
                         {"Fn::Base64":  # Becomes a;e;f;d
                              {"Fn::Join": [";",  # NOQA
                                            {"Fn::Split": [
-                                               {"Fn::Select": [1, [";", ","]]},
+                                               ",",
                                                {"Fn::Join": [",", ["a", "e", "f", "d"]]}]}
                                            ]
                               }
@@ -1421,12 +1401,7 @@ class TestIntrinsicTemplateResolution(TestCase):
                              'RestApi.Deployment': {
                                  'Properties': {'Body': {'Fn::Base64':
                                                              {'Fn::Join': [';',  # NOQA
-                                                                           {'Fn::Split': [{
-                                                                               'Fn::Select': [
-                                                                                   1,
-                                                                                   [
-                                                                                       ';',
-                                                                                       ',']]},
+                                                                           {'Fn::Split': [",",
                                                                                {
                                                                                    'Fn::Join': [
                                                                                        ',',
