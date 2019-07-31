@@ -7,7 +7,7 @@ from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymb
 
 class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
     def setUp(self):
-        self.symbol_table = IntrinsicsSymbolTable()
+        self.symbol_table = IntrinsicsSymbolTable(template={})
 
     def test_handle_account_id_default(self):
         self.assertEquals(self.symbol_table.handle_pseudo_account_id(), '123456789012')

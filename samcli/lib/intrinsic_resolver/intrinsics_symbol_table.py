@@ -67,8 +67,10 @@ class IntrinsicsSymbolTable(object):
 
     CFN_RESOURCE_TYPE = "Type"
 
-    def __init__(self, logical_id_translator=None, parameters=None, default_type_resolver=None,
-                 common_attribute_resolver=None, resources=None):
+    def __init__(self, template=None,
+                 logical_id_translator=None,
+                 default_type_resolver=None,
+                 common_attribute_resolver=None):
         """
         Initializes the Intrinsic Symbol Table so that runtime attributes can be resolved.
 
@@ -94,16 +96,6 @@ class IntrinsicsSymbolTable(object):
                 }
                 "AWS::Region": "us-east-1"
             }
-        parameters: dict
-            After the logical Id translator is checked, the parameters dictionary that is provided within the
-            CloudFormation stack is used. This is usually used with the default parameter
-            The format of parameters is
-            "Parameters" : {
-              "ParameterLogicalID" : {
-                "Type" : "DataType",
-                "ParameterProperty" : "value"
-              }
-            }
         default_type_resolver: dict
             This can be used provide common attributes that are true across all objects of a certain type.
             This can be in the format of
@@ -126,23 +118,20 @@ class IntrinsicsSymbolTable(object):
                 "Arn:": arn_resolver
             }
         """
+        if template is None:
+            template = {}
         self.logical_id_translator = logical_id_translator or {}
 
-        self.parameters = parameters or {}
-        self.resources = resources or {}
+        self._template = template
+        self._parameters = self._template.get("Parameters", {})
+        self._resources = self._template.get("Resources", {})
 
-        self.default_type_resolver = default_type_resolver or {
-            "AWS::ApiGateway::RestApi": {
-                "RootResourceId": "/"  # It usually used as a reference to the parent id of the RestApi,
-            }
-        }
+        self.default_type_resolver = default_type_resolver or self.get_default_type_resolver()
+        self.common_attribute_resolver = common_attribute_resolver or self.get_default_attribute_resolver()
+        self.default_pseudo_resolver = self.get_default_pseudo_resolver()
 
-        self.common_attribute_resolver = common_attribute_resolver or {
-            "Ref": lambda logical_id: logical_id,
-            "Arn": self.arn_resolver
-        }
-
-        self.default_pseudo_resolver = {
+    def get_default_pseudo_resolver(self):
+        return {
             IntrinsicsSymbolTable.AWS_ACCOUNT_ID: self.handle_pseudo_account_id,
             IntrinsicsSymbolTable.AWS_NOTIFICATION_ARN: self.handle_pseudo_notification_arn,
             IntrinsicsSymbolTable.AWS_PARTITION: self.handle_pseudo_partition,
@@ -151,6 +140,20 @@ class IntrinsicsSymbolTable(object):
             IntrinsicsSymbolTable.AWS_STACK_NAME: self.handle_pseudo_stack_name,
             IntrinsicsSymbolTable.AWS_NOVALUE: self.handle_pseudo_no_value,
             IntrinsicsSymbolTable.AWS_URL_PREFIX: self.handle_pseudo_url_prefix,
+        }
+
+    def get_default_attribute_resolver(self):
+        return {
+            "Ref": lambda logical_id: logical_id,
+            "Arn": self.arn_resolver
+        }
+
+    @staticmethod
+    def get_default_type_resolver():
+        return {
+            "AWS::ApiGateway::RestApi": {
+                "RootResourceId": "/"  # It usually used as a reference to the parent id of the RestApi,
+            }
         }
 
     def resolve_symbols(self, logical_id, resource_attribute, ignore_errors=False):
@@ -190,11 +193,11 @@ class IntrinsicsSymbolTable(object):
             self.logical_id_translator[logical_id] = translated
             return translated
 
-        translated = self.parameters.get(logical_id, {}).get("Default")
+        translated = self._parameters.get(logical_id, {}).get("Default")
         if translated:
             return translated
 
-        resource_type = self.resources.get(logical_id, {}).get(IntrinsicsSymbolTable.CFN_RESOURCE_TYPE)
+        resource_type = self._resources.get(logical_id, {}).get(IntrinsicsSymbolTable.CFN_RESOURCE_TYPE)
         resolver = self.default_type_resolver.get(resource_type, {}).get(resource_attribute) if resource_type else {}
         if resolver:
             if callable(resolver):

@@ -371,9 +371,9 @@ class TestIntrinsicFnRefResolver(TestCase):
                 },
             }
         }
-
+        template = {"Resources": resources}
         self.resolver = IntrinsicResolver(
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template))
 
     def test_basic_ref_translation(self):
         intrinsic = {
@@ -457,10 +457,11 @@ class TestIntrinsicFnGetAttResolver(TestCase):
             }
         }
         template = {"Resources": resources}
+        symbol_resolver = IntrinsicsSymbolTable(template=template,
+                                                logical_id_translator=logical_id_translator)
         self.resources = resources
         self.resolver = IntrinsicResolver(template=template,
-                                          symbol_resolver=IntrinsicsSymbolTable(
-                                              logical_id_translator=logical_id_translator))
+                                          symbol_resolver=symbol_resolver)
 
     def test_fn_getatt_basic_translation(self):
         intrinsic = {
@@ -543,8 +544,9 @@ class TestIntrinsicFnSubResolver(TestCase):
                 },
             }
         }
+        template = {"Resources": resources}
         self.resolver = IntrinsicResolver(
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, resources=resources))
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template))
 
     def test_fn_sub_basic_uri(self):
         intrinsic = {
@@ -726,9 +728,10 @@ class TestIntrinsicFnNotResolver(TestCase):
             }
         }
         template = {"Conditions": conditions}
+        symbol_resolver = IntrinsicsSymbolTable(template=template,
+                                                logical_id_translator=logical_id_translator)
         self.resolver = IntrinsicResolver(template=template,
-                                          symbol_resolver=IntrinsicsSymbolTable(
-                                              logical_id_translator=logical_id_translator))
+                                          symbol_resolver=symbol_resolver)
 
     def test_fn_not_basic_false(self):
         intrinsic = {"Fn::Not": [{"Fn::Equals": [
@@ -858,9 +861,10 @@ class TestIntrinsicFnAndResolver(TestCase):
             }
         }
         template = {"Conditions": conditions}
+        symbol_resolver = IntrinsicsSymbolTable(template=template,
+                                                logical_id_translator=logical_id_translator)
         self.resolver = IntrinsicResolver(template=template,
-                                          symbol_resolver=IntrinsicsSymbolTable(
-                                              logical_id_translator=logical_id_translator))
+                                          symbol_resolver=symbol_resolver)
 
     def test_fn_and_basic_true(self):
         prod_fn_equals = {"Fn::Equals": [
@@ -967,10 +971,11 @@ class TestIntrinsicFnOrResolver(TestCase):
                 ]
             }
         }
+
         template = {"Conditions": conditions}
-        self.resolver = IntrinsicResolver(template=template,
-                                          symbol_resolver=IntrinsicsSymbolTable(
-                                              logical_id_translator=logical_id_translator))
+        symbol_resolver = IntrinsicsSymbolTable(template=template,
+                                                logical_id_translator=logical_id_translator)
+        self.resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
 
     def test_fn_or_basic_true(self):
         prod_fn_equals = {"Fn::Equals": [
@@ -1088,9 +1093,9 @@ class TestIntrinsicFnIfResolver(TestCase):
             "InvalidCondition": ["random items"]
         }
         template = {"Conditions": conditions}
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator=logical_id_translator)
         self.resolver = IntrinsicResolver(template=template,
-                                          symbol_resolver=IntrinsicsSymbolTable(
-                                              logical_id_translator=logical_id_translator))
+                                          symbol_resolver=symbol_resolver)
 
     def test_fn_if_basic_true(self):
         intrinsic = {
@@ -1343,9 +1348,10 @@ class TestIntrinsicTemplateResolution(TestCase):
         self.resources = resources
         self.conditions = conditions
         self.mappings = mappings
+        symbol_resolver = IntrinsicsSymbolTable(template=template,
+                                                logical_id_translator=self.logical_id_translator)
         self.resolver = IntrinsicResolver(template=template,
-                                          symbol_resolver=IntrinsicsSymbolTable(
-                                              logical_id_translator=logical_id_translator))
+                                          symbol_resolver=symbol_resolver)
 
     def test_basic_template_resolution(self):
         resolved_template = self.resolver.resolve_template(ignore_errors=False)
@@ -1371,10 +1377,10 @@ class TestIntrinsicTemplateResolution(TestCase):
             "Conditions": self.conditions,
             "Resources": resources,
         }
-
+        symbol_resolver = IntrinsicsSymbolTable(template=template,
+                                                logical_id_translator=self.logical_id_translator)
         resolver = IntrinsicResolver(template=template,
-                                     symbol_resolver=IntrinsicsSymbolTable(
-                                         logical_id_translator=self.logical_id_translator))
+                                     symbol_resolver=symbol_resolver)
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Find In Map"):
             resolver.resolve_template(ignore_errors=False)
 
@@ -1386,10 +1392,10 @@ class TestIntrinsicTemplateResolution(TestCase):
             "Conditions": self.conditions,
             "Resources": resources,
         }
-
+        symbol_resolver = IntrinsicsSymbolTable(template=template,
+                                                logical_id_translator=self.logical_id_translator)
         resolver = IntrinsicResolver(template=template,
-                                     symbol_resolver=IntrinsicsSymbolTable(
-                                         logical_id_translator=self.logical_id_translator))
+                                     symbol_resolver=symbol_resolver)
         result = resolver.resolve_template(ignore_errors=True)
         expected_template = {'HelloHandler2E4FBA4D': {'Properties': {'handler': 'main.handle'},
                                                       'Type': 'AWS::Lambda::Function'},
@@ -1402,13 +1408,13 @@ class TestIntrinsicTemplateResolution(TestCase):
                                  'Properties': {'Body': {'Fn::Base64':
                                                              {'Fn::Join': [';',  # NOQA
                                                                            {'Fn::Split': [",",
-                                                                               {
-                                                                                   'Fn::Join': [
-                                                                                       ',',
-                                                                                       ['a',
-                                                                                        'e',
-                                                                                        'f',
-                                                                                        'd']]}]}]}},
+                                                                                          {
+                                                                                              'Fn::Join': [
+                                                                                                  ',',
+                                                                                                  ['a',
+                                                                                                   'e',
+                                                                                                   'f',
+                                                                                                   'd']]}]}]}},
                                                 'BodyS3Location': {'Fn::FindInMap': []}},
                                  'Type': 'AWS::ApiGateway::RestApi'},
                              'RestApiResource': {'Properties': {'PathPart': '{proxy+}',
