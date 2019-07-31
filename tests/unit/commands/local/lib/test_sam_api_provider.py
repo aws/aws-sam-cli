@@ -1128,13 +1128,13 @@ class TestSamCors(TestCase):
         provider = ApiProvider(template)
 
         routes = provider.routes
-        cors = Cors(allow_origin="*", allow_methods=','.join(["GET",
-                                                              "DELETE",
-                                                              "PUT",
-                                                              "POST",
-                                                              "HEAD",
-                                                              "OPTIONS",
-                                                              "PATCH"]))
+        cors = Cors(allow_origin="*", allow_methods=','.join(sorted(["GET",
+                                                                     "DELETE",
+                                                                     "PUT",
+                                                                     "POST",
+                                                                     "HEAD",
+                                                                     "OPTIONS",
+                                                                     "PATCH"])))
         route1 = Route(path='/path2', methods=['POST', 'OPTIONS'], function_name='NoApiEventFunction')
         route2 = Route(path='/path', methods=['GET', 'OPTIONS'], function_name='NoApiEventFunction')
 
