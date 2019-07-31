@@ -19,6 +19,7 @@ def get_application_dir():
     Path
         Path representing the application config directory
     """
+    # TODO: Get the config directory directly from `GlobalConfig`
     return Path(click.get_app_dir('AWS SAM', force_posix=True))
 
 

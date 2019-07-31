@@ -14,6 +14,8 @@ from samcli.commands.local.lib.local_api_service import LocalApiService
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
+from samcli.lib.telemetry.metrics import track_command
+
 
 LOG = logging.getLogger(__name__)
 
@@ -43,6 +45,7 @@ and point SAM to the directory or file containing build artifacts.
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
 @pass_context
+@track_command
 def cli(ctx,
         # start-api Specific Options
         host, port, static_dir,

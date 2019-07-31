@@ -7,15 +7,20 @@ import json
 import click
 
 from samcli import __version__
+from samcli.lib.telemetry.metrics import send_installed_metric
 from .options import debug_option, region_option, profile_option
 from .context import Context
 from .command import BaseCommand
+from .global_config import GlobalConfig
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
 pass_context = click.make_pass_decorator(Context)
+
+
+global_cfg = GlobalConfig()
 
 
 def common_options(f):
@@ -48,6 +53,18 @@ def print_info(ctx, param, value):
     ctx.exit()
 
 
+# Keep the message to 80chars wide to it prints well on most terminals
+TELEMETRY_PROMPT = """
+\tSAM CLI now collects telemetry to better understand customer needs.
+
+\tYou can OPT OUT and disable telemetry collection by setting the
+\tenvironment variable SAM_CLI_TELEMETRY=0 in your shell.
+\tThanks for your help!
+
+\tLearn More: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-telemetry.html
+"""  # noqa
+
+
 @click.command(cls=BaseCommand)
 @common_options
 @click.version_option(version=__version__, prog_name="SAM CLI")
@@ -62,4 +79,19 @@ def cli(ctx):
     You can find more in-depth guide about the SAM specification here:
     https://github.com/awslabs/serverless-application-model.
     """
-    pass
+
+    if global_cfg.telemetry_enabled is None:
+        enabled = True
+
+        try:
+            global_cfg.telemetry_enabled = enabled
+
+            if enabled:
+                click.secho(TELEMETRY_PROMPT, fg="yellow", err=True)
+
+                # When the Telemetry prompt is printed, we can safely assume that this is the first time someone
+                # is installing SAM CLI on this computer. So go ahead and send the `installed` metric
+                send_installed_metric()
+
+        except (IOError, ValueError) as ex:
+            LOG.debug("Unable to write telemetry flag", exc_info=ex)

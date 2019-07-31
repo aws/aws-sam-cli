@@ -11,6 +11,8 @@ from samcli.commands.exceptions import UserException
 from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS
 from samcli.local.init import generate_project
 from samcli.local.init.exceptions import GenerateProjectFailedError
+from samcli.lib.telemetry.metrics import track_command
+
 
 LOG = logging.getLogger(__name__)
 
@@ -27,6 +29,7 @@ LOG = logging.getLogger(__name__)
               help="Disable prompting and accept default values defined template config")
 @common_options
 @pass_context
+@track_command
 def cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
     """ \b
         Initialize a serverless application with a SAM template, folder
