@@ -1,7 +1,6 @@
 """
 The symbol table that is used in IntrinsicResolver in order to resolve runtime attributes
 """
-import json
 import os
 import uuid
 from random import randint
@@ -213,30 +212,6 @@ class IntrinsicsSymbolTable(object):
         raise InvalidSymbolException(
             "The {} is not supported in the logical_id_translator, default_type_resolver, or the attribute_resolver."
             " It is also not a supported pseudo function".format(logical_id + "." + resource_attribute))
-
-    def verify_valid_fn_get_attribute(self, logical_id, resource_type):
-        """"
-        This function uses a CloudFormationResourceSpecification.json, which contains the list of attributes that can
-        be allowed in an Fn::Get.
-
-        This is currently not used because of filepath issues
-
-        Parameters
-        -----------
-        logical_id: str
-            This is the logical_id of the requested intrinsic's property in question.
-        resource_type: str
-            This is the resource_type of the requested intrinsic's property in question.
-
-        Returns
-        --------
-            A boolean that verifies
-        """
-        with open('CloudFormationResourceSpecification.json') as json_data:
-            resource_specification = json.load(json_data)
-            resource = self.resources.get(logical_id, {})
-
-            return resource_type in resource_specification.get(resource.get("Type", ""), {}).get("Attributes", {})
 
     def arn_resolver(self, logical_id, service_name="lambda"):
         """
