@@ -50,7 +50,7 @@ class LocalLambdaRunner(object):
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
 
-    def invoke(self, function_name, event, stdout=None, stderr=None):
+    def invoke(self, function_name, event, stdout=None, stderr=None, warm=False):
         """
         Find the Lambda function with given name and invoke it. Pass the given event to the function and return
         response through the given streams.
@@ -90,7 +90,7 @@ class LocalLambdaRunner(object):
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr, warm=warm)
 
     def is_debugging(self):
         """

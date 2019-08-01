@@ -161,7 +161,7 @@ class LocalApigwService(BaseLocalService):
         stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
         try:
-            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
+            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr, warm=True)
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 

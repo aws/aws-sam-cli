@@ -99,12 +99,19 @@ class ContainerManager(object):
 
     def stop(self, container):
         """
-        Stop and delete the container
+        Stop the container
 
         :param samcli.local.docker.container.Container container: Container to stop
         """
-        # container.delete()
         container.stop()
+
+    def delete(self, container):
+        """
+        Delete the container
+
+        :param samcli.local.docker.container.Container container: Container to stop
+        """
+        container.delete()
 
     def pull_image(self, image_name, stream=None):
         """

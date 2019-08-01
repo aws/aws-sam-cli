@@ -44,7 +44,8 @@ class LambdaRuntime(object):
                event,
                debug_context=None,
                stdout=None,
-               stderr=None):
+               stderr=None,
+               warm=False):
         """
         Invoke the given Lambda function locally.
 
@@ -114,7 +115,11 @@ class LambdaRuntime(object):
                 # If we are in debugging mode, timer would not be created. So skip cleanup of the timer
                 if timer:
                     timer.cancel()
-                self._container_manager.stop(container)
+                
+                if warm:
+                    self._container_manager.stop(container)
+                else:
+                    self._container_manager.delete(container)
 
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
         """

@@ -154,7 +154,7 @@ class LocalLambdaInvokeService(BaseLocalService):
 
         try:
             start_time = time.time()
-            self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr)
+            self.lambda_runner.invoke(function_name, request_data, stdout=stdout_stream_writer, stderr=self.stderr, warm=True)
             LOG.info("Running the function took: %s", str(time.time() - start_time))
         except FunctionNotFound:
             LOG.debug('%s was not found to invoke.', function_name)
