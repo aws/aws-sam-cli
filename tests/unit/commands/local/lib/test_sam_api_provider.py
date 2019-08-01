@@ -471,7 +471,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         assertCountEqual(self, self.input_apis, provider.apis)
 
     def test_with_swagger_as_local_file(self):
-        with tempfile.NamedTemporaryFile(mode='w') as fp:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as fp:
             filename = fp.name
 
             swagger = make_swagger(self.input_apis)
