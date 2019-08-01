@@ -59,7 +59,7 @@ e.g. sam destroy -stack-name sam-app
                   Learn more at aws cloudformation destroy help
                   """)
 @click.option('-w', '--wait', required=False, is_flag=True, help="Option to wait for Stack deletion")
-@click.option('--wait-time', required=False,
+@click.option('--wait-time', required=False, type=click.INT,
               help="The time to wait for stack to delete in seconds. Used with --wait. The default is 5 minutes")
 @click.option('-y', '--yes', 'ignore_cli_prompt', required=False, is_flag=True,
               help="Deletes the Stack without cli prompt")
@@ -123,15 +123,16 @@ def verify_stack_retain_resources(client, stack_name, retain_resources=None):
     response_iterator = paginator.paginate(
         StackName=stack_name
     )
-    events = [event for event in response_iterator.get("StackEvents") if
-              event.get("ResourceStatus") == "DELETE_FAILED"]
-    for event in events:
-        logical_id = event.get("LogicalResourceId")
-        if logical_id not in retain_resources:
-            click.secho(
-                "The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
-                "deletion failed".format(logical_id, stack_name), fg="red")
-            sys.exit(1)
+    for iterator in response_iterator:
+        events = [event for event in iterator.get("StackEvents") if
+                  event.get("ResourceStatus") == "DELETE_FAILED"]
+        for event in events:
+            logical_id = event.get("LogicalResourceId")
+            if logical_id not in retain_resources:
+                click.secho(
+                    "The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
+                    "deletion failed".format(logical_id, stack_name), fg="red")
+                sys.exit(1)
 
 
 def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time, ignore_cli_prompt):
@@ -156,11 +157,9 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
     except ClientError as e:
         if "TerminationProtection" in e.response["Error"]["Message"]:
             click.secho("""The stack {stack_name} has TerminationProtection turned on. Disable it on the aws console at
-              https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws
-              cloudformation update-termination-protection --stack-name {stack_name}
-              --no-enable-termination-protection
-            """.format(stack_name=stack_name), fg="red")
-        if "AccessDeniedException" in e.response["Error"]["Message"]:
+              https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws cloudformation update-termination-protection --stack-name {stack_name} --no-enable-termination-protection"""
+                        .format(stack_name=stack_name), fg="red")
+        elif "AccessDeniedException" in e.response["Error"]["Message"]:
             click.secho("""
                 The user account does not have access to delete the stack. Add the cloudformation:delete policy
                 with the following format to the user account.
@@ -182,7 +181,7 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
 
         sys.exit(1)
 
-    if wait:
+    if wait or wait_time:
         waiter = cfn.get_waiter('stack_delete_complete')
         try:
             delay = 15
