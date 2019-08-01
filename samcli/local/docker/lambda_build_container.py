@@ -22,7 +22,7 @@ class LambdaBuildContainer(Container):
     and if the build was successful, copies back artifacts to the host filesystem
     """
 
-    _IMAGE_REPO_NAME = "lambci/lambda"
+    _LAMBCI_IMAGE_REPO_NAME = "lambci/lambda"
     _BUILDERS_EXECUTABLE = "lambda-builders"
 
     def __init__(self,  # pylint: disable=too-many-locals
@@ -229,4 +229,6 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _get_image(runtime):
-        return "{}:build-{}".format(LambdaBuildContainer._IMAGE_REPO_NAME, runtime)
+        runtime_to_images = {"nodejs10.x": "amazon/lambda-build-node10.x"}
+
+        return runtime_to_images.get(runtime, "{}:build-{}".format(LambdaBuildContainer._LAMBCI_IMAGE_REPO_NAME, runtime))
