@@ -39,7 +39,7 @@ class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
 
-    def __init__(self, routing_list, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(self, routing_list, lambda_runner, static_dir=None, port=None, host=None, stderr=None, warm=False):
         """
         Creates an ApiGatewayService
 
@@ -66,12 +66,14 @@ class LocalApigwService(BaseLocalService):
         self.static_dir = static_dir
         self._dict_of_routes = {}
         self.stderr = stderr
+        self._warm = warm
         self._list_of_run_functions = set()
 
     def cleanup(self):
+        LOG.info("Cleaning up any stopped containers.")
         docker_client = docker.from_env()
         for function_name in self._list_of_run_functions:
-            LOG.info("Deleting stopped container %s", function_name)
+            LOG.debug("Deleting stopped container %s", function_name)
             container = docker_client.containers.get(function_name)
             container.remove()
 
@@ -150,7 +152,8 @@ class LocalApigwService(BaseLocalService):
         Response object
         """
         route = self._get_current_route(request)
-        self._list_of_run_functions.add(route.function_name)
+        if self._warm:
+            self._list_of_run_functions.add(route.function_name)
 
         try:
             event = self._construct_event(request, self.port, route.binary_types)
@@ -161,7 +164,7 @@ class LocalApigwService(BaseLocalService):
         stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
         try:
-            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr, warm=True)
+            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr, warm=self._warm)
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 

@@ -69,7 +69,8 @@ class LocalApiService(object):
                                     static_dir=static_dir_path,
                                     port=self.port,
                                     host=self.host,
-                                    stderr=self.stderr_stream)
+                                    stderr=self.stderr_stream,
+                                    warm=True)
 
         service.create()
 
