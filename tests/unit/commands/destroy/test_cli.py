@@ -1,40 +1,230 @@
 from unittest import TestCase
 
-from mock import patch
-from samcli.commands.destroy import do_cli as destroy_cli
+from botocore.exceptions import ClientError
+from mock import patch, Mock
+from samcli.commands.destroy import do_cli as destroy_cli, verify_stack_exists, verify_stack_retain_resources
+
+
+class DestroyTestCalledException(Exception):
+    pass
 
 
 class TestDestroyCli(TestCase):
     def setUp(self):
-        self.args = ('--force-upload',)
-        self.expected_args = self.args + ("--stack-name", "stackName")
+        self.verify_stack_exists_mock = patch('samcli.commands.destroy.verify_stack_exists', Mock()).start()
+        self.verify_stack_retain_resources_mock = patch('samcli.commands.destroy.verify_stack_retain_resources',
+                                                        Mock()).start()
+        self.mock_client = patch('boto3.client', Mock()).start()
+        self.click_secho_mock = patch('click.secho', Mock()).start()
+
+        self.addCleanup(self.verify_stack_exists_mock.stop)
+        self.addCleanup(self.verify_stack_retain_resources_mock.stop)
+        self.addCleanup(self.mock_client.stop)
+        self.addCleanup(self.click_secho_mock.stop)
+
+        self.verify_stack_exists_mock.return_value = True
+        self.verify_stack_retain_resources_mock.return_value = True
+        self.delete_stack = Mock()
+        self.mock_client.return_value = Mock(delete_stack=self.delete_stack)
+        self.mock_client.delete_stack = self.delete_stack
 
     def test_destroy_must_pass_args(self):
-        pass
+        destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
+        self.delete_stack.assert_called_with(StackName="stack-name")
+
+    @patch('click.confirm')
+    def test_confirm_cli_printed(self, click_confirm):
+        destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=False)
+        click_confirm.assert_called_with('Are you sure you want to delete the stack stack-name?', default=True,
+                                         abort=True)
 
     def test_pass_only_none_null_arguments(self):
-        pass
+        retain_resources = ["testResource"]
+        destroy_cli(ctx=None, stack_name='stack-name', retain_resources=retain_resources, ignore_cli_prompt=True)
+        self.delete_stack.assert_called_with(StackName="stack-name", RetainResources=retain_resources)
 
     def test_role_arn_passed(self):
-        pass
+        destroy_cli(ctx=None, stack_name='stack-name', role_arn="testArn", ignore_cli_prompt=True)
+        self.delete_stack.assert_called_with(RoleARN='testArn', StackName='stack-name')
 
-    def test_retain_resources_prompt(self):
-        pass
+    def test_client_request_token(self):
+        destroy_cli(ctx=None, stack_name='stack-name', client_request_token="test", ignore_cli_prompt=True)
+        self.delete_stack.assert_called_with(ClientRequestToken='test', StackName='stack-name')
 
-    def test_verify_stack_exists(self):
-        pass
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_termination_protection_enabled(self, exit_client, secho_client):
+        self.delete_stack.side_effect = ClientError({"Error": {"Code": 500, "Message": "TerminationProtection"}},
+                                                    "Test")
+        exit_client.side_effect = DestroyTestCalledException()
+        with self.assertRaises(DestroyTestCalledException):
+            destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
+        secho_client.assert_called_once_with(
+            'The stack stack-name has TerminationProtection turned on. Disable it on the aws console at'
+            '\n              https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws cloudformation update-termination-protection --stack-name stack-name --no-enable-termination-protection',
+            fg='red')
 
-    def test_verify_stack_exists_with_status(self):
-        pass
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_access_denied_exception(self, exit_client, secho_client):
+        self.delete_stack.side_effect = ClientError({"Error": {"Code": 500, "Message": "AccessDeniedException"}},
+                                                    "Test")
+        exit_client.side_effect = DestroyTestCalledException()
+        with self.assertRaises(DestroyTestCalledException):
+            destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
+        secho_client.assert_called_with("""
+                The user account does not have access to delete the stack. Add the cloudformation:delete policy
+                with the following format to the user account.
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                            "cloudformation:delete"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                }
+            """, fg='red')
 
-    def test_termination_protection_enabled(self):
-        pass
-
-    def test_access_denied_exception_prompt(self):
-        pass
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_destroy_unkown_exception(self, exit_client, secho_client):
+        self.delete_stack.side_effect = ClientError({"Error": {"Code": 500, "Message": "UNKOWN_EXCEPTION"}},
+                                                    "Test")
+        exit_client.side_effect = DestroyTestCalledException()
+        with self.assertRaises(DestroyTestCalledException):
+            destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
+        secho_client.assert_called_with('Failed to destroy Stack: UNKOWN_EXCEPTION', fg='red')
 
     def test_destroy_wait_called(self):
-        pass
+        wait_mock = Mock()
+        self.mock_client.get_waiter.return_value.wait = wait_mock
+        destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, ignore_cli_prompt=True)
+        wait_mock.assert_called_with('test')
 
-    def test_destroy_wait_called_error(self):
-        pass
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_destroy_wait_called_error(self, exit_client, secho_client):
+        exit_client.side_effect = DestroyTestCalledException()
+        wait_mock = Mock()
+
+        get_waiter = Mock()
+        get_waiter.return_value = []
+        get_waiter.wait = wait_mock
+        get_waiter.wait.side_effect = ClientError({"Error": {"Code": 500, "Message": "UNKOWN_EXCEPTION"}},
+                                                  "Test")
+        self.mock_client.get_waiter = get_waiter
+        with self.assertRaises(DestroyTestCalledException):
+            destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, ignore_cli_prompt=True)
+        secho_client.assert_called_with('Failed to destroy Stack: UNKOWN_EXCEPTION', fg='red')
+
+
+class TestDestroyStackVerification(TestCase):
+    @patch('boto3.client')
+    def test_verify_stack_exists(self, client):
+        describe_stacks = Mock()
+        client.return_value = Mock(describe_stacks=describe_stacks)
+        client.describe_stacks = describe_stacks
+
+        verify_stack_exists(client, 'stack-name')
+        describe_stacks.assert_called_with(StackName='stack-name')
+
+    @patch('boto3.client')
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_verify_stack_exists_with_status(self, sys_exit, click_client, boto_client):
+        describe_stacks = Mock()
+        describe_stacks.return_value = {
+            'Stacks': [
+                {'StackStatus': 'HEALTHY'}
+            ]
+        }
+        boto_client.return_value = Mock()
+        boto_client.describe_stacks = describe_stacks
+
+        verify_stack_exists(boto_client, 'stack-name', required_status="HEALTHY")
+        describe_stacks.assert_called_with(StackName='stack-name')
+
+    @patch('boto3.client')
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_verify_stack_exists_with_status_fail(self, sys_exit, click_client, boto_client):
+        sys_exit.return_value = True
+        describe_stacks = Mock()
+        describe_stacks.return_value = {
+            'Stacks': [
+                {'StackStatus': 'UNHEALTHY VERY UNHEALTHY'}
+            ]
+        }
+        boto_client.return_value = Mock()
+        boto_client.describe_stacks = describe_stacks
+
+        verify_stack_exists(boto_client, 'stack-name', required_status="HEALTHY")
+        click_client.assert_called_with('The stack stack-name does not have the correct status HEALTHY', fg='red')
+
+    @patch('boto3.client')
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_failure_stack_exists(self, sys_exit, click_client, boto_client):
+        describe_stacks = Mock()
+        describe_stacks.side_effect = ClientError({}, "Test")
+        boto_client.return_value = Mock()
+        boto_client.describe_stacks = describe_stacks
+
+        verify_stack_exists(boto_client, 'stack-name')
+        click_client.assert_called_with('The stack stack-name must exist in order to be deleted', fg='red')
+
+    @patch('boto3.client')
+    @patch('sys.exit')
+    def test_verify_stack_retain_resources_paginates(self, sys_exit, client):
+        paginator = Mock()
+        paginator.paginate.return_value = \
+            [{
+                "StackEvents": [{
+                    "LogicalResourceId": "test",
+                    "ResourceStatus": "Success"
+                }, {
+                    "LogicalResourceId": "test",
+                    "ResourceStatus": "DELETE_FAILED"
+                }, ]
+            }]
+
+        get_paginator = Mock()
+        get_paginator.return_value = paginator
+
+        client.return_value = Mock()
+        client.get_paginator = get_paginator
+
+        verify_stack_retain_resources(client, 'stack-name', retain_resources=["test"])
+        sys_exit.assert_not_called()
+
+    @patch('boto3.client')
+    @patch('click.secho')
+    @patch('sys.exit')
+    def test_verify_stack_retain_resources_paginates(self, sys_exit, secho_client, client):
+        paginator = Mock()
+        paginator.paginate.return_value = \
+            [{
+                "StackEvents": [{
+                    "LogicalResourceId": "test",
+                    "ResourceStatus": "Success"
+                }, {
+                    "LogicalResourceId": "test",
+                    "ResourceStatus": "DELETE_FAILED"
+                }, ]
+            }]
+
+        get_paginator = Mock()
+        get_paginator.return_value = paginator
+
+        client.return_value = Mock()
+        client.get_paginator = get_paginator
+
+        verify_stack_retain_resources(client, 'stack-name')
+        secho_client.assert_called_with(
+            'The logicalId test of the resource in the stack stack-name must be included in retain_resource since the deletion failed',
+            fg='red')
+        sys_exit.assert_called_with(1)
