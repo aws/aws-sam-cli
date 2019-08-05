@@ -119,6 +119,8 @@ def verify_stack_retain_resources(client, stack_name, retain_resources=None):
         A list of resources that should be reatined. This is used when checking if all DELETE_FAILED are in the
         retain_resources
     """
+    if not retain_resources:
+        retain_resources = []
     paginator = client.get_paginator('describe_stack_events')
     response_iterator = paginator.paginate(
         StackName=stack_name
@@ -135,7 +137,8 @@ def verify_stack_retain_resources(client, stack_name, retain_resources=None):
                 sys.exit(1)
 
 
-def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time, ignore_cli_prompt):
+def do_cli(ctx, stack_name, retain_resources=None, role_arn=None, client_request_token=None, wait=None, wait_time=None,
+           ignore_cli_prompt=False):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -175,9 +178,9 @@ def do_cli(ctx, stack_name, retain_resources, role_arn, client_request_token, wa
                         }
                     ]
                 }
-            """)
+            """, fg="red")
         else:
-            click.secho("Delete Failed: {}".format(str(e)))
+            click.secho("Failed to destroy Stack: {}".format(str(e.response["Error"]["Message"])), fg="red")
 
         sys.exit(1)
 
