@@ -4,7 +4,7 @@ click~=6.7
 enum34~=1.1.6; python_version<"3.4"
 Flask~=1.0.2
 boto3~=1.9, >=1.9.56
-PyYAML~=3.12
+PyYAML~=5.1.2
 cookiecutter~=1.6.0
 aws-sam-translator==1.10.0
 docker~=3.7.0
