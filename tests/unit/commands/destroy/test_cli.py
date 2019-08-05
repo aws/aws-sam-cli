@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, WaiterError
 from mock import patch, Mock
 from samcli.commands.destroy import do_cli as destroy_cli, verify_stack_exists, verify_stack_retain_resources
 
@@ -24,9 +24,17 @@ class TestDestroyCli(TestCase):
 
         self.verify_stack_exists_mock.return_value = True
         self.verify_stack_retain_resources_mock.return_value = True
+
+        self.wait_mock = Mock()
+        self.wait_mock.wait.return_value = []
+
+        self.get_waiter = Mock()
+        self.get_waiter.return_value = self.wait_mock
+
         self.delete_stack = Mock()
-        self.mock_client.return_value = Mock(delete_stack=self.delete_stack)
+        self.mock_client.return_value = Mock(delete_stack=self.delete_stack, get_waiter=self.get_waiter)
         self.mock_client.delete_stack = self.delete_stack
+        self.mock_client.get_waiter = self.get_waiter
 
     def test_destroy_must_pass_args(self):
         destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
@@ -100,26 +108,19 @@ class TestDestroyCli(TestCase):
         secho_client.assert_called_with('Failed to destroy Stack: UNKOWN_EXCEPTION', fg='red')
 
     def test_destroy_wait_called(self):
-        wait_mock = Mock()
-        self.mock_client.get_waiter.return_value.wait = wait_mock
         destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, ignore_cli_prompt=True)
-        wait_mock.assert_called_with('test')
+        self.wait_mock.wait.assert_called_with(StackName='stack-name',
+                                               WaiterConfig={'Delay': 15, 'MaxAttemps': 6.666666666666667})
 
     @patch('click.secho')
     @patch('sys.exit')
     def test_destroy_wait_called_error(self, exit_client, secho_client):
         exit_client.side_effect = DestroyTestCalledException()
-        wait_mock = Mock()
-
-        get_waiter = Mock()
-        get_waiter.return_value = []
-        get_waiter.wait = wait_mock
-        get_waiter.wait.side_effect = ClientError({"Error": {"Code": 500, "Message": "UNKOWN_EXCEPTION"}},
-                                                  "Test")
-        self.mock_client.get_waiter = get_waiter
+        self.wait_mock.wait.side_effect = WaiterError("name", "reason", "last_response")
         with self.assertRaises(DestroyTestCalledException):
             destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, ignore_cli_prompt=True)
-        secho_client.assert_called_with('Failed to destroy Stack: UNKOWN_EXCEPTION', fg='red')
+        secho_client.assert_called_with('Failed to delete stack stack-name because Waiter name failed: reason',
+                                        fg='red')
 
 
 class TestDestroyStackVerification(TestCase):
