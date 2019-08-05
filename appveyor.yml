@@ -86,4 +86,3 @@ test_script:
     - "flake8 samcli"
     - "flake8 tests\\unit tests\\integration"
     - "pylint --rcfile .pylintrc samcli"
-    - "pytest tests/functional"
