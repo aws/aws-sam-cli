@@ -28,6 +28,10 @@ environment:
       PYTHON_VERSION: '3.7'
       PYTHON_ARCH: '64'
 
+cache:
+  - C:\ProgramData\chocolatey\bin -> appveyor.yml
+  - C:\ProgramData\chocolatey\lib -> appveyor.yml
+
 install:
     # To run Nodejs workflow integ tests
     - ps: Install-Product node 10
@@ -46,16 +50,6 @@ install:
     - "refreshenv"
     - "bundler --version"
     - "echo %PATH%"
-
-    # setup go
-    - "choco install golang -y"
-    - "refreshenv"
-    - "choco install bzr -y"
-    - "refreshenv"
-    - "choco install dep -y"
-    - "refreshenv"
-    - "go version"
-    - "go env"
 
     # setup Java, Maven and Gradle
     - "refreshenv"
@@ -86,7 +80,6 @@ install:
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
-   
 test_script:
     - "pytest -vv tests\\integration"
     - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\\unit"
