@@ -16,6 +16,7 @@ from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissio
 # On Windows, permissions do not match 1:1 with permissions on Unix systems.
 SKIP_UNZIP_PERMISSION_TESTS = platform.system() == 'Windows'
 
+
 @skipIf(SKIP_UNZIP_PERMISSION_TESTS, "Skip UnZip Permissions tests in Windows only")
 class TestUnzipWithPermissions(TestCase):
     """
@@ -64,6 +65,7 @@ class TestUnzipWithPermissions(TestCase):
             "contents": b'1.txt',
             "permissions": 0o644,
         }
+    }
 
     files_with_permissions = {
         "folder1/1.txt": 0o644,
