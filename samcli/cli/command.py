@@ -21,8 +21,12 @@ _SAM_CLI_COMMAND_PACKAGES = {
     "samcli.commands.publish"
 }
 
-DEPRECATION_NOTICE = "Warning : AWS SAM CLI will no longer support " \
-                     "installations on Python 2.7 starting on October 1st, 2019. \n"
+DEPRECATION_NOTICE = (
+    "Warning : AWS SAM CLI will no longer support "
+    "installations on Python 2.7 starting on October 1st, 2019."
+    " Install AWS SAM CLI via https://docs.aws.amazon.com/serverless-application-model/"
+    "latest/developerguide/serverless-sam-cli-install.html for continued support with new versions. \n"
+)
 
 
 class BaseCommand(click.MultiCommand):
