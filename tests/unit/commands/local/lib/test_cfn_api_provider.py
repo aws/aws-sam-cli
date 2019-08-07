@@ -55,7 +55,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         assertCountEqual(self, self.input_routes, provider.routes)
 
     def test_with_swagger_as_local_file(self):
-        with tempfile.NamedTemporaryFile(mode='w') as fp:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as fp:
             filename = fp.name
 
             swagger = make_swagger(self.input_routes)
@@ -79,7 +79,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             assertCountEqual(self, self.input_routes, provider.routes)
 
     def test_body_with_swagger_as_local_file_expect_fail(self):
-        with tempfile.NamedTemporaryFile(mode='w') as fp:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as fp:
             filename = fp.name
 
             swagger = make_swagger(self.input_routes)
