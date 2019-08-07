@@ -6,6 +6,12 @@ import json
 from unittest import TestCase
 from mock import Mock, call, patch
 
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
+
+
 from samcli.lib.build.app_builder import ApplicationBuilder,\
     UnsupportedBuilderLibraryVersionError, BuildError, \
     LambdaBuilderError, ContainerBuildNotSupported
@@ -131,9 +137,9 @@ class TestApplicationBuilder_build_function(TestCase):
 
         self.builder._build_function_in_process = Mock()
 
-        code_dir = "/base/dir/path/to/source"
-        artifacts_dir = "/build/dir/function_name"
-        manifest_path = os.path.join(code_dir, config_mock.manifest_name)
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         self.builder._build_function(function_name, codeuri, runtime)
 
@@ -159,9 +165,9 @@ class TestApplicationBuilder_build_function(TestCase):
 
         self.builder._build_function_on_container = Mock()
 
-        code_dir = "/base/dir/path/to/source"
-        artifacts_dir = "/build/dir/function_name"
-        manifest_path = os.path.join(code_dir, config_mock.manifest_name)
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         # Settting the container manager will make us use the container
         self.builder._container_manager = Mock()
