@@ -2,7 +2,8 @@ from unittest import TestCase
 
 from botocore.exceptions import ClientError, WaiterError
 from mock import patch, Mock
-from samcli.commands.destroy import do_cli as destroy_cli, verify_stack_exists, verify_stack_retain_resources
+from samcli.commands.destroy import do_cli as destroy_cli, verify_stack_exists, verify_stack_retain_resources, \
+    check_nested_stack
 
 
 class DestroyTestCalledException(Exception):
@@ -14,6 +15,8 @@ class TestDestroyCli(TestCase):
         self.verify_stack_exists_mock = patch('samcli.commands.destroy.verify_stack_exists', Mock()).start()
         self.verify_stack_retain_resources_mock = patch('samcli.commands.destroy.verify_stack_retain_resources',
                                                         Mock()).start()
+        self.check_nested_stack_mock = patch('samcli.commands.destroy.check_nested_stack',
+                                             Mock()).start()
         self.mock_client = patch('boto3.client', Mock()).start()
         self.click_secho_mock = patch('click.secho', Mock()).start()
 
@@ -21,6 +24,7 @@ class TestDestroyCli(TestCase):
         self.addCleanup(self.verify_stack_retain_resources_mock.stop)
         self.addCleanup(self.mock_client.stop)
         self.addCleanup(self.click_secho_mock.stop)
+        self.addCleanup(self.check_nested_stack_mock)
 
         self.verify_stack_exists_mock.return_value = True
         self.verify_stack_retain_resources_mock.return_value = True
@@ -37,26 +41,26 @@ class TestDestroyCli(TestCase):
         self.mock_client.get_waiter = self.get_waiter
 
     def test_destroy_must_pass_args(self):
-        destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
+        destroy_cli(ctx=None, stack_name='stack-name', force=True)
         self.delete_stack.assert_called_with(StackName="stack-name")
 
     @patch('click.confirm')
     def test_confirm_cli_printed(self, click_confirm):
-        destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=False)
+        destroy_cli(ctx=None, stack_name='stack-name', force=False)
         click_confirm.assert_called_with('Are you sure you want to delete the stack stack-name?', default=True,
                                          abort=True)
 
     def test_pass_only_none_null_arguments(self):
         retain_resources = ["testResource"]
-        destroy_cli(ctx=None, stack_name='stack-name', retain_resources=retain_resources, ignore_cli_prompt=True)
+        destroy_cli(ctx=None, stack_name='stack-name', retain_resources=retain_resources, force=True)
         self.delete_stack.assert_called_with(StackName="stack-name", RetainResources=retain_resources)
 
     def test_role_arn_passed(self):
-        destroy_cli(ctx=None, stack_name='stack-name', role_arn="testArn", ignore_cli_prompt=True)
+        destroy_cli(ctx=None, stack_name='stack-name', role_arn="testArn", force=True)
         self.delete_stack.assert_called_with(RoleARN='testArn', StackName='stack-name')
 
     def test_client_request_token(self):
-        destroy_cli(ctx=None, stack_name='stack-name', client_request_token="test", ignore_cli_prompt=True)
+        destroy_cli(ctx=None, stack_name='stack-name', client_request_token="test", force=True)
         self.delete_stack.assert_called_with(ClientRequestToken='test', StackName='stack-name')
 
     @patch('click.secho')
@@ -66,10 +70,12 @@ class TestDestroyCli(TestCase):
                                                     "Test")
         exit_client.side_effect = DestroyTestCalledException()
         with self.assertRaises(DestroyTestCalledException):
-            destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
+            destroy_cli(ctx=None, stack_name='stack-name', force=True)
         secho_client.assert_called_once_with(
-            'The stack stack-name has TerminationProtection turned on. Disable it on the aws console at'
-            '\n              https://us-west-1.console.aws.amazon.com/cloudformation/home \n or run aws cloudformation update-termination-protection --stack-name stack-name --no-enable-termination-protection',
+            'The stack stack-name has TerminationProtection turned on. Disable it on the aws console at ' +
+            'https://us-west-1.console.aws.amazon.com/cloudformation/home \n or ' +
+            'run aws cloudformation update-termination-protection --stack-name stack-name ' +
+            '--no-enable-termination-protection',
             fg='red')
 
     @patch('click.secho')
@@ -79,23 +85,11 @@ class TestDestroyCli(TestCase):
                                                     "Test")
         exit_client.side_effect = DestroyTestCalledException()
         with self.assertRaises(DestroyTestCalledException):
-            destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
-        secho_client.assert_called_with("""
-                The user account does not have access to delete the stack. Add the cloudformation:delete policy
-                with the following format to the user account.
-                {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                            "cloudformation:delete"
-                            ],
-                            "Resource": "*"
-                        }
-                    ]
-                }
-            """, fg='red')
+            destroy_cli(ctx=None, stack_name='stack-name', force=True)
+        secho_client.assert_called_with(
+            'The user account does not have access to delete the stack. \n' +
+            'Please update the resources required to delete the stack and the required user policies.',
+            fg='red')
 
     @patch('click.secho')
     @patch('sys.exit')
@@ -104,11 +98,11 @@ class TestDestroyCli(TestCase):
                                                     "Test")
         exit_client.side_effect = DestroyTestCalledException()
         with self.assertRaises(DestroyTestCalledException):
-            destroy_cli(ctx=None, stack_name='stack-name', ignore_cli_prompt=True)
+            destroy_cli(ctx=None, stack_name='stack-name', force=True)
         secho_client.assert_called_with('Failed to destroy Stack: UNKOWN_EXCEPTION', fg='red')
 
     def test_destroy_wait_called(self):
-        destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, ignore_cli_prompt=True)
+        destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, force=True)
         self.wait_mock.wait.assert_called_with(StackName='stack-name',
                                                WaiterConfig={'Delay': 15, 'MaxAttemps': 6.666666666666667})
 
@@ -118,7 +112,7 @@ class TestDestroyCli(TestCase):
         exit_client.side_effect = DestroyTestCalledException()
         self.wait_mock.wait.side_effect = WaiterError("name", "reason", "last_response")
         with self.assertRaises(DestroyTestCalledException):
-            destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, ignore_cli_prompt=True)
+            destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, force=True)
         secho_client.assert_called_with('Failed to delete stack stack-name because Waiter name failed: reason',
                                         fg='red')
 
@@ -205,7 +199,7 @@ class TestDestroyStackVerification(TestCase):
     @patch('boto3.client')
     @patch('click.secho')
     @patch('sys.exit')
-    def test_verify_stack_retain_resources_paginates(self, sys_exit, secho_client, client):
+    def test_verify_stack_retain_resources_paginates_fail(self, sys_exit, secho_client, client):
         paginator = Mock()
         paginator.paginate.return_value = \
             [{
@@ -226,6 +220,30 @@ class TestDestroyStackVerification(TestCase):
 
         verify_stack_retain_resources(client, 'stack-name')
         secho_client.assert_called_with(
-            'The logicalId test of the resource in the stack stack-name must be included in retain_resource since the deletion failed',
+            'The logicalId test of the resource in the stack stack-name must be included in retain_resource'
+            ' since the deletion failed',
             fg='red')
         sys_exit.assert_called_with(1)
+
+    @patch('boto3.client')
+    @patch('click.confirm')
+    def test_check_nested_stack(self, confirm_client, boto_client):
+        boto_client.get_template.return_value = {
+            "Resources": {
+                "NestedStack": {
+                    "Type": "AWS::CloudFormation::Stack",
+                    "Test": "test"
+                },
+                "Other Item": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "StageName": "Prod"
+                    }
+                }
+            }
+        }
+        check_nested_stack(boto_client, 'stack-name')
+        confirm_client.assert_called_with(
+            "The stack stack-name is a nested stack with the following resources: ['NestedStack']."
+            " Are you want to destroy them?",
+            abort=True, default=True)
