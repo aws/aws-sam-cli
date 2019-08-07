@@ -9,7 +9,9 @@ from six import string_types
 
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
-from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception_validation import (
+    InvalidSymbolException,
+)
 
 
 class IntrinsicsSymbolTable(object):
@@ -29,29 +31,38 @@ class IntrinsicsSymbolTable(object):
         AWS_STACK_ID,
         AWS_STACK_NAME,
         AWS_URL_PREFIX,
-        AWS_NOVALUE
+        AWS_NOVALUE,
     ]
 
     DEFAULT_REGION = "us-east-1"
-    REGIONS = {"us-east-1": ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"],
-               "us-west-1": ["us-west-1b", "us-west-1c"],
-               "eu-north-1": ["eu-north-1a", "eu-north-1b", "eu-north-1c"],
-               "ap-northeast-3": ["ap-northeast-3a"],
-               "ap-northeast-2": ["ap-northeast-2a", "ap-northeast-2b", "ap-northeast-2c"],
-               "ap-northeast-1": ["ap-northeast-1a", "ap-northeast-1c", "ap-northeast-1d"],
-               "sa-east-1": ["sa-east-1a", "sa-east-1c"],
-               "ap-southeast-1": ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"],
-               "ca-central-1": ["ca-central-1a", "ca-central-1b"],
-               "ap-southeast-2": ["ap-southeast-2a", "ap-southeast-2b", "ap-southeast-2c"],
-               "us-west-2": ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"],
-               "us-east-2": ["us-east-2a", "us-east-2b", "us-east-2c"],
-               "ap-south-1": ["ap-south-1a", "ap-south-1b", "ap-south-1c"],
-               "eu-central-1": ["eu-central-1a", "eu-central-1b", "eu-central-1c"],
-               "eu-west-1": ["eu-west-1a", "eu-west-1b", "eu-west-1c"],
-               "eu-west-2": ["eu-west-2a", "eu-west-2b", "eu-west-2c"],
-               "eu-west-3": ["eu-west-3a", "eu-west-3b", "eu-west-3c"],
-               "cn-north-1": [],
-               "us-gov-west-1": []}
+    REGIONS = {
+        "us-east-1": [
+            "us-east-1a",
+            "us-east-1b",
+            "us-east-1c",
+            "us-east-1d",
+            "us-east-1e",
+            "us-east-1f",
+        ],
+        "us-west-1": ["us-west-1b", "us-west-1c"],
+        "eu-north-1": ["eu-north-1a", "eu-north-1b", "eu-north-1c"],
+        "ap-northeast-3": ["ap-northeast-3a"],
+        "ap-northeast-2": ["ap-northeast-2a", "ap-northeast-2b", "ap-northeast-2c"],
+        "ap-northeast-1": ["ap-northeast-1a", "ap-northeast-1c", "ap-northeast-1d"],
+        "sa-east-1": ["sa-east-1a", "sa-east-1c"],
+        "ap-southeast-1": ["ap-southeast-1a", "ap-southeast-1b", "ap-southeast-1c"],
+        "ca-central-1": ["ca-central-1a", "ca-central-1b"],
+        "ap-southeast-2": ["ap-southeast-2a", "ap-southeast-2b", "ap-southeast-2c"],
+        "us-west-2": ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"],
+        "us-east-2": ["us-east-2a", "us-east-2b", "us-east-2c"],
+        "ap-south-1": ["ap-south-1a", "ap-south-1b", "ap-south-1c"],
+        "eu-central-1": ["eu-central-1a", "eu-central-1b", "eu-central-1c"],
+        "eu-west-1": ["eu-west-1a", "eu-west-1b", "eu-west-1c"],
+        "eu-west-2": ["eu-west-2a", "eu-west-2b", "eu-west-2c"],
+        "eu-west-3": ["eu-west-3a", "eu-west-3b", "eu-west-3c"],
+        "cn-north-1": [],
+        "us-gov-west-1": [],
+    }
 
     DEFAULT_PARTITION = "aws"
     GOV_PARTITION = "aws-us-gov"
@@ -67,10 +78,13 @@ class IntrinsicsSymbolTable(object):
 
     CFN_RESOURCE_TYPE = "Type"
 
-    def __init__(self, template=None,
-                 logical_id_translator=None,
-                 default_type_resolver=None,
-                 common_attribute_resolver=None):
+    def __init__(
+        self,
+        template=None,
+        logical_id_translator=None,
+        default_type_resolver=None,
+        common_attribute_resolver=None,
+    ):
         """
         Initializes the Intrinsic Symbol Table so that runtime attributes can be resolved.
 
@@ -126,8 +140,12 @@ class IntrinsicsSymbolTable(object):
         self._parameters = self._template.get("Parameters", {})
         self._resources = self._template.get("Resources", {})
 
-        self.default_type_resolver = default_type_resolver or self.get_default_type_resolver()
-        self.common_attribute_resolver = common_attribute_resolver or self.get_default_attribute_resolver()
+        self.default_type_resolver = (
+            default_type_resolver or self.get_default_type_resolver()
+        )
+        self.common_attribute_resolver = (
+            common_attribute_resolver or self.get_default_attribute_resolver()
+        )
         self.default_pseudo_resolver = self.get_default_pseudo_resolver()
 
     def get_default_pseudo_resolver(self):
@@ -143,10 +161,7 @@ class IntrinsicsSymbolTable(object):
         }
 
     def get_default_attribute_resolver(self):
-        return {
-            "Ref": lambda logical_id: logical_id,
-            "Arn": self.arn_resolver
-        }
+        return {"Ref": lambda logical_id: logical_id, "Arn": self.arn_resolver}
 
     @staticmethod
     def get_default_type_resolver():
@@ -197,8 +212,14 @@ class IntrinsicsSymbolTable(object):
         if translated:
             return translated
 
-        resource_type = self._resources.get(logical_id, {}).get(IntrinsicsSymbolTable.CFN_RESOURCE_TYPE)
-        resolver = self.default_type_resolver.get(resource_type, {}).get(resource_attribute) if resource_type else {}
+        resource_type = self._resources.get(logical_id, {}).get(
+            IntrinsicsSymbolTable.CFN_RESOURCE_TYPE
+        )
+        resolver = (
+            self.default_type_resolver.get(resource_type, {}).get(resource_attribute)
+            if resource_type
+            else {}
+        )
         if resolver:
             if callable(resolver):
                 return resolver(logical_id, resource_attribute)
@@ -214,7 +235,10 @@ class IntrinsicsSymbolTable(object):
             return "${}".format(logical_id + "." + resource_attribute)
         raise InvalidSymbolException(
             "The {} is not supported in the logical_id_translator, default_type_resolver, or the attribute_resolver."
-            " It is also not a supported pseudo function".format(logical_id + "." + resource_attribute))
+            " It is also not a supported pseudo function".format(
+                logical_id + "." + resource_attribute
+            )
+        )
 
     def arn_resolver(self, logical_id, service_name="lambda"):
         """
@@ -233,8 +257,9 @@ class IntrinsicsSymbolTable(object):
         The resolved Arn
         """
         aws_region = self.handle_pseudo_region()
-        account_id = self.logical_id_translator.get(
-            IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
+        account_id = (
+            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
+        )
         partition_name = self.handle_pseudo_partition()
         function_name = logical_id
         function_name = self.logical_id_translator.get(function_name) or function_name
@@ -247,7 +272,8 @@ class IntrinsicsSymbolTable(object):
             service_name=service_name,
             aws_region=aws_region,
             account_id=account_id,
-            function_name=function_name)
+            function_name=function_name,
+        )
 
     def get_translation(self, logical_id, resource_attributes=IntrinsicResolver.REF):
         """
@@ -267,7 +293,9 @@ class IntrinsicsSymbolTable(object):
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
         if isinstance(logical_id_item, string_types):
-            if resource_attributes != IntrinsicResolver.REF and resource_attributes != "":
+            if (
+                resource_attributes != IntrinsicResolver.REF and resource_attributes != ""
+            ):
                 return None
             return logical_id_item
         return logical_id_item.get(resource_attributes)
@@ -295,7 +323,9 @@ class IntrinsicsSymbolTable(object):
         -------
         A pseudo account id
         """
-        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
+        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+            IntrinsicsSymbolTable.AWS_ACCOUNT_ID
+        )
 
     def handle_pseudo_region(self):
         """
@@ -307,9 +337,12 @@ class IntrinsicsSymbolTable(object):
         -------
         The region from the environment or a default one
         """
-        return self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or \
-            os.getenv("AWS_REGION") or SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
-            IntrinsicsSymbolTable.AWS_REGION)
+        return (
+            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or os.getenv("AWS_REGION") or
+            SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+                IntrinsicsSymbolTable.AWS_REGION
+            )
+        )
 
     def handle_pseudo_url_prefix(self):
         """
@@ -335,8 +368,13 @@ class IntrinsicsSymbolTable(object):
         -------
         A list of Notification Arns
         """
-        return [self.arn_resolver(logical_id=self.get_random_string(),
-                                  service_name=self.AWS_NOTIFICATION_SERVICE_NAME) for _ in range(randint(1, 3))]
+        return [
+            self.arn_resolver(
+                logical_id=self.get_random_string(),
+                service_name=self.AWS_NOTIFICATION_SERVICE_NAME,
+            )
+            for _ in range(randint(1, 3))
+        ]
 
     def handle_pseudo_partition(self):
         """
@@ -376,7 +414,9 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_ID)
+        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+            IntrinsicsSymbolTable.AWS_STACK_ID
+        )
 
     def handle_pseudo_stack_name(self):
         """
@@ -388,7 +428,9 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_NAME)
+        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+            IntrinsicsSymbolTable.AWS_STACK_NAME
+        )
 
     @staticmethod
     def handle_pseudo_no_value():
