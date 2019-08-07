@@ -859,6 +859,22 @@ class IntrinsicResolver(object):
         )
         return not argument_sanitised
 
+    @staticmethod
+    def get_prefix_position_in_list(i):
+        """
+        Gets the prefix for the string "ith element of the list", handling first, second, and third.
+        :param i:
+        :return:
+        """
+        prefix = "{} th ".format(str(i))
+        if i == 1:
+            prefix = "first "
+        elif i == 2:
+            prefix = "second "
+        elif i == 3:
+            prefix = "third "
+        return prefix
+
     def handle_fn_and(self, intrinsic_value):
         """
         {"Fn::And": [{condition}, {...}]}
@@ -897,7 +913,7 @@ class IntrinsicResolver(object):
                 verify_non_null(
                     condition,
                     IntrinsicResolver.FN_AND,
-                    position_in_list="{} th".format(str(i)),
+                    position_in_list=self.get_prefix_position_in_list(i),
                 )
 
                 condition_evaluated = self.intrinsic_property_resolver(
@@ -958,7 +974,7 @@ class IntrinsicResolver(object):
                 verify_non_null(
                     condition,
                     IntrinsicResolver.FN_OR,
-                    position_in_list="{} th".format(str(i)),
+                    position_in_list=self.get_prefix_position_in_list(i),
                 )
 
                 condition_evaluated = self.intrinsic_property_resolver(
