@@ -56,20 +56,8 @@ cloudformation update-termination-protection --stack-name {stack_name}
 
 AccessDeniedException will be checked if the user does not have the access to delete the CloudFormation stack.
 ```sh
-The user account does not have access to delete the stack. Add the cloudformation:delete policy 
-with the following format to the user account.
-{ 
-    "Version": "2012-10-17", 
-    "Statement": [ 
-        { 
-            "Effect": "Allow", 
-            "Action": [ 
-            "cloudformation:delete" 
-            ], 
-            "Resource": "*" 
-        } 
-    ] 
-}
+The user account does not have access to delete the stack. Please add the permissions for the relevant resources and
+account policies.
 ```
 
 Customers that delete the stack may want to wait for the stack to be deleted before continuing. The following waiter
