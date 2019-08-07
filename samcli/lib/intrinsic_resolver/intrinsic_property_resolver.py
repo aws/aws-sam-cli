@@ -72,33 +72,16 @@ class IntrinsicResolver(object):
         In the future, for items like Fn::ImportValue multiple templates can be provided
         into the function.
         """
-        self.template = template
-        self._symbol_resolver = symbol_resolver
-
-        self.intrinsic_key_function_map = self.default_intrinsic_function_map()
-        self.conditional_key_function_map = self.default_conditional_key_map()
-
-    @property
-    def template(self):
-        return self._template
-
-    @template.setter
-    def template(self, template):
-        """
-        Set the attributes from the given template. The template is copied to avoid risking mutation of the original
-        template.
-
-        This is defined outside init for readability purposes.
-        :param template: the template dict to parse
-        """
-        # pylint: disable-msg=attribute-defined-outside-init
-        if not template:
-            return
         self._template = copy.deepcopy(template or {})
         self._resources = self._template.get("Resources", {})
         self._mapping = self._template.get("Mappings", {})
         self._parameters = self._template.get("Parameters", {})
         self._conditions = self._template.get("Conditions", {})
+
+        self._symbol_resolver = symbol_resolver
+
+        self.intrinsic_key_function_map = self.default_intrinsic_function_map()
+        self.conditional_key_function_map = self.default_conditional_key_map()
 
     def default_intrinsic_function_map(self):
         """
@@ -223,26 +206,21 @@ class IntrinsicResolver(object):
             sanitized_dict[sanitized_key] = sanitized_val
         return sanitized_dict
 
-    def resolve_template(self, template=None, symbol_resolver=None, ignore_errors=False):
+    def resolve_template(self, symbol_resolver=None, ignore_errors=False):
         """
         This will parse through every entry in a CloudFormation template and resolve them based on the symbol_resolver.
         Customers can optionally ignore resource errors and default to whatever the resource provides.
 
         Parameters
         -----------
-        template: dict
-            A dictionary containing all the resources and the attributes of the CloudFormation template. The class does
-            not mutate the template.
         ignore_errors: bool
-            An option to ignore
+            An option to ignore errors that are InvalidIntrinsicException and InvalidSymbolException
         symbol_resolver: IntrinsicSymbolTable
             An Instance of the IntrinsicSymbolTable object contaning resolution for attributes like Ref, Fn::GetAtt
         Return
         -------
         A resolved template with all references possible simplified
         """
-        if template:
-            self.template = template
         if symbol_resolver:
             self._symbol_resolver = symbol_resolver
 

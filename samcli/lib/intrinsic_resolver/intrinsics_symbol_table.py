@@ -232,7 +232,7 @@ class IntrinsicsSymbolTable(object):
         -------
         The resolved Arn
         """
-        aws_region = self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or self.handle_pseudo_region()
+        aws_region = self.handle_pseudo_region()
         account_id = self.logical_id_translator.get(
             IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
         partition_name = self.handle_pseudo_partition()
@@ -307,7 +307,8 @@ class IntrinsicsSymbolTable(object):
         -------
         The region from the environment or a default one
         """
-        return os.getenv("AWS_REGION") or SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+        return self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or \
+            os.getenv("AWS_REGION") or SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
             IntrinsicsSymbolTable.AWS_REGION)
 
     def handle_pseudo_url_prefix(self):
@@ -319,7 +320,7 @@ class IntrinsicsSymbolTable(object):
         -------
         The url prefix of amazonaws.com or amazonaws.com.cn
         """
-        aws_region = self.logical_id_translator.get(self.AWS_REGION) or self.handle_pseudo_region()
+        aws_region = self.handle_pseudo_region()
         if self.CHINA_PREFIX in aws_region:
             return self.CHINA_URL_PREFIX
         return self.DEFAULT_URL_PREFIX
@@ -347,7 +348,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A pseudo partition like aws-cn or aws or aws-gov
         """
-        aws_region = self.logical_id_translator.get(self.AWS_REGION) or self.handle_pseudo_region()
+        aws_region = self.handle_pseudo_region()
         if self.CHINA_PREFIX in aws_region:
             return self.CHINA_PARTITION
         if self.GOV_PREFIX in aws_region:
