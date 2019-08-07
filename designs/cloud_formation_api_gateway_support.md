@@ -217,30 +217,13 @@ First, the Apis in AWS::ApiGateway::RestApi  will be parsed in the SAM Template 
 Some pseudo classes and function for the implementation 
 
 ```python
-class InvokeContext(object):
-    ...
-    def __enter__(self):
-
-        # Grab template from file and create a provider
-        sam_template_data = self._get_template_data(self._template_file)
-        self._template_dict = self._get_clouformation_data(sam_template_data)
-        self._function_provider = CloudFormationFunctionProvider(self._template_dict,self.parameter_overrides
-    
-    # translate the template data to cloudformation template and return 
-    def _get_clouformation_data():
-        sam_translator = Translator(managed_policy_map=self.__managed_policy_map(),sam_parser=sam_parser, plugins=self.extra_plugins)
-        return sam_translator.translate(sam_template=template_copy, parameter_values=parameter_values)
-
-class CloudFormationFunctionProvider(SamBaseProvider):
-    # same as function provider but remove all _SERVERLESS_FUNCTION = "AWS::Serverless::Function" 
-    # also parse AWS::ApiGatway::Methods as functions
 
 class CloudFormationGatewayProvider(SamBaseProvider):
     # Same as serverless but update with ApiGateway Code
     _GATEWAY_REST_API = "AWS::ApiGateway::RestApi"
     _GATEWAY_STAGE_API = "AWS::ApiGateway::Stages"
     _GATEWAY_RESOURCE_API = "AWS::ApiGateway::Resource"
-    _GATEWAY_METHODS_API = "AWS::ApiGateway::Methods"
+    _GATEWAY_METHODS_API = "AWS::ApiGateway::Method"
     
     def _extrac_api_gateway_rest_api():
         for logical_id, resource in resources.items():
@@ -253,7 +236,7 @@ class CloudFormationGatewayProvider(SamBaseProvider):
     def _extract_gateway_rest_api():
          pass
          
-    # set the function_name for the Api from AWS::ApiGateway::Methods
+    # set the method_name for the Api from AWS::ApiGateway::Methods
     def _extract_gateway_methods():
          pass
         
@@ -265,7 +248,7 @@ class CloudFormationGatewayProvider(SamBaseProvider):
     def _extract_gateway_resource():
         pass
         
-    # Update the Api Model with the function name that corressponds to it. 
+    # Update the Api Model with the method name that corressponds to it.
     def _extract_gateway_method():
         pass                                                                                                                                                                                                                                                 
 ```
