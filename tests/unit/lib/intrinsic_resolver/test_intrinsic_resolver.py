@@ -1,4 +1,6 @@
+import json
 from copy import deepcopy
+from pathlib import Path
 from unittest import TestCase
 
 from parameterized import parameterized
@@ -337,10 +339,10 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
                     item,
             )
             for item in [
-                ["<UNKOWN_VALUE>", "Test", "key"],
-                ["Basic", "<UNKOWN_VALUE>", "key"],
-                ["Basic", "Test", "<UNKOWN_VALUE>"],
-            ]
+            ["<UNKOWN_VALUE>", "Test", "key"],
+            ["Basic", "<UNKOWN_VALUE>", "key"],
+            ["Basic", "Test", "<UNKOWN_VALUE>"],
+        ]
         ]
     )
     def test_fn_find_in_map_invalid_key_entries(self, name, intrinsic):
@@ -1197,97 +1199,17 @@ class TestIntrinsicTemplateResolution(TestCase):
             "RestApi.Deployment": {"Ref": "RestApi"},
         }
         self.logical_id_translator = logical_id_translator
-        mappings = {"TopLevel": {"SecondLevelKey": {"key": "https://s3location/"}}}
-        resources = {
-            "RestApi.Deployment": {
-                "Type": "AWS::ApiGateway::RestApi",
-                "Properties": {
-                    "Body": {
-                        "Fn::Base64": {  # Becomes a;e;f;d
-                            "Fn::Join": [
-                                ";",  # NOQA
-                                {
-                                    "Fn::Split": [
-                                        ",",
-                                        {"Fn::Join": [",", ["a", "e", "f", "d"]]},
-                                    ]
-                                },
-                            ]
-                        }
-                    },
-                    "BodyS3Location": {
-                        "Fn::FindInMap": ["TopLevel", "SecondLevelKey", "key"]
-                    },
-                },
-            },
-            "RestApiResource": {
-                "Properties": {
-                    "parentId": {
-                        "Fn::GetAtt": ["RestApi.Deployment", "RootResourceId"]
-                    },
-                    "PathPart": "{proxy+}",
-                    "RestApiId": {"Ref": "RestApi.Deployment"},
-                }
-            },
-            "HelloHandler2E4FBA4D": {
-                "Type": "AWS::Lambda::Function",
-                "Properties": {"handler": "main.handle"},
-            },
-            "LambdaFunction": {
-                "Type": "AWS::Lambda::Function",
-                "Properties": {
-                    "Uri": {
-                        "Fn::Join": [
-                            "",
-                            [
-                                "arn:",
-                                {"Ref": "AWS::Partition"},
-                                ":apigateway:",
-                                {
-                                    "Fn::Select": [
-                                        0,
-                                        {"Fn::GetAZs": {"Ref": "AWS::Region"}},
-                                    ]
-                                },
-                                ":lambda:path/2015-03-31/functions/",
-                                {"Fn::GetAtt": ["HelloHandler2E4FBA4D", "Arn"]},
-                                "/invocations",
-                            ],
-                        ]
-                    }
-                },
-            },
-        }
-        conditions = {
-            "ComplexCondition": {
-                "Fn::And": [
-                    {
-                        "Fn::Equals": [
-                            {
-                                "Fn::Or": [  # NOQA
-                                    {"Condition": "NotTestCondition"},
-                                    {"Condition": "TestCondition"},
-                                ]
-                            },
-                            False,
-                        ]
-                    },
-                    True,
-                    {"Fn::If": ["TestCondition", True, False]},
-                ]
-            },
-            "TestCondition": {"Fn::Equals": [{"Ref": "EnvironmentType"}, "prod"]},
-            "NotTestCondition": {"Fn::Not": [{"Condition": "TestCondition"}]},
-            "InvalidCondition": ["random items"],
-        }
-        self.template = {
-            "Mappings": mappings,
-            "Conditions": conditions,
-            "Resources": resources,
-        }
-        self.resources = resources
-        self.conditions = conditions
-        self.mappings = mappings
+
+        integration_path = str(
+            Path(__file__).resolve().parents[0].joinpath('test_data', 'test_intrinsic_template_resolution.json'))
+        with open(integration_path) as f:
+            template = json.load(f)
+
+        self.template = template
+        self.resources = template.get("Resources")
+        self.conditions = template.get("Conditions")
+        self.mappings = template.get("Mappings")
+
         symbol_resolver = IntrinsicsSymbolTable(
             template=self.template, logical_id_translator=self.logical_id_translator
         )
