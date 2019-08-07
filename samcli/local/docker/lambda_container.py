@@ -39,6 +39,7 @@ class LambdaContainer(Container):
                  image_builder,
                  memory_mb=128,
                  env_vars=None,
+                 entrypoint=None,
                  debug_options=None):
         """
         Initializes the class
@@ -69,7 +70,6 @@ class LambdaContainer(Container):
 
         image = LambdaContainer._get_image(image_builder, runtime, layers)
         ports = LambdaContainer._get_exposed_ports(debug_options)
-        entry = LambdaContainer._get_entry_point(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
         additional_volumes = LambdaContainer._get_additional_volumes(debug_options)
         cmd = [handler]
@@ -80,7 +80,7 @@ class LambdaContainer(Container):
                                               code_dir,
                                               memory_limit_mb=memory_mb,
                                               exposed_ports=ports,
-                                              entrypoint=entry,
+                                              entrypoint=entrypoint,
                                               env_vars=env_vars,
                                               container_opts=additional_options,
                                               additional_volumes=additional_volumes)
@@ -161,7 +161,7 @@ class LambdaContainer(Container):
         return image_builder.build(runtime, layers)
 
     @staticmethod
-    def _get_entry_point(runtime, debug_options=None):  # pylint: disable=too-many-branches
+    def get_debug_entry_point(runtime, debug_options=None):
         """
         Returns the entry point for the container. The default value for the entry point is already configured in the
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes

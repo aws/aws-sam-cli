@@ -67,6 +67,8 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks = Mock()
         self.mock_docker_client.networks.get = Mock()
 
+        Container._get_image_entrypoint = Mock()
+
     def test_must_create_container_with_required_values(self):
         """
         Create a container with only required values. Optional values are not provided
@@ -505,6 +507,54 @@ class TestContainer_wait_for_logs(TestCase):
 
         with self.assertRaises(RuntimeError):
             self.container.wait_for_logs(stdout=Mock())
+
+
+class TestContainer_exec(TestCase):
+
+    def setUp(self):
+        self.image = "image"
+        self.cmd = ["cmd"]
+        self.working_dir = "working_dir"
+        self.host_dir = "host_dir"
+
+        self.mock_docker_client = Mock()
+        self.mock_docker_client.containers = Mock()
+        self.real_container = Mock()
+        self.mock_docker_client.containers.get.return_value = self.real_container
+
+        self.container = Container(self.image,
+                                   self.cmd,
+                                   self.working_dir,
+                                   self.host_dir,
+                                   docker_client=self.mock_docker_client)
+        self.container.id = "someid"
+
+        self.container.is_created = Mock()
+
+    def test_must_write_stdout_and_stderr(self):
+        stdout_mock = Mock()
+        stderr_mock = Mock()
+        result_mock = Mock()
+        result_mock.output = ("stdout", "stderr")
+        self.real_container.status = 'running'
+        self.real_container.exec_run.return_value = result_mock
+        self.container.exec_run(cmd="test", stdout=stdout_mock, stderr=stderr_mock)
+        stdout_mock.write.assert_called_with("stdout")
+        stderr_mock.write.assert_called_with("stderr")
+
+    def test_must_raise_if_container_is_not_created(self):
+
+        self.container.is_created.return_value = False
+
+        with self.assertRaises(RuntimeError):
+            self.container.exec_run(cmd="test", stdout=Mock())
+
+    def test_must_raise_if_container_is_not_running(self):
+
+        self.real_container.status = 'created'
+
+        with self.assertRaises(RuntimeError):
+            self.container.exec_run(cmd="test", stdout=Mock())
 
 
 class TestContainer_write_container_output(TestCase):

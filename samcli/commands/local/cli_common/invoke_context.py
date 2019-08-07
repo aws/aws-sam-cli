@@ -59,6 +59,7 @@ class InvokeContext(object):
                  force_image_build=None,
                  aws_region=None,
                  aws_profile=None,
+                 persist_containers=None,
                  ):
         """
         Initialize the context
@@ -112,6 +113,7 @@ class InvokeContext(object):
         self._force_image_build = force_image_build
         self._aws_region = aws_region
         self._aws_profile = aws_profile
+        self._persist_containers = persist_containers
 
         self._template_dict = None
         self._function_provider = None
@@ -120,6 +122,7 @@ class InvokeContext(object):
         self._debug_context = None
         self._layers_downloader = None
         self._container_manager = None
+        self._lambda_runtime = None
 
     def __enter__(self):
         """
@@ -151,6 +154,8 @@ class InvokeContext(object):
         """
         Cleanup any necessary opened files
         """
+        if self._lambda_runtime is not None:
+            self._lambda_runtime.cleanup()
 
         if self._log_file_handle:
             self._log_file_handle.close()
@@ -196,8 +201,11 @@ class InvokeContext(object):
                                     self._skip_pull_image,
                                     self._force_image_build)
 
-        lambda_runtime = LambdaRuntime(self._container_manager, image_builder)
-        return LocalLambdaRunner(local_runtime=lambda_runtime,
+        self._lambda_runtime = LambdaRuntime(self._container_manager,
+                                             image_builder,
+                                             persist_container=self._persist_containers)
+
+        return LocalLambdaRunner(local_runtime=self._lambda_runtime,
                                  function_provider=self._function_provider,
                                  cwd=self.get_cwd(),
                                  aws_profile=self._aws_profile,

@@ -40,13 +40,13 @@ class TestLambdaContainer_init(TestCase):
 
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
-    @patch.object(LambdaContainer, "_get_entry_point")
+    @patch.object(LambdaContainer, "get_debug_entry_point")
     @patch.object(LambdaContainer, "_get_additional_options")
     @patch.object(LambdaContainer, "_get_additional_volumes")
     def test_must_configure_container_properly(self,
                                                get_additional_volumes_mock,
                                                get_additional_options_mock,
-                                               get_entry_point_mock,
+                                               get_debug_entry_point_mock,
                                                get_exposed_ports_mock,
                                                get_image_mock):
 
@@ -59,7 +59,6 @@ class TestLambdaContainer_init(TestCase):
 
         get_image_mock.return_value = image
         get_exposed_ports_mock.return_value = ports
-        get_entry_point_mock.return_value = entry
         get_additional_options_mock.return_value = addtl_options
         get_additional_volumes_mock.return_value = addtl_volumes
 
@@ -71,6 +70,7 @@ class TestLambdaContainer_init(TestCase):
                                     layers=[],
                                     image_builder=image_builder_mock,
                                     env_vars=self.env_var,
+                                    entrypoint=entry,
                                     memory_mb=self.memory_mb,
                                     debug_options=self.debug_options)
 
@@ -85,7 +85,6 @@ class TestLambdaContainer_init(TestCase):
 
         get_image_mock.assert_called_with(image_builder_mock, self.runtime, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
-        get_entry_point_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.debug_options)
 
@@ -128,7 +127,7 @@ class TestLambdaContainer_get_image(TestCase):
         self.assertEquals(LambdaContainer._get_image(image_builder, 'foo', []), expected)
 
 
-class TestLambdaContainer_get_entry_point(TestCase):
+class TestLambdaContainer_get_debug_entry_point(TestCase):
 
     def setUp(self):
 
@@ -137,18 +136,18 @@ class TestLambdaContainer_get_entry_point(TestCase):
         self.debug_options = DebugContext(debug_port=1235, debug_args="a=b c=d e=f")
 
     def test_must_skip_if_debug_port_is_not_specified(self):
-        self.assertIsNone(LambdaContainer._get_entry_point("runtime", None),
+        self.assertIsNone(LambdaContainer.get_debug_entry_point("runtime", None),
                           "Must not provide entrypoint if debug port is not given")
 
     @parameterized.expand([param(r) for r in ALL_RUNTIMES])
     def test_must_provide_entrypoint_for_certain_runtimes_only(self, runtime):
 
         if runtime in RUNTIMES_WITH_ENTRYPOINT:
-            result = LambdaContainer._get_entry_point(runtime, self.debug_options)
+            result = LambdaContainer.get_debug_entry_point(runtime, self.debug_options)
             self.assertIsNotNone(result, "{} runtime must provide entrypoint".format(runtime))
         else:
             with self.assertRaises(DebuggingNotSupported):
-                LambdaContainer._get_entry_point(runtime, self.debug_options)
+                LambdaContainer.get_debug_entry_point(runtime, self.debug_options)
 
     @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT)])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
@@ -156,7 +155,7 @@ class TestLambdaContainer_get_entry_point(TestCase):
         Debug args list is appended starting at second position in the array
         """
         expected_debug_args = ["a=b", "c=d", "e=f"]
-        result = LambdaContainer._get_entry_point(runtime, self.debug_options)
+        result = LambdaContainer.get_debug_entry_point(runtime, self.debug_options)
         actual = result[1:4]
 
         self.assertEquals(actual, expected_debug_args)
@@ -167,7 +166,7 @@ class TestLambdaContainer_get_entry_point(TestCase):
         Debug args list is appended as arguments to bootstrap-args, which is past the fourth position in the array
         """
         expected_debug_args = ["a=b", "c=d", "e=f"]
-        result = LambdaContainer._get_entry_point(runtime, self.debug_options)
+        result = LambdaContainer.get_debug_entry_point(runtime, self.debug_options)
         actual = result[4:5][0]
 
         self.assertTrue(all(debug_arg in actual for debug_arg in expected_debug_args))
@@ -175,7 +174,7 @@ class TestLambdaContainer_get_entry_point(TestCase):
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
     def test_must_provide_entrypoint_even_without_debug_args(self, runtime):
         debug_options = DebugContext(debug_port=1235, debug_args=None)
-        result = LambdaContainer._get_entry_point(runtime, debug_options)
+        result = LambdaContainer.get_debug_entry_point(runtime, debug_options)
 
         self.assertIsNotNone(result)
 

@@ -41,6 +41,9 @@ and point SAM to the directory or file containing build artifacts.
               default="public",
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
                    "will be presented at /")
+@click.option("--persist-containers/--no-persist-containers",
+              default=False,
+              help="Persist lambda containers between invocations")
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
@@ -48,21 +51,21 @@ and point SAM to the directory or file containing build artifacts.
 @track_command
 def cli(ctx,
         # start-api Specific Options
-        host, port, static_dir,
+        host, port, static_dir, persist_containers,
 
         # Common Options for Lambda Invoke
         template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
         docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build, parameter_overrides):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, debugger_path,
+    do_cli(ctx, host, port, static_dir, persist_containers, template, env_vars, debug_port, debug_args, debugger_path,
            docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
            parameter_overrides)  # pragma: no cover
 
 
-def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image,
-           force_image_build, parameter_overrides):
+def do_cli(ctx, host, port, static_dir, persist_containers, template, env_vars, debug_port,  # pylint: disable=R0914
+           debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir,
+           skip_pull_image, force_image_build, parameter_overrides):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -87,7 +90,8 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
                            layer_cache_basedir=layer_cache_basedir,
                            force_image_build=force_image_build,
                            aws_region=ctx.region,
-                           aws_profile=ctx.profile) as invoke_context:
+                           aws_profile=ctx.profile,
+                           persist_containers=persist_containers) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context,
                                       port=port,

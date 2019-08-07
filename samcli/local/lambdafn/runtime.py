@@ -25,7 +25,7 @@ class LambdaRuntime(object):
 
     SUPPORTED_ARCHIVE_EXTENSIONS = (".zip", ".jar", ".ZIP", ".JAR")
 
-    def __init__(self, container_manager, image_builder):
+    def __init__(self, container_manager, image_builder, persist_container=False):
         """
         Initialize the Local Lambda runtime
 
@@ -38,8 +38,10 @@ class LambdaRuntime(object):
         """
         self._container_manager = container_manager
         self._image_builder = image_builder
+        self._persist_container = persist_container
+        self._container = None
 
-    def invoke(self,
+    def invoke(self,  # pylint: disable=too-many-statements
                function_config,
                event,
                debug_context=None,
@@ -71,19 +73,35 @@ class LambdaRuntime(object):
         env_vars = environ.resolve()
 
         with self._get_code_dir(function_config.code_abs_path) as code_dir:
-            container = LambdaContainer(function_config.runtime,
-                                        function_config.handler,
-                                        code_dir,
-                                        function_config.layers,
-                                        self._image_builder,
-                                        memory_mb=function_config.memory,
-                                        env_vars=env_vars,
-                                        debug_options=debug_context)
+            debug_entrypoint = LambdaContainer.get_debug_entry_point(function_config.runtime, debug_context)
+            if self._persist_container:
+                cmd = "sleep infinity"
+                entrypoint = ["sh", "-c"]
+                container = self._container
+            else:
+                cmd = function_config.handler
+                # debug_entrypoint is None if --debug not set, this will just use the docker image's entrypoint.
+                entrypoint = debug_entrypoint
+                container = None
+
+            if not container:
+                container = LambdaContainer(function_config.runtime,
+                                            cmd,
+                                            code_dir,
+                                            function_config.layers,
+                                            self._image_builder,
+                                            memory_mb=function_config.memory,
+                                            env_vars=env_vars,
+                                            entrypoint=entrypoint,
+                                            debug_options=debug_context)
+
+            if self._persist_container:
+                self._container = container
 
             try:
-
-                # Start the container. This call returns immediately after the container starts
-                self._container_manager.run(container)
+                # Create and start the container. This call returns immediately after the container starts
+                if not container.is_created():
+                    self._container_manager.run(container)
 
                 # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
                 #
@@ -95,10 +113,15 @@ class LambdaRuntime(object):
                                                   container,
                                                   bool(debug_context))
 
-                # NOTE: BLOCKING METHOD
-                # Block the thread waiting to fetch logs from the container. This method will return after container
-                # terminates, either successfully or killed by one of the interrupt handlers above.
-                container.wait_for_logs(stdout=stdout, stderr=stderr)
+                # NOTE: BLOCKING METHODS
+                if self._persist_container:
+                    # Block the thread waiting for the command to exec in the container.
+                    entrypoint = debug_entrypoint or container.get_image_entrypoint()
+                    container.exec_run(cmd=entrypoint + [function_config.handler], stdout=stdout, stderr=stderr)
+                else:
+                    # Block the thread waiting to fetch logs from the container. This method will return after container
+                    # terminates, either successfully or killed by one of the interrupt handlers above.
+                    container.wait_for_logs(stdout=stdout, stderr=stderr)
 
             except KeyboardInterrupt:
                 # When user presses Ctrl+C, we receive a Keyboard Interrupt. This is especially very common when
@@ -113,7 +136,13 @@ class LambdaRuntime(object):
                 # If we are in debugging mode, timer would not be created. So skip cleanup of the timer
                 if timer:
                     timer.cancel()
-                self._container_manager.stop(container)
+                if not self._persist_container:
+                    self._container_manager.stop(container)
+
+    def cleanup(self):
+        if self._container and self._container.is_created():
+            LOG.debug("Cleaning up lambda container")
+            self._container_manager.stop(self._container)
 
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
         """

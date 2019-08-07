@@ -40,6 +40,7 @@ class TestCli(TestCase):
         self.host = "host"
         self.port = 123
         self.static_dir = "staticdir"
+        self.persist_containers = False
 
     @patch("samcli.commands.local.start_api.cli.InvokeContext")
     @patch("samcli.commands.local.start_api.cli.LocalApiService")
@@ -68,7 +69,8 @@ class TestCli(TestCase):
                                                layer_cache_basedir=self.layer_cache_basedir,
                                                force_image_build=self.force_image_build,
                                                aws_region=self.region_name,
-                                               aws_profile=self.profile)
+                                               aws_profile=self.profile,
+                                               persist_containers=False)
 
         local_api_service_mock.assert_called_with(lambda_invoke_context=context_mock,
                                                   port=self.port,
@@ -132,6 +134,7 @@ class TestCli(TestCase):
                       host=self.host,
                       port=self.port,
                       static_dir=self.static_dir,
+                      persist_containers=self.persist_containers,
                       template=self.template,
                       env_vars=self.env_vars,
                       debug_port=self.debug_port,

@@ -188,6 +188,22 @@ class Container(object):
         # Start the container
         real_container.start()
 
+    def exec_run(self, cmd, stdout=None, stderr=None):
+        if not self.is_created():
+            raise RuntimeError("Container does not exist. Cannot exec in this container")
+
+        real_container = self.docker_client.containers.get(self.id)
+        if real_container.status != 'running':
+            raise RuntimeError("Container is not running, cannot exec in this container.")
+
+        # demux=True splits output into (stdout, stderr)
+        result = real_container.exec_run(cmd, demux=True)
+        container_stdout, container_stderr = result.output
+        if stdout:
+            stdout.write(container_stdout)
+        if stderr:
+            stderr.write(container_stderr)
+
     def wait_for_logs(self, stdout=None, stderr=None):
 
         # Return instantly if we don't have to fetch any logs
@@ -226,6 +242,10 @@ class Container(object):
 
             with tarfile.open(fileobj=fp, mode='r') as tar:
                 tar.extractall(path=to_host_path)
+
+    def get_image_entrypoint(self):
+        real_container = self.docker_client.containers.get(self.id)
+        return real_container.image.attrs['ContainerConfig']['Entrypoint']
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):

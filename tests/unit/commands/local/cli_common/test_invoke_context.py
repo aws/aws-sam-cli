@@ -211,7 +211,8 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                                      debugger_path="path-to-debugger",
                                      debug_args='args',
                                      aws_profile="profile",
-                                     aws_region="region")
+                                     aws_region="region",
+                                     persist_containers=False)
 
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
@@ -254,7 +255,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             result = self.context.local_lambda_runner
             self.assertEquals(result, runner_mock)
 
-            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
+            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock, persist_container=False)
             lambda_image_patch.assert_called_once_with(download_mock, True, True)
             LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
                                                function_provider=ANY,
