@@ -2,8 +2,6 @@
 The symbol table that is used in IntrinsicResolver in order to resolve runtime attributes
 """
 import os
-import uuid
-from random import randint
 
 from six import string_types
 
@@ -151,7 +149,6 @@ class IntrinsicsSymbolTable(object):
     def get_default_pseudo_resolver(self):
         return {
             IntrinsicsSymbolTable.AWS_ACCOUNT_ID: self.handle_pseudo_account_id,
-            IntrinsicsSymbolTable.AWS_NOTIFICATION_ARN: self.handle_pseudo_notification_arn,
             IntrinsicsSymbolTable.AWS_PARTITION: self.handle_pseudo_partition,
             IntrinsicsSymbolTable.AWS_REGION: self.handle_pseudo_region,
             IntrinsicsSymbolTable.AWS_STACK_ID: self.handle_pseudo_stack_id,
@@ -208,10 +205,12 @@ class IntrinsicsSymbolTable(object):
             self.logical_id_translator[logical_id] = translated
             return translated
 
+        # Handle Default Parameters
         translated = self._parameters.get(logical_id, {}).get("Default")
         if translated:
             return translated
 
+        # Handle Default Property Type Resolution
         resource_type = self._resources.get(logical_id, {}).get(
             IntrinsicsSymbolTable.CFN_RESOURCE_TYPE
         )
@@ -225,6 +224,7 @@ class IntrinsicsSymbolTable(object):
                 return resolver(logical_id, resource_attribute)
             return resolver
 
+        # Handle Attribute Type Resolution
         attribute_resolver = self.common_attribute_resolver.get(resource_attribute, {})
         if attribute_resolver:
             if callable(attribute_resolver):
@@ -316,7 +316,8 @@ class IntrinsicsSymbolTable(object):
         """
         return IntrinsicsSymbolTable.REGIONS.get(region)
 
-    def handle_pseudo_account_id(self):
+    @staticmethod
+    def handle_pseudo_account_id():
         """
         This gets a default account id from SamBaseProvider.
         Return
@@ -358,24 +359,6 @@ class IntrinsicsSymbolTable(object):
             return self.CHINA_URL_PREFIX
         return self.DEFAULT_URL_PREFIX
 
-    def handle_pseudo_notification_arn(self):
-        """
-        This resolves AWS::NotificationArn to return a list of random Arns.
-
-        This is only run if it is not specified by the logical_id_translator as a default.
-
-        Return
-        -------
-        A list of Notification Arns
-        """
-        return [
-            self.arn_resolver(
-                logical_id=self.get_random_string(),
-                service_name=self.AWS_NOTIFICATION_SERVICE_NAME,
-            )
-            for _ in range(randint(1, 3))
-        ]
-
     def handle_pseudo_partition(self):
         """
         This resolves AWS::Partition so that the correct partition is returned depending on the region.
@@ -394,17 +377,7 @@ class IntrinsicsSymbolTable(object):
         return self.DEFAULT_PARTITION
 
     @staticmethod
-    def get_random_string():
-        """
-        This generates a random string to be used as defaults in functions
-
-        Return
-        -------
-        A randomized string
-        """
-        return uuid.uuid4().hex
-
-    def handle_pseudo_stack_id(self):
+    def handle_pseudo_stack_id():
         """
         This resolves AWS::StackId by using the SamBaseProvider as the default value.
 
@@ -418,7 +391,8 @@ class IntrinsicsSymbolTable(object):
             IntrinsicsSymbolTable.AWS_STACK_ID
         )
 
-    def handle_pseudo_stack_name(self):
+    @staticmethod
+    def handle_pseudo_stack_name():
         """
         This resolves AWS::StackName by using the SamBaseProvider as the default value.
 
