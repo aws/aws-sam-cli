@@ -9,8 +9,7 @@ import re
 
 from six import string_types
 
-from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception_validation import (
-    InvalidIntrinsicException,
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
     verify_intrinsic_type_list,
     verify_non_null,
     verify_intrinsic_type_int,
@@ -20,7 +19,10 @@ from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception_validation import
     verify_intrinsic_type_dict,
     verify_intrinsic_type_bool,
     verify_all_list_intrinsic_type,
-    InvalidSymbolException,
+)
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import (
+    InvalidIntrinsicException,
+    InvalidSymbolException
 )
 
 LOG = logging.getLogger(__name__)
@@ -67,7 +69,7 @@ class IntrinsicResolver(object):
 
     CONDITIONAL_FUNCTIONS = [FN_AND, FN_OR, FN_IF, FN_EQUALS, FN_NOT]
 
-    def __init__(self, template=None, symbol_resolver=None):
+    def __init__(self, template, symbol_resolver):
         """
         Initializes the Intrinsic Property class with the default intrinsic_key_function_map and
         conditional_key_function_map.
@@ -230,7 +232,7 @@ class IntrinsicResolver(object):
             sanitized_dict[sanitized_key] = sanitized_val
         return sanitized_dict
 
-    def resolve_template(self, symbol_resolver=None, ignore_errors=False):
+    def resolve_template(self, ignore_errors=False):
         """
         This will parse through every entry in a CloudFormation template and resolve them based on the symbol_resolver.
         Customers can optionally ignore resource errors and default to whatever the resource provides.
@@ -239,15 +241,10 @@ class IntrinsicResolver(object):
         -----------
         ignore_errors: bool
             An option to ignore errors that are InvalidIntrinsicException and InvalidSymbolException
-        symbol_resolver: IntrinsicSymbolTable
-            An Instance of the IntrinsicSymbolTable object contaning resolution for attributes like Ref, Fn::GetAtt
         Return
         -------
         A resolved template with all references possible simplified
         """
-        if symbol_resolver:
-            self._symbol_resolver = symbol_resolver
-
         processed_template = {}
         for key, val in self._resources.items():
             processed_key = self._symbol_resolver.get_translation(key) or key

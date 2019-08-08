@@ -1,16 +1,13 @@
 """
-A custom Exception to display Invalid Intrinsics and Symbol Table format.
-It also has a list of helper functions that cleanup the processing in IntrinsicResolver and IntrinsicSymbolTable
+A list of helper functions that cleanup the processing in IntrinsicResolver and IntrinsicSymbolTable
 """
 from six import string_types
 
-
-class InvalidIntrinsicException(Exception):
-    pass
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
 
 
 def verify_intrinsic_type_bool(
-    argument, property_type="", message="", position_in_list=""
+        argument, property_type="", message="", position_in_list=""
 ):
     verify_intrinsic_type(
         argument, property_type, message, position_in_list, primitive_type=bool
@@ -18,7 +15,7 @@ def verify_intrinsic_type_bool(
 
 
 def verify_intrinsic_type_list(
-    argument, property_type="", message="", position_in_list=""
+        argument, property_type="", message="", position_in_list=""
 ):
     verify_intrinsic_type(
         argument, property_type, message, position_in_list, primitive_type=list
@@ -26,7 +23,7 @@ def verify_intrinsic_type_list(
 
 
 def verify_intrinsic_type_dict(
-    argument, property_type="", message="", position_in_list=""
+        argument, property_type="", message="", position_in_list=""
 ):
     verify_intrinsic_type(
         argument, property_type, message, position_in_list, primitive_type=dict
@@ -34,7 +31,7 @@ def verify_intrinsic_type_dict(
 
 
 def verify_intrinsic_type_int(
-    argument, property_type="", message="", position_in_list=""
+        argument, property_type="", message="", position_in_list=""
 ):
     # Special case since bool is a subclass of int in python
     if isinstance(argument, bool):
@@ -49,7 +46,7 @@ def verify_intrinsic_type_int(
 
 
 def verify_intrinsic_type_str(
-    argument, property_type="", message="", position_in_list=""
+        argument, property_type="", message="", position_in_list=""
 ):
     verify_intrinsic_type(
         argument, property_type, message, position_in_list, primitive_type=string_types
@@ -66,11 +63,11 @@ def verify_non_null(argument, property_type="", message="", position_in_list="")
 
 
 def verify_intrinsic_type(
-    argument,
-    property_type="",
-    message="",
-    position_in_list="",
-    primitive_type=string_types,
+        argument,
+        property_type="",
+        message="",
+        position_in_list="",
+        primitive_type=string_types,
 ):
     verify_non_null(argument, property_type, message, position_in_list)
     if not isinstance(argument, primitive_type):
@@ -100,11 +97,7 @@ def verify_number_arguments(arguments, property_type="", num=0):
 
 
 def verify_all_list_intrinsic_type(
-    arguments, verification_func, property_type="", message="", position_in_list=""
+        arguments, verification_func, property_type="", message="", position_in_list=""
 ):
     for argument in arguments:
         verification_func(argument, property_type, message, position_in_list)
-
-
-class InvalidSymbolException(Exception):
-    pass

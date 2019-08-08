@@ -7,14 +7,14 @@ from parameterized import parameterized
 
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception_validation import (
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import (
     InvalidIntrinsicException,
 )
 
 
 class TestIntrinsicFnJoinResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+        self.resolver = IntrinsicResolver(template={}, symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_join(self):
         intrinsic = {"Fn::Join": [",", ["a", "b", "c", "d"]]}
@@ -93,7 +93,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
 
 class TestIntrinsicFnSplitResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+        self.resolver = IntrinsicResolver(template={}, symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_split(self):
         intrinsic = {"Fn::Split": ["|", "a|b|c"]}
@@ -161,7 +161,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
 
 class TestIntrinsicFnBase64Resolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+        self.resolver = IntrinsicResolver(template={}, symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_split(self):
         intrinsic = {"Fn::Base64": "AWS CloudFormation"}
@@ -202,7 +202,7 @@ class TestIntrinsicFnBase64Resolver(TestCase):
 
 class TestIntrinsicFnSelectResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+        self.resolver = IntrinsicResolver(template={}, symbol_resolver=IntrinsicsSymbolTable())
 
     def test_basic_fn_select(self):
         intrinsic = {"Fn::Select": [2, ["a", "b", "c", "d"]]}
@@ -339,10 +339,10 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
                     item,
             )
             for item in [
-            ["<UNKOWN_VALUE>", "Test", "key"],
-            ["Basic", "<UNKOWN_VALUE>", "key"],
-            ["Basic", "Test", "<UNKOWN_VALUE>"],
-        ]
+                ["<UNKOWN_VALUE>", "Test", "key"],
+                ["Basic", "<UNKOWN_VALUE>", "key"],
+                ["Basic", "Test", "<UNKOWN_VALUE>"],
+            ]
         ]
     )
     def test_fn_find_in_map_invalid_key_entries(self, name, intrinsic):
@@ -354,6 +354,7 @@ class TestIntrinsicFnAzsResolver(TestCase):
     def setUp(self):
         logical_id_translator = {"AWS::Region": "us-east-1"}
         self.resolver = IntrinsicResolver(
+            template={},
             symbol_resolver=IntrinsicsSymbolTable(
                 logical_id_translator=logical_id_translator
             )
@@ -408,6 +409,7 @@ class TestFnTransform(TestCase):
     def setUp(self):
         logical_id_translator = {"AWS::Region": "us-east-1"}
         self.resolver = IntrinsicResolver(
+            template={},
             symbol_resolver=IntrinsicsSymbolTable(
                 logical_id_translator=logical_id_translator
             )
@@ -434,7 +436,7 @@ class TestIntrinsicFnRefResolver(TestCase):
         self.resolver = IntrinsicResolver(
             symbol_resolver=IntrinsicsSymbolTable(
                 logical_id_translator=logical_id_translator, template=template
-            )
+            ), template=template
         )
 
     def test_basic_ref_translation(self):
@@ -605,6 +607,7 @@ class TestIntrinsicFnSubResolver(TestCase):
         }
         template = {"Resources": resources}
         self.resolver = IntrinsicResolver(
+            template=template,
             symbol_resolver=IntrinsicsSymbolTable(
                 logical_id_translator=logical_id_translator, template=template
             )
@@ -696,7 +699,7 @@ class TestIntrinsicFnSubResolver(TestCase):
 
 class TestIntrinsicFnImportValueResolver(TestCase):
     def setUp(self):
-        self.resolver = IntrinsicResolver(symbol_resolver=IntrinsicsSymbolTable())
+        self.resolver = IntrinsicResolver(template={}, symbol_resolver=IntrinsicsSymbolTable())
 
     def test_fn_import_value_unsupported(self):
         with self.assertRaises(
@@ -712,6 +715,7 @@ class TestIntrinsicFnEqualsResolver(TestCase):
             "AWS::AccountId": "123456789012",
         }
         self.resolver = IntrinsicResolver(
+            template={},
             symbol_resolver=IntrinsicsSymbolTable(
                 logical_id_translator=logical_id_translator
             )
@@ -1248,54 +1252,6 @@ class TestIntrinsicTemplateResolution(TestCase):
         }
         self.assertEqual(resolved_template, expected_resources)
 
-    def test_template_resolution_symbol_resolver(self):
-        logical_id_translator = {
-            "RestApi": {"Ref": "MyApi"},
-            "LambdaFunction": {
-                "Arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-                       "-1:123456789012:LambdaFunction/invocations"
-            },
-            "AWS::StackId": "12301230123",
-            "AWS::Region": "us-east-1",
-            "AWS::AccountId": "406033500479",
-            "RestApi.Deployment": {"Ref": "MyApi"},
-        }
-        symbol_resolver = IntrinsicsSymbolTable(
-            template=self.template, logical_id_translator=logical_id_translator
-        )
-
-        resolved_template = self.resolver.resolve_template(
-            symbol_resolver=symbol_resolver, ignore_errors=False
-        )
-        expected_resources = {
-            "HelloHandler2E4FBA4D": {
-                "Properties": {"handler": "main.handle"},
-                "Type": "AWS::Lambda::Function",
-            },
-            "LambdaFunction": {
-                "Properties": {
-                    "Uri": "arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31/functions/arn:aws"
-                           ":lambda:us-east-1:406033500479:function:HelloHandler2E4FBA4D/invocations"
-                },
-                "Type": "AWS::Lambda::Function",
-            },
-            "MyApi": {
-                "Properties": {
-                    "Body": "YTtlO2Y7ZA==",
-                    "BodyS3Location": "https://s3location/",
-                },
-                "Type": "AWS::ApiGateway::RestApi",
-            },
-            "RestApiResource": {
-                "Properties": {
-                    "PathPart": "{proxy+}",
-                    "RestApiId": "MyApi",
-                    "parentId": "/",
-                }
-            },
-        }
-        self.assertEqual(resolved_template, expected_resources)
-
     def test_template_fail_errors(self):
         resources = deepcopy(self.resources)
         resources["RestApi.Deployment"]["Properties"]["BodyS3Location"] = {
@@ -1368,13 +1324,12 @@ class TestIntrinsicTemplateResolution(TestCase):
                 }
             },
         }
-        self.maxDiff = None
         self.assertEqual(expected_template, result)
 
 
 class TestIntrinsicResolverInitialization(TestCase):
     def test_conditional_key_function_map(self):
-        resolver = IntrinsicResolver()
+        resolver = IntrinsicResolver(None, None)
 
         def lambda_func(x):
             return True
@@ -1383,7 +1338,7 @@ class TestIntrinsicResolverInitialization(TestCase):
         self.assertTrue(resolver.conditional_key_function_map.get("key") == lambda_func)
 
     def test_set_intrinsic_key_function_map(self):
-        resolver = IntrinsicResolver()
+        resolver = IntrinsicResolver(None, None)
 
         def lambda_func(x):
             return True
