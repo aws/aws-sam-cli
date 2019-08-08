@@ -107,6 +107,9 @@ def sam_boto3_client(*args, **kwargs):
     return boto3.client(*args, config=Config(user_agent_extra=user_agent_extra), **kwargs)
 
 
+boto3.client = sam_boto3_client  # Overwrite the use of boto3 to use our logging
+
+
 def _timer():
     """
     Timer to measure the elapsed time between two calls in milliseconds. When you first call this method,

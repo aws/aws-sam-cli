@@ -3,6 +3,7 @@ CLI Command for Validating a SAM Template
 """
 import os
 
+import boto3
 import click
 from botocore.exceptions import NoCredentialsError
 from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
@@ -11,7 +12,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import template_option_without_build
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
-from samcli.lib.telemetry.metrics import track_command, sam_boto3_client
+from samcli.lib.telemetry.metrics import track_command
 from samcli.yamlhelper import yaml_parse
 from .lib.exceptions import InvalidSamDocumentException
 from .lib.sam_template_validator import SamTemplateValidator
@@ -37,7 +38,7 @@ def do_cli(ctx, template):
 
     sam_template = _read_sam_file(template)
 
-    iam_client = sam_boto3_client('iam')
+    iam_client = boto3.client('iam')
     validator = SamTemplateValidator(sam_template, ManagedPolicyLoader(iam_client))
 
     try:
