@@ -10,6 +10,8 @@ import requests
 import time
 import logging
 
+from samcli.commands.local.lib.provider import Api
+from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib import provider
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.lambdafn.runtime import LambdaRuntime
@@ -42,7 +44,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.static_dir = "mystaticdir"
         self.static_file_name = "myfile.txt"
         self.static_file_content = "This is a static file"
-        self._setup_static_file(os.path.join(self.cwd, self.static_dir),   # Create static directory with in cwd
+        self._setup_static_file(os.path.join(self.cwd, self.static_dir),  # Create static directory with in cwd
                                 self.static_file_name,
                                 self.static_file_content)
 
@@ -56,12 +58,14 @@ class TestFunctionalLocalLambda(TestCase):
         self.mock_function_provider.get.return_value = self.function
 
         # Setup two APIs pointing to the same function
-        apis = [
-            provider.Api(path="/get", method="GET", function_name=self.function_name, cors="cors"),
-            provider.Api(path="/post", method="POST", function_name=self.function_name, cors="cors"),
+        routes = [
+            Route(path="/get", methods=["GET"], function_name=self.function_name),
+            Route(path="/post", methods=["POST"], function_name=self.function_name),
         ]
+        api = Api(routes=routes)
+
         self.api_provider_mock = Mock()
-        self.api_provider_mock.get_all.return_value = apis
+        self.api_provider_mock.get_all.return_value = api
 
         # Now wire up the Lambda invoker and pass it through the context
         self.lambda_invoke_context_mock = Mock()
@@ -69,7 +73,9 @@ class TestFunctionalLocalLambda(TestCase):
         layer_downloader = LayerDownloader("./", "./")
         lambda_image = LambdaImage(layer_downloader, False, False)
         local_runtime = LambdaRuntime(manager, lambda_image)
-        lambda_runner = LocalLambdaRunner(local_runtime, self.mock_function_provider, self.cwd, env_vars_values=None,
+        lambda_runner = LocalLambdaRunner(local_runtime,
+                                          self.mock_function_provider,
+                                          self.cwd,
                                           debug_context=None)
         self.lambda_invoke_context_mock.local_lambda_runner = lambda_runner
         self.lambda_invoke_context_mock.get_cwd.return_value = self.cwd
@@ -77,7 +83,7 @@ class TestFunctionalLocalLambda(TestCase):
     def tearDown(self):
         shutil.rmtree(self.code_abs_path)
 
-    @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
+    @patch("samcli.commands.local.lib.sam_api_provider.SamApiProvider")
     def test_must_start_service_and_serve_endpoints(self, sam_api_provider_mock):
         sam_api_provider_mock.return_value = self.api_provider_mock
 
@@ -97,7 +103,7 @@ class TestFunctionalLocalLambda(TestCase):
         response = requests.get(self.url + '/post')
         self.assertEquals(response.status_code, 403)  # "HTTP GET /post" must not exist
 
-    @patch("samcli.commands.local.lib.local_api_service.SamApiProvider")
+    @patch("samcli.commands.local.lib.sam_api_provider.SamApiProvider")
     def test_must_serve_static_files(self, sam_api_provider_mock):
         sam_api_provider_mock.return_value = self.api_provider_mock
 
@@ -123,10 +129,8 @@ class TestFunctionalLocalLambda(TestCase):
 
     @staticmethod
     def _setup_static_file(directory, filename, contents):
-
         if not os.path.isdir(directory):
             os.mkdir(directory)
 
         with open(os.path.join(directory, filename), "w") as fp:
             fp.write(contents)
-

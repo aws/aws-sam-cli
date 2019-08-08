@@ -97,7 +97,8 @@ class TestContainer_create(TestCase):
                                                                      command=self.cmd,
                                                                      working_dir=self.working_dir,
                                                                      volumes=expected_volumes,
-                                                                     tty=False)
+                                                                     tty=False,
+                                                                     use_config_proxy=True)
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_create_container_including_all_optional_values(self):
@@ -141,6 +142,7 @@ class TestContainer_create(TestCase):
                                                                      working_dir=self.working_dir,
                                                                      volumes=expected_volumes,
                                                                      tty=False,
+                                                                     use_config_proxy=True,
                                                                      environment=self.env_vars,
                                                                      ports=self.exposed_ports,
                                                                      entrypoint=self.entrypoint,
@@ -206,6 +208,7 @@ class TestContainer_create(TestCase):
                                                                      working_dir=self.working_dir,
                                                                      volumes=translated_volumes,
                                                                      tty=False,
+                                                                     use_config_proxy=True,
                                                                      environment=self.env_vars,
                                                                      ports=self.exposed_ports,
                                                                      entrypoint=self.entrypoint,
@@ -250,6 +253,7 @@ class TestContainer_create(TestCase):
                                                                      command=self.cmd,
                                                                      working_dir=self.working_dir,
                                                                      tty=False,
+                                                                     use_config_proxy=True,
                                                                      volumes=expected_volumes
                                                                      )
 
@@ -292,6 +296,7 @@ class TestContainer_create(TestCase):
                                                                      command=self.cmd,
                                                                      working_dir=self.working_dir,
                                                                      tty=False,
+                                                                     use_config_proxy=True,
                                                                      volumes=expected_volumes,
                                                                      network_mode='host'
                                                                      )
