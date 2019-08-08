@@ -1,3 +1,4 @@
+import copy
 from unittest import TestCase
 from mock import Mock, patch, ANY
 import json
@@ -6,6 +7,7 @@ import base64
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
+from samcli.commands.local.lib.provider import Api
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -14,14 +16,15 @@ class TestApiGatewayService(TestCase):
 
     def setUp(self):
         self.function_name = Mock()
-        self.api_gateway_route = Route(['GET'], self.function_name, '/')
+        self.api_gateway_route = Route(methods=['GET'], function_name=self.function_name, path='/')
         self.list_of_routes = [self.api_gateway_route]
 
         self.lambda_runner = Mock()
         self.lambda_runner.is_debugging.return_value = False
 
         self.stderr = Mock()
-        self.service = LocalApigwService(self.list_of_routes,
+        self.api = Api(routes=self.list_of_routes)
+        self.service = LocalApigwService(self.api,
                                          self.lambda_runner,
                                          port=3000,
                                          host='127.0.0.1',
@@ -102,14 +105,15 @@ class TestApiGatewayService(TestCase):
     def test_create_creates_dict_of_routes(self):
         function_name_1 = Mock()
         function_name_2 = Mock()
-        api_gateway_route_1 = Route(['GET'], function_name_1, '/')
-        api_gateway_route_2 = Route(['POST'], function_name_2, '/')
+        api_gateway_route_1 = Route(methods=["GET"], function_name=function_name_1, path='/')
+        api_gateway_route_2 = Route(methods=["POST"], function_name=function_name_2, path='/')
 
         list_of_routes = [api_gateway_route_1, api_gateway_route_2]
 
         lambda_runner = Mock()
 
-        service = LocalApigwService(list_of_routes, lambda_runner)
+        api = Api(routes=list_of_routes)
+        service = LocalApigwService(api, lambda_runner)
 
         service.create()
 
@@ -135,16 +139,16 @@ class TestApiGatewayService(TestCase):
     def test_initalize_creates_default_values(self):
         self.assertEquals(self.service.port, 3000)
         self.assertEquals(self.service.host, '127.0.0.1')
-        self.assertEquals(self.service.routing_list, self.list_of_routes)
+        self.assertEquals(self.service.api.routes, self.list_of_routes)
         self.assertIsNone(self.service.static_dir)
         self.assertEquals(self.service.lambda_runner, self.lambda_runner)
 
     def test_initalize_with_values(self):
         lambda_runner = Mock()
-        local_service = LocalApigwService([], lambda_runner, static_dir='dir/static', port=5000, host='129.0.0.0')
+        local_service = LocalApigwService(Api(), lambda_runner, static_dir='dir/static', port=5000, host='129.0.0.0')
         self.assertEquals(local_service.port, 5000)
         self.assertEquals(local_service.host, '129.0.0.0')
-        self.assertEquals(local_service.routing_list, [])
+        self.assertEquals(local_service.api.routes, [])
         self.assertEquals(local_service.static_dir, 'dir/static')
         self.assertEquals(local_service.lambda_runner, lambda_runner)
 
@@ -250,19 +254,12 @@ class TestApiGatewayModel(TestCase):
 
     def setUp(self):
         self.function_name = "name"
-        self.stage_name = "Dev"
-        self.stage_variables = {
-            "test": "sample"
-        }
-        self.api_gateway = Route(['POST'], self.function_name, '/', stage_name=self.stage_name,
-                                 stage_variables=self.stage_variables)
+        self.api_gateway = Route(function_name=self.function_name, methods=["Post"], path="/")
 
     def test_class_initialization(self):
         self.assertEquals(self.api_gateway.methods, ['POST'])
         self.assertEquals(self.api_gateway.function_name, self.function_name)
         self.assertEquals(self.api_gateway.path, '/')
-        self.assertEqual(self.api_gateway.stage_name, "Dev")
-        self.assertEqual(self.api_gateway.stage_variables, {"test": "sample"})
 
 
 class TestLambdaHeaderDictionaryMerge(TestCase):
@@ -488,7 +485,7 @@ class TestService_construct_event(TestCase):
                    '"Custom User Agent String", "caller": null, "cognitoAuthenticationType": null, "sourceIp": ' \
                    '"190.0.0.0", "user": null}, "accountId": "123456789012"}, "headers": {"Content-Type": ' \
                    '"application/json", "X-Test": "Value", "X-Forwarded-Port": "3000", "X-Forwarded-Proto": "http"}, ' \
-                   '"multiValueHeaders": {"Content-Type": ["application/json"], "X-Test": ["Value"], '\
+                   '"multiValueHeaders": {"Content-Type": ["application/json"], "X-Test": ["Value"], ' \
                    '"X-Forwarded-Port": ["3000"], "X-Forwarded-Proto": ["http"]}, ' \
                    '"stageVariables": null, "path": "path", "pathParameters": {"path": "params"}, ' \
                    '"isBase64Encoded": false}'
@@ -590,3 +587,60 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
+
+
+class TestRouteEqualsHash(TestCase):
+
+    def test_route_in_list(self):
+        route = Route(function_name="test", path="/test", methods=["POST"])
+        routes = [route]
+        self.assertIn(route, routes)
+
+    def test_route_method_order_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        self.assertEquals(route1, route2)
+
+    def test_route_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        dic = {route1: "test"}
+        self.assertEquals(dic[route1], "test")
+
+    def test_route_object_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = type('obj', (object,), {'function_name': 'test', "path": "/test", "methods": ["GET", "POST"]})
+
+        self.assertNotEqual(route1, route2)
+
+    def test_route_function_name_equals(self):
+        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        self.assertNotEqual(route1, route2)
+
+    def test_route_different_path_equals(self):
+        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        self.assertNotEqual(route1, route2)
+
+    def test_same_object_equals(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        self.assertEquals(route1, copy.deepcopy(route1))
+
+    def test_route_function_name_hash(self):
+        route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
+        route2 = Route(function_name="test2", path="/test", methods=["GET", "POST"])
+        self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+    def test_route_different_path_hash(self):
+        route1 = Route(function_name="test", path="/test1", methods=["GET", "POST"])
+        route2 = Route(function_name="test", path="/test2", methods=["GET", "POST"])
+        self.assertNotEqual(route1.__hash__(), route2.__hash__())
+
+    def test_same_object_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        self.assertEquals(route1.__hash__(), copy.deepcopy(route1).__hash__())
+
+    def test_route_method_order_hash(self):
+        route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
+        route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
+        self.assertEquals(route1.__hash__(), route2.__hash__())
