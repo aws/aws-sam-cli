@@ -10,6 +10,7 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 .idea
+.vscode
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/

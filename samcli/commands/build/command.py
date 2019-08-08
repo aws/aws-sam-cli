@@ -16,6 +16,7 @@ from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, Unsuppo
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands._utils.template import move_template
+from samcli.lib.telemetry.metrics import track_command
 
 LOG = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 @aws_creds_options
 @click.argument('function_identifier', required=False)
 @pass_context
+@track_command
 def cli(ctx,
         function_identifier,
         template,

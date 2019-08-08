@@ -13,6 +13,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import template_option_without_build
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
 from samcli.yamlhelper import yaml_parse
+from samcli.lib.telemetry.metrics import track_command
 from .lib.exceptions import InvalidSamDocumentException
 from .lib.sam_template_validator import SamTemplateValidator
 
@@ -23,6 +24,7 @@ from .lib.sam_template_validator import SamTemplateValidator
 @aws_creds_options
 @cli_framework_options
 @pass_context
+@track_command
 def cli(ctx, template):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing

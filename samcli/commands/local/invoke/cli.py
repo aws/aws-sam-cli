@@ -15,6 +15,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.local.docker.manager import DockerImagePullFailedException
 from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
+from samcli.lib.telemetry.metrics import track_command
 
 
 LOG = logging.getLogger(__name__)
@@ -44,7 +45,8 @@ STDIN_FILE_NAME = "-"
 @cli_framework_options
 @aws_creds_options
 @click.argument('function_identifier', required=False)
-@pass_context  # pylint: disable=R0914
+@pass_context
+@track_command  # pylint: disable=R0914
 def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
         docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
         parameter_overrides):

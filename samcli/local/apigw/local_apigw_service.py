@@ -18,34 +18,63 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
+    _ANY_HTTP_METHODS = ["GET",
+                         "DELETE",
+                         "PUT",
+                         "POST",
+                         "HEAD",
+                         "OPTIONS",
+                         "PATCH"]
 
-    def __init__(self, methods, function_name, path, binary_types=None):
+    def __init__(self, function_name, path, methods):
         """
         Creates an ApiGatewayRoute
 
-        :param list(str) methods: List of HTTP Methods
+        :param list(str) methods: http method
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
         """
-        self.methods = methods
+        self.methods = self.normalize_method(methods)
         self.function_name = function_name
         self.path = path
-        self.binary_types = binary_types or []
+
+    def __eq__(self, other):
+        return isinstance(other, Route) and \
+               sorted(self.methods) == sorted(
+            other.methods) and self.function_name == other.function_name and self.path == other.path
+
+    def __hash__(self):
+        route_hash = hash(self.function_name) * hash(self.path)
+        for method in sorted(self.methods):
+            route_hash *= hash(method)
+        return route_hash
+
+    def normalize_method(self, methods):
+        """
+        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
+        supported Http Methods on Api Gateway.
+
+        :param list methods: Http methods
+        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        """
+        methods = [method.upper() for method in methods]
+        if "ANY" in methods:
+            return self._ANY_HTTP_METHODS
+        return methods
 
 
 class LocalApigwService(BaseLocalService):
-
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
 
-    def __init__(self, routing_list, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
         """
         Creates an ApiGatewayService
 
         Parameters
         ----------
-        routing_list list(ApiGatewayCallModel)
-            A list of the Model that represent the service paths to create.
+        api: Api
+           an Api object that contains the list of routes and properties
         lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
             The Lambda runner class capable of invoking the function
         static_dir str
@@ -60,7 +89,7 @@ class LocalApigwService(BaseLocalService):
             Optional stream writer where the stderr from Docker container should be written to
         """
         super(LocalApigwService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
-        self.routing_list = routing_list
+        self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
         self._dict_of_routes = {}
@@ -76,12 +105,11 @@ class LocalApigwService(BaseLocalService):
                           static_folder=self.static_dir  # Serve static files from this directory
                           )
 
-        for api_gateway_route in self.routing_list:
+        for api_gateway_route in self.api.routes:
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods,
                                                        path):
                 self._dict_of_routes[route_key] = api_gateway_route
-
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
@@ -143,7 +171,8 @@ class LocalApigwService(BaseLocalService):
         route = self._get_current_route(request)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types)
+            event = self._construct_event(request, self.port, self.api.binary_media_types, self.api.stage_name,
+                                          self.api.stage_variables)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -163,7 +192,7 @@ class LocalApigwService(BaseLocalService):
 
         try:
             (status_code, headers, body) = self._parse_lambda_output(lambda_response,
-                                                                     route.binary_types,
+                                                                     self.api.binary_media_types,
                                                                      request)
         except (KeyError, TypeError, ValueError):
             LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
@@ -313,13 +342,14 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types):
+    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
         :param request flask_request: Flask Request
         :return: String representing the event
         """
+        # pylint: disable-msg=too-many-locals
 
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
@@ -342,28 +372,26 @@ class LocalApigwService(BaseLocalService):
 
         context = RequestContext(resource_path=endpoint,
                                  http_method=method,
-                                 stage="prod",
+                                 stage=stage_name,
                                  identity=identity,
                                  path=endpoint)
 
-        event_headers = dict(flask_request.headers)
-        event_headers["X-Forwarded-Proto"] = flask_request.scheme
-        event_headers["X-Forwarded-Port"] = str(port)
+        headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
 
-        # APIGW does not support duplicate query parameters. Flask gives query params as a list so
-        # we need to convert only grab the first item unless many were given, were we grab the last to be consistent
-        # with APIGW
-        query_string_dict = LocalApigwService._query_string_params(flask_request)
+        query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
 
         event = ApiGatewayLambdaEvent(http_method=method,
                                       body=request_data,
                                       resource=endpoint,
                                       request_context=context,
                                       query_string_params=query_string_dict,
-                                      headers=event_headers,
+                                      multi_value_query_string_params=multi_value_query_string_dict,
+                                      headers=headers_dict,
+                                      multi_value_headers=multi_value_headers_dict,
                                       path_parameters=flask_request.view_args,
                                       path=flask_request.path,
-                                      is_base_64_encoded=is_base_64)
+                                      is_base_64_encoded=is_base_64,
+                                      stage_variables=stage_variables)
 
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
@@ -379,12 +407,13 @@ class LocalApigwService(BaseLocalService):
         flask_request request
             Request from Flask
 
-        Returns dict (str: str)
+        Returns dict (str: str), dict (str: list of str)
         -------
             Empty dict if no query params where in the request otherwise returns a dictionary of key to value
 
         """
         query_string_dict = {}
+        multi_value_query_string_dict = {}
 
         # Flask returns an ImmutableMultiDict so convert to a dictionary that becomes
         # a dict(str: list) then iterate over
@@ -394,11 +423,46 @@ class LocalApigwService(BaseLocalService):
             # if the list is empty, default to empty string
             if not query_string_value_length:
                 query_string_dict[query_string_key] = ""
+                multi_value_query_string_dict[query_string_key] = [""]
             else:
-                # APIGW doesn't handle duplicate query string keys, picking the last one in the list
                 query_string_dict[query_string_key] = query_string_list[-1]
+                multi_value_query_string_dict[query_string_key] = query_string_list
 
-        return query_string_dict
+        return query_string_dict, multi_value_query_string_dict
+
+    @staticmethod
+    def _event_headers(flask_request, port):
+        """
+        Constructs an APIGW equivalent headers dictionary
+
+        Parameters
+        ----------
+        flask_request request
+            Request from Flask
+        int port
+            Forwarded Port
+
+        Returns dict (str: str), dict (str: list of str)
+        -------
+            Returns a dictionary of key to list of strings
+
+        """
+        headers_dict = {}
+        multi_value_headers_dict = {}
+
+        # Multi-value request headers is not really supported by Flask.
+        # See https://github.com/pallets/flask/issues/850
+        for header_key in flask_request.headers.keys():
+            headers_dict[header_key] = flask_request.headers.get(header_key)
+            multi_value_headers_dict[header_key] = flask_request.headers.getlist(header_key)
+
+        headers_dict["X-Forwarded-Proto"] = flask_request.scheme
+        multi_value_headers_dict["X-Forwarded-Proto"] = [flask_request.scheme]
+
+        headers_dict["X-Forwarded-Port"] = str(port)
+        multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
+
+        return headers_dict, multi_value_headers_dict
 
     @staticmethod
     def _should_base64_encode(binary_types, request_mimetype):

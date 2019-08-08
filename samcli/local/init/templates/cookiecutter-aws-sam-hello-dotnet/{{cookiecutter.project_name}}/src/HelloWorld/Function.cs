@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using Newtonsoft.Json;
 
 using Amazon.Lambda.Core;
@@ -25,20 +23,19 @@ namespace HelloWorld
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", "AWS Lambda .Net Client");
 
-            var stringTask = client.GetStringAsync("http://checkip.amazonaws.com/").ConfigureAwait(continueOnCapturedContext:false);
+            var msg = await client.GetStringAsync("http://checkip.amazonaws.com/").ConfigureAwait(continueOnCapturedContext:false);
 
-            var msg = await stringTask;
             return msg.Replace("\n","");
         }
 
-        public APIGatewayProxyResponse FunctionHandler(APIGatewayProxyRequest apigProxyEvent, ILambdaContext context)
+        public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest apigProxyEvent, ILambdaContext context)
         {
 
-            string location = GetCallingIP().Result;
-            Dictionary<string, string> body = new Dictionary<string, string>
+            var location = await GetCallingIP();
+            var body = new Dictionary<string, string>
             {
                 { "message", "hello world" },
-                { "location", location },
+                { "location", location }
             };
 
             return new APIGatewayProxyResponse
