@@ -92,9 +92,12 @@ class CfnApiProvider(CfnBaseApiProvider):
         """
         Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
         Parameters
-        ----------
-        resources : dict
-            Resource definition, including its properties
+       ----------
+        resources: dict
+            All Resource definition, including its properties
+
+        stage_resource : dict
+            Stage Resource definition, including its properties
 
         collector : ApiCollector
             Instance of the API collector that where we will save the API information

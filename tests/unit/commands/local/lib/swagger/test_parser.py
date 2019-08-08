@@ -6,8 +6,8 @@ from unittest import TestCase
 from mock import patch, Mock
 from parameterized import parameterized, param
 
-from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
+from samcli.local.apigw.local_apigw_service import Route
 
 
 class TestSwaggerParser_get_apis(TestCase):

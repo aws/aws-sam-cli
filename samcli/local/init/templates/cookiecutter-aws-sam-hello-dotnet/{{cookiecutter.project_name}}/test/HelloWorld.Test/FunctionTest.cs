@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
-using System.Net.Http.Headers;
-
 using Newtonsoft.Json;
 using Xunit;
-using Amazon.Lambda.Core;
 using Amazon.Lambda.TestUtilities;
 using Amazon.Lambda.APIGatewayEvents;
 
@@ -29,14 +26,10 @@ namespace HelloWorld.Tests
     }
 
     [Fact]
-    public void TestHelloWorldFunctionHandler()
+    public async Task TestHelloWorldFunctionHandler()
     {
-            TestLambdaContext context;
-            APIGatewayProxyRequest request;
-            APIGatewayProxyResponse response;
-
-            request = new APIGatewayProxyRequest();
-            context = new TestLambdaContext();
+            var request = new APIGatewayProxyRequest();
+            var context = new TestLambdaContext();
             string location = GetCallingIP().Result;
             Dictionary<string, string> body = new Dictionary<string, string>
             {
@@ -44,7 +37,7 @@ namespace HelloWorld.Tests
                 { "location", location },
             };
 
-            var ExpectedResponse = new APIGatewayProxyResponse
+            var expectedResponse = new APIGatewayProxyResponse
             {
                 Body = JsonConvert.SerializeObject(body),
                 StatusCode = 200,
@@ -52,14 +45,14 @@ namespace HelloWorld.Tests
             };
 
             var function = new Function();
-            response = function.FunctionHandler(request, context);
+            var response = await function.FunctionHandler(request, context);
 
             Console.WriteLine("Lambda Response: \n" + response.Body);
-            Console.WriteLine("Expected Response: \n" + ExpectedResponse.Body);
+            Console.WriteLine("Expected Response: \n" + expectedResponse.Body);
 
-            Assert.Equal(ExpectedResponse.Body, response.Body);
-            Assert.Equal(ExpectedResponse.Headers, response.Headers);
-            Assert.Equal(ExpectedResponse.StatusCode, response.StatusCode);
+            Assert.Equal(expectedResponse.Body, response.Body);
+            Assert.Equal(expectedResponse.Headers, response.Headers);
+            Assert.Equal(expectedResponse.StatusCode, response.StatusCode);
     }
   }
 }
