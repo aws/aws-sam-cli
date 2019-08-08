@@ -1,3 +1,7 @@
+# Default value for environment variable. Can be overridden by setting the
+# environment variable.
+SAM_CLI_TELEMETRY ?= 0
+
 init:
 	SAM_CLI_DEV=1 pip install -e '.[dev]'
 
@@ -8,10 +12,12 @@ test:
 
 integ-test:
 	# Integration tests don't need code coverage
+	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
 	SAM_CLI_DEV=1 pytest tests/integration
 
 func-test:
 	# Verify function test coverage only for `samcli.local` package
+	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
 	pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
 
 flake:

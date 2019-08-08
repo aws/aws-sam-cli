@@ -9,6 +9,7 @@ from samcli.cli.main import pass_context, common_options
 from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
 from samcli.lib.samlib.cloudformation_command import execute_command
 from samcli.commands.exceptions import UserException
+from samcli.lib.telemetry.metrics import track_command
 
 
 SHORT_HELP = "Package an AWS SAM application. This is an alias for 'aws cloudformation package'."
@@ -42,6 +43,7 @@ run aws cloudformation package help.
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @common_options
 @pass_context
+@track_command
 def cli(ctx, args, template_file, s3_bucket):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing

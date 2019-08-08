@@ -65,3 +65,15 @@ also forces commands implementations to be modular, reusable, and highly
 customizable. When RC files are implemented, new commands can be added
 or existing commands can be removed, with simple a configuration in the
 RC file.
+
+Internal Environment Variables
+==============================
+
+SAM CLI uses the following internal, undocumented, environment variables
+for development purposes. They should *not* be used by customers:
+
+- `__SAM_CLI_APP_DIR`: Path to application directory to be used in place
+   of `~/.aws-sam` directory. 
+   
+- `__SAM_CLI_TELEMETRY_ENDPOINT_URL`: HTTP Endpoint where the Telemetry 
+  metrics will be published to

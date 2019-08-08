@@ -7,6 +7,7 @@ import click
 from samcli.cli.main import pass_context, common_options
 from samcli.lib.samlib.cloudformation_command import execute_command
 from samcli.commands.exceptions import UserException
+from samcli.lib.telemetry.metrics import track_command
 
 
 SHORT_HELP = "Deploy an AWS SAM application. This is an alias for 'aws cloudformation deploy'."
@@ -36,6 +37,7 @@ run aws cloudformation deploy help.
                    "If you specify a new stack, the command creates it.")
 @common_options
 @pass_context
+@track_command
 def cli(ctx, args, template_file, stack_name):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
