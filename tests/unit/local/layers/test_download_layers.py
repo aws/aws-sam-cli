@@ -2,6 +2,11 @@ from unittest import TestCase
 from mock import patch, Mock, call
 
 from botocore.exceptions import NoCredentialsError, ClientError
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
+
 
 from samcli.local.layers.layer_downloader import LayerDownloader
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
@@ -55,7 +60,7 @@ class TestDownloadLayers(TestCase):
 
         actual = download_layers.download(layer_mock)
 
-        self.assertEquals(actual.codeuri, '/home/layer1')
+        self.assertEquals(actual.codeuri, str(Path('/home/layer1').resolve()))
 
         create_cache_patch.assert_called_once_with("/home")
 
@@ -99,13 +104,13 @@ class TestDownloadLayers(TestCase):
 
         actual = download_layers.download(layer_mock)
 
-        self.assertEquals(actual.codeuri, "/home/layer1")
+        self.assertEquals(actual.codeuri, str(Path("/home/layer1").resolve()))
 
         create_cache_patch.assert_called_once_with("/home")
         fetch_layer_uri_patch.assert_called_once_with(layer_mock)
         unzip_from_uri_patch.assert_called_once_with("layer/uri",
-                                                     '/home/layer1.zip',
-                                                     unzip_output_dir='/home/layer1',
+                                                     str(Path('/home/layer1.zip').resolve()),
+                                                     unzip_output_dir=str(Path('/home/layer1').resolve()),
                                                      progressbar_label="Downloading arn:layer:layer1")
 
     def test_layer_is_cached(self):

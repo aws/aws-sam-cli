@@ -113,7 +113,7 @@ class TestTrackCommand(TestCase):
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_record_function_duration(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
-        sleep_duration = 0.001  # 1 millisecond
+        sleep_duration = 0.01  # 10 millisecond
 
         def real_fn():
             time.sleep(sleep_duration)
@@ -125,9 +125,10 @@ class TestTrackCommand(TestCase):
         args, kwargs = self.telemetry_instance.emit.call_args_list[0]
         metric_name, actual_attrs = args
         self.assertEquals("commandRun", metric_name)
-        self.assertGreater(actual_attrs["duration"],
-                           sleep_duration,
-                           "Measured duration must be in milliseconds and greater than the sleep duration")
+        self.assertGreaterEqual(actual_attrs["duration"],
+                                sleep_duration,
+                                "Measured duration must be in milliseconds and "
+                                "greater than equal to  the sleep duration")
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_record_user_exception(self, ContextMock):
