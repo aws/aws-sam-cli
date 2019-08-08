@@ -54,10 +54,10 @@ class TestLambdaBuildContainer_init(TestCase):
         self.assertEquals(container._entrypoint, entry)
         self.assertEquals(container._cmd, [])
         self.assertEquals(container._working_dir, container_dirs["source_dir"])
-        self.assertEquals(container._host_dir, "/foo/source")
+        self.assertEquals(container._host_dir, str(pathlib.Path("/foo/source").resolve()))
         self.assertEquals(container._env_vars, {"LAMBDA_BUILDERS_LOG_LEVEL": "log-level"})
         self.assertEquals(container._additional_volumes, {
-            "/bar": {
+            str(pathlib.Path("/bar").resolve()): {
                 "bind": container_dirs["manifest_dir"],
                 "mode": "ro"
             }
@@ -71,7 +71,8 @@ class TestLambdaBuildContainer_init(TestCase):
         make_request_mock.assert_called_once()
         get_entrypoint_mock.assert_called_once_with(request)
         get_image_mock.assert_called_once_with("runtime")
-        get_container_dirs_mock.assert_called_once_with("/foo/source", "/bar")
+        get_container_dirs_mock.assert_called_once_with(str(pathlib.Path("/foo/source").resolve()),
+                                                        str(pathlib.Path("/bar").resolve()))
 
 
 class TestLambdaBuildContainer_make_request(TestCase):

@@ -1,3 +1,5 @@
+import os
+
 from unittest import TestCase
 from mock import Mock
 from mock import patch
@@ -85,6 +87,13 @@ class TestEventTypeSubCommand(TestCase):
         self.all_cmds = '{"hello": "world", "hi": "you"}'
         self.events_lib_mock = Mock()
         self.s = EventTypeSubCommand(self.events_lib_mock, self.service_cmd_name, self.all_cmds)
+
+        # Disable telemetry
+        self.old_environ = os.environ.copy()
+        os.environ["SAM_CLI_TELEMETRY"] = 0
+
+    def tearDown(self):
+        os.environ = self.old_environ
 
     def test_subcommand_accepts_events_lib(self):
         events_lib = Mock()

@@ -2,6 +2,11 @@ import os
 from unittest import TestCase
 from parameterized import parameterized
 
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
+
 from samcli.lib.utils.codeuri import resolve_code_path
 
 
@@ -52,7 +57,7 @@ class TestLocalLambda_get_code_path(TestCase):
         expected = os.path.normpath(os.path.join(self.cwd, codeuri))
 
         actual = resolve_code_path(self.cwd, codeuri)
-        self.assertEquals(expected, actual)
+        self.assertEquals(str(Path(expected).resolve()), actual)
         self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
 
     @parameterized.expand([

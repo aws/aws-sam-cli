@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.options import debug_option
 import samcli.commands.local.lib.generated_sample_events.events as events
+from samcli.lib.telemetry.metrics import track_command
 
 
 class ServiceCommand(click.MultiCommand):
@@ -170,6 +171,7 @@ class EventTypeSubCommand(click.MultiCommand):
         """
         return sorted(self.subcmd_definition.keys())
 
+    @track_command
     def cmd_implementation(self, events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
         """
         calls for value substitution in the event json and returns the

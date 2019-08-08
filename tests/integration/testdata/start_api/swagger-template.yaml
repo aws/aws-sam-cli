@@ -11,7 +11,9 @@ Resources:
   MyApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: prod
+      StageName: dev
+      Variables:
+        VarName: varValue
       DefinitionBody:
         swagger: "2.0"
         info:
@@ -67,6 +69,15 @@ Resources:
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoBase64EventBodyFunction.Arn}/invocations
 
+          "/echoeventbody":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerFunction.Arn}/invocations
+
+
   MyLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -109,3 +120,18 @@ Resources:
       Handler: main.echo_base64_event_body
       Runtime: python3.6
       CodeUri: .
+
+  EchoEventHandlerFunction:
+    Type:  AWS::Serverless::Function
+    Properties:
+      Handler: main.echo_event_handler
+      Runtime: python3.6
+      CodeUri: .
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: GET
+            RestApiId:
+              Ref: MyApi
