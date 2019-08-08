@@ -2,23 +2,24 @@
 Provides methods to generate and send metrics
 """
 
-
 import platform
 import logging
 
 from timeit import default_timer
 
+import boto3
+from botocore.config import Config
+
 from samcli.cli.context import Context
 from samcli.commands.exceptions import UserException
 from samcli.cli.global_config import GlobalConfig
 from .telemetry import Telemetry
-
+from samcli import __version__
 
 LOG = logging.getLogger(__name__)
 
 
 def send_installed_metric():
-
     LOG.debug("Sending Installed Metric")
 
     telemetry = Telemetry()
@@ -96,6 +97,14 @@ def track_command(func):
         return return_value
 
     return wrapped
+
+
+def sam_boto3_client(*args, **kwargs):
+    user_agent_extra = "aws-sam-{}".format(__version__)
+    if _telemetry_enabled():
+        installation_id = GlobalConfig().installation_id
+        user_agent_extra += installation_id
+    return boto3.client(*args, config=Config(user_agent_extra=user_agent_extra), **kwargs)
 
 
 def _timer():
