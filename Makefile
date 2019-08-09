@@ -24,17 +24,12 @@ smoke-test:
 	# Smoke tests run in parallel
 	pytest -n 4 tests/functional
 
-flake:
-	# Make sure code conforms to PEP8 standards
-	flake8 samcli
-	flake8 tests/unit tests/integration
-
 lint:
 	# Linter performs static analysis to catch latent bugs
 	pylint --rcfile .pylintrc samcli
 
 # Command to run everytime you make changes to verify everything works
-dev: flake lint test
+dev: lint test
 
 black:
 	black samcli/* tests/*
