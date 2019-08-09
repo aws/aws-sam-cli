@@ -91,8 +91,28 @@ Resources:
         ContentHandling: "CONVERT_TO_BINARY"
       ResourceId: "EchoBase64ResponseResource"
       RestApiId: "TestApi"
-
-
+  
+  ProxyResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "{proxy+}"
+      ParentId: "v1resource"
+      ResourceId: "TestApi"
+  v1resource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      PathPart: "v1"
+      ParentId: "RootApiResource"
+      ResourceId: "TestApi"
+  EchoBase64ResponseMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "GET"
+      Integration:
+        Uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyNonServerlessLambdaFunction.Arn}/invocations
+      ResourceId: "ProxyResource"
+      RestApiId: "TestApi"
 
   NoFunctionFoundResource:
     Type: "AWS::ApiGateway::Resource"

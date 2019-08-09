@@ -121,20 +121,21 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
 
-    def _extract_cloud_formation_method(self, resources, logical_id, api_resource, collector):
+    def _extract_cloud_formation_method(self, resources, logical_id, method_resource, collector):
         """
         Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
         Parameters
         ----------
+        resources: dict
+            All Resource definition, including its properties
+
         logical_id : str
             Logical ID of the resource
 
-        api_resource : dict
+        method_resource : dict
             Resource definition, including its properties
 
-        resources: dict
-            All Resource definition, including its properties
 
         stage_resource : dict
             Stage Resource definition, including its properties
@@ -143,18 +144,21 @@ class CfnApiProvider(CfnBaseApiProvider):
             Instance of the API collector that where we will save the API information
         """
 
-        properties = api_resource.get("Properties", {})
+        properties = method_resource.get("Properties", {})
         resource_id = properties.get("ResourceId")
         rest_api_id = properties.get("RestApiId")
         method = properties.get("HttpMethod")
 
-        resource_path = ""
+        resource_path = "/"
+        # If the resource_id resolves to a string 
         if isinstance(resource_id, string_types):
             resource = resources.get(resource_id)
+            
             if resource:
                 resource_path = self.resolve_resource_path(resources, resource, "")
             else:
-                resource_path = resource_id  # In this case, the path was resolved to a string
+                # This is the case that its a ref of a raw resolved string such as  { "Fn::GetAtt": ["MyRestApi", "RootResourceId"] }
+                resource_path = resource_id  
 
         integration = properties.get("Integration", {})
         content_type = integration.get("ContentType")
@@ -187,14 +191,14 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         properties = resource.get("Properties", {})
         parent_id = properties.get("ParentId")
-        path_part = properties.get("PathPart")
+        resource_path = properties.get("PathPart")
         parent = resources.get(parent_id)
         if parent:
-            return self.resolve_resource_path(resources, parent, "/" + path_part + current_path)
+            return self.resolve_resource_path(resources, parent, "/" + resource_path + current_path)
         if parent_id:
-            return parent_id + path_part + current_path
+            return parent_id + resource_path + current_path
 
-        return "/" + path_part + current_path
+        return "/" + resource_path + current_path
 
     @staticmethod
     def _get_integration_function_name(integration):

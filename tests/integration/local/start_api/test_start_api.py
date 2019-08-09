@@ -789,3 +789,12 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers.get("Content-Type"), "image/gif")
         self.assertEquals(response.content, expected)
+
+    def test_proxy_response(self):
+        """
+        Binary data is returned correctly
+        """
+        response = requests.get(self.url + "/root/v1/test")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
