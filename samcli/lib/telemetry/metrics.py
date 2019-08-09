@@ -103,7 +103,7 @@ def sam_boto3_client(*args, **kwargs):
     user_agent_extra = "aws-sam-{}".format(__version__)
     if _telemetry_enabled():
         installation_id = GlobalConfig().installation_id
-        user_agent_extra += installation_id
+        user_agent_extra += '-'.join([user_agent_extra, installation_id])
     return boto3.client(*args, config=Config(user_agent_extra=user_agent_extra), **kwargs)
 
 
