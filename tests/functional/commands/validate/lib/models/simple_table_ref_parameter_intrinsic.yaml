@@ -1,0 +1,22 @@
+Parameters:
+  ReadCapacity:
+    Type: Number
+    Default: 15
+  WriteCapacity:
+    Type: Number
+    Default: 15
+  EnableSSE:
+    Type: String # Boolean parameter types not allowed
+    Default: True
+Resources:
+  MinimalTableRefParamLongForm:
+    Type: 'AWS::Serverless::SimpleTable'
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits:
+          Ref: ReadCapacity
+        WriteCapacityUnits:
+          Ref: WriteCapacity
+      SSESpecification:
+        SSEEnabled:
+          Ref: EnableSSE
