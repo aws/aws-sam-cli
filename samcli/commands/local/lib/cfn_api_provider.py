@@ -136,10 +136,6 @@ class CfnApiProvider(CfnBaseApiProvider):
         method_resource : dict
             Resource definition, including its properties
 
-
-        stage_resource : dict
-            Stage Resource definition, including its properties
-
         collector : ApiCollector
             Instance of the API collector that where we will save the API information
         """
