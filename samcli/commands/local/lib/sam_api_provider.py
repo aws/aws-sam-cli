@@ -88,7 +88,7 @@ class SamApiProvider(CfnBaseApiProvider):
         self.extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=cwd)
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
-        
+
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
         """
         Fetches a list of routes configured for this SAM Function resource.

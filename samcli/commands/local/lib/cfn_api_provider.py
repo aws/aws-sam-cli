@@ -146,15 +146,14 @@ class CfnApiProvider(CfnBaseApiProvider):
         method = properties.get("HttpMethod")
 
         resource_path = "/"
-        # If the resource_id resolves to a string 
-        if isinstance(resource_id, string_types):
+        if isinstance(resource_id, string_types):  # If the resource_id resolves to a string
             resource = resources.get(resource_id)
-            
+
             if resource:
                 resource_path = self.resolve_resource_path(resources, resource, "")
             else:
-                # This is the case that its a ref of a raw resolved string such as  { "Fn::GetAtt": ["MyRestApi", "RootResourceId"] }
-                resource_path = resource_id  
+                # This is the case that a raw ref resolves to a string { "Fn::GetAtt": ["MyRestApi", "RootResourceId"] }
+                resource_path = resource_id
 
         integration = properties.get("Integration", {})
         content_type = integration.get("ContentType")

@@ -391,6 +391,7 @@ class TestCloudFormationStageValues(TestCase):
             "foo": "bar"
         })
 
+
 class TestCloudFormationResourceMethod(TestCase):
 
     def setUp(self):
