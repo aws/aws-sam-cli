@@ -36,5 +36,8 @@ lint:
 # Command to run everytime you make changes to verify everything works
 dev: flake lint test
 
+black:
+	black samcli/* tests/*
+
 # Verifications to run before sending a pull request
 pr: init dev
