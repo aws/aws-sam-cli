@@ -63,7 +63,6 @@ class SamTemplateValidator(object):
             template = sam_translator.translate(sam_template=self.sam_template,
                                                 parameter_values={})
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
-            print("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
