@@ -1,146 +1,138 @@
 # {{ cookiecutter.project_name }}
 
-This is a sample template for {{ cookiecutter.project_name }} - Below is a brief explanation of what we have generated for you:
+This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
+
+- HelloWorldFunction/src/main - Code for the application's Lambda function.
+- events - Invocation events that you can use to invoke the function.
+- HelloWorldFunction/src/test - Unit tests for the application code. 
+- template.yaml - A template that defines the application's AWS resources.
+
+The application uses several AWS resources, including Lambda functions and an API Gateway API. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+
+If you prefer to use an integrated development environment (IDE) to build and test your application, you can use the AWS Toolkit.  
+The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started.
+
+* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
+* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
+* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
+* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
+
+## Deploy the sample application
+
+The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment and API.
+
+To use the SAM CLI, you need the following tools.
+
+* AWS CLI - [Install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) and [configure it with your AWS credentials].
+* SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+* Java8 - [Install the Java SE Development Kit 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+* Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+
+The SAM CLI uses an Amazon S3 bucket to store your application's deployment artifacts. If you don't have a bucket suitable for this purpose, create one. Replace `BUCKET_NAME` in the commands in this section with a unique bucket name.
 
 ```bash
-.
-├── HelloWorldFunction
-│   ├── build.gradle                                   <-- Java Dependencies
-│   ├── gradle                                         <-- Gradle related Boilerplate
-│   │   └── wrapper
-│   │       ├── gradle-wrapper.jar
-│   │       └── gradle-wrapper.properties
-│   ├── gradlew                                        <-- Linux/Mac Gradle Wrapper
-│   ├── gradlew.bat                                    <-- Windows Gradle Wrapper
-│   └── src
-│       ├── main
-│       │   └── java
-│       │       └── helloworld                         <-- Source code for a lambda function
-│       │           ├── App.java                       <-- Lambda function code
-│       │           └── GatewayResponse.java           <-- POJO for API Gateway Responses object
-│       └── test                                       <-- Unit tests
-│           └── java
-│               └── helloworld
-│                   └── AppTest.java
-├── README.md                                          <-- This instructions file
-└── template.yaml
+{{ cookiecutter.project_name }}$ aws s3 mb s3://BUCKET_NAME
 ```
 
-## Requirements
-
-* AWS CLI already configured with Administrator permission
-* [Java SE Development Kit 8 installed](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
-* [Docker installed](https://www.docker.com/community-edition)
-
-## Setup process
-
-### Installing dependencies
+To prepare the application for deployment, use the `sam package` command.
 
 ```bash
-sam build
-```
-
-You can also build on a Lambda like environment by using:
-
-```bash
-sam build --use-container
-```
-
-### Local development
-
-**Invoking function locally through local API Gateway**
-
-```bash
-sam local start-api
-```
-
-If the previous command ran successfully you should now be able to hit the following local endpoint to invoke your function `http://localhost:3000/hello`
-
-**SAM CLI** is used to emulate both Lambda and API Gateway locally and uses our `template.yaml` to understand how to bootstrap this environment (runtime, where the source code is, etc.) - The following excerpt is what the CLI will read in order to initialize an API and its routes:
-
-```yaml
-...
-Events:
-    HelloWorld:
-        Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-        Properties:
-            Path: /hello
-            Method: get
-```
-
-## Packaging and deployment
-
-Firstly, we need a `S3 bucket` where we can upload our Lambda functions packaged as ZIP before we deploy anything - If you don't have a S3 bucket to store code artifacts then this is a good time to create one:
-
-```bash
-aws s3 mb s3://BUCKET_NAME
-```
-
-Next, run the following command to package our Lambda function to S3:
-
-```bash
-sam package \
+{{ cookiecutter.project_name }}$ sam package \
     --output-template-file packaged.yaml \
-    --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
+    --s3-bucket BUCKET_NAME
 ```
 
-Next, the following command will create a Cloudformation Stack and deploy your SAM resources.
+The SAM CLI creates deployment packages, uploads them to the S3 bucket, and creates a new version of the template that refers to the artifacts in the bucket. 
+
+To deploy the application, use the `sam deploy` command.
 
 ```bash
-sam deploy \
+{{ cookiecutter.project_name }}$ sam deploy \
     --template-file packaged.yaml \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
+    --stack-name {{ cookiecutter.project_name }} \
     --capabilities CAPABILITY_IAM
 ```
-
-> **See [Serverless Application Model (SAM) HOWTO Guide](https://github.com/awslabs/serverless-application-model/blob/master/HOWTO.md) for more details in how to get started.**
 
 After deployment is complete you can run the following command to retrieve the API Gateway Endpoint URL:
 
 ```bash
-aws cloudformation describe-stacks \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --query 'Stacks[].Outputs'
-```
+{{ cookiecutter.project_name }}$ aws cloudformation describe-stacks \
+    --stack-name {{ cookiecutter.project_name }} \
+    --query 'Stacks[].Outputs[?OutputKey==`HelloWorldApi`]' \
+    --output table
+``` 
 
-## Testing
+## Use the SAM CLI to build and test locally
 
-We use `JUnit` for testing our code and you can simply run the following command to run our tests:
-
-```bash
-gradle test
-```
-
-# Appendix
-
-## AWS CLI commands
-
-AWS CLI commands to package, deploy and describe outputs defined within the cloudformation stack:
+Build your application with the `sam build` command.
 
 ```bash
-sam package \
-    --template-file template.yaml \
-    --output-template-file packaged.yaml \
-    --s3-bucket REPLACE_THIS_WITH_YOUR_S3_BUCKET_NAME
-
-sam deploy \
-    --template-file packaged.yaml \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} \
-    --capabilities CAPABILITY_IAM \
-    --parameter-overrides MyParameterSample=MySampleValue
-
-aws cloudformation describe-stacks \
-    --stack-name {{ cookiecutter.project_name.lower().replace(' ', '-') }} --query 'Stacks[].Outputs'
+{{ cookiecutter.project_name }}$ sam build
 ```
 
-## Bringing to the next level
+The SAM CLI installs dependencies defined in `HelloWorldFunction/build.gradle`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
 
-Here are a few ideas that you can use to get more acquainted as to how this overall process works:
+Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
 
-* Create an additional API resource (e.g. /hello/{proxy+}) and return the name requested through this new path
-* Update unit test to capture that
-* Package & Deploy
+Run functions locally and invoke them with the `sam local invoke` command.
 
-Next, you can use the following resources to know more about beyond hello world samples and how others structure their Serverless applications:
+```bash
+{{ cookiecutter.project_name }}$ sam local invoke HelloWorldFunction --event events/event.json
+```
 
-* [AWS Serverless Application Repository](https://aws.amazon.com/serverless/serverlessrepo/)
+The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
+
+```bash
+{{ cookiecutter.project_name }}$ sam local start-api
+{{ cookiecutter.project_name }}$ curl http://localhost:3000/
+```
+
+The SAM CLI reads the application template to determine the API's routes and the functions that they invoke. The `Events` property on each function's definition includes the route and method for each path.
+
+```yaml
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+```
+
+## Add a resource to your application
+The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
+
+## Fetch, tail, and filter Lambda function logs
+
+To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs` lets you fetch logs generated by your deployed Lambda function from the command line. In addition to printing the logs on the terminal, this command has several nifty features to help you quickly find the bug.
+
+`NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
+
+```bash
+{{ cookiecutter.project_name }}$ sam logs -n HelloWorldFunction --stack-name {{ cookiecutter.project_name }} --tail
+```
+
+You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
+
+## Unit tests
+
+Tests are defined in the `HelloWorldFunction/src/test` folder in this project.
+
+```bash
+{{ cookiecutter.project_name }}$ cd HelloWorldFunction
+HelloWorldFunction$ gradle test
+```
+
+## Cleanup
+
+To delete the sample application and the bucket that you created, use the AWS CLI.
+
+```bash
+{{ cookiecutter.project_name }}$ aws cloudformation delete-stack --stack-name {{ cookiecutter.project_name }}
+{{ cookiecutter.project_name }}$ aws s3 rb s3://BUCKET_NAME
+```
+
+## Resources
+
+See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
+
+Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
