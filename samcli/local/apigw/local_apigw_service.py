@@ -27,7 +27,6 @@ class Route(object):
                         "OPTIONS",
                         "PATCH"]
 
-
     def __init__(self, function_name, path, methods):
         """
         Creates an ApiGatewayRoute
