@@ -9,7 +9,6 @@ from six import assertCountEqual
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.api_provider import ApiProvider
-
 from samcli.commands.local.lib.provider import Cors
 from samcli.local.apigw.local_apigw_service import Route
 
@@ -1062,6 +1061,7 @@ class TestSamStageValues(TestCase):
             }
         }
 
+
         provider = ApiProvider(template)
 
         result = [f for f in provider.get_all()]
@@ -1400,6 +1400,7 @@ class TestSamCors(TestCase):
                                 }
                             }
                         }
+
                     }
                 }
             }

@@ -27,6 +27,7 @@ class Route(object):
                         "OPTIONS",
                         "PATCH"]
 
+
     def __init__(self, function_name, path, methods):
         """
         Creates an ApiGatewayRoute
@@ -61,6 +62,7 @@ class Route(object):
         methods = [method.upper() for method in methods]
         if "ANY" in methods:
             return self.ANY_HTTP_METHODS
+
         return methods
 
 

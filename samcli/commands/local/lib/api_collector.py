@@ -143,14 +143,12 @@ class ApiCollector(object):
         """
         Remove duplicate routes that have the same function_name and method
 
-        Parameters
-        -----------
-        routes: list(Route)
+        route: list(Route)
             List of Routes
 
-        Return
-        -------
-        A list of routes without duplicate routes with the same function_name and method
+       Return
+       -------
+       A list of routes without duplicate routes with the same function_name and method
         """
         grouped_routes = {}
 

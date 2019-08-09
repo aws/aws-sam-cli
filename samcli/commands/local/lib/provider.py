@@ -229,6 +229,7 @@ class Api(object):
 
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
 
+
 _CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
                                    None,  # Allow Methods is optional and defaults to empty
                                    None,  # Allow Headers is optional and defaults to empty

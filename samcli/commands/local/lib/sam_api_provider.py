@@ -4,8 +4,8 @@ import logging
 
 from six import string_types
 
-from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.local.lib.provider import Cors
+from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.local.apigw.local_apigw_service import Route
 
@@ -88,7 +88,6 @@ class SamApiProvider(CfnBaseApiProvider):
             LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
                       logical_id)
             return
-
         self.extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=cwd)
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
@@ -159,7 +158,7 @@ class SamApiProvider(CfnBaseApiProvider):
         Parameters
         ----------
         logical_id : str
-            Logical ID of the resource
+            Logical ID of the resourc
 
         function_resource : dict
             Contents of the function resource including its properties
