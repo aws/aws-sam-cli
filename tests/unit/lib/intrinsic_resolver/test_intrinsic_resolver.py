@@ -1,6 +1,9 @@
 import json
 from copy import deepcopy
-from pathlib import Path
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
 from unittest import TestCase
 
 from parameterized import parameterized
