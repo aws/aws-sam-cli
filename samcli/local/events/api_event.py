@@ -132,7 +132,9 @@ class ApiGatewayLambdaEvent(object):
                  resource=None,
                  request_context=None,
                  query_string_params=None,
+                 multi_value_query_string_params=None,
                  headers=None,
+                 multi_value_headers=None,
                  path_parameters=None,
                  stage_variables=None,
                  path=None,
@@ -145,7 +147,9 @@ class ApiGatewayLambdaEvent(object):
         :param str resource: Resource for the reqeust
         :param RequestContext request_context: RequestContext for the request
         :param dict query_string_params: Query String parameters
+        :param dict multi_value_query_string_params: Multi-value Query String parameters
         :param dict headers: dict of the request Headers
+        :param dict multi_value_headers: dict of the multi-value request Headers
         :param dict path_parameters: Path Parameters
         :param dict stage_variables: API Gateway Stage Variables
         :param str path: Path of the request
@@ -156,8 +160,15 @@ class ApiGatewayLambdaEvent(object):
                 query_string_params is not None:
             raise TypeError("'query_string_params' must be of type dict or None")
 
+        if not isinstance(multi_value_query_string_params, dict) and \
+                multi_value_query_string_params is not None:
+            raise TypeError("'multi_value_query_string_params' must be of type dict or None")
+
         if not isinstance(headers, dict) and headers is not None:
             raise TypeError("'headers' must be of type dict or None")
+
+        if not isinstance(multi_value_headers, dict) and multi_value_headers is not None:
+            raise TypeError("'multi_value_headers' must be of type dict or None")
 
         if not isinstance(path_parameters, dict) and path_parameters is not None:
             raise TypeError("'path_parameters' must be of type dict or None")
@@ -170,7 +181,9 @@ class ApiGatewayLambdaEvent(object):
         self.resource = resource
         self.request_context = request_context
         self.query_string_params = query_string_params
+        self.multi_value_query_string_params = multi_value_query_string_params
         self.headers = headers
+        self.multi_value_headers = multi_value_headers
         self.path_parameters = path_parameters
         self.stage_variables = stage_variables
         self.path = path
@@ -191,7 +204,10 @@ class ApiGatewayLambdaEvent(object):
                      "resource": self.resource,
                      "requestContext": request_context_dict,
                      "queryStringParameters": dict(self.query_string_params) if self.query_string_params else None,
+                     "multiValueQueryStringParameters": dict(self.multi_value_query_string_params)
+                     if self.multi_value_query_string_params else None,
                      "headers": dict(self.headers) if self.headers else None,
+                     "multiValueHeaders": dict(self.multi_value_headers) if self.multi_value_headers else None,
                      "pathParameters": dict(self.path_parameters) if self.path_parameters else None,
                      "stageVariables": dict(self.stage_variables) if self.stage_variables else None,
                      "path": self.path,

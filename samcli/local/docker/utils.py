@@ -3,8 +3,8 @@ Helper methods that aid with changing the mount path to unix style.
 """
 
 import os
-import posixpath
 import re
+import posixpath
 try:
     import pathlib
 except ImportError:

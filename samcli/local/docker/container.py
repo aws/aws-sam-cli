@@ -99,7 +99,9 @@ class Container(object):
                 }
             },
             # We are not running an interactive shell here.
-            "tty": False
+            "tty": False,
+            # Set proxy configuration from global Docker config file
+            "use_config_proxy": True
         }
 
         if self._container_opts:

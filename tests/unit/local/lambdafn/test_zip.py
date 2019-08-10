@@ -1,19 +1,24 @@
+import os
+import platform
+import shutil
 import stat
 import zipfile
-import os
-import shutil
-from unittest import TestCase
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile, mkdtemp
-from mock import Mock, patch
+from unittest import TestCase
+from unittest import skipIf
 
+from mock import Mock, patch
 from nose_parameterized import parameterized, param
 
 from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissions
 
+# On Windows, permissions do not match 1:1 with permissions on Unix systems.
+SKIP_UNZIP_PERMISSION_TESTS = platform.system() == 'Windows'
 
+
+@skipIf(SKIP_UNZIP_PERMISSION_TESTS, "Skip UnZip Permissions tests in Windows only")
 class TestUnzipWithPermissions(TestCase):
-
     files_with_permissions = {
         "folder1/1.txt": 0o644,
         "folder1/2.txt": 0o777,

@@ -10,7 +10,6 @@ from samtranslator.intrinsics.actions import RefAction
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -22,7 +21,7 @@ class SamBaseProvider(object):
     # There is not much benefit in infering real values for these parameters in local development context. These values
     # are usually representative of an AWS environment and stack, but in local development scenario they don't make
     # sense. If customers choose to, they can always override this value through the CLI interface.
-    _DEFAULT_PSEUDO_PARAM_VALUES = {
+    DEFAULT_PSEUDO_PARAM_VALUES = {
         "AWS::AccountId": "123456789012",
         "AWS::Partition": "aws",
 
@@ -89,7 +88,7 @@ class SamBaseProvider(object):
         supported_intrinsics = {action.intrinsic_name: action() for action in SamBaseProvider._SUPPORTED_INTRINSICS}
 
         # Intrinsics resolver will mutate the original template
-        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics)\
+        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics) \
             .resolve_parameter_refs(template_dict)
 
     @staticmethod
@@ -117,7 +116,7 @@ class SamBaseProvider(object):
         # NOTE: Ordering of following statements is important. It makes sure that any user-supplied values
         # override the defaults
         parameter_values = {}
-        parameter_values.update(SamBaseProvider._DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(default_values)
         parameter_values.update(parameter_overrides or {})
 

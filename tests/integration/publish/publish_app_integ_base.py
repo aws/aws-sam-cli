@@ -31,20 +31,20 @@ class PublishAppIntegBase(TestCase):
         cls.s3_bucket.create()
 
         # Grant serverlessrepo read access to the bucket
-        bucket_policy_template = cls.test_data_path.joinpath("s3_bucket_policy.json").read_text()
+        bucket_policy_template = cls.test_data_path.joinpath("s3_bucket_policy.json").read_text(encoding="utf-8")
         bucket_policy = bucket_policy_template.replace(cls.bucket_name_placeholder, cls.bucket_name)
         cls.s3_bucket.Policy().put(Policy=bucket_policy)
 
         # Upload test files to S3
         root_path = Path(__file__).resolve().parents[3]
-        license_body = root_path.joinpath("LICENSE").read_text()
+        license_body = root_path.joinpath("LICENSE").read_text(encoding="utf-8")
         cls.s3_bucket.put_object(Key="LICENSE", Body=license_body)
 
-        readme_body = root_path.joinpath("README.md").read_text()
+        readme_body = root_path.joinpath("README.md").read_text(encoding="utf-8")
         cls.s3_bucket.put_object(Key="README.md", Body=readme_body)
         cls.s3_bucket.put_object(Key="README_UPDATE.md", Body=readme_body)
 
-        code_body = cls.test_data_path.joinpath("main.py").read_text()
+        code_body = cls.test_data_path.joinpath("main.py").read_text(encoding="utf-8")
         cls.s3_bucket.put_object(Key="main.py", Body=code_body)
 
     @classmethod
@@ -61,7 +61,7 @@ class PublishAppIntegBase(TestCase):
     def replace_template_placeholder(cls, placeholder, replace_text):
         for f in cls.temp_dir.iterdir():
             if f.suffix == ".yaml" or f.suffix == ".json":
-                content = f.read_text()
+                content = f.read_text(encoding="utf-8")
                 f.write_text(content.replace(placeholder, replace_text))
 
     def setUp(self):

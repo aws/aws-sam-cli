@@ -288,6 +288,112 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEquals(response.content, expected)
 
 
+class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_get_call_with_path_setup_with_any_swagger(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_post_call_with_path_setup_with_any_swagger(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.post(self.url + "/anyandall", json={})
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_put_call_with_path_setup_with_any_swagger(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.put(self.url + "/anyandall", json={})
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_head_call_with_path_setup_with_any_swagger(self):
+        """
+        Head Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.head(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+
+    def test_delete_call_with_path_setup_with_any_swagger(self):
+        """
+        Delete Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.delete(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_options_call_with_path_setup_with_any_swagger(self):
+        """
+        Options Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.options(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+
+    def test_patch_call_with_path_setup_with_any_swagger(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.patch(self.url + "/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_function_not_defined_in_template(self):
+        response = requests.get(self.url + "/nofunctionfound")
+
+        self.assertEquals(response.status_code, 502)
+        self.assertEquals(response.json(), {"message": "No function defined for resource method"})
+
+    def test_lambda_function_resource_is_reachable(self):
+        response = requests.get(self.url + "/nonserverlessfunction")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_binary_request(self):
+        """
+        This tests that the service can accept and invoke a lambda when given binary data in a request
+        """
+        input_data = self.get_binary_data(self.binary_data_file)
+        response = requests.post(self.url + '/echobase64eventbody',
+                                 headers={"Content-Type": "image/gif"},
+                                 data=input_data)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, input_data)
+
+    def test_binary_response(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + '/base64response')
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, expected)
+
+
 class TestServiceResponses(StartApiIntegBaseClass):
     """
     Test Class centered around the different responses that can happen in Lambda and pass through start-api
@@ -427,6 +533,17 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEquals(response_data.get("handler"), 'echo_event_handler_2')
 
+    def test_request_with_multi_value_headers(self):
+        response = requests.get(self.url + "/echoeventbody",
+                                headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"})
+
+        self.assertEquals(response.status_code, 200)
+        response_data = response.json()
+        self.assertEquals(response_data.get("multiValueHeaders").get("Content-Type"),
+                          ["application/x-www-form-urlencoded, image/gif"])
+        self.assertEquals(response_data.get("headers").get("Content-Type"),
+                          "application/x-www-form-urlencoded, image/gif")
+
     def test_request_with_query_params(self):
         """
         Query params given should be put into the Event to Lambda
@@ -439,6 +556,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value"})
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value"]})
 
     def test_request_with_list_of_query_params(self):
         """
@@ -452,6 +570,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value2"})
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value", "value2"]})
 
     def test_request_with_path_params(self):
         """
@@ -486,4 +605,88 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Proto"), "http")
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"])
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Port"), self.port)
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
+
+
+class TestStartApiWithStage(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_default_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Prod")
+
+    def test_global_stage_variables(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+
+
+class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/swagger-template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_swagger_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "dev")
+
+    def test_swagger_stage_variable(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+
+
+class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
+    """
+    Test Class centered around the different responses that can happen in Lambda and pass through start-api
+    """
+    template_path = "/testdata/start_api/swagger-rest-api-template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_default_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+        print(response_data)
+        self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Dev")
+
+    def test_global_stage_variables(self):
+        response = requests.get(self.url + "/echoeventbody")
+
+        self.assertEquals(response.status_code, 200)
+
+        response_data = response.json()
+
+        self.assertEquals(response_data.get("stageVariables"), {"Stack": "Dev"})

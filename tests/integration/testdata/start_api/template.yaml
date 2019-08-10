@@ -7,7 +7,8 @@ Globals:
       # These are equivalent to image/gif and image/png when deployed
       - image~1gif
       - image~1png
-
+    Variables:
+      VarName: varValue
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
