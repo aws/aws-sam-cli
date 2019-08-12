@@ -1,13 +1,14 @@
-import copy
-from unittest import TestCase
-from mock import Mock, patch, ANY
-import json
 import base64
+import copy
+import json
+from unittest import TestCase
 
+from mock import Mock, patch, ANY, MagicMock
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
 from samcli.commands.local.lib.provider import Api
+from samcli.commands.local.lib.provider import Cors
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -30,20 +31,24 @@ class TestApiGatewayService(TestCase):
                                          host='127.0.0.1',
                                          stderr=self.stderr)
 
-    def test_request_must_invoke_lambda(self):
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_request_must_invoke_lambda(self, request_mock):
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
         self.service._construct_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", "headers", "body")
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.service._parse_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
         self.service.service_response = service_response_mock
+
+        request_mock.return_value = ('test', 'test')
 
         result = self.service._request_handler()
 
@@ -53,16 +58,19 @@ class TestApiGatewayService(TestCase):
                                                      stdout=ANY,
                                                      stderr=self.stderr)
 
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch('samcli.local.apigw.local_apigw_service.LambdaOutputParser')
-    def test_request_handler_returns_process_stdout_when_making_response(self, lambda_output_parser_mock):
+    def test_request_handler_returns_process_stdout_when_making_response(self, lambda_output_parser_mock, request_mock):
         make_response_mock = Mock()
-
+        request_mock.return_value = ('test', 'test')
         self.service.service_response = make_response_mock
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
+
         self.service._construct_event = Mock()
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", "headers", "body")
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.service._parse_lambda_output = parse_output_mock
 
         lambda_logs = "logs"
@@ -83,21 +91,24 @@ class TestApiGatewayService(TestCase):
         # Make sure the logs are written to stderr
         self.stderr.write.assert_called_with(lambda_logs)
 
-    def test_request_handler_returns_make_response(self):
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_request_handler_returns_make_response(self, request_mock):
         make_response_mock = Mock()
 
         self.service.service_response = make_response_mock
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
         self.service._construct_event = Mock()
+        self.service._get_current_route.methods = []
 
         parse_output_mock = Mock()
-        parse_output_mock.return_value = ("status_code", "headers", "body")
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.service._parse_lambda_output = parse_output_mock
 
         service_response_mock = Mock()
         service_response_mock.return_value = make_response_mock
         self.service.service_response = service_response_mock
 
+        request_mock.return_value = ('test', 'test')
         result = self.service._request_handler()
 
         self.assertEquals(result, make_response_mock)
@@ -152,30 +163,37 @@ class TestApiGatewayService(TestCase):
         self.assertEquals(local_service.static_dir, 'dir/static')
         self.assertEquals(local_service.lambda_runner, lambda_runner)
 
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch('samcli.local.apigw.local_apigw_service.ServiceErrorResponses')
-    def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch):
+    def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch, request_mock):
         not_found_response_mock = Mock()
         self.service._construct_event = Mock()
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
+
         service_error_responses_patch.lambda_not_found_response.return_value = not_found_response_mock
 
         self.lambda_runner.invoke.side_effect = FunctionNotFound()
-
+        request_mock.return_value = ('test', 'test')
         response = self.service._request_handler()
 
         self.assertEquals(response, not_found_response_mock)
 
-    def test_request_throws_when_invoke_fails(self):
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_request_throws_when_invoke_fails(self, request_mock):
         self.lambda_runner.invoke.side_effect = Exception()
 
         self.service._construct_event = Mock()
         self.service._get_current_route = Mock()
+        request_mock.return_value = ('test', 'test')
 
         with self.assertRaises(Exception):
             self.service._request_handler()
 
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch('samcli.local.apigw.local_apigw_service.ServiceErrorResponses')
-    def test_request_handler_errors_when_parse_lambda_output_raises_keyerror(self, service_error_responses_patch):
+    def test_request_handler_errors_when_parse_lambda_output_raises_keyerror(self, service_error_responses_patch,
+                                                                             request_mock):
         parse_output_mock = Mock()
         parse_output_mock.side_effect = KeyError()
         self.service._parse_lambda_output = parse_output_mock
@@ -185,8 +203,10 @@ class TestApiGatewayService(TestCase):
         service_error_responses_patch.lambda_failure_response.return_value = failure_response_mock
 
         self.service._construct_event = Mock()
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
 
+        request_mock.return_value = ('test', 'test')
         result = self.service._request_handler()
 
         self.assertEquals(result, failure_response_mock)
@@ -200,16 +220,20 @@ class TestApiGatewayService(TestCase):
         with self.assertRaises(KeyError):
             self.service._request_handler()
 
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch('samcli.local.apigw.local_apigw_service.ServiceErrorResponses')
-    def test_request_handler_errors_when_unable_to_read_binary_data(self, service_error_responses_patch):
+    def test_request_handler_errors_when_unable_to_read_binary_data(self, service_error_responses_patch, request_mock):
         _construct_event = Mock()
         _construct_event.side_effect = UnicodeDecodeError("utf8", b"obj", 1, 2, "reason")
-        self.service._get_current_route = Mock()
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.methods = []
+
         self.service._construct_event = _construct_event
 
         failure_mock = Mock()
         service_error_responses_patch.lambda_failure_response.return_value = failure_mock
 
+        request_mock.return_value = ('test', 'test')
         result = self.service._request_handler()
         self.assertEquals(result, failure_mock)
 
@@ -587,6 +611,24 @@ class TestService_should_base64_encode(TestCase):
     ])
     def test_should_base64_encode_returns_false(self, test_case_name, binary_types, mimetype):
         self.assertFalse(LocalApigwService._should_base64_encode(binary_types, mimetype))
+
+
+class TestServiceCorsToHeaders(TestCase):
+    def test_basic_conversion(self):
+        cors = Cors(allow_origin="*", allow_methods=','.join(["POST", "OPTIONS"]), allow_headers="UPGRADE-HEADER",
+                    max_age=6)
+        headers = Cors.cors_to_headers(cors)
+
+        self.assertEquals(headers, {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST,OPTIONS',
+                                    'Access-Control-Allow-Headers': 'UPGRADE-HEADER', 'Access-Control-Max-Age': 6})
+
+    def test_empty_elements(self):
+        cors = Cors(allow_origin="www.domain.com", allow_methods=','.join(["GET", "POST", "OPTIONS"]))
+        headers = Cors.cors_to_headers(cors)
+
+        self.assertEquals(headers,
+                          {'Access-Control-Allow-Origin': 'www.domain.com',
+                           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'})
 
 
 class TestRouteEqualsHash(TestCase):

@@ -2,6 +2,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 
+from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass
 
 
@@ -664,6 +665,67 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
 
 
+class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
+    """
+    Test to check that the correct headers are being added with Cors with swagger code
+    """
+    template_path = "/testdata/start_api/swagger-template.yaml"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_cors_swagger_options(self):
+        """
+        This tests that the Cors are added to option requests in the swagger template
+        """
+        response = requests.options(self.url + '/echobase64eventbody')
+
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), '510')
+
+
+class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
+    """
+    Test to check that the correct headers are being added with Cors with the global property
+    """
+    template_path = "/testdata/start_api/template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_cors_global(self):
+        """
+        This tests that the Cors are added to options requests when the global property is set
+        """
+        response = requests.options(self.url + '/echobase64eventbody')
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
+                          ','.join(sorted(Route.ANY_HTTP_METHODS)))
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
+
+    def test_cors_global_get(self):
+        """
+        This tests that the Cors are added to post requests when the global property is set
+        """
+        response = requests.get(self.url + "/onlysetstatuscode")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode('utf-8'), "no data")
+        self.assertEquals(response.headers.get("Content-Type"), "application/json")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), None)
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
+
+
 class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
     """
     Test Class centered around the different responses that can happen in Lambda and pass through start-api
@@ -679,7 +741,6 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
 
         response_data = response.json()
-        print(response_data)
         self.assertEquals(response_data.get("requestContext", {}).get("stage"), "Dev")
 
     def test_global_stage_variables(self):
@@ -689,8 +750,125 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
 
         response_data = response.json()
 
+        self.assertEquals(response_data.get("stageVariables"), {'Stack': 'Dev'})
+
+
+class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/methods-resources-api-template.yaml"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+
+    def test_get_call_with_path_setup_with_any_swagger(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/root/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
         self.assertEquals(response_data.get("stageVariables"), {"Stack": "Dev"})
 
+    def test_post_call_with_path_setup_with_any_swagger(self):
+        """
+        Post Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.post(self.url + "/root/anyandall", json={})
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_put_call_with_path_setup_with_any_swagger(self):
+        """
+        Put Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.put(self.url + "/root/anyandall", json={})
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_head_call_with_path_setup_with_any_swagger(self):
+        """
+        Head Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.head(self.url + "/root/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+
+    def test_delete_call_with_path_setup_with_any_swagger(self):
+        """
+        Delete Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.delete(self.url + "/root/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_options_call_with_path_setup_with_any_swagger(self):
+        """
+        Options Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.options(self.url + "/root/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+
+    def test_patch_call_with_path_setup_with_any_swagger(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.patch(self.url + "/root/anyandall")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_function_not_defined_in_template(self):
+        response = requests.get(self.url + "/root/nofunctionfound")
+
+        self.assertEquals(response.status_code, 502)
+        self.assertEquals(response.json(), {"message": "No function defined for resource method"})
+
+    def test_lambda_function_resource_is_reachable(self):
+        response = requests.get(self.url + "/root/nonserverlessfunction")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+    def test_binary_request(self):
+        """
+        This tests that the service can accept and invoke a lambda when given binary data in a request
+        """
+        input_data = self.get_binary_data(self.binary_data_file)
+        response = requests.post(self.url + '/root/echobase64eventbody',
+                                 headers={"Content-Type": "image/gif"},
+                                 data=input_data)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, input_data)
+
+    def test_binary_response(self):
+        """
+        Binary data is returned correctly
+        """
+        expected = self.get_binary_data(self.binary_data_file)
+
+        response = requests.get(self.url + '/root/base64response')
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Content-Type"), "image/gif")
+        self.assertEquals(response.content, expected)
+
+    def test_proxy_response(self):
+        """
+        Binary data is returned correctly
+        """
+        response = requests.get(self.url + "/root/v1/test")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
 
 class TestCDKApiGateway(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/cdk-sample-output.yaml"
@@ -703,11 +881,7 @@ class TestCDKApiGateway(StartApiIntegBaseClass):
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
         response = requests.get(self.url + "/hello-world")
-
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.json(), {'hello': 'world'})
-
-
+       
 class TestServerlessApiGateway(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/serverless-sample-output.yaml"
 
@@ -719,6 +893,3 @@ class TestServerlessApiGateway(StartApiIntegBaseClass):
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
         response = requests.get(self.url + "/hello-world")
-
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.json(), {'hello': 'world'})
