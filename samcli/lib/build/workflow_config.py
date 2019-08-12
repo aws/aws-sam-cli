@@ -128,18 +128,18 @@ def get_workflow_config(runtime, code_dir, project_dir):
 
     selector = selectors_by_runtime[runtime]
 
-    if runtime == "provided":
-        LOG.info("Building resource using 'provided' runtime")
-
     try:
         config = selector.get_config(code_dir, project_dir)
+        if runtime == "provided":
+            LOG.info("Building resource using 'provided' runtime.")
+            LOG.info("%s workflow detected. Please make sure you are using the appropriate layer ARN.", config.language)
         return config
     except ValueError as ex:
         raise UnsupportedRuntimeException("Unable to find a supported build workflow for runtime '{}'. Reason: {}"
                                           .format(runtime, str(ex)))
 
 
-def supports_build_in_container(config):
+def supports_build_in_container(config, runtime=None):
     """
     Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
 
@@ -166,9 +166,11 @@ def supports_build_in_container(config):
         _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
                                         "Try building without the container. Most .NET Core functions will build "
                                         "successfully.",
+        "provided": "We do not support building Lambda functions with 'provided' runtime within a container. "
+                    "Try building without the container.",
     }
 
-    thiskey = _key(config)
+    thiskey = "provided" if runtime == "provided" else _key(config)
     if thiskey in unsupported:
         return False, unsupported[thiskey]
 

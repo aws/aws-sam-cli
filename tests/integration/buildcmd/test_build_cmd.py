@@ -480,3 +480,95 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+class TestBuildCommand_Provided(BuildIntegBase):
+
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+
+    FUNCTION_LOGICAL_ID = "Function"
+
+    USING_NODE_PATH = "Node"
+    EXPECTED_FILES_PROJECT_MANIFEST_NODE = {'node_modules', 'main.js'}
+    EXPECTED_DEPENDENCIES_NODE = {'minimal-request-promise'}
+
+    USING_RUBY_PATH = "Ruby"
+    EXPECTED_FILES_PROJECT_MANIFEST_RUBY = {'app.rb'}
+    EXPECTED_DEPENDENCIES_RUBY = 'httparty'
+
+    USING_GRADLE_PATH = os.path.join("Java", "gradle")
+    USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
+    USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
+    USING_MAVEN_PATH = str(Path('Java', 'maven'))
+    EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {'aws', 'lib', "META-INF"}
+    EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {'aws', 'lib'}
+    EXPECTED_DEPENDENCIES_JAVA = {'annotations-2.1.0.jar', "aws-lambda-java-core-1.1.0.jar"}
+
+    @parameterized.expand([
+        ("provided", USING_NODE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_NODE, EXPECTED_DEPENDENCIES_NODE),
+        ("provided", USING_RUBY_PATH, EXPECTED_FILES_PROJECT_MANIFEST_RUBY, EXPECTED_DEPENDENCIES_RUBY),
+        ("provided", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_DEPENDENCIES_JAVA),
+        ("provided", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_DEPENDENCIES_JAVA),
+        ("provided", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, EXPECTED_DEPENDENCIES_JAVA),
+        ("provided", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, EXPECTED_DEPENDENCIES_JAVA)
+    ])
+    def test_with_detected_manifest(self, runtime, code_uri, expected_manifest, expected_deps):
+        overrides = {"Runtime": runtime, "CodeUri": code_uri}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}", cmdlist)
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        process.wait()
+
+        self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
+                                    expected_manifest, expected_deps)
+
+        self._verify_resource_property(str(self.built_template),
+                                       "OtherRelativePathResource",
+                                       "BodyS3Location",
+                                       os.path.relpath(
+                                        os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                                        str(self.default_build_dir))
+                                       )
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path),
+                                       function_logical_id,
+                                       "CodeUri",
+                                       function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEquals(actual_files, expected_files)
+
+    @parameterized.expand([
+        ("provided", USING_NODE_PATH),
+        ("provided", USING_RUBY_PATH),
+        ("provided", USING_GRADLE_PATH),
+        ("provided", USING_GRADLEW_PATH),
+        ("provided", USING_GRADLE_KOTLIN_PATH),
+        ("provided", USING_MAVEN_PATH)
+    ])
+    def test_must_fail_with_container(self, runtime, code_uri):
+        use_container = True
+        overrides = {"Runtime": runtime, "CodeUri": code_uri}
+        cmdlist = self.get_command_list(use_container=use_container,
+                                        parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        process.wait()
+
+        # Must error out, because container builds are not supported
+        self.assertEquals(process.returncode, 1)

@@ -234,7 +234,7 @@ class ApplicationBuilder(object):
         if not self._container_manager.is_docker_reachable:
             raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
 
-        container_build_supported, reason = supports_build_in_container(config)
+        container_build_supported, reason = supports_build_in_container(config, runtime)
         if not container_build_supported:
             raise ContainerBuildNotSupported(reason)
 
