@@ -2,6 +2,9 @@
 
 import logging
 
+from six import string_types
+
+from samcli.commands.local.lib.provider import Cors
 from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.local.apigw.local_apigw_service import Route
@@ -77,9 +80,9 @@ class SamApiProvider(CfnBaseApiProvider):
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
         binary_media = properties.get("BinaryMediaTypes", [])
+        cors = self.extract_cors(properties.get("Cors", {}))
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
-
         if not body and not uri:
             # Swagger is not found anywhere.
             LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
@@ -88,6 +91,65 @@ class SamApiProvider(CfnBaseApiProvider):
         self.extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=cwd)
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
+        collector.cors = cors
+
+    def extract_cors(self, cors_prop):
+        """
+        Extract Cors property from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result
+        is added to the Api.
+
+        Parameters
+        ----------
+        cors_prop : dict
+            Resource properties for Cors
+        """
+        cors = None
+        if cors_prop and isinstance(cors_prop, dict):
+            allow_methods = cors_prop.get("AllowMethods", ','.join(sorted(Route.ANY_HTTP_METHODS)))
+            allow_methods = self.normalize_cors_allow_methods(allow_methods)
+            cors = Cors(
+                allow_origin=cors_prop.get("AllowOrigin"),
+                allow_methods=allow_methods,
+                allow_headers=cors_prop.get("AllowHeaders"),
+                max_age=cors_prop.get("MaxAge")
+            )
+        elif cors_prop and isinstance(cors_prop, string_types):
+            cors = Cors(
+                allow_origin=cors_prop,
+                allow_methods=','.join(sorted(Route.ANY_HTTP_METHODS)),
+                allow_headers=None,
+                max_age=None
+            )
+        return cors
+
+    @staticmethod
+    def normalize_cors_allow_methods(allow_methods):
+        """
+        Normalize cors AllowMethods and Options to the methods if it's missing.
+
+        Parameters
+        ----------
+        allow_methods : str
+            The allow_methods string provided in the query
+
+        Return
+        -------
+        A string with normalized route
+        """
+        if allow_methods == "*":
+            return ','.join(sorted(Route.ANY_HTTP_METHODS))
+        methods = allow_methods.split(",")
+        normalized_methods = []
+        for method in methods:
+            normalized_method = method.strip().upper()
+            if normalized_method not in Route.ANY_HTTP_METHODS:
+                raise InvalidSamDocumentException("The method {} is not a valid CORS method".format(normalized_method))
+            normalized_methods.append(normalized_method)
+
+        if "OPTIONS" not in normalized_methods:
+            normalized_methods.append("OPTIONS")
+
+        return ','.join(sorted(normalized_methods))
 
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
         """
@@ -96,7 +158,7 @@ class SamApiProvider(CfnBaseApiProvider):
         Parameters
         ----------
         logical_id : str
-            Logical ID of the resource
+            Logical ID of the resourc
 
         function_resource : dict
             Contents of the function resource including its properties
