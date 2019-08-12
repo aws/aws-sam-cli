@@ -7,8 +7,9 @@ import logging
 from samtranslator.intrinsics.resolver import IntrinsicsResolver
 from samtranslator.intrinsics.actions import RefAction
 
-from lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
-from lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
+
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
@@ -19,21 +20,6 @@ class SamBaseProvider(object):
     """
     Base class for SAM Template providers
     """
-
-    # There is not much benefit in infering real values for these parameters in local development context. These values
-    # are usually representative of an AWS environment and stack, but in local development scenario they don't make
-    # sense. If customers choose to, they can always override this value through the CLI interface.
-    DEFAULT_PSEUDO_PARAM_VALUES = {
-        "AWS::AccountId": "123456789012",
-        "AWS::Partition": "aws",
-
-        "AWS::Region": "us-east-1",
-
-        "AWS::StackName": "local",
-        "AWS::StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/"
-                        "local/51af3dc0-da77-11e4-872e-1234567db123",
-        "AWS::URLSuffix": "localhost"
-    }
 
     # Only Ref is supported when resolving template parameters
     _SUPPORTED_INTRINSICS = [RefAction]
@@ -62,11 +48,14 @@ class SamBaseProvider(object):
         if template_dict:
             template_dict = SamTranslatorWrapper(template_dict).run_plugins()
 
-        template_dict = SamBaseProvider._resolve_parameters(template_dict, parameter_overrides)
+        template_dict = SamBaseProvider._resolve_parameters(
+            template_dict, parameter_overrides
+        )
         ResourceMetadataNormalizer.normalize(template_dict)
-        intrinsic_resolver = IntrinsicResolver(template=template_dict,
-                                               symbol_resolver=IntrinsicsSymbolTable())
-        template_dict['Resources'] = intrinsic_resolver.resolve_template(ignore_errors=True)
+        resolver = IntrinsicResolver(
+            template=template_dict, symbol_resolver=IntrinsicsSymbolTable()
+        )
+        template_dict["Resources"] = resolver.resolve_template(ignore_errors=True)
         return template_dict
 
     @staticmethod
@@ -88,13 +77,19 @@ class SamBaseProvider(object):
             Resolved SAM template
         """
 
-        parameter_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
+        parameter_values = SamBaseProvider._get_parameter_values(
+            template_dict, parameter_overrides
+        )
 
-        supported_intrinsics = {action.intrinsic_name: action() for action in SamBaseProvider._SUPPORTED_INTRINSICS}
+        supported_intrinsics = {
+            action.intrinsic_name: action()
+            for action in SamBaseProvider._SUPPORTED_INTRINSICS
+        }
 
         # Intrinsics resolver will mutate the original template
-        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics) \
-            .resolve_parameter_refs(template_dict)
+        return IntrinsicsResolver(
+            parameters=parameter_values, supported_intrinsics=supported_intrinsics
+        ).resolve_parameter_refs(template_dict)
 
     @staticmethod
     def _get_parameter_values(template_dict, parameter_overrides):
@@ -121,7 +116,7 @@ class SamBaseProvider(object):
         # NOTE: Ordering of following statements is important. It makes sure that any user-supplied values
         # override the defaults
         parameter_values = {}
-        parameter_values.update(SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(default_values)
         parameter_values.update(parameter_overrides or {})
 

@@ -530,7 +530,7 @@ class IntrinsicResolver(object):
         verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)
 
         if intrinsic_value == "":
-            intrinsic_value = self._symbol_resolver.DEFAULT_REGION
+            intrinsic_value = self._symbol_resolver.handle_pseudo_region()
 
         if intrinsic_value not in self._symbol_resolver.REGIONS:
             raise InvalidIntrinsicException(
