@@ -252,6 +252,7 @@ class IntrinsicResolver(object):
                 processed_resource = self.intrinsic_property_resolver(val)
                 processed_template[processed_key] = processed_resource
             except (InvalidIntrinsicException, InvalidSymbolException) as e:
+
                 resource_type = val.get("Type", "")
                 if ignore_errors:
                     LOG.error(

@@ -4,14 +4,13 @@ Base class for SAM Template providers
 
 import logging
 
-from samtranslator.intrinsics.resolver import IntrinsicsResolver
 from samtranslator.intrinsics.actions import RefAction
+from samtranslator.intrinsics.resolver import IntrinsicsResolver
 
-from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
-
-from samcli.lib.samlib.wrapper import SamTranslatorWrapper
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
+from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 
 LOG = logging.getLogger(__name__)
 
@@ -53,9 +52,10 @@ class SamBaseProvider(object):
         )
         ResourceMetadataNormalizer.normalize(template_dict)
         resolver = IntrinsicResolver(
-            template=template_dict, symbol_resolver=IntrinsicsSymbolTable()
+            template=template_dict, symbol_resolver=IntrinsicsSymbolTable(template=template_dict)
         )
         template_dict["Resources"] = resolver.resolve_template(ignore_errors=True)
+
         return template_dict
 
     @staticmethod

@@ -218,11 +218,11 @@ class IntrinsicsSymbolTable(object):
         translated = self._parameters.get(logical_id, {}).get("Default")
         if translated:
             return translated
-
         # Handle Default Property Type Resolution
         resource_type = self._resources.get(logical_id, {}).get(
             IntrinsicsSymbolTable.CFN_RESOURCE_TYPE
         )
+
         resolver = (
             self.default_type_resolver.get(resource_type, {}).get(resource_attribute)
             if resource_type
