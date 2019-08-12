@@ -690,3 +690,35 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("stageVariables"), {"Stack": "Dev"})
+
+
+class TestCDKApiGateway(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cdk-sample-output.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_get_with_cdk(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/hello-world")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})
+
+
+class TestServerlessApiGateway(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/serverless-sample-output.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_get_with_serverless(self):
+        """
+        Get Request to a path that was defined as ANY in SAM through Swagger
+        """
+        response = requests.get(self.url + "/hello-world")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.json(), {'hello': 'world'})

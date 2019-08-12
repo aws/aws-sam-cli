@@ -7,6 +7,8 @@ import logging
 from samtranslator.intrinsics.resolver import IntrinsicsResolver
 from samtranslator.intrinsics.actions import RefAction
 
+from lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
+from lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 
@@ -62,6 +64,9 @@ class SamBaseProvider(object):
 
         template_dict = SamBaseProvider._resolve_parameters(template_dict, parameter_overrides)
         ResourceMetadataNormalizer.normalize(template_dict)
+        intrinsic_resolver = IntrinsicResolver(template=template_dict,
+                                               symbol_resolver=IntrinsicsSymbolTable())
+        template_dict['Resources'] = intrinsic_resolver.resolve_template(ignore_errors=True)
         return template_dict
 
     @staticmethod
