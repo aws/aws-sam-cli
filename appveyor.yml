@@ -6,7 +6,7 @@ image:
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
-  
+ 
   matrix:
 
     # - PYTHON_HOME: "C:\\Python27-x64"
@@ -47,7 +47,10 @@ for:
       only:
         - image: Ubuntu
     install:
+      - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+      - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
+      - sh: "rvm use 2.5"
 
 build_script:
   - "python -c \"import sys; print(sys.executable)\""
