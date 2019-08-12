@@ -2,7 +2,6 @@ version: 1.0.{build}
 image: 
   # - Visual Studio 2017
   - Ubuntu
-build: off
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -50,11 +49,11 @@ for:
     install:
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
 
-install:
-    - "python -c \"import sys; print(sys.executable)\""
+build_script:
+  - "python -c \"import sys; print(sys.executable)\""
 
-    # Actually install SAM CLI's dependencies
-    - "pip install -e \".[dev]\""
+  # Actually install SAM CLI's dependencies
+  - "pip install -e \".[dev]\""
 
 test_script:
     - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
