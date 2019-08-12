@@ -6,6 +6,7 @@ import logging
 
 import base64
 import re
+from collections import OrderedDict
 
 from six import string_types
 
@@ -245,7 +246,7 @@ class IntrinsicResolver(object):
         -------
         A resolved template with all references possible simplified
         """
-        processed_template = {}
+        processed_template = OrderedDict()
         for key, val in self._resources.items():
             processed_key = self._symbol_resolver.get_translation(key) or key
             try:
