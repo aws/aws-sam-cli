@@ -45,7 +45,7 @@ for:
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
-      - sh: "apt-get -y gradle"
+      - sh: "apt-get -y install gradle"
 
 build_script:
   - "python -c \"import sys; print(sys.executable)\""
