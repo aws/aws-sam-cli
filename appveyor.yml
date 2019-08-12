@@ -39,16 +39,16 @@ install:
     # Create new virtual environment and activate it
     - "rm -rf venv"
     - "python -m virtualenv venv"
-    - "venv\\Scripts\\activate"
+    - "venv/Scripts/activate"
     - "python -c \"import sys; print(sys.executable)\""
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 
 test_script:
-    - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\\unit"
+    - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
     - "flake8 samcli"
-    - "flake8 tests\\unit tests\\integration"
+    - "flake8 tests/unit tests/integration"
     - "pylint --rcfile .pylintrc samcli"
 
 
