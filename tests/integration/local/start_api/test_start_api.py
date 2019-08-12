@@ -2,6 +2,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 
+from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass
 
 
@@ -662,6 +663,67 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
 
         response_data = response.json()
         self.assertEquals(response_data.get("stageVariables"), {'VarName': 'varValue'})
+
+
+class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
+    """
+    Test to check that the correct headers are being added with Cors with swagger code
+    """
+    template_path = "/testdata/start_api/swagger-template.yaml"
+    binary_data_file = "testdata/start_api/binarydata.gif"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_cors_swagger_options(self):
+        """
+        This tests that the Cors are added to option requests in the swagger template
+        """
+        response = requests.options(self.url + '/echobase64eventbody')
+
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), '510')
+
+
+class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
+    """
+    Test to check that the correct headers are being added with Cors with the global property
+    """
+    template_path = "/testdata/start_api/template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_cors_global(self):
+        """
+        This tests that the Cors are added to options requests when the global property is set
+        """
+        response = requests.options(self.url + '/echobase64eventbody')
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"),
+                          ','.join(sorted(Route.ANY_HTTP_METHODS)))
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
+
+    def test_cors_global_get(self):
+        """
+        This tests that the Cors are added to post requests when the global property is set
+        """
+        response = requests.get(self.url + "/onlysetstatuscode")
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.content.decode('utf-8'), "no data")
+        self.assertEquals(response.headers.get("Content-Type"), "application/json")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), None)
+        self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
 
 
 class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):

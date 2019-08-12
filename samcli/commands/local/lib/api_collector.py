@@ -25,6 +25,7 @@ class ApiCollector(object):
         self.binary_media_types_set = set()
         self.stage_name = None
         self.stage_variables = None
+        self.cors = None
 
     def __iter__(self):
         """
@@ -103,11 +104,39 @@ class ApiCollector(object):
         An Api object with all the properties
         """
         api = Api()
-        api.routes = self.dedupe_function_routes(self.routes)
+        routes = self.dedupe_function_routes(self.routes)
+        routes = self.normalize_cors_methods(routes, self.cors)
+        api.routes = routes
         api.binary_media_types_set = self.binary_media_types_set
         api.stage_name = self.stage_name
         api.stage_variables = self.stage_variables
+        api.cors = self.cors
         return api
+
+    @staticmethod
+    def normalize_cors_methods(routes, cors):
+        """
+        Adds OPTIONS method to all the route methods if cors exists
+
+        Parameters
+        -----------
+        routes: list(samcli.local.apigw.local_apigw_service.Route)
+            List of Routes
+
+        cors: samcli.commands.local.lib.provider.Cors
+            the cors object for the api
+
+        Return
+        -------
+        A list of routes without duplicate routes with the same function_name and method
+        """
+
+        def add_options_to_route(route):
+            if "OPTIONS" not in route.methods:
+                route.methods.append("OPTIONS")
+            return route
+
+        return routes if not cors else [add_options_to_route(route) for route in routes]
 
     @staticmethod
     def dedupe_function_routes(routes):
