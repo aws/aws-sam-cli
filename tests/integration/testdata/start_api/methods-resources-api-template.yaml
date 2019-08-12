@@ -104,7 +104,7 @@ Resources:
       PathPart: "v1"
       ParentId: "RootApiResource"
       ResourceId: "TestApi"
-  EchoBase64ResponseMethod:
+  ProxyMethod:
     Type: "AWS::ApiGateway::Method"
     Properties:
       HttpMethod: "GET"
