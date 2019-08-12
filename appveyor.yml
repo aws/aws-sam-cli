@@ -1,5 +1,7 @@
 version: 1.0.{build}
-image: Visual Studio 2017
+image: 
+  # - Visual Studio 2017
+  - Ubuntu
 build: off
 
 environment:
@@ -7,25 +9,29 @@ environment:
   SAM_CLI_DEV: 1
   
   matrix:
-    - PYTHON_HOME: "C:\\Python27-x64"
-      PYTHON_VERSION: '2.7'
-      PYTHON_ARCH: '32'
+
+    # - PYTHON_HOME: "C:\\Python27-x64"
+    #   PYTHON_VERSION: '2.7'
+    #   PYTHON_ARCH: '32'
 
     - PYTHON_HOME: "C:\\Python36-x64"
-      PYTHON_VERSION: '3.6'
+      PYTHON_VERSION: '3.6.8'
       PYTHON_ARCH: '64'
 
     # Testing on both 32bit and 64bit Windows only for Latest Python version,
     # because MSIs installers use Latest Python version
-    - PYTHON_HOME: "C:\\Python37"
-      PYTHON_VERSION: '3.7'
-      PYTHON_ARCH: '32'
+    # - PYTHON_HOME: "C:\\Python37"
+    #   PYTHON_VERSION: '3.7'
+    #   PYTHON_ARCH: '32'
 
     - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7'
+      PYTHON_VERSION: '3.7.4'
       PYTHON_ARCH: '64'
 
 install:
+
+    # Runs on Linux only
+    - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
 
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
