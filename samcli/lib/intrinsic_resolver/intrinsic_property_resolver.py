@@ -83,6 +83,7 @@ class IntrinsicResolver(object):
         self._mapping = None
         self._parameters = None
         self._conditions = None
+        self._outputs = None
         self.init_template(template)
 
         self._symbol_resolver = symbol_resolver
@@ -96,6 +97,7 @@ class IntrinsicResolver(object):
         self._mapping = self._template.get("Mappings", {})
         self._parameters = self._template.get("Parameters", {})
         self._conditions = self._template.get("Conditions", {})
+        self._outputs = self._template.get("Outputs", {})
 
     def default_intrinsic_function_map(self):
         """
@@ -218,53 +220,65 @@ class IntrinsicResolver(object):
         # resolve each of it's sub properties.
         sanitized_dict = {}
         for key, val in intrinsic.items():
-            sanitized_key = self.intrinsic_property_resolver(
-                key, parent_function=parent_function
-            )
-            sanitized_val = self.intrinsic_property_resolver(
-                val, parent_function=parent_function
-            )
-            verify_intrinsic_type_str(
-                sanitized_key,
-                message="The keys of the dictionary {} in {} must all resolve to a string".format(
-                    sanitized_key, parent_function
-                ),
-            )
+            sanitized_key = self.intrinsic_property_resolver(key, parent_function=parent_function)
+            sanitized_val = self.intrinsic_property_resolver(val, parent_function=parent_function)
+            verify_intrinsic_type_str(sanitized_key,
+                                      message="The keys of the dictionary {} in {} must all resolve to a string".format(
+                                          sanitized_key, parent_function
+                                      ))
             sanitized_dict[sanitized_key] = sanitized_val
         return sanitized_dict
 
     def resolve_template(self, ignore_errors=False):
         """
-        This will parse through every entry in a CloudFormation template and resolve them based on the symbol_resolver.
+        This resolves all the attributes of the CloudFormation dictionary Resources, Outputs, Mappings, Parameters,
+        Conditions.
+
+        Return
+        -------
+        Return a processed template
+        """
+        processed_template = OrderedDict()
+        processed_template["Resources"] = self.resolve_attribute(self._resources, ignore_errors)
+        processed_template["Outputs"] = self.resolve_attribute(self._outputs, ignore_errors)
+        processed_template["Mappings"] = self.resolve_attribute(self._resources, ignore_errors)
+        processed_template["Parameters"] = self.resolve_attribute(self._resources, ignore_errors)
+        processed_template["Conditions"] = self.resolve_attribute(self._resources, ignore_errors)
+        return processed_template
+
+    def resolve_attribute(self, cloud_formation_property, ignore_errors=False):
+        """
+        This will parse through every entry in a CloudFormation root key and resolve them based on the symbol_resolver.
         Customers can optionally ignore resource errors and default to whatever the resource provides.
 
         Parameters
         -----------
+        cloud_formation_property: dict
+            A high Level dictionary containg either the Mappings, Resources, Outputs, or Parameters Dictionary
         ignore_errors: bool
             An option to ignore errors that are InvalidIntrinsicException and InvalidSymbolException
         Return
         -------
         A resolved template with all references possible simplified
         """
-        processed_template = OrderedDict()
-        for key, val in self._resources.items():
+        processed_dict = OrderedDict()
+        for key, val in cloud_formation_property.items():
             processed_key = self._symbol_resolver.get_translation(key) or key
             try:
                 processed_resource = self.intrinsic_property_resolver(val)
-                processed_template[processed_key] = processed_resource
+                processed_dict[processed_key] = processed_resource
             except (InvalidIntrinsicException, InvalidSymbolException) as e:
-
                 resource_type = val.get("Type", "")
                 if ignore_errors:
                     LOG.error(
                         "Unable to process properties of %s.%s", key, resource_type
                     )
-                    processed_template[key] = val
+                    processed_dict[key] = val
                 else:
                     raise InvalidIntrinsicException(
                         "Exception with property of {}.{}".format(key, resource_type) + ": " + str(e.args)
                     )
-        return processed_template
+        return processed_dict
 
     def handle_fn_join(self, intrinsic_value):
         """
@@ -282,21 +296,15 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_JOIN
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_JOIN)
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_JOIN)
 
         delimiter = arguments[0]
 
-        verify_intrinsic_type_str(
-            delimiter, IntrinsicResolver.FN_JOIN, position_in_list="first"
-        )
+        verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_JOIN, position_in_list="first")
 
-        value_list = self.intrinsic_property_resolver(
-            arguments[1], parent_function=IntrinsicResolver.FN_JOIN
-        )
+        value_list = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_JOIN)
 
         verify_intrinsic_type_list(
             value_list,
@@ -963,7 +971,6 @@ class IntrinsicResolver(object):
             intrinsic_value, parent_function=IntrinsicResolver.FN_OR
         )
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_OR)
-
         for i, argument in enumerate(arguments):
             if isinstance(argument, dict) and "Condition" in argument:
                 condition_name = argument.get("Condition")
@@ -980,7 +987,6 @@ class IntrinsicResolver(object):
                     condition, parent_function=IntrinsicResolver.FN_OR
                 )
                 verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_OR)
-
                 if condition_evaluated:
                     return True
             else:
@@ -988,8 +994,6 @@ class IntrinsicResolver(object):
                     argument, parent_function=IntrinsicResolver.FN_OR
                 )
                 verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_OR)
-
                 if condition:
                     return True
-
         return False

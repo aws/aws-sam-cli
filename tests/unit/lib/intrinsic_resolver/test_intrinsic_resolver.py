@@ -1225,7 +1225,7 @@ class TestIntrinsicTemplateResolution(TestCase):
         )
 
     def test_basic_template_resolution(self):
-        resolved_template = self.resolver.resolve_template(ignore_errors=False)
+        resolved_template = self.resolver.resolve_attribute(self.resources, ignore_errors=False)
         expected_resources = {
             "HelloHandler2E4FBA4D": {
                 "Properties": {"handler": "main.handle"},
@@ -1270,7 +1270,7 @@ class TestIntrinsicTemplateResolution(TestCase):
         )
         resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Find In Map"):
-            resolver.resolve_template(ignore_errors=False)
+            resolver.resolve_attribute(resources, ignore_errors=False)
 
     def test_template_ignore_errors(self):
         resources = deepcopy(self.resources)
@@ -1286,7 +1286,7 @@ class TestIntrinsicTemplateResolution(TestCase):
             template=template, logical_id_translator=self.logical_id_translator
         )
         resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
-        result = resolver.resolve_template(ignore_errors=True)
+        result = resolver.resolve_attribute(resources, ignore_errors=True)
         expected_template = {
             "HelloHandler2E4FBA4D": {
                 "Properties": {"handler": "main.handle"},

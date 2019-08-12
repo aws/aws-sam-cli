@@ -54,7 +54,7 @@ class SamBaseProvider(object):
         resolver = IntrinsicResolver(
             template=template_dict, symbol_resolver=IntrinsicsSymbolTable(template=template_dict)
         )
-        template_dict["Resources"] = resolver.resolve_template(ignore_errors=True)
+        template_dict = resolver.resolve_template(ignore_errors=True)
 
         return template_dict
 
