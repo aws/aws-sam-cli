@@ -1,4 +1,3 @@
-
 from unittest import TestCase
 from mock import Mock, patch
 from nose_parameterized import parameterized
@@ -18,7 +17,6 @@ class TestSamBaseProvider_resolve_parameters(TestCase):
         ("AWS::URLSuffix", "localhost"),
     ])
     def test_with_pseudo_parameters(self, parameter, expected_value):
-
         template_dict = {
             "Key": {
                 "Ref": parameter
@@ -103,7 +101,7 @@ class TestSamBaseProvider_resolve_parameters(TestCase):
                 },
                 "NoDefaultKey3": {},
 
-                "NoOverrideKey4": {}   # No override Value provided
+                "NoOverrideKey4": {}  # No override Value provided
             },
 
             "Resources": {
@@ -129,7 +127,7 @@ class TestSamBaseProvider_resolve_parameters(TestCase):
                     "Default": "Value2"
                 },
                 "NoDefaultKey3": {},
-                "NoOverrideKey4": {}   # No override Value provided
+                "NoOverrideKey4": {}  # No override Value provided
             },
 
             "Resources": {
