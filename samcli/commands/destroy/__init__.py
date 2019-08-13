@@ -296,7 +296,7 @@ def do_cli(  # pylint: disable=too-many-statements
             delay = 15
             waiter.wait(
                 StackName=stack_name,
-                WaiterConfig={"Delay": delay, "MaxAttemps": wait_time / delay},
+                WaiterConfig={"Delay": delay, "MaxAttemps": int(wait_time / delay)},
             )
         except WaiterError as e:
             click.secho(
