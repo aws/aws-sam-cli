@@ -45,7 +45,12 @@ for:
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
-      - sh: "sudo apt-get -y install gradle"
+
+      # Install latest gradle 
+      - sh: "sudo apt-get remove gradle"
+      - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
+      - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
+      - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
 build_script:
   - "python -c \"import sys; print(sys.executable)\""
