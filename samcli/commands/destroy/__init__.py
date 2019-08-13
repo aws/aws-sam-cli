@@ -60,13 +60,14 @@ e.g. sam destroy -stack-name sam-app
                   """)
 @click.option('-w', '--wait', required=False, is_flag=True, help="Option to wait for Stack deletion")
 @click.option('--wait-time', required=False, type=click.INT,
-              help="The time to wait for stack to delete in seconds. Used with --wait. The default is 5 minutes")
+              help="The time to wait for stack to delete in seconds. Used with --wait. The default is 5 minutes",
+              default=300)
 @click.option('-f', '--force', 'force', required=False, is_flag=True,
               help="Deletes the Stack without cli prompt")
 @common_options
 @pass_context
 @track_command
-def cli(ctx, args, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time=300,
+def cli(ctx, args, stack_name, retain_resources, role_arn, client_request_token, wait, wait_time,
         force=False):
     """
     Destroys the stack
@@ -201,6 +202,7 @@ def do_cli(ctx, stack_name, retain_resources=None, role_arn=None, client_request
 
     if wait:
         waiter = cfn.get_waiter('stack_delete_complete')
+        click.secho("Waiting for stack {} to be deleted".format(stack_name), fg="red")
         try:
             delay = 15
             waiter.wait(StackName=stack_name,

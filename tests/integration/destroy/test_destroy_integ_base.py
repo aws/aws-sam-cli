@@ -25,28 +25,29 @@ class DestroyIntegBase(BuildIntegBase):
     @classmethod
     def setUpClass(cls):
         cls.cmd = BuildIntegBase.base_command()
-
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "destroy")
         cls.scratch_dir = str(Path(__file__).resolve().parent.joinpath("scratch"))
         cls.template_path = str(Path(cls.test_data_path, cls.template))
 
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.bucket_name = str(uuid.uuid4())
         cls.temp_dir = Path(tempfile.mkdtemp())
-
         cls.template_path = str(Path(cls.test_data_path, cls.template))
-        cls.s3_client = boto3.client('s3')
+
+    def setUp(self):
+        self.bucket_name = str(uuid.uuid4())
+        super().setUp()
+        self.s3_client = boto3.client('s3')
         # Create S3 bucket
         s3 = boto3.resource('s3')
-        cls.s3_bucket = s3.Bucket(cls.bucket_name)
-        cls.s3_bucket.create(CreateBucketConfiguration={'LocationConstraint': 'us-west-1'})
+        self.s3_bucket = s3.Bucket(self.bucket_name)
+        self.s3_bucket.create(CreateBucketConfiguration={'LocationConstraint': 'us-west-1'})
 
     def tearDown(self):
         super().tearDown()
         self.reset_s3()
         self.s3_bucket.delete()
 
-    def build_package_deploy(self, build_parameter_overrides, stack_name):
+    def build_package_deploy(self, stack_name, build_parameter_overrides=None):
         if not build_parameter_overrides:
             build_parameter_overrides = {"CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_build_command_list(use_container=True,
@@ -99,7 +100,7 @@ class DestroyIntegBase(BuildIntegBase):
                 break
             for s3_file in files:
                 key = s3_file.get("Key")
-                self.s3_client.delete_object(Bucket=self.s3_bucket, Key=key)
+                self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
 
     def base_command(self):
         command = "sam"
@@ -113,7 +114,7 @@ class DestroyIntegBase(BuildIntegBase):
 
         if parameter_overrides:
             command_list = command_list + ["--parameter-overrides", parameter_overrides]
-
+        command_list += ['--capabilities', 'CAPABILITY_IAM']
         return command_list
 
     def get_package_command_list(self, s3_bucket, output_template=None):
@@ -149,5 +150,7 @@ class DestroyIntegBase(BuildIntegBase):
         return command_list
 
     def enable_stack_termination_protection(self, stack_name):
+        LOG.info("Enabling Termination Protection for Stack: {}".format(stack_name))
+
         args = ('--stack-name', stack_name, '--enable-termination-protection')
-        execute_command('update-termination-protection', *args)
+        execute_command('update-termination-protection', args, template_file=None)

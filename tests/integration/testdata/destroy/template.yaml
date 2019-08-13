@@ -14,15 +14,15 @@ Resources:
   Function:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: !Ref Handler
-      Runtime: !Ref Runtime
-      CodeUri: !Ref CodeUri
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
       Timeout: 600
 
   Function2:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: !Ref Handler
-      Runtime: !Ref Runtime
-      CodeUri: !Ref CodeUri
+      Handler: main.handler
+      Runtime: python3.6
+      CodeUri: .
       Timeout: 600
