@@ -1,11 +1,8 @@
 import logging
 import os
-import json
 import subprocess
-import uuid
-import shutil
 import tempfile
-from unittest import TestCase
+import uuid
 
 import boto3
 
