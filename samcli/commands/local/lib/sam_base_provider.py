@@ -47,9 +47,6 @@ class SamBaseProvider(object):
         if template_dict:
             template_dict = SamTranslatorWrapper(template_dict).run_plugins()
 
-        template_dict = SamBaseProvider._resolve_parameters(
-            template_dict, parameter_overrides
-        )
         ResourceMetadataNormalizer.normalize(template_dict)
         logical_id_translator = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         resolver = IntrinsicResolver(
