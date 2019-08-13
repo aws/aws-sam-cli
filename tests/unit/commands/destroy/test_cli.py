@@ -104,7 +104,7 @@ class TestDestroyCli(TestCase):
     def test_destroy_wait_called(self):
         destroy_cli(ctx=None, stack_name='stack-name', wait=True, wait_time=100, force=True)
         self.wait_mock.wait.assert_called_with(StackName='stack-name',
-                                               WaiterConfig={'Delay': 15, 'MaxAttemps': 6.666666666666667})
+                                               WaiterConfig={'Delay': 15, 'MaxAttemps': int(100 / 15)})
 
     @patch('click.secho')
     @patch('sys.exit')
