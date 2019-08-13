@@ -1,6 +1,4 @@
 import json
-import sys
-import time
 
 
 def handler(event, context):
