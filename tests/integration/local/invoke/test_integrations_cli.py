@@ -49,6 +49,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(process_stdout.decode('utf-8'), '"Hello World in a different dir"')
 
+
     def test_invoke_returns_execpted_results(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
                                              template_path=self.template_path,
