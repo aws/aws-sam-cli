@@ -19,7 +19,8 @@ SHORT_HELP = "Destroys a deployed CloudFormation stack."
 HELP_TEXT = """The sam destroy command destroys a Cloudformation Stack.
 
 \b
-e.g. sam destroy -stack-name sam-app
+e.g. sam destroy -stack-name sam-app --retain-resources LOGICAL_ID_1 LOGICAL_ID_2 LOGICAL_ID_3 
+     --role-arn <SOME ROLE ARN> --wait --wait-time 500
 """
 
 
