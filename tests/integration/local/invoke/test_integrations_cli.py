@@ -15,8 +15,8 @@ from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 
-# Layers tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict layers tests to run outside of CI/CD and when the branch is not master.
+# Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
+# This is to restrict layers tests to run outside of Travis and when the branch is not master.
 SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
 
 try:
@@ -440,7 +440,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
 
 @skipIf(SKIP_LAYERS_TESTS,
-        "Skip layers tests in CI/CD only")
+        "Skip layers tests in Travis only")
 class TestLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'
@@ -618,7 +618,7 @@ class TestLayerVersion(InvokeIntegBase):
 
 
 @skipIf(SKIP_LAYERS_TESTS,
-        "Skip layers tests in CI/CD only")
+        "Skip layers tests in Travis only")
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = 'us-west-2'

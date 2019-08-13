@@ -1,4 +1,3 @@
-import os
 import re
 import json
 from subprocess import Popen, PIPE
@@ -7,7 +6,7 @@ from unittest import skipIf
 
 from samcli.commands.publish.command import SEMANTIC_VERSION
 from .publish_app_integ_base import PublishAppIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 
 # Publish tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict publish tests to run outside of CI/CD and when the branch is not master.
