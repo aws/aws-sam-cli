@@ -191,7 +191,6 @@ Resources:
           Properties:
             Method: GET
             Path: /writetostdout
-
   InvalidResponseFromLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:

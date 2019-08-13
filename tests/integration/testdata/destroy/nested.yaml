@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Api:
+    BinaryMediaTypes:
+      # These are equivalent to image/gif and image/png when deployed
+      - image~1gif
+      - image~1png
+    Variables:
+      VarName: varValue
+Resources:
+
+  NestedStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: "../template.yaml"
