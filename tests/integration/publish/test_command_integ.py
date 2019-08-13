@@ -7,13 +7,14 @@ from unittest import skipIf
 
 from samcli.commands.publish.command import SEMANTIC_VERSION
 from .publish_app_integ_base import PublishAppIntegBase
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 
-# Publish tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
-# This is to restrict publish tests to run outside of Travis and when the branch is not master.
-SKIP_PUBLISH_TESTS = os.environ.get("TRAVIS", False) and os.environ.get("TRAVIS_BRANCH", "master") != "master"
+# Publish tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
+# This is to restrict publish tests to run outside of CI/CD and when the branch is not master.
+SKIP_PUBLISH_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
 
 
-@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in Travis only")
+@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestPublishExistingApp(PublishAppIntegBase):
 
     def setUp(self):
@@ -78,7 +79,7 @@ class TestPublishExistingApp(PublishAppIntegBase):
         self.assert_metadata_details(app_metadata, process_stdout.decode('utf-8'))
 
 
-@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in Travis only")
+@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestPublishNewApp(PublishAppIntegBase):
 
     def setUp(self):
