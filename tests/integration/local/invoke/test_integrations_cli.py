@@ -49,7 +49,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEquals(process_stdout.decode('utf-8'), '"Hello World in a different dir"')
 
-
     def test_invoke_returns_execpted_results(self):
         command_list = self.get_command_list("HelloWorldServerlessFunction",
                                              template_path=self.template_path,
@@ -174,7 +173,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(environ["Partition"], "aws")
         self.assertEquals(environ["StackName"], "local")
         self.assertEquals(environ["StackId"], "arn:aws:cloudformation:us-east-1:123456789012:stack/"
-                                              "local/51af3dc0-da77-11e4-872e-1234567db123",)
+                                              "local/51af3dc0-da77-11e4-872e-1234567db123", )
 
         self.assertEquals(environ["URLSuffix"], "localhost")
         self.assertEquals(environ["Timeout"], "100")
@@ -566,7 +565,6 @@ class TestLayerVersion(InvokeIntegBase):
         ("TwoLayerVersionLambdaFunction")
     ])
     def test_download_two_layers(self, function_logical_id):
-
         command_list = self.get_command_list(function_logical_id,
                                              template_path=self.template_path,
                                              no_event=True,
@@ -586,7 +584,6 @@ class TestLayerVersion(InvokeIntegBase):
         self.assertEquals(process_stdout.decode('utf-8'), expected_output)
 
     def test_caching_two_layers(self):
-
         command_list = self.get_command_list("TwoLayerVersionServerlessFunction",
                                              template_path=self.template_path,
                                              no_event=True,
@@ -601,7 +598,6 @@ class TestLayerVersion(InvokeIntegBase):
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
 
     def test_caching_two_layers_with_layer_cache_env_set(self):
-
         command_list = self.get_command_list("TwoLayerVersionServerlessFunction",
                                              template_path=self.template_path,
                                              no_event=True,
