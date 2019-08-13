@@ -301,7 +301,7 @@ class IntrinsicsSymbolTable(object):
 
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
-        if isinstance(logical_id_item, string_types):
+        if any(isinstance(logical_id_item, object_type) for object_type in [string_types, list, bool, int]):
             if (
                     resource_attributes != IntrinsicResolver.REF and resource_attributes != ""
             ):
