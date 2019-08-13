@@ -40,8 +40,8 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
                                                                                                           runtime))
 
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
-        cmdlist = self.get_command_list(use_container=use_container,
-                                        parameter_overrides=overrides)
+        cmdlist = self.get_build_command_list(use_container=use_container,
+                                              parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
@@ -97,7 +97,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
 
     def test_unsupported_runtime(self):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "NoThere"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_build_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
         process = subprocess.Popen(cmdlist, cwd=self.working_dir, stdout=subprocess.PIPE)
@@ -127,8 +127,8 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     ])
     def test_with_default_package_json(self, runtime, use_container):
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
-        cmdlist = self.get_command_list(use_container=use_container,
-                                        parameter_overrides=overrides)
+        cmdlist = self.get_build_command_list(use_container=use_container,
+                                              parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
@@ -186,8 +186,8 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
     ])
     def test_with_default_gemfile(self, runtime, use_container):
         overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
-        cmdlist = self.get_command_list(use_container=use_container,
-                                        parameter_overrides=overrides)
+        cmdlist = self.get_build_command_list(use_container=use_container,
+                                              parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
@@ -263,8 +263,8 @@ class TestBuildCommand_Java(BuildIntegBase):
     ])
     def test_with_building_java(self, runtime, code_path, expected_files, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
-        cmdlist = self.get_command_list(use_container=use_container,
-                                        parameter_overrides=overrides)
+        cmdlist = self.get_build_command_list(use_container=use_container,
+                                              parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
@@ -331,8 +331,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     def test_with_dotnetcore(self, runtime, code_uri, mode):
         overrides = {"Runtime": runtime, "CodeUri": code_uri,
                      "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler"}
-        cmdlist = self.get_command_list(use_container=False,
-                                        parameter_overrides=overrides)
+        cmdlist = self.get_build_command_list(use_container=False,
+                                              parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
         LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
@@ -371,8 +371,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         use_container = True
         overrides = {"Runtime": runtime, "CodeUri": code_uri,
                      "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler"}
-        cmdlist = self.get_command_list(use_container=use_container,
-                                        parameter_overrides=overrides)
+        cmdlist = self.get_build_command_list(use_container=use_container,
+                                              parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
@@ -414,8 +414,8 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
     def test_function_not_found(self):
         overrides = {"Runtime": 'python3.7', "CodeUri": "Python", "Handler": "main.handler"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides,
-                                        function_identifier="FunctionNotInTemplate")
+        cmdlist = self.get_build_command_list(parameter_overrides=overrides,
+                                              function_identifier="FunctionNotInTemplate")
 
         process = subprocess.Popen(cmdlist, cwd=self.working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
@@ -437,9 +437,9 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
                                                                                                           runtime))
 
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
-        cmdlist = self.get_command_list(use_container=use_container,
-                                        parameter_overrides=overrides,
-                                        function_identifier=function_identifier)
+        cmdlist = self.get_build_command_list(use_container=use_container,
+                                              parameter_overrides=overrides,
+                                              function_identifier=function_identifier)
 
         LOG.info("Running Command: {}", cmdlist)
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)

@@ -102,7 +102,7 @@ class TestDestroyCli(TestCase):
         secho_client.assert_called_with('Failed to destroy Stack: UNKOWN_EXCEPTION', fg='red')
 
     def test_destroy_wait_called(self):
-        destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, force=True)
+        destroy_cli(ctx=None, stack_name='stack-name', wait=True, wait_time=100, force=True)
         self.wait_mock.wait.assert_called_with(StackName='stack-name',
                                                WaiterConfig={'Delay': 15, 'MaxAttemps': 6.666666666666667})
 
@@ -112,7 +112,7 @@ class TestDestroyCli(TestCase):
         exit_client.side_effect = DestroyTestCalledException()
         self.wait_mock.wait.side_effect = WaiterError("name", "reason", "last_response")
         with self.assertRaises(DestroyTestCalledException):
-            destroy_cli(ctx=None, stack_name='stack-name', wait_time=100, force=True)
+            destroy_cli(ctx=None, stack_name='stack-name', wait=True, wait_time=100, force=True)
         secho_client.assert_called_with('Failed to delete stack stack-name because Waiter name failed: reason',
                                         fg='red')
 
