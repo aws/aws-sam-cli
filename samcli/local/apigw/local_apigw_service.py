@@ -7,6 +7,7 @@ import base64
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 
+from samcli.commands.local.lib.provider import Cors
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -170,6 +171,12 @@ class LocalApigwService(BaseLocalService):
         """
 
         route = self._get_current_route(request)
+        cors_headers = Cors.cors_to_headers(self.api.cors)
+
+        method, _ = self.get_request_methods_endpoints(request)
+        if method == 'OPTIONS':
+            headers = Headers(cors_headers)
+            return self.service_response('', headers, 200)
 
         try:
             event = self._construct_event(request, self.port, self.api.binary_media_types, self.api.stage_name,
@@ -209,8 +216,7 @@ class LocalApigwService(BaseLocalService):
         :param request flask_request: Flask Request
         :return: Route matching the endpoint and method of the request
         """
-        endpoint = flask_request.endpoint
-        method = flask_request.method
+        method, endpoint = self.get_request_methods_endpoints(flask_request)
 
         route_key = self._route_key(method, endpoint)
         route = self._dict_of_routes.get(route_key, None)
@@ -222,6 +228,16 @@ class LocalApigwService(BaseLocalService):
             raise KeyError("Lambda function for the route not found")
 
         return route
+
+    def get_request_methods_endpoints(self, flask_request):
+        """
+        Separated out for testing requests in request handler
+        :param request flask_request: Flask Request
+        :return: the request's endpoint and method
+        """
+        endpoint = flask_request.endpoint
+        method = flask_request.method
+        return method, endpoint
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
@@ -451,6 +467,8 @@ class LocalApigwService(BaseLocalService):
             Request from Flask
         int port
             Forwarded Port
+        cors_headers dict
+            Dict of the Cors properties
 
         Returns dict (str: str), dict (str: list of str)
         -------
@@ -471,7 +489,6 @@ class LocalApigwService(BaseLocalService):
 
         headers_dict["X-Forwarded-Port"] = str(port)
         multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
-
         return headers_dict, multi_value_headers_dict
 
     @staticmethod
