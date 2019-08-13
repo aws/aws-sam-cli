@@ -36,7 +36,7 @@ class TestDestroy(DestroyIntegBase):
         try:
             verify_stack_exists(client, stack_name)
             self.fail()  # Fail if the stack exists
-        except (ClientError, SystemExit) as e:
+        except (ClientError, SystemExit):
             pass
 
     def test_termination_protection_prompt(self):
@@ -53,5 +53,5 @@ class TestDestroy(DestroyIntegBase):
         client = boto3.client('cloudformation')
         try:
             verify_stack_exists(client, stack_name)
-        except (ClientError, SystemExit) as e:
+        except (ClientError, SystemExit):
             self.fail()
