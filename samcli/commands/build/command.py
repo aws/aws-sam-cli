@@ -158,8 +158,8 @@ def do_cli(function_identifier,  # pylint: disable=too-many-locals
 
             click.secho("\nBuild Succeeded", fg="green")
 
-            msg = gen_success_msg(os.path.relpath(ctx.build_dir),
-                                  os.path.relpath(ctx.output_template_path),
+            msg = gen_success_msg(os.path.abspath(ctx.build_dir),
+                                  os.path.abspath(ctx.output_template_path),
                                   os.path.abspath(ctx.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR))
 
             click.secho(msg, fg="yellow")
