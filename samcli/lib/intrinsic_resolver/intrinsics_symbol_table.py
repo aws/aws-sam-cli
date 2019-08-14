@@ -5,7 +5,6 @@ import os
 
 from six import string_types
 
-from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import (
     InvalidSymbolException,
@@ -32,7 +31,19 @@ class IntrinsicsSymbolTable(object):
         AWS_NOVALUE,
     ]
 
-    DEFAULT_REGION = "us-east-1"
+    # There is not much benefit in infering real values for these parameters in local development context. These values
+    # are usually representative of an AWS environment and stack, but in local development scenario they don't make
+    # sense. If customers choose to, they can always override this value through the CLI interface.
+    DEFAULT_PSEUDO_PARAM_VALUES = {
+        "AWS::AccountId": "123456789012",
+        "AWS::Partition": "aws",
+        "AWS::Region": "us-east-1",
+        "AWS::StackName": "local",
+        "AWS::StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/"
+                        "local/51af3dc0-da77-11e4-872e-1234567db123",
+        "AWS::URLSuffix": "localhost",
+    }
+
     REGIONS = {
         "us-east-1": [
             "us-east-1a",
@@ -207,11 +218,11 @@ class IntrinsicsSymbolTable(object):
         translated = self._parameters.get(logical_id, {}).get("Default")
         if translated:
             return translated
-
         # Handle Default Property Type Resolution
         resource_type = self._resources.get(logical_id, {}).get(
             IntrinsicsSymbolTable.CFN_RESOURCE_TYPE
         )
+
         resolver = (
             self.default_type_resolver.get(resource_type, {}).get(resource_attribute)
             if resource_type
@@ -290,7 +301,7 @@ class IntrinsicsSymbolTable(object):
 
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
-        if isinstance(logical_id_item, string_types):
+        if any(isinstance(logical_id_item, object_type) for object_type in [string_types, list, bool, int]):
             if (
                     resource_attributes != IntrinsicResolver.REF and resource_attributes != ""
             ):
@@ -322,7 +333,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A pseudo account id
         """
-        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
             IntrinsicsSymbolTable.AWS_ACCOUNT_ID
         )
 
@@ -338,7 +349,7 @@ class IntrinsicsSymbolTable(object):
         """
         return (
                 self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or os.getenv("AWS_REGION") or
-                SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+                IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
                     IntrinsicsSymbolTable.AWS_REGION
                 )
         )
@@ -385,7 +396,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
             IntrinsicsSymbolTable.AWS_STACK_ID
         )
 
@@ -400,7 +411,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return SamBaseProvider.DEFAULT_PSEUDO_PARAM_VALUES.get(
+        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
             IntrinsicsSymbolTable.AWS_STACK_NAME
         )
 
