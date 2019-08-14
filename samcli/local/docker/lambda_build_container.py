@@ -231,4 +231,5 @@ class LambdaBuildContainer(Container):
     def _get_image(runtime):
         runtime_to_images = {"nodejs10.x": "amazon/lambda-build-node10.x"}
 
-        return runtime_to_images.get(runtime, "{}:build-{}".format(LambdaBuildContainer._LAMBCI_IMAGE_REPO_NAME, runtime))
+        return runtime_to_images.get(runtime,
+                                     "{}:build-{}".format(LambdaBuildContainer._LAMBCI_IMAGE_REPO_NAME, runtime))

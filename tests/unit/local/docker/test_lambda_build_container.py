@@ -158,9 +158,10 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
 
 class TestLambdaBuildContainer_get_image(TestCase):
 
-    @parameterized.expand([("myruntime", "lambci/lambda:build-myruntime"),
-                           ("nodejs10.x", "amazon/lambda-build-node10.x")
-                          ])
+    @parameterized.expand([
+        ("myruntime", "lambci/lambda:build-myruntime"),
+        ("nodejs10.x", "amazon/lambda-build-node10.x")
+    ])
     def test_must_get_image_name(self, runtime, expected_image_name):
         self.assertEquals(expected_image_name, LambdaBuildContainer._get_image(runtime))
 
