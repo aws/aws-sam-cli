@@ -10,17 +10,17 @@ from botocore.exceptions import ClientError
 
 from samcli.commands.destroy import verify_stack_exists
 from tests.integration.destroy.test_destroy_integ_base import DestroyIntegBase
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
+
+
+# Publish tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
+# This is to restrict publish tests to run outside of CI/CD and when the branch is not master.
+SKIP_PUBLISH_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
 
 LOG = logging.getLogger(__name__)
 
-# Publish tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
-# This is to restrict publish tests to run outside of Travis and when the branch is not master.
-SKIP_DESTROY_TESTS = (
-        os.environ.get("TRAVIS", False) and os.environ.get("TRAVIS_BRANCH", "master") != "master"
-)
 
-
-@skipIf(SKIP_DESTROY_TESTS, "Skip publish tests in Travis only")
+@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestDestroy(DestroyIntegBase):
     def test_basic_destroy(self):
         stack_name = "test-destroy-" + str(uuid.uuid4())
@@ -32,7 +32,7 @@ class TestDestroy(DestroyIntegBase):
         process.wait()
         self.assertEqual(process.returncode, 0)
 
-        client = boto3.client('cloudformation')
+        client = boto3.client("cloudformation")
         try:
             verify_stack_exists(client, stack_name)
             self.fail()  # Fail if the stack exists
@@ -50,7 +50,7 @@ class TestDestroy(DestroyIntegBase):
         process.wait()
         self.assertEqual(process.returncode, 1)
 
-        client = boto3.client('cloudformation')
+        client = boto3.client("cloudformation")
         try:
             verify_stack_exists(client, stack_name)
         except (ClientError, SystemExit):
