@@ -4,9 +4,6 @@ Base class for SAM Template providers
 
 import logging
 
-from samtranslator.intrinsics.actions import RefAction
-from samtranslator.intrinsics.resolver import IntrinsicsResolver
-
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -19,9 +16,6 @@ class SamBaseProvider(object):
     """
     Base class for SAM Template providers
     """
-
-    # Only Ref is supported when resolving template parameters
-    _SUPPORTED_INTRINSICS = [RefAction]
 
     @staticmethod
     def get_template(template_dict, parameter_overrides=None):
@@ -47,47 +41,18 @@ class SamBaseProvider(object):
         if template_dict:
             template_dict = SamTranslatorWrapper(template_dict).run_plugins()
         ResourceMetadataNormalizer.normalize(template_dict)
-        logical_id_translator = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
+        logical_id_translator = SamBaseProvider._get_parameter_values(
+            template_dict, parameter_overrides
+        )
         resolver = IntrinsicResolver(
             template=template_dict,
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template_dict)
+            symbol_resolver=IntrinsicsSymbolTable(
+                logical_id_translator=logical_id_translator, template=template_dict
+            ),
         )
         template_dict = resolver.resolve_template(ignore_errors=True)
 
         return template_dict
-
-    @staticmethod
-    def _resolve_parameters(template_dict, parameter_overrides):
-        """
-        In the given template, apply parameter values to resolve intrinsic functions
-
-        Parameters
-        ----------
-        template_dict : dict
-            SAM Template
-
-        parameter_overrides : dict
-            Values for template parameters provided by user
-
-        Returns
-        -------
-        dict
-            Resolved SAM template
-        """
-
-        parameter_values = SamBaseProvider._get_parameter_values(
-            template_dict, parameter_overrides
-        )
-
-        supported_intrinsics = {
-            action.intrinsic_name: action()
-            for action in SamBaseProvider._SUPPORTED_INTRINSICS
-        }
-
-        # Intrinsics resolver will mutate the original template
-        return IntrinsicsResolver(
-            parameters=parameter_values, supported_intrinsics=supported_intrinsics
-        ).resolve_parameter_refs(template_dict)
 
     @staticmethod
     def _get_parameter_values(template_dict, parameter_overrides):
