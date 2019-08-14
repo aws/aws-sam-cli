@@ -739,3 +739,182 @@ class TestCloudFormationResourceMethod(TestCase):
 
         provider = ApiProvider(template)
         assertCountEqual(self, provider.api.binary_media_types, ["image/png", "image/jpg"])
+
+    def test_cdk(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                "HelloHandler2E4FBA4D": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": ".",
+                        "Handler": "main.handler",
+                        "Runtime": "python3.6",
+                    },
+                    "DependsOn": [
+                        "HelloHandlerServiceRole11EF7C63"
+                    ],
+                },
+                "EndpointEEF1FD8F": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {
+                        "Name": "Endpoint"
+                    }
+                },
+                "EndpointDeploymentStageprodB78BEEA0": {
+                    "Type": "AWS::ApiGateway::Stage",
+                    "Properties": {
+                        "RestApiId": {
+                            "Ref": "EndpointEEF1FD8F"
+                        },
+                        "DeploymentId": {
+                            "Ref": "EndpointDeployment318525DA37c0e38727e25b4317827bf43e918fbf"
+                        },
+                        "StageName": "prod"
+                    }
+                },
+                "Endpointproxy39E2174E": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "ParentId": {
+                            "Fn::GetAtt": [
+                                "EndpointEEF1FD8F",
+                                "RootResourceId"
+                            ]
+                        },
+                        "PathPart": "{proxy+}",
+                        "RestApiId": {
+                            "Ref": "EndpointEEF1FD8F"
+                        }
+                    }
+                },
+                "EndpointproxyANYC09721C5": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "ANY",
+                        "ResourceId": {
+                            "Ref": "Endpointproxy39E2174E"
+                        },
+                        "RestApiId": {
+                            "Ref": "EndpointEEF1FD8F"
+                        },
+                        "AuthorizationType": "NONE",
+                        "Integration": {
+                            "IntegrationHttpMethod": "POST",
+                            "Type": "AWS_PROXY",
+                            "Uri": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:",
+                                        {
+                                            "Ref": "AWS::Partition"
+                                        },
+                                        ":apigateway:",
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        "lambda:path/2015-03-31/functions/",
+                                        {
+                                            "Fn::GetAtt": [
+                                                "HelloHandler2E4FBA4D",
+                                                "Arn"
+                                            ]
+                                        },
+                                        "/invocations"
+                                    ]
+                                ]
+                            }
+                        }
+                    }
+                },
+                "EndpointANY485C938B": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "ANY",
+                        "ResourceId": {
+                            "Fn::GetAtt": [
+                                "EndpointEEF1FD8F",
+                                "RootResourceId"
+                            ]
+                        },
+                        "RestApiId": {
+                            "Ref": "EndpointEEF1FD8F"
+                        },
+                        "AuthorizationType": "NONE",
+                        "Integration": {
+                            "IntegrationHttpMethod": "POST",
+                            "Type": "AWS_PROXY",
+                            "Uri": {
+                                "Fn::Join": [
+                                    "",
+                                    [
+                                        "arn:",
+                                        {
+                                            "Ref": "AWS::Partition"
+                                        },
+                                        ":apigateway:",
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        "lambda:path/2015-03-31/functions/",
+                                        {
+                                            "Fn::GetAtt": [
+                                                "HelloHandler2E4FBA4D",
+                                                "Arn"
+                                            ]
+                                        },
+                                        "/invocations"
+                                    ]
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "Parameters": {
+                "HelloHandlerCodeS3Bucket4359A483": {
+                    "Type": "String",
+                    "Description": "S3 bucket for asset \"CdkWorkshopStack/HelloHandler/Code\""
+                },
+                "HelloHandlerCodeS3VersionKey07D12610": {
+                    "Type": "String",
+                    "Description": "S3 key for asset version \"CdkWorkshopStack/HelloHandler/Code\""
+                }
+            },
+            "Outputs": {
+                "Endpoint8024A810": {
+                    "Value": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "https://",
+                                {
+                                    "Ref": "EndpointEEF1FD8F"
+                                },
+                                ".execute-api.",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                ".",
+                                {
+                                    "Ref": "AWS::URLSuffix"
+                                },
+                                "/",
+                                {
+                                    "Ref": "EndpointDeploymentStageprodB78BEEA0"
+                                },
+                                "/"
+                            ]
+                        ]
+                    },
+                    "Export": {
+                        "Name": "CdkWorkshopStack:Endpoint8024A810"
+                    }
+                }
+            }
+        }
+        provider = ApiProvider(template)
+        proxy_paths = [Route(path="/{proxy+}", methods=Route.ANY_HTTP_METHODS, function_name="HelloHandler2E4FBA4D")]
+        root_paths = [Route(path="/", methods=Route.ANY_HTTP_METHODS, function_name="HelloHandler2E4FBA4D")]
+        assertCountEqual(self, provider.routes, proxy_paths + root_paths)

@@ -43,6 +43,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         -------
         Returns a list of routes
         """
+
         for logical_id, resource in resources.items():
             resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
             if resource_type == CfnApiProvider.APIGATEWAY_RESTAPI:

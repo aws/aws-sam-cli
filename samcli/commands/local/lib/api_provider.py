@@ -65,6 +65,7 @@ class ApiProvider(AbstractApiProvider):
         ---------
         An Api from the parsed template
         """
+
         collector = ApiCollector()
         provider = self.find_api_provider(resources)
         provider.extract_resources(resources, collector, cwd=self.cwd)
