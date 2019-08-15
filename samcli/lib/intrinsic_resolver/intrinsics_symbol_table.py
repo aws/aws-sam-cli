@@ -40,7 +40,7 @@ class IntrinsicsSymbolTable(object):
         "AWS::Region": "us-east-1",
         "AWS::StackName": "local",
         "AWS::StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/"
-        "local/51af3dc0-da77-11e4-872e-1234567db123",
+                        "local/51af3dc0-da77-11e4-872e-1234567db123",
         "AWS::URLSuffix": "localhost",
     }
 
@@ -88,11 +88,11 @@ class IntrinsicsSymbolTable(object):
     CFN_RESOURCE_TYPE = "Type"
 
     def __init__(
-        self,
-        template=None,
-        logical_id_translator=None,
-        default_type_resolver=None,
-        common_attribute_resolver=None,
+            self,
+            template=None,
+            logical_id_translator=None,
+            default_type_resolver=None,
+            common_attribute_resolver=None,
     ):
         """
         Initializes the Intrinsic Symbol Table so that runtime attributes can be resolved.
@@ -148,10 +148,10 @@ class IntrinsicsSymbolTable(object):
         self._resources = self._template.get("Resources", {})
 
         self.default_type_resolver = (
-            default_type_resolver or self.get_default_type_resolver()
+                default_type_resolver or self.get_default_type_resolver()
         )
         self.common_attribute_resolver = (
-            common_attribute_resolver or self.get_default_attribute_resolver()
+                common_attribute_resolver or self.get_default_attribute_resolver()
         )
         self.default_pseudo_resolver = self.get_default_pseudo_resolver()
 
@@ -271,8 +271,7 @@ class IntrinsicsSymbolTable(object):
         """
         aws_region = self.handle_pseudo_region()
         account_id = (
-            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
-            or self.handle_pseudo_account_id()
+                self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
         )
         partition_name = self.handle_pseudo_partition()
         resource_name = logical_id
@@ -307,12 +306,11 @@ class IntrinsicsSymbolTable(object):
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
         if any(
-            isinstance(logical_id_item, object_type)
-            for object_type in [string_types, list, bool, int]
+                isinstance(logical_id_item, object_type)
+                for object_type in [string_types, list, bool, int]
         ):
             if (
-                resource_attributes != IntrinsicResolver.REF
-                and resource_attributes != ""
+                    resource_attributes != IntrinsicResolver.REF and resource_attributes != ""
             ):
                 return None
             return logical_id_item
@@ -358,11 +356,10 @@ class IntrinsicsSymbolTable(object):
         The region from the environment or a default one
         """
         return (
-            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION)
-            or os.getenv("AWS_REGION")
-            or IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
-                IntrinsicsSymbolTable.AWS_REGION
-            )
+                self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or os.getenv("AWS_REGION") or
+                IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
+                    IntrinsicsSymbolTable.AWS_REGION
+                )
         )
 
     def handle_pseudo_url_prefix(self):

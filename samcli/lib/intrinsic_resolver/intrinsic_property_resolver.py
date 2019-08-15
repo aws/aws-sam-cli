@@ -207,10 +207,8 @@ class IntrinsicResolver(object):
             return intrinsic
         if isinstance(intrinsic, list):
             return [self.intrinsic_property_resolver(item) for item in intrinsic]
-        
         keys = list(intrinsic.keys())
         key = keys[0]
-        
         if key in self.intrinsic_key_function_map:
             intrinsic_value = intrinsic.get(key)
             return self.intrinsic_key_function_map.get(key)(intrinsic_value)

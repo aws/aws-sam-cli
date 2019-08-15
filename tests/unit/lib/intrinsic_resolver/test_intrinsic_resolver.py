@@ -344,10 +344,10 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
                     item,
             )
             for item in [
-            ["<UNKOWN_VALUE>", "Test", "key"],
-            ["Basic", "<UNKOWN_VALUE>", "key"],
-            ["Basic", "Test", "<UNKOWN_VALUE>"],
-        ]
+                ["<UNKOWN_VALUE>", "Test", "key"],
+                ["Basic", "<UNKOWN_VALUE>", "key"],
+                ["Basic", "Test", "<UNKOWN_VALUE>"],
+            ]
         ]
     )
     def test_fn_find_in_map_invalid_key_entries(self, name, intrinsic):
