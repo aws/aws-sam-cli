@@ -56,6 +56,11 @@ for:
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
+      # Install black
+      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.3b0/black"
+      - sh: "chmod +x /tmp/black"
+      - sh: "/tmp/black --version"
+  
   - 
     matrix:
       only:
@@ -72,12 +77,11 @@ build_script:
 
 test_script:
     - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-    - "flake8 samcli"
-    - "flake8 tests/unit tests/integration"
     - "pylint --rcfile .pylintrc samcli"
 
     # Runs only in Linux
     - sh: "pytest -vv tests/integration"
+    - sh: "/tmp/black --check setup.py tests samcli"
 
     # Smoke tests run in parallel - it runs on both Linux & Windows
     # Presence of the RUN_SMOKE envvar will run the smoke tests
