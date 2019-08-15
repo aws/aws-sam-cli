@@ -8,9 +8,10 @@ try:
 except ImportError:
     import pathlib2 as pathlib
 
-
 from unittest import TestCase
 from mock import patch
+
+from parameterized import parameterized
 
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 
@@ -157,8 +158,12 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
 
 class TestLambdaBuildContainer_get_image(TestCase):
 
-    def test_must_get_image_name(self):
-        self.assertEquals("lambci/lambda:build-myruntime", LambdaBuildContainer._get_image("myruntime"))
+    @parameterized.expand([
+        ("myruntime", "lambci/lambda:build-myruntime"),
+        ("nodejs10.x", "amazon/lambda-build-node10.x")
+    ])
+    def test_must_get_image_name(self, runtime, expected_image_name):
+        self.assertEquals(expected_image_name, LambdaBuildContainer._get_image(runtime))
 
 
 class TestLambdaBuildContainer_get_entrypoint(TestCase):
