@@ -1,0 +1,174 @@
+{
+  "Transform": "AWS::Serverless-2016-10-31",
+  "Parameters":
+    {
+      "LayerOneArn":
+        {
+          "Default": "arn:aws:lambda:us-west-2:111111111111:layer:layer:1",
+          "Type": "String"
+        },
+      "LayerTwoArn":
+        {
+          "Default": "arn:aws:lambda:us-west-2:111111111111:layer:layer2:1",
+          "Type": "String"
+        },
+      "ChangedLayerArn":
+        {
+          "Default": "arn:aws:lambda:us-west-2:111111111111:layer:changed_layer:1",
+          "Type": "String"
+        },
+      "NonExistentLayerArn":
+        {
+          "Default": "arn:aws:lambda:us-west-2:111111111111:layer:non_existent_layer:1",
+          "Type": "String"
+        }
+    },
+  "Resources":
+    {
+      "OneLayerVersionServerlessFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.one_layer_hanlder",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "LayerOneArn" }]
+            }
+        },
+      "ChangedLayerVersionServerlessFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.one_layer_hanlder",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "ChangedLayerArn" }]
+            }
+        },
+      "ReferenceServerlessLayerVersionServerlessFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.custom_layer_handler",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "MyCustomServerlessLayer" }]
+            }
+        },
+      "ReferenceLambdaLayerVersionServerlessFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.custom_layer_handler",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "MyCustomLambdaLayer" }]
+            }
+        },
+      "TwoLayerVersionServerlessFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.one_layer_hanlder",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "LayerOneArn" }, { "Ref": "LayerTwoArn" }]
+            }
+        },
+      "OneLayerVersionLambdaFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.one_layer_hanlder",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "LayerOneArn" }]
+            }
+        },
+      "ChangedLayerVersionLambdaFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.one_layer_hanlder",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "ChangedLayerArn" }]
+            }
+        },
+      "ReferenceServerlessLayerVersionLambdaFunction":
+        {
+          "Type": "AWS::Lambda::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.custom_layer_handler",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "MyCustomServerlessLayer" }]
+            }
+        },
+      "ReferenceLambdaLayerVersionLambdaFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.custom_layer_handler",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "MyCustomLambdaLayer" }]
+            }
+        },
+      "TwoLayerVersionLambdaFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.one_layer_hanlder",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "LayerOneArn" }, { "Ref": "LayerTwoArn" }]
+            }
+        },
+      "LayerVersionDoesNotExistFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.handler",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers": [{ "Ref": "NonExistentLayerArn" }]
+            }
+        },
+      "LayerVersionAccountDoesNotExistFunction":
+        {
+          "Type": "AWS::Serverless::Function",
+          "Properties":
+            {
+              "Handler": "layer-main.handler",
+              "Runtime": "python3.6",
+              "CodeUri": ".",
+              "Layers":
+                [
+                  "arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:1"
+                ]
+            }
+        },
+      "MyCustomLambdaLayer":
+        {
+          "Type": "AWS::Lambda::LayerVersion",
+          "Properties": { "Content": "custom_layer/" }
+        },
+      "MyCustomServerlessLayer":
+        {
+          "Type": "AWS::Serverless::LayerVersion",
+          "Properties": { "ContentUri": "custom_layer/" }
+        }
+    }
+}

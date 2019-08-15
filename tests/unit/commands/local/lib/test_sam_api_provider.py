@@ -288,6 +288,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             list(provider.routes)[0],
             Route(path="/path", methods=["GET"], function_name="SamFunc1"),
         )
+
         assertCountEqual(
             self, provider.api.binary_media_types, ["image/gif", "image/png"]
         )
