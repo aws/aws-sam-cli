@@ -239,10 +239,10 @@ class IntrinsicsSymbolTable(object):
             if callable(attribute_resolver):
                 return attribute_resolver(logical_id)
             return attribute_resolver
-        #
-        # # Handle the Case that the code is a ref of top level resource
-        # if resource_attribute == IntrinsicResolver.REF and logical_id in self._resources:
-        #     return logical_id
+
+        # Handle the Case that the code is a ref of top level resource
+        if resource_attribute == IntrinsicResolver.REF and logical_id in self._resources:
+            return logical_id
 
         if ignore_errors:
             return "${}".format(logical_id + "." + resource_attribute)
