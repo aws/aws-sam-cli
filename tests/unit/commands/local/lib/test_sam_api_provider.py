@@ -259,7 +259,6 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "image~1gif",
                         "image~1png",
                         "image~1png",  # Duplicates must be ignored
-                        {"Ref": "SomeParameter"},  # Refs are ignored as well
                     ]
                 }
             },
