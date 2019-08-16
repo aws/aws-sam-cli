@@ -234,9 +234,9 @@ def verify_stack_retain_resources(client, stack_name, retain_resources=None):
             logical_id = event.get("LogicalResourceId")
             if logical_id not in retain_resources:
                 click.secho(
-                    "The logicalId {} of the resource in the stack {} must be included in retain_resource since the "
-                    "deletion failed".format(logical_id, stack_name),
-                    fg="red",
+                    "The logicalId {} of the resource in the stack {} failed to delete. You'll need to resolve the root"
+                    " cause of the failure to delete this resource or add it to the set of retained resources in order "
+                    "to complete deletion of your stack.".format(logical_id, stack_name), fg="red"
                 )
                 sys.exit(1)
 

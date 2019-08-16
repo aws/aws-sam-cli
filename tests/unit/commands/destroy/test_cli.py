@@ -220,8 +220,9 @@ class TestDestroyStackVerification(TestCase):
 
         verify_stack_retain_resources(client, 'stack-name')
         secho_client.assert_called_with(
-            'The logicalId test of the resource in the stack stack-name must be included in retain_resource'
-            ' since the deletion failed',
+            "The logicalId test of the resource in the stack stack-name failed to delete. You'll need to resolve the"
+            " root cause of the failure to delete this resource or add it to the set of retained resources in order"
+            " to complete deletion of your stack.",
             fg='red')
         sys_exit.assert_called_with(1)
 
