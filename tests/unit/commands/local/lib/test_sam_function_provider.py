@@ -40,7 +40,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "SamFuncWithFunctionNameOverride": {
                 "Type": "AWS::Serverless::Function",
                 "Properties": {
-                    "FunctionName": "overridden-function-name",
+                    "FunctionName": "SamFuncWithFunctionNameOverride-x",
                     "CodeUri": "/usr/foo/bar",
                     "Runtime": "nodejs4.3",
                     "Handler": "index.handler",
@@ -61,7 +61,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "LambdaFuncWithFunctionNameOverride": {
                 "Type": "AWS::Lambda::Function",
                 "Properties": {
-                    "FunctionName": "overridden-function-name",
+                    "FunctionName": "LambdaFuncWithFunctionNameOverride-x",
                     "Code": "./some/path/to/code",
                     "Runtime": "nodejs4.3",
                     "Handler": "index.handler",
@@ -126,10 +126,10 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 ),
             ),
             (
-                "SamFuncWithFunctionNameOverride",
+                "SamFuncWithFunctionNameOverride-x",
                 Function(
                     name="SamFuncWithFunctionNameOverride",
-                    functionname="overridden-function-name",
+                    functionname="SamFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="/usr/foo/bar",
@@ -171,10 +171,10 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                 ),
             ),
             (
-                "LambdaFuncWithFunctionNameOverride",
+                "LambdaFuncWithFunctionNameOverride-x",
                 Function(
                     name="LambdaFuncWithFunctionNameOverride",
-                    functionname="overridden-function-name",
+                    functionname="LambdaFuncWithFunctionNameOverride-x",
                     runtime="nodejs4.3",
                     handler="index.handler",
                     codeuri="./some/path/to/code",
@@ -529,9 +529,22 @@ class TestSamFunctionProvider_get(TestCase):
 
     def test_must_return_function_value(self):
         provider = SamFunctionProvider({})
-        provider.functions = {"func1": "value"}  # Cheat a bit here by setting the value of this property directly
+        # Cheat a bit here by setting the value of this property directly
+        function = Function(
+            name="not-value",
+            functionname="value",
+            runtime=None,
+            handler=None,
+            codeuri=None,
+            memory=None,
+            timeout=None,
+            environment=None,
+            rolearn=None,
+            layers=[]
+        )
+        provider.functions = {"func1": function}
 
-        self.assertEqual("value", provider.get("func1"))
+        self.assertEqual(function, provider.get("value"))
 
     def test_return_none_if_function_not_found(self):
         provider = SamFunctionProvider({})

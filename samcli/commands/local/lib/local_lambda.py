@@ -79,10 +79,7 @@ class LocalLambdaRunner:
         """
 
         # Generate the correct configuration based on given inputs
-        function = None
-        for f in self.provider.get_all():
-            if f.functionname == function_name:
-                function = f
+        function = self.provider.get(function_name)
 
         if not function:
             all_functions = [f.functionname for f in self.provider.get_all()]

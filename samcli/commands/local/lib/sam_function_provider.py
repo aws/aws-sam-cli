@@ -66,7 +66,11 @@ class SamFunctionProvider(FunctionProvider):
         if not name:
             raise ValueError("Function name is required")
 
-        return self.functions.get(name)
+        for f in self.get_all():
+            if f.functionname == name:
+                return f
+
+        return None
 
     def get_all(self):
         """
