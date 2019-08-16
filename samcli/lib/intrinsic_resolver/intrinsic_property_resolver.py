@@ -194,17 +194,11 @@ class IntrinsicResolver(object):
         The simplified version of the intrinsic function. This could be a list,str,dict depending on the format required
         """
         if intrinsic is None:
-            raise InvalidIntrinsicException(
-                "Missing Intrinsic property in {}".format(parent_function)
-            )
-
-        if (
-                any(
-                    isinstance(intrinsic, object_type)
-                    for object_type in [string_types, list, bool, int]
-                ) or intrinsic == {}
-        ):
+            raise InvalidIntrinsicException("Missing Intrinsic property in {}".format(parent_function))
+        if any(isinstance(intrinsic, object_type) for object_type in [string_types, bool, int]) or intrinsic == {}:
             return intrinsic
+        if isinstance(intrinsic, list):
+            return [self.intrinsic_property_resolver(item) for item in intrinsic]
 
         keys = list(intrinsic.keys())
         key = keys[0]
@@ -238,12 +232,13 @@ class IntrinsicResolver(object):
         -------
         Return a processed template
         """
-        processed_template = OrderedDict()
-        processed_template["Resources"] = self.resolve_attribute(self._resources, ignore_errors)
-        processed_template["Outputs"] = self.resolve_attribute(self._outputs, ignore_errors)
-        processed_template["Mappings"] = self.resolve_attribute(self._resources, ignore_errors)
-        processed_template["Parameters"] = self.resolve_attribute(self._resources, ignore_errors)
-        processed_template["Conditions"] = self.resolve_attribute(self._resources, ignore_errors)
+        processed_template = self._template
+
+        if self._resources:
+            processed_template["Resources"] = self.resolve_attribute(self._resources, ignore_errors)
+        if self._outputs:
+            processed_template["Outputs"] = self.resolve_attribute(self._outputs, ignore_errors)
+
         return processed_template
 
     def resolve_attribute(self, cloud_formation_property, ignore_errors=False):
@@ -265,7 +260,7 @@ class IntrinsicResolver(object):
         for key, val in cloud_formation_property.items():
             processed_key = self._symbol_resolver.get_translation(key) or key
             try:
-                processed_resource = self.intrinsic_property_resolver(val)
+                processed_resource = self.intrinsic_property_resolver(val, parent_function=processed_key)
                 processed_dict[processed_key] = processed_resource
             except (InvalidIntrinsicException, InvalidSymbolException) as e:
                 resource_type = val.get("Type", "")

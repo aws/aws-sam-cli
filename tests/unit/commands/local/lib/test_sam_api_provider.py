@@ -259,7 +259,6 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "image~1gif",
                         "image~1png",
                         "image~1png",  # Duplicates must be ignored
-                        {"Ref": "SomeParameter"},  # Refs are ignored as well
                     ]
                 }
             },
@@ -288,6 +287,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             list(provider.routes)[0],
             Route(path="/path", methods=["GET"], function_name="SamFunc1"),
         )
+
         assertCountEqual(
             self, provider.api.binary_media_types, ["image/gif", "image/png"]
         )

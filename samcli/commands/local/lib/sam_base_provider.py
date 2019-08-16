@@ -36,7 +36,6 @@ class SamBaseProvider(object):
         dict
             Processed SAM template
         """
-
         template_dict = template_dict or {}
         if template_dict:
             template_dict = SamTranslatorWrapper(template_dict).run_plugins()
@@ -44,6 +43,7 @@ class SamBaseProvider(object):
         logical_id_translator = SamBaseProvider._get_parameter_values(
             template_dict, parameter_overrides
         )
+
         resolver = IntrinsicResolver(
             template=template_dict,
             symbol_resolver=IntrinsicsSymbolTable(
@@ -51,7 +51,6 @@ class SamBaseProvider(object):
             ),
         )
         template_dict = resolver.resolve_template(ignore_errors=True)
-
         return template_dict
 
     @staticmethod

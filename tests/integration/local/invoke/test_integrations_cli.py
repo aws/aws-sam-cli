@@ -466,6 +466,15 @@ class TestLayerVersion(InvokeIntegBase):
     @classmethod
     def tearDownClass(cls):
         cls.layer_utils.delete_layers()
+        # Added to handle the case where ^C failed the test due to invalid cleanup of layers
+        docker_client = docker.from_env()
+        samcli_images = docker_client.images.list(name='samcli/lambda')
+        for image in samcli_images:
+            docker_client.images.remove(image.id)
+        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
+        if integ_layer_cache_dir.exists():
+            shutil.rmtree(str(integ_layer_cache_dir))
+
         super(TestLayerVersion, cls).tearDownClass()
 
     @parameterized.expand([

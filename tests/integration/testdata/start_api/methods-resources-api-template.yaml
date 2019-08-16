@@ -18,9 +18,9 @@ Resources:
     Type: AWS::ApiGateway::Stage
     Properties:
       StageName: Dev
-      RestApiId: TestApi
+      RestApiId: !Ref TestApi
       Variables:
-      Stack: Dev
+        Stack: Dev
 
   MyNonServerlessLambdaFunction:
     Properties:
