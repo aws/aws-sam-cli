@@ -96,6 +96,16 @@ e.g. sam destroy -stack-name sam-app --retain-resources LOGICAL_ID_1 --retain-re
     is_flag=True,
     help="Deletes the Stack without cli prompt",
 )
+@click.option(
+    '--profile',
+    required=False,
+    help="The profile to use for the aws session. By default, it will use the default profile",
+)
+@click.option(
+    '--region',
+    required=False,
+    help="The region to destroy the stack from. By default, it will use the region specified within aws credentials",
+)
 @common_options
 @pass_context
 @track_command
@@ -109,6 +119,8 @@ def cli(
     wait,
     wait_time,
     force=False,
+    profile=None,
+    region=None
 ):
     """
     Destroys the stack
@@ -123,6 +135,8 @@ def cli(
         wait,
         wait_time,
         force,
+        profile,
+        region
     )  # pragma: no cover
 
 
@@ -236,6 +250,8 @@ def do_cli(  # pylint: disable=too-many-statements
     wait=None,
     wait_time=None,
     force=False,
+    profile=None,
+    region=None
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -246,7 +262,15 @@ def do_cli(  # pylint: disable=too-many-statements
             default=True,
             abort=True,
         )
-    cfn = boto3.client("cloudformation", region_name="us-west-1")
+    if profile:
+        session = boto3.Session(profile_name=profile)
+    else:
+        session = boto3.session
+
+    if region:
+        cfn = session.client('cloudformation', region_name=region)
+    else:
+        cfn = session.client("cloudformation")
 
     verify_stack_exists(cfn, stack_name)
     verify_stack_retain_resources(cfn, stack_name, retain_resources)
