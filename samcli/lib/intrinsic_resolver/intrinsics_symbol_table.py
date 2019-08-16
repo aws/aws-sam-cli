@@ -249,9 +249,6 @@ class IntrinsicsSymbolTable(object):
                 return attribute_resolver(logical_id)
             return attribute_resolver
 
-        if resource_attribute == IntrinsicResolver.REF:
-            return {IntrinsicResolver.REF: logical_id}
-
         if ignore_errors:
             return "${}".format(logical_id + "." + resource_attribute)
         raise InvalidSymbolException(
