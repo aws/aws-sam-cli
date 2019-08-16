@@ -265,7 +265,7 @@ def do_cli(  # pylint: disable=too-many-statements
     if profile:
         session = boto3.Session(profile_name=profile)
     else:
-        session = boto3.session
+        session = boto3
 
     if region:
         cfn = session.client('cloudformation', region_name=region)
