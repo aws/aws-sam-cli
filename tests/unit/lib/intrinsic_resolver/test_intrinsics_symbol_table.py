@@ -92,7 +92,7 @@ class TestSymbolResolution(TestCase):
         }
         default_type_resolver = {
             "AWS::ApiGateway::RestApi": {
-                "RootResourceId": lambda logical_id, resource_attribute: logical_id
+                "RootResourceId": lambda logical_id: logical_id
             }
         }
 

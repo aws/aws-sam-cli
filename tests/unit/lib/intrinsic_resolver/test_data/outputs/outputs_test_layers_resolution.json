@@ -48,7 +48,7 @@
         "Runtime": "python3.6",
         "CodeUri": ".",
         "Layers": [
-          "MyCustomServerlessLayer"
+          {"Ref": "MyCustomServerlessLayer"}
         ]
       }
     },
@@ -59,7 +59,7 @@
         "Runtime": "python3.6",
         "CodeUri": ".",
         "Layers": [
-          "MyCustomLambdaLayer"
+          {"Ref": "MyCustomLambdaLayer"}
         ]
       }
     },
@@ -104,7 +104,7 @@
         "Runtime": "python3.6",
         "CodeUri": ".",
         "Layers": [
-          "MyCustomServerlessLayer"
+          {"Ref": "MyCustomServerlessLayer"}
         ]
       }
     },
@@ -115,7 +115,7 @@
         "Runtime": "python3.6",
         "CodeUri": ".",
         "Layers": [
-          "MyCustomLambdaLayer"
+          {"Ref": "MyCustomLambdaLayer"}
         ]
       }
     },

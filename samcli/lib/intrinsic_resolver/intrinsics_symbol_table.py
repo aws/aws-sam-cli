@@ -1,6 +1,7 @@
 """
 The symbol table that is used in IntrinsicResolver in order to resolve runtime attributes
 """
+import logging
 import os
 
 from six import string_types
@@ -9,6 +10,8 @@ from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicR
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import (
     InvalidSymbolException,
 )
+
+LOG = logging.getLogger(__name__)
 
 
 class IntrinsicsSymbolTable(object):
@@ -174,6 +177,12 @@ class IntrinsicsSymbolTable(object):
         return {
             "AWS::ApiGateway::RestApi": {
                 "RootResourceId": "/"  # It usually used as a reference to the parent id of the RestApi,
+            },
+            "AWS::Lambda::LayerVersion": {
+                IntrinsicResolver.REF: lambda logical_id: {IntrinsicResolver.REF: logical_id}
+            },
+            "AWS::Serverless::LayerVersion": {
+                IntrinsicResolver.REF: lambda logical_id: {IntrinsicResolver.REF: logical_id}
             }
         }
 
@@ -230,7 +239,7 @@ class IntrinsicsSymbolTable(object):
         )
         if resolver:
             if callable(resolver):
-                return resolver(logical_id, resource_attribute)
+                return resolver(logical_id)
             return resolver
 
         # Handle Attribute Type Resolution
@@ -240,9 +249,8 @@ class IntrinsicsSymbolTable(object):
                 return attribute_resolver(logical_id)
             return attribute_resolver
 
-        # Handle the Case that the code is a ref of top level resource
-        if resource_attribute == IntrinsicResolver.REF and logical_id in self._resources:
-            return logical_id
+        if resource_attribute == IntrinsicResolver.REF:
+            return {IntrinsicResolver.REF: logical_id}
 
         if ignore_errors:
             return "${}".format(logical_id + "." + resource_attribute)

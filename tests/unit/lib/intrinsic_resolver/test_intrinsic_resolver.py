@@ -1196,6 +1196,7 @@ class TestIntrinsicFnIfResolver(TestCase):
 
 class TestIntrinsicAttribteResolution(TestCase):
     def setUp(self):
+        self.maxDiff = None
         logical_id_translator = {
             "RestApi": "NewRestApi",
             "LambdaFunction": {
@@ -1228,6 +1229,7 @@ class TestIntrinsicAttribteResolution(TestCase):
 
     def test_basic_attribte_resolution(self):
         resolved_template = self.resolver.resolve_attribute(self.resources, ignore_errors=False)
+
         expected_resources = {
             "HelloHandler2E4FBA4D": {
                 "Properties": {"handler": "main.handle"},
@@ -1245,7 +1247,7 @@ class TestIntrinsicAttribteResolution(TestCase):
                     "Handler": "layer-main.custom_layer_handler",
                     "Runtime": "python3.6",
                     "CodeUri": ".",
-                    "Layers": ["MyCustomLambdaLayer"]
+                    "Layers": [{"Ref": "MyCustomLambdaLayer"}]
                 },
                 "Type": "AWS::Serverless::Function",
             },
@@ -1270,7 +1272,7 @@ class TestIntrinsicAttribteResolution(TestCase):
                 }
             },
         }
-        self.assertEqual(resolved_template, expected_resources)
+        self.assertEqual(dict(resolved_template), expected_resources)
 
     def test_template_fail_errors(self):
         resources = deepcopy(self.resources)
@@ -1314,7 +1316,7 @@ class TestIntrinsicAttribteResolution(TestCase):
                     "Handler": "layer-main.custom_layer_handler",
                     "Runtime": "python3.6",
                     "CodeUri": ".",
-                    "Layers": ["MyCustomLambdaLayer"]
+                    "Layers": [{"Ref": "MyCustomLambdaLayer"}]
                 },
                 "Type": "AWS::Serverless::Function",
             },
@@ -1357,9 +1359,9 @@ class TestIntrinsicAttribteResolution(TestCase):
                     "RestApiId": "RestApi",
                     "parentId": "/",
                 }
-            },
+            }
         }
-        self.assertEqual(expected_template, result)
+        self.assertEqual(expected_template, dict(result))
 
 
 class TestResolveTemplate(TestCase):
@@ -1518,12 +1520,12 @@ class TestResolveTemplate(TestCase):
     ])
     def test_intrinsic_sample_inputs_outputs(self, input, output):
         input_template = self.load_test_data(input)
-
         symbol_resolver = IntrinsicsSymbolTable(
             template=input_template, logical_id_translator={}
         )
         resolver = IntrinsicResolver(template=input_template, symbol_resolver=symbol_resolver)
         processed_template = resolver.resolve_template()
+        processed_template = json.loads(json.dumps(processed_template))  # Removes formatting of ordered dicts
         expected_template = self.load_test_data(output)
         self.assertEqual(processed_template, expected_template)
 

@@ -194,21 +194,15 @@ class IntrinsicResolver(object):
         The simplified version of the intrinsic function. This could be a list,str,dict depending on the format required
         """
         if intrinsic is None:
-            raise InvalidIntrinsicException(
-                "Missing Intrinsic property in {}".format(parent_function)
-            )
-
-        if (
-                any(
-                    isinstance(intrinsic, object_type)
-                    for object_type in [string_types, bool, int]
-                ) or intrinsic == {}
-        ):
+            raise InvalidIntrinsicException("Missing Intrinsic property in {}".format(parent_function))
+        if any(isinstance(intrinsic, object_type) for object_type in [string_types, bool, int]) or intrinsic == {}:
             return intrinsic
         if isinstance(intrinsic, list):
             return [self.intrinsic_property_resolver(item) for item in intrinsic]
+
         keys = list(intrinsic.keys())
         key = keys[0]
+
         if key in self.intrinsic_key_function_map:
             intrinsic_value = intrinsic.get(key)
             return self.intrinsic_key_function_map.get(key)(intrinsic_value)
@@ -266,7 +260,7 @@ class IntrinsicResolver(object):
         for key, val in cloud_formation_property.items():
             processed_key = self._symbol_resolver.get_translation(key) or key
             try:
-                processed_resource = self.intrinsic_property_resolver(val)
+                processed_resource = self.intrinsic_property_resolver(val, parent_function=processed_key)
                 processed_dict[processed_key] = processed_resource
             except (InvalidIntrinsicException, InvalidSymbolException) as e:
                 resource_type = val.get("Type", "")

@@ -60,7 +60,7 @@
         "Runtime": "python3.6",
         "CodeUri": ".",
         "Layers": [
-          "MyCustomLambdaLayer"
+          {"Ref": "MyCustomLambdaLayer"}
         ]
       },
       "Type": "AWS::Serverless::Function"
