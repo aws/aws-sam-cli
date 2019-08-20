@@ -19,6 +19,16 @@ class TestGlobalConfig(TestCase):
             installation_id = gc.installation_id
             self.assertIsNone(installation_id)
 
+    def test_unable_to_create_dir(self):
+        m = mock_open()
+        m.side_effect = OSError("Permission DENIED")
+        gc = GlobalConfig()
+        with patch('samcli.cli.global_config.Path.mkdir', m):
+            installation_id = gc.installation_id
+            self.assertIsNone(installation_id)
+            telemetry_enabled = gc.telemetry_enabled
+            self.assertFalse(telemetry_enabled)
+
     def test_setter_cannot_open_path(self):
         m = mock_open()
         m.side_effect = IOError("fail")
