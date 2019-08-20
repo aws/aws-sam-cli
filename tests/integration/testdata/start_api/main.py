@@ -4,39 +4,36 @@ import time
 
 
 def handler(event, context):
-
     return {"statusCode": 200, "body": json.dumps({"hello": "world"})}
 
 
 def echo_event_handler(event, context):
-
     return {"statusCode": 200, "body": json.dumps(event)}
 
 
 def echo_event_handler_2(event, context):
-
     event['handler'] = 'echo_event_handler_2'
 
     return {"statusCode": 200, "body": json.dumps(event)}
 
 
-def content_type_setter_handler(event, context):
+def echo_integer_body(event, context):
+    return {"statusCode": 200, "body": 42}
 
+
+def content_type_setter_handler(event, context):
     return {"statusCode": 200, "body": "hello", "headers": {"Content-Type": "text/plain"}}
 
 
 def only_set_status_code_handler(event, context):
-
     return {"statusCode": 200}
 
 
 def only_set_body_handler(event, context):
-
     return {"body": json.dumps({"hello": "world"})}
 
 
 def string_status_code_handler(event, context):
-
     return {"statusCode": "200", "body": json.dumps({"hello": "world"})}
 
 

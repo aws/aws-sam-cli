@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion : '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Globals:
@@ -14,6 +14,11 @@ Resources:
       StageName: dev
       Variables:
         VarName: varValue
+      Cors:
+        AllowOrigin: "*"
+        AllowMethods: "GET"
+        AllowHeaders: "origin, x-requested-with"
+        MaxAge: 510
       DefinitionBody:
         swagger: "2.0"
         info:
