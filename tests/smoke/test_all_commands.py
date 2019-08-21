@@ -5,7 +5,7 @@ from parameterized import parameterized
 from unittest import TestCase
 
 
-TEMPLATE_FOLDER = os.path.join("templates", "sar")
+TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), "templates", "sar")
 TEMPLATE_FILE_NAMES = [v for v in os.listdir(TEMPLATE_FOLDER) if "yaml" in v]
 
 class TestAllCommands(TestCase):
