@@ -722,7 +722,7 @@ class IntrinsicResolver(object):
             )
             result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
             sub_str = re.sub(
-                pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=result
+                pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=str(result)
             )
         return sub_str
 
