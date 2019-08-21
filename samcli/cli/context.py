@@ -45,8 +45,7 @@ class Context(object):
 
         if self._debug:
             # Turn on debug logging
-            logging.getLogger('samcli').setLevel(logging.DEBUG)
-            logging.getLogger('aws_lambda_builders').setLevel(logging.DEBUG)
+            logging.getLogger().setLevel(logging.DEBUG)
 
     @property
     def region(self):

@@ -47,6 +47,7 @@ class GlobalConfig(object):
             # Internal Environment variable to customize SAM CLI App Dir. Currently used only by integ tests.
             app_dir = os.getenv("__SAM_CLI_APP_DIR")
             self._config_dir = Path(app_dir) if app_dir else Path(click.get_app_dir('AWS SAM', force_posix=True))
+
         return Path(self._config_dir)
 
     @property
@@ -75,7 +76,7 @@ class GlobalConfig(object):
         try:
             self._installation_id = self._get_or_set_uuid(INSTALLATION_ID_KEY)
             return self._installation_id
-        except (ValueError, IOError, OSError):
+        except (ValueError, IOError):
             return None
 
     @property
@@ -111,7 +112,7 @@ class GlobalConfig(object):
         try:
             self._telemetry_enabled = self._get_value(TELEMETRY_ENABLED_KEY)
             return self._telemetry_enabled
-        except (ValueError, IOError, OSError) as ex:
+        except (ValueError, IOError) as ex:
             LOG.debug("Error when retrieving telemetry_enabled flag", exc_info=ex)
             return False
 
@@ -163,10 +164,6 @@ class GlobalConfig(object):
             return self._set_json_cfg(cfg_path, key, value, json_body)
 
     def _create_dir(self):
-        """
-        Creates configuration directory if it does not already exist, otherwise does nothing.
-        May raise an OSError if we do not have permissions to create the directory.
-        """
         self.config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
 
     def _get_config_file_path(self, filename):

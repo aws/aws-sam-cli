@@ -154,39 +154,6 @@ conventions are best practices that we have learnt over time.
 -   Do not catch the broader `Exception`, unless you have a really
     strong reason to do. You must explain the reason in great detail in
     comments.
-    
-    
-Testing
--------
-
-We need thorough test coverage to ensure the code change works today, 
-and continues to work in future. When you make a code change, use the 
-following framework to decide the kinds of tests to write:
-
-- When you adds/removed/modifies code paths (aka branches/arcs), 
-  write **unit tests** with goal of making sure the flow works. Focus
-  on verifying the flow and use mocks to isolate from as many 
-  external dependencies as you can. "External dependencies" 
-  includes system calls, libraries, other classes/methods you wrote
-  but logically outside of the system-under-test.
-  
-  > Aim to test with complete isolation
-  
-- When your code uses external dependencies, write **functional tests** 
-  to verify some flows by including as many external dependencies as 
-  possible. Focus on verifying the flows that directly use the dependencies.
-  
-  > Aim to test one or more logically related components. Includes docker, 
-  file system, API server, but might still mock some things like AWS API 
-  calls. 
-  
-- When your code adds/removes/modifies a customer facing behavior,
-  write **integration tests**. Focus on verifying the customer experience
-  works as expected.
-  
-  > Aim to test how a customer will use the feature/command. Includes 
-  calling AWS APIs, spinning up Docker containers, mutating files etc.
-  
 
 Design Document
 ---------------

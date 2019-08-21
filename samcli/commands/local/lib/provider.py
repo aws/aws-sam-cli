@@ -199,72 +199,46 @@ class FunctionProvider(object):
         raise NotImplementedError("not implemented")
 
 
-class Api(object):
-    def __init__(self, routes=None):
-        if routes is None:
-            routes = []
-        self.routes = routes
+_ApiTuple = namedtuple("Api", [
 
-        # Optional Dictionary containing CORS configuration on this path+method If this configuration is set,
-        # then API server will automatically respond to OPTIONS HTTP method on this path and respond with appropriate
-        # CORS headers based on configuration.
+    # String. Path that this API serves. Ex: /foo, /bar/baz
+    "path",
 
-        self.cors = None
-        # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this
-        # path and
+    # String. HTTP Method this API responds with
+    "method",
 
-        self.binary_media_types_set = set()
+    # String. Name of the Function this API connects to
+    "function_name",
 
-        self.stage_name = None
-        self.stage_variables = None
+    # Optional Dictionary containing CORS configuration on this path+method
+    # If this configuration is set, then API server will automatically respond to OPTIONS HTTP method on this path and
+    # respond with appropriate CORS headers based on configuration.
+    "cors",
 
+    # List(Str). List of the binary media types the API
+    "binary_media_types",
+    # The Api stage name
+    "stage_name",
+    # The variables for that stage
+    "stage_variables"
+])
+_ApiTuple.__new__.__defaults__ = (None,    # Cors is optional and defaults to None
+                                  [],      # binary_media_types is optional and defaults to empty,
+                                  None,    # Stage name is optional with default None
+                                  None     # Stage variables is optional with default None
+                                  )
+
+
+class Api(_ApiTuple):
     def __hash__(self):
         # Other properties are not a part of the hash
-        return hash(self.routes) * hash(self.cors) * hash(self.binary_media_types_set)
-
-    @property
-    def binary_media_types(self):
-        return list(self.binary_media_types_set)
+        return hash(self.path) * hash(self.method) * hash(self.function_name)
 
 
-_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
+Cors = namedtuple("Cors", ["AllowOrigin", "AllowMethods", "AllowHeaders"])
 
 
-_CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
-                                   None,  # Allow Methods is optional and defaults to empty
-                                   None,  # Allow Headers is optional and defaults to empty
-                                   None  # MaxAge is optional and defaults to empty
-                                   )
-
-
-class Cors(_CorsTuple):
-
-    @staticmethod
-    def cors_to_headers(cors):
-        """
-        Convert CORS object to headers dictionary
-        Parameters
-        ----------
-        cors list(samcli.commands.local.lib.provider.Cors)
-            CORS configuration objcet
-        Returns
-        -------
-            Dictionary with CORS headers
-        """
-        if not cors:
-            return {}
-        headers = {
-            'Access-Control-Allow-Origin': cors.allow_origin,
-            'Access-Control-Allow-Methods': cors.allow_methods,
-            'Access-Control-Allow-Headers': cors.allow_headers,
-            'Access-Control-Max-Age': cors.max_age
-        }
-        # Filters out items in the headers dictionary that isn't empty.
-        # This is required because the flask Headers dict will send an invalid 'None' string
-        return {h_key: h_value for h_key, h_value in headers.items() if h_value is not None}
-
-
-class AbstractApiProvider(object):
+class ApiProvider(object):
     """
     Abstract base class to return APIs and the functions they route to
     """

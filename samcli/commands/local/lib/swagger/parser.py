@@ -2,8 +2,8 @@
 
 import logging
 
+from samcli.commands.local.lib.provider import Api
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri, IntegrationType
-from samcli.local.apigw.local_apigw_service import Route
 
 LOG = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class SwaggerParser(object):
         """
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
-    def get_routes(self):
+    def get_apis(self):
         """
         Parses a swagger document and returns a list of APIs configured in the document.
 
@@ -62,12 +62,14 @@ class SwaggerParser(object):
 
         Returns
         -------
-        list of list of samcli.commands.local.apigw.local_apigw_service.Route
+        list of samcli.commands.local.lib.provider.Api
             List of APIs that are configured in the Swagger document
         """
 
         result = []
         paths_dict = self.swagger.get("paths", {})
+
+        binary_media_types = self.get_binary_media_types()
 
         for full_path, path_config in paths_dict.items():
             for method, method_config in path_config.items():
@@ -81,8 +83,11 @@ class SwaggerParser(object):
                 if method.lower() == self._ANY_METHOD_EXTENSION_KEY:
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
-                route = Route(function_name, full_path, methods=[method])
-                result.append(route)
+
+                api = Api(path=full_path, method=method, function_name=function_name, cors=None,
+                          binary_media_types=binary_media_types)
+                result.append(api)
+
         return result
 
     def _get_integration_function_name(self, method_config):

@@ -60,7 +60,7 @@ class IntegBase(TestCase):
 
         env = os.environ.copy()
 
-        # remove the envvar which usually is set in CI/CD. This interferes with tests
+        # remove the envvar which usually is set in Travis. This interferes with tests
         env.pop("SAM_CLI_TELEMETRY", None)
         if optout_envvar_value:
             # But if the caller explicitly asked us to opt-out via EnvVar, then set it here
