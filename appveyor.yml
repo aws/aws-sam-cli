@@ -21,7 +21,7 @@ environment:
       PYTHON_VERSION: '3.7.4'
       PYTHON_ARCH: '64'
 
-    - RUN_SMOKE: 1
+    - ONLY_SMOKE: 1
       PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
       PYTHON_ARCH: '64'
@@ -57,6 +57,14 @@ for:
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
+  - 
+    matrix:
+      only:
+        - ONLY_SMOKE: 1
+    test_script:
+      # Smoke tests run in parallel
+      - "pytest -n 4 -vv tests/smoke"
+
 build_script:
   - "python -c \"import sys; print(sys.executable)\""
 
@@ -68,9 +76,6 @@ test_script:
     - "flake8 samcli"
     - "flake8 tests/unit tests/integration"
     - "pylint --rcfile .pylintrc samcli"
-
-    # Smoke tests run in parallel
-    - "pytest -n 4 -vv tests/smoke"
 
     # Runs only in Linux
     - sh: "pytest -vv tests/integration"
