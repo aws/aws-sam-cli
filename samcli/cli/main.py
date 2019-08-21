@@ -8,7 +8,6 @@ import click
 
 from samcli import __version__
 from samcli.lib.telemetry.metrics import send_installed_metric
-from samcli.lib.utils.sam_logging import SamCliLogger
 from .options import debug_option, region_option, profile_option
 from .context import Context
 from .command import BaseCommand
@@ -80,6 +79,7 @@ def cli(ctx):
     You can find more in-depth guide about the SAM specification here:
     https://github.com/awslabs/serverless-application-model.
     """
+
     if global_cfg.telemetry_enabled is None:
         enabled = True
 
@@ -95,10 +95,3 @@ def cli(ctx):
 
         except (IOError, ValueError) as ex:
             LOG.debug("Unable to write telemetry flag", exc_info=ex)
-
-    sam_cli_logger = logging.getLogger('samcli')
-    sam_cli_formatter = logging.Formatter('%(message)s')
-    lambda_builders_logger = logging.getLogger('aws_lambda_builders')
-
-    SamCliLogger.configure_logger(sam_cli_logger, sam_cli_formatter, logging.INFO)
-    SamCliLogger.configure_logger(lambda_builders_logger, sam_cli_formatter, logging.INFO)

@@ -1,6 +1,0 @@
-Resources:
-  TableWithSSE:
-    Type: 'AWS::Serverless::SimpleTable'
-    Properties:
-        SSESpecification:
-          SSEEnabled: true

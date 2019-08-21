@@ -174,6 +174,8 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         tempalte_resources = validator.sam_template.get("Resources")
+        self.assertEquals(tempalte_resources.get("ServerlessApi").get("Properties").get("DefinitionUri"),
+                          "s3://bucket/value")
         self.assertEquals(tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"),
                           "s3://bucket/value")
 

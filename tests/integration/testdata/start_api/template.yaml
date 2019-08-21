@@ -9,7 +9,6 @@ Globals:
       - image~1png
     Variables:
       VarName: varValue
-    Cors: "*"
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
@@ -73,19 +72,6 @@ Resources:
           Properties:
             Method: GET
             Path: /echoeventbody
-
-  EchoIntegerBodyFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: main.echo_integer_body
-      Runtime: python3.6
-      CodeUri: .
-      Events:
-        EchoEventBodyPath:
-          Type: Api
-          Properties:
-            Method: GET
-            Path: /echo_integer_body
 
   ContentTypeSetterFunction:
     Type: AWS::Serverless::Function

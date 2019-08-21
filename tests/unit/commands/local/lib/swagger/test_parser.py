@@ -1,13 +1,13 @@
 """
 Test the swagger parser
 """
-from unittest import TestCase
-
-from mock import patch, Mock
-from parameterized import parameterized, param
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
-from samcli.local.apigw.local_apigw_service import Route
+from samcli.commands.local.lib.provider import Api
+
+from unittest import TestCase
+from mock import patch, Mock
+from parameterized import parameterized, param
 
 
 class TestSwaggerParser_get_apis(TestCase):
@@ -31,8 +31,8 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [Route(path="/path1", methods=["get"], function_name=function_name)]
-        result = parser.get_routes()
+        expected = [Api(path="/path1", method="get", function_name=function_name, cors=None)]
+        result = parser.get_apis()
 
         self.assertEquals(expected, result)
         parser._get_integration_function_name.assert_called_with({
@@ -77,11 +77,11 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name.return_value = function_name
 
         expected = {
-            Route(path="/path1", methods=["get"], function_name=function_name),
-            Route(path="/path1", methods=["delete"], function_name=function_name),
-            Route(path="/path2", methods=["post"], function_name=function_name),
+            Api(path="/path1", method="get", function_name=function_name, cors=None),
+            Api(path="/path1", method="delete", function_name=function_name, cors=None),
+            Api(path="/path2", method="post", function_name=function_name, cors=None),
         }
-        result = parser.get_routes()
+        result = parser.get_apis()
 
         self.assertEquals(expected, set(result))
 
@@ -104,9 +104,8 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name = Mock()
         parser._get_integration_function_name.return_value = function_name
 
-        expected = [Route(methods=["ANY"], path="/path1",
-                          function_name=function_name)]
-        result = parser.get_routes()
+        expected = [Api(path="/path1", method="ANY", function_name=function_name, cors=None)]
+        result = parser.get_apis()
 
         self.assertEquals(expected, result)
 
@@ -129,7 +128,7 @@ class TestSwaggerParser_get_apis(TestCase):
         parser._get_integration_function_name.return_value = None  # Function Name could not be resolved
 
         expected = []
-        result = parser.get_routes()
+        result = parser.get_apis()
 
         self.assertEquals(expected, result)
 
@@ -147,8 +146,9 @@ class TestSwaggerParser_get_apis(TestCase):
         }})
     ])
     def test_invalid_swagger(self, test_case_name, swagger):
+
         parser = SwaggerParser(swagger)
-        result = parser.get_routes()
+        result = parser.get_apis()
 
         expected = []
         self.assertEquals(expected, result)

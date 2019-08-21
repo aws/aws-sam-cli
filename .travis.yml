@@ -1,0 +1,50 @@
+# Enable container based builds
+sudo: required
+language: python
+dist: xenial
+
+services:
+  - docker
+
+python:
+  - "2.7"
+  - "3.6"
+  - "3.7"
+  - "3.8-dev"
+
+matrix:
+  allow_failures:
+    - python: 3.8-dev
+
+addons:
+  apt:
+    packages:
+      # Xenial images don't have jdk8 installed by default.
+      - openjdk-8-jdk
+
+before_install:
+  # Use the JDK8 that we installed
+  - JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
+  - PATH=$JAVA_HOME/bin:$PATH
+
+  - nvm install 8.10
+  - npm --version
+  - node --version
+  # Install .NET Core 2.1
+  - export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
+  - if [ "$LINUX" ]; then sudo apt install libunwind8; fi
+  - wget https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
+  - chmod +x /tmp/dotnet-install.sh
+  - /tmp/dotnet-install.sh -v 2.1.504
+  - export DOTNET_ROOT=/home/travis/.dotnet
+  - export PATH=/home/travis/.dotnet:/home/travis/.dotnet/tools:$PATH
+  - dotnet --info
+
+install:
+  # Install the code requirements
+  - make init
+
+script:
+  # Runs unit tests
+  - make pr
+  - SAM_CLI_DEV=1 travis_wait pytest -vv tests/integration

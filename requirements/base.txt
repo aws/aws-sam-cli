@@ -1,16 +1,16 @@
 six~=1.11.0
 chevron~=0.12
-click~=7.0
+click~=6.7
 enum34~=1.1.6; python_version<"3.4"
 Flask~=1.0.2
 boto3~=1.9, >=1.9.56
-PyYAML~=5.1
+PyYAML~=3.12
 cookiecutter~=1.6.0
-aws-sam-translator==1.13.1
-docker~=4.0
+aws-sam-translator==1.10.0
+docker~=3.7.0
 dateparser~=0.7
 python-dateutil~=2.6
 pathlib2~=2.3.2; python_version<"3.4"
 requests==2.22.0
-serverlessrepo==0.1.9
+serverlessrepo==0.1.8
 aws_lambda_builders==0.3.0

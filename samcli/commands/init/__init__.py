@@ -8,7 +8,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options
 from samcli.commands.exceptions import UserException
-from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, DEFAULT_RUNTIME
+from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS
 from samcli.local.init import generate_project
 from samcli.local.init.exceptions import GenerateProjectFailedError
 from samcli.lib.telemetry.metrics import track_command
@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 @click.command(context_settings=dict(help_option_names=[u'-h', u'--help']))
 @click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
-@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default=DEFAULT_RUNTIME,
+@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default="nodejs8.10",
               help="Lambda Runtime of your app")
 @click.option('-d', '--dependency-manager', type=click.Choice(SUPPORTED_DEP_MANAGERS), default=None,
               help="Dependency manager of your Lambda runtime", required=False)
