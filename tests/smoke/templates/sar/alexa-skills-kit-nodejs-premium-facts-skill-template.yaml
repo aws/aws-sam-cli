@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create the function that processes requests from the Amazon Alexa service.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Lambda Function
+      Parameters:
+      - SkillFunctionName
+      - SkillDescription
+    ParameterLabels:
+      SkillDescription:
+        default: What should the function description be?
+      SkillFunctionName:
+        default: What should the function be named?
+  Name: alexa-skills-kit-nodejs-premium-facts-skill
+Outputs:
+  LambdaFunctionArn:
+    Description: Alexa Skill ARN
+    Value:
+      Fn::GetAtt:
+      - SkillFunctionResource
+      - Arn
+Parameters:
+  SkillDescription:
+    AllowedPattern: '[A-Za-z0-9-_ .,]+'
+    ConstraintDescription: The Skill Description must only contain letters, numbers, spaces, periods, commas, hyphens and underscores.
+    Default: Backend logic for the premium facts skill built using the ASK SDK for Node.js
+    Description: The description used for the AWS Lambda Function.
+    Type: String
+  SkillFunctionName:
+    AllowedPattern: '[A-Za-z0-9-_]+'
+    ConstraintDescription: The Skill Function Name must only contain letters, numbers, hyphens and underscores.
+    Default: ask-nodejs-premium-facts
+    Description: The name of the AWS Lambda Function.  A unique number will be appended to the end of the skill name to avoid name collisions.
+    MaxLength: 50
+    Type: String
+Resources:
+  SkillFunctionResource:
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: fcb12d4d-971c-47ef-8773-718be3d25c7c
+      Description:
+        Fn::Join:
+        - ' '
+        - - Ref: SkillDescription
+          - 'Stack name:'
+          - Ref: AWS::StackName
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill
+      FunctionName:
+        Fn::Join:
+        - '-'
+        - - Ref: SkillFunctionName
+          - Fn::Select:
+            - 4
+            - Fn::Split:
+              - '-'
+              - Fn::Select:
+                - 2
+                - Fn::Split:
+                  - /
+                  - Ref: AWS::StackId
+      Handler: index.handler
+      Layers:
+      - arn:aws:lambda:us-east-1:173334852312:layer:ask-sdk-for-nodejs:5
+      MemorySize: 128
+      Runtime: nodejs8.10
+      Timeout: 8
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
