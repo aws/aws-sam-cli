@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  SurveyURL:
+    Description: Link to your Serverless Survey
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/newsurvey
+Resources:
+  Survey:
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 0864d5dd-52a2-4dab-9882-58aebcc69dd1
+      Events:
+        RestAPI:
+          Properties:
+            Method: ANY
+            Path: /newsurvey
+          Type: Api
+      Handler: survey.lambda_handler
+      Runtime: python2.7
+    Type: AWS::Serverless::Function
+  SurveySubmit:
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 0864d5dd-52a2-4dab-9882-58aebcc69dd1
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: SurveyTable
+      Events:
+        RestAPI:
+          Properties:
+            Method: ANY
+            Path: /submitsurvey
+          Type: Api
+      Handler: survey_submit.lambda_handler
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: SurveyTable
+      Runtime: python2.7
+    Type: AWS::Serverless::Function
+  SurveyTable:
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+    Type: AWS::Serverless::SimpleTable
+Transform: AWS::Serverless-2016-10-31
