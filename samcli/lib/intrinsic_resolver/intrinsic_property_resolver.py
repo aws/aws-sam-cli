@@ -195,10 +195,12 @@ class IntrinsicResolver(object):
         """
         if intrinsic is None:
             raise InvalidIntrinsicException("Missing Intrinsic property in {}".format(parent_function))
-        if any(isinstance(intrinsic, object_type) for object_type in [string_types, bool, int]) or intrinsic == {}:
-            return intrinsic
         if isinstance(intrinsic, list):
             return [self.intrinsic_property_resolver(item) for item in intrinsic]
+        if not isinstance(intrinsic, dict) or intrinsic == {}:
+            return intrinsic
+
+        # `intrinsic` is a dict at this point.
 
         keys = list(intrinsic.keys())
         key = keys[0]
@@ -720,7 +722,7 @@ class IntrinsicResolver(object):
             )
             result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
             sub_str = re.sub(
-                pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=result
+                pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=str(result)
             )
         return sub_str
 
