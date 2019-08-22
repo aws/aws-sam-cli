@@ -162,15 +162,15 @@ def do_cli(function_identifier,  # pylint: disable=too-many-locals
             # under Windows, when SAM and (build_dir or output_template_path) are
             # on different drive, relpath() fails.
             try:
-                build_dir = os.path.relpath(ctx.build_dir)
-                output_template_path = os.path.relpath(ctx.output_template_path)
+                build_dir_in_success_message = os.path.relpath(ctx.build_dir)
+                output_template_path_in_success_message = os.path.relpath(ctx.output_template_path)
             except ValueError:
-                LOG.debug("Failed to retrieve relpath - using abspath instead")
-                build_dir = os.path.abspath(ctx.build_dir)
-                output_template_path = os.path.abspath(ctx.output_template_path)
+                LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
+                build_dir_in_success_message = ctx.build_dir
+                output_template_path_in_success_message = ctx.output_template_path
 
-            msg = gen_success_msg(build_dir,
-                                  output_template_path,
+            msg = gen_success_msg(build_dir_in_success_message,
+                                  output_template_path_in_success_message,
                                   os.path.abspath(ctx.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR))
 
             click.secho(msg, fg="yellow")
