@@ -1,0 +1,33 @@
+Description: Demonstrate a basic welcome skill built with the ASK NodeJS SDK
+Parameters:
+  TopicNameParameter:
+    Type: String
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  alexaskillskitnodejsbasicwelcome:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Demonstrate a basic welcome skill built with the ASK NodeJS SDK
+      MemorySize: 128
+      Handler: index.handler
+      Timeout: 7
+      Policies:
+      - Statement:
+        - Action:
+          - sns:Publish
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${topicName}
+            - topicName:
+                Ref: TopicNameParameter
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: c2a2bfe5-753b-4711-943e-09ec3aca7a10
+      Runtime: nodejs8.10
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill
+Metadata:
+  Name: alexa-skills-kit-nodejs-basic-welcome

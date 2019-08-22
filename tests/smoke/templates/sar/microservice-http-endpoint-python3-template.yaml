@@ -1,0 +1,70 @@
+Description: A simple backend (read/write to DynamoDB) with a RESTful API endpoint using Amazon API Gateway.
+Parameters:
+  TableNameParameter:
+    Type: String
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  microservicehttpendpointpython3:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: A simple backend (read/write to DynamoDB) with a RESTful API endpoint using Amazon API Gateway.
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: TableNameParameter
+          Effect: Allow
+      MemorySize: 512
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: Table
+      Handler: lambda_function.lambda_handler
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: c2e6d051-3006-4064-a082-545166e77055
+      Runtime: python3.6
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /MyResource
+            RestApiId:
+              Ref: ServerlessRestApi
+            Method: ANY
+  Table:
+    Type: AWS::Serverless::SimpleTable
+    Properties: {}
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      __MANAGE_SWAGGER: true
+      DefinitionBody:
+        info:
+          version: '1.0'
+          title:
+            Ref: AWS::StackName
+        paths:
+          /MyResource:
+            x-amazon-apigateway-any-method:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${microservicehttpendpointpython3.Arn}/invocations
+              responses: {}
+        swagger: '2.0'
+      StageName: Prod

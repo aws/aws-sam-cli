@@ -20,6 +20,10 @@ func-test:
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
 	pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
 
+smoke-test:
+	# Smoke tests run in parallel
+	pytest -n 4 tests/functional
+
 flake:
 	# Make sure code conforms to PEP8 standards
 	flake8 samcli

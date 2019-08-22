@@ -1,0 +1,124 @@
+Parameters:
+  PollingFrequencyInMinutes:
+    Default: 1
+    Type: Number
+    Description: Frequency in minutes to poll for more tweets.
+    MinValue: 1
+  SearchText:
+    Type: String
+    Description: Non-URL-encoded search text poller should use when querying Twitter Search API.
+  StreamModeEnabled:
+    Default: false
+    Type: String
+    Description: If true, the app will remember the last tweet found and only invoke the tweet processor function for newer tweets. If false, the app will be stateless and invoke the tweet processor function with all tweets found in each polling cycle.
+    AllowedValues:
+    - true
+    - false
+  BatchSize:
+    Default: 15
+    Type: Number
+    Description: Max number of tweets to send to the TweetProcessor lambda function on each invocation.
+    MinValue: 1
+  SSMParameterPrefix:
+    Default: twitter-event-source
+    Type: String
+    Description: |
+      This app assumes API keys needed to use the Twitter API are stored as SecureStrings in SSM Parameter Store under the prefix defined by this parameter. See the app README for details.
+  TweetProcessorFunctionName:
+    Type: String
+    Description: Name of lambda function that should be invoked to process tweets. Note, this must be a function name and not a function ARN.
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  TwitterSearchPollerFunctionArn:
+    Value:
+      Fn::GetAtt:
+      - TwitterSearchPoller
+      - Arn
+  SearchCheckpointTableArn:
+    Value:
+      Fn::GetAtt:
+      - SearchCheckpoint
+      - Arn
+  TwitterSearchPollerFunctionName:
+    Value:
+      Ref: TwitterSearchPoller
+  SearchCheckpointTableName:
+    Value:
+      Ref: SearchCheckpoint
+Conditions:
+  IsPollingFrequencyInMinutesSingular:
+    Fn::Equals:
+    - Ref: PollingFrequencyInMinutes
+    - 1
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  TwitterSearchPoller:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - lambda:InvokeFunction
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${functionName}*
+            - functionName:
+                Ref: TweetProcessorFunctionName
+          Effect: Allow
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          - dynamodb:DescribeTable
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: SearchCheckpoint
+          Effect: Allow
+      - Statement:
+          Action:
+          - ssm:GetParameters
+          Resource:
+            Fn::Sub: arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${SSMParameterPrefix}/*
+          Effect: Allow
+      Tracing: Active
+      MemorySize: 128
+      Environment:
+        Variables:
+          SSM_PARAMETER_PREFIX:
+            Ref: SSMParameterPrefix
+          SEARCH_CHECKPOINT_TABLE_NAME:
+            Ref: SearchCheckpoint
+          SEARCH_TEXT:
+            Ref: SearchText
+          TWEET_PROCESSOR_FUNCTION_NAME:
+            Ref: TweetProcessorFunctionName
+          BATCH_SIZE:
+            Ref: BatchSize
+          STREAM_MODE_ENABLED:
+            Ref: StreamModeEnabled
+      Handler: poller.handler
+      Timeout: 60
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 3fa2a8d3-bad5-4cd4-b1e2-f9d09cf96414
+      Runtime: python3.6
+      Events:
+        Timer:
+          Type: Schedule
+          Properties:
+            Schedule:
+              Fn::If:
+              - IsPollingFrequencyInMinutesSingular
+              - Fn::Sub: rate(${PollingFrequencyInMinutes} minute)
+              - Fn::Sub: rate(${PollingFrequencyInMinutes} minutes)
+  SearchCheckpoint:
+    Type: AWS::Serverless::SimpleTable
+    Properties: {}
