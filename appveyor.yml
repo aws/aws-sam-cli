@@ -59,8 +59,8 @@ for:
       only:
         - configuration: smoke
 
-    test_scripts:
-    - "pytest -n 4 -vv tests/smoke"
+    test_script:
+      - "pytest -n 4 -vv tests/smoke"
 
 build_script:
   - "python -c \"import sys; print(sys.executable)\""
