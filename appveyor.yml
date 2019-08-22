@@ -12,23 +12,18 @@ environment:
  
   matrix:
 
-    # - PYTHON_HOME: "C:\\Python27-x64"
-    #   PYTHON_VERSION: '2.7.16'
-    #   PYTHON_ARCH: '32'
+    - PYTHON_HOME: "C:\\Python27-x64"
+      PYTHON_VERSION: '2.7.16'
+      PYTHON_ARCH: '32'
 
-    # - PYTHON_HOME: "C:\\Python36-x64"
-    #   PYTHON_VERSION: '3.6.8'
-    #   PYTHON_ARCH: '64'
+    - PYTHON_HOME: "C:\\Python36-x64"
+      PYTHON_VERSION: '3.6.8'
+      PYTHON_ARCH: '64'
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
-
-    - ONLY_SMOKE: 1
-      PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7.4'
-      PYTHON_ARCH: '64'
 
 for:
   - 
