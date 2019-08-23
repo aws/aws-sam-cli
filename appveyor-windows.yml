@@ -21,7 +21,7 @@ environment:
 
 init:
   # Uncomment this for RDP
-  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
 
@@ -32,15 +32,10 @@ cache:
 install:
     # Make sure the temp directory exists for Python to use.
     - "mkdir D:\tmp"
+    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
 
     # To run Nodejs workflow integ tests
     - ps: Install-Product node 10
-
-    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
-    - "python --version"
-    - "python -m pip install -r requirements/dev.txt"
-    - "python -m pip install -e ."
-
     # setup Ruby
     - "choco install ruby -y"
     - "refreshenv"
@@ -69,6 +64,7 @@ install:
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
   
+    - "python --version"
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
@@ -80,14 +76,10 @@ install:
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
-# test_script:
-    # - "pytest -vv tests/integration/init"
-    # - "pytest -vv tests/integration/buildcmd"
-    # - "pytest -vv tests/integration/local/invoke"
 
-    # - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\\unit"
-    # - "flake8 samcli"
-    # - "flake8 tests\\unit tests\\integration"
-    # - "pylint --rcfile .pylintrc samcli"
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+test_script:
+    - "pytest -vv tests/integration"
+
+# Uncomment for RDP
+# on_finish:
+  # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
