@@ -1,0 +1,28 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+six = "~=1.11.0"
+chevron = "~=0.12"
+click = "~=7.0"
+enum34 = "~=1.1.6"
+boto3 = ">=1.9.56,~=1.9"
+cookiecutter = "~=1.6.0"
+aws-sam-translator = "==1.13.1"
+docker = "~=4.0"
+dateparser = "~=0.7"
+python-dateutil = "~=2.6"
+pathlib2 = "~=2.3.2"
+requests = "==2.22.0"
+serverlessrepo = "==0.1.9"
+aws-lambda-builders = "==0.3.0"
+Flask = "~=1.0.2"
+PyYAML = "~=5.1"
+aws-sam-cli = {editable = true,path = "."}
+
+[requires]
+python_version = "3.7"
