@@ -82,4 +82,3 @@ test_script:
     # Smoke tests run in parallel - it runs on both Linux & Windows
     # Presence of the RUN_SMOKE envvar will run the smoke tests
     - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
-    - sh: "[[ -n $RUN_SMOKE ]] && pwd "
