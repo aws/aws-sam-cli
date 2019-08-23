@@ -31,7 +31,7 @@ cache:
 
 install:
     # Make sure the temp directory exists for Python to use.
-    - "mkdir D:\tmp"
+    - "mkdir D:\\tmp"
     - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
 
     # To run Nodejs workflow integ tests
