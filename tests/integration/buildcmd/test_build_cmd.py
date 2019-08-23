@@ -96,7 +96,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 class TestBuildCommand_ErrorCases(BuildIntegBase):
 
     def test_unsupported_runtime(self):
-        overrides = {"Runtime": "unsupportedpython", "CodeUri": "NoThere"}
+        overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)

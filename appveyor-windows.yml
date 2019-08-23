@@ -8,6 +8,11 @@ clone_folder: D:\source
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+
+  # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker. 
+  # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
+  # to find root of tempdir
+  TMPDIR: D:\tmp
   
   matrix:
     # - PYTHON_HOME: "C:\\Python27-x64"
@@ -85,8 +90,11 @@ install:
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
-# test_script:
-    # - "pytest -vv tests\\integration"
+test_script:
+    - "pytest -vv tests/integration/init"
+    - "pytest -vv tests/integration/buildcmd"
+    - "pytest -vv tests/integration/local/invoke"
+
     # - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\\unit"
     # - "flake8 samcli"
     # - "flake8 tests\\unit tests\\integration"
