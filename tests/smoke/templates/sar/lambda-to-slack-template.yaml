@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  LambdaToSlackArn:
+    Description: Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - LambdaToSlack
+      - Arn
+  LambdaToSlackName:
+    Description: Lambda Function Name
+    Value:
+      Ref: LambdaToSlack
+Parameters:
+  LogLevel:
+    Default: INFO
+    Description: Log level for Lambda function logging, e.g., ERROR, INFO, DEBUG, etc
+    Type: String
+  SlackUrl:
+    Description: Webhook URL for integration with Slack
+    Type: String
+Resources:
+  LambdaToSlack:
+    Properties:
+      Environment:
+        Variables:
+          LOG_LEVEL:
+            Ref: LogLevel
+          SLACK_URL:
+            Ref: SlackUrl
+      Runtime: python3.7
+      Timeout: 60
+      Tracing: Active
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 03e07252-7dcb-4e70-9590-2acb8a5b2e84
+      Handler: handlers.post_to_slack
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
