@@ -13,10 +13,12 @@ astroid = "==2.0.3"
 pylint = "==1.7.2"
 
 # Test requirements
-pytest = "==3.0.7"
+pytest = "==3.1.0"
+pytest-xdist= "==1.20.0"
 py = "==1.4.33"
 mock = "==2.0.0"
 parameterized= "==0.6.1"
+# non-python3.7 dependencies
 # pathlib2==2.3.2; python_version<"3.4"
 # futures==3.2.0; python_version<"3.2.3"
 # Py3.2 backport
@@ -27,7 +29,6 @@ parameterized= "==0.6.1"
 six = "==1.11.0"
 chevron = "==0.13.1"
 click = "==7.0"
-enum34 = "==1.1.6"
 boto3 = "==1.9.213"
 cookiecutter = "==1.6.0"
 aws-sam-translator = "==1.13.1"

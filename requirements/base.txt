@@ -34,7 +34,7 @@ s3transfer==0.2.1
 serverlessrepo==0.1.9
 six==1.11.0
 tzlocal==2.0.0
-urllib3==1.25.3 ; python_version >= '3.4'
+urllib3==1.25.3
 websocket-client==0.56.0
 werkzeug==0.15.5
 wheel==0.33.6
