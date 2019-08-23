@@ -13,27 +13,14 @@ environment:
   # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
   # to find root of tempdir
   TMPDIR: D:\tmp
-  
-  matrix:
-    # - PYTHON_HOME: "C:\\Python27-x64"
-    #   PYTHON_VERSION: '2.7'
-    #   PYTHON_ARCH: '32'
 
-    # # Testing on both 32bit and 64bit Windows only for Latest Python version,
-    # # because MSIs installers use the latest Python3.6 version
-    # - PYTHON_HOME: "C:\\Python36"
-    #   PYTHON_VERSION: '3.6'
-    #   PYTHON_ARCH: '32'
-
-    # - PYTHON_HOME: "C:\\Python36-x64"
-    #   PYTHON_VERSION: '3.6'
-    #   PYTHON_ARCH: '64'
-
-    - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7'
-      PYTHON_ARCH: '64'
+  # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python36-x64"
+  PYTHON_VERSION: '3.6'
+  PYTHON_ARCH: '64'
 
 init:
+  # Uncomment this for RDP
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
@@ -63,11 +50,11 @@ install:
 
     # setup Java, Maven and Gradle
     - "refreshenv"
-    - "choco install jdk8 -y"
+    - "choco install jdk8 -y --force"
     - "refreshenv"
-    - "choco install maven -y"
+    - "choco install maven -y --force"
     - "refreshenv"
-    - "choco install gradle -y"
+    - "choco install gradle -y --force"
     - "refreshenv"
     - "java -version"
     - "gradle -v"
@@ -90,10 +77,10 @@ install:
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
-test_script:
-    - "pytest -vv tests/integration/init"
-    - "pytest -vv tests/integration/buildcmd"
-    - "pytest -vv tests/integration/local/invoke"
+# test_script:
+    # - "pytest -vv tests/integration/init"
+    # - "pytest -vv tests/integration/buildcmd"
+    # - "pytest -vv tests/integration/local/invoke"
 
     # - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests\\unit"
     # - "flake8 samcli"
