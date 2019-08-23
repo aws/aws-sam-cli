@@ -13,7 +13,6 @@ cookiecutter==1.6.0
 dateparser==0.7.1
 docker==4.0.2
 docutils==0.15.2
-enum34==1.1.6
 flask==1.0.4
 future==0.17.1
 idna==2.8
