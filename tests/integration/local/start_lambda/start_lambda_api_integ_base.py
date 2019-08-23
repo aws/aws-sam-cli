@@ -34,7 +34,7 @@ class StartLambdaIntegBaseClass(TestCase):
             command = "samdev"
 
         cls.start_lambda_process = \
-            Popen([command, "local", "start-lambda", "-t", cls.template, "-p", cls.port, "--debug"])
+            Popen([command, "local", "start-lambda", "-t", cls.template, "-p", cls.port])
         # we need to wait some time for start-lambda to start, hence the sleep
         time.sleep(5)
 

@@ -30,6 +30,9 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+    # Make sure the temp directory exists for Python to use.
+    - "mkdir D:\tmp"
+
     # To run Nodejs workflow integ tests
     - ps: Install-Product node 10
 

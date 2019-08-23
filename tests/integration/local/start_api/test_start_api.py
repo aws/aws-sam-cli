@@ -32,7 +32,6 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
         self.assertEquals(len(results), 10)
         self.assertGreater(end_time - start_time, 10)
-        self.assertLess(end_time - start_time, 20)
 
         for result in results:
             self.assertEquals(result.status_code, 200)
@@ -57,7 +56,6 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
         self.assertEquals(len(results), 10)
         self.assertGreater(end_time - start_time, 10)
-        self.assertLess(end_time - start_time, 20)
 
         for result in results:
             self.assertEquals(result.status_code, 200)
