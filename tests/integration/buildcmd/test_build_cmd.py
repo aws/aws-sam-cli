@@ -28,8 +28,10 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
     @parameterized.expand([
         ("python2.7", False),
         ("python3.6", False),
+        ("python3.7", False),
         ("python2.7", "use_container"),
         ("python3.6", "use_container"),
+        ("python3.7", "use_container"),
     ])
     def test_with_default_requirements(self, runtime, use_container):
 
