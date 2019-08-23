@@ -2,7 +2,10 @@ from unittest import TestCase
 from subprocess import Popen
 import os
 
-from backports import tempfile
+try:
+    from backports import tempfile
+except ImportError:
+    import tempfile
 
 
 class TestBasicInitCommand(TestCase):
