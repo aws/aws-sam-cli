@@ -16,6 +16,7 @@ from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, Unsuppo
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands._utils.template import move_template
+from samcli.lib.telemetry.metrics import track_command
 
 LOG = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 @aws_creds_options
 @click.argument('function_identifier', required=False)
 @pass_context
+@track_command
 def cli(ctx,
         function_identifier,
         template,
@@ -156,8 +158,19 @@ def do_cli(function_identifier,  # pylint: disable=too-many-locals
 
             click.secho("\nBuild Succeeded", fg="green")
 
-            msg = gen_success_msg(os.path.relpath(ctx.build_dir),
-                                  os.path.relpath(ctx.output_template_path),
+            # try to use relpath so the command is easier to understand, however,
+            # under Windows, when SAM and (build_dir or output_template_path) are
+            # on different drive, relpath() fails.
+            try:
+                build_dir_in_success_message = os.path.relpath(ctx.build_dir)
+                output_template_path_in_success_message = os.path.relpath(ctx.output_template_path)
+            except ValueError:
+                LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
+                build_dir_in_success_message = ctx.build_dir
+                output_template_path_in_success_message = ctx.output_template_path
+
+            msg = gen_success_msg(build_dir_in_success_message,
+                                  output_template_path_in_success_message,
                                   os.path.abspath(ctx.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR))
 
             click.secho(msg, fg="yellow")

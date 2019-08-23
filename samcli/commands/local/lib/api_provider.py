@@ -1,13 +1,13 @@
-"""Class that provides Apis from a SAM Template"""
+"""Class that provides the Api with a list of routes from a Template"""
 
 import logging
 
-from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.local.lib.api_collector import ApiCollector
-from samcli.commands.local.lib.provider import AbstractApiProvider
-from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
 from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
+from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.commands.local.lib.provider import AbstractApiProvider
+from samcli.commands.local.lib.sam_api_provider import SamApiProvider
+from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class ApiProvider(AbstractApiProvider):
 
     def __init__(self, template_dict, parameter_overrides=None, cwd=None):
         """
-        Initialize the class with SAM template data. The template_dict (SAM Templated) is assumed
+        Initialize the class with template data. The template_dict is assumed
         to be valid, normalized and a dictionary. template_dict should be normalized by running any and all
         pre-processing before passing to this class.
         This class does not perform any syntactic validation of the template.
@@ -27,7 +27,7 @@ class ApiProvider(AbstractApiProvider):
         Parameters
         ----------
         template_dict : dict
-            SAM Template as a dictionary
+            Template as a dictionary
 
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
@@ -39,23 +39,22 @@ class ApiProvider(AbstractApiProvider):
 
         # Store a set of apis
         self.cwd = cwd
-        self.apis = self._extract_apis(self.resources)
-
-        LOG.debug("%d APIs found in the template", len(self.apis))
+        self.api = self._extract_api(self.resources)
+        self.routes = self.api.routes
+        LOG.debug("%d APIs found in the template", len(self.routes))
 
     def get_all(self):
         """
-        Yields all the Lambda functions with Api Events available in the SAM Template.
+        Yields all the Apis in the current Provider
 
-        :yields Api: namedtuple containing the Api information
+        :yields api: an Api object with routes and properties
         """
 
-        for api in self.apis:
-            yield api
+        yield self.api
 
-    def _extract_apis(self, resources):
+    def _extract_api(self, resources):
         """
-        Extracts all the Apis by running through the one providers. The provider that has the first type matched
+        Extracts all the routes by running through the one providers. The provider that has the first type matched
         will be run across all the resources
 
         Parameters
@@ -64,12 +63,13 @@ class ApiProvider(AbstractApiProvider):
             The dictionary containing the different resources within the template
         Returns
         ---------
-        list of Apis extracted from the resources
+        An Api from the parsed template
         """
+
         collector = ApiCollector()
         provider = self.find_api_provider(resources)
-        apis = provider.extract_resource_api(resources, collector, cwd=self.cwd)
-        return self.normalize_apis(apis)
+        provider.extract_resources(resources, collector, cwd=self.cwd)
+        return collector.get_api()
 
     @staticmethod
     def find_api_provider(resources):

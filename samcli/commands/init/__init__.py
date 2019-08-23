@@ -8,16 +8,20 @@ import click
 
 from samcli.cli.main import pass_context, common_options
 from samcli.commands.exceptions import UserException
-from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS
+from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, DEFAULT_RUNTIME
 from samcli.local.init import generate_project
 from samcli.local.init.exceptions import GenerateProjectFailedError
+from samcli.lib.telemetry.metrics import track_command
+
 
 LOG = logging.getLogger(__name__)
 
 
-@click.command(context_settings=dict(help_option_names=[u'-h', u'--help']))
+@click.command("init",
+               short_help="Init an AWS SAM application.",
+               context_settings=dict(help_option_names=[u'-h', u'--help']))
 @click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
-@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default="nodejs8.10",
+@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default=DEFAULT_RUNTIME,
               help="Lambda Runtime of your app")
 @click.option('-d', '--dependency-manager', type=click.Choice(SUPPORTED_DEP_MANAGERS), default=None,
               help="Dependency manager of your Lambda runtime", required=False)
@@ -27,6 +31,7 @@ LOG = logging.getLogger(__name__)
               help="Disable prompting and accept default values defined template config")
 @common_options
 @pass_context
+@track_command
 def cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
     """ \b
         Initialize a serverless application with a SAM template, folder

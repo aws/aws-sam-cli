@@ -13,11 +13,11 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_TRAVIS, RUNNING_TEST_FOR_MASTER_ON_TRAVIS
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 
 # Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Travis and when the branch is not master.
-SKIP_LAYERS_TESTS = RUNNING_ON_TRAVIS and RUNNING_TEST_FOR_MASTER_ON_TRAVIS
+SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
 
 try:
     from pathlib import Path
@@ -466,6 +466,15 @@ class TestLayerVersion(InvokeIntegBase):
     @classmethod
     def tearDownClass(cls):
         cls.layer_utils.delete_layers()
+        # Added to handle the case where ^C failed the test due to invalid cleanup of layers
+        docker_client = docker.from_env()
+        samcli_images = docker_client.images.list(name='samcli/lambda')
+        for image in samcli_images:
+            docker_client.images.remove(image.id)
+        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
+        if integ_layer_cache_dir.exists():
+            shutil.rmtree(str(integ_layer_cache_dir))
+
         super(TestLayerVersion, cls).tearDownClass()
 
     @parameterized.expand([

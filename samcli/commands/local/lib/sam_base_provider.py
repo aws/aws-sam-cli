@@ -4,11 +4,10 @@ Base class for SAM Template providers
 
 import logging
 
-from samtranslator.intrinsics.resolver import IntrinsicsResolver
-from samtranslator.intrinsics.actions import RefAction
-
-from samcli.lib.samlib.wrapper import SamTranslatorWrapper
+from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
+from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 
 LOG = logging.getLogger(__name__)
 
@@ -17,24 +16,6 @@ class SamBaseProvider(object):
     """
     Base class for SAM Template providers
     """
-
-    # There is not much benefit in infering real values for these parameters in local development context. These values
-    # are usually representative of an AWS environment and stack, but in local development scenario they don't make
-    # sense. If customers choose to, they can always override this value through the CLI interface.
-    _DEFAULT_PSEUDO_PARAM_VALUES = {
-        "AWS::AccountId": "123456789012",
-        "AWS::Partition": "aws",
-
-        "AWS::Region": "us-east-1",
-
-        "AWS::StackName": "local",
-        "AWS::StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/"
-                        "local/51af3dc0-da77-11e4-872e-1234567db123",
-        "AWS::URLSuffix": "localhost"
-    }
-
-    # Only Ref is supported when resolving template parameters
-    _SUPPORTED_INTRINSICS = [RefAction]
 
     @staticmethod
     def get_template(template_dict, parameter_overrides=None):
@@ -55,41 +36,22 @@ class SamBaseProvider(object):
         dict
             Processed SAM template
         """
-
         template_dict = template_dict or {}
         if template_dict:
             template_dict = SamTranslatorWrapper(template_dict).run_plugins()
-
-        template_dict = SamBaseProvider._resolve_parameters(template_dict, parameter_overrides)
         ResourceMetadataNormalizer.normalize(template_dict)
+        logical_id_translator = SamBaseProvider._get_parameter_values(
+            template_dict, parameter_overrides
+        )
+
+        resolver = IntrinsicResolver(
+            template=template_dict,
+            symbol_resolver=IntrinsicsSymbolTable(
+                logical_id_translator=logical_id_translator, template=template_dict
+            ),
+        )
+        template_dict = resolver.resolve_template(ignore_errors=True)
         return template_dict
-
-    @staticmethod
-    def _resolve_parameters(template_dict, parameter_overrides):
-        """
-        In the given template, apply parameter values to resolve intrinsic functions
-
-        Parameters
-        ----------
-        template_dict : dict
-            SAM Template
-
-        parameter_overrides : dict
-            Values for template parameters provided by user
-
-        Returns
-        -------
-        dict
-            Resolved SAM template
-        """
-
-        parameter_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
-
-        supported_intrinsics = {action.intrinsic_name: action() for action in SamBaseProvider._SUPPORTED_INTRINSICS}
-
-        # Intrinsics resolver will mutate the original template
-        return IntrinsicsResolver(parameters=parameter_values, supported_intrinsics=supported_intrinsics) \
-            .resolve_parameter_refs(template_dict)
 
     @staticmethod
     def _get_parameter_values(template_dict, parameter_overrides):
@@ -116,7 +78,7 @@ class SamBaseProvider(object):
         # NOTE: Ordering of following statements is important. It makes sure that any user-supplied values
         # override the defaults
         parameter_values = {}
-        parameter_values.update(SamBaseProvider._DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(default_values)
         parameter_values.update(parameter_overrides or {})
 
