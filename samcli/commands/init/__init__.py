@@ -17,7 +17,9 @@ from samcli.lib.telemetry.metrics import track_command
 LOG = logging.getLogger(__name__)
 
 
-@click.command(context_settings=dict(help_option_names=[u'-h', u'--help']))
+@click.command("init",
+               short_help="Init an AWS SAM application.",
+               context_settings=dict(help_option_names=[u'-h', u'--help']))
 @click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
 @click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default=DEFAULT_RUNTIME,
               help="Lambda Runtime of your app")
