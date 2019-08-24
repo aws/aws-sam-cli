@@ -1,5 +1,7 @@
 import json
+from collections import OrderedDict
 from copy import deepcopy
+
 try:
     from pathlib import Path
 except ImportError:
@@ -1192,8 +1194,9 @@ class TestIntrinsicFnIfResolver(TestCase):
             )
 
 
-class TestIntrinsicTemplateResolution(TestCase):
+class TestIntrinsicAttribteResolution(TestCase):
     def setUp(self):
+        self.maxDiff = None
         logical_id_translator = {
             "RestApi": "NewRestApi",
             "LambdaFunction": {
@@ -1208,7 +1211,7 @@ class TestIntrinsicTemplateResolution(TestCase):
         self.logical_id_translator = logical_id_translator
 
         integration_path = str(
-            Path(__file__).resolve().parents[0].joinpath('test_data', 'test_intrinsic_template_resolution.json'))
+            Path(__file__).resolve().parents[0].joinpath('test_data', 'inputs/test_intrinsic_template_resolution.json'))
         with open(integration_path) as f:
             template = json.load(f)
 
@@ -1224,8 +1227,9 @@ class TestIntrinsicTemplateResolution(TestCase):
             template=self.template, symbol_resolver=symbol_resolver
         )
 
-    def test_basic_template_resolution(self):
+    def test_basic_attribte_resolution(self):
         resolved_template = self.resolver.resolve_attribute(self.resources, ignore_errors=False)
+
         expected_resources = {
             "HelloHandler2E4FBA4D": {
                 "Properties": {"handler": "main.handle"},
@@ -1237,6 +1241,21 @@ class TestIntrinsicTemplateResolution(TestCase):
                            ":lambda:us-east-1:406033500479:function:HelloHandler2E4FBA4D/invocations"
                 },
                 "Type": "AWS::Lambda::Function",
+            },
+            "ReferenceLambdaLayerVersionLambdaFunction": {
+                "Properties": {
+                    "Handler": "layer-main.custom_layer_handler",
+                    "Runtime": "python3.6",
+                    "CodeUri": ".",
+                    "Layers": [{"Ref": "MyCustomLambdaLayer"}]
+                },
+                "Type": "AWS::Serverless::Function",
+            },
+            "MyCustomLambdaLayer": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": "custom_layer/"
+                }
             },
             "RestApi": {
                 "Properties": {
@@ -1253,7 +1272,7 @@ class TestIntrinsicTemplateResolution(TestCase):
                 }
             },
         }
-        self.assertEqual(resolved_template, expected_resources)
+        self.assertEqual(dict(resolved_template), expected_resources)
 
     def test_template_fail_errors(self):
         resources = deepcopy(self.resources)
@@ -1292,6 +1311,21 @@ class TestIntrinsicTemplateResolution(TestCase):
                 "Properties": {"handler": "main.handle"},
                 "Type": "AWS::Lambda::Function",
             },
+            "ReferenceLambdaLayerVersionLambdaFunction": {
+                "Properties": {
+                    "Handler": "layer-main.custom_layer_handler",
+                    "Runtime": "python3.6",
+                    "CodeUri": ".",
+                    "Layers": [{"Ref": "MyCustomLambdaLayer"}]
+                },
+                "Type": "AWS::Serverless::Function",
+            },
+            "MyCustomLambdaLayer": {
+                "Type": "AWS::Lambda::LayerVersion",
+                "Properties": {
+                    "Content": "custom_layer/"
+                }
+            },
             "LambdaFunction": {
                 "Properties": {
                     "Uri": "arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31"
@@ -1325,9 +1359,175 @@ class TestIntrinsicTemplateResolution(TestCase):
                     "RestApiId": "RestApi",
                     "parentId": "/",
                 }
-            },
+            }
         }
-        self.assertEqual(expected_template, result)
+        self.assertEqual(expected_template, dict(result))
+
+
+class TestResolveTemplate(TestCase):
+    def test_parameter_not_resolved(self):
+        template = {
+            "Parameters": {
+                "TestStageName": {
+                    "Default": "test",
+                    "Type": "string"
+                }
+            },
+            "Resources": {
+                "Test": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Parameters": {
+                        "StageName": {
+                            "Ref": "TestStageName"
+                        }
+                    }
+                }
+            }
+        }
+
+        expected_template = {
+            "Parameters": {
+                "TestStageName": {
+                    "Default": "test",
+                    "Type": "string"
+                },
+            },
+            "Resources": OrderedDict({
+                "Test": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Parameters": {
+                        "StageName": "test"
+                    }
+                }
+            })
+        }
+
+        symbol_resolver = IntrinsicsSymbolTable(
+            template=template, logical_id_translator={}
+        )
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        self.assertEqual(resolver.resolve_template(), expected_template)
+
+    def test_mappings_directory_resolved(self):
+        template = {
+            "Mappings": {
+                "TestStageName": {
+                    "TestKey": {
+                        "key": "StageName"
+                    }
+                }
+            },
+            "Resources": {
+                "Test": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Parameters": {
+                        "StageName": {
+                            "Fn::FindInMap": ["TestStageName", "TestKey", "key"]
+                        }
+                    }
+                }
+            }
+        }
+
+        expected_template = {
+            "Mappings": {
+                "TestStageName": {
+                    "TestKey": {
+                        "key": "StageName"
+                    }
+                }
+            },
+            "Resources": OrderedDict({
+                "Test": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Parameters": {
+                        "StageName": "StageName"
+                    }
+                }
+            })
+        }
+
+        symbol_resolver = IntrinsicsSymbolTable(
+            template=template, logical_id_translator={}
+        )
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        self.assertEqual(resolver.resolve_template(), expected_template)
+
+    def test_output_resolved(self):
+        template = {
+            "Parameters": {
+                "StageRef": {
+                    "Default": "StageName"
+                }
+            },
+            "Outputs": {
+                "TestStageName": {
+                    "Ref": "Test"
+                },
+                "ParameterRef": {
+                    "Ref": "StageRef"
+                }
+            },
+            "Resources": {
+                "Test": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Parameters": {
+                        "StageName": {
+                            "Ref": "StageRef"
+                        }
+                    }
+                }
+            }
+        }
+
+        expected_template = {
+            "Parameters": {
+                "StageRef": {
+                    "Default": "StageName"
+                }
+            },
+            "Resources": OrderedDict({
+                "Test": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Parameters": {
+                        "StageName": "StageName"
+                    }
+                }
+            }),
+            "Outputs": OrderedDict({
+                "TestStageName": "Test",
+                "ParameterRef": "StageName"
+            })
+        }
+
+        symbol_resolver = IntrinsicsSymbolTable(
+            template=template, logical_id_translator={}
+        )
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        self.assertEqual(resolver.resolve_template(), expected_template)
+
+    def load_test_data(self, template_path):
+        integration_path = str(
+            Path(__file__).resolve().parents[0].joinpath('test_data', template_path))
+        with open(integration_path) as f:
+            template = json.load(f)
+        return template
+
+    @parameterized.expand([
+        ('inputs/test_intrinsic_template_resolution.json', 'outputs/output_test_intrinsic_template_resolution.json'),
+        ('inputs/test_layers_resolution.json', 'outputs/outputs_test_layers_resolution.json'),
+        ('inputs/test_methods_resource_resolution.json', 'outputs/outputs_methods_resource_resolution.json'),
+    ])
+    def test_intrinsic_sample_inputs_outputs(self, input, output):
+        input_template = self.load_test_data(input)
+        symbol_resolver = IntrinsicsSymbolTable(
+            template=input_template, logical_id_translator={}
+        )
+        resolver = IntrinsicResolver(template=input_template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+        processed_template = json.loads(json.dumps(processed_template))  # Removes formatting of ordered dicts
+        expected_template = self.load_test_data(output)
+        self.assertEqual(processed_template, expected_template)
 
 
 class TestIntrinsicResolverInitialization(TestCase):

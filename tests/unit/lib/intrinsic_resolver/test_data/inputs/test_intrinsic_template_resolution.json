@@ -26,11 +26,7 @@
         },
         true,
         {
-          "Fn::If": [
-            "TestCondition",
-            true,
-            false
-          ]
+          "Fn::If": ["TestCondition", true, false]
         }
       ]
     },
@@ -49,11 +45,24 @@
         }
       ]
     },
-    "InvalidCondition": [
-      "random items"
-    ]
+    "InvalidCondition": ["random items"]
   },
   "Resources": {
+    "ReferenceLambdaLayerVersionLambdaFunction": {
+      "Properties": {
+        "Handler": "layer-main.custom_layer_handler",
+        "Runtime": "python3.6",
+        "CodeUri": ".",
+        "Layers": [{ "Ref": "MyCustomLambdaLayer" }]
+      },
+      "Type": "AWS::Serverless::Function"
+    },
+    "MyCustomLambdaLayer": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Properties": {
+        "Content": "custom_layer/"
+      }
+    },
     "RestApi.Deployment": {
       "Type": "AWS::ApiGateway::RestApi",
       "Properties": {
@@ -65,15 +74,7 @@
                 "Fn::Split": [
                   ",",
                   {
-                    "Fn::Join": [
-                      ",",
-                      [
-                        "a",
-                        "e",
-                        "f",
-                        "d"
-                      ]
-                    ]
+                    "Fn::Join": [",", ["a", "e", "f", "d"]]
                   }
                 ]
               }
@@ -81,21 +82,14 @@
           }
         },
         "BodyS3Location": {
-          "Fn::FindInMap": [
-            "TopLevel",
-            "SecondLevelKey",
-            "key"
-          ]
+          "Fn::FindInMap": ["TopLevel", "SecondLevelKey", "key"]
         }
       }
     },
     "RestApiResource": {
       "Properties": {
         "parentId": {
-          "Fn::GetAtt": [
-            "RestApi.Deployment",
-            "RootResourceId"
-          ]
+          "Fn::GetAtt": ["RestApi.Deployment", "RootResourceId"]
         },
         "PathPart": "{proxy+}",
         "RestApiId": {
@@ -133,10 +127,7 @@
               },
               ":lambda:path/2015-03-31/functions/",
               {
-                "Fn::GetAtt": [
-                  "HelloHandler2E4FBA4D",
-                  "Arn"
-                ]
+                "Fn::GetAtt": ["HelloHandler2E4FBA4D", "Arn"]
               },
               "/invocations"
             ]
