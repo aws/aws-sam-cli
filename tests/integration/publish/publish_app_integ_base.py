@@ -3,6 +3,7 @@ import json
 import uuid
 import shutil
 import tempfile
+import time
 from unittest import TestCase
 
 import boto3
@@ -46,6 +47,9 @@ class PublishAppIntegBase(TestCase):
 
         code_body = cls.test_data_path.joinpath("main.py").read_text(encoding="utf-8")
         cls.s3_bucket.put_object(Key="main.py", Body=code_body)
+
+        # Given 3 seconds for all the bucket creation to complete
+        time.sleep(3)
 
     @classmethod
     def tearDownClass(cls):

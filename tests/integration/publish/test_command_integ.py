@@ -1,4 +1,5 @@
 import re
+import time
 import json
 from subprocess import Popen, PIPE
 
@@ -24,6 +25,9 @@ class TestPublishExistingApp(PublishAppIntegBase):
         app_metadata['TemplateBody'] = self.temp_dir.joinpath("template_create_app.yaml").read_text()
         response = self.sar_client.create_application(**app_metadata)
         self.application_id = response['ApplicationId']
+
+        # Sleep for a little bit to make server happy
+        time.sleep(2)
 
     def tearDown(self):
         super(TestPublishExistingApp, self).tearDown()
