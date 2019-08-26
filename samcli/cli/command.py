@@ -5,21 +5,24 @@ Base classes that implement the CLI framework
 import logging
 import importlib
 import sys
+from collections import OrderedDict
+
 import click
 
 logger = logging.getLogger(__name__)
 
-# Commands that are bundled with the CLI by default
-_SAM_CLI_COMMAND_PACKAGES = {
-    "samcli.commands.local.local",
-    "samcli.commands.validate.validate",
+# Commands that are bundled with the CLI by default in app life-cycle order.
+
+_SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.init",
-    "samcli.commands.deploy",
-    "samcli.commands.package",
-    "samcli.commands.logs",
+    "samcli.commands.validate.validate",
     "samcli.commands.build",
+    "samcli.commands.local.local",
+    "samcli.commands.package",
+    "samcli.commands.deploy",
+    "samcli.commands.logs",
     "samcli.commands.publish"
-}
+]
 
 DEPRECATION_NOTICE = (
     "Warning : AWS SAM CLI will no longer support "
@@ -79,7 +82,7 @@ class BaseCommand(click.MultiCommand):
         :return: Dictionary with command name as key and the package name as value.
         """
 
-        commands = {}
+        commands = OrderedDict()
 
         for pkg_name in package_names:
             cmd_name = pkg_name.split('.')[-1]
