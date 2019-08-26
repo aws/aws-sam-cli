@@ -59,15 +59,15 @@ install:
     - "gradle -v"
     - "mvn --version"
 
-    # Echo final Path
-    - "echo %PATH%"
-
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
   
     # Make sure the right Python version is installed for SAM CLI to work
-    - choco install python --version $PYTHON_VERSION
+    - "choco install python --version %PYTHON_VERSION%"
     - refreshenv
+
+    # Echo final Path
+    - "echo %PATH%"
 
     - "python --version"
     # Upgrade setuptools, wheel and virtualenv
