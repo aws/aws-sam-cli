@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+- AWS::Serverless-2016-10-31
+Resources:
+  Magic8Ball:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 44250f8a-fcd6-4278-839b-512a1342dedc
+      Handler: magic8ball.lambda_handler
+      Events:
+        RestAPI:
+          Type: Api
+          Properties:
+            Path: /magic8ball
+            Method: ANY
+      Runtime: python2.7

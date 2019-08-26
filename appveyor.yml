@@ -3,6 +3,9 @@ image:
   - Ubuntu
   - Visual Studio 2017
 
+configuration: 
+  - smoke
+
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
@@ -20,6 +23,7 @@ environment:
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
       PYTHON_ARCH: '64'
+      RUN_SMOKE: 1
 
 for:
   - 
@@ -52,6 +56,14 @@ for:
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
+  - 
+    matrix:
+      only:
+        - ONLY_SMOKE: 1
+    test_script:
+      # Smoke tests run in parallel
+      - "pytest -n 4 -vv tests/smoke"
+
 build_script:
   - "python -c \"import sys; print(sys.executable)\""
 
@@ -67,3 +79,6 @@ test_script:
     # Runs only in Linux
     - sh: "pytest -vv tests/integration"
 
+    # Smoke tests run in parallel - it runs on both Linux & Windows
+    # Presence of the RUN_SMOKE envvar will run the smoke tests
+    - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"

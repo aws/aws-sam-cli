@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  CollectionIdParameter:
+    Type: String
+  BucketNameParameter:
+    Type: String
+Description: An Amazon S3 trigger that uses rekognition APIs to detect faces
+Resources:
+  Bucket1:
+    Type: AWS::S3::Bucket
+    Properties:
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function:
+            Fn::GetAtt:
+            - rekognitionpython
+            - Arn
+          Event: s3:ObjectCreated:*
+    DependsOn:
+    - rekognitionpythonBucketEvent1Permission
+  rekognitionpython:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: An Amazon S3 trigger that uses rekognition APIs to detect faces
+      MemorySize: 128
+      Policies:
+      - Statement:
+        - Action:
+          - s3:GetObject
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          - s3:GetObjectVersion
+          - s3:PutObject
+          - s3:GetLifecycleConfiguration
+          - s3:PutLifecycleConfiguration
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}
+            - bucketName:
+                Ref: BucketNameParameter
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}/*
+            - bucketName:
+                Ref: BucketNameParameter
+          Effect: Allow
+      - Statement:
+        - Action:
+          - rekognition:CompareFaces
+          - rekognition:DetectFaces
+          - rekognition:DetectLabels
+          - rekognition:DetectModerationLabels
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:rekognition:${AWS::Region}:${AWS::AccountId}:collection/${collectionId}
+            - collectionId:
+                Ref: CollectionIdParameter
+          Effect: Allow
+      - Statement:
+        - Action:
+          - rekognition:CreateCollection
+          - rekognition:IndexFaces
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:rekognition:${AWS::Region}:${AWS::AccountId}:collection/${collectionId}
+            - collectionId:
+                Ref: CollectionIdParameter
+          Effect: Allow
+      Handler: lambda_function.lambda_handler
+      Timeout: 3
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 8db31d2a-e8e0-47fe-aa17-1fc35a08cd7b
+      Runtime: python2.7
+      Events:
+        BucketEvent1:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: Bucket1
+            Events:
+            - s3:ObjectCreated:*
+Transform: AWS::Serverless-2016-10-31
