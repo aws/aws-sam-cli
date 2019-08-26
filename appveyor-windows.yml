@@ -16,7 +16,7 @@ environment:
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
-  PYTHON_VERSION: '3.6.6'
+  PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
 
 init:
@@ -33,7 +33,8 @@ install:
 
     # Make sure the temp directory exists for Python to use.
     - "mkdir D:\\tmp"
-    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+    - "python --version"
+    # - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
 
     # To run Nodejs workflow integ tests
     - ps: Install-Product node 10
@@ -61,15 +62,10 @@ install:
 
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
-  
-    # Make sure the right Python version is installed for SAM CLI to work
-    - "choco install python --version %PYTHON_VERSION%"
-    - refreshenv
 
     # Echo final Path
     - "echo %PATH%"
 
-    - "python --version"
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
