@@ -16,6 +16,7 @@ environment:
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
+  PYTHONHOME: "C:\\Python36-x64"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
 
@@ -74,6 +75,7 @@ install:
     - "python -m virtualenv venv"
     - "venv\\Scripts\\activate"
     - "python -c \"import sys; print(sys.executable)\""
+    - "python --version"
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
