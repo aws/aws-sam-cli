@@ -16,7 +16,7 @@ environment:
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
-  PYTHON_VERSION: '3.6'
+  PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
 
 init:
@@ -37,7 +37,7 @@ install:
     # To run Nodejs workflow integ tests
     - ps: Install-Product node 10
     # setup Ruby
-    - "choco install ruby -y"
+    - "choco install ruby --version 2.5.3.101 --force -y"
     - "refreshenv"
     - "ruby --version"
     - "gem --version"
