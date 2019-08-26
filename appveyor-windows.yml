@@ -16,7 +16,7 @@ environment:
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
-  PYTHON_VERSION: '3.6.8'
+  PYTHON_VERSION: '3.6.6'
   PYTHON_ARCH: '64'
 
 init:
