@@ -312,7 +312,7 @@ class TestBuildCommand_Java(BuildIntegBase):
 
         lib_dir_contents = set(os.listdir(str(resource_artifact_dir.joinpath("lib"))))
         self.assertEquals(lib_dir_contents, expected_modules)
-#
+
 
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 

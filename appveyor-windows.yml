@@ -16,6 +16,7 @@ environment:
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
+  PYTHON_SCRIPTS: "C:\\Python36-x64\\Scripts"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
 
@@ -34,7 +35,7 @@ install:
     # Make sure the temp directory exists for Python to use.
     - "mkdir D:\\tmp"
     - "echo %PATH%"
-    - "setx PATH '%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PATH%'"
+    - setx path "%PYTHON_HOME%;%PYTHON_SCRIPTS%;%PATH%"
     - "refreshenv"
     - "echo %PATH%"
     - "python --version"
