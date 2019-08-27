@@ -34,7 +34,7 @@ install:
     # Make sure the temp directory exists for Python to use.
     - "mkdir D:\\tmp"
     - "echo %PATH%"
-    - "setx PATH=%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PATH%"
+    - "setx PATH '%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PATH%'"
     - "refreshenv"
     - "echo %PATH%"
     - "python --version"
