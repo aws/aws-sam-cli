@@ -85,7 +85,7 @@ install:
     - "echo %PATH%"
 
 test_script:
-    - "pytest -vv tests/integration"
+    - "D:\\source\\venv\\Scripts\\python.exe -m pytest -vv tests/integration"
 
 # Uncomment for RDP
 # on_finish:
