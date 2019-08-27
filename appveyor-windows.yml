@@ -85,7 +85,9 @@ install:
     - "echo %PATH%"
 
 test_script:
-    - "D:\\source\\venv\\Scripts\\python.exe -m pytest -vv tests/integration"
+    # Reactivate virtualenv before running tests
+    - "venv\\Scripts\\activate"
+    - "pytest -vv tests/integration"
 
 # Uncomment for RDP
 # on_finish:
