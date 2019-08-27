@@ -11,6 +11,8 @@ The AWS Serverless Application Model (SAM) is an open-source framework for build
 It provides shorthand syntax to express functions, APIs, databases, and event source mappings. 
 With just a few lines of configuration, you can define the application you want and model it.
 
+-[![Getting Started with AWS SAM](./media/get-started-youtube.png)](https://www.youtube.com/watch?v=1dzihtC5LJ0)
+
 ## Get Started
 
 To get started with building SAM-based applications, use the SAM CLI. SAM CLI provides a Lambda-like execution 
