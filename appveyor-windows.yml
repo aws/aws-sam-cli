@@ -17,6 +17,7 @@ environment:
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
   PYTHON_SCRIPTS: "C:\\Python36-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python36-x64\\Scripts\\python.exe"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
 
@@ -35,17 +36,14 @@ install:
     # Make sure the temp directory exists for Python to use.
     - "mkdir D:\\tmp"
     - "echo %PATH%"
-    - setx path "%PYTHON_HOME%;%PYTHON_SCRIPTS%;%PATH%"
-    - "refreshenv"
-    - "echo %PATH%"
     - "python --version"
 
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
-    # Create new virtual environment and activate it
+    # Create new virtual environment with chosen python version and activate it
     - "rm -rf venv"
-    - "python -m virtualenv venv"
+    - "virtualenv -p %PYTHON_EXE% venv"
     - "venv\\Scripts\\activate"
     - "python -c \"import sys; print(sys.executable)\""
     - "python --version"
@@ -55,7 +53,8 @@ install:
 
 
     # To run Nodejs workflow integ tests
-    - "Install-Product node 10"
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
     # setup Ruby
     - "choco install ruby --version 2.5.3.101 --force -y"
     - "refreshenv"
