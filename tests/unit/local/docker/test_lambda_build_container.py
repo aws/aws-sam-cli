@@ -8,9 +8,10 @@ try:
 except ImportError:
     import pathlib2 as pathlib
 
-
 from unittest import TestCase
 from mock import patch
+
+from parameterized import parameterized
 
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 
@@ -54,10 +55,10 @@ class TestLambdaBuildContainer_init(TestCase):
         self.assertEquals(container._entrypoint, entry)
         self.assertEquals(container._cmd, [])
         self.assertEquals(container._working_dir, container_dirs["source_dir"])
-        self.assertEquals(container._host_dir, "/foo/source")
+        self.assertEquals(container._host_dir, str(pathlib.Path("/foo/source").resolve()))
         self.assertEquals(container._env_vars, {"LAMBDA_BUILDERS_LOG_LEVEL": "log-level"})
         self.assertEquals(container._additional_volumes, {
-            "/bar": {
+            str(pathlib.Path("/bar").resolve()): {
                 "bind": container_dirs["manifest_dir"],
                 "mode": "ro"
             }
@@ -71,7 +72,8 @@ class TestLambdaBuildContainer_init(TestCase):
         make_request_mock.assert_called_once()
         get_entrypoint_mock.assert_called_once_with(request)
         get_image_mock.assert_called_once_with("runtime")
-        get_container_dirs_mock.assert_called_once_with("/foo/source", "/bar")
+        get_container_dirs_mock.assert_called_once_with(str(pathlib.Path("/foo/source").resolve()),
+                                                        str(pathlib.Path("/bar").resolve()))
 
 
 class TestLambdaBuildContainer_make_request(TestCase):
@@ -156,8 +158,12 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
 
 class TestLambdaBuildContainer_get_image(TestCase):
 
-    def test_must_get_image_name(self):
-        self.assertEquals("lambci/lambda:build-myruntime", LambdaBuildContainer._get_image("myruntime"))
+    @parameterized.expand([
+        ("myruntime", "lambci/lambda:build-myruntime"),
+        ("nodejs10.x", "amazon/lambda-build-node10.x")
+    ])
+    def test_must_get_image_name(self, runtime, expected_image_name):
+        self.assertEquals(expected_image_name, LambdaBuildContainer._get_image(runtime))
 
 
 class TestLambdaBuildContainer_get_entrypoint(TestCase):

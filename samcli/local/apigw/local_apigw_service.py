@@ -7,6 +7,7 @@ import base64
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 
+from samcli.commands.local.lib.provider import Cors
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -18,35 +19,63 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
+    ANY_HTTP_METHODS = ["GET",
+                        "DELETE",
+                        "PUT",
+                        "POST",
+                        "HEAD",
+                        "OPTIONS",
+                        "PATCH"]
 
-    def __init__(self, methods, function_name, path, binary_types=None, stage_name=None, stage_variables=None):
+    def __init__(self, function_name, path, methods):
         """
         Creates an ApiGatewayRoute
 
-        :param list(str) methods: List of HTTP Methods
+        :param list(str) methods: http method
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
         """
-        self.methods = methods
+        self.methods = self.normalize_method(methods)
         self.function_name = function_name
         self.path = path
-        self.binary_types = binary_types or []
-        self.stage_name = stage_name
-        self.stage_variables = stage_variables
+
+    def __eq__(self, other):
+        return isinstance(other, Route) and \
+               sorted(self.methods) == sorted(
+            other.methods) and self.function_name == other.function_name and self.path == other.path
+
+    def __hash__(self):
+        route_hash = hash(self.function_name) * hash(self.path)
+        for method in sorted(self.methods):
+            route_hash *= hash(method)
+        return route_hash
+
+    def normalize_method(self, methods):
+        """
+        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
+        supported Http Methods on Api Gateway.
+
+        :param list methods: Http methods
+        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        """
+        methods = [method.upper() for method in methods]
+        if "ANY" in methods:
+            return self.ANY_HTTP_METHODS
+        return methods
 
 
 class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = '127.0.0.1'
 
-    def __init__(self, routing_list, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
         """
         Creates an ApiGatewayService
 
         Parameters
         ----------
-        routing_list list(ApiGatewayCallModel)
-            A list of the Model that represent the service paths to create.
+        api: Api
+           an Api object that contains the list of routes and properties
         lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
             The Lambda runner class capable of invoking the function
         static_dir str
@@ -61,7 +90,7 @@ class LocalApigwService(BaseLocalService):
             Optional stream writer where the stderr from Docker container should be written to
         """
         super(LocalApigwService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
-        self.routing_list = routing_list
+        self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
         self._dict_of_routes = {}
@@ -77,12 +106,11 @@ class LocalApigwService(BaseLocalService):
                           static_folder=self.static_dir  # Serve static files from this directory
                           )
 
-        for api_gateway_route in self.routing_list:
+        for api_gateway_route in self.api.routes:
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods,
                                                        path):
                 self._dict_of_routes[route_key] = api_gateway_route
-
             self._app.add_url_rule(path,
                                    endpoint=path,
                                    view_func=self._request_handler,
@@ -141,11 +169,18 @@ class LocalApigwService(BaseLocalService):
         -------
         Response object
         """
+
         route = self._get_current_route(request)
+        cors_headers = Cors.cors_to_headers(self.api.cors)
+
+        method, _ = self.get_request_methods_endpoints(request)
+        if method == 'OPTIONS':
+            headers = Headers(cors_headers)
+            return self.service_response('', headers, 200)
 
         try:
-            event = self._construct_event(request, self.port, route.binary_types, route.stage_name,
-                                          route.stage_variables)
+            event = self._construct_event(request, self.port, self.api.binary_media_types, self.api.stage_name,
+                                          self.api.stage_variables)
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -165,7 +200,7 @@ class LocalApigwService(BaseLocalService):
 
         try:
             (status_code, headers, body) = self._parse_lambda_output(lambda_response,
-                                                                     route.binary_types,
+                                                                     self.api.binary_media_types,
                                                                      request)
         except (KeyError, TypeError, ValueError):
             LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
@@ -181,8 +216,7 @@ class LocalApigwService(BaseLocalService):
         :param request flask_request: Flask Request
         :return: Route matching the endpoint and method of the request
         """
-        endpoint = flask_request.endpoint
-        method = flask_request.method
+        method, endpoint = self.get_request_methods_endpoints(flask_request)
 
         route_key = self._route_key(method, endpoint)
         route = self._dict_of_routes.get(route_key, None)
@@ -195,6 +229,16 @@ class LocalApigwService(BaseLocalService):
 
         return route
 
+    def get_request_methods_endpoints(self, flask_request):
+        """
+        Separated out for testing requests in request handler
+        :param request flask_request: Flask Request
+        :return: the request's endpoint and method
+        """
+        endpoint = flask_request.endpoint
+        method = flask_request.method
+        return method, endpoint
+
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
     def _parse_lambda_output(lambda_output, binary_types, flask_request):
@@ -204,6 +248,7 @@ class LocalApigwService(BaseLocalService):
         :param str lambda_output: Output from Lambda Invoke
         :return: Tuple(int, dict, str, bool)
         """
+        # pylint: disable-msg=too-many-statements
         json_output = json.loads(lambda_output)
 
         if not isinstance(json_output, dict):
@@ -221,6 +266,14 @@ class LocalApigwService(BaseLocalService):
                 raise ValueError
         except ValueError:
             message = "statusCode must be a positive int"
+            LOG.error(message)
+            raise TypeError(message)
+
+        try:
+            if body:
+                body = str(body)
+        except ValueError:
+            message = "Non null response bodies should be able to convert to string: {}".format(body)
             LOG.error(message)
             raise TypeError(message)
 
@@ -414,6 +467,8 @@ class LocalApigwService(BaseLocalService):
             Request from Flask
         int port
             Forwarded Port
+        cors_headers dict
+            Dict of the Cors properties
 
         Returns dict (str: str), dict (str: list of str)
         -------
@@ -434,7 +489,6 @@ class LocalApigwService(BaseLocalService):
 
         headers_dict["X-Forwarded-Port"] = str(port)
         multi_value_headers_dict["X-Forwarded-Port"] = [str(port)]
-
         return headers_dict, multi_value_headers_dict
 
     @staticmethod

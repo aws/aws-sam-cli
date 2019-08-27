@@ -19,7 +19,8 @@ class TestContext(TestCase):
 
         ctx.debug = True
         self.assertEquals(ctx.debug, True, "debug must be set to True")
-        self.assertEquals(logging.getLogger().getEffectiveLevel(), logging.DEBUG)
+        self.assertEquals(logging.getLogger('samcli').getEffectiveLevel(), logging.DEBUG)
+        self.assertEquals(logging.getLogger('aws_lambda_builders').getEffectiveLevel(), logging.DEBUG)
 
     def test_must_unset_get_debug_flag(self):
         ctx = Context()

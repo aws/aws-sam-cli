@@ -1,0 +1,139 @@
+{
+  "Mappings": {
+    "TopLevel": {
+      "SecondLevelKey": {
+        "key": "https://s3location/"
+      }
+    }
+  },
+  "Conditions": {
+    "ComplexCondition": {
+      "Fn::And": [
+        {
+          "Fn::Equals": [
+            {
+              "Fn::Or": [
+                {
+                  "Condition": "NotTestCondition"
+                },
+                {
+                  "Condition": "TestCondition"
+                }
+              ]
+            },
+            false
+          ]
+        },
+        true,
+        {
+          "Fn::If": ["TestCondition", true, false]
+        }
+      ]
+    },
+    "TestCondition": {
+      "Fn::Equals": [
+        {
+          "Ref": "EnvironmentType"
+        },
+        "prod"
+      ]
+    },
+    "NotTestCondition": {
+      "Fn::Not": [
+        {
+          "Condition": "TestCondition"
+        }
+      ]
+    },
+    "InvalidCondition": ["random items"]
+  },
+  "Resources": {
+    "ReferenceLambdaLayerVersionLambdaFunction": {
+      "Properties": {
+        "Handler": "layer-main.custom_layer_handler",
+        "Runtime": "python3.6",
+        "CodeUri": ".",
+        "Layers": [{ "Ref": "MyCustomLambdaLayer" }]
+      },
+      "Type": "AWS::Serverless::Function"
+    },
+    "MyCustomLambdaLayer": {
+      "Type": "AWS::Lambda::LayerVersion",
+      "Properties": {
+        "Content": "custom_layer/"
+      }
+    },
+    "RestApi.Deployment": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Body": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              ";",
+              {
+                "Fn::Split": [
+                  ",",
+                  {
+                    "Fn::Join": [",", ["a", "e", "f", "d"]]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "BodyS3Location": {
+          "Fn::FindInMap": ["TopLevel", "SecondLevelKey", "key"]
+        }
+      }
+    },
+    "RestApiResource": {
+      "Properties": {
+        "parentId": {
+          "Fn::GetAtt": ["RestApi.Deployment", "RootResourceId"]
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "RestApi.Deployment"
+        }
+      }
+    },
+    "HelloHandler2E4FBA4D": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "handler": "main.handle"
+      }
+    },
+    "LambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Uri": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":apigateway:",
+              {
+                "Fn::Select": [
+                  0,
+                  {
+                    "Fn::GetAZs": {
+                      "Ref": "AWS::Region"
+                    }
+                  }
+                ]
+              },
+              ":lambda:path/2015-03-31/functions/",
+              {
+                "Fn::GetAtt": ["HelloHandler2E4FBA4D", "Arn"]
+              },
+              "/invocations"
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
