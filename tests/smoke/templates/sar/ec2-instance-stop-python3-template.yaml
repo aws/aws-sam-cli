@@ -1,0 +1,35 @@
+Description: AWS Lambda function for EC2 instance stop.
+Parameters:
+  InstanceID:
+    Type: String
+    Description: Set to EC2 InstanceID
+  CheckSchedule:
+    Default: rate(1 day)
+    Type: String
+    Description: Set to Instance Check Schedule. Default [rate(1 day)]
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  InstanceStop:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: EC2 Stop Function
+      MemorySize: 128
+      Environment:
+        Variables:
+          INSTANCE_ID:
+            Ref: InstanceID
+      Handler: lambda_function.handler
+      Timeout: 300
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: bfd66b08-8291-4311-a3f3-405c856ae2d6
+      Runtime: python3.6
+      Events:
+        CheckInstanceScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule:
+              Ref: CheckSchedule
+Metadata:
+  Name: ec2-instance-stop-python3
