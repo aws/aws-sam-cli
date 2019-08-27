@@ -41,9 +41,6 @@ and point SAM to the directory or file containing build artifacts.
               default="public",
               help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
                    "will be presented at /")
-@click.option("--persist-containers/--no-persist-containers",
-              default=False,
-              help="Persist lambda containers between invocations")
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
@@ -51,10 +48,10 @@ and point SAM to the directory or file containing build artifacts.
 @track_command
 def cli(ctx,
         # start-api Specific Options
-        host, port, static_dir, persist_containers,
+        host, port, static_dir,
 
         # Common Options for Lambda Invoke
-        template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
+        template, persist_containers, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
         docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build, parameter_overrides):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
@@ -63,7 +60,7 @@ def cli(ctx,
            parameter_overrides)  # pragma: no cover
 
 
-def do_cli(ctx, host, port, static_dir, persist_containers, template, env_vars, debug_port,  # pylint: disable=R0914
+def do_cli(ctx, host, port, static_dir, template, persist_containers, env_vars, debug_port,  # pylint: disable=R0914
            debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir,
            skip_pull_image, force_image_build, parameter_overrides):
     """

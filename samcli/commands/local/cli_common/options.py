@@ -81,6 +81,10 @@ def invoke_common_options(f):
     invoke_options = [
         template_click_option(),
 
+        click.option("--persist-containers/--no-persist-containers",
+                     default=False,
+                     help="Persist lambda containers between invocations"),
+
         click.option('--env-vars', '-n',
                      type=click.Path(exists=True),
                      help="JSON file containing values for Lambda function's environment variables."),

@@ -65,17 +65,17 @@ def cli(ctx,  # pylint: disable=R0914
         host, port,
 
         # Common Options for Lambda Invoke
-        template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
+        template, persist_containers, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
         docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
         parameter_overrides):  # pylint: disable=R0914
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, host, port, template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-           docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
+    do_cli(ctx, host, port, template, persist_containers, env_vars, debug_port, debug_args, debugger_path,
+           docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
            parameter_overrides)  # pragma: no cover
 
 
-def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
+def do_cli(ctx, host, port, template, persist_containers, env_vars, debug_port, debug_args,  # pylint: disable=R0914
            debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image,
            force_image_build, parameter_overrides):
     """
@@ -102,7 +102,8 @@ def do_cli(ctx, host, port, template, env_vars, debug_port, debug_args,  # pylin
                            layer_cache_basedir=layer_cache_basedir,
                            force_image_build=force_image_build,
                            aws_region=ctx.region,
-                           aws_profile=ctx.profile) as invoke_context:
+                           aws_profile=ctx.profile,
+                           persist_containers=persist_containers) as invoke_context:
 
             service = LocalLambdaService(lambda_invoke_context=invoke_context,
                                          port=port,

@@ -49,7 +49,8 @@ class TestCli(TestCase):
 
         self.call_cli()
 
-        invoke_context_mock.assert_called_with(template_file=self.template,
+        invoke_context_mock.assert_called_with(persist_containers=False,
+                                               template_file=self.template,
                                                function_identifier=None,
                                                env_vars_file=self.env_vars,
                                                docker_volume_basedir=self.docker_volume_basedir,
@@ -107,6 +108,7 @@ class TestCli(TestCase):
                          host=self.host,
                          port=self.port,
                          template=self.template,
+                         persist_containers=False,
                          env_vars=self.env_vars,
                          debug_port=self.debug_port,
                          debug_args=self.debug_args,
