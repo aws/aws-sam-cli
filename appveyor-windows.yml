@@ -16,7 +16,6 @@ environment:
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
-  PYTHON_HOME_SCRIPT: "C:\\Python36-x64\\Scripts"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
 
@@ -34,7 +33,9 @@ install:
 
     # Make sure the temp directory exists for Python to use.
     - "mkdir D:\\tmp"
-    - "$env:PATH = $env:PYTHON_HOME;$env:PYTHON_HOME_SCRIPT;$env:PATH"
+    - "echo %PATH%"
+    - "setx PATH=%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PATH%"
+    - "refreshenv"
     - "echo %PATH%"
     - "python --version"
 
@@ -42,7 +43,7 @@ install:
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
     # Create new virtual environment and activate it
-    - "rm -r -fo venv"
+    - "rm -rf venv"
     - "python -m virtualenv venv"
     - "venv\\Scripts\\activate"
     - "python -c \"import sys; print(sys.executable)\""
