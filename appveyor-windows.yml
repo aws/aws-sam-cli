@@ -43,6 +43,7 @@ install:
 
     # Create new virtual environment with chosen python version and activate it
     - "rm -rf venv"
+    - "dir C:\Python36-x64"
     - "virtualenv -p %PYTHON_EXE% venv"
     - "venv\\Scripts\\activate"
     - "python -c \"import sys; print(sys.executable)\""
