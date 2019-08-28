@@ -36,7 +36,7 @@ cache:
 install:
 
     # Make sure the temp directory exists for Python to use.
-    - "mkdir -Force D:\\tmp"
+    - ps: "mkdir -Force D:\\tmp"
     - "echo %PATH%"
     - "python --version"
 
