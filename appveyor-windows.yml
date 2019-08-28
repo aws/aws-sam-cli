@@ -25,7 +25,7 @@ environment:
 
 init:
   # Uncomment this for RDP
-  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
 
@@ -51,48 +51,46 @@ install:
     - "python -c \"import sys; print(sys.executable)\""
     - "python --version"
 
-    # # Actually install SAM CLI's dependencies
-    # - "pip install -e \".[dev]\""
+    # Actually install SAM CLI's dependencies
+    - "pip install -e \".[dev]\""
 
 
-    # # To run Nodejs workflow integ tests
-    # - "choco install nodejs-lts -y --force"
-    # - "refreshenv"
-    # # setup Ruby
-    # - "choco install ruby --version 2.5.3.101 --force -y"
-    # - "refreshenv"
-    # - "ruby --version"
-    # - "gem --version"
-    # - "gem install bundler -v 1.17.3"
-    # - "refreshenv"
-    # - "bundler --version"
-    # - "echo %PATH%"
+    # To run Nodejs workflow integ tests
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
+    # setup Ruby
+    - "choco install ruby --version 2.5.3.101 --force -y"
+    - "refreshenv"
+    - "ruby --version"
+    - "gem --version"
+    - "gem install bundler -v 1.17.3"
+    - "refreshenv"
+    - "bundler --version"
+    - "echo %PATH%"
 
-    # # setup Java, Maven and Gradle
-    # - "refreshenv"
-    # - "choco install jdk8 -y --force"
-    # - "refreshenv"
-    # - "choco install maven -y --force"
-    # - "refreshenv"
-    # - "choco install gradle -y --force"
-    # - "refreshenv"
-    # - "java -version"
-    # - "gradle -v"
-    # - "mvn --version"
+    # setup Java, Maven and Gradle
+    - "refreshenv"
+    - "choco install jdk8 -y --force"
+    - "refreshenv"
+    - "choco install maven -y --force"
+    - "refreshenv"
+    - "choco install gradle -y --force"
+    - "refreshenv"
+    - "java -version"
+    - "gradle -v"
+    - "mvn --version"
 
-    # # Switch to Docker Linux containers
-    # - ps: Switch-DockerLinux
+    # Switch to Docker Linux containers
+    - ps: Switch-DockerLinux
 
-    # # Echo final Path
-    # - "echo %PATH%"
+    # Echo final Path
+    - "echo %PATH%"
 
 test_script:
     # Reactivate virtualenv before running tests
-    - "echo $TMPDIR"
     - "venv\\Scripts\\activate"
-    - "python -c \"import tempfile; print(tempfile.gettempdir())\""
-    # - "pytest -vv tests/integration"
+    - "pytest -vv tests/integration"
 
 # Uncomment for RDP
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+# on_finish:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
