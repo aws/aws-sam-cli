@@ -10,19 +10,11 @@ Resources:
           Type: Api
           Properties:
             RestApiId: HtmlApi
-            Path: /
+            Path: /{prameter}/resources
             Method: get
-            RequestModel:
-              Model: User
-              Required: true
 
   HtmlApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
-      Models:
-        User:
-          type: object
-          properties:
-            username:
-              type: string
+      DefinitionUri: s3://sam-demo-bucket/webpage_swagger.json
