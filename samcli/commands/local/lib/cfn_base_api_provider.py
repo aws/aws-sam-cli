@@ -55,9 +55,7 @@ class CfnBaseApiProvider(object):
         cwd : str
             Optional working directory with respect to which we will resolve relative path to Swagger file
         """
-        reader = SwaggerReader(definition_body=body,
-                               definition_uri=uri,
-                               working_dir=cwd)
+        reader = SwaggerReader(definition_body=body, definition_uri=uri, working_dir=cwd)
         swagger = reader.read()
         parser = SwaggerParser(swagger)
         routes = parser.get_routes()

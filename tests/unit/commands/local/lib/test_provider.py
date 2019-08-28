@@ -7,12 +7,13 @@ from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersion
 
 
 class TestLayerVersion(TestCase):
-
-    @parameterized.expand([
-        ("arn:aws:lambda:region:account-id:layer:layer-name:a"),
-        ("arn:aws:lambda:region:account-id:layer"),
-        ("a string without delimiter")
-    ])
+    @parameterized.expand(
+        [
+            ("arn:aws:lambda:region:account-id:layer:layer-name:a"),
+            ("arn:aws:lambda:region:account-id:layer"),
+            ("a string without delimiter"),
+        ]
+    )
     def test_invalid_arn(self, arn):
         with self.assertRaises(InvalidLayerVersionArn):
             LayerVersion(arn, None)
@@ -45,13 +46,7 @@ class TestLayerVersion(TestCase):
 
     def test_layer_version_raises_unsupported_intrinsic(self):
         intrinsic_arn = {
-            "Fn::Sub":
-                [
-                    "arn:aws:lambda:region:account-id:layer:{layer_name}:1",
-                    {
-                        "layer_name": "layer-name"
-                    }
-                ]
+            "Fn::Sub": ["arn:aws:lambda:region:account-id:layer:{layer_name}:1", {"layer_name": "layer-name"}]
         }
 
         with self.assertRaises(UnsupportedIntrinsic):

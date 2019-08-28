@@ -21,22 +21,22 @@ class LambdaUri(object):
 
     # From an ARN like below, extract just the Lambda Function ARN
     # arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:Calculator:ProdAlias/invocations  # NOQA
-    _REGEX_GET_FUNCTION_ARN = r'.*/functions/(.*)/invocations'
+    _REGEX_GET_FUNCTION_ARN = r".*/functions/(.*)/invocations"
 
     # From Lamdba Function ARN like below, extract the function name. Note, the [^:] syntax is to capture only function
     # name and exclude the Alias name that can optionally follow it.
     # arn:aws:lambda:us-west-2:123456789012:function:Calculator:ProdAlias
-    _REGEX_GET_FUNCTION_NAME = r'.*:function:([^:]*)'
+    _REGEX_GET_FUNCTION_NAME = r".*:function:([^:]*)"
 
     # ${stageVariable.MyFunctionName}
-    _REGEX_STAGE_VARIABLE = r'\$\{stageVariables\..+\}'
+    _REGEX_STAGE_VARIABLE = r"\$\{stageVariables\..+\}"
 
     # Got this regex from Lambda's CreateFunction API docs
-    _REGEX_VALID_FUNCTION_NAME = r'([a-zA-Z0-9-_]+)'
+    _REGEX_VALID_FUNCTION_NAME = r"([a-zA-Z0-9-_]+)"
 
     # Get the function name from variables within Fn::Sub. Supports ${Resource.Arn} and ${Resource.Alias}
     # Ex: "arn:aws:apigateway:function/${LambdaFunction.Arn}/invocations => ${LambdaFunction.Arn} => LambdaFunction
-    _REGEX_SUB_FUNCTION_ARN = r'\$\{([A-Za-z0-9]+)\.(Arn|Alias)\}'
+    _REGEX_SUB_FUNCTION_ARN = r"\$\{([A-Za-z0-9]+)\.(Arn|Alias)\}"
 
     @staticmethod
     def get_function_name(integration_uri):
@@ -166,8 +166,7 @@ class LambdaUri(object):
             return maybe_function_name
 
         # Some unknown format
-        LOG.debug("Ignoring integration ARN. Unable to parse Function Name from function arn %s",
-                  function_arn)
+        LOG.debug("Ignoring integration ARN. Unable to parse Function Name from function arn %s", function_arn)
 
     @staticmethod
     def _resolve_fn_sub(uri_data):
@@ -242,12 +241,14 @@ class LambdaUri(object):
         # Now finally we got the ARN string. Let us try to resolve it.
         # We only support value of type ${XXX.Arn} or ${YYY.Alias}. The `.Alias` syntax is a SAM specific intrinsic
         # to get ARN of Lambda Alias when using DeploymentPreference
-        lambda_function_arn_template = r'arn:aws:lambda:${AWS::Region}:123456789012:function:\1'
+        lambda_function_arn_template = r"arn:aws:lambda:${AWS::Region}:123456789012:function:\1"
 
-        return re.sub(LambdaUri._REGEX_SUB_FUNCTION_ARN,  # Find all ${blah} patterns
-                      # Replace with Lambda Function ARN, where function name is from pattern
-                      lambda_function_arn_template,
-                      arn)
+        return re.sub(
+            LambdaUri._REGEX_SUB_FUNCTION_ARN,  # Find all ${blah} patterns
+            # Replace with Lambda Function ARN, where function name is from pattern
+            lambda_function_arn_template,
+            arn,
+        )
 
     @staticmethod
     def _is_sub_intrinsic(data):

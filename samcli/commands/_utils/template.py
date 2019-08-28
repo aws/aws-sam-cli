@@ -14,9 +14,7 @@ except ImportError:
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
-_METADATA_WITH_LOCAL_PATHS = {
-    "AWS::ServerlessRepo::Application": ["LicenseUrl", "ReadmeUrl"]
-}
+_METADATA_WITH_LOCAL_PATHS = {"AWS::ServerlessRepo::Application": ["LicenseUrl", "ReadmeUrl"]}
 
 _RESOURCES_WITH_LOCAL_PATHS = {
     "AWS::Serverless::Function": ["CodeUri"],
@@ -30,7 +28,7 @@ _RESOURCES_WITH_LOCAL_PATHS = {
     "AWS::CloudFormation::Stack": ["TemplateURL"],
     "AWS::Serverless::Application": ["Location"],
     "AWS::Lambda::LayerVersion": ["Content"],
-    "AWS::Serverless::LayerVersion": ["ContentUri"]
+    "AWS::Serverless::LayerVersion": ["ContentUri"],
 }
 
 
@@ -51,16 +49,14 @@ def get_template_data(template_file):
     if not pathlib.Path(template_file).exists():
         raise ValueError("Template file not found at {}".format(template_file))
 
-    with open(template_file, 'r') as fp:
+    with open(template_file, "r") as fp:
         try:
             return yaml_parse(fp.read())
         except (ValueError, yaml.YAMLError) as ex:
             raise ValueError("Failed to parse template: {}".format(str(ex)))
 
 
-def move_template(src_template_path,
-                  dest_template_path,
-                  template_dict):
+def move_template(src_template_path, dest_template_path, template_dict):
     """
     Move the SAM/CloudFormation template from ``src_template_path`` to ``dest_template_path``. For convenience, this
     method accepts a dictionary of template data ``template_dict`` that will be written to the destination instead of
@@ -93,17 +89,13 @@ def move_template(src_template_path,
 
     # Next up, we will be writing the template to a different location. Before doing so, we should
     # update any relative paths in the template to be relative to the new location.
-    modified_template = _update_relative_paths(template_dict,
-                                               original_root,
-                                               new_root)
+    modified_template = _update_relative_paths(template_dict, original_root, new_root)
 
     with open(dest_template_path, "w") as fp:
         fp.write(yaml_dump(modified_template))
 
 
-def _update_relative_paths(template_dict,
-                           original_root,
-                           new_root):
+def _update_relative_paths(template_dict, original_root, new_root):
     """
     SAM/CloudFormation template can contain certain properties whose value is a relative path to a local file/folder.
     This path is usually relative to the template's location. If the template is being moved from original location
@@ -226,13 +218,11 @@ def _resolve_relative_to(path, original_root, new_root):
     Updated path if the given path is a relative path. None, if the path is not a relative path.
     """
 
-    if not isinstance(path, six.string_types) \
-            or path.startswith("s3://") \
-            or os.path.isabs(path):
+    if not isinstance(path, six.string_types) or path.startswith("s3://") or os.path.isabs(path):
         # Value is definitely NOT a relative path. It is either a S3 URi or Absolute path or not a string at all
         return None
 
     # Value is definitely a relative path. Change it relative to the destination directory
     return os.path.relpath(
-        os.path.normpath(os.path.join(original_root, path)),  # Absolute original path w.r.t ``original_root``
-        new_root)  # Resolve the original path with respect to ``new_root``
+        os.path.normpath(os.path.join(original_root, path)), new_root  # Absolute original path w.r.t ``original_root``
+    )  # Resolve the original path with respect to ``new_root``

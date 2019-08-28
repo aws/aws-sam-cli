@@ -30,29 +30,12 @@ class TestYaml(TestCase):
 
     parsed_yaml_dict = {
         "Resource": {
-            "Key1": {
-                "Ref": "Something"
-            },
-            "Key2": {
-                "Fn::GetAtt": ["Another", "Arn"]
-            },
-            "Key3": {
-                "Fn::FooBar": [
-                    {"Fn::Baz": "YetAnother"},
-                    "hello"
-                ]
-            },
-            "Key4": {
-                "Fn::SomeTag": {
-                    "a": "1"
-                }
-            },
-            "Key5": {
-                "Fn::GetAtt": ["OneMore", "Outputs.Arn"]
-            },
-            "Key6": {
-                "Condition": "OtherCondition"
-            }
+            "Key1": {"Ref": "Something"},
+            "Key2": {"Fn::GetAtt": ["Another", "Arn"]},
+            "Key3": {"Fn::FooBar": [{"Fn::Baz": "YetAnother"}, "hello"]},
+            "Key4": {"Fn::SomeTag": {"a": "1"}},
+            "Key5": {"Fn::GetAtt": ["OneMore", "Outputs.Arn"]},
+            "Key6": {"Condition": "OtherCondition"},
         }
     }
 
@@ -74,14 +57,7 @@ class TestYaml(TestCase):
             Key: !GetAtt ["a", "b"]
         """
 
-        output = {
-            "Resource": {
-                "Key": {
-                    "Fn::GetAtt": ["a", "b"]
-                }
-
-            }
-        }
+        output = {"Resource": {"Key": {"Fn::GetAtt": ["a", "b"]}}}
 
         actual_output = yaml_parse(yaml_input)
         self.assertEqual(actual_output, output)

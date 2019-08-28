@@ -10,39 +10,37 @@ from samcli.commands.local.generate_event.event_generation import EventTypeSubCo
 
 
 class TestEvents(TestCase):
-
     def setUp(self):
         self.values_to_sub = {"hello": "world"}
 
     def test_base64_encoding(self):
         tags = {"hello": {"encoding": "base64"}}
-        e = events.Events().encode(tags, 'encoding', self.values_to_sub)
+        e = events.Events().encode(tags, "encoding", self.values_to_sub)
         self.assertEqual(e, {"hello": "d29ybGQ="})
 
     def test_url_encoding(self):
         tags = {"hello": {"encoding": "url"}}
-        e = events.Events().encode(tags, 'encoding', self.values_to_sub)
+        e = events.Events().encode(tags, "encoding", self.values_to_sub)
         self.assertEqual(e, {"hello": "world"})
 
     def test_if_encoding_is_none(self):
         tags = {"hello": {"encoding": "None"}}
-        e = events.Events().encode(tags, 'encoding', self.values_to_sub)
+        e = events.Events().encode(tags, "encoding", self.values_to_sub)
         self.assertEqual(e, {"hello": "world"})
 
     def test_if_tags_is_empty(self):
         tags = {}
-        e = events.Events().encode(tags, 'encoding', {})
+        e = events.Events().encode(tags, "encoding", {})
         self.assertEqual(e, {})
 
     def test_if_tags_is_two_or_more(self):
         tags = {"hello": {"encoding": "base64"}, "hi": {"encoding": "url"}, "bop": {"encoding": "None"}}
         values_to_sub = {"bop": "dop", "hello": "world", "hi": "yo"}
-        e = events.Events().encode(tags, 'encoding', values_to_sub)
+        e = events.Events().encode(tags, "encoding", values_to_sub)
         self.assertEqual(e, {"bop": "dop", "hello": "d29ybGQ=", "hi": "yo"})
 
 
 class TestServiceCommand(TestCase):
-
     def setUp(self):
         self.service_cmd_name = "myservice"
         self.event_type_name = "myevent"
@@ -69,7 +67,7 @@ class TestServiceCommand(TestCase):
 
     def test_list_commands_must_return_commands_name(self):
         expected = self.s.list_commands(ctx=None)
-        self.assertEqual(expected, ['hello', 'hi'])
+        self.assertEqual(expected, ["hello", "hi"])
 
     def test_get_command_return_value(self):
         command_name = "hello"
@@ -80,7 +78,6 @@ class TestServiceCommand(TestCase):
 
 
 class TestEventTypeSubCommand(TestCase):
-
     def setUp(self):
         self.service_cmd_name = "myservice"
         self.event_type_name = "myevent"
@@ -127,40 +124,31 @@ class TestEventTypeSubCommand(TestCase):
         functools_mock.partial.return_value = callback_object_mock
         s = EventTypeSubCommand(self.events_lib_mock, "hello", all_commands)
         s.get_command(None, "hi")
-        click_mock.Command.assert_called_once_with(name="hi",
-                                                   short_help="Generates a hello Event",
-                                                   params=[],
-                                                   callback=callback_object_mock)
+        click_mock.Command.assert_called_once_with(
+            name="hi", short_help="Generates a hello Event", params=[], callback=callback_object_mock
+        )
 
     def test_subcommand_list_return_value(self):
         subcmd_def = {"hello": "world", "hi": "you"}
         self.events_lib_mock.expose_event_metadata.return_value = subcmd_def
         s = EventTypeSubCommand(self.events_lib_mock, "hello", subcmd_def)
-        expected = ['hello', 'hi']
+        expected = ["hello", "hi"]
         self.assertEquals(s.list_commands(ctx=None), expected)
 
     def test_must_print_sample_event_json(self):
         event_json = '{"hello": "world"}'
         self.events_lib_mock.generate_event.return_value = event_json
         s = EventTypeSubCommand(self.events_lib_mock, "hello", event_json)
-        event = s.cmd_implementation(self.events_lib_mock,
-                                     self.service_cmd_name,
-                                     self.event_type_name,
-                                     {})
-        self.events_lib_mock.generate_event.assert_called_with(self.service_cmd_name,
-                                                               self.event_type_name,
-                                                               {})
+        event = s.cmd_implementation(self.events_lib_mock, self.service_cmd_name, self.event_type_name, {})
+        self.events_lib_mock.generate_event.assert_called_with(self.service_cmd_name, self.event_type_name, {})
         self.assertEqual(event, event_json)
 
     def test_must_accept_keyword_args(self):
         event_json = '{"hello": "world"}'
         self.events_lib_mock.generate_event.return_value = event_json
         s = EventTypeSubCommand(self.events_lib_mock, "hello", event_json)
-        event = s.cmd_implementation(self.events_lib_mock,
-                                     self.service_cmd_name,
-                                     self.event_type_name,
-                                     key="value")
-        self.events_lib_mock.generate_event.assert_called_with(self.service_cmd_name,
-                                                               self.event_type_name,
-                                                               {"key": "value"})
+        event = s.cmd_implementation(self.events_lib_mock, self.service_cmd_name, self.event_type_name, key="value")
+        self.events_lib_mock.generate_event.assert_called_with(
+            self.service_cmd_name, self.event_type_name, {"key": "value"}
+        )
         self.assertEqual(event, event_json)

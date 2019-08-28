@@ -1,4 +1,3 @@
-
 import datetime
 
 from unittest import TestCase
@@ -7,7 +6,6 @@ from samcli.lib.utils.time import to_timestamp, timestamp_to_iso, parse_date, to
 
 
 class TestTimestampToIso(TestCase):
-
     def test_must_work_on_timestamp_with_milliseconds(self):
         timestamp = 1530882594123
         expected = "2018-07-06T13:09:54.123000"
@@ -22,7 +20,6 @@ class TestTimestampToIso(TestCase):
 
 
 class TestToTimestamp(TestCase):
-
     def test_must_convert_to_timestamp(self):
         date = datetime.datetime.utcfromtimestamp(1530882594.123)
         expected = 1530882594123
@@ -31,7 +28,6 @@ class TestToTimestamp(TestCase):
 
 
 class TestToUtc(TestCase):
-
     def test_with_timezone(self):
 
         date = parse_date("2018-07-06 13:09:54 PDT")
@@ -58,7 +54,6 @@ class TestToUtc(TestCase):
 
 
 class TestParseDate(TestCase):
-
     def test_must_parse_date(self):
         date_str = "2018-07-06T13:09:54"
         expected = datetime.datetime(2018, 7, 6, 13, 9, 54)

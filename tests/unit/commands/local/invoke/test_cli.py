@@ -20,7 +20,6 @@ STDIN_FILE_NAME = "-"
 
 
 class TestCli(TestCase):
-
     def setUp(self):
         self.function_id = "id"
         self.template = "template"
@@ -54,43 +53,46 @@ class TestCli(TestCase):
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
 
-        invoke_cli(ctx=ctx_mock,
-                   function_identifier=self.function_id,
-                   template=self.template,
-                   event=self.eventfile,
-                   no_event=self.no_event,
-                   env_vars=self.env_vars,
-                   debug_port=self.debug_port,
-                   debug_args=self.debug_args,
-                   debugger_path=self.debugger_path,
-                   docker_volume_basedir=self.docker_volume_basedir,
-                   docker_network=self.docker_network,
-                   log_file=self.log_file,
-                   skip_pull_image=self.skip_pull_image,
-                   parameter_overrides=self.parameter_overrides,
-                   layer_cache_basedir=self.layer_cache_basedir,
-                   force_image_build=self.force_image_build)
+        invoke_cli(
+            ctx=ctx_mock,
+            function_identifier=self.function_id,
+            template=self.template,
+            event=self.eventfile,
+            no_event=self.no_event,
+            env_vars=self.env_vars,
+            debug_port=self.debug_port,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+        )
 
-        InvokeContextMock.assert_called_with(template_file=self.template,
-                                             function_identifier=self.function_id,
-                                             env_vars_file=self.env_vars,
-                                             docker_volume_basedir=self.docker_volume_basedir,
-                                             docker_network=self.docker_network,
-                                             log_file=self.log_file,
-                                             skip_pull_image=self.skip_pull_image,
-                                             debug_port=self.debug_port,
-                                             debug_args=self.debug_args,
-                                             debugger_path=self.debugger_path,
-                                             parameter_overrides=self.parameter_overrides,
-                                             layer_cache_basedir=self.layer_cache_basedir,
-                                             force_image_build=self.force_image_build,
-                                             aws_region=self.region_name,
-                                             aws_profile=self.profile)
+        InvokeContextMock.assert_called_with(
+            template_file=self.template,
+            function_identifier=self.function_id,
+            env_vars_file=self.env_vars,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            debug_port=self.debug_port,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+            aws_region=self.region_name,
+            aws_profile=self.profile,
+        )
 
-        context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
-                                                                   event=event_data,
-                                                                   stdout=context_mock.stdout,
-                                                                   stderr=context_mock.stderr)
+        context_mock.local_lambda_runner.invoke.assert_called_with(
+            context_mock.function_name, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
+        )
         get_event_mock.assert_called_with(self.eventfile)
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
@@ -105,43 +107,46 @@ class TestCli(TestCase):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
         InvokeContextMock.return_value.__enter__.return_value = context_mock
-        invoke_cli(ctx=ctx_mock,
-                   function_identifier=self.function_id,
-                   template=self.template,
-                   event=STDIN_FILE_NAME,
-                   no_event=self.no_event,
-                   env_vars=self.env_vars,
-                   debug_port=self.debug_port,
-                   debug_args=self.debug_args,
-                   debugger_path=self.debugger_path,
-                   docker_volume_basedir=self.docker_volume_basedir,
-                   docker_network=self.docker_network,
-                   log_file=self.log_file,
-                   skip_pull_image=self.skip_pull_image,
-                   parameter_overrides=self.parameter_overrides,
-                   layer_cache_basedir=self.layer_cache_basedir,
-                   force_image_build=self.force_image_build)
+        invoke_cli(
+            ctx=ctx_mock,
+            function_identifier=self.function_id,
+            template=self.template,
+            event=STDIN_FILE_NAME,
+            no_event=self.no_event,
+            env_vars=self.env_vars,
+            debug_port=self.debug_port,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+        )
 
-        InvokeContextMock.assert_called_with(template_file=self.template,
-                                             function_identifier=self.function_id,
-                                             env_vars_file=self.env_vars,
-                                             docker_volume_basedir=self.docker_volume_basedir,
-                                             docker_network=self.docker_network,
-                                             log_file=self.log_file,
-                                             skip_pull_image=self.skip_pull_image,
-                                             debug_port=self.debug_port,
-                                             debug_args=self.debug_args,
-                                             debugger_path=self.debugger_path,
-                                             parameter_overrides=self.parameter_overrides,
-                                             layer_cache_basedir=self.layer_cache_basedir,
-                                             force_image_build=self.force_image_build,
-                                             aws_region=self.region_name,
-                                             aws_profile=self.profile)
+        InvokeContextMock.assert_called_with(
+            template_file=self.template,
+            function_identifier=self.function_id,
+            env_vars_file=self.env_vars,
+            docker_volume_basedir=self.docker_volume_basedir,
+            docker_network=self.docker_network,
+            log_file=self.log_file,
+            skip_pull_image=self.skip_pull_image,
+            debug_port=self.debug_port,
+            debug_args=self.debug_args,
+            debugger_path=self.debugger_path,
+            parameter_overrides=self.parameter_overrides,
+            layer_cache_basedir=self.layer_cache_basedir,
+            force_image_build=self.force_image_build,
+            aws_region=self.region_name,
+            aws_profile=self.profile,
+        )
 
-        context_mock.local_lambda_runner.invoke.assert_called_with(context_mock.function_name,
-                                                                   event="{}",
-                                                                   stdout=context_mock.stdout,
-                                                                   stderr=context_mock.stderr)
+        context_mock.local_lambda_runner.invoke.assert_called_with(
+            context_mock.function_name, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
+        )
         get_event_mock.assert_not_called()
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
@@ -155,37 +160,39 @@ class TestCli(TestCase):
 
         with self.assertRaises(UserException) as ex_ctx:
 
-            invoke_cli(ctx=ctx_mock,
-                       function_identifier=self.function_id,
-                       template=self.template,
-                       event=self.eventfile,
-                       no_event=self.no_event,
-                       env_vars=self.env_vars,
-                       debug_port=self.debug_port,
-                       debug_args=self.debug_args,
-                       debugger_path=self.debugger_path,
-                       docker_volume_basedir=self.docker_volume_basedir,
-                       docker_network=self.docker_network,
-                       log_file=self.log_file,
-                       skip_pull_image=self.skip_pull_image,
-                       parameter_overrides=self.parameter_overrides,
-                       layer_cache_basedir=self.layer_cache_basedir,
-                       force_image_build=self.force_image_build)
+            invoke_cli(
+                ctx=ctx_mock,
+                function_identifier=self.function_id,
+                template=self.template,
+                event=self.eventfile,
+                no_event=self.no_event,
+                env_vars=self.env_vars,
+                debug_port=self.debug_port,
+                debug_args=self.debug_args,
+                debugger_path=self.debugger_path,
+                docker_volume_basedir=self.docker_volume_basedir,
+                docker_network=self.docker_network,
+                log_file=self.log_file,
+                skip_pull_image=self.skip_pull_image,
+                parameter_overrides=self.parameter_overrides,
+                layer_cache_basedir=self.layer_cache_basedir,
+                force_image_build=self.force_image_build,
+            )
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "no_event and event cannot be used together. Please provide only one.")
 
-    @parameterized.expand([
-        param(FunctionNotFound("not found"), "Function id not found in template"),
-        param(DockerImagePullFailedException("Failed to pull image"), "Failed to pull image")
-    ])
+    @parameterized.expand(
+        [
+            param(FunctionNotFound("not found"), "Function id not found in template"),
+            param(DockerImagePullFailedException("Failed to pull image"), "Failed to pull image"),
+        ]
+    )
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_must_raise_user_exception_on_function_not_found(self,
-                                                             side_effect_exception,
-                                                             expected_exectpion_message,
-                                                             get_event_mock,
-                                                             InvokeContextMock):
+    def test_must_raise_user_exception_on_function_not_found(
+        self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
+    ):
         event_data = "data"
         get_event_mock.return_value = event_data
 
@@ -201,38 +208,43 @@ class TestCli(TestCase):
 
         with self.assertRaises(UserException) as ex_ctx:
 
-            invoke_cli(ctx=ctx_mock,
-                       function_identifier=self.function_id,
-                       template=self.template,
-                       event=self.eventfile,
-                       no_event=self.no_event,
-                       env_vars=self.env_vars,
-                       debug_port=self.debug_port,
-                       debug_args=self.debug_args,
-                       debugger_path=self.debugger_path,
-                       docker_volume_basedir=self.docker_volume_basedir,
-                       docker_network=self.docker_network,
-                       log_file=self.log_file,
-                       skip_pull_image=self.skip_pull_image,
-                       parameter_overrides=self.parameter_overrides,
-                       layer_cache_basedir=self.layer_cache_basedir,
-                       force_image_build=self.force_image_build)
+            invoke_cli(
+                ctx=ctx_mock,
+                function_identifier=self.function_id,
+                template=self.template,
+                event=self.eventfile,
+                no_event=self.no_event,
+                env_vars=self.env_vars,
+                debug_port=self.debug_port,
+                debug_args=self.debug_args,
+                debugger_path=self.debugger_path,
+                docker_volume_basedir=self.docker_volume_basedir,
+                docker_network=self.docker_network,
+                log_file=self.log_file,
+                skip_pull_image=self.skip_pull_image,
+                parameter_overrides=self.parameter_overrides,
+                layer_cache_basedir=self.layer_cache_basedir,
+                force_image_build=self.force_image_build,
+            )
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, expected_exectpion_message)
 
-    @parameterized.expand([(InvalidSamDocumentException("bad template"), "bad template"),
-                           (InvalidLayerReference(), "Layer References need to be of type "
-                                                     "'AWS::Serverless::LayerVersion' or 'AWS::Lambda::LayerVersion'"),
-                           (DebuggingNotSupported("Debugging not supported"), "Debugging not supported")
-                           ])
+    @parameterized.expand(
+        [
+            (InvalidSamDocumentException("bad template"), "bad template"),
+            (
+                InvalidLayerReference(),
+                "Layer References need to be of type " "'AWS::Serverless::LayerVersion' or 'AWS::Lambda::LayerVersion'",
+            ),
+            (DebuggingNotSupported("Debugging not supported"), "Debugging not supported"),
+        ]
+    )
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_must_raise_user_exception_on_invalid_sam_template(self,
-                                                               exeception_to_raise,
-                                                               execption_message,
-                                                               get_event_mock,
-                                                               InvokeContextMock):
+    def test_must_raise_user_exception_on_invalid_sam_template(
+        self, exeception_to_raise, execption_message, get_event_mock, InvokeContextMock
+    ):
         event_data = "data"
         get_event_mock.return_value = event_data
 
@@ -244,22 +256,24 @@ class TestCli(TestCase):
 
         with self.assertRaises(UserException) as ex_ctx:
 
-            invoke_cli(ctx=ctx_mock,
-                       function_identifier=self.function_id,
-                       template=self.template,
-                       event=self.eventfile,
-                       no_event=self.no_event,
-                       env_vars=self.env_vars,
-                       debug_port=self.debug_port,
-                       debug_args=self.debug_args,
-                       debugger_path=self.debugger_path,
-                       docker_volume_basedir=self.docker_volume_basedir,
-                       docker_network=self.docker_network,
-                       log_file=self.log_file,
-                       skip_pull_image=self.skip_pull_image,
-                       parameter_overrides=self.parameter_overrides,
-                       layer_cache_basedir=self.layer_cache_basedir,
-                       force_image_build=self.force_image_build)
+            invoke_cli(
+                ctx=ctx_mock,
+                function_identifier=self.function_id,
+                template=self.template,
+                event=self.eventfile,
+                no_event=self.no_event,
+                env_vars=self.env_vars,
+                debug_port=self.debug_port,
+                debug_args=self.debug_args,
+                debugger_path=self.debugger_path,
+                docker_volume_basedir=self.docker_volume_basedir,
+                docker_network=self.docker_network,
+                log_file=self.log_file,
+                skip_pull_image=self.skip_pull_image,
+                parameter_overrides=self.parameter_overrides,
+                layer_cache_basedir=self.layer_cache_basedir,
+                force_image_build=self.force_image_build,
+            )
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, execption_message)
@@ -278,33 +292,31 @@ class TestCli(TestCase):
 
         with self.assertRaises(UserException) as ex_ctx:
 
-            invoke_cli(ctx=ctx_mock,
-                       function_identifier=self.function_id,
-                       template=self.template,
-                       event=self.eventfile,
-                       no_event=self.no_event,
-                       env_vars=self.env_vars,
-                       debug_port=self.debug_port,
-                       debug_args=self.debug_args,
-                       debugger_path=self.debugger_path,
-                       docker_volume_basedir=self.docker_volume_basedir,
-                       docker_network=self.docker_network,
-                       log_file=self.log_file,
-                       skip_pull_image=self.skip_pull_image,
-                       parameter_overrides=self.parameter_overrides,
-                       layer_cache_basedir=self.layer_cache_basedir,
-                       force_image_build=self.force_image_build)
+            invoke_cli(
+                ctx=ctx_mock,
+                function_identifier=self.function_id,
+                template=self.template,
+                event=self.eventfile,
+                no_event=self.no_event,
+                env_vars=self.env_vars,
+                debug_port=self.debug_port,
+                debug_args=self.debug_args,
+                debugger_path=self.debugger_path,
+                docker_volume_basedir=self.docker_volume_basedir,
+                docker_network=self.docker_network,
+                log_file=self.log_file,
+                skip_pull_image=self.skip_pull_image,
+                parameter_overrides=self.parameter_overrides,
+                layer_cache_basedir=self.layer_cache_basedir,
+                force_image_build=self.force_image_build,
+            )
 
         msg = str(ex_ctx.exception)
         self.assertEquals(msg, "bad env vars")
 
 
 class TestGetEvent(TestCase):
-
-    @parameterized.expand([
-        param(STDIN_FILE_NAME),
-        param("somefile")
-    ])
+    @parameterized.expand([param(STDIN_FILE_NAME), param("somefile")])
     @patch("samcli.commands.local.invoke.cli.click")
     def test_must_work_with_stdin(self, filename, click_mock):
         event_data = "some data"

@@ -18,8 +18,7 @@ from .lib.exceptions import InvalidSamDocumentException
 from .lib.sam_template_validator import SamTemplateValidator
 
 
-@click.command("validate",
-               short_help="Validate an AWS SAM template.")
+@click.command("validate", short_help="Validate an AWS SAM template.")
 @template_option_without_build
 @aws_creds_options
 @cli_framework_options
@@ -39,18 +38,18 @@ def do_cli(ctx, template):
 
     sam_template = _read_sam_file(template)
 
-    iam_client = boto3.client('iam')
+    iam_client = boto3.client("iam")
     validator = SamTemplateValidator(sam_template, ManagedPolicyLoader(iam_client))
 
     try:
         validator.is_valid()
     except InvalidSamDocumentException as e:
-        click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg='red')
+        click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
         raise InvalidSamTemplateException(str(e))
     except NoCredentialsError as e:
         raise UserException("AWS Credentials are required. Please configure your credentials.")
 
-    click.secho("{} is a valid SAM Template".format(template), fg='green')
+    click.secho("{} is a valid SAM Template".format(template), fg="green")
 
 
 def _read_sam_file(template):
@@ -62,10 +61,10 @@ def _read_sam_file(template):
     :raises: SamTemplateNotFoundException when the template file does not exist
     """
     if not os.path.exists(template):
-        click.secho("SAM Template Not Found", bg='red')
+        click.secho("SAM Template Not Found", bg="red")
         raise SamTemplateNotFoundException("Template at {} is not found".format(template))
 
-    with click.open_file(template, 'r') as sam_template:
+    with click.open_file(template, "r") as sam_template:
         sam_template = yaml_parse(sam_template.read())
 
     return sam_template

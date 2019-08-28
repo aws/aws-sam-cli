@@ -15,7 +15,6 @@ LOG = logging.getLogger(__name__)
 
 
 class SamTemplateValidator(object):
-
     def __init__(self, sam_template, managed_policy_loader):
         """
         Construct a SamTemplateValidator
@@ -53,19 +52,17 @@ class SamTemplateValidator(object):
         """
         managed_policy_map = self.managed_policy_loader.load()
 
-        sam_translator = Translator(managed_policy_map=managed_policy_map,
-                                    sam_parser=self.sam_parser,
-                                    plugins=[])
+        sam_translator = Translator(managed_policy_map=managed_policy_map, sam_parser=self.sam_parser, plugins=[])
 
         self._replace_local_codeuri()
 
         try:
-            template = sam_translator.translate(sam_template=self.sam_template,
-                                                parameter_values={})
+            template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
+                functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
+            )
 
     def _replace_local_codeuri(self):
         """

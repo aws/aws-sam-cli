@@ -39,12 +39,7 @@ class LambdaRuntime(object):
         self._container_manager = container_manager
         self._image_builder = image_builder
 
-    def invoke(self,
-               function_config,
-               event,
-               debug_context=None,
-               stdout=None,
-               stderr=None):
+    def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
         """
         Invoke the given Lambda function locally.
 
@@ -71,14 +66,16 @@ class LambdaRuntime(object):
         env_vars = environ.resolve()
 
         with self._get_code_dir(function_config.code_abs_path) as code_dir:
-            container = LambdaContainer(function_config.runtime,
-                                        function_config.handler,
-                                        code_dir,
-                                        function_config.layers,
-                                        self._image_builder,
-                                        memory_mb=function_config.memory,
-                                        env_vars=env_vars,
-                                        debug_options=debug_context)
+            container = LambdaContainer(
+                function_config.runtime,
+                function_config.handler,
+                code_dir,
+                function_config.layers,
+                self._image_builder,
+                memory_mb=function_config.memory,
+                env_vars=env_vars,
+                debug_options=debug_context,
+            )
 
             try:
 
@@ -90,10 +87,9 @@ class LambdaRuntime(object):
                 # Start the timer **after** container starts. Container startup takes several seconds, only after which,
                 # our Lambda function code will run. Starting the timer is a reasonable approximation that function has
                 # started running.
-                timer = self._configure_interrupt(function_config.name,
-                                                  function_config.timeout,
-                                                  container,
-                                                  bool(debug_context))
+                timer = self._configure_interrupt(
+                    function_config.name, function_config.timeout, container, bool(debug_context)
+                )
 
                 # NOTE: BLOCKING METHOD
                 # Block the thread waiting to fetch logs from the container. This method will return after container
@@ -191,7 +187,7 @@ def _unzip_file(filepath):
 
     temp_dir = tempfile.mkdtemp()
 
-    if os.name == 'posix':
+    if os.name == "posix":
         os.chmod(temp_dir, 0o755)
 
     LOG.info("Decompressing %s", filepath)

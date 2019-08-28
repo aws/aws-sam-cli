@@ -23,7 +23,7 @@ def create_tarball(tar_paths):
     """
     tarballfile = TemporaryFile()
 
-    with tarfile.open(fileobj=tarballfile, mode='w') as archive:
+    with tarfile.open(fileobj=tarballfile, mode="w") as archive:
         for path_on_system, path_in_tarball in tar_paths.items():
             archive.add(path_on_system, arcname=path_in_tarball)
 

@@ -10,7 +10,6 @@ from samcli.commands._utils.options import get_or_default_template_file_name, _T
 
 
 class TestGetOrDefaultTemplateFileName(TestCase):
-
     def test_must_return_abspath_of_user_provided_value(self):
         filename = "foo.txt"
         expected = os.path.abspath(filename)

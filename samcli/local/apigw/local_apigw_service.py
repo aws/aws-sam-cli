@@ -19,13 +19,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Route(object):
-    ANY_HTTP_METHODS = ["GET",
-                        "DELETE",
-                        "PUT",
-                        "POST",
-                        "HEAD",
-                        "OPTIONS",
-                        "PATCH"]
+    ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
     def __init__(self, function_name, path, methods):
         """
@@ -40,9 +34,12 @@ class Route(object):
         self.path = path
 
     def __eq__(self, other):
-        return isinstance(other, Route) and \
-               sorted(self.methods) == sorted(
-            other.methods) and self.function_name == other.function_name and self.path == other.path
+        return (
+            isinstance(other, Route)
+            and sorted(self.methods) == sorted(other.methods)
+            and self.function_name == other.function_name
+            and self.path == other.path
+        )
 
     def __hash__(self):
         route_hash = hash(self.function_name) * hash(self.path)
@@ -66,7 +63,7 @@ class Route(object):
 
 class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
-    _DEFAULT_HOST = '127.0.0.1'
+    _DEFAULT_HOST = "127.0.0.1"
 
     def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
         """
@@ -101,21 +98,23 @@ class LocalApigwService(BaseLocalService):
         Creates a Flask Application that can be started.
         """
 
-        self._app = Flask(__name__,
-                          static_url_path="",  # Mount static files at root '/'
-                          static_folder=self.static_dir  # Serve static files from this directory
-                          )
+        self._app = Flask(
+            __name__,
+            static_url_path="",  # Mount static files at root '/'
+            static_folder=self.static_dir,  # Serve static files from this directory
+        )
 
         for api_gateway_route in self.api.routes:
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
-            for route_key in self._generate_route_keys(api_gateway_route.methods,
-                                                       path):
+            for route_key in self._generate_route_keys(api_gateway_route.methods, path):
                 self._dict_of_routes[route_key] = api_gateway_route
-            self._app.add_url_rule(path,
-                                   endpoint=path,
-                                   view_func=self._request_handler,
-                                   methods=api_gateway_route.methods,
-                                   provide_automatic_options=False)
+            self._app.add_url_rule(
+                path,
+                endpoint=path,
+                view_func=self._request_handler,
+                methods=api_gateway_route.methods,
+                provide_automatic_options=False,
+            )
 
         self._construct_error_handling()
 
@@ -133,7 +132,7 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _route_key(method, path):
-        return '{}:{}'.format(path, method)
+        return "{}:{}".format(path, method)
 
     def _construct_error_handling(self):
         """
@@ -174,13 +173,14 @@ class LocalApigwService(BaseLocalService):
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         method, _ = self.get_request_methods_endpoints(request)
-        if method == 'OPTIONS':
+        if method == "OPTIONS":
             headers = Headers(cors_headers)
-            return self.service_response('', headers, 200)
+            return self.service_response("", headers, 200)
 
         try:
-            event = self._construct_event(request, self.port, self.api.binary_media_types, self.api.stage_name,
-                                          self.api.stage_variables)
+            event = self._construct_event(
+                request, self.port, self.api.binary_media_types, self.api.stage_name, self.api.stage_variables
+            )
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -199,12 +199,15 @@ class LocalApigwService(BaseLocalService):
             self.stderr.write(lambda_logs)
 
         try:
-            (status_code, headers, body) = self._parse_lambda_output(lambda_response,
-                                                                     self.api.binary_media_types,
-                                                                     request)
+            (status_code, headers, body) = self._parse_lambda_output(
+                lambda_response, self.api.binary_media_types, request
+            )
         except (KeyError, TypeError, ValueError):
-            LOG.error("Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
-                      "statusCode in the response object). Response received: %s", lambda_response)
+            LOG.error(
+                "Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
+                "statusCode in the response object). Response received: %s",
+                lambda_response,
+            )
             return ServiceErrorResponses.lambda_failure_response()
 
         return self.service_response(body, headers, status_code)
@@ -222,9 +225,14 @@ class LocalApigwService(BaseLocalService):
         route = self._dict_of_routes.get(route_key, None)
 
         if not route:
-            LOG.debug("Lambda function for the route not found. This should not happen because Flask is "
-                      "already configured to serve all path/methods given to the service. "
-                      "Path=%s Method=%s RouteKey=%s", endpoint, method, route_key)
+            LOG.debug(
+                "Lambda function for the route not found. This should not happen because Flask is "
+                "already configured to serve all path/methods given to the service. "
+                "Path=%s Method=%s RouteKey=%s",
+                endpoint,
+                method,
+                route_key,
+            )
             raise KeyError("Lambda function for the route not found")
 
         return route
@@ -255,8 +263,9 @@ class LocalApigwService(BaseLocalService):
             raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
 
         status_code = json_output.get("statusCode") or 200
-        headers = LocalApigwService._merge_response_headers(json_output.get("headers") or {},
-                                                            json_output.get("multiValueHeaders") or {})
+        headers = LocalApigwService._merge_response_headers(
+            json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
+        )
         body = json_output.get("body") or "no data"
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
@@ -297,13 +306,7 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _invalid_apig_response_keys(output):
-        allowable = {
-            "statusCode",
-            "body",
-            "headers",
-            "multiValueHeaders",
-            "isBase64Encoded"
-        }
+        allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded"}
         # In Python 2.7, need to explicitly make the Dictionary keys into a set
         invalid_keys = set(output.keys()) - allowable
         return invalid_keys
@@ -330,7 +333,7 @@ class LocalApigwService(BaseLocalService):
 
         """
         best_match_mimetype = flask_request.accept_mimetypes.best_match(lamba_response_headers.get_all("Content-Type"))
-        is_best_match_in_binary_types = best_match_mimetype in binary_types or '*/*' in binary_types
+        is_best_match_in_binary_types = best_match_mimetype in binary_types or "*/*" in binary_types
 
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
 
@@ -394,30 +397,30 @@ class LocalApigwService(BaseLocalService):
 
         if request_data:
             # Flask does not parse/decode the request data. We should do it ourselves
-            request_data = request_data.decode('utf-8')
+            request_data = request_data.decode("utf-8")
 
-        context = RequestContext(resource_path=endpoint,
-                                 http_method=method,
-                                 stage=stage_name,
-                                 identity=identity,
-                                 path=endpoint)
+        context = RequestContext(
+            resource_path=endpoint, http_method=method, stage=stage_name, identity=identity, path=endpoint
+        )
 
         headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
 
         query_string_dict, multi_value_query_string_dict = LocalApigwService._query_string_params(flask_request)
 
-        event = ApiGatewayLambdaEvent(http_method=method,
-                                      body=request_data,
-                                      resource=endpoint,
-                                      request_context=context,
-                                      query_string_params=query_string_dict,
-                                      multi_value_query_string_params=multi_value_query_string_dict,
-                                      headers=headers_dict,
-                                      multi_value_headers=multi_value_headers_dict,
-                                      path_parameters=flask_request.view_args,
-                                      path=flask_request.path,
-                                      is_base_64_encoded=is_base_64,
-                                      stage_variables=stage_variables)
+        event = ApiGatewayLambdaEvent(
+            http_method=method,
+            body=request_data,
+            resource=endpoint,
+            request_context=context,
+            query_string_params=query_string_dict,
+            multi_value_query_string_params=multi_value_query_string_dict,
+            headers=headers_dict,
+            multi_value_headers=multi_value_headers_dict,
+            path_parameters=flask_request.view_args,
+            path=flask_request.path,
+            is_base_64_encoded=is_base_64,
+            stage_variables=stage_variables,
+        )
 
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)

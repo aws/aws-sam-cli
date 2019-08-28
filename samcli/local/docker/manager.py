@@ -20,10 +20,7 @@ class ContainerManager(object):
     serve requests faster. It is also thread-safe.
     """
 
-    def __init__(self,
-                 docker_network_id=None,
-                 docker_client=None,
-                 skip_pull_image=False):
+    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False):
         """
         Instantiate the container manager
 
@@ -76,7 +73,7 @@ class ContainerManager(object):
 
         # Skip Pulling a new image if: a) Image name is samcli/lambda OR b) Image is available AND
         # c) We are asked to skip pulling the image
-        if (is_image_local and self.skip_pull_image) or image_name.startswith('samcli/lambda'):
+        if (is_image_local and self.skip_pull_image) or image_name.startswith("samcli/lambda"):
             LOG.info("Requested to skip pulling images ...\n")
         else:
             try:
@@ -84,10 +81,10 @@ class ContainerManager(object):
             except DockerImagePullFailedException:
                 if not is_image_local:
                     raise DockerImagePullFailedException(
-                        "Could not find {} image locally and failed to pull it from docker.".format(image_name))
+                        "Could not find {} image locally and failed to pull it from docker.".format(image_name)
+                    )
 
-                LOG.info(
-                    "Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
+                LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
 
         if not container.is_created():
             # Create the container first before running.
@@ -135,7 +132,7 @@ class ContainerManager(object):
         # Each line contains information on progress of the pull. Each line is a JSON string
         for _ in result_itr:
             # For every line, print a dot to show progress
-            stream_writer.write(u'.')
+            stream_writer.write(u".")
             stream_writer.flush()
 
         # We are done. Go to the next line

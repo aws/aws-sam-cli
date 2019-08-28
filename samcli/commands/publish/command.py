@@ -18,8 +18,8 @@ from samcli.lib.telemetry.metrics import track_command
 
 LOG = logging.getLogger(__name__)
 
-SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html" # noqa
-SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html" # noqa
+SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html"  # noqa
+SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html"  # noqa
 HELP_TEXT = """
 Use this command to publish a packaged AWS SAM template to
 the AWS Serverless Application Repository to share within your team,
@@ -34,16 +34,18 @@ Examples
 --------
 To publish an application
 $ sam publish -t packaged.yaml --region <region>
-""".format(SAM_PUBLISH_DOC)
+""".format(
+    SAM_PUBLISH_DOC
+)
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
 SERVERLESSREPO_CONSOLE_URL = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
 SEMANTIC_VERSION_HELP = "Optional. The value provided here overrides SemanticVersion in the template metadata."
-SEMANTIC_VERSION = 'SemanticVersion'
+SEMANTIC_VERSION = "SemanticVersion"
 
 
 @click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
 @template_common_option
-@click.option('--semantic-version', help=SEMANTIC_VERSION_HELP)
+@click.option("--semantic-version", help=SEMANTIC_VERSION_HELP)
 @aws_creds_options
 @cli_framework_options
 @pass_context
@@ -59,7 +61,7 @@ def do_cli(ctx, template, semantic_version):
     try:
         template_data = get_template_data(template)
     except ValueError as ex:
-        click.secho("Publish Failed", fg='red')
+        click.secho("Publish Failed", fg="red")
         raise UserException(str(ex))
 
     # Override SemanticVersion in template metadata when provided in command input
@@ -71,17 +73,18 @@ def do_cli(ctx, template, semantic_version):
         click.secho("Publish Succeeded", fg="green")
         click.secho(_gen_success_message(publish_output))
     except InvalidS3UriError:
-        click.secho("Publish Failed", fg='red')
+        click.secho("Publish Failed", fg="red")
         raise UserException(
             "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
-            "artifacts to S3 by packaging the template. See more details in {}".format(SAM_PACKAGE_DOC))
+            "artifacts to S3 by packaging the template. See more details in {}".format(SAM_PACKAGE_DOC)
+        )
     except ServerlessRepoError as ex:
-        click.secho("Publish Failed", fg='red')
+        click.secho("Publish Failed", fg="red")
         LOG.debug("Failed to publish application to serverlessrepo", exc_info=True)
-        error_msg = '{}\nPlease follow the instructions in {}'.format(str(ex), SAM_PUBLISH_DOC)
+        error_msg = "{}\nPlease follow the instructions in {}".format(str(ex), SAM_PUBLISH_DOC)
         raise UserException(error_msg)
 
-    application_id = publish_output.get('application_id')
+    application_id = publish_output.get("application_id")
     _print_console_link(ctx.region, application_id)
 
 
@@ -99,10 +102,10 @@ def _gen_success_message(publish_output):
     str
         Detailed success message
     """
-    application_id = publish_output.get('application_id')
-    details = json.dumps(publish_output.get('details'), indent=2)
+    application_id = publish_output.get("application_id")
+    details = json.dumps(publish_output.get("details"), indent=2)
 
-    if CREATE_APPLICATION in publish_output.get('actions'):
+    if CREATE_APPLICATION in publish_output.get("actions"):
         return "Created new application with the following metadata:\n{}".format(details)
 
     return 'The following metadata of application "{}" has been updated:\n{}'.format(application_id, details)
@@ -123,6 +126,6 @@ def _print_console_link(region, application_id):
     if not region:
         region = boto3.Session().region_name
 
-    console_link = SERVERLESSREPO_CONSOLE_URL.format(region, application_id.replace('/', '~'))
+    console_link = SERVERLESSREPO_CONSOLE_URL.format(region, application_id.replace("/", "~"))
     msg = "Click the link below to view your application in AWS console:\n{}".format(console_link)
     click.secho(msg, fg="yellow")

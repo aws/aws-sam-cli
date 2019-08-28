@@ -7,9 +7,7 @@ import os
 from six import string_types
 
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
-from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import (
-    InvalidSymbolException,
-)
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
 
 LOG = logging.getLogger(__name__)
 
@@ -43,19 +41,12 @@ class IntrinsicsSymbolTable(object):
         "AWS::Region": "us-east-1",
         "AWS::StackName": "local",
         "AWS::StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/"
-                        "local/51af3dc0-da77-11e4-872e-1234567db123",
+        "local/51af3dc0-da77-11e4-872e-1234567db123",
         "AWS::URLSuffix": "localhost",
     }
 
     REGIONS = {
-        "us-east-1": [
-            "us-east-1a",
-            "us-east-1b",
-            "us-east-1c",
-            "us-east-1d",
-            "us-east-1e",
-            "us-east-1f",
-        ],
+        "us-east-1": ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"],
         "us-west-1": ["us-west-1b", "us-west-1c"],
         "eu-north-1": ["eu-north-1a", "eu-north-1b", "eu-north-1c"],
         "ap-northeast-3": ["ap-northeast-3a"],
@@ -91,11 +82,7 @@ class IntrinsicsSymbolTable(object):
     CFN_RESOURCE_TYPE = "Type"
 
     def __init__(
-            self,
-            template=None,
-            logical_id_translator=None,
-            default_type_resolver=None,
-            common_attribute_resolver=None,
+        self, template=None, logical_id_translator=None, default_type_resolver=None, common_attribute_resolver=None
     ):
         """
         Initializes the Intrinsic Symbol Table so that runtime attributes can be resolved.
@@ -150,12 +137,8 @@ class IntrinsicsSymbolTable(object):
         self._parameters = self._template.get("Parameters", {})
         self._resources = self._template.get("Resources", {})
 
-        self.default_type_resolver = (
-                default_type_resolver or self.get_default_type_resolver()
-        )
-        self.common_attribute_resolver = (
-                common_attribute_resolver or self.get_default_attribute_resolver()
-        )
+        self.default_type_resolver = default_type_resolver or self.get_default_type_resolver()
+        self.common_attribute_resolver = common_attribute_resolver or self.get_default_attribute_resolver()
         self.default_pseudo_resolver = self.get_default_pseudo_resolver()
 
     def get_default_pseudo_resolver(self):
@@ -183,7 +166,7 @@ class IntrinsicsSymbolTable(object):
             },
             "AWS::Serverless::LayerVersion": {
                 IntrinsicResolver.REF: lambda logical_id: {IntrinsicResolver.REF: logical_id}
-            }
+            },
         }
 
     def resolve_symbols(self, logical_id, resource_attribute, ignore_errors=False):
@@ -228,15 +211,9 @@ class IntrinsicsSymbolTable(object):
         if translated:
             return translated
         # Handle Default Property Type Resolution
-        resource_type = self._resources.get(logical_id, {}).get(
-            IntrinsicsSymbolTable.CFN_RESOURCE_TYPE
-        )
+        resource_type = self._resources.get(logical_id, {}).get(IntrinsicsSymbolTable.CFN_RESOURCE_TYPE)
 
-        resolver = (
-            self.default_type_resolver.get(resource_type, {}).get(resource_attribute)
-            if resource_type
-            else {}
-        )
+        resolver = self.default_type_resolver.get(resource_type, {}).get(resource_attribute) if resource_type else {}
         if resolver:
             if callable(resolver):
                 return resolver(logical_id)
@@ -253,9 +230,7 @@ class IntrinsicsSymbolTable(object):
             return "${}".format(logical_id + "." + resource_attribute)
         raise InvalidSymbolException(
             "The {} is not supported in the logical_id_translator, default_type_resolver, or the attribute_resolver."
-            " It is also not a supported pseudo function".format(
-                logical_id + "." + resource_attribute
-            )
+            " It is also not a supported pseudo function".format(logical_id + "." + resource_attribute)
         )
 
     def arn_resolver(self, logical_id, service_name="lambda"):
@@ -276,7 +251,7 @@ class IntrinsicsSymbolTable(object):
         """
         aws_region = self.handle_pseudo_region()
         account_id = (
-                self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
+            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
         )
         partition_name = self.handle_pseudo_partition()
         resource_name = logical_id
@@ -310,13 +285,8 @@ class IntrinsicsSymbolTable(object):
 
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
-        if any(
-                isinstance(logical_id_item, object_type)
-                for object_type in [string_types, list, bool, int]
-        ):
-            if (
-                    resource_attributes != IntrinsicResolver.REF and resource_attributes != ""
-            ):
+        if any(isinstance(logical_id_item, object_type) for object_type in [string_types, list, bool, int]):
+            if resource_attributes != IntrinsicResolver.REF and resource_attributes != "":
                 return None
             return logical_id_item
 
@@ -346,9 +316,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A pseudo account id
         """
-        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
-            IntrinsicsSymbolTable.AWS_ACCOUNT_ID
-        )
+        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
 
     def handle_pseudo_region(self):
         """
@@ -361,10 +329,9 @@ class IntrinsicsSymbolTable(object):
         The region from the environment or a default one
         """
         return (
-                self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION) or os.getenv("AWS_REGION") or
-                IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
-                    IntrinsicsSymbolTable.AWS_REGION
-                )
+            self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION)
+            or os.getenv("AWS_REGION")
+            or IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_REGION)
         )
 
     def handle_pseudo_url_prefix(self):
@@ -409,9 +376,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
-            IntrinsicsSymbolTable.AWS_STACK_ID
-        )
+        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_ID)
 
     @staticmethod
     def handle_pseudo_stack_name():
@@ -424,9 +389,7 @@ class IntrinsicsSymbolTable(object):
         -------
         A randomized string
         """
-        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(
-            IntrinsicsSymbolTable.AWS_STACK_NAME
-        )
+        return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_NAME)
 
     @staticmethod
     def handle_pseudo_no_value():

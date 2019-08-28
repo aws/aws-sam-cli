@@ -9,7 +9,6 @@ from samcli.local.docker.container import Container
 
 
 class TestContainer_init(TestCase):
-
     def setUp(self):
         self.image = "image"
         self.cmd = "cmd"
@@ -24,15 +23,17 @@ class TestContainer_init(TestCase):
 
     def test_init_must_store_all_values(self):
 
-        container = Container(self.image,
-                              self.cmd,
-                              self.working_dir,
-                              self.host_dir,
-                              self.memory_mb,
-                              self.exposed_ports,
-                              self.entrypoint,
-                              self.env_vars,
-                              self.mock_docker_client)
+        container = Container(
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            self.memory_mb,
+            self.exposed_ports,
+            self.entrypoint,
+            self.env_vars,
+            self.mock_docker_client,
+        )
 
         self.assertEquals(self.image, container._image)
         self.assertEquals(self.cmd, container._cmd)
@@ -48,7 +49,6 @@ class TestContainer_init(TestCase):
 
 
 class TestContainer_create(TestCase):
-
     def setUp(self):
         self.image = "image"
         self.cmd = "cmd"
@@ -59,7 +59,7 @@ class TestContainer_create(TestCase):
         self.entrypoint = ["a", "b", "c"]
         self.env_vars = {"key": "value"}
         self.container_opts = {"container": "opts"}
-        self.additional_volumes = {'/somepath': {"blah": "blah value"}}
+        self.additional_volumes = {"/somepath": {"blah": "blah value"}}
 
         self.mock_docker_client = Mock()
         self.mock_docker_client.containers = Mock()
@@ -73,32 +73,27 @@ class TestContainer_create(TestCase):
         :return:
         """
 
-        expected_volumes = {
-            self.host_dir: {
-                "bind": self.working_dir,
-                "mode": "ro,delegated"
-            }
-        }
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
         generated_id = "fooobar"
         self.mock_docker_client.containers.create.return_value = Mock()
         self.mock_docker_client.containers.create.return_value.id = generated_id
 
-        container = Container(self.image,
-                              self.cmd,
-                              self.working_dir,
-                              self.host_dir,
-                              docker_client=self.mock_docker_client)
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
 
         container_id = container.create()
         self.assertEquals(container_id, generated_id)
         self.assertEquals(container.id, generated_id)
 
-        self.mock_docker_client.containers.create.assert_called_with(self.image,
-                                                                     command=self.cmd,
-                                                                     working_dir=self.working_dir,
-                                                                     volumes=expected_volumes,
-                                                                     tty=False,
-                                                                     use_config_proxy=True)
+        self.mock_docker_client.containers.create.assert_called_with(
+            self.image,
+            command=self.cmd,
+            working_dir=self.working_dir,
+            volumes=expected_volumes,
+            tty=False,
+            use_config_proxy=True,
+        )
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_create_container_including_all_optional_values(self):
@@ -108,11 +103,8 @@ class TestContainer_create(TestCase):
         """
 
         expected_volumes = {
-            self.host_dir: {
-                "bind": self.working_dir,
-                "mode": "ro,delegated"
-            },
-            '/somepath': {"blah": "blah value"}
+            self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"},
+            "/somepath": {"blah": "blah value"},
         }
         expected_memory = "{}m".format(self.memory_mb)
 
@@ -120,35 +112,37 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.containers.create.return_value = Mock()
         self.mock_docker_client.containers.create.return_value.id = generated_id
 
-        container = Container(self.image,
-                              self.cmd,
-                              self.working_dir,
-                              self.host_dir,
-                              memory_limit_mb=self.memory_mb,
-                              exposed_ports=self.exposed_ports,
-                              entrypoint=self.entrypoint,
-                              env_vars=self.env_vars,
-                              docker_client=self.mock_docker_client,
-                              container_opts=self.container_opts,
-                              additional_volumes=self.additional_volumes
-                              )
+        container = Container(
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            memory_limit_mb=self.memory_mb,
+            exposed_ports=self.exposed_ports,
+            entrypoint=self.entrypoint,
+            env_vars=self.env_vars,
+            docker_client=self.mock_docker_client,
+            container_opts=self.container_opts,
+            additional_volumes=self.additional_volumes,
+        )
 
         container_id = container.create()
         self.assertEquals(container_id, generated_id)
         self.assertEquals(container.id, generated_id)
 
-        self.mock_docker_client.containers.create.assert_called_with(self.image,
-                                                                     command=self.cmd,
-                                                                     working_dir=self.working_dir,
-                                                                     volumes=expected_volumes,
-                                                                     tty=False,
-                                                                     use_config_proxy=True,
-                                                                     environment=self.env_vars,
-                                                                     ports=self.exposed_ports,
-                                                                     entrypoint=self.entrypoint,
-                                                                     mem_limit=expected_memory,
-                                                                     container='opts'
-                                                                     )
+        self.mock_docker_client.containers.create.assert_called_with(
+            self.image,
+            command=self.cmd,
+            working_dir=self.working_dir,
+            volumes=expected_volumes,
+            tty=False,
+            use_config_proxy=True,
+            environment=self.env_vars,
+            ports=self.exposed_ports,
+            entrypoint=self.entrypoint,
+            mem_limit=expected_memory,
+            container="opts",
+        )
         self.mock_docker_client.networks.get.assert_not_called()
 
     @patch("samcli.local.docker.utils.os")
@@ -160,24 +154,13 @@ class TestContainer_create(TestCase):
 
         os_mock.name = "nt"
         host_dir = "C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1337"
-        additional_volumes = {
-            "C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1338": {
-                "blah": "blah value"
-            }
-        }
+        additional_volumes = {"C:\\Users\\Username\\AppData\\Local\\Temp\\tmp1338": {"blah": "blah value"}}
 
         translated_volumes = {
-            "/c/Users/Username/AppData/Local/Temp/tmp1337": {
-                "bind": self.working_dir,
-                "mode": "ro,delegated"
-            }
+            "/c/Users/Username/AppData/Local/Temp/tmp1337": {"bind": self.working_dir, "mode": "ro,delegated"}
         }
 
-        translated_additional_volumes = {
-            "/c/Users/Username/AppData/Local/Temp/tmp1338": {
-                "blah": "blah value"
-            }
-        }
+        translated_additional_volumes = {"/c/Users/Username/AppData/Local/Temp/tmp1338": {"blah": "blah value"}}
 
         translated_volumes.update(translated_additional_volumes)
         expected_memory = "{}m".format(self.memory_mb)
@@ -186,35 +169,37 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.containers.create.return_value = Mock()
         self.mock_docker_client.containers.create.return_value.id = generated_id
 
-        container = Container(self.image,
-                              self.cmd,
-                              self.working_dir,
-                              host_dir,
-                              memory_limit_mb=self.memory_mb,
-                              exposed_ports=self.exposed_ports,
-                              entrypoint=self.entrypoint,
-                              env_vars=self.env_vars,
-                              docker_client=self.mock_docker_client,
-                              container_opts=self.container_opts,
-                              additional_volumes=additional_volumes
-                              )
+        container = Container(
+            self.image,
+            self.cmd,
+            self.working_dir,
+            host_dir,
+            memory_limit_mb=self.memory_mb,
+            exposed_ports=self.exposed_ports,
+            entrypoint=self.entrypoint,
+            env_vars=self.env_vars,
+            docker_client=self.mock_docker_client,
+            container_opts=self.container_opts,
+            additional_volumes=additional_volumes,
+        )
 
         container_id = container.create()
         self.assertEquals(container_id, generated_id)
         self.assertEquals(container.id, generated_id)
 
-        self.mock_docker_client.containers.create.assert_called_with(self.image,
-                                                                     command=self.cmd,
-                                                                     working_dir=self.working_dir,
-                                                                     volumes=translated_volumes,
-                                                                     tty=False,
-                                                                     use_config_proxy=True,
-                                                                     environment=self.env_vars,
-                                                                     ports=self.exposed_ports,
-                                                                     entrypoint=self.entrypoint,
-                                                                     mem_limit=expected_memory,
-                                                                     container='opts'
-                                                                     )
+        self.mock_docker_client.containers.create.assert_called_with(
+            self.image,
+            command=self.cmd,
+            working_dir=self.working_dir,
+            volumes=translated_volumes,
+            tty=False,
+            use_config_proxy=True,
+            environment=self.env_vars,
+            ports=self.exposed_ports,
+            entrypoint=self.entrypoint,
+            mem_limit=expected_memory,
+            container="opts",
+        )
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_connect_to_network_on_create(self):
@@ -222,12 +207,7 @@ class TestContainer_create(TestCase):
         Create a container with only required values. Optional values are not provided
         :return:
         """
-        expected_volumes = {
-            self.host_dir: {
-                "bind": self.working_dir,
-                "mode": "ro,delegated"
-            }
-        }
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
 
         network_id = "some id"
         generated_id = "fooobar"
@@ -238,24 +218,23 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.return_value = network_mock
         network_mock.connect = Mock()
 
-        container = Container(self.image,
-                              self.cmd,
-                              self.working_dir,
-                              self.host_dir,
-                              docker_client=self.mock_docker_client)
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
 
         container.network_id = network_id
 
         container_id = container.create()
         self.assertEquals(container_id, generated_id)
 
-        self.mock_docker_client.containers.create.assert_called_with(self.image,
-                                                                     command=self.cmd,
-                                                                     working_dir=self.working_dir,
-                                                                     tty=False,
-                                                                     use_config_proxy=True,
-                                                                     volumes=expected_volumes
-                                                                     )
+        self.mock_docker_client.containers.create.assert_called_with(
+            self.image,
+            command=self.cmd,
+            working_dir=self.working_dir,
+            tty=False,
+            use_config_proxy=True,
+            volumes=expected_volumes,
+        )
 
         self.mock_docker_client.networks.get.assert_called_with(network_id)
         network_mock.connect.assert_called_with(container_id)
@@ -265,12 +244,7 @@ class TestContainer_create(TestCase):
         Create a container with only required values. Optional values are not provided
         :return:
         """
-        expected_volumes = {
-            self.host_dir: {
-                "bind": self.working_dir,
-                "mode": "ro,delegated"
-            }
-        }
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
 
         network_id = "host"
         generated_id = "fooobar"
@@ -281,35 +255,32 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.return_value = network_mock
         network_mock.connect = Mock()
 
-        container = Container(self.image,
-                              self.cmd,
-                              self.working_dir,
-                              self.host_dir,
-                              docker_client=self.mock_docker_client)
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
 
         container.network_id = network_id
 
         container_id = container.create()
         self.assertEquals(container_id, generated_id)
 
-        self.mock_docker_client.containers.create.assert_called_with(self.image,
-                                                                     command=self.cmd,
-                                                                     working_dir=self.working_dir,
-                                                                     tty=False,
-                                                                     use_config_proxy=True,
-                                                                     volumes=expected_volumes,
-                                                                     network_mode='host'
-                                                                     )
+        self.mock_docker_client.containers.create.assert_called_with(
+            self.image,
+            command=self.cmd,
+            working_dir=self.working_dir,
+            tty=False,
+            use_config_proxy=True,
+            volumes=expected_volumes,
+            network_mode="host",
+        )
 
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_fail_if_already_created(self):
 
-        container = Container(self.image,
-                              self.cmd,
-                              self.working_dir,
-                              self.host_dir,
-                              docker_client=self.mock_docker_client)
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
 
         container.is_created = Mock()
         container.is_created.return_value = True
@@ -319,7 +290,6 @@ class TestContainer_create(TestCase):
 
 
 class TestContainer_delete(TestCase):
-
     def setUp(self):
         self.image = "image"
         self.cmd = "cmd"
@@ -330,11 +300,9 @@ class TestContainer_delete(TestCase):
         self.mock_docker_client.containers = Mock()
         self.mock_docker_client.containers.get = Mock()
 
-        self.container = Container(self.image,
-                                   self.cmd,
-                                   self.working_dir,
-                                   self.host_dir,
-                                   docker_client=self.mock_docker_client)
+        self.container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
         self.container.id = "someid"
 
         self.container.is_created = Mock()
@@ -404,7 +372,6 @@ class TestContainer_delete(TestCase):
 
 
 class TestContainer_start(TestCase):
-
     def setUp(self):
         self.image = "image"
         self.cmd = "cmd"
@@ -415,11 +382,9 @@ class TestContainer_start(TestCase):
         self.mock_docker_client.containers = Mock()
         self.mock_docker_client.containers.get = Mock()
 
-        self.container = Container(self.image,
-                                   self.cmd,
-                                   self.working_dir,
-                                   self.host_dir,
-                                   docker_client=self.mock_docker_client)
+        self.container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
         self.container.id = "someid"
 
         self.container.is_created = Mock()
@@ -453,7 +418,6 @@ class TestContainer_start(TestCase):
 
 
 class TestContainer_wait_for_logs(TestCase):
-
     def setUp(self):
         self.image = "image"
         self.cmd = ["cmd"]
@@ -464,11 +428,9 @@ class TestContainer_wait_for_logs(TestCase):
         self.mock_docker_client.containers = Mock()
         self.mock_docker_client.containers.get = Mock()
 
-        self.container = Container(self.image,
-                                   self.cmd,
-                                   self.working_dir,
-                                   self.host_dir,
-                                   docker_client=self.mock_docker_client)
+        self.container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
         self.container.id = "someid"
 
         self.container.is_created = Mock()
@@ -490,8 +452,9 @@ class TestContainer_wait_for_logs(TestCase):
 
         self.container.wait_for_logs(stdout=stdout_mock, stderr=stderr_mock)
 
-        attach_mock.assert_called_with(self.mock_docker_client, container=real_container_mock,
-                                       stdout=True, stderr=True, logs=True)
+        attach_mock.assert_called_with(
+            self.mock_docker_client, container=real_container_mock, stdout=True, stderr=True, logs=True
+        )
         self.container._write_container_output.assert_called_with(output_itr, stdout=stdout_mock, stderr=stderr_mock)
 
     def test_must_skip_if_no_stdout_and_stderr(self):
@@ -508,17 +471,14 @@ class TestContainer_wait_for_logs(TestCase):
 
 
 class TestContainer_write_container_output(TestCase):
-
     def setUp(self):
         self.output_itr = [
             (Container._STDOUT_FRAME_TYPE, b"stdout1"),
             (Container._STDERR_FRAME_TYPE, b"stderr1"),
             (30, b"invalid1"),
-
             (Container._STDOUT_FRAME_TYPE, b"stdout2"),
             (Container._STDERR_FRAME_TYPE, b"stderr2"),
             (30, b"invalid2"),
-
             (Container._STDOUT_FRAME_TYPE, b"stdout3"),
             (Container._STDERR_FRAME_TYPE, b"stderr3"),
             (30, b"invalid3"),
@@ -532,21 +492,15 @@ class TestContainer_write_container_output(TestCase):
 
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=self.stderr_mock)
 
-        self.stdout_mock.write.assert_has_calls([
-            call(b"stdout1"), call(b"stdout2"), call(b"stdout3")
-        ])
+        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2"), call(b"stdout3")])
 
-        self.stderr_mock.write.assert_has_calls([
-            call(b"stderr1"), call(b"stderr2"), call(b"stderr3")
-        ])
+        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2"), call(b"stderr3")])
 
     def test_must_write_only_stdout(self):
 
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
 
-        self.stdout_mock.write.assert_has_calls([
-            call(b"stdout1"), call(b"stdout2"), call(b"stdout3")
-        ])
+        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2"), call(b"stdout3")])
 
         self.stderr_mock.write.assert_not_called()  # stderr must never be called
 
@@ -557,13 +511,10 @@ class TestContainer_write_container_output(TestCase):
 
         self.stdout_mock.write.assert_not_called()
 
-        self.stderr_mock.write.assert_has_calls([
-            call(b"stderr1"), call(b"stderr2"), call(b"stderr3")
-        ])
+        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2"), call(b"stderr3")])
 
 
 class TestContainer_image(TestCase):
-
     def test_must_return_image_value(self):
         image = "myimage"
         container = Container(image, "cmd", "dir", "dir")
@@ -572,14 +523,13 @@ class TestContainer_image(TestCase):
 
 
 class TestContainer_copy(TestCase):
-
     def setUp(self):
         self.mock_client = Mock()
         self.container = Container("image", "cmd", "dir", "dir", docker_client=self.mock_client)
         self.container.id = "containerid"
 
-    @patch('samcli.local.docker.container.tempfile')
-    @patch('samcli.local.docker.container.tarfile')
+    @patch("samcli.local.docker.container.tempfile")
+    @patch("samcli.local.docker.container.tarfile")
     def test_must_copy_files_from_container(self, tarfile_mock, tempfile_mock):
         source = "source"
         dest = "dest"
@@ -604,5 +554,5 @@ class TestContainer_copy(TestCase):
         fp_mock.write.assert_has_calls([call(x) for x in tar_stream], any_order=False)
 
         # Make sure we open the tarfile right and extract to right location
-        tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode='r')
+        tarfile_mock.open.assert_called_with(fileobj=fp_mock, mode="r")
         tar_mock.extractall(path=dest)

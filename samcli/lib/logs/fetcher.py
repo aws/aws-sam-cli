@@ -56,10 +56,7 @@ class LogsFetcher(object):
             Object containing the information from each log event returned by CloudWatch Logs
         """
 
-        kwargs = {
-            "logGroupName": log_group_name,
-            "interleaved": True
-        }
+        kwargs = {"logGroupName": log_group_name, "interleaved": True}
 
         if start:
             kwargs["startTime"] = to_timestamp(start)
@@ -75,7 +72,7 @@ class LogsFetcher(object):
             result = self.cw_client.filter_log_events(**kwargs)
 
             # Several events will be returned. Yield one at a time
-            for event in result.get('events', []):
+            for event in result.get("events", []):
                 yield LogEvent(log_group_name, event)
 
             # Keep iterating until there are no more logs left to query.
@@ -133,9 +130,7 @@ class LogsFetcher(object):
 
             has_data = False
             counter -= 1
-            events_itr = self.fetch(log_group_name,
-                                    start=to_datetime(latest_event_time),
-                                    filter_pattern=filter_pattern)
+            events_itr = self.fetch(log_group_name, start=to_datetime(latest_event_time), filter_pattern=filter_pattern)
 
             # Find the timestamp of the most recent log event.
             for event in events_itr:

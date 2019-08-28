@@ -5,7 +5,6 @@ import logging
 
 
 class SamCliLogger(object):
-
     @staticmethod
     def configure_logger(logger, formatter, level):
         """

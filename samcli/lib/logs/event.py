@@ -37,10 +37,10 @@ class LogEvent(object):
             # this class is a data wrapper to the `events_dict`. It doesn't try to be smart.
             return
 
-        self.log_stream_name = event_dict.get('logStreamName')
-        self.message = event_dict.get('message', '')
+        self.log_stream_name = event_dict.get("logStreamName")
+        self.message = event_dict.get("message", "")
 
-        self.timestamp_millis = event_dict.get('timestamp')
+        self.timestamp_millis = event_dict.get("timestamp")
 
         # Convert the timestamp from epoch to readable ISO timestamp, easier for formatting.
         if self.timestamp_millis:
@@ -51,16 +51,20 @@ class LogEvent(object):
         if not isinstance(other, LogEvent):
             return False
 
-        return self.log_group_name == other.log_group_name \
-            and self.log_stream_name == other.log_stream_name \
-            and self.timestamp == other.timestamp \
+        return (
+            self.log_group_name == other.log_group_name
+            and self.log_stream_name == other.log_stream_name
+            and self.timestamp == other.timestamp
             and self.message == other.message
+        )
 
     def __repr__(self):  # pragma: no cover
         # Used to print pretty diff when testing
-        return str({
-            "log_group_name": self.log_group_name,
-            "log_stream_name": self.log_stream_name,
-            "message": self.message,
-            "timestamp": self.timestamp
-        })
+        return str(
+            {
+                "log_group_name": self.log_group_name,
+                "log_stream_name": self.log_stream_name,
+                "message": self.message,
+                "timestamp": self.timestamp,
+            }
+        )

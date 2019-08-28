@@ -12,7 +12,6 @@ from mock import Mock, PropertyMock, patch, ANY, mock_open
 
 
 class TestInvokeContext__enter__(TestCase):
-
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_read_from_necessary_files(self, SamFunctionProviderMock):
         function_provider = Mock()
@@ -23,19 +22,21 @@ class TestInvokeContext__enter__(TestCase):
         env_vars_file = "env_vars_file"
         log_file = "log_file"
 
-        invoke_context = InvokeContext(template_file=template_file,
-                                       function_identifier="id",
-                                       env_vars_file=env_vars_file,
-                                       docker_volume_basedir="volumedir",
-                                       docker_network="network",
-                                       log_file=log_file,
-                                       skip_pull_image=True,
-                                       debug_port=1111,
-                                       debugger_path="path-to-debugger",
-                                       debug_args='args',
-                                       parameter_overrides={},
-                                       aws_region="region",
-                                       aws_profile="profile")
+        invoke_context = InvokeContext(
+            template_file=template_file,
+            function_identifier="id",
+            env_vars_file=env_vars_file,
+            docker_volume_basedir="volumedir",
+            docker_network="network",
+            log_file=log_file,
+            skip_pull_image=True,
+            debug_port=1111,
+            debugger_path="path-to-debugger",
+            debug_args="args",
+            parameter_overrides={},
+            aws_region="region",
+            aws_profile="profile",
+        )
 
         template_dict = "template_dict"
         invoke_context._get_template_data = Mock()
@@ -86,8 +87,13 @@ class TestInvokeContext__enter__(TestCase):
 
         container_manager_mock = Mock()
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable",
-                          create=True, new_callable=PropertyMock, return_value=True) as is_docker_reachable_mock:
+        with patch.object(
+            type(container_manager_mock),
+            "is_docker_reachable",
+            create=True,
+            new_callable=PropertyMock,
+            return_value=True,
+        ) as is_docker_reachable_mock:
             invoke_context._get_container_manager = Mock()
             invoke_context._get_container_manager.return_value = container_manager_mock
 
@@ -106,8 +112,13 @@ class TestInvokeContext__enter__(TestCase):
 
         container_manager_mock = Mock()
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable",
-                          create=True, new_callable=PropertyMock, return_value=False):
+        with patch.object(
+            type(container_manager_mock),
+            "is_docker_reachable",
+            create=True,
+            new_callable=PropertyMock,
+            return_value=False,
+        ):
 
             invoke_context._get_container_manager = Mock()
             invoke_context._get_container_manager.return_value = container_manager_mock
@@ -115,12 +126,13 @@ class TestInvokeContext__enter__(TestCase):
             with self.assertRaises(InvokeContextException) as ex_ctx:
                 invoke_context.__enter__()
 
-                self.assertEqual("Running AWS SAM projects locally requires Docker. Have you got it installed?",
-                                 str(ex_ctx.exception))
+                self.assertEqual(
+                    "Running AWS SAM projects locally requires Docker. Have you got it installed?",
+                    str(ex_ctx.exception),
+                )
 
 
 class TestInvokeContext__exit__(TestCase):
-
     def test_must_close_opened_logfile(self):
         context = InvokeContext(template_file="template")
         handle_mock = Mock()
@@ -151,17 +163,19 @@ class TestInvokeContextAsContextManager(TestCase):
         context_obj = Mock()
         EnterMock.return_value = context_obj
 
-        with InvokeContext(template_file="template_file",
-                           function_identifier="id",
-                           env_vars_file="env_vars_file",
-                           docker_volume_basedir="volumedir",
-                           docker_network="network",
-                           log_file="log_file",
-                           skip_pull_image=True,
-                           debug_port=1111,
-                           debugger_path="path-to-debugger",
-                           debug_args='args',
-                           aws_profile="profile") as context:
+        with InvokeContext(
+            template_file="template_file",
+            function_identifier="id",
+            env_vars_file="env_vars_file",
+            docker_volume_basedir="volumedir",
+            docker_network="network",
+            log_file="log_file",
+            skip_pull_image=True,
+            debug_port=1111,
+            debugger_path="path-to-debugger",
+            debug_args="args",
+            aws_profile="profile",
+        ) as context:
             self.assertEquals(context_obj, context)
 
         EnterMock.assert_called_with()
@@ -169,7 +183,6 @@ class TestInvokeContextAsContextManager(TestCase):
 
 
 class TestInvokeContext_function_name_property(TestCase):
-
     def test_must_return_function_name_if_present(self):
         id = "id"
         context = InvokeContext(template_file="template_file", function_identifier=id)
@@ -197,33 +210,31 @@ class TestInvokeContext_function_name_property(TestCase):
 
 
 class TestInvokeContext_local_lambda_runner(TestCase):
-
     def setUp(self):
-        self.context = InvokeContext(template_file="template_file",
-                                     function_identifier="id",
-                                     env_vars_file="env_vars_file",
-                                     docker_volume_basedir="volumedir",
-                                     docker_network="network",
-                                     log_file="log_file",
-                                     skip_pull_image=True,
-                                     force_image_build=True,
-                                     debug_port=1111,
-                                     debugger_path="path-to-debugger",
-                                     debug_args='args',
-                                     aws_profile="profile",
-                                     aws_region="region")
+        self.context = InvokeContext(
+            template_file="template_file",
+            function_identifier="id",
+            env_vars_file="env_vars_file",
+            docker_volume_basedir="volumedir",
+            docker_network="network",
+            log_file="log_file",
+            skip_pull_image=True,
+            force_image_build=True,
+            debug_port=1111,
+            debugger_path="path-to-debugger",
+            debug_args="args",
+            aws_profile="profile",
+            aws_region="region",
+        )
 
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_create_runner(self,
-                                SamFunctionProviderMock,
-                                LocalLambdaMock,
-                                LambdaRuntimeMock,
-                                download_layers_mock,
-                                lambda_image_patch):
+    def test_must_create_runner(
+        self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch
+    ):
 
         runtime_mock = Mock()
         LambdaRuntimeMock.return_value = runtime_mock
@@ -256,23 +267,25 @@ class TestInvokeContext_local_lambda_runner(TestCase):
 
             LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
             lambda_image_patch.assert_called_once_with(download_mock, True, True)
-            LocalLambdaMock.assert_called_with(local_runtime=runtime_mock,
-                                               function_provider=ANY,
-                                               cwd=cwd,
-                                               debug_context=None,
-                                               env_vars_values=ANY,
-                                               aws_profile="profile",
-                                               aws_region="region")
+            LocalLambdaMock.assert_called_with(
+                local_runtime=runtime_mock,
+                function_provider=ANY,
+                cwd=cwd,
+                debug_context=None,
+                env_vars_values=ANY,
+                aws_profile="profile",
+                aws_region="region",
+            )
 
 
 class TestInvokeContext_stdout_property(TestCase):
-
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stdout")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_enable_auto_flush_if_debug(self, SamFunctionProviderMock, StreamWriterMock,
-                                             osutils_stdout_mock, ExitMock):
+    def test_must_enable_auto_flush_if_debug(
+        self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock
+    ):
 
         context = InvokeContext(template_file="template", debug_port=6000)
 
@@ -293,9 +306,9 @@ class TestInvokeContext_stdout_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stdout")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_not_enable_auto_flush_if_not_debug(self,
-                                                     SamFunctionProviderMock, StreamWriterMock,
-                                                     osutils_stdout_mock, ExitMock):
+    def test_must_not_enable_auto_flush_if_not_debug(
+        self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock
+    ):
 
         context = InvokeContext(template_file="template")
 
@@ -316,9 +329,9 @@ class TestInvokeContext_stdout_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stdout")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_use_stdout_if_no_log_file_handle(self,
-                                                   SamFunctionProviderMock, StreamWriterMock,
-                                                   osutils_stdout_mock, ExitMock):
+    def test_must_use_stdout_if_no_log_file_handle(
+        self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock
+    ):
 
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
@@ -370,13 +383,13 @@ class TestInvokeContext_stdout_property(TestCase):
 
 
 class TestInvokeContext_stderr_property(TestCase):
-
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stderr")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_enable_auto_flush_if_debug(self, SamFunctionProviderMock, StreamWriterMock,
-                                             osutils_stderr_mock, ExitMock):
+    def test_must_enable_auto_flush_if_debug(
+        self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock
+    ):
 
         context = InvokeContext(template_file="template", debug_port=6000)
 
@@ -397,9 +410,9 @@ class TestInvokeContext_stderr_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stderr")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_not_enable_auto_flush_if_not_debug(self,
-                                                     SamFunctionProviderMock, StreamWriterMock,
-                                                     osutils_stderr_mock, ExitMock):
+    def test_must_not_enable_auto_flush_if_not_debug(
+        self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock
+    ):
 
         context = InvokeContext(template_file="template")
 
@@ -420,9 +433,9 @@ class TestInvokeContext_stderr_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stderr")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_use_stderr_if_no_log_file_handle(self,
-                                                   SamFunctionProviderMock, StreamWriterMock,
-                                                   osutils_stderr_mock, ExitMock):
+    def test_must_use_stderr_if_no_log_file_handle(
+        self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock
+    ):
 
         stream_writer_mock = Mock()
         StreamWriterMock.return_value = stream_writer_mock
@@ -474,7 +487,6 @@ class TestInvokeContext_stderr_property(TestCase):
 
 
 class TestInvokeContext_template_property(TestCase):
-
     def test_must_return_tempalte_dict(self):
         context = InvokeContext(template_file="file")
         context._template_dict = "My template"
@@ -483,7 +495,6 @@ class TestInvokeContext_template_property(TestCase):
 
 
 class TestInvokeContextget_cwd(TestCase):
-
     def test_must_return_template_file_dir_name(self):
         filename = "filename"
         context = InvokeContext(template_file=filename)
@@ -502,7 +513,6 @@ class TestInvokeContextget_cwd(TestCase):
 
 
 class TestInvokeContext_get_env_vars_value(TestCase):
-
     def test_must_return_if_no_file(self):
         result = InvokeContext._get_env_vars_value(filename=None)
         self.assertIsNone(result, "No value must be returned")
@@ -519,11 +529,11 @@ class TestInvokeContext_get_env_vars_value(TestCase):
 
             self.assertEquals(expected, result)
 
-        m.assert_called_with(filename, 'r')
+        m.assert_called_with(filename, "r")
 
     def test_must_raise_if_failed_to_parse_json(self):
         filename = "filename"
-        file_data = 'invalid json'
+        file_data = "invalid json"
 
         m = mock_open(read_data=file_data)
 
@@ -533,12 +543,12 @@ class TestInvokeContext_get_env_vars_value(TestCase):
                 InvokeContext._get_env_vars_value(filename)
 
             msg = str(ex_ctx.exception)
-            self.assertTrue(msg.startswith("Could not read environment variables overrides from file {}".format(
-                filename)))
+            self.assertTrue(
+                msg.startswith("Could not read environment variables overrides from file {}".format(filename))
+            )
 
 
 class TestInvokeContext_setup_log_file(TestCase):
-
     def test_must_return_if_file_not_given(self):
         result = InvokeContext._setup_log_file(log_file=None)
         self.assertIsNone(result, "Log file must not be setup")
@@ -550,11 +560,10 @@ class TestInvokeContext_setup_log_file(TestCase):
         with patch("samcli.commands.local.cli_common.invoke_context.open", m):
             InvokeContext._setup_log_file(filename)
 
-        m.assert_called_with(filename, 'wb')
+        m.assert_called_with(filename, "wb")
 
 
 class TestInvokeContext_get_debug_context(TestCase):
-
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_debugger_path_not_found(self, pathlib_mock):
         error = OSError()
@@ -562,7 +571,7 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.side_effect = error
 
         with self.assertRaises(DebugContextException):
-            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path='somepath')
+            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path="somepath")
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_debugger_path_not_dir(self, pathlib_mock):
@@ -573,7 +582,7 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.return_value = pathlib_path_mock
 
         with self.assertRaises(DebugContextException):
-            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path='somepath')
+            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path="somepath")
 
     def test_no_debug_port(self):
         debug_context = InvokeContext._get_debug_context(None, None, None)
@@ -587,7 +596,7 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.side_effect = OSError()
 
         with self.assertRaises(OSError):
-            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path='somepath')
+            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path="somepath")
 
     @patch("samcli.commands.local.cli_common.invoke_context.DebugContext")
     def test_debug_port_given_without_debugger_path(self, debug_context_mock):
