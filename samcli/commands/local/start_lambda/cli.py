@@ -102,14 +102,14 @@ def cli(
     )  # pragma: no cover
 
 
-def do_cli(
+def do_cli(  # pylint: disable=R0914
     ctx,
     host,
     port,
     template,
     env_vars,
     debug_port,
-    debug_args,  # pylint: disable=R0914
+    debug_args,
     debugger_path,
     docker_volume_basedir,
     docker_network,
