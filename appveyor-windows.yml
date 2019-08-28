@@ -13,6 +13,8 @@ environment:
   # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
   # to find root of tempdir
   TMPDIR: D:\tmp
+  TEMP: D:\tmp
+  TMP: D:\tmp
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
@@ -49,45 +51,47 @@ install:
     - "python -c \"import sys; print(sys.executable)\""
     - "python --version"
 
-    # Actually install SAM CLI's dependencies
-    - "pip install -e \".[dev]\""
+    # # Actually install SAM CLI's dependencies
+    # - "pip install -e \".[dev]\""
 
 
-    # To run Nodejs workflow integ tests
-    - "choco install nodejs-lts -y --force"
-    - "refreshenv"
-    # setup Ruby
-    - "choco install ruby --version 2.5.3.101 --force -y"
-    - "refreshenv"
-    - "ruby --version"
-    - "gem --version"
-    - "gem install bundler -v 1.17.3"
-    - "refreshenv"
-    - "bundler --version"
-    - "echo %PATH%"
+    # # To run Nodejs workflow integ tests
+    # - "choco install nodejs-lts -y --force"
+    # - "refreshenv"
+    # # setup Ruby
+    # - "choco install ruby --version 2.5.3.101 --force -y"
+    # - "refreshenv"
+    # - "ruby --version"
+    # - "gem --version"
+    # - "gem install bundler -v 1.17.3"
+    # - "refreshenv"
+    # - "bundler --version"
+    # - "echo %PATH%"
 
-    # setup Java, Maven and Gradle
-    - "refreshenv"
-    - "choco install jdk8 -y --force"
-    - "refreshenv"
-    - "choco install maven -y --force"
-    - "refreshenv"
-    - "choco install gradle -y --force"
-    - "refreshenv"
-    - "java -version"
-    - "gradle -v"
-    - "mvn --version"
+    # # setup Java, Maven and Gradle
+    # - "refreshenv"
+    # - "choco install jdk8 -y --force"
+    # - "refreshenv"
+    # - "choco install maven -y --force"
+    # - "refreshenv"
+    # - "choco install gradle -y --force"
+    # - "refreshenv"
+    # - "java -version"
+    # - "gradle -v"
+    # - "mvn --version"
 
-    # Switch to Docker Linux containers
-    - ps: Switch-DockerLinux
+    # # Switch to Docker Linux containers
+    # - ps: Switch-DockerLinux
 
-    # Echo final Path
-    - "echo %PATH%"
+    # # Echo final Path
+    # - "echo %PATH%"
 
 test_script:
     # Reactivate virtualenv before running tests
+    - "echo $TMPDIR"
     - "venv\\Scripts\\activate"
-    - "pytest -vv tests/integration"
+    - "python -c \"import tempfile; print(tempfile.gettempdir())\""
+    # - "pytest -vv tests/integration"
 
 # Uncomment for RDP
 on_finish:
