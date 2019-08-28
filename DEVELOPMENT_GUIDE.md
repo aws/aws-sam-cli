@@ -39,7 +39,7 @@ easily setup multiple Python versions.
 ### 2. Install Additional Tooling
 #### Black
 We format our code using [Black](https://github.com/python/black) and verify the source code is black compliant
-in Travis during PRs. You can find installation instructions on [Black's docs](https://black.readthedocs.io/en/stable/installation_and_usage.html).
+in Appveyor during PRs. You can find installation instructions on [Black's docs](https://black.readthedocs.io/en/stable/installation_and_usage.html).
 
 After installing, you can run our formatting through our Makefile by `make black-format` or integrating Black directly in your favorite IDE (instructions
 can be found [here](https://black.readthedocs.io/en/stable/editor_integration.html))
