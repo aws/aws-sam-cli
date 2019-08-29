@@ -86,11 +86,13 @@ install:
     # Echo final Path
     - "echo %PATH%"
 
-# test_script:
-    # Reactivate virtualenv before running tests
-    # - "venv\\Scripts\\activate"
-    # - "pytest -vv tests/integration"
+test_script:
+    Reactivate virtualenv before running tests
+    - "venv\\Scripts\\activate"
+    # Vanilla docker with no images and no containers
+    - "docker system prune -a -f"
+    - "pytest -vv tests/integration"
 
 # Uncomment for RDP
-on_finish:
-  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+# on_finish:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import time
 import logging
 import subprocess
 import json
@@ -14,7 +15,7 @@ except ImportError:
     from pathlib2 import Path
 
 from samcli.yamlhelper import yaml_parse
-
+from tests.testing_utils import IS_WINDOWS
 
 LOG = logging.getLogger(__name__)
 
@@ -89,6 +90,8 @@ class BuildIntegBase(TestCase):
         return command_list
 
     def verify_docker_container_cleanedup(self, runtime):
+        if IS_WINDOWS:
+            time.sleep(1)
         docker_client = docker.from_env()
         samcli_containers = \
             docker_client.containers.list(all=True, filters={"ancestor": "lambci/lambda:build-{}".format(runtime)})
