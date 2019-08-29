@@ -87,7 +87,7 @@ install:
     - "echo %PATH%"
 
 test_script:
-    Reactivate virtualenv before running tests
+    # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
