@@ -89,7 +89,6 @@ install:
 test_script:
     Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
-    # Vanilla docker with no images and no containers
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
 
