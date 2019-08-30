@@ -92,6 +92,6 @@ install:
 #     - "docker system prune -a -f"
 #     - "pytest -vv tests/integration"
 
-Uncomment for RDP
+# Uncomment for RDP
 on_finish:
   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
