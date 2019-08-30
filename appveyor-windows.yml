@@ -22,7 +22,9 @@ environment:
   PYTHON_EXE: "C:\\Python36-x64\\python.exe"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
-  HOME: 'C:'
+  HOME: 'C:\Users\appveyor'
+  HOMEDRIVE: 'C:'
+  HOMEPATH: 'C:\Users\appveyor'
 
 init:
   # Uncomment this for RDP
