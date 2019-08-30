@@ -39,3 +39,8 @@ black-check:
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
+
+update-isolated-req:
+	pipenv --three
+	pipenv run pip install -r requirements/base.txt
+	pipenv run pip freeze > requirements/isolated.txt
