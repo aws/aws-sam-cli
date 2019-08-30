@@ -85,6 +85,8 @@ install:
 
     # Echo final Path
     - "echo %PATH%"
+    # What does all env variables look like
+    - ps: "Get-ChildItem Env:"
 
 test_script:
     # Reactivate virtualenv before running tests
