@@ -22,6 +22,7 @@ environment:
   PYTHON_EXE: "C:\\Python36-x64\\python.exe"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
+  HOME: 'C:'
 
 init:
   # Uncomment this for RDP
@@ -85,8 +86,6 @@ install:
 
     # Echo final Path
     - "echo %PATH%"
-    # What does all env variables look like
-    - ps: "Get-ChildItem Env:"
 
 test_script:
     # Reactivate virtualenv before running tests
