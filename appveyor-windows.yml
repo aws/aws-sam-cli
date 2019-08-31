@@ -62,11 +62,11 @@ install:
     - "choco install nodejs-lts -y --force"
     - "refreshenv"
     # setup Ruby
-    - "choco install ruby --version 2.5.3.101 --force -y"
+    - "choco install ruby --version 2.5.3.1 --force -y"
     - "refreshenv"
     - "ruby --version"
     - "gem --version"
-    - "gem install bundler -v 1.17.3"
+    - "gem install bundler -v 2.0.2"
     - "refreshenv"
     - "bundler --version"
     - "echo %PATH%"
