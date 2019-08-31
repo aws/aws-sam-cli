@@ -186,25 +186,29 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         ("ruby2.5", "use-container")
     ])
     def test_with_default_gemfile(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
-        cmdlist = self.get_command_list(use_container=use_container,
-                                        parameter_overrides=overrides)
+        if not use_container and IS_WINDOWS:
+            LOG.warning("Chocolatey doesnt seem to have 2.5.5 version of ruby")
+            return
+        else:
+            overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
+            cmdlist = self.get_command_list(use_container=use_container,
+                                            parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
-        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
-        process.wait()
+            LOG.info("Running Command: {}".format(cmdlist))
+            process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+            process.wait()
 
-        self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
-                                    self.EXPECTED_FILES_PROJECT_MANIFEST, self.EXPECTED_RUBY_GEM)
+            self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
+                                        self.EXPECTED_FILES_PROJECT_MANIFEST, self.EXPECTED_RUBY_GEM)
 
-        self._verify_resource_property(str(self.built_template),
-                                       "OtherRelativePathResource",
-                                       "BodyS3Location",
-                                       os.path.relpath(
-                                           os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                                           str(self.default_build_dir))
-                                       )
-        self.verify_docker_container_cleanedup(runtime)
+            self._verify_resource_property(str(self.built_template),
+                                           "OtherRelativePathResource",
+                                           "BodyS3Location",
+                                           os.path.relpath(
+                                               os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                                               str(self.default_build_dir))
+                                           )
+            self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
 
