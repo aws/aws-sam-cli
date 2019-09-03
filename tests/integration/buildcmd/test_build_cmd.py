@@ -259,6 +259,7 @@ class TestBuildCommand_Java(BuildIntegBase):
     UNIX_LINE_ENDING = b'\n'
 
     @parameterized.expand([
+        ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
         ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False)
     ])
     def test_with_building_java(self, runtime, code_path, expected_files, use_container):
@@ -270,7 +271,7 @@ class TestBuildCommand_Java(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
-        process.wait()
+        process.wait(timeout=10)
 
         self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
                                     expected_files, self.EXPECTED_DEPENDENCIES)
