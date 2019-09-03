@@ -1020,7 +1020,7 @@ class TestSamCors(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
                         "StageName": "Prod",
-                        "Cors": "*",
+                        "Cors": "'*'",
                         "DefinitionBody": {
                             "paths": {
                                 "/path2": {
@@ -1085,10 +1085,10 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "Cors": {
-                            "AllowMethods": "POST, GET",
-                            "AllowOrigin": "*",
-                            "AllowHeaders": "Upgrade-Insecure-Requests",
-                            "MaxAge": 600,
+                            "AllowMethods": "'POST, GET'",
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
                             "paths": {
@@ -1130,7 +1130,7 @@ class TestSamCors(TestCase):
             allow_origin="*",
             allow_methods=",".join(sorted(["POST", "GET", "OPTIONS"])),
             allow_headers="Upgrade-Insecure-Requests",
-            max_age=600,
+            max_age="600",
         )
         route1 = Route(
             path="/path2",
@@ -1156,10 +1156,10 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "Cors": {
-                            "AllowMethods": "*",
-                            "AllowOrigin": "*",
-                            "AllowHeaders": "Upgrade-Insecure-Requests",
-                            "MaxAge": 600,
+                            "AllowMethods": "'*'",
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
                             "paths": {
@@ -1201,7 +1201,7 @@ class TestSamCors(TestCase):
             allow_origin="*",
             allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
             allow_headers="Upgrade-Insecure-Requests",
-            max_age=600,
+            max_age="600",
         )
         route1 = Route(
             path="/path2",
@@ -1227,10 +1227,10 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "Cors": {
-                            "AllowMethods": "GET, INVALID_METHOD",
-                            "AllowOrigin": "*",
-                            "AllowHeaders": "Upgrade-Insecure-Requests",
-                            "MaxAge": 600,
+                            "AllowMethods": "'GET, INVALID_METHOD'",
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
                             "paths": {
@@ -1277,7 +1277,7 @@ class TestSamCors(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
                         "StageName": "Prod",
-                        "Cors": {"AllowOrigin": "www.domain.com"},
+                        "Cors": {"AllowOrigin": "'www.domain.com'"},
                         "DefinitionBody": {
                             "paths": {
                                 "/path2": {
@@ -1321,10 +1321,10 @@ class TestSamCors(TestCase):
             "Globals": {
                 "Api": {
                     "Cors": {
-                        "AllowMethods": "GET",
-                        "AllowOrigin": "*",
-                        "AllowHeaders": "Upgrade-Insecure-Requests",
-                        "MaxAge": 600,
+                        "AllowMethods": "'GET'",
+                        "AllowOrigin": "'*'",
+                        "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                        "MaxAge": "'600'",
                     }
                 }
             },
@@ -1373,7 +1373,7 @@ class TestSamCors(TestCase):
             allow_origin="*",
             allow_headers="Upgrade-Insecure-Requests",
             allow_methods=",".join(["GET", "OPTIONS"]),
-            max_age=600,
+            max_age="600",
         )
         route1 = Route(
             path="/path2",

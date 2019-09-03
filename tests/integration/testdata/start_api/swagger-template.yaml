@@ -15,9 +15,9 @@ Resources:
       Variables:
         VarName: varValue
       Cors:
-        AllowOrigin: "*"
-        AllowMethods: "GET"
-        AllowHeaders: "origin, x-requested-with"
+        AllowOrigin: "'*''"
+        AllowMethods: "'GET'"
+        AllowHeaders: "'origin, x-requested-with'"
         MaxAge: 510
       DefinitionBody:
         swagger: "2.0"
