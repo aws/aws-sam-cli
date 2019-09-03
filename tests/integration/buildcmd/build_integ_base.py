@@ -47,9 +47,9 @@ class BuildIntegBase(TestCase):
         self.built_template = self.default_build_dir.joinpath("template.yaml")
 
     def tearDown(self):
-        self.custom_build_dir and shutil.rmtree(self.custom_build_dir)
-        self.working_dir and shutil.rmtree(self.working_dir)
-        self.scratch_dir and shutil.rmtree(self.scratch_dir)
+        self.custom_build_dir and shutil.rmtree(self.custom_build_dir, ignore_errors=True)
+        self.working_dir and shutil.rmtree(self.working_dir, ignore_errors=True)
+        self.scratch_dir and shutil.rmtree(self.scratch_dir, ignore_errors=True)
 
     @classmethod
     def base_command(cls):
