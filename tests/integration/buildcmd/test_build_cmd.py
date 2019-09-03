@@ -182,8 +182,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @parameterized.expand([
-        ("ruby2.5", False),
-        ("ruby2.5", "use-container")
+        ("ruby2.5", False)
     ])
     def test_with_default_gemfile(self, runtime, use_container):
         if not use_container and IS_WINDOWS:
@@ -263,11 +262,7 @@ class TestBuildCommand_Java(BuildIntegBase):
         ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
         ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
         ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
-        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False),
-        ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use-container"),
-        ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use-container"),
-        ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use-container"),
-        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, "use-container")
+        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False)
     ])
     def test_with_building_java(self, runtime, code_path, expected_files, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
