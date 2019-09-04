@@ -10,7 +10,7 @@ except ImportError:
 from parameterized import parameterized
 
 from .build_integ_base import BuildIntegBase
-from tests.testing_utils import IS_WINDOWS
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI
 
 
 LOG = logging.getLogger(__name__)
@@ -182,7 +182,8 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @parameterized.expand([
-        ("ruby2.5", False)
+        ("ruby2.5", False),
+        ("ruby2.5", "use-container")
     ])
     def test_with_default_gemfile(self, runtime, use_container):
         if not use_container and IS_WINDOWS:
@@ -258,11 +259,21 @@ class TestBuildCommand_Java(BuildIntegBase):
     WINDOWS_LINE_ENDING = b'\r\n'
     UNIX_LINE_ENDING = b'\n'
 
-    @parameterized.expand([
-        ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
-        ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False)
-    ])
+    @parameterized.expand(
+        [
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, "use_container"),
+        ]
+    )
     def test_with_building_java(self, runtime, code_path, expected_files, use_container):
+        if IS_WINDOWS and RUNNING_ON_CI:
+            self.skipTest("BYpassing Java build tests on windows while running on CI environment")
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container,
                                         parameter_overrides=overrides)
@@ -271,7 +282,7 @@ class TestBuildCommand_Java(BuildIntegBase):
 
         LOG.info("Running Command: {}".format(cmdlist))
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
-        process.wait(timeout=20)
+        process.wait()
 
         self._verify_built_artifact(self.default_build_dir, self.FUNCTION_LOGICAL_ID,
                                     expected_files, self.EXPECTED_DEPENDENCIES)
