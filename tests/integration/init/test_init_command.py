@@ -6,7 +6,6 @@ from backports import tempfile
 
 
 class TestBasicInitCommand(TestCase):
-
     def test_init_command_passes_and_dir_created(self):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen([TestBasicInitCommand._get_command(), "init", "-o", temp])

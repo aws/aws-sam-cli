@@ -1,11 +1,9 @@
-
 from unittest import TestCase
 
 from samcli.lib.logs.event import LogEvent
 
 
 class TestLogEvent(TestCase):
-
     def setUp(self):
         self.group_name = "log group name"
         self.stream_name = "stream name"
@@ -14,11 +12,9 @@ class TestLogEvent(TestCase):
         self.timestamp_str = "2018-07-06T13:09:54"
 
     def test_must_extract_fields_from_event(self):
-        event = LogEvent(self.group_name, {
-            "timestamp": self.timestamp,
-            "logStreamName": self.stream_name,
-            "message": self.message
-        })
+        event = LogEvent(
+            self.group_name, {"timestamp": self.timestamp, "logStreamName": self.stream_name, "message": self.message}
+        )
 
         self.assertEquals(event.log_group_name, self.group_name)
         self.assertEquals(event.log_stream_name, self.stream_name)
@@ -26,13 +22,11 @@ class TestLogEvent(TestCase):
         self.assertEquals(self.timestamp_str, event.timestamp)
 
     def test_must_ignore_if_some_fields_are_empty(self):
-        event = LogEvent(self.group_name, {
-            "logStreamName": "stream name"
-        })
+        event = LogEvent(self.group_name, {"logStreamName": "stream name"})
 
         self.assertEquals(event.log_group_name, self.group_name)
         self.assertEquals(event.log_stream_name, self.stream_name)
-        self.assertEquals(event.message, '')
+        self.assertEquals(event.message, "")
         self.assertIsNone(event.timestamp)
 
     def test_must_ignore_if_event_is_empty(self):
@@ -44,17 +38,13 @@ class TestLogEvent(TestCase):
         self.assertIsNone(event.timestamp)
 
     def test_check_for_equality(self):
-        event = LogEvent(self.group_name, {
-            "timestamp": self.timestamp,
-            "logStreamName": self.stream_name,
-            "message": self.message
-        })
+        event = LogEvent(
+            self.group_name, {"timestamp": self.timestamp, "logStreamName": self.stream_name, "message": self.message}
+        )
 
-        other = LogEvent(self.group_name, {
-            "timestamp": self.timestamp,
-            "logStreamName": self.stream_name,
-            "message": self.message
-        })
+        other = LogEvent(
+            self.group_name, {"timestamp": self.timestamp, "logStreamName": self.stream_name, "message": self.message}
+        )
 
         self.assertEquals(event, other)
 

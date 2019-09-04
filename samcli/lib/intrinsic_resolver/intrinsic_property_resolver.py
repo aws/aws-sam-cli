@@ -21,10 +21,7 @@ from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
     verify_intrinsic_type_bool,
     verify_all_list_intrinsic_type,
 )
-from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import (
-    InvalidIntrinsicException,
-    InvalidSymbolException
-)
+from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, InvalidSymbolException
 
 LOG = logging.getLogger(__name__)
 
@@ -218,10 +215,12 @@ class IntrinsicResolver(object):
         for key, val in intrinsic.items():
             sanitized_key = self.intrinsic_property_resolver(key, parent_function=parent_function)
             sanitized_val = self.intrinsic_property_resolver(val, parent_function=parent_function)
-            verify_intrinsic_type_str(sanitized_key,
-                                      message="The keys of the dictionary {} in {} must all resolve to a string".format(
-                                          sanitized_key, parent_function
-                                      ))
+            verify_intrinsic_type_str(
+                sanitized_key,
+                message="The keys of the dictionary {} in {} must all resolve to a string".format(
+                    sanitized_key, parent_function
+                ),
+            )
             sanitized_dict[sanitized_key] = sanitized_val
         return sanitized_dict
 
@@ -267,9 +266,7 @@ class IntrinsicResolver(object):
             except (InvalidIntrinsicException, InvalidSymbolException) as e:
                 resource_type = val.get("Type", "")
                 if ignore_errors:
-                    LOG.error(
-                        "Unable to process properties of %s.%s", key, resource_type
-                    )
+                    LOG.error("Unable to process properties of %s.%s", key, resource_type)
                     processed_dict[key] = val
                 else:
                     raise InvalidIntrinsicException(
@@ -306,20 +303,14 @@ class IntrinsicResolver(object):
         verify_intrinsic_type_list(
             value_list,
             IntrinsicResolver.FN_JOIN,
-            message="The list of values in {} after the "
-                    "delimiter must be a list".format(IntrinsicResolver.FN_JOIN),
+            message="The list of values in {} after the " "delimiter must be a list".format(IntrinsicResolver.FN_JOIN),
         )
 
         sanitized_value_list = [
-            self.intrinsic_property_resolver(
-                item, parent_function=IntrinsicResolver.FN_JOIN
-            )
-            for item in value_list
+            self.intrinsic_property_resolver(item, parent_function=IntrinsicResolver.FN_JOIN) for item in value_list
         ]
         verify_all_list_intrinsic_type(
-            sanitized_value_list,
-            verification_func=verify_intrinsic_type_str,
-            property_type=IntrinsicResolver.FN_JOIN,
+            sanitized_value_list, verification_func=verify_intrinsic_type_str, property_type=IntrinsicResolver.FN_JOIN
         )
 
         return delimiter.join(sanitized_value_list)
@@ -339,25 +330,17 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_SPLIT
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_SPLIT)
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SPLIT)
 
         delimiter = arguments[0]
 
-        verify_intrinsic_type_str(
-            delimiter, IntrinsicResolver.FN_SPLIT, position_in_list="first"
-        )
+        verify_intrinsic_type_str(delimiter, IntrinsicResolver.FN_SPLIT, position_in_list="first")
 
-        source_string = self.intrinsic_property_resolver(
-            arguments[1], parent_function=IntrinsicResolver.FN_SPLIT
-        )
+        source_string = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_SPLIT)
 
-        verify_intrinsic_type_str(
-            source_string, IntrinsicResolver.FN_SPLIT, position_in_list="second"
-        )
+        verify_intrinsic_type_str(source_string, IntrinsicResolver.FN_SPLIT, position_in_list="second")
 
         return source_string.split(delimiter)
 
@@ -376,9 +359,7 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        data = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_BASE64
-        )
+        data = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_BASE64)
 
         verify_intrinsic_type_str(data, IntrinsicResolver.FN_BASE64)
         # Encoding then decoding is required to return a string of the data
@@ -398,35 +379,23 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_SELECT
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_SELECT)
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_SELECT)
 
-        index = self.intrinsic_property_resolver(
-            arguments[0], parent_function=IntrinsicResolver.FN_SELECT
-        )
+        index = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_SELECT)
 
         verify_intrinsic_type_int(index, IntrinsicResolver.FN_SELECT)
 
-        list_of_objects = self.intrinsic_property_resolver(
-            arguments[1], parent_function=IntrinsicResolver.FN_SELECT
-        )
+        list_of_objects = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_SELECT)
         verify_intrinsic_type_list(list_of_objects, IntrinsicResolver.FN_SELECT)
 
         sanitized_objects = [
-            self.intrinsic_property_resolver(
-                item, parent_function=IntrinsicResolver.FN_SELECT
-            )
+            self.intrinsic_property_resolver(item, parent_function=IntrinsicResolver.FN_SELECT)
             for item in list_of_objects
         ]
 
-        verify_in_bounds(
-            index=index,
-            objects=sanitized_objects,
-            property_type=IntrinsicResolver.FN_SELECT,
-        )
+        verify_in_bounds(index=index, objects=sanitized_objects, property_type=IntrinsicResolver.FN_SELECT)
 
         return sanitized_objects[index]
 
@@ -455,44 +424,28 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_FIND_IN_MAP
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_FIND_IN_MAP)
 
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_FIND_IN_MAP)
 
-        verify_number_arguments(
-            arguments, num=3, property_type=IntrinsicResolver.FN_FIND_IN_MAP
-        )
+        verify_number_arguments(arguments, num=3, property_type=IntrinsicResolver.FN_FIND_IN_MAP)
 
-        map_name = self.intrinsic_property_resolver(
-            arguments[0], parent_function=IntrinsicResolver.FN_FIND_IN_MAP
-        )
-        top_level_key = self.intrinsic_property_resolver(
-            arguments[1], parent_function=IntrinsicResolver.FN_FIND_IN_MAP
-        )
+        map_name = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_FIND_IN_MAP)
+        top_level_key = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_FIND_IN_MAP)
         second_level_key = self.intrinsic_property_resolver(
             arguments[2], parent_function=IntrinsicResolver.FN_FIND_IN_MAP
         )
 
-        verify_intrinsic_type_str(
-            map_name, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="first"
-        )
-        verify_intrinsic_type_str(
-            top_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="second"
-        )
-        verify_intrinsic_type_str(
-            second_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="third"
-        )
+        verify_intrinsic_type_str(map_name, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="first")
+        verify_intrinsic_type_str(top_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="second")
+        verify_intrinsic_type_str(second_level_key, IntrinsicResolver.FN_FIND_IN_MAP, position_in_list="third")
 
         map_value = self._mapping.get(map_name)
         verify_intrinsic_type_dict(
             map_value,
             IntrinsicResolver.FN_FIND_IN_MAP,
             position_in_list="first",
-            message="The MapName is missing in the Mappings dictionary in Fn::FindInMap  for {}".format(
-                map_name
-            ),
+            message="The MapName is missing in the Mappings dictionary in Fn::FindInMap  for {}".format(map_name),
         )
 
         top_level_value = map_value.get(top_level_key)
@@ -500,7 +453,7 @@ class IntrinsicResolver(object):
             top_level_value,
             IntrinsicResolver.FN_FIND_IN_MAP,
             message="The TopLevelKey is missing in the Mappings dictionary in Fn::FindInMap "
-                    "for {}".format(top_level_key),
+            "for {}".format(top_level_key),
         )
 
         second_level_value = top_level_value.get(second_level_key)
@@ -508,7 +461,7 @@ class IntrinsicResolver(object):
             second_level_value,
             IntrinsicResolver.FN_FIND_IN_MAP,
             message="The SecondLevelKey is missing in the Mappings dictionary in Fn::FindInMap  "
-                    "for {}".format(second_level_key),
+            "for {}".format(second_level_key),
         )
 
         return second_level_value
@@ -541,9 +494,7 @@ class IntrinsicResolver(object):
 
         if intrinsic_value not in self._symbol_resolver.REGIONS:
             raise InvalidIntrinsicException(
-                "Invalid region string passed in to {}".format(
-                    IntrinsicResolver.FN_GET_AZS
-                )
+                "Invalid region string passed in to {}".format(IntrinsicResolver.FN_GET_AZS)
             )
 
         return self._symbol_resolver.REGIONS.get(intrinsic_value)
@@ -564,22 +515,16 @@ class IntrinsicResolver(object):
         A string with the resolved attributes
         """
         macro_name = intrinsic_value.get("Name")
-        name = self.intrinsic_property_resolver(
-            macro_name, parent_function=IntrinsicResolver.FN_TRANSFORM
-        )
+        name = self.intrinsic_property_resolver(macro_name, parent_function=IntrinsicResolver.FN_TRANSFORM)
 
         if name not in IntrinsicResolver.SUPPORTED_MACRO_TRANSFORMATIONS:
             raise InvalidIntrinsicException(
-                "The type {} is not currently supported in {}".format(
-                    name, IntrinsicResolver.FN_TRANSFORM
-                )
+                "The type {} is not currently supported in {}".format(name, IntrinsicResolver.FN_TRANSFORM)
             )
 
         parameters = intrinsic_value.get("Parameters")
         verify_intrinsic_type_dict(
-            parameters,
-            IntrinsicResolver.FN_TRANSFORM,
-            message=" Fn::Transform requires parameters section",
+            parameters, IntrinsicResolver.FN_TRANSFORM, message=" Fn::Transform requires parameters section"
         )
 
         location = self.intrinsic_property_resolver(parameters.get("Location"))
@@ -595,9 +540,7 @@ class IntrinsicResolver(object):
         -------
         An InvalidIntrinsicException
         """
-        raise InvalidIntrinsicException(
-            "Fn::ImportValue is currently not supported by IntrinsicResolver"
-        )
+        raise InvalidIntrinsicException("Fn::ImportValue is currently not supported by IntrinsicResolver")
 
     def handle_fn_getatt(self, intrinsic_value):
         """
@@ -616,18 +559,12 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_GET_ATT
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_GET_ATT)
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_GET_ATT)
         verify_number_arguments(arguments, IntrinsicResolver.FN_GET_ATT, num=2)
 
-        logical_id = self.intrinsic_property_resolver(
-            arguments[0], parent_function=IntrinsicResolver.FN_GET_ATT
-        )
-        resource_type = self.intrinsic_property_resolver(
-            arguments[1], parent_function=IntrinsicResolver.FN_GET_ATT
-        )
+        logical_id = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_GET_ATT)
+        resource_type = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_GET_ATT)
 
         verify_intrinsic_type_str(logical_id, IntrinsicResolver.FN_GET_ATT)
         verify_intrinsic_type_str(resource_type, IntrinsicResolver.FN_GET_ATT)
@@ -651,9 +588,7 @@ class IntrinsicResolver(object):
         -------
         A string with the resolved attributes
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.REF
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.REF)
         verify_intrinsic_type_str(arguments, IntrinsicResolver.REF)
 
         return self._symbol_resolver.resolve_symbols(arguments, IntrinsicResolver.REF)
@@ -680,50 +615,30 @@ class IntrinsicResolver(object):
                 (logical_id, attribute_type) = intrinsic_item.rsplit(".", 1)
             else:
                 (logical_id, attribute_type) = intrinsic_item, IntrinsicResolver.REF
-            return symbol_resolver.resolve_symbols(
-                logical_id, attribute_type, ignore_errors=True
-            )
+            return symbol_resolver.resolve_symbols(logical_id, attribute_type, ignore_errors=True)
 
         if isinstance(intrinsic_value, string_types):
             intrinsic_value = [intrinsic_value, {}]
 
         verify_intrinsic_type_list(
-            intrinsic_value,
-            IntrinsicResolver.FN_SUB,
-            message="The arguments to a Fn::Sub must be a list or a string",
+            intrinsic_value, IntrinsicResolver.FN_SUB, message="The arguments to a Fn::Sub must be a list or a string"
         )
 
         verify_number_arguments(intrinsic_value, IntrinsicResolver.FN_SUB, num=2)
 
-        sub_str = self.intrinsic_property_resolver(
-            intrinsic_value[0], parent_function=IntrinsicResolver.FN_SUB
-        )
-        verify_intrinsic_type_str(
-            sub_str, IntrinsicResolver.FN_SUB, position_in_list="first"
-        )
+        sub_str = self.intrinsic_property_resolver(intrinsic_value[0], parent_function=IntrinsicResolver.FN_SUB)
+        verify_intrinsic_type_str(sub_str, IntrinsicResolver.FN_SUB, position_in_list="first")
 
         variables = intrinsic_value[1]
-        verify_intrinsic_type_dict(
-            variables, IntrinsicResolver.FN_SUB, position_in_list="second"
-        )
+        verify_intrinsic_type_dict(variables, IntrinsicResolver.FN_SUB, position_in_list="second")
 
-        sanitized_variables = self.intrinsic_property_resolver(
-            variables, parent_function=IntrinsicResolver.FN_SUB
-        )
+        sanitized_variables = self.intrinsic_property_resolver(variables, parent_function=IntrinsicResolver.FN_SUB)
 
-        subable_props = re.findall(
-            string=sub_str, pattern=IntrinsicResolver._REGEX_SUB_FUNCTION
-        )
+        subable_props = re.findall(string=sub_str, pattern=IntrinsicResolver._REGEX_SUB_FUNCTION)
         for sub_item in subable_props:
-            sanitized_item = (
-                sanitized_variables[sub_item]
-                if sub_item in sanitized_variables
-                else sub_item
-            )
+            sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
             result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
-            sub_str = re.sub(
-                pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=str(result)
-            )
+            sub_str = re.sub(pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=str(result))
         return sub_str
 
     def handle_fn_if(self, intrinsic_value):
@@ -749,42 +664,28 @@ class IntrinsicResolver(object):
         -------
         This will return value_if_true and value_if_false depending on how the condition is evaluated
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_IF
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_IF)
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_IF)
         verify_number_arguments(arguments, IntrinsicResolver.FN_IF, num=3)
 
-        condition_name = self.intrinsic_property_resolver(
-            arguments[0], parent_function=IntrinsicResolver.FN_IF
-        )
+        condition_name = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_IF)
         verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_IF)
 
-        value_if_true = self.intrinsic_property_resolver(
-            arguments[1], parent_function=IntrinsicResolver.FN_IF
-        )
-        value_if_false = self.intrinsic_property_resolver(
-            arguments[2], parent_function=IntrinsicResolver.FN_IF
-        )
+        value_if_true = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_IF)
+        value_if_false = self.intrinsic_property_resolver(arguments[2], parent_function=IntrinsicResolver.FN_IF)
 
         condition = self._conditions.get(condition_name)
         verify_intrinsic_type_dict(
             condition,
             IntrinsicResolver.FN_IF,
-            message="The condition is missing in the Conditions dictionary for {}".format(
-                IntrinsicResolver.FN_IF
-            ),
+            message="The condition is missing in the Conditions dictionary for {}".format(IntrinsicResolver.FN_IF),
         )
 
-        condition_evaluated = self.intrinsic_property_resolver(
-            condition, parent_function=IntrinsicResolver.FN_IF
-        )
+        condition_evaluated = self.intrinsic_property_resolver(condition, parent_function=IntrinsicResolver.FN_IF)
         verify_intrinsic_type_bool(
             condition_evaluated,
             IntrinsicResolver.FN_IF,
-            message="The result of {} must evaluate to bool".format(
-                IntrinsicResolver.FN_IF
-            ),
+            message="The result of {} must evaluate to bool".format(IntrinsicResolver.FN_IF),
         )
 
         return value_if_true if condition_evaluated else value_if_false
@@ -804,18 +705,12 @@ class IntrinsicResolver(object):
         -------
         A boolean depending on if both arguments is equal
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_EQUALS
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_EQUALS)
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_EQUALS)
         verify_number_arguments(arguments, IntrinsicResolver.FN_EQUALS, num=2)
 
-        value_1 = self.intrinsic_property_resolver(
-            arguments[0], parent_function=IntrinsicResolver.FN_EQUALS
-        )
-        value_2 = self.intrinsic_property_resolver(
-            arguments[1], parent_function=IntrinsicResolver.FN_EQUALS
-        )
+        value_1 = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_EQUALS)
+        value_2 = self.intrinsic_property_resolver(arguments[1], parent_function=IntrinsicResolver.FN_EQUALS)
         return value_1 == value_2
 
     def handle_fn_not(self, intrinsic_value):
@@ -833,33 +728,23 @@ class IntrinsicResolver(object):
         -------
         A boolean that is the opposite of the condition evaluated
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_NOT
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_NOT)
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_NOT)
         verify_number_arguments(arguments, IntrinsicResolver.FN_NOT, num=1)
-        argument_sanitised = self.intrinsic_property_resolver(
-            arguments[0], parent_function=IntrinsicResolver.FN_NOT
-        )
+        argument_sanitised = self.intrinsic_property_resolver(arguments[0], parent_function=IntrinsicResolver.FN_NOT)
         if isinstance(argument_sanitised, dict) and "Condition" in arguments[0]:
             condition_name = argument_sanitised.get("Condition")
             verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_NOT)
 
             condition = self._conditions.get(condition_name)
-            verify_non_null(
-                condition, IntrinsicResolver.FN_NOT, position_in_list="first"
-            )
+            verify_non_null(condition, IntrinsicResolver.FN_NOT, position_in_list="first")
 
-            argument_sanitised = self.intrinsic_property_resolver(
-                condition, parent_function=IntrinsicResolver.FN_NOT
-            )
+            argument_sanitised = self.intrinsic_property_resolver(condition, parent_function=IntrinsicResolver.FN_NOT)
 
         verify_intrinsic_type_bool(
             argument_sanitised,
             IntrinsicResolver.FN_NOT,
-            message="The result of {} must evaluate to bool".format(
-                IntrinsicResolver.FN_NOT
-            ),
+            message="The result of {} must evaluate to bool".format(IntrinsicResolver.FN_NOT),
         )
         return not argument_sanitised
 
@@ -903,9 +788,7 @@ class IntrinsicResolver(object):
         -------
         A boolean depending on if all of the properties in Fn::And evaluate to True
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_AND
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_AND)
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_AND)
 
         for i, argument in enumerate(arguments):
@@ -915,24 +798,18 @@ class IntrinsicResolver(object):
 
                 condition = self._conditions.get(condition_name)
                 verify_non_null(
-                    condition,
-                    IntrinsicResolver.FN_AND,
-                    position_in_list=self.get_prefix_position_in_list(i),
+                    condition, IntrinsicResolver.FN_AND, position_in_list=self.get_prefix_position_in_list(i)
                 )
 
                 condition_evaluated = self.intrinsic_property_resolver(
                     condition, parent_function=IntrinsicResolver.FN_AND
                 )
-                verify_intrinsic_type_bool(
-                    condition_evaluated, IntrinsicResolver.FN_AND
-                )
+                verify_intrinsic_type_bool(condition_evaluated, IntrinsicResolver.FN_AND)
 
                 if not condition_evaluated:
                     return False
             else:
-                condition = self.intrinsic_property_resolver(
-                    argument, parent_function=IntrinsicResolver.FN_AND
-                )
+                condition = self.intrinsic_property_resolver(argument, parent_function=IntrinsicResolver.FN_AND)
                 verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_AND)
 
                 if not condition:
@@ -964,9 +841,7 @@ class IntrinsicResolver(object):
         -------
         A boolean depending on if any of the properties in Fn::And evaluate to True
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, parent_function=IntrinsicResolver.FN_OR
-        )
+        arguments = self.intrinsic_property_resolver(intrinsic_value, parent_function=IntrinsicResolver.FN_OR)
         verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_OR)
         for i, argument in enumerate(arguments):
             if isinstance(argument, dict) and "Condition" in argument:
@@ -975,9 +850,7 @@ class IntrinsicResolver(object):
 
                 condition = self._conditions.get(condition_name)
                 verify_non_null(
-                    condition,
-                    IntrinsicResolver.FN_OR,
-                    position_in_list=self.get_prefix_position_in_list(i),
+                    condition, IntrinsicResolver.FN_OR, position_in_list=self.get_prefix_position_in_list(i)
                 )
 
                 condition_evaluated = self.intrinsic_property_resolver(
@@ -987,9 +860,7 @@ class IntrinsicResolver(object):
                 if condition_evaluated:
                     return True
             else:
-                condition = self.intrinsic_property_resolver(
-                    argument, parent_function=IntrinsicResolver.FN_OR
-                )
+                condition = self.intrinsic_property_resolver(argument, parent_function=IntrinsicResolver.FN_OR)
                 verify_intrinsic_type_bool(condition, IntrinsicResolver.FN_OR)
                 if condition:
                     return True

@@ -6,14 +6,9 @@ from samcli.cli.command import BaseCommand
 
 
 class TestBaseCommand(TestCase):
-
     def setUp(self):
 
-        self.packages = [
-            "a.b.cmd1",
-            "foo.cmd2",
-            "cmd3"
-        ]
+        self.packages = ["a.b.cmd1", "foo.cmd2", "cmd3"]
 
     def test_must_inherit(self):
 
@@ -21,11 +16,7 @@ class TestBaseCommand(TestCase):
         self.assertTrue(isinstance(cmd, click.MultiCommand))
 
     def test_set_commands_must_extract_command_name(self):
-        expected = {
-            "cmd1": "a.b.cmd1",
-            "cmd2": "foo.cmd2",
-            "cmd3": "cmd3"
-        }
+        expected = {"cmd1": "a.b.cmd1", "cmd2": "foo.cmd2", "cmd3": "cmd3"}
 
         result = BaseCommand._set_commands(self.packages)
         self.assertEquals(result, expected)
@@ -57,11 +48,7 @@ class TestBaseCommand(TestCase):
         self.assertEquals(result, module_mock.cli)
 
         # Library to import the modules must be called three times
-        importlib_mock.import_module.assert_has_calls([
-            call("a.b.cmd1"),
-            call("foo.cmd2"),
-            call("cmd3")
-        ])
+        importlib_mock.import_module.assert_has_calls([call("a.b.cmd1"), call("foo.cmd2"), call("cmd3")])
 
     def test_get_command_must_skip_unknown_commands(self):
 

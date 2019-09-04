@@ -10,36 +10,31 @@ import six
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 # Named Tuple to representing the properties of a Lambda Function
-Function = namedtuple("Function", [
-    # Function name or logical ID
-    "name",
-
-    # Runtime/language
-    "runtime",
-
-    # Memory in MBs
-    "memory",
-
-    # Function Timeout in seconds
-    "timeout",
-
-    # Name of the handler
-    "handler",
-
-    # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
-    "codeuri",
-
-    # Environment variables. This is a dictionary with one key called Variables inside it. This contains the definition
-    # of environment variables
-    "environment",
-
-    # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
-    # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
-    "rolearn",
-
-    # List of Layers
-    "layers"
-])
+Function = namedtuple(
+    "Function",
+    [
+        # Function name or logical ID
+        "name",
+        # Runtime/language
+        "runtime",
+        # Memory in MBs
+        "memory",
+        # Function Timeout in seconds
+        "timeout",
+        # Name of the handler
+        "handler",
+        # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
+        "codeuri",
+        # Environment variables. This is a dictionary with one key called Variables inside it. This contains the definition
+        # of environment variables
+        "environment",
+        # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
+        # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
+        "rolearn",
+        # List of Layers
+        "layers",
+    ],
+)
 
 
 class LayerVersion(object):
@@ -91,7 +86,7 @@ class LayerVersion(object):
             return None
 
         try:
-            _, layer_version = arn.rsplit(':', 1)
+            _, layer_version = arn.rsplit(":", 1)
             layer_version = int(layer_version)
         except ValueError:
             raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.")
@@ -125,13 +120,13 @@ class LayerVersion(object):
             return arn
 
         try:
-            _, layer_name, layer_version = arn.rsplit(':', 2)
+            _, layer_name, layer_version = arn.rsplit(":", 2)
         except ValueError:
             raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.")
 
-        return LayerVersion.LAYER_NAME_DELIMETER.join([layer_name,
-                                                       layer_version,
-                                                       hashlib.sha256(arn.encode('utf-8')).hexdigest()[0:10]])
+        return LayerVersion.LAYER_NAME_DELIMETER.join(
+            [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
+        )
 
     @property
     def arn(self):
@@ -162,7 +157,7 @@ class LayerVersion(object):
 
     @property
     def layer_arn(self):
-        layer_arn, _ = self.arn.rsplit(':', 1)
+        layer_arn, _ = self.arn.rsplit(":", 1)
         return layer_arn
 
     @codeuri.setter
@@ -230,15 +225,15 @@ class Api(object):
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
 
 
-_CorsTuple.__new__.__defaults__ = (None,  # Allow Origin defaults to None
-                                   None,  # Allow Methods is optional and defaults to empty
-                                   None,  # Allow Headers is optional and defaults to empty
-                                   None  # MaxAge is optional and defaults to empty
-                                   )
+_CorsTuple.__new__.__defaults__ = (
+    None,  # Allow Origin defaults to None
+    None,  # Allow Methods is optional and defaults to empty
+    None,  # Allow Headers is optional and defaults to empty
+    None,  # MaxAge is optional and defaults to empty
+)
 
 
 class Cors(_CorsTuple):
-
     @staticmethod
     def cors_to_headers(cors):
         """
@@ -254,10 +249,10 @@ class Cors(_CorsTuple):
         if not cors:
             return {}
         headers = {
-            'Access-Control-Allow-Origin': cors.allow_origin,
-            'Access-Control-Allow-Methods': cors.allow_methods,
-            'Access-Control-Allow-Headers': cors.allow_headers,
-            'Access-Control-Max-Age': cors.max_age
+            "Access-Control-Allow-Origin": cors.allow_origin,
+            "Access-Control-Allow-Methods": cors.allow_methods,
+            "Access-Control-Allow-Headers": cors.allow_headers,
+            "Access-Control-Max-Age": cors.max_age,
         }
         # Filters out items in the headers dictionary that isn't empty.
         # This is required because the flask Headers dict will send an invalid 'None' string

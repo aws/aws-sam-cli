@@ -13,7 +13,6 @@ from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedE
 
 
 class TestContainerManager_init(TestCase):
-
     def test_must_initialize_with_default_value(self):
 
         manager = ContainerManager()
@@ -21,7 +20,6 @@ class TestContainerManager_init(TestCase):
 
 
 class TestContainerManager_run(TestCase):
-
     def setUp(self):
         self.mock_docker_client = Mock()
         self.manager = ContainerManager(docker_client=self.mock_docker_client)
@@ -170,7 +168,6 @@ class TestContainerManager_run(TestCase):
 
 
 class TestContainerManager_pull_image(TestCase):
-
     def setUp(self):
         self.image_name = "image name"
 
@@ -186,15 +183,12 @@ class TestContainerManager_pull_image(TestCase):
         pull_result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
         self.mock_docker_client.api.pull.return_value = pull_result
         expected_stream_output = "\nFetching {} Docker container image...{}\n".format(
-            self.image_name,
-            '.' * len(pull_result)  # Progress bar will print one dot per response from pull API
+            self.image_name, "." * len(pull_result)  # Progress bar will print one dot per response from pull API
         )
 
         self.manager.pull_image(self.image_name, stream=stream)
 
-        self.mock_docker_client.api.pull.assert_called_with(self.image_name,
-                                                            stream=True,
-                                                            decode=True)
+        self.mock_docker_client.api.pull.assert_called_with(self.image_name, stream=True, decode=True)
         self.assertEquals(stream.getvalue(), expected_stream_output)
 
     def test_must_raise_if_image_not_found(self):
@@ -209,7 +203,6 @@ class TestContainerManager_pull_image(TestCase):
 
 
 class TestContainerManager_is_docker_reachable(TestCase):
-
     def setUp(self):
         self.ping_mock = Mock()
 
@@ -244,7 +237,6 @@ class TestContainerManager_is_docker_reachable(TestCase):
 
 
 class TestContainerManager_has_image(TestCase):
-
     def setUp(self):
         self.image_name = "image name"
 
@@ -265,7 +257,6 @@ class TestContainerManager_has_image(TestCase):
 
 
 class TestContainerManager_stop(TestCase):
-
     def test_must_call_delete_on_container(self):
 
         manager = ContainerManager()

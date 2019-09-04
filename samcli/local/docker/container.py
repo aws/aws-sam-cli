@@ -28,18 +28,20 @@ class Container(object):
     _STDOUT_FRAME_TYPE = 1
     _STDERR_FRAME_TYPE = 2
 
-    def __init__(self,
-                 image,
-                 cmd,
-                 working_dir,
-                 host_dir,
-                 memory_limit_mb=None,
-                 exposed_ports=None,
-                 entrypoint=None,
-                 env_vars=None,
-                 docker_client=None,
-                 container_opts=None,
-                 additional_volumes=None):
+    def __init__(
+        self,
+        image,
+        cmd,
+        working_dir,
+        host_dir,
+        memory_limit_mb=None,
+        exposed_ports=None,
+        entrypoint=None,
+        env_vars=None,
+        docker_client=None,
+        container_opts=None,
+        additional_volumes=None,
+    ):
         """
         Initializes the class with given configuration. This does not automatically create or run the container.
 
@@ -95,13 +97,13 @@ class Container(object):
                     # https://docs.docker.com/storage/bind-mounts
                     # Mount the host directory as "read only" inside container
                     "bind": self._working_dir,
-                    "mode": "ro,delegated"
+                    "mode": "ro,delegated",
                 }
             },
             # We are not running an interactive shell here.
             "tty": False,
             # Set proxy configuration from global Docker config file
-            "use_config_proxy": True
+            "use_config_proxy": True,
         }
 
         if self._container_opts:
@@ -126,13 +128,13 @@ class Container(object):
             # Ex: 128m => 128MB
             kwargs["mem_limit"] = "{}m".format(self._memory_limit_mb)
 
-        if self.network_id == 'host':
+        if self.network_id == "host":
             kwargs["network_mode"] = self.network_id
 
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
-        if self.network_id and self.network_id != 'host':
+        if self.network_id and self.network_id != "host":
             network = self.docker_client.networks.get(self.network_id)
             network.connect(self.id)
 
@@ -147,9 +149,7 @@ class Container(object):
             return
 
         try:
-            self.docker_client.containers\
-                .get(self.id)\
-                .remove(force=True)  # Remove a container, even if it is running
+            self.docker_client.containers.get(self.id).remove(force=True)  # Remove a container, even if it is running
         except docker.errors.NotFound:
             # Container is already not there
             LOG.debug("Container with ID %s does not exist. Skipping deletion", self.id)
@@ -200,11 +200,7 @@ class Container(object):
         real_container = self.docker_client.containers.get(self.id)
 
         # Fetch both stdout and stderr streams from Docker as a single iterator.
-        logs_itr = attach(self.docker_client,
-                          container=real_container,
-                          stdout=True,
-                          stderr=True,
-                          logs=True)
+        logs_itr = attach(self.docker_client, container=real_container, stdout=True, stderr=True, logs=True)
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 
@@ -224,7 +220,7 @@ class Container(object):
             # Seek the handle back to start of file for tarfile to use
             fp.seek(0)
 
-            with tarfile.open(fileobj=fp, mode='r') as tar:
+            with tarfile.open(fileobj=fp, mode="r") as tar:
                 tar.extractall(path=to_host_path)
 
     @staticmethod
@@ -256,8 +252,11 @@ class Container(object):
 
             else:
                 # Either an unsupported frame type or stream for this frame type is not configured
-                LOG.debug("Dropping Docker container output because of unconfigured frame type. "
-                          "Frame Type: %s. Data: %s", frame_type, data)
+                LOG.debug(
+                    "Dropping Docker container output because of unconfigured frame type. " "Frame Type: %s. Data: %s",
+                    frame_type,
+                    data,
+                )
 
     @property
     def network_id(self):

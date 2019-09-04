@@ -4,7 +4,7 @@ Custom Exceptions for Init module
 
 
 class InitErrorException(Exception):
-    fmt = 'An unspecified error occurred'
+    fmt = "An unspecified error occurred"
 
     def __init__(self, **kwargs):
         msg = self.fmt.format(**kwargs)
@@ -13,5 +13,4 @@ class InitErrorException(Exception):
 
 
 class GenerateProjectFailedError(InitErrorException):
-    fmt = \
-        ("An error occurred while generating this {project}: {provider_error}")
+    fmt = "An error occurred while generating this {project}: {provider_error}"

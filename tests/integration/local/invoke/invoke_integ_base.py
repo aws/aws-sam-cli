@@ -30,9 +30,19 @@ class InvokeIntegBase(TestCase):
 
         return command
 
-    def get_command_list(self, function_to_invoke, template_path=None, event_path=None, env_var_path=None,
-                         parameter_overrides=None, region=None, no_event=None, profile=None, layer_cache=None,
-                         docker_network=None):
+    def get_command_list(
+        self,
+        function_to_invoke,
+        template_path=None,
+        event_path=None,
+        env_var_path=None,
+        parameter_overrides=None,
+        region=None,
+        no_event=None,
+        profile=None,
+        layer_cache=None,
+        docker_network=None,
+    ):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
         if template_path:
@@ -57,9 +67,9 @@ class InvokeIntegBase(TestCase):
             command_list = command_list + ["--docker-network", docker_network]
 
         if parameter_overrides:
-            arg_value = " ".join([
-                "ParameterKey={},ParameterValue={}".format(key, value) for key, value in parameter_overrides.items()
-            ])
+            arg_value = " ".join(
+                ["ParameterKey={},ParameterValue={}".format(key, value) for key, value in parameter_overrides.items()]
+            )
             command_list = command_list + ["--parameter-overrides", arg_value]
 
         if region:

@@ -10,7 +10,6 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseLocalService(object):
-
     def __init__(self, is_debugging, port, host):
         """
         Creates a BaseLocalService class
@@ -59,7 +58,7 @@ class BaseLocalService(object):
 
         # This environ signifies we are running a main function for Flask. This is true, since we are using it within
         # our cli and not on a production server.
-        os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+        os.environ["WERKZEUG_RUN_MAIN"] = "true"
 
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port)
 
@@ -80,7 +79,6 @@ class BaseLocalService(object):
 
 
 class LambdaOutputParser(object):
-
     @staticmethod
     def get_lambda_output(stdout_stream):
         """
@@ -105,7 +103,7 @@ class LambdaOutputParser(object):
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
         # System.out.println or similar, before docker-lambda output the result
-        stdout_data = stdout_stream.getvalue().rstrip(b'\n')
+        stdout_data = stdout_stream.getvalue().rstrip(b"\n")
 
         # Usually the output is just one line and contains response as JSON string, but if the Lambda function
         # wrote anything directly to stdout, there will be additional lines. So just extract the last line as
@@ -113,7 +111,7 @@ class LambdaOutputParser(object):
         lambda_response = stdout_data
         lambda_logs = None
 
-        last_line_position = stdout_data.rfind(b'\n')
+        last_line_position = stdout_data.rfind(b"\n")
         if last_line_position >= 0:
             # So there are multiple lines. Separate them out.
             # Everything but the last line are logs
@@ -121,7 +119,7 @@ class LambdaOutputParser(object):
             # Last line is Lambda response. Make sure to strip() so we get rid of extra whitespaces & newlines around
             lambda_response = stdout_data[last_line_position:].strip()
 
-        lambda_response = lambda_response.decode('utf-8')
+        lambda_response = lambda_response.decode("utf-8")
 
         # When the Lambda Function returns an Error/Exception, the output is added to the stdout of the container. From
         # our perspective, the container returned some value, which is not always true. Since the output is the only
@@ -155,11 +153,13 @@ class LambdaOutputParser(object):
             # this checking, we check for all three keys that can occur in Lambda raised/thrown/returned an
             # Error/Exception. This still risks false positives when the data returned matches exactly a dictionary with
             # the keys 'errorMessage', 'errorType' and 'stackTrace'.
-            if isinstance(lambda_response_dict, dict) and \
-                    len(lambda_response_dict) == 3 and \
-                    'errorMessage' in lambda_response_dict and \
-                    'errorType' in lambda_response_dict and \
-                    'stackTrace' in lambda_response_dict:
+            if (
+                isinstance(lambda_response_dict, dict)
+                and len(lambda_response_dict) == 3
+                and "errorMessage" in lambda_response_dict
+                and "errorType" in lambda_response_dict
+                and "stackTrace" in lambda_response_dict
+            ):
                 is_lambda_user_error_response = True
         except ValueError:
             # If you can't serialize the output into a dict, then do nothing

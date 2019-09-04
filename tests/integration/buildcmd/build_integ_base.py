@@ -61,8 +61,16 @@ class BuildIntegBase(TestCase):
 
         return command
 
-    def get_command_list(self, build_dir=None, base_dir=None, manifest_path=None, use_container=None,
-                         parameter_overrides=None, mode=None, function_identifier=None):
+    def get_command_list(
+        self,
+        build_dir=None,
+        base_dir=None,
+        manifest_path=None,
+        use_container=None,
+        parameter_overrides=None,
+        mode=None,
+        function_identifier=None,
+    ):
 
         command_list = [self.cmd, "build"]
 
@@ -90,29 +98,37 @@ class BuildIntegBase(TestCase):
 
     def verify_docker_container_cleanedup(self, runtime):
         docker_client = docker.from_env()
-        samcli_containers = \
-            docker_client.containers.list(all=True, filters={"ancestor": "lambci/lambda:build-{}".format(runtime)})
+        samcli_containers = docker_client.containers.list(
+            all=True, filters={"ancestor": "lambci/lambda:build-{}".format(runtime)}
+        )
         self.assertFalse(bool(samcli_containers), "Build containers have not been removed")
 
     def _make_parameter_override_arg(self, overrides):
-        return " ".join([
-            "ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()
-        ])
+        return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
 
     def _verify_resource_property(self, template_path, logical_id, property, expected_value):
 
-        with open(template_path, 'r') as fp:
+        with open(template_path, "r") as fp:
             template_dict = yaml_parse(fp.read())
             self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
 
     def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
         LOG.info("Invoking built function '{}'".format(function_logical_id))
 
-        cmdlist = [self.cmd, "local", "invoke", function_logical_id, "-t", str(template_path), "--no-event",
-                   "--parameter-overrides", overrides]
+        cmdlist = [
+            self.cmd,
+            "local",
+            "invoke",
+            function_logical_id,
+            "-t",
+            str(template_path),
+            "--no-event",
+            "--parameter-overrides",
+            overrides,
+        ]
 
         process = subprocess.Popen(cmdlist, stdout=subprocess.PIPE)
         process.wait()
 
-        process_stdout = b"".join(process.stdout.readlines()).strip().decode('utf-8')
+        process_stdout = b"".join(process.stdout.readlines()).strip().decode("utf-8")
         self.assertEquals(json.loads(process_stdout), expected_result)

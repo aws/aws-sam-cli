@@ -14,7 +14,6 @@ LOG = logging.getLogger(__name__)
 
 
 class ResourceMetadataNormalizer(object):
-
     @staticmethod
     def normalize(template_dict):
         """
@@ -59,5 +58,8 @@ class ResourceMetadataNormalizer(object):
         if property_key and property_value:
             resource.get(PROPERTIES_KEY, {})[property_key] = property_value
         elif property_key or property_value:
-            LOG.info("WARNING: Ignoring Metadata for Resource %s. Metadata contains only aws:asset:path or "
-                     "aws:assert:property but not both", logical_id)
+            LOG.info(
+                "WARNING: Ignoring Metadata for Resource %s. Metadata contains only aws:asset:path or "
+                "aws:assert:property but not both",
+                logical_id,
+            )

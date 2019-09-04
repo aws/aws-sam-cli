@@ -13,7 +13,6 @@ LOG = logging.getLogger(__name__)
 
 
 class ApiProvider(AbstractApiProvider):
-
     def __init__(self, template_dict, parameter_overrides=None, cwd=None):
         """
         Initialize the class with template data. The template_dict is assumed

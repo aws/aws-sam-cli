@@ -29,9 +29,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     template = Path("template.yml")
 
     def test_invoke_returncode_is_zero(self):
-        command_list = self.get_command_list("HelloWorldServerlessFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
 
         process = Popen(command_list, stdout=PIPE)
         return_code = process.wait()
@@ -39,44 +39,39 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(return_code, 0)
 
     def test_function_with_metadata(self):
-        command_list = self.get_command_list("FunctionWithMetadata",
-                                             template_path=self.template_path,
-                                             no_event=True)
+        command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertEquals(process_stdout.decode('utf-8'), '"Hello World in a different dir"')
+        self.assertEquals(process_stdout.decode("utf-8"), '"Hello World in a different dir"')
 
     def test_invoke_returns_execpted_results(self):
-        command_list = self.get_command_list("HelloWorldServerlessFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
+        self.assertEquals(process_stdout.decode("utf-8"), '"Hello world"')
 
     def test_invoke_of_lambda_function(self):
-        command_list = self.get_command_list("HelloWorldLambdaFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
+        self.assertEquals(process_stdout.decode("utf-8"), '"Hello world"')
 
-    @parameterized.expand([
-        ("TimeoutFunction"),
-        ("TimeoutFunctionWithParameter"),
-    ])
+    @parameterized.expand([("TimeoutFunction"), ("TimeoutFunctionWithParameter")])
     def test_invoke_with_timeout_set(self, function_name):
-        command_list = self.get_command_list(function_name,
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            function_name, template_path=self.template_path, event_path=self.event_path
+        )
 
         start = timer()
         process = Popen(command_list, stdout=PIPE)
@@ -92,24 +87,29 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertLess(wall_clock_cli_duration, 20)
 
         self.assertEquals(return_code, 0)
-        self.assertEquals(process_stdout.decode('utf-8'), "", msg="The return statement in the LambdaFunction "
-                                                                  "should never return leading to an empty string")
+        self.assertEquals(
+            process_stdout.decode("utf-8"),
+            "",
+            msg="The return statement in the LambdaFunction " "should never return leading to an empty string",
+        )
 
     def test_invoke_with_env_vars(self):
-        command_list = self.get_command_list("EchoCustomEnvVarFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path,
-                                             env_var_path=self.env_var_path)
+        command_list = self.get_command_list(
+            "EchoCustomEnvVarFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            env_var_path=self.env_var_path,
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode('utf-8'), '"MyVar"')
+        self.assertEquals(process_stdout.decode("utf-8"), '"MyVar"')
 
     def test_invoke_when_function_writes_stdout(self):
-        command_list = self.get_command_list("WriteToStdoutFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
+        )
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         process.wait()
@@ -117,20 +117,20 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         process_stderr = b"".join(process.stderr.readlines()).strip()
 
-        self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode('utf-8'))
-        self.assertIn("wrote to stdout", process_stdout.decode('utf-8'))
+        self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode("utf-8"))
+        self.assertIn("wrote to stdout", process_stdout.decode("utf-8"))
 
     def test_invoke_when_function_writes_stderr(self):
-        command_list = self.get_command_list("WriteToStderrFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
+        )
 
         process = Popen(command_list, stderr=PIPE)
         process.wait()
 
         process_stderr = b"".join(process.stderr.readlines()).strip()
 
-        self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode('utf-8'))
+        self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode("utf-8"))
 
     def test_invoke_returns_expected_result_when_no_event_given(self):
         command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
@@ -140,40 +140,41 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
         self.assertEquals(return_code, 0)
-        self.assertEquals("{}", process_stdout.decode('utf-8'))
+        self.assertEquals("{}", process_stdout.decode("utf-8"))
 
     def test_invoke_raises_exception_with_noargs_and_event(self):
-        command_list = self.get_command_list("HelloWorldLambdaFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
+        )
         command_list.append("--no-event")
         process = Popen(command_list, stderr=PIPE)
         process.wait()
 
         process_stderr = b"".join(process.stderr.readlines()).strip()
-        error_output = process_stderr.decode('utf-8')
+        error_output = process_stderr.decode("utf-8")
         self.assertIn("no_event and event cannot be used together. Please provide only one.", error_output)
 
     def test_invoke_with_env_using_parameters(self):
-        command_list = self.get_command_list("EchoEnvWithParameters",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path,
-                                             parameter_overrides={
-                                                 "MyRuntimeVersion": "v0",
-                                                 "DefaultTimeout": "100"
-                                             })
+        command_list = self.get_command_list(
+            "EchoEnvWithParameters",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            parameter_overrides={"MyRuntimeVersion": "v0", "DefaultTimeout": "100"},
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        environ = json.loads(process_stdout.decode('utf-8'))
+        environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEquals(environ["Region"], "us-east-1")
         self.assertEquals(environ["AccountId"], "123456789012")
         self.assertEquals(environ["Partition"], "aws")
         self.assertEquals(environ["StackName"], "local")
-        self.assertEquals(environ["StackId"], "arn:aws:cloudformation:us-east-1:123456789012:stack/"
-                                              "local/51af3dc0-da77-11e4-872e-1234567db123",)
+        self.assertEquals(
+            environ["StackId"],
+            "arn:aws:cloudformation:us-east-1:123456789012:stack/" "local/51af3dc0-da77-11e4-872e-1234567db123",
+        )
 
         self.assertEquals(environ["URLSuffix"], "localhost")
         self.assertEquals(environ["Timeout"], "100")
@@ -182,16 +183,14 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "my-custom-region"
 
-        command_list = self.get_command_list("EchoEnvWithParameters",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path,
-                                             region=custom_region
-                                             )
+        command_list = self.get_command_list(
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        environ = json.loads(process_stdout.decode('utf-8'))
+        environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEquals(environ["Region"], custom_region)
 
@@ -201,9 +200,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         secret = "secret"
         session = "session"
 
-        command_list = self.get_command_list("EchoEnvWithParameters",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+        )
 
         env = copy.deepcopy(dict(os.environ))
         env["AWS_DEFAULT_REGION"] = custom_region
@@ -215,7 +214,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        environ = json.loads(process_stdout.decode('utf-8'))
+        environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEquals(environ["AWS_DEFAULT_REGION"], custom_region)
         self.assertEquals(environ["AWS_REGION"], custom_region)
@@ -224,31 +223,32 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEquals(environ["AWS_SESSION_TOKEN"], session)
 
     def test_invoke_with_docker_network_of_host(self):
-        command_list = self.get_command_list("HelloWorldServerlessFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path,
-                                             docker_network='host')
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            docker_network="host",
+        )
 
         process = Popen(command_list, stdout=PIPE)
         return_code = process.wait()
 
         self.assertEquals(return_code, 0)
 
-    @skipIf(IS_WINDOWS,
-            "The test hangs on Windows due to trying to attach to a non-existing network")
+    @skipIf(IS_WINDOWS, "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
-        command_list = self.get_command_list("HelloWorldServerlessFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
 
         env = os.environ.copy()
-        env["SAM_DOCKER_NETWORK"] = 'non-existing-network'
+        env["SAM_DOCKER_NETWORK"] = "non-existing-network"
 
         process = Popen(command_list, stderr=PIPE, env=env)
         process.wait()
         process_stderr = b"".join(process.stderr.readlines()).strip()
 
-        self.assertIn('Not Found ("network non-existing-network not found")', process_stderr.decode('utf-8'))
+        self.assertIn('Not Found ("network non-existing-network not found")', process_stderr.decode("utf-8"))
 
     def test_sam_template_file_env_var_set(self):
         command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
@@ -261,14 +261,14 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertEquals(process_stdout.decode('utf-8'), '"Hello world"')
+        self.assertEquals(process_stdout.decode("utf-8"), '"Hello world"')
 
     def test_skip_pull_image_in_env_var(self):
-        docker.from_env().api.pull('lambci/lambda:python3.6')
+        docker.from_env().api.pull("lambci/lambda:python3.6")
 
-        command_list = self.get_command_list("HelloWorldLambdaFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
+        )
 
         env = os.environ.copy()
         env["SAM_SKIP_PULL_IMAGE"] = "True"
@@ -276,7 +276,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stderr=PIPE, env=env)
         process.wait()
         process_stderr = b"".join(process.stderr.readlines()).strip()
-        self.assertIn("Requested to skip pulling images", process_stderr.decode('utf-8'))
+        self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
 
 class TestUsingConfigFiles(InvokeIntegBase):
@@ -293,96 +293,95 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_config = self._create_config_file(profile)
         custom_cred = self._create_cred_file(profile)
 
-        command_list = self.get_command_list("EchoEnvWithParameters",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+        )
 
         env = os.environ.copy()
 
         # Explicitly set environment variables beforehand
-        env['AWS_DEFAULT_REGION'] = 'sa-east-1'
-        env['AWS_REGION'] = 'sa-east-1'
-        env['AWS_ACCESS_KEY_ID'] = 'priority_access_key_id'
-        env['AWS_SECRET_ACCESS_KEY'] = 'priority_secret_key_id'
-        env['AWS_SESSION_TOKEN'] = 'priority_secret_token'
+        env["AWS_DEFAULT_REGION"] = "sa-east-1"
+        env["AWS_REGION"] = "sa-east-1"
+        env["AWS_ACCESS_KEY_ID"] = "priority_access_key_id"
+        env["AWS_SECRET_ACCESS_KEY"] = "priority_secret_key_id"
+        env["AWS_SESSION_TOKEN"] = "priority_secret_token"
 
         # Setup a custom profile
-        env['AWS_CONFIG_FILE'] = custom_config
-        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+        env["AWS_CONFIG_FILE"] = custom_config
+        env["AWS_SHARED_CREDENTIALS_FILE"] = custom_cred
 
         process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        environ = json.loads(process_stdout.decode('utf-8'))
+        environ = json.loads(process_stdout.decode("utf-8"))
 
         # Environment variables we explicitly set take priority over profiles.
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'sa-east-1')
-        self.assertEquals(environ["AWS_REGION"], 'sa-east-1')
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'priority_access_key_id')
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'priority_secret_key_id')
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'priority_secret_token')
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], "sa-east-1")
+        self.assertEquals(environ["AWS_REGION"], "sa-east-1")
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "priority_access_key_id")
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "priority_secret_key_id")
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], "priority_secret_token")
 
     def test_default_profile_with_custom_configs(self):
         profile = "default"
         custom_config = self._create_config_file(profile)
         custom_cred = self._create_cred_file(profile)
 
-        command_list = self.get_command_list("EchoEnvWithParameters",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+        )
 
         env = os.environ.copy()
 
         # Explicitly clean environment variables beforehand
-        env.pop('AWS_DEFAULT_REGION', None)
-        env.pop('AWS_REGION', None)
-        env.pop('AWS_ACCESS_KEY_ID', None)
-        env.pop('AWS_SECRET_ACCESS_KEY', None)
-        env.pop('AWS_SESSION_TOKEN', None)
-        env['AWS_CONFIG_FILE'] = custom_config
-        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+        env.pop("AWS_DEFAULT_REGION", None)
+        env.pop("AWS_REGION", None)
+        env.pop("AWS_ACCESS_KEY_ID", None)
+        env.pop("AWS_SECRET_ACCESS_KEY", None)
+        env.pop("AWS_SESSION_TOKEN", None)
+        env["AWS_CONFIG_FILE"] = custom_config
+        env["AWS_SHARED_CREDENTIALS_FILE"] = custom_cred
 
         process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        environ = json.loads(process_stdout.decode('utf-8'))
+        environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
-        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], "us-west-1")
+        self.assertEquals(environ["AWS_REGION"], "us-west-1")
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     def test_custom_profile_with_custom_configs(self):
         custom_config = self._create_config_file("custom")
         custom_cred = self._create_cred_file("custom")
 
-        command_list = self.get_command_list("EchoEnvWithParameters",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path,
-                                             profile='custom')
+        command_list = self.get_command_list(
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, profile="custom"
+        )
 
         env = os.environ.copy()
 
         # Explicitly clean environment variables beforehand
-        env.pop('AWS_DEFAULT_REGION', None)
-        env.pop('AWS_REGION', None)
-        env.pop('AWS_ACCESS_KEY_ID', None)
-        env.pop('AWS_SECRET_ACCESS_KEY', None)
-        env.pop('AWS_SESSION_TOKEN', None)
-        env['AWS_CONFIG_FILE'] = custom_config
-        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
+        env.pop("AWS_DEFAULT_REGION", None)
+        env.pop("AWS_REGION", None)
+        env.pop("AWS_ACCESS_KEY_ID", None)
+        env.pop("AWS_SECRET_ACCESS_KEY", None)
+        env.pop("AWS_SESSION_TOKEN", None)
+        env["AWS_CONFIG_FILE"] = custom_config
+        env["AWS_SHARED_CREDENTIALS_FILE"] = custom_cred
 
         process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        environ = json.loads(process_stdout.decode('utf-8'))
+        environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
-        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], "us-west-1")
+        self.assertEquals(environ["AWS_REGION"], "us-west-1")
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     def test_custom_profile_through_envrionment_variables(self):
         # When using a custom profile in a custom location, you need both the config
@@ -392,32 +391,32 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
         custom_cred = self._create_cred_file("custom")
 
-        command_list = self.get_command_list("EchoEnvWithParameters",
-                                             template_path=self.template_path,
-                                             event_path=self.event_path)
+        command_list = self.get_command_list(
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+        )
 
         env = os.environ.copy()
 
         # Explicitly clean environment variables beforehand
-        env.pop('AWS_DEFAULT_REGION', None)
-        env.pop('AWS_REGION', None)
-        env.pop('AWS_ACCESS_KEY_ID', None)
-        env.pop('AWS_SECRET_ACCESS_KEY', None)
-        env.pop('AWS_SESSION_TOKEN', None)
-        env['AWS_CONFIG_FILE'] = custom_config
-        env['AWS_SHARED_CREDENTIALS_FILE'] = custom_cred
-        env['AWS_PROFILE'] = "custom"
+        env.pop("AWS_DEFAULT_REGION", None)
+        env.pop("AWS_REGION", None)
+        env.pop("AWS_ACCESS_KEY_ID", None)
+        env.pop("AWS_SECRET_ACCESS_KEY", None)
+        env.pop("AWS_SESSION_TOKEN", None)
+        env["AWS_CONFIG_FILE"] = custom_config
+        env["AWS_SHARED_CREDENTIALS_FILE"] = custom_cred
+        env["AWS_PROFILE"] = "custom"
 
         process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        environ = json.loads(process_stdout.decode('utf-8'))
+        environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], 'us-west-1')
-        self.assertEquals(environ["AWS_REGION"], 'us-west-1')
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], 'someaccesskeyid')
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], 'shhhhhthisisasecret')
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], 'sessiontoken')
+        self.assertEquals(environ["AWS_DEFAULT_REGION"], "us-west-1")
+        self.assertEquals(environ["AWS_REGION"], "us-west-1")
+        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
+        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
+        self.assertEquals(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     def _create_config_file(self, profile):
         if profile == "default":
@@ -432,18 +431,19 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
     def _create_cred_file(self, profile):
         cred_file_content = "[{}]\naws_access_key_id = someaccesskeyid\naws_secret_access_key = shhhhhthisisasecret \
-        \naws_session_token = sessiontoken".format(profile)
+        \naws_session_token = sessiontoken".format(
+            profile
+        )
         custom_cred = os.path.join(self.config_dir, "customcred")
         with open(custom_cred, "w") as file:
             file.write(cred_file_content)
         return custom_cred
 
 
-@skipIf(SKIP_LAYERS_TESTS,
-        "Skip layers tests in Travis only")
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Travis only")
 class TestLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
-    region = 'us-west-2'
+    region = "us-west-2"
     layer_utils = LayerUtils(region=region)
 
     def setUp(self):
@@ -451,7 +451,7 @@ class TestLayerVersion(InvokeIntegBase):
 
     def tearDown(self):
         docker_client = docker.from_env()
-        samcli_images = docker_client.images.list(name='samcli/lambda')
+        samcli_images = docker_client.images.list(name="samcli/lambda")
         for image in samcli_images:
             docker_client.images.remove(image.id)
 
@@ -468,7 +468,7 @@ class TestLayerVersion(InvokeIntegBase):
         cls.layer_utils.delete_layers()
         # Added to handle the case where ^C failed the test due to invalid cleanup of layers
         docker_client = docker.from_env()
-        samcli_images = docker_client.images.list(name='samcli/lambda')
+        samcli_images = docker_client.images.list(name="samcli/lambda")
         for image in samcli_images:
             docker_client.images.remove(image.id)
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
@@ -477,21 +477,24 @@ class TestLayerVersion(InvokeIntegBase):
 
         super(TestLayerVersion, cls).tearDownClass()
 
-    @parameterized.expand([
-        ("ReferenceServerlessLayerVersionServerlessFunction"),
-        ("ReferenceLambdaLayerVersionServerlessFunction"),
-        ("ReferenceServerlessLayerVersionLambdaFunction"),
-        ("ReferenceLambdaLayerVersionLambdaFunction"),
-        ("ReferenceServerlessLayerVersionServerlessFunction")
-    ])
+    @parameterized.expand(
+        [
+            ("ReferenceServerlessLayerVersionServerlessFunction"),
+            ("ReferenceLambdaLayerVersionServerlessFunction"),
+            ("ReferenceServerlessLayerVersionLambdaFunction"),
+            ("ReferenceLambdaLayerVersionLambdaFunction"),
+            ("ReferenceServerlessLayerVersionServerlessFunction"),
+        ]
+    )
     def test_reference_of_layer_version(self, function_logical_id):
-        command_list = self.get_command_list(function_logical_id,
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             layer_cache=str(self.layer_cache),
-                                             parameter_overrides=self.layer_utils.parameters_overrides
-                                             )
+        command_list = self.get_command_list(
+            function_logical_id,
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
@@ -500,20 +503,18 @@ class TestLayerVersion(InvokeIntegBase):
 
         expected_output = '"This is a Layer Ping from simple_python"'
 
-        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
 
-    @parameterized.expand([
-        ("OneLayerVersionServerlessFunction"),
-        ("OneLayerVersionLambdaFunction")
-    ])
+    @parameterized.expand([("OneLayerVersionServerlessFunction"), ("OneLayerVersionLambdaFunction")])
     def test_download_one_layer(self, function_logical_id):
-        command_list = self.get_command_list(function_logical_id,
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             layer_cache=str(self.layer_cache),
-                                             parameter_overrides=self.layer_utils.parameters_overrides
-                                             )
+        command_list = self.get_command_list(
+            function_logical_id,
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
@@ -521,25 +522,21 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
         expected_output = '"Layer1"'
 
-        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
 
-    @parameterized.expand([
-        ("ChangedLayerVersionServerlessFunction"),
-        ("ChangedLayerVersionLambdaFunction")
-    ])
+    @parameterized.expand([("ChangedLayerVersionServerlessFunction"), ("ChangedLayerVersionLambdaFunction")])
     def test_publish_changed_download_layer(self, function_logical_id):
         layer_name = self.layer_utils.generate_layer_name()
-        self.layer_utils.upsert_layer(layer_name=layer_name,
-                                      ref_layer_name="ChangedLayerArn",
-                                      layer_zip="layer1.zip")
+        self.layer_utils.upsert_layer(layer_name=layer_name, ref_layer_name="ChangedLayerArn", layer_zip="layer1.zip")
 
-        command_list = self.get_command_list(function_logical_id,
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             layer_cache=str(self.layer_cache),
-                                             parameter_overrides=self.layer_utils.parameters_overrides
-                                             )
+        command_list = self.get_command_list(
+            function_logical_id,
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
@@ -547,19 +544,20 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
         expected_output = '"Layer1"'
 
-        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
 
-        self.layer_utils.upsert_layer(layer_name=layer_name,
-                                      ref_layer_name="ChangedLayerArn",
-                                      layer_zip="changedlayer1.zip")
+        self.layer_utils.upsert_layer(
+            layer_name=layer_name, ref_layer_name="ChangedLayerArn", layer_zip="changedlayer1.zip"
+        )
 
-        command_list = self.get_command_list(function_logical_id,
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             layer_cache=str(self.layer_cache),
-                                             parameter_overrides=self.layer_utils.parameters_overrides
-                                             )
+        command_list = self.get_command_list(
+            function_logical_id,
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
@@ -567,21 +565,19 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
         expected_output = '"Changed_Layer_1"'
 
-        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
 
-    @parameterized.expand([
-        ("TwoLayerVersionServerlessFunction"),
-        ("TwoLayerVersionLambdaFunction")
-    ])
+    @parameterized.expand([("TwoLayerVersionServerlessFunction"), ("TwoLayerVersionLambdaFunction")])
     def test_download_two_layers(self, function_logical_id):
 
-        command_list = self.get_command_list(function_logical_id,
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             layer_cache=str(self.layer_cache),
-                                             parameter_overrides=self.layer_utils.parameters_overrides
-                                             )
+        command_list = self.get_command_list(
+            function_logical_id,
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
@@ -591,17 +587,18 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(stdout[-1:]).strip()
         expected_output = '"Layer2"'
 
-        self.assertEquals(process_stdout.decode('utf-8'), expected_output)
+        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
 
     def test_caching_two_layers(self):
 
-        command_list = self.get_command_list("TwoLayerVersionServerlessFunction",
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             layer_cache=str(self.layer_cache),
-                                             parameter_overrides=self.layer_utils.parameters_overrides
-                                             )
+        command_list = self.get_command_list(
+            "TwoLayerVersionServerlessFunction",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
@@ -610,12 +607,13 @@ class TestLayerVersion(InvokeIntegBase):
 
     def test_caching_two_layers_with_layer_cache_env_set(self):
 
-        command_list = self.get_command_list("TwoLayerVersionServerlessFunction",
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             parameter_overrides=self.layer_utils.parameters_overrides
-                                             )
+        command_list = self.get_command_list(
+            "TwoLayerVersionServerlessFunction",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
 
         env = os.environ.copy()
         env["SAM_LAYER_CACHE_BASEDIR"] = str(self.layer_cache)
@@ -626,11 +624,10 @@ class TestLayerVersion(InvokeIntegBase):
         self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
 
 
-@skipIf(SKIP_LAYERS_TESTS,
-        "Skip layers tests in Travis only")
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Travis only")
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
-    region = 'us-west-2'
+    region = "us-west-2"
     layer_utils = LayerUtils(region=region)
 
     def setUp(self):
@@ -638,29 +635,29 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
 
     def tearDown(self):
         docker_client = docker.from_env()
-        samcli_images = docker_client.images.list(name='samcli/lambda')
+        samcli_images = docker_client.images.list(name="samcli/lambda")
         for image in samcli_images:
             docker_client.images.remove(image.id)
 
     def test_layer_does_not_exist(self):
         self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         non_existent_layer_arn = self.layer_utils.parameters_overrides["LayerOneArn"].replace(
-            self.layer_utils.layers_meta[0].layer_name, 'non_existent_layer')
+            self.layer_utils.layers_meta[0].layer_name, "non_existent_layer"
+        )
 
-        command_list = self.get_command_list("LayerVersionDoesNotExistFunction",
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region,
-                                             parameter_overrides={
-                                                 'NonExistentLayerArn': non_existent_layer_arn
-                                             }
-                                             )
+        command_list = self.get_command_list(
+            "LayerVersionDoesNotExistFunction",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            parameter_overrides={"NonExistentLayerArn": non_existent_layer_arn},
+        )
 
         process = Popen(command_list, stderr=PIPE)
         process.wait()
 
         process_stderr = b"".join(process.stderr.readlines()).strip()
-        error_output = process_stderr.decode('utf-8')
+        error_output = process_stderr.decode("utf-8")
 
         expected_error_output = "{} was not found.".format(non_existent_layer_arn)
 
@@ -668,19 +665,22 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         self.layer_utils.delete_layers()
 
     def test_account_does_not_exist_for_layer(self):
-        command_list = self.get_command_list("LayerVersionAccountDoesNotExistFunction",
-                                             template_path=self.template_path,
-                                             no_event=True,
-                                             region=self.region
-                                             )
+        command_list = self.get_command_list(
+            "LayerVersionAccountDoesNotExistFunction",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+        )
 
         process = Popen(command_list, stderr=PIPE)
         process.wait()
 
         process_stderr = b"".join(process.stderr.readlines()).strip()
-        error_output = process_stderr.decode('utf-8')
+        error_output = process_stderr.decode("utf-8")
 
-        expected_error_output = "Credentials provided are missing lambda:Getlayerversion policy that is needed to " \
-                                "download the layer or you do not have permission to download the layer"
+        expected_error_output = (
+            "Credentials provided are missing lambda:Getlayerversion policy that is needed to "
+            "download the layer or you do not have permission to download the layer"
+        )
 
         self.assertIn(expected_error_output, error_output)

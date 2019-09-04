@@ -32,37 +32,84 @@ and point SAM to the directory or file containing build artifacts.
 """
 
 
-@click.command("start-api",
-               help=HELP_TEXT,
-               short_help="Sets up a local endpoint you can use to test your API. Supports hot-reloading "
-                          "so you don't need to restart this service when you make changes to your function.")
+@click.command(
+    "start-api",
+    help=HELP_TEXT,
+    short_help="Sets up a local endpoint you can use to test your API. Supports hot-reloading "
+    "so you don't need to restart this service when you make changes to your function.",
+)
 @service_common_options(3000)
-@click.option("--static-dir", "-s",
-              default="public",
-              help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory "
-                   "will be presented at /")
+@click.option(
+    "--static-dir",
+    "-s",
+    default="public",
+    help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
+)
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
 @pass_context
 @track_command
-def cli(ctx,
-        # start-api Specific Options
-        host, port, static_dir,
-
-        # Common Options for Lambda Invoke
-        template, env_vars, debug_port, debug_args, debugger_path, docker_volume_basedir,
-        docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build, parameter_overrides):
+def cli(
+    ctx,
+    # start-api Specific Options
+    host,
+    port,
+    static_dir,
+    # Common Options for Lambda Invoke
+    template,
+    env_vars,
+    debug_port,
+    debug_args,
+    debugger_path,
+    docker_volume_basedir,
+    docker_network,
+    log_file,
+    layer_cache_basedir,
+    skip_pull_image,
+    force_image_build,
+    parameter_overrides,
+):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args, debugger_path,
-           docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
-           parameter_overrides)  # pragma: no cover
+    do_cli(
+        ctx,
+        host,
+        port,
+        static_dir,
+        template,
+        env_vars,
+        debug_port,
+        debug_args,
+        debugger_path,
+        docker_volume_basedir,
+        docker_network,
+        log_file,
+        layer_cache_basedir,
+        skip_pull_image,
+        force_image_build,
+        parameter_overrides,
+    )  # pragma: no cover
 
 
-def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_args,  # pylint: disable=R0914
-           debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image,
-           force_image_build, parameter_overrides):
+def do_cli(  # pylint: disable=R0914
+    ctx,
+    host,
+    port,
+    static_dir,
+    template,
+    env_vars,
+    debug_port,
+    debug_args,
+    debugger_path,
+    docker_volume_basedir,
+    docker_network,
+    log_file,
+    layer_cache_basedir,
+    skip_pull_image,
+    force_image_build,
+    parameter_overrides,
+):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -73,32 +120,33 @@ def do_cli(ctx, host, port, static_dir, template, env_vars, debug_port, debug_ar
     # Handler exception raised by the processor for invalid args and print errors
 
     try:
-        with InvokeContext(template_file=template,
-                           function_identifier=None,  # Don't scope to one particular function
-                           env_vars_file=env_vars,
-                           docker_volume_basedir=docker_volume_basedir,
-                           docker_network=docker_network,
-                           log_file=log_file,
-                           skip_pull_image=skip_pull_image,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
-                           debugger_path=debugger_path,
-                           parameter_overrides=parameter_overrides,
-                           layer_cache_basedir=layer_cache_basedir,
-                           force_image_build=force_image_build,
-                           aws_region=ctx.region,
-                           aws_profile=ctx.profile) as invoke_context:
+        with InvokeContext(
+            template_file=template,
+            function_identifier=None,  # Don't scope to one particular function
+            env_vars_file=env_vars,
+            docker_volume_basedir=docker_volume_basedir,
+            docker_network=docker_network,
+            log_file=log_file,
+            skip_pull_image=skip_pull_image,
+            debug_port=debug_port,
+            debug_args=debug_args,
+            debugger_path=debugger_path,
+            parameter_overrides=parameter_overrides,
+            layer_cache_basedir=layer_cache_basedir,
+            force_image_build=force_image_build,
+            aws_region=ctx.region,
+            aws_profile=ctx.profile,
+        ) as invoke_context:
 
-            service = LocalApiService(lambda_invoke_context=invoke_context,
-                                      port=port,
-                                      host=host,
-                                      static_dir=static_dir)
+            service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
 
     except NoApisDefined:
         raise UserException("Template does not have any APIs connected to Lambda functions")
-    except (InvalidSamDocumentException,
-            OverridesNotWellDefinedError,
-            InvalidLayerReference,
-            DebuggingNotSupported) as ex:
+    except (
+        InvalidSamDocumentException,
+        OverridesNotWellDefinedError,
+        InvalidLayerReference,
+        DebuggingNotSupported,
+    ) as ex:
         raise UserException(str(ex))

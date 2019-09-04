@@ -30,26 +30,23 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     def tearDown(self):
         os.remove(self.events_file_path)
 
-    @parameterized.expand([
-        param("Go1xFunction"),
-        param("Java8Function")
-    ])
+    @parameterized.expand([param("Go1xFunction"), param("Java8Function")])
     def test_runtime_zip(self, function_name):
-        command_list = self.get_command_list(function_name,
-                                             template_path=self.template_path,
-                                             event_path=self.events_file_path)
+        command_list = self.get_command_list(
+            function_name, template_path=self.template_path, event_path=self.events_file_path
+        )
 
         process = Popen(command_list, stdout=PIPE)
         return_code = process.wait()
 
         self.assertEquals(return_code, 0)
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode('utf-8'), '"Hello World"')
+        self.assertEquals(process_stdout.decode("utf-8"), '"Hello World"')
 
     def test_custom_provided_runtime(self):
-        command_list = self.get_command_list("CustomBashFunction",
-                                             template_path=self.template_path,
-                                             event_path=self.events_file_path)
+        command_list = self.get_command_list(
+            "CustomBashFunction", template_path=self.template_path, event_path=self.events_file_path
+        )
 
         command_list = command_list + ["--skip-pull-image"]
 
@@ -58,5 +55,4 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
 
         self.assertEquals(return_code, 0)
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode('utf-8'),
-                          u'{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')
+        self.assertEquals(process_stdout.decode("utf-8"), u'{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')

@@ -29,7 +29,7 @@ def execute_command(command, args, template_file):
             # Since --template-file was parsed separately, add it here manually
             args.extend(["--template-file", template_file])
 
-        subprocess.check_call([aws_cmd, 'cloudformation', command] + args, env=env)
+        subprocess.check_call([aws_cmd, "cloudformation", command] + args, env=env)
         LOG.debug("%s command successful", command)
     except subprocess.CalledProcessError as e:
         # Underlying aws command will print the exception to the user
@@ -39,12 +39,8 @@ def execute_command(command, args, template_file):
 
 def find_executable(execname):
 
-    if platform.system().lower() == 'windows':
-        options = [
-            "{}.cmd".format(execname),
-            "{}.exe".format(execname),
-            execname
-        ]
+    if platform.system().lower() == "windows":
+        options = ["{}.cmd".format(execname), "{}.exe".format(execname), execname]
     else:
         options = [execname]
 

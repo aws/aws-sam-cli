@@ -1,4 +1,3 @@
-
 from unittest import TestCase
 from mock import Mock
 
@@ -18,11 +17,19 @@ class TestFunctionConfig(TestCase):
         self.memory = 1234
         self.timeout = 34
         self.env_vars_mock = Mock()
-        self.layers = ['layer1']
+        self.layers = ["layer1"]
 
     def test_init_with_env_vars(self):
-        config = FunctionConfig(self.name, self.runtime, self.handler, self.code_path, self.layers,
-                                memory=self.memory, timeout=self.timeout, env_vars=self.env_vars_mock)
+        config = FunctionConfig(
+            self.name,
+            self.runtime,
+            self.handler,
+            self.code_path,
+            self.layers,
+            memory=self.memory,
+            timeout=self.timeout,
+            env_vars=self.env_vars_mock,
+        )
 
         self.assertEquals(config.name, self.name)
         self.assertEquals(config.runtime, self.runtime)

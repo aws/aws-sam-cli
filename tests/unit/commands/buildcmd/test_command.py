@@ -13,16 +13,11 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestDoCli(TestCase):
-
     @patch("samcli.commands.build.command.BuildContext")
     @patch("samcli.commands.build.command.ApplicationBuilder")
     @patch("samcli.commands.build.command.move_template")
     @patch("samcli.commands.build.command.os")
-    def test_must_succeed_build(self,
-                                os_mock,
-                                move_template_mock,
-                                ApplicationBuilderMock,
-                                BuildContextMock):
+    def test_must_succeed_build(self, os_mock, move_template_mock, ApplicationBuilderMock, BuildContextMock):
 
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__ = Mock()
@@ -31,28 +26,43 @@ class TestDoCli(TestCase):
         artifacts = builder_mock.build.return_value = "artifacts"
         modified_template = builder_mock.update_template.return_value = "modified template"
 
-        do_cli("function_identifier", "template", "base_dir", "build_dir", "clean", "use_container",
-               "manifest_path", "docker_network", "skip_pull", "parameter_overrides", "mode")
+        do_cli(
+            "function_identifier",
+            "template",
+            "base_dir",
+            "build_dir",
+            "clean",
+            "use_container",
+            "manifest_path",
+            "docker_network",
+            "skip_pull",
+            "parameter_overrides",
+            "mode",
+        )
 
-        ApplicationBuilderMock.assert_called_once_with(ctx_mock.functions_to_build,
-                                                       ctx_mock.build_dir,
-                                                       ctx_mock.base_dir,
-                                                       manifest_path_override=ctx_mock.manifest_path_override,
-                                                       container_manager=ctx_mock.container_manager,
-                                                       mode=ctx_mock.mode)
+        ApplicationBuilderMock.assert_called_once_with(
+            ctx_mock.functions_to_build,
+            ctx_mock.build_dir,
+            ctx_mock.base_dir,
+            manifest_path_override=ctx_mock.manifest_path_override,
+            container_manager=ctx_mock.container_manager,
+            mode=ctx_mock.mode,
+        )
         builder_mock.build.assert_called_once()
-        builder_mock.update_template.assert_called_once_with(ctx_mock.template_dict,
-                                                             ctx_mock.original_template_path,
-                                                             artifacts)
-        move_template_mock.assert_called_once_with(ctx_mock.original_template_path,
-                                                   ctx_mock.output_template_path,
-                                                   modified_template)
+        builder_mock.update_template.assert_called_once_with(
+            ctx_mock.template_dict, ctx_mock.original_template_path, artifacts
+        )
+        move_template_mock.assert_called_once_with(
+            ctx_mock.original_template_path, ctx_mock.output_template_path, modified_template
+        )
 
-    @parameterized.expand([
-        (UnsupportedRuntimeException(), ),
-        (BuildError(), ),
-        (UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"), )
-    ])
+    @parameterized.expand(
+        [
+            (UnsupportedRuntimeException(),),
+            (BuildError(),),
+            (UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),),
+        ]
+    )
     @patch("samcli.commands.build.command.BuildContext")
     @patch("samcli.commands.build.command.ApplicationBuilder")
     def test_must_catch_known_exceptions(self, exception, ApplicationBuilderMock, BuildContextMock):
@@ -65,8 +75,19 @@ class TestDoCli(TestCase):
         builder_mock.build.side_effect = exception
 
         with self.assertRaises(UserException) as ctx:
-            do_cli("function_identifier", "template", "base_dir", "build_dir", "clean", "use_container",
-                   "manifest_path", "docker_network", "skip_pull", "parameteroverrides", "mode")
+            do_cli(
+                "function_identifier",
+                "template",
+                "base_dir",
+                "build_dir",
+                "clean",
+                "use_container",
+                "manifest_path",
+                "docker_network",
+                "skip_pull",
+                "parameteroverrides",
+                "mode",
+            )
 
         self.assertEquals(str(ctx.exception), str(exception))
 
@@ -76,17 +97,27 @@ class TestDoCli(TestCase):
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__ = Mock()
         BuildContextMock.return_value.__enter__.return_value = ctx_mock
-        ApplicationBuilderMock.side_effect = FunctionNotFound('Function Not Found')
+        ApplicationBuilderMock.side_effect = FunctionNotFound("Function Not Found")
 
         with self.assertRaises(UserException) as ctx:
-            do_cli("function_identifier", "template", "base_dir", "build_dir", "clean", "use_container",
-                   "manifest_path", "docker_network", "skip_pull", "parameteroverrides", "mode")
+            do_cli(
+                "function_identifier",
+                "template",
+                "base_dir",
+                "build_dir",
+                "clean",
+                "use_container",
+                "manifest_path",
+                "docker_network",
+                "skip_pull",
+                "parameteroverrides",
+                "mode",
+            )
 
-        self.assertEquals(str(ctx.exception), 'Function Not Found')
+        self.assertEquals(str(ctx.exception), "Function Not Found")
 
 
 class TestGetModeValueFromEnvvar(TestCase):
-
     def setUp(self):
         self.original = os.environ.copy()
         self.varname = "SOME_ENVVAR"

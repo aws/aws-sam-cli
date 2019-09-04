@@ -45,8 +45,8 @@ class Context(object):
 
         if self._debug:
             # Turn on debug logging
-            logging.getLogger('samcli').setLevel(logging.DEBUG)
-            logging.getLogger('aws_lambda_builders').setLevel(logging.DEBUG)
+            logging.getLogger("samcli").setLevel(logging.DEBUG)
+            logging.getLogger("aws_lambda_builders").setLevel(logging.DEBUG)
 
     @property
     def region(self):
@@ -135,5 +135,4 @@ class Context(object):
         the Boto3's session object are read-only. Therefore when Click parses new AWS session related properties (like
         region & profile), it will call this method to create a new session with latest values for these properties.
         """
-        boto3.setup_default_session(region_name=self._aws_region,
-                                    profile_name=self._aws_profile)
+        boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)

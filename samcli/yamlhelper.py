@@ -74,11 +74,7 @@ def yaml_dump(dict_to_dump):
     :return:
     """
     FlattenAliasDumper.add_representer(OrderedDict, _dict_representer)
-    return yaml.dump(
-        dict_to_dump,
-        default_flow_style=False,
-        Dumper=FlattenAliasDumper,
-    )
+    return yaml.dump(dict_to_dump, default_flow_style=False, Dumper=FlattenAliasDumper)
 
 
 def _dict_constructor(loader, node):
@@ -96,8 +92,7 @@ def yaml_parse(yamlstr):
         return json.loads(yamlstr, object_pairs_hook=OrderedDict)
     except ValueError:
         yaml.SafeLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _dict_constructor)
-        yaml.SafeLoader.add_multi_constructor(
-            "!", intrinsics_multi_constructor)
+        yaml.SafeLoader.add_multi_constructor("!", intrinsics_multi_constructor)
         return yaml.safe_load(yamlstr)
 
 

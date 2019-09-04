@@ -130,6 +130,7 @@ def nodejs_lambda(code):
     # symlinks. Hence get the real path before passing to Docker.
     return os.path.realpath(directory)
 
+
 @contextmanager
 def make_zip(directory, extension="zip"):
     """
@@ -146,7 +147,7 @@ def make_zip(directory, extension="zip"):
         tmpdir = tempfile.mkdtemp()
         path_prefix = os.path.join(tmpdir, "code")
 
-        zipfile_current_path = shutil.make_archive(path_prefix, 'zip', directory)
+        zipfile_current_path = shutil.make_archive(path_prefix, "zip", directory)
 
         # shutil always sets the file with .zip extension. Hence rename/move the file to be with right extension
         expected_path = path_prefix + "." + extension

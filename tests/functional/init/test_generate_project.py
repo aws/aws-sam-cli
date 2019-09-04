@@ -8,7 +8,6 @@ from samcli.commands.init import do_cli as init_cli
 
 
 class TestCli(TestCase):
-
     def setUp(self):
         self.location = None
         self.runtime = "python3.6"
@@ -17,10 +16,8 @@ class TestCli(TestCase):
         self.name = "testing project {}".format(random.randint(1, 10))
         self.no_input = False
         self.cookiecutter_dir = tempfile.mkdtemp()
-        self.project_folder = os.path.abspath(
-                                os.path.join(self.output_dir, self.name))
-        self.custom_location_folder = os.path.abspath(
-                                        os.path.join(self.output_dir, 'Name of the project'))
+        self.project_folder = os.path.abspath(os.path.join(self.output_dir, self.name))
+        self.custom_location_folder = os.path.abspath(os.path.join(self.output_dir, "Name of the project"))
 
     def tearDown(self):
         leftover_folders = (self.output_dir, self.cookiecutter_dir)
@@ -33,9 +30,14 @@ class TestCli(TestCase):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
-            ctx=None, location=self.location, runtime=self.runtime,
-            dependency_manager=self.dependency_manager, output_dir=self.output_dir,
-            name=self.name, no_input=self.no_input)
+            ctx=None,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            no_input=self.no_input,
+        )
 
         # THEN we should see a new project created and a successful return
         self.assertTrue(os.path.isdir(self.project_folder))
@@ -47,9 +49,14 @@ class TestCli(TestCase):
         self.location = "https://github.com/aws-samples/cookiecutter-aws-sam-python"
 
         init_cli(
-            ctx=None, location=self.location, runtime=self.runtime,
-            dependency_manager=self.dependency_manager, output_dir=self.output_dir,
-            name=self.name, no_input=True)
+            ctx=None,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            no_input=True,
+        )
 
         # THEN we should see a new project created and a successful return
         # and this new folder should be named 'name-of-the-project'

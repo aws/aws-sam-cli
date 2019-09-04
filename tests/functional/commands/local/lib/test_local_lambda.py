@@ -24,7 +24,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 class TestFunctionalLocalLambda(TestCase):
-
     def setUp(self):
         self.code_abs_path = nodejs_lambda(GET_ENV_VAR)
 
@@ -33,24 +32,24 @@ class TestFunctionalLocalLambda(TestCase):
         self.code_uri = os.path.relpath(self.code_abs_path, self.cwd)  # Get relative path with respect to CWD
 
         self.function_name = "name"
-        self.variables = {
-            "var1": "defaultvalue1",
-            "var2": "defaultvalue2"
-        }
+        self.variables = {"var1": "defaultvalue1", "var2": "defaultvalue2"}
 
-        self.env_var_overrides = {
-            self.function_name: {
-                "var1": "override_value1"
-            }
-        }
+        self.env_var_overrides = {self.function_name: {"var1": "override_value1"}}
 
         # Override "var2" through the Shell environment
         os.environ["var2"] = "shell_env_value2"
 
-        self.function = provider.Function(name=self.function_name, runtime="nodejs4.3", memory=256, timeout=5,
-                                          handler="index.handler", codeuri=self.code_uri,
-                                          environment={"Variables": self.variables},
-                                          rolearn=None, layers=[])
+        self.function = provider.Function(
+            name=self.function_name,
+            runtime="nodejs4.3",
+            memory=256,
+            timeout=5,
+            handler="index.handler",
+            codeuri=self.code_uri,
+            environment={"Variables": self.variables},
+            rolearn=None,
+            layers=[],
+        )
 
         self.mock_function_provider = Mock()
         self.mock_function_provider.get.return_value = self.function
@@ -62,17 +61,15 @@ class TestFunctionalLocalLambda(TestCase):
 
     def test_must_invoke(self):
         input_event = '"some data"'
-        expected_env_vars = {
-            "var1": "override_value1",
-            "var2": "shell_env_value2"
-        }
+        expected_env_vars = {"var1": "override_value1", "var2": "shell_env_value2"}
 
         manager = ContainerManager()
         layer_downloader = LayerDownloader("./", "./")
         lambda_image = LambdaImage(layer_downloader, False, False)
         local_runtime = LambdaRuntime(manager, lambda_image)
-        runner = LocalLambdaRunner(local_runtime, self.mock_function_provider, self.cwd, self.env_var_overrides,
-                                   debug_context=None)
+        runner = LocalLambdaRunner(
+            local_runtime, self.mock_function_provider, self.cwd, self.env_var_overrides, debug_context=None
+        )
 
         # Append the real AWS credentials to the expected values.
         creds = runner.get_aws_creds()
@@ -93,7 +90,7 @@ class TestFunctionalLocalLambda(TestCase):
         self.assertGreater(len(stderr_stream.getvalue().strip()), 0, "stderr stream must contain data")
 
         # This should contain all the environment variables passed to the function
-        actual_output = json.loads(stdout_stream.getvalue().strip().decode('utf-8'))
+        actual_output = json.loads(stdout_stream.getvalue().strip().decode("utf-8"))
 
         for key, value in expected_env_vars.items():
             self.assertTrue(key in actual_output, "Key '{}' must be in function output".format(key))

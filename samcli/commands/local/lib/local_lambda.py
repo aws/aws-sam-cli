@@ -20,16 +20,19 @@ class LocalLambdaRunner(object):
     Runs Lambda functions locally. This class is a wrapper around the `samcli.local` library which takes care
     of actually running the function on a Docker container.
     """
+
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
 
-    def __init__(self,
-                 local_runtime,
-                 function_provider,
-                 cwd,
-                 aws_profile=None,
-                 aws_region=None,
-                 env_vars_values=None,
-                 debug_context=None):
+    def __init__(
+        self,
+        local_runtime,
+        function_provider,
+        cwd,
+        aws_profile=None,
+        aws_region=None,
+        env_vars_values=None,
+        debug_context=None,
+    ):
         """
         Initializes the class
 
@@ -79,8 +82,9 @@ class LocalLambdaRunner(object):
 
         if not function:
             all_functions = [f.name for f in self.provider.get_all()]
-            available_function_message = "{} not found. Possible options in your template: {}"\
-                .format(function_name, all_functions)
+            available_function_message = "{} not found. Possible options in your template: {}".format(
+                function_name, all_functions
+            )
             LOG.info(available_function_message)
             raise FunctionNotFound("Unable to find a Function with name '%s'", function_name)
 
@@ -125,14 +129,16 @@ class LocalLambdaRunner(object):
         if self.is_debugging():
             function_timeout = self.MAX_DEBUG_TIMEOUT
 
-        return FunctionConfig(name=function.name,
-                              runtime=function.runtime,
-                              handler=function.handler,
-                              code_abs_path=code_abs_path,
-                              layers=function.layers,
-                              memory=function.memory,
-                              timeout=function_timeout,
-                              env_vars=env_vars)
+        return FunctionConfig(
+            name=function.name,
+            runtime=function.runtime,
+            handler=function.handler,
+            code_abs_path=code_abs_path,
+            layers=function.layers,
+            memory=function.memory,
+            timeout=function_timeout,
+            env_vars=env_vars,
+        )
 
     def _make_env_vars(self, function):
         """Returns the environment variables configuration for this function
@@ -188,13 +194,15 @@ class LocalLambdaRunner(object):
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
 
-        return EnvironmentVariables(function.memory,
-                                    function.timeout,
-                                    function.handler,
-                                    variables=variables,
-                                    shell_env_values=shell_env,
-                                    override_values=overrides,
-                                    aws_creds=aws_creds)
+        return EnvironmentVariables(
+            function.memory,
+            function.timeout,
+            function.handler,
+            variables=variables,
+            shell_env_values=shell_env,
+            override_values=overrides,
+            aws_creds=aws_creds,
+        )
 
     def get_aws_creds(self):
         """
@@ -223,17 +231,17 @@ class LocalLambdaRunner(object):
             return result
 
         # After loading credentials, region name might be available here.
-        if hasattr(session, 'region_name') and session.region_name:
+        if hasattr(session, "region_name") and session.region_name:
             result["region"] = session.region_name
 
         # Only add the key, if its value is present
-        if hasattr(creds, 'access_key') and creds.access_key:
+        if hasattr(creds, "access_key") and creds.access_key:
             result["key"] = creds.access_key
 
-        if hasattr(creds, 'secret_key') and creds.secret_key:
+        if hasattr(creds, "secret_key") and creds.secret_key:
             result["secret"] = creds.secret_key
 
-        if hasattr(creds, 'token') and creds.token:
+        if hasattr(creds, "token") and creds.token:
             result["sessiontoken"] = creds.token
 
         return result
