@@ -34,5 +34,8 @@ dev: lint test
 black:
 	black samcli/* tests/*
 
+black-check:
+	black --check samcli/* tests/*
+
 # Verifications to run before sending a pull request
-pr: init dev
+pr: init dev black-check
