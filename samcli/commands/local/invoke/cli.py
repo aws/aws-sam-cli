@@ -35,32 +35,80 @@ STDIN_FILE_NAME = "-"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
-@click.option("--event", '-e',
-              type=click.Path(),
-              default=STDIN_FILE_NAME,  # Defaults to stdin
-              help="JSON file containing event data passed to the Lambda function during invoke. If this option "
-                   "is not specified, we will default to reading JSON from stdin")
+@click.option(
+    "--event",
+    "-e",
+    type=click.Path(),
+    default=STDIN_FILE_NAME,  # Defaults to stdin
+    help="JSON file containing event data passed to the Lambda function during invoke. If this option "
+    "is not specified, we will default to reading JSON from stdin",
+)
 @click.option("--no-event", is_flag=True, default=False, help="Invoke Function with an empty event")
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options
-@click.argument('function_identifier', required=False)
+@click.argument("function_identifier", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914
-def cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
-        docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
-        parameter_overrides):
+def cli(
+    ctx,
+    function_identifier,
+    template,
+    event,
+    no_event,
+    env_vars,
+    debug_port,
+    debug_args,
+    debugger_path,
+    docker_volume_basedir,
+    docker_network,
+    log_file,
+    layer_cache_basedir,
+    skip_pull_image,
+    force_image_build,
+    parameter_overrides,
+):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port, debug_args, debugger_path,
-           docker_volume_basedir, docker_network, log_file, layer_cache_basedir, skip_pull_image, force_image_build,
-           parameter_overrides)  # pragma: no cover
+    do_cli(
+        ctx,
+        function_identifier,
+        template,
+        event,
+        no_event,
+        env_vars,
+        debug_port,
+        debug_args,
+        debugger_path,
+        docker_volume_basedir,
+        docker_network,
+        log_file,
+        layer_cache_basedir,
+        skip_pull_image,
+        force_image_build,
+        parameter_overrides,
+    )  # pragma: no cover
 
 
-def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_port,  # pylint: disable=R0914
-           debug_args, debugger_path, docker_volume_basedir, docker_network, log_file, layer_cache_basedir,
-           skip_pull_image, force_image_build, parameter_overrides):
+def do_cli(  # pylint: disable=R0914
+    ctx,
+    function_identifier,
+    template,
+    event,
+    no_event,
+    env_vars,
+    debug_port,
+    debug_args,
+    debugger_path,
+    docker_volume_basedir,
+    docker_network,
+    log_file,
+    layer_cache_basedir,
+    skip_pull_image,
+    force_image_build,
+    parameter_overrides,
+):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -79,34 +127,37 @@ def do_cli(ctx, function_identifier, template, event, no_event, env_vars, debug_
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
     try:
-        with InvokeContext(template_file=template,
-                           function_identifier=function_identifier,
-                           env_vars_file=env_vars,
-                           docker_volume_basedir=docker_volume_basedir,
-                           docker_network=docker_network,
-                           log_file=log_file,
-                           skip_pull_image=skip_pull_image,
-                           debug_port=debug_port,
-                           debug_args=debug_args,
-                           debugger_path=debugger_path,
-                           parameter_overrides=parameter_overrides,
-                           layer_cache_basedir=layer_cache_basedir,
-                           force_image_build=force_image_build,
-                           aws_region=ctx.region,
-                           aws_profile=ctx.profile) as context:
+        with InvokeContext(
+            template_file=template,
+            function_identifier=function_identifier,
+            env_vars_file=env_vars,
+            docker_volume_basedir=docker_volume_basedir,
+            docker_network=docker_network,
+            log_file=log_file,
+            skip_pull_image=skip_pull_image,
+            debug_port=debug_port,
+            debug_args=debug_args,
+            debugger_path=debugger_path,
+            parameter_overrides=parameter_overrides,
+            layer_cache_basedir=layer_cache_basedir,
+            force_image_build=force_image_build,
+            aws_region=ctx.region,
+            aws_profile=ctx.profile,
+        ) as context:
 
             # Invoke the function
-            context.local_lambda_runner.invoke(context.function_name,
-                                               event=event_data,
-                                               stdout=context.stdout,
-                                               stderr=context.stderr)
+            context.local_lambda_runner.invoke(
+                context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr
+            )
 
     except FunctionNotFound:
         raise UserException("Function {} not found in template".format(function_identifier))
-    except (InvalidSamDocumentException,
-            OverridesNotWellDefinedError,
-            InvalidLayerReference,
-            DebuggingNotSupported) as ex:
+    except (
+        InvalidSamDocumentException,
+        OverridesNotWellDefinedError,
+        InvalidLayerReference,
+        DebuggingNotSupported,
+    ) as ex:
         raise UserException(str(ex))
     except DockerImagePullFailedException as ex:
         raise UserException(str(ex))
@@ -126,5 +177,5 @@ def _get_event(event_file_name):
 
     # click.open_file knows to open stdin when filename is '-'. This is safer than manually opening streams, and
     # accidentally closing a standard stream
-    with click.open_file(event_file_name, 'r') as fp:
+    with click.open_file(event_file_name, "r") as fp:
         return fp.read()

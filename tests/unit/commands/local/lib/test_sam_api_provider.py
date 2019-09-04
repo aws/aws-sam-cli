@@ -31,12 +31,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": method},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": method}}},
                     },
                 }
             }
@@ -45,10 +40,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = ApiProvider(template)
 
         self.assertEquals(len(provider.routes), 1)
-        self.assertEquals(
-            list(provider.routes)[0],
-            Route(path="/path", methods=["GET"], function_name="SamFunc1"),
-        )
+        self.assertEquals(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
 
     def test_provider_creates_api_for_all_events(self):
         template = {
@@ -60,14 +52,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
                         "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "GET"},
-                            },
-                            "Event2": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "POST"},
-                            },
+                            "Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": "GET"}},
+                            "Event2": {"Type": "Api", "Properties": {"Path": "/path", "Method": "POST"}},
                         },
                     },
                 }
@@ -90,12 +76,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "GET"},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": "GET"}}},
                     },
                 },
                 "SamFunc2": {
@@ -104,12 +85,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "POST"},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": "POST"}}},
                     },
                 },
             }
@@ -132,12 +108,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "S3",
-                                "Properties": {"Property1": "value"},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "S3", "Properties": {"Property1": "value"}}},
                     },
                 }
             }
@@ -152,11 +123,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             "Resources": {
                 "SamFunc1": {
                     "Type": "AWS::Lambda::Function",
-                    "Properties": {
-                        "CodeUri": "/usr/foo/bar",
-                        "Runtime": "nodejs4.3",
-                        "Handler": "index.handler",
-                    },
+                    "Properties": {"CodeUri": "/usr/foo/bar", "Runtime": "nodejs4.3", "Handler": "index.handler"},
                 }
             }
         }
@@ -174,12 +141,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "GET"},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": "GET"}}},
                     },
                 },
                 "SamFunc2": {
@@ -188,12 +150,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "POST"},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": "POST"}}},
                     },
                 },
             }
@@ -229,12 +186,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": method},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": method}}},
                     },
                 }
             }
@@ -243,9 +195,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = ApiProvider(template)
 
         api1 = Route(
-            path="/path",
-            methods=["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"],
-            function_name="SamFunc1",
+            path="/path", methods=["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"], function_name="SamFunc1"
         )
 
         self.assertEquals(len(provider.routes), 1)
@@ -254,13 +204,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
     def test_provider_must_support_binary_media_types(self):
         template = {
             "Globals": {
-                "Api": {
-                    "BinaryMediaTypes": [
-                        "image~1gif",
-                        "image~1png",
-                        "image~1png",  # Duplicates must be ignored
-                    ]
-                }
+                "Api": {"BinaryMediaTypes": ["image~1gif", "image~1png", "image~1png"]}  # Duplicates must be ignored
             },
             "Resources": {
                 "SamFunc1": {
@@ -269,12 +213,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "get"},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": "get"}}},
                     },
                 }
             },
@@ -283,21 +222,14 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = ApiProvider(template)
 
         self.assertEquals(len(provider.routes), 1)
-        self.assertEquals(
-            list(provider.routes)[0],
-            Route(path="/path", methods=["GET"], function_name="SamFunc1"),
-        )
+        self.assertEquals(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
 
-        assertCountEqual(
-            self, provider.api.binary_media_types, ["image/gif", "image/png"]
-        )
+        assertCountEqual(self, provider.api.binary_media_types, ["image/gif", "image/png"])
         self.assertEquals(provider.api.stage_name, "Prod")
 
     def test_provider_must_support_binary_media_types_with_any_method(self):
         template = {
-            "Globals": {
-                "Api": {"BinaryMediaTypes": ["image~1gif", "image~1png", "text/html"]}
-            },
+            "Globals": {"Api": {"BinaryMediaTypes": ["image~1gif", "image~1png", "text/html"]}},
             "Resources": {
                 "SamFunc1": {
                     "Type": "AWS::Serverless::Function",
@@ -305,12 +237,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "/usr/foo/bar",
                         "Runtime": "nodejs4.3",
                         "Handler": "index.handler",
-                        "Events": {
-                            "Event1": {
-                                "Type": "Api",
-                                "Properties": {"Path": "/path", "Method": "any"},
-                            }
-                        },
+                        "Events": {"Event1": {"Type": "Api", "Properties": {"Path": "/path", "Method": "any"}}},
                     },
                 }
             },
@@ -343,14 +270,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         ]
 
     def test_with_no_routes(self):
-        template = {
-            "Resources": {
-                "Api1": {
-                    "Type": "AWS::Serverless::Api",
-                    "Properties": {"StageName": "Prod"},
-                }
-            }
-        }
+        template = {"Resources": {"Api1": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}}}}
 
         provider = ApiProvider(template)
 
@@ -361,10 +281,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             "Resources": {
                 "Api1": {
                     "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                        "DefinitionBody": make_swagger(self.input_routes),
-                    },
+                    "Properties": {"StageName": "Prod", "DefinitionBody": make_swagger(self.input_routes)},
                 }
             }
         }
@@ -401,25 +318,17 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             "Resources": {
                 "Api1": {
                     "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                        "DefinitionUri": filename,
-                        "DefinitionBody": body,
-                    },
+                    "Properties": {"StageName": "Prod", "DefinitionUri": filename, "DefinitionBody": body},
                 }
             }
         }
 
-        SwaggerReaderMock.return_value.read.return_value = make_swagger(
-            self.input_routes
-        )
+        SwaggerReaderMock.return_value.read.return_value = make_swagger(self.input_routes)
 
         cwd = "foo"
         provider = ApiProvider(template, cwd=cwd)
         assertCountEqual(self, self.input_routes, provider.routes)
-        SwaggerReaderMock.assert_called_with(
-            definition_body=body, definition_uri=filename, working_dir=cwd
-        )
+        SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
         routes = [Route(path="/path", methods=["any"], function_name="SamFunc1")]
@@ -436,10 +345,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             "Resources": {
                 "Api1": {
                     "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                        "DefinitionBody": make_swagger(routes),
-                    },
+                    "Properties": {"StageName": "Prod", "DefinitionBody": make_swagger(routes)},
                 }
             }
         }
@@ -454,9 +360,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
                         "StageName": "Prod",
-                        "DefinitionBody": make_swagger(
-                            self.input_routes, binary_media_types=self.binary_types
-                        ),
+                        "DefinitionBody": make_swagger(self.input_routes, binary_media_types=self.binary_types),
                     },
                 }
             }
@@ -474,9 +378,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
-        input_routes = [
-            Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")
-        ]
+        input_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
         extra_binary_types = ["text/html"]
 
         template = {
@@ -486,18 +388,14 @@ class TestSamApiProviderWithExplicitApis(TestCase):
                     "Properties": {
                         "BinaryMediaTypes": extra_binary_types,
                         "StageName": "Prod",
-                        "DefinitionBody": make_swagger(
-                            input_routes, binary_media_types=self.binary_types
-                        ),
+                        "DefinitionBody": make_swagger(input_routes, binary_media_types=self.binary_types),
                     },
                 }
             }
         }
 
         expected_binary_types = sorted(self.binary_types + extra_binary_types)
-        expected_routes = [
-            Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")
-        ]
+        expected_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
 
         provider = ApiProvider(template)
         assertCountEqual(self, expected_routes, provider.routes)
@@ -517,40 +415,22 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         self.template = {
             "Resources": {
-                "Api1": {
-                    "Type": "AWS::Serverless::Api",
-                    "Properties": {"StageName": "Prod"},
-                },
+                "Api1": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
                 "ImplicitFunc": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "CodeUri": "/usr/foo/bar",
-                        "Runtime": "nodejs4.3",
-                        "Handler": "index.handler",
-                    },
+                    "Properties": {"CodeUri": "/usr/foo/bar", "Runtime": "nodejs4.3", "Handler": "index.handler"},
                 },
             }
         }
 
     def test_must_union_implicit_and_explicit(self):
         events = {
-            "Event1": {
-                "Type": "Api",
-                "Properties": {"Path": "/path1", "Method": "POST"},
-            },
-            "Event2": {
-                "Type": "Api",
-                "Properties": {"Path": "/path2", "Method": "POST"},
-            },
-            "Event3": {
-                "Type": "Api",
-                "Properties": {"Path": "/path3", "Method": "POST"},
-            },
+            "Event1": {"Type": "Api", "Properties": {"Path": "/path1", "Method": "POST"}},
+            "Event2": {"Type": "Api", "Properties": {"Path": "/path2", "Method": "POST"}},
+            "Event3": {"Type": "Api", "Properties": {"Path": "/path3", "Method": "POST"}},
         }
 
-        self.template["Resources"]["Api1"]["Properties"][
-            "DefinitionBody"
-        ] = self.swagger
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = self.swagger
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = events
 
         expected_routes = [
@@ -577,18 +457,11 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
                     "Method": "get",
                 },
             },
-            "Event2": {
-                "Type": "Api",
-                "Properties": {"Path": "/path2", "Method": "POST"},
-            },
+            "Event2": {"Type": "Api", "Properties": {"Path": "/path2", "Method": "POST"}},
         }
 
-        self.template["Resources"]["Api1"]["Properties"][
-            "DefinitionBody"
-        ] = self.swagger
-        self.template["Resources"]["ImplicitFunc"]["Properties"][
-            "Events"
-        ] = implicit_routes
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = self.swagger
+        self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_routes
 
         expected_routes = [
             Route(path="/path1", methods=["GET"], function_name="ImplicitFunc"),
@@ -620,12 +493,8 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/path", methods=["DELETE"], function_name="explicitfunction"),
         ]
 
-        self.template["Resources"]["Api1"]["Properties"][
-            "DefinitionBody"
-        ] = make_swagger(explicit_routes)
-        self.template["Resources"]["ImplicitFunc"]["Properties"][
-            "Events"
-        ] = implicit_routes
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = make_swagger(explicit_routes)
+        self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_routes
 
         expected_routes = [
             Route(
@@ -664,12 +533,8 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/path2", methods=["POST"], function_name="explicitfunction"),
         ]
 
-        self.template["Resources"]["Api1"]["Properties"][
-            "DefinitionBody"
-        ] = make_swagger(explicit_routes)
-        self.template["Resources"]["ImplicitFunc"]["Properties"][
-            "Events"
-        ] = implicit_routes
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = make_swagger(explicit_routes)
+        self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_routes
 
         expected_routes = [
             Route(
@@ -699,16 +564,12 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
                 "Properties": {
                     "Path": "/newpath2",
                     "Method": "POST",
-                    "RestApiId": {
-                        "Ref": "Api1"
-                    },  # This path must get added to this API
+                    "RestApiId": {"Ref": "Api1"},  # This path must get added to this API
                 },
             },
         }
 
-        self.template["Resources"]["Api1"]["Properties"][
-            "DefinitionBody"
-        ] = self.swagger
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = self.swagger
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = events
 
         expected_routes = [
@@ -726,38 +587,20 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
     def test_both_routes_must_get_binary_media_types(self):
         events = {
-            "Event1": {
-                "Type": "Api",
-                "Properties": {"Path": "/newpath1", "Method": "POST"},
-            },
-            "Event2": {
-                "Type": "Api",
-                "Properties": {"Path": "/newpath2", "Method": "POST"},
-            },
+            "Event1": {"Type": "Api", "Properties": {"Path": "/newpath1", "Method": "POST"}},
+            "Event2": {"Type": "Api", "Properties": {"Path": "/newpath2", "Method": "POST"}},
         }
 
         # Binary type for implicit
-        self.template["Globals"] = {
-            "Api": {"BinaryMediaTypes": ["image~1gif", "image~1png"]}
-        }
+        self.template["Globals"] = {"Api": {"BinaryMediaTypes": ["image~1gif", "image~1png"]}}
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = events
 
-        self.template["Resources"]["Api1"]["Properties"][
-            "DefinitionBody"
-        ] = self.swagger
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = self.swagger
         # Binary type for explicit
-        self.template["Resources"]["Api1"]["Properties"]["BinaryMediaTypes"] = [
-            "explicit/type1",
-            "explicit/type2",
-        ]
+        self.template["Resources"]["Api1"]["Properties"]["BinaryMediaTypes"] = ["explicit/type1", "explicit/type2"]
 
         # Because of Globals, binary types will be concatenated on the explicit API
-        expected_explicit_binary_types = [
-            "explicit/type1",
-            "explicit/type2",
-            "image/gif",
-            "image/png",
-        ]
+        expected_explicit_binary_types = ["explicit/type1", "explicit/type2", "image/gif", "image/png"]
 
         expected_routes = [
             # From Explicit APIs
@@ -771,48 +614,27 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
 
         provider = ApiProvider(self.template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(
-            self, provider.api.binary_media_types, expected_explicit_binary_types
-        )
+        assertCountEqual(self, provider.api.binary_media_types, expected_explicit_binary_types)
 
     def test_binary_media_types_with_rest_api_id_reference(self):
         events = {
             "Event1": {
                 "Type": "Api",
-                "Properties": {
-                    "Path": "/connected-to-explicit-path",
-                    "Method": "POST",
-                    "RestApiId": "Api1",
-                },
+                "Properties": {"Path": "/connected-to-explicit-path", "Method": "POST", "RestApiId": "Api1"},
             },
-            "Event2": {
-                "Type": "Api",
-                "Properties": {"Path": "/true-implicit-path", "Method": "POST"},
-            },
+            "Event2": {"Type": "Api", "Properties": {"Path": "/true-implicit-path", "Method": "POST"}},
         }
 
         # Binary type for implicit
-        self.template["Globals"] = {
-            "Api": {"BinaryMediaTypes": ["image~1gif", "image~1png"]}
-        }
+        self.template["Globals"] = {"Api": {"BinaryMediaTypes": ["image~1gif", "image~1png"]}}
         self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = events
 
-        self.template["Resources"]["Api1"]["Properties"][
-            "DefinitionBody"
-        ] = self.swagger
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = self.swagger
         # Binary type for explicit
-        self.template["Resources"]["Api1"]["Properties"]["BinaryMediaTypes"] = [
-            "explicit/type1",
-            "explicit/type2",
-        ]
+        self.template["Resources"]["Api1"]["Properties"]["BinaryMediaTypes"] = ["explicit/type1", "explicit/type2"]
 
         # Because of Globals, binary types will be concatenated on the explicit API
-        expected_explicit_binary_types = [
-            "explicit/type1",
-            "explicit/type2",
-            "image/gif",
-            "image/png",
-        ]
+        expected_explicit_binary_types = ["explicit/type1", "explicit/type2", "image/gif", "image/png"]
         # expected_implicit_binary_types = ["image/gif", "image/png"]
 
         expected_routes = [
@@ -822,24 +644,14 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
             Route(path="/path3", methods=["GET"], function_name="explicitfunction"),
             # Because of the RestApiId, Implicit APIs will also get the binary media types inherited from
             # the corresponding Explicit API
-            Route(
-                path="/connected-to-explicit-path",
-                methods=["POST"],
-                function_name="ImplicitFunc",
-            ),
+            Route(path="/connected-to-explicit-path", methods=["POST"], function_name="ImplicitFunc"),
             # This is still just a true implicit API because it does not have RestApiId property
-            Route(
-                path="/true-implicit-path",
-                methods=["POST"],
-                function_name="ImplicitFunc",
-            ),
+            Route(path="/true-implicit-path", methods=["POST"], function_name="ImplicitFunc"),
         ]
 
         provider = ApiProvider(self.template)
         assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(
-            self, provider.api.binary_media_types, expected_explicit_binary_types
-        )
+        assertCountEqual(self, provider.api.binary_media_types, expected_explicit_binary_types)
 
 
 class TestSamStageValues(TestCase):
@@ -872,9 +684,7 @@ class TestSamStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        route1 = Route(
-            path="/path", methods=["GET"], function_name="NoApiEventFunction"
-        )
+        route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
         self.assertEquals(provider.api.stage_name, "dev")
@@ -910,16 +720,11 @@ class TestSamStageValues(TestCase):
             }
         }
         provider = ApiProvider(template)
-        route1 = Route(
-            path="/path", methods=["GET"], function_name="NoApiEventFunction"
-        )
+        route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
         self.assertEquals(provider.api.stage_name, "dev")
-        self.assertEquals(
-            provider.api.stage_variables,
-            {"vis": "data", "random": "test", "foo": "bar"},
-        )
+        self.assertEquals(provider.api.stage_variables, {"vis": "data", "random": "test", "foo": "bar"})
 
     def test_multi_stage_get_all(self):
         template = OrderedDict({"Resources": {}})
@@ -991,25 +796,16 @@ class TestSamStageValues(TestCase):
         result = [f for f in provider.get_all()]
         routes = result[0].routes
 
-        route1 = Route(
-            path="/path2", methods=["GET"], function_name="NoApiEventFunction"
-        )
-        route2 = Route(
-            path="/path", methods=["GET"], function_name="NoApiEventFunction"
-        )
-        route3 = Route(
-            path="/anotherpath", methods=["POST"], function_name="NoApiEventFunction"
-        )
+        route1 = Route(path="/path2", methods=["GET"], function_name="NoApiEventFunction")
+        route2 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
+        route3 = Route(path="/anotherpath", methods=["POST"], function_name="NoApiEventFunction")
         self.assertEquals(len(routes), 3)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
         self.assertIn(route3, routes)
 
         self.assertEquals(provider.api.stage_name, "Production")
-        self.assertEquals(
-            provider.api.stage_variables,
-            {"vis": "prod data", "random": "test", "foo": "bar"},
-        )
+        self.assertEquals(provider.api.stage_variables, {"vis": "prod data", "random": "test", "foo": "bar"})
 
 
 class TestSamCors(TestCase):
@@ -1059,18 +855,10 @@ class TestSamCors(TestCase):
         routes = provider.routes
         cors = Cors(
             allow_origin="*",
-            allow_methods=",".join(
-                sorted(["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"])
-            ),
+            allow_methods=",".join(sorted(["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"])),
         )
-        route1 = Route(
-            path="/path2",
-            methods=["POST", "OPTIONS"],
-            function_name="NoApiEventFunction",
-        )
-        route2 = Route(
-            path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction"
-        )
+        route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
+        route2 = Route(path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
 
         self.assertEquals(len(routes), 2)
         self.assertIn(route1, routes)
@@ -1132,16 +920,8 @@ class TestSamCors(TestCase):
             allow_headers="Upgrade-Insecure-Requests",
             max_age=600,
         )
-        route1 = Route(
-            path="/path2",
-            methods=["POST", "OPTIONS"],
-            function_name="NoApiEventFunction",
-        )
-        route2 = Route(
-            path="/path",
-            methods=["POST", "OPTIONS"],
-            function_name="NoApiEventFunction",
-        )
+        route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
+        route2 = Route(path="/path", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
 
         self.assertEquals(len(routes), 2)
         self.assertIn(route1, routes)
@@ -1203,16 +983,8 @@ class TestSamCors(TestCase):
             allow_headers="Upgrade-Insecure-Requests",
             max_age=600,
         )
-        route1 = Route(
-            path="/path2",
-            methods=["POST", "OPTIONS"],
-            function_name="NoApiEventFunction",
-        )
-        route2 = Route(
-            path="/path",
-            methods=["POST", "OPTIONS"],
-            function_name="NoApiEventFunction",
-        )
+        route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
+        route2 = Route(path="/path", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
 
         self.assertEquals(len(routes), 2)
         self.assertIn(route1, routes)
@@ -1265,8 +1037,7 @@ class TestSamCors(TestCase):
             }
         }
         with self.assertRaises(
-            InvalidSamDocumentException,
-            msg="ApiProvider should fail for Invalid Cors Allow method",
+            InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors Allow method"
         ):
             ApiProvider(template)
 
@@ -1303,15 +1074,8 @@ class TestSamCors(TestCase):
         provider = ApiProvider(template)
 
         routes = provider.routes
-        cors = Cors(
-            allow_origin="www.domain.com",
-            allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
-        )
-        route1 = Route(
-            path="/path2",
-            methods=["GET", "OPTIONS"],
-            function_name="NoApiEventFunction",
-        )
+        cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)))
+        route1 = Route(path="/path2", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
         self.assertEquals(len(routes), 1)
         self.assertIn(route1, routes)
         self.assertEquals(provider.api.cors, cors)
@@ -1375,14 +1139,8 @@ class TestSamCors(TestCase):
             allow_methods=",".join(["GET", "OPTIONS"]),
             max_age=600,
         )
-        route1 = Route(
-            path="/path2",
-            methods=["GET", "OPTIONS"],
-            function_name="NoApiEventFunction",
-        )
-        route2 = Route(
-            path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction"
-        )
+        route1 = Route(path="/path2", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
+        route2 = Route(path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
 
         self.assertEquals(len(routes), 2)
         self.assertIn(route1, routes)
@@ -1414,9 +1172,7 @@ def make_swagger(routes, binary_media_types=None):
             "x-amazon-apigateway-integration": {
                 "type": "aws_proxy",
                 "uri": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1"
-                ":123456789012:function:{}/invocations".format(
-                    api.function_name
-                ),  # NOQA
+                ":123456789012:function:{}/invocations".format(api.function_name),  # NOQA
             }
         }
         for method in api.methods:

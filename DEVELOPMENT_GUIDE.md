@@ -36,7 +36,20 @@ easily setup multiple Python versions.
 5.  Make Python versions available in the project:
     `pyenv local 3.6.8 2.7.14 3.7.2`
 
-### 2. Activate Virtualenv
+### 2. Install Additional Tooling
+#### Black
+We format our code using [Black](https://github.com/python/black) and verify the source code is black compliant
+in Appveyor during PRs. You can find installation instructions on [Black's docs](https://black.readthedocs.io/en/stable/installation_and_usage.html).
+
+After installing, you can run our formatting through our Makefile by `make black-format` or integrating Black directly in your favorite IDE (instructions
+can be found [here](https://black.readthedocs.io/en/stable/editor_integration.html))
+
+#### Pre-commit
+If you don't wish to manually run black on each pr or install black manually, we have integrated black into git hooks through [pre-commit](https://pre-commit.com/).
+After installing pre-commit, run `pre-commit install` in the root of the project. This will install black for you and run the black formatting on
+commit.
+
+### 3. Activate Virtualenv
 
 Virtualenv allows you to install required libraries outside of the
 Python installation. A good practice is to setup a different virtualenv
@@ -49,7 +62,7 @@ be the appropriate python version.
 1.  `pyenv virtualenv 3.7.2 samcli37`
 2.  `pyenv activate samcli37` for Python3.7
 
-### 3. Install dev version of SAM CLI
+### 4. Install dev version of SAM CLI
 
 We will install a development version of SAM CLI from source into the
 virtualenv for you to try out the CLI as you make changes. We will
@@ -60,7 +73,7 @@ SAM CLI installation, if any.
 2.  Install dev CLI: `make init`
 3.  Make sure installation succeeded: `which samdev`
 
-### 4. (Optional) Install development version of SAM Transformer
+### 5. (Optional) Install development version of SAM Transformer
 
 If you want to run the latest version of [SAM
 Transformer](https://github.com/awslabs/serverless-application-model/),

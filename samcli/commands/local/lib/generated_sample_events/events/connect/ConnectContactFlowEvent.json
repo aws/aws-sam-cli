@@ -1,0 +1,33 @@
+{
+  "Name": "ContactFlowEvent",
+  "Details": {
+    "ContactData": {
+      "Attributes": {},
+      "Channel": "VOICE",
+      "ContactId": "{{{contact_id}}}",
+      "CustomerEndpoint": {
+        "Address": "{{{phone_number}}}",
+        "Type": "TELEPHONE_NUMBER"
+      },
+      "InitialContactId": "{{{contact_id}}}",
+      "InitiationMethod": "API",
+      "InstanceARN": "arn:{{{partition}}}:connect:{{{region}}}:{{{account_id}}}:instance/9308c2a1-9bc6-4cea-8290-6c0b4a6d38fa",
+      "MediaStreams": {
+        "Customer": {
+          "Audio": {
+            "StartFragmentNumber": "91343852333181432392682062622220590765191907586",
+            "StartTimestamp": "1565781909613",
+            "StreamARN": "arn:{{{partition}}}:kinesisvideo:{{{region}}}:{{{account_id}}}:stream/connect-contact-a3d73b84-ce0e-479a-a9dc-5637c9d30ac9/1565272947806"
+          }
+        }
+      },
+      "PreviousContactId": "{{{contact_id}}}",
+      "Queue": null,
+      "SystemEndpoint": {
+        "Address": "{{{phone_number}}}",
+        "Type": "TELEPHONE_NUMBER"
+      }
+    },
+    "Parameters": {}
+  }
+}

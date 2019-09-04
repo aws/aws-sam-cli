@@ -17,12 +17,7 @@ class CfnApiProvider(CfnBaseApiProvider):
     APIGATEWAY_RESOURCE = "AWS::ApiGateway::Resource"
     APIGATEWAY_METHOD = "AWS::ApiGateway::Method"
     METHOD_BINARY_TYPE = "CONVERT_TO_BINARY"
-    TYPES = [
-        APIGATEWAY_RESTAPI,
-        APIGATEWAY_STAGE,
-        APIGATEWAY_RESOURCE,
-        APIGATEWAY_METHOD
-    ]
+    TYPES = [APIGATEWAY_RESTAPI, APIGATEWAY_STAGE, APIGATEWAY_RESOURCE, APIGATEWAY_METHOD]
 
     def extract_resources(self, resources, collector, cwd=None):
         """
@@ -83,8 +78,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         if not body and not body_s3_location:
             # Swagger is not found anywhere.
-            LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location",
-                      logical_id)
+            LOG.debug("Skipping resource '%s'. Swagger document not found in Body and BodyS3Location", logical_id)
             return
         self.extract_swagger_route(logical_id, body, body_s3_location, binary_media, collector, cwd)
 
@@ -114,7 +108,9 @@ class CfnApiProvider(CfnBaseApiProvider):
         if rest_api_resource_type != CfnApiProvider.APIGATEWAY_RESTAPI:
             raise InvalidSamTemplateException(
                 "The AWS::ApiGateway::Stage must have a valid RestApiId that points to RestApi resource {}".format(
-                    logical_id))
+                    logical_id
+                )
+            )
 
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
@@ -161,9 +157,9 @@ class CfnApiProvider(CfnBaseApiProvider):
         if content_handling == CfnApiProvider.METHOD_BINARY_TYPE and content_type:
             collector.add_binary_media_types(logical_id, [content_type])
 
-        routes = Route(methods=[method],
-                       function_name=self._get_integration_function_name(integration),
-                       path=resource_path)
+        routes = Route(
+            methods=[method], function_name=self._get_integration_function_name(integration), path=resource_path
+        )
         collector.add_routes(rest_api_id, [routes])
 
     def resolve_resource_path(self, resources, resource, current_path):
@@ -212,7 +208,6 @@ class CfnApiProvider(CfnBaseApiProvider):
             Lambda function name, if possible. None, if not.
         """
 
-        if integration \
-                and isinstance(integration, dict):
+        if integration and isinstance(integration, dict):
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("Uri"))

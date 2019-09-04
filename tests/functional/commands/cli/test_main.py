@@ -9,7 +9,6 @@ from samcli.cli.global_config import GlobalConfig
 
 
 class TestTelemetryPrompt(TestCase):
-
     def setUp(self):
         self._cfg_dir = tempfile.mkdtemp()
 
@@ -18,7 +17,7 @@ class TestTelemetryPrompt(TestCase):
 
     def test_cli_prompt(self):
         gc = GlobalConfig(config_dir=self._cfg_dir)
-        with mock.patch('samcli.cli.main.global_cfg', gc):
+        with mock.patch("samcli.cli.main.global_cfg", gc):
             self.assertIsNone(gc.telemetry_enabled)  # pre-state test
             runner = CliRunner()
             runner.invoke(cli, ["local", "generate-event", "s3"])
@@ -27,7 +26,7 @@ class TestTelemetryPrompt(TestCase):
 
     def test_cli_prompt_false(self):
         gc = GlobalConfig(config_dir=self._cfg_dir)
-        with mock.patch('samcli.cli.main.global_cfg', gc):
+        with mock.patch("samcli.cli.main.global_cfg", gc):
             self.assertIsNone(gc.telemetry_enabled)  # pre-state test
             runner = CliRunner()
             runner.invoke(cli, ["local", "generate-event", "s3"], input="Y")

@@ -54,11 +54,7 @@ class LambdaRuntime_invoke(TestCase):
 
         LambdaContainerMock.return_value = container
 
-        self.runtime.invoke(self.func_config,
-                            event,
-                            debug_context=debug_options,
-                            stdout=stdout,
-                            stderr=stderr)
+        self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
 
         # Verify if Lambda Event data is set
         self.env_vars.add_lambda_event_body.assert_called_with(event)
@@ -70,9 +66,16 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime._get_code_dir.assert_called_with(self.code_path)
 
         # Make sure the container is created with proper values
-        LambdaContainerMock.assert_called_with(self.lang, self.handler, code_dir, self.layers, lambda_image_mock,
-                                               memory_mb=self.DEFAULT_MEMORY, env_vars=self.env_var_value,
-                                               debug_options=debug_options)
+        LambdaContainerMock.assert_called_with(
+            self.lang,
+            self.handler,
+            code_dir,
+            self.layers,
+            lambda_image_mock,
+            memory_mb=self.DEFAULT_MEMORY,
+            env_vars=self.env_var_value,
+            debug_options=debug_options,
+        )
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
@@ -106,11 +109,7 @@ class LambdaRuntime_invoke(TestCase):
         self.manager_mock.run.side_effect = ValueError("some exception")
 
         with self.assertRaises(ValueError):
-            self.runtime.invoke(self.func_config,
-                                event,
-                                debug_context=None,
-                                stdout=stdout,
-                                stderr=stderr)
+            self.runtime.invoke(self.func_config, event, debug_context=None, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
@@ -147,11 +146,7 @@ class LambdaRuntime_invoke(TestCase):
         container.wait_for_logs.side_effect = ValueError("some exception")
 
         with self.assertRaises(ValueError):
-            self.runtime.invoke(self.func_config,
-                                event,
-                                debug_context=debug_options,
-                                stdout=stdout,
-                                stderr=stderr)
+            self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
@@ -184,10 +179,7 @@ class LambdaRuntime_invoke(TestCase):
 
         self.manager_mock.run.side_effect = KeyboardInterrupt("some exception")
 
-        self.runtime.invoke(self.func_config,
-                            event,
-                            stdout=stdout,
-                            stderr=stderr)
+        self.runtime.invoke(self.func_config, event, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
         self.manager_mock.run.assert_called_with(container)
@@ -199,7 +191,6 @@ class LambdaRuntime_invoke(TestCase):
 
 
 class TestLambdaRuntime_configure_interrupt(TestCase):
-
     def setUp(self):
         self.name = "name"
         self.timeout = 123
@@ -277,18 +268,12 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
 
 
 class TestLambdaRuntime_get_code_dir(TestCase):
-
     def setUp(self):
         self.manager_mock = Mock()
         self.layer_downloader = Mock()
         self.runtime = LambdaRuntime(self.manager_mock, self.layer_downloader)
 
-    @parameterized.expand([
-        (".zip"),
-        (".ZIP"),
-        (".JAR"),
-        (".jar")
-    ])
+    @parameterized.expand([(".zip"), (".ZIP"), (".JAR"), (".jar")])
     @patch("samcli.local.lambdafn.runtime.os")
     @patch("samcli.local.lambdafn.runtime.shutil")
     @patch("samcli.local.lambdafn.runtime._unzip_file")
@@ -331,7 +316,6 @@ class TestLambdaRuntime_get_code_dir(TestCase):
 
 
 class TestUnzipFile(TestCase):
-
     @patch("samcli.local.lambdafn.runtime.tempfile")
     @patch("samcli.local.lambdafn.runtime.unzip")
     @patch("samcli.local.lambdafn.runtime.os")
@@ -342,7 +326,7 @@ class TestUnzipFile(TestCase):
 
         tempfile_mock.mkdtemp.return_value = tmpdir
         os_mock.path.realpath.return_value = realpath
-        os_mock.name = 'not-posix'
+        os_mock.name = "not-posix"
 
         output = _unzip_file(inputpath)
         self.assertEquals(output, realpath)
@@ -362,7 +346,7 @@ class TestUnzipFile(TestCase):
 
         tempfile_mock.mkdtemp.return_value = tmpdir
         os_mock.path.realpath.return_value = realpath
-        os_mock.name = 'posix'
+        os_mock.name = "posix"
 
         output = _unzip_file(inputpath)
         self.assertEquals(output, realpath)

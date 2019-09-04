@@ -73,12 +73,16 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/function_with_alias_intrinsics.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_condition.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_custom_codedeploy_deployment_preference.yaml"),
-        ("tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"),
+        (
+            "tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"
+        ),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_and_custom_role.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_no_service_role.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_preference.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_preference_all_parameters.yaml"),
-        ("tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"),
+        (
+            "tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"
+        ),
         ("tests/functional/commands/validate/lib/models/function_with_disabled_deployment_preference.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_dlq.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_global_layers.yaml"),
@@ -123,7 +127,7 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/sns_topic_outside_template.yaml"),
         ("tests/functional/commands/validate/lib/models/sqs.yaml"),
         ("tests/functional/commands/validate/lib/models/streams.yaml"),
-        ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml")
+        ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml"),
     ]
 
     def test_valid_template(self):
@@ -137,10 +141,10 @@ class TestValidate(TestCase):
                         "Handler": "index.handler",
                         "CodeUri": "s3://fake-bucket/lambda-code.zip",
                         "Runtime": "nodejs6.10",
-                        "Timeout": 60
-                    }
+                        "Timeout": 60,
+                    },
                 }
-            }
+            },
         }
 
         managed_policy_mock = Mock()
@@ -158,13 +162,9 @@ class TestValidate(TestCase):
             "Resources": {
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "Handler": "index.handler",
-                        "CodeUri": "s3://lambda-code.zip",
-                        "Timeout": 60
-                    }
+                    "Properties": {"Handler": "index.handler", "CodeUri": "s3://lambda-code.zip", "Timeout": 60},
                 }
-            }
+            },
         }
 
         managed_policy_mock = Mock()
@@ -182,15 +182,10 @@ class TestValidate(TestCase):
             "Resources": {
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "Handler": "index.handler",
-                        "CodeUri": "./",
-                        "Runtime": "nodejs6.10",
-                        "Timeout": 60
-                        }
-                    }
+                    "Properties": {"Handler": "index.handler", "CodeUri": "./", "Runtime": "nodejs6.10", "Timeout": 60},
                 }
-            }
+            },
+        }
 
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
@@ -205,14 +200,9 @@ class TestValidate(TestCase):
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
             "Resources": {
-                "ServerlessLayerVersion": {
-                    "Type": "AWS::Serverless::LayerVersion",
-                    "Properties": {
-                        "ContentUri": "./"
-                        }
-                    }
-                }
-            }
+                "ServerlessLayerVersion": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "./"}}
+            },
+        }
 
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
@@ -229,13 +219,10 @@ class TestValidate(TestCase):
             "Resources": {
                 "ServerlessApi": {
                     "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                        "DefinitionUri": "./"
-                        }
-                    }
+                    "Properties": {"StageName": "Prod", "DefinitionUri": "./"},
                 }
-            }
+            },
+        }
 
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
@@ -252,13 +239,10 @@ class TestValidate(TestCase):
             "Resources": {
                 "ServerlessApi": {
                     "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                        "DefinitionBody": {"swagger": "2.0"}
-                        }
-                    }
+                    "Properties": {"StageName": "Prod", "DefinitionBody": {"swagger": "2.0"}},
                 }
-            }
+            },
+        }
 
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
@@ -277,28 +261,20 @@ class TestValidate(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
                         "StageName": "Prod",
-                        "DefinitionUri": {
-                            "Bucket": "mybucket-name",
-                            "Key": "swagger",
-                            "Version": 121212
-                            }
-                        }
+                        "DefinitionUri": {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212},
                     },
+                },
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
                     "Properties": {
                         "Handler": "index.handler",
-                        "CodeUri": {
-                            "Bucket": "mybucket-name",
-                            "Key": "code.zip",
-                            "Version": 121212
-                            },
+                        "CodeUri": {"Bucket": "mybucket-name", "Key": "code.zip", "Version": 121212},
                         "Runtime": "nodejs6.10",
-                        "Timeout": 60
-                        }
-                    }
-                }
-            }
+                        "Timeout": 60,
+                    },
+                },
+            },
+        }
 
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"PolicyName": "FakePolicy"}
@@ -309,8 +285,14 @@ class TestValidate(TestCase):
         validator.is_valid()
 
         # validate the CodeUri was not changed
-        self.assertEquals(validator.sam_template.get("Resources").get("ServerlessApi").get("Properties").get("DefinitionUri"), {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212})
-        self.assertEquals(validator.sam_template.get("Resources").get("ServerlessFunction").get("Properties").get("CodeUri"), {"Bucket": "mybucket-name", "Key": "code.zip", "Version": 121212})
+        self.assertEquals(
+            validator.sam_template.get("Resources").get("ServerlessApi").get("Properties").get("DefinitionUri"),
+            {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212},
+        )
+        self.assertEquals(
+            validator.sam_template.get("Resources").get("ServerlessFunction").get("Properties").get("CodeUri"),
+            {"Bucket": "mybucket-name", "Key": "code.zip", "Version": 121212},
+        )
 
     @parameterized.expand(VALID_TEST_TEMPLATES)
     def test_valid_api_request_model_template(self, template_path):
@@ -323,4 +305,3 @@ class TestValidate(TestCase):
 
         # Should not throw an exception
         validator.is_valid()
-

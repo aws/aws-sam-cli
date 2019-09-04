@@ -10,7 +10,6 @@ import samcli.lib.utils.osutils as osutils
 
 
 class Test_mkdir_temp(TestCase):
-
     def test_must_return_temp_dir(self):
 
         with osutils.mkdir_temp() as tempdir:
@@ -27,7 +26,6 @@ class Test_mkdir_temp(TestCase):
 
 
 class Test_stderr(TestCase):
-
     def test_must_return_sys_stderr(self):
 
         expected_stderr = sys.stderr
@@ -39,7 +37,6 @@ class Test_stderr(TestCase):
 
 
 class Test_stdout(TestCase):
-
     def test_must_return_sys_stdout(self):
 
         expected_stdout = sys.stdout

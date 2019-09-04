@@ -39,9 +39,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
         for result in results:
             self.assertEquals(result.status_code, 200)
-            self.assertEquals(
-                result.json(), {"message": "HelloWorld! I just slept and waking up."}
-            )
+            self.assertEquals(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
     def test_different_endpoints(self):
         """
@@ -52,16 +50,10 @@ class TestParallelRequests(StartApiIntegBaseClass):
         start_time = time()
         thread_pool = ThreadPoolExecutor(10)
 
-        test_url_paths = [
-            "/sleepfortenseconds/function0",
-            "/sleepfortenseconds/function1",
-        ]
+        test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
 
         futures = [
-            thread_pool.submit(
-                requests.get,
-                self.url + test_url_paths[function_num % len(test_url_paths)],
-            )
+            thread_pool.submit(requests.get, self.url + test_url_paths[function_num % len(test_url_paths)])
             for function_num in range(0, number_of_requests)
         ]
         results = [r.result() for r in as_completed(futures)]
@@ -73,9 +65,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
 
         for result in results:
             self.assertEquals(result.status_code, 200)
-            self.assertEquals(
-                result.json(), {"message": "HelloWorld! I just slept and waking up."}
-            )
+            self.assertEquals(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
 
 class TestServiceErrorResponses(StartApiIntegBaseClass):
@@ -264,9 +254,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         response = requests.get(self.url + "/nofunctionfound")
 
         self.assertEquals(response.status_code, 502)
-        self.assertEquals(
-            response.json(), {"message": "No function defined for resource method"}
-        )
+        self.assertEquals(response.json(), {"message": "No function defined for resource method"})
 
     def test_function_with_no_api_event_is_reachable(self):
         response = requests.get(self.url + "/functionwithnoapievent")
@@ -286,9 +274,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/echobase64eventbody",
-            headers={"Content-Type": "image/gif"},
-            data=input_data,
+            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
         )
 
         self.assertEquals(response.status_code, 200)
@@ -380,9 +366,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         response = requests.get(self.url + "/nofunctionfound")
 
         self.assertEquals(response.status_code, 502)
-        self.assertEquals(
-            response.json(), {"message": "No function defined for resource method"}
-        )
+        self.assertEquals(response.json(), {"message": "No function defined for resource method"})
 
     def test_lambda_function_resource_is_reachable(self):
         response = requests.get(self.url + "/nonserverlessfunction")
@@ -396,9 +380,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/echobase64eventbody",
-            headers={"Content-Type": "image/gif"},
-            data=input_data,
+            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
         )
 
         self.assertEquals(response.status_code, 200)
@@ -441,9 +423,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.headers.get("Content-Type"), "text/plain")
-        self.assertEquals(
-            response.headers.get("MyCustomHeader"), "Value1, Value2, Custom"
-        )
+        self.assertEquals(response.headers.get("MyCustomHeader"), "Value1, Value2, Custom")
 
     def test_binary_response(self):
         """
@@ -530,9 +510,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/echobase64eventbody",
-            headers={"Content-Type": "image/gif"},
-            data=input_data,
+            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
         )
 
         self.assertEquals(response.status_code, 200)
@@ -544,19 +522,14 @@ class TestServiceRequests(StartApiIntegBaseClass):
         Form-encoded data should be put into the Event to Lambda
         """
         response = requests.post(
-            self.url + "/echoeventbody",
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data="key=value",
+            self.url + "/echoeventbody", headers={"Content-Type": "application/x-www-form-urlencoded"}, data="key=value"
         )
 
         self.assertEquals(response.status_code, 200)
 
         response_data = response.json()
 
-        self.assertEquals(
-            response_data.get("headers").get("Content-Type"),
-            "application/x-www-form-urlencoded",
-        )
+        self.assertEquals(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
         self.assertEquals(response_data.get("body"), "key=value")
 
     def test_request_to_an_endpoint_with_two_different_handlers(self):
@@ -570,19 +543,16 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
     def test_request_with_multi_value_headers(self):
         response = requests.get(
-            self.url + "/echoeventbody",
-            headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"},
+            self.url + "/echoeventbody", headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"}
         )
 
         self.assertEquals(response.status_code, 200)
         response_data = response.json()
         self.assertEquals(
-            response_data.get("multiValueHeaders").get("Content-Type"),
-            ["application/x-www-form-urlencoded, image/gif"],
+            response_data.get("multiValueHeaders").get("Content-Type"), ["application/x-www-form-urlencoded, image/gif"]
         )
         self.assertEquals(
-            response_data.get("headers").get("Content-Type"),
-            "application/x-www-form-urlencoded, image/gif",
+            response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded, image/gif"
         )
 
     def test_request_with_query_params(self):
@@ -596,9 +566,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value"})
-        self.assertEquals(
-            response_data.get("multiValueQueryStringParameters"), {"key": ["value"]}
-        )
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value"]})
 
     def test_request_with_list_of_query_params(self):
         """
@@ -611,10 +579,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("queryStringParameters"), {"key": "value2"})
-        self.assertEquals(
-            response_data.get("multiValueQueryStringParameters"),
-            {"key": ["value", "value2"]},
-        )
+        self.assertEquals(response_data.get("multiValueQueryStringParameters"), {"key": ["value", "value2"]})
 
     def test_request_with_path_params(self):
         """
@@ -638,9 +603,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         response_data = response.json()
 
-        self.assertEquals(
-            response_data.get("pathParameters"), {"id": "4", "user": "jacob"}
-        )
+        self.assertEquals(response_data.get("pathParameters"), {"id": "4", "user": "jacob"})
 
     def test_forward_headers_are_added_to_event(self):
         """
@@ -651,15 +614,9 @@ class TestServiceRequests(StartApiIntegBaseClass):
         response_data = response.json()
 
         self.assertEquals(response_data.get("headers").get("X-Forwarded-Proto"), "http")
-        self.assertEquals(
-            response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"]
-        )
-        self.assertEquals(
-            response_data.get("headers").get("X-Forwarded-Port"), self.port
-        )
-        self.assertEquals(
-            response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port]
-        )
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Proto"), ["http"])
+        self.assertEquals(response_data.get("headers").get("X-Forwarded-Port"), self.port)
+        self.assertEquals(response_data.get("multiValueHeaders").get("X-Forwarded-Port"), [self.port])
 
 
 class TestStartApiWithStage(StartApiIntegBaseClass):
@@ -738,13 +695,8 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
         self.assertEquals(response.status_code, 200)
 
         self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
-        self.assertEquals(
-            response.headers.get("Access-Control-Allow-Headers"),
-            "origin, x-requested-with",
-        )
-        self.assertEquals(
-            response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS"
-        )
+        self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
+        self.assertEquals(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), "510")
 
 
@@ -768,8 +720,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEquals(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEquals(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEquals(
-            response.headers.get("Access-Control-Allow-Methods"),
-            ",".join(sorted(Route.ANY_HTTP_METHODS)),
+            response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS))
         )
         self.assertEquals(response.headers.get("Access-Control-Max-Age"), None)
 
@@ -888,9 +839,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         response = requests.get(self.url + "/root/nofunctionfound")
 
         self.assertEquals(response.status_code, 502)
-        self.assertEquals(
-            response.json(), {"message": "No function defined for resource method"}
-        )
+        self.assertEquals(response.json(), {"message": "No function defined for resource method"})
 
     def test_lambda_function_resource_is_reachable(self):
         response = requests.get(self.url + "/root/nonserverlessfunction")
@@ -904,9 +853,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/root/echobase64eventbody",
-            headers={"Content-Type": "image/gif"},
-            data=input_data,
+            self.url + "/root/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
         )
 
         self.assertEquals(response.status_code, 200)
@@ -948,7 +895,7 @@ class TestCDKApiGateway(StartApiIntegBaseClass):
         response = requests.get(self.url + "/hello-world")
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.json(), {'hello': 'world'})
+        self.assertEquals(response.json(), {"hello": "world"})
 
 
 class TestServerlessApiGateway(StartApiIntegBaseClass):
@@ -964,4 +911,4 @@ class TestServerlessApiGateway(StartApiIntegBaseClass):
         response = requests.get(self.url + "/hello-world")
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.json(), {'hello': 'world'})
+        self.assertEquals(response.json(), {"hello": "world"})

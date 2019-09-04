@@ -2,18 +2,19 @@
 
 
 class ContextIdentity(object):
-
-    def __init__(self,
-                 api_key=None,
-                 user_arn=None,
-                 cognito_authentication_type=None,
-                 caller=None,
-                 user_agent="Custom User Agent String",
-                 user=None,
-                 cognito_identity_pool_id=None,
-                 cognito_authentication_provider=None,
-                 source_ip="127.0.0.1",
-                 account_id=None):
+    def __init__(
+        self,
+        api_key=None,
+        user_arn=None,
+        cognito_authentication_type=None,
+        caller=None,
+        user_agent="Custom User Agent String",
+        user=None,
+        cognito_identity_pool_id=None,
+        cognito_authentication_provider=None,
+        source_ip="127.0.0.1",
+        account_id=None,
+    ):
         """
         Constructs a ContextIdentity
 
@@ -45,34 +46,36 @@ class ContextIdentity(object):
 
         :return: dict representing the object
         """
-        json_dict = {"apiKey": self.api_key,
-                     "userArn": self.user_arn,
-                     "cognitoAuthenticationType": self.cognito_authentication_type,
-                     "caller": self.caller,
-                     "userAgent": self.user_agent,
-                     "user": self.user,
-                     "cognitoIdentityPoolId": self.cognito_identity_pool_id,
-                     "cognitoAuthenticationProvider": self.cognito_authentication_provider,
-                     "sourceIp": self.source_ip,
-                     "accountId": self.account_id
-                     }
+        json_dict = {
+            "apiKey": self.api_key,
+            "userArn": self.user_arn,
+            "cognitoAuthenticationType": self.cognito_authentication_type,
+            "caller": self.caller,
+            "userAgent": self.user_agent,
+            "user": self.user,
+            "cognitoIdentityPoolId": self.cognito_identity_pool_id,
+            "cognitoAuthenticationProvider": self.cognito_authentication_provider,
+            "sourceIp": self.source_ip,
+            "accountId": self.account_id,
+        }
 
         return json_dict
 
 
 class RequestContext(object):
-
-    def __init__(self,
-                 resource_id="123456",
-                 api_id="1234567890",
-                 resource_path=None,
-                 http_method=None,
-                 request_id="c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
-                 account_id="123456789012",
-                 stage=None,
-                 identity=None,
-                 extended_request_id=None,
-                 path=None):
+    def __init__(
+        self,
+        resource_id="123456",
+        api_id="1234567890",
+        resource_path=None,
+        http_method=None,
+        request_id="c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+        account_id="123456789012",
+        stage=None,
+        identity=None,
+        extended_request_id=None,
+        path=None,
+    ):
         """
         Constructs a RequestContext
 
@@ -109,36 +112,38 @@ class RequestContext(object):
         if self.identity:
             identity_dict = self.identity.to_dict()
 
-        json_dict = {"resourceId": self.resource_id,
-                     "apiId": self.api_id,
-                     "resourcePath": self.resource_path,
-                     "httpMethod": self.http_method,
-                     "requestId": self.request_id,
-                     "accountId": self.account_id,
-                     "stage": self.stage,
-                     "identity": identity_dict,
-                     "extendedRequestId": self.extended_request_id,
-                     "path": self.path
-                     }
+        json_dict = {
+            "resourceId": self.resource_id,
+            "apiId": self.api_id,
+            "resourcePath": self.resource_path,
+            "httpMethod": self.http_method,
+            "requestId": self.request_id,
+            "accountId": self.account_id,
+            "stage": self.stage,
+            "identity": identity_dict,
+            "extendedRequestId": self.extended_request_id,
+            "path": self.path,
+        }
 
         return json_dict
 
 
 class ApiGatewayLambdaEvent(object):
-
-    def __init__(self,
-                 http_method=None,
-                 body=None,
-                 resource=None,
-                 request_context=None,
-                 query_string_params=None,
-                 multi_value_query_string_params=None,
-                 headers=None,
-                 multi_value_headers=None,
-                 path_parameters=None,
-                 stage_variables=None,
-                 path=None,
-                 is_base_64_encoded=False):
+    def __init__(
+        self,
+        http_method=None,
+        body=None,
+        resource=None,
+        request_context=None,
+        query_string_params=None,
+        multi_value_query_string_params=None,
+        headers=None,
+        multi_value_headers=None,
+        path_parameters=None,
+        stage_variables=None,
+        path=None,
+        is_base_64_encoded=False,
+    ):
         """
         Constructs an ApiGatewayLambdaEvent
 
@@ -156,12 +161,10 @@ class ApiGatewayLambdaEvent(object):
         :param bool is_base_64_encoded: True if the data is base64 encoded.
         """
 
-        if not isinstance(query_string_params, dict) and \
-                query_string_params is not None:
+        if not isinstance(query_string_params, dict) and query_string_params is not None:
             raise TypeError("'query_string_params' must be of type dict or None")
 
-        if not isinstance(multi_value_query_string_params, dict) and \
-                multi_value_query_string_params is not None:
+        if not isinstance(multi_value_query_string_params, dict) and multi_value_query_string_params is not None:
             raise TypeError("'multi_value_query_string_params' must be of type dict or None")
 
         if not isinstance(headers, dict) and headers is not None:
@@ -199,19 +202,21 @@ class ApiGatewayLambdaEvent(object):
         if self.request_context:
             request_context_dict = self.request_context.to_dict()
 
-        json_dict = {"httpMethod": self.http_method,
-                     "body": self.body if self.body else None,
-                     "resource": self.resource,
-                     "requestContext": request_context_dict,
-                     "queryStringParameters": dict(self.query_string_params) if self.query_string_params else None,
-                     "multiValueQueryStringParameters": dict(self.multi_value_query_string_params)
-                     if self.multi_value_query_string_params else None,
-                     "headers": dict(self.headers) if self.headers else None,
-                     "multiValueHeaders": dict(self.multi_value_headers) if self.multi_value_headers else None,
-                     "pathParameters": dict(self.path_parameters) if self.path_parameters else None,
-                     "stageVariables": dict(self.stage_variables) if self.stage_variables else None,
-                     "path": self.path,
-                     "isBase64Encoded": self.is_base_64_encoded
-                     }
+        json_dict = {
+            "httpMethod": self.http_method,
+            "body": self.body if self.body else None,
+            "resource": self.resource,
+            "requestContext": request_context_dict,
+            "queryStringParameters": dict(self.query_string_params) if self.query_string_params else None,
+            "multiValueQueryStringParameters": dict(self.multi_value_query_string_params)
+            if self.multi_value_query_string_params
+            else None,
+            "headers": dict(self.headers) if self.headers else None,
+            "multiValueHeaders": dict(self.multi_value_headers) if self.multi_value_headers else None,
+            "pathParameters": dict(self.path_parameters) if self.path_parameters else None,
+            "stageVariables": dict(self.stage_variables) if self.stage_variables else None,
+            "path": self.path,
+            "isBase64Encoded": self.is_base_64_encoded,
+        }
 
         return json_dict

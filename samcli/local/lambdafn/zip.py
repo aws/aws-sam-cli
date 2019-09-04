@@ -36,7 +36,7 @@ def unzip(zip_file_path, output_dir, permission=None):
         Permission to set
     """
 
-    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
 
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
@@ -107,10 +107,10 @@ def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
         Label to use in the Progressbar
     """
     try:
-        get_request = requests.get(uri, stream=True, verify=os.environ.get('AWS_CA_BUNDLE', True))
+        get_request = requests.get(uri, stream=True, verify=os.environ.get("AWS_CA_BUNDLE", True))
 
-        with open(layer_zip_path, 'wb') as local_layer_file:
-            file_length = int(get_request.headers['Content-length'])
+        with open(layer_zip_path, "wb") as local_layer_file:
+            file_length = int(get_request.headers["Content-length"])
 
             with progressbar(file_length, progressbar_label) as p_bar:
                 # Set the chunk size to None. Since we are streaming the request, None will allow the data to be

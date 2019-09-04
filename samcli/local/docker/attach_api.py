@@ -38,10 +38,7 @@ def attach(docker_client, container, stdout=True, stderr=True, logs=False):
         Do you want to include the container's previous output?
     """
 
-    headers = {
-        "Connection": "Upgrade",
-        "Upgrade": "tcp"
-    }
+    headers = {"Connection": "Upgrade", "Upgrade": "tcp"}
 
     query_params = {
         "stdout": 1 if stdout else 0,
@@ -178,4 +175,4 @@ def _read_header(socket):
     data = read_exactly(socket, 8)
 
     # >BxxxL is the struct notation to unpack data in correct header format in big-endian
-    return struct.unpack('>BxxxL', data)
+    return struct.unpack(">BxxxL", data)

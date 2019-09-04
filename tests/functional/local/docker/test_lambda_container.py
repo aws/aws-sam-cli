@@ -26,6 +26,7 @@ class TestLambdaContainer(TestCase):
     setting up debug port forwarding. These operations might also exhibit differences across Operating Systems, hence
     necessary to tests them here.
     """
+
     IMAGE_NAME = "lambci/lambda:nodejs4.3"
 
     HELLO_WORLD_CODE = """
@@ -51,9 +52,7 @@ class TestLambdaContainer(TestCase):
         self.handler = "index.handler"
         self.layers = []
         self.debug_port = _rand_port()
-        self.debug_context = DebugContext(debug_port=self.debug_port,
-                                          debugger_path=None,
-                                          debug_args=None)
+        self.debug_context = DebugContext(debug_port=self.debug_port, debugger_path=None, debug_args=None)
         self.code_dir = nodejs_lambda(self.HELLO_WORLD_CODE)
         self.network_prefix = "sam_cli_test_network"
 
@@ -82,14 +81,18 @@ class TestLambdaContainer(TestCase):
             # Call Docker API to make sure container indeed exists
             actual_container = self.docker_client.containers.get(container.id)
             self.assertEquals(actual_container.status, "created")
-            self.assertTrue(self.expected_docker_image in actual_container.image.tags,
-                            "Image name of the container must be " + self.expected_docker_image)
+            self.assertTrue(
+                self.expected_docker_image in actual_container.image.tags,
+                "Image name of the container must be " + self.expected_docker_image,
+            )
 
     def test_debug_port_is_created_on_host(self):
 
         layer_downloader = LayerDownloader("./", "./")
         image_builder = LambdaImage(layer_downloader, False, False)
-        container = LambdaContainer(self.runtime, self.handler, self.code_dir, self.layers, image_builder, debug_options=self.debug_context)
+        container = LambdaContainer(
+            self.runtime, self.handler, self.code_dir, self.layers, image_builder, debug_options=self.debug_context
+        )
 
         with self._create(container):
 
@@ -179,6 +182,6 @@ class TestLambdaContainer(TestCase):
             if network:
                 network.remove()
 
+
 def _rand_port():
     return random.randint(30000, 40000)
-

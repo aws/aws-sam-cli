@@ -15,7 +15,6 @@ from samcli.local.apigw.local_apigw_service import Route
 
 
 class TestLocalApiService_start(TestCase):
-
     def setUp(self):
         self.port = 123
         self.host = "abc"
@@ -39,11 +38,7 @@ class TestLocalApiService_start(TestCase):
     @patch("samcli.commands.local.lib.local_api_service.ApiProvider")
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
-    def test_must_start_service(self,
-                                log_routes_mock,
-                                make_static_dir_mock,
-                                SamApiProviderMock,
-                                ApiGwServiceMock):
+    def test_must_start_service(self, log_routes_mock, make_static_dir_mock, SamApiProviderMock, ApiGwServiceMock):
         routing_list = [1, 2, 3]  # something
         static_dir_path = "/foo/bar"
 
@@ -58,18 +53,20 @@ class TestLocalApiService_start(TestCase):
         local_service.start()
 
         # Make sure the right methods are called
-        SamApiProviderMock.assert_called_with(self.template,
-                                              cwd=self.cwd,
-                                              parameter_overrides=self.lambda_invoke_context_mock.parameter_overrides)
+        SamApiProviderMock.assert_called_with(
+            self.template, cwd=self.cwd, parameter_overrides=self.lambda_invoke_context_mock.parameter_overrides
+        )
 
         log_routes_mock.assert_called_with(routing_list, self.host, self.port)
         make_static_dir_mock.assert_called_with(self.cwd, self.static_dir)
-        ApiGwServiceMock.assert_called_with(api=self.api_provider_mock.api,
-                                            lambda_runner=self.lambda_runner_mock,
-                                            static_dir=static_dir_path,
-                                            port=self.port,
-                                            host=self.host,
-                                            stderr=self.stderr_mock)
+        ApiGwServiceMock.assert_called_with(
+            api=self.api_provider_mock.api,
+            lambda_runner=self.lambda_runner_mock,
+            static_dir=static_dir_path,
+            port=self.port,
+            host=self.host,
+            stderr=self.stderr_mock,
+        )
 
         self.apigw_service.create.assert_called_with()
         self.apigw_service.run.assert_called_with()
@@ -79,12 +76,9 @@ class TestLocalApiService_start(TestCase):
     @patch.object(LocalApiService, "_make_static_dir_path")
     @patch.object(LocalApiService, "_print_routes")
     @patch.object(ApiProvider, "_extract_api")
-    def test_must_raise_if_route_not_available(self,
-                                               extract_api,
-                                               log_routes_mock,
-                                               make_static_dir_mock,
-                                               SamApiProviderMock,
-                                               ApiGwServiceMock):
+    def test_must_raise_if_route_not_available(
+        self, extract_api, log_routes_mock, make_static_dir_mock, SamApiProviderMock, ApiGwServiceMock
+    ):
         routing_list = []  # Empty
         api = Api()
         extract_api.return_value = api
@@ -100,7 +94,6 @@ class TestLocalApiService_start(TestCase):
 
 
 class TestLocalApiService_print_routes(TestCase):
-
     def test_must_print_routes(self):
         host = "host"
         port = 123
@@ -113,17 +106,18 @@ class TestLocalApiService_print_routes(TestCase):
             Route(path="/3", methods=["GET3"], function_name="name3"),
         ]
         apis = ApiCollector.dedupe_function_routes(apis)
-        expected = {"Mounting name1 at http://host:123/1 [GET, POST]",
-                    "Mounting othername1 at http://host:123/1 [DELETE]",
-                    "Mounting name2 at http://host:123/2 [GET2]",
-                    "Mounting name3 at http://host:123/3 [GET3]"}
+        expected = {
+            "Mounting name1 at http://host:123/1 [GET, POST]",
+            "Mounting othername1 at http://host:123/1 [DELETE]",
+            "Mounting name2 at http://host:123/2 [GET2]",
+            "Mounting name3 at http://host:123/3 [GET3]",
+        }
 
         actual = LocalApiService._print_routes(apis, host, port)
         self.assertEquals(expected, set(actual))
 
 
 class TestLocalApiService_make_static_dir_path(TestCase):
-
     def test_must_skip_if_none(self):
         result = LocalApiService._make_static_dir_path("something", None)
         self.assertIsNone(result)

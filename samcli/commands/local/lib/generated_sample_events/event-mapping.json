@@ -478,6 +478,29 @@
       }
     }
   },
+  "connect": {
+    "contact-flow-event": {
+      "filename": "ConnectContactFlowEvent",
+      "help": "Generates an Amazon Connect Contact Flow Event",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "contact-id": {
+          "default": "5ca32fbd-8f92-46af-92a5-6b0f970f0efe"
+        },
+        "phone-number": {
+          "default": "+11234567890"
+        }
+      }
+    }
+  },
   "dynamodb": {
     "update": {
       "filename": "DynamoDBUpdate",

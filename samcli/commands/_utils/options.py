@@ -27,10 +27,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     :return: Actual value to be used in the CLI
     """
 
-    search_paths = [
-        "template.yaml",
-        "template.yml",
-    ]
+    search_paths = ["template.yaml", "template.yml"]
 
     if include_build:
         search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
@@ -74,13 +71,16 @@ def template_click_option(include_build=True):
     """
     Click Option for template option
     """
-    return click.option('--template', '-t',
-                        default=_TEMPLATE_OPTION_DEFAULT_VALUE,
-                        type=click.Path(),
-                        envvar="SAM_TEMPLATE_FILE",
-                        callback=partial(get_or_default_template_file_name, include_build=include_build),
-                        show_default=True,
-                        help="AWS SAM template file")
+    return click.option(
+        "--template",
+        "-t",
+        default=_TEMPLATE_OPTION_DEFAULT_VALUE,
+        type=click.Path(),
+        envvar="SAM_TEMPLATE_FILE",
+        callback=partial(get_or_default_template_file_name, include_build=include_build),
+        show_default=True,
+        help="AWS SAM template file",
+    )
 
 
 def docker_common_options(f):
@@ -93,26 +93,31 @@ def docker_common_options(f):
 def docker_click_options():
 
     return [
-        click.option('--skip-pull-image',
-                     is_flag=True,
-                     help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
-                     envvar="SAM_SKIP_PULL_IMAGE",
-                     default=False),
-
-        click.option('--docker-network',
-                     envvar="SAM_DOCKER_NETWORK",
-                     help="Specifies the name or id of an existing docker network to lambda docker "
-                          "containers should connect to, along with the default bridge network. If not specified, "
-                          "the Lambda containers will only connect to the default bridge docker network."),
+        click.option(
+            "--skip-pull-image",
+            is_flag=True,
+            help="Specify whether CLI should skip pulling down the latest Docker image for Lambda runtime.",
+            envvar="SAM_SKIP_PULL_IMAGE",
+            default=False,
+        ),
+        click.option(
+            "--docker-network",
+            envvar="SAM_DOCKER_NETWORK",
+            help="Specifies the name or id of an existing docker network to lambda docker "
+            "containers should connect to, along with the default bridge network. If not specified, "
+            "the Lambda containers will only connect to the default bridge docker network.",
+        ),
     ]
 
 
 def parameter_override_click_option():
-    return click.option("--parameter-overrides",
-                        type=CfnParameterOverridesType(),
-                        help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
-                             "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
-                             "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'")
+    return click.option(
+        "--parameter-overrides",
+        type=CfnParameterOverridesType(),
+        help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
+        "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
+        "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'",
+    )
 
 
 def parameter_override_option(f):

@@ -9,7 +9,6 @@ from samcli import __version__ as samcli_version
 
 
 class TestTelemetry(TestCase):
-
     def setUp(self):
         self.test_session_id = "TestSessionId"
         self.test_installation_id = "TestInstallationId"
@@ -46,36 +45,32 @@ class TestTelemetry(TestCase):
         telemetry.emit(metric_name, attrs)
 
         expected = {
-            "metrics": [{
-                metric_name: {
-                    "a": 1,
-                    "b": 2,
-                    "requestId": ANY,
-                    "installationId": self.test_installation_id,
-                    "sessionId": self.test_session_id,
-                    "executionEnvironment": "CLI",
-                    "pyversion": platform.python_version(),
-                    "samcliVersion": samcli_version
+            "metrics": [
+                {
+                    metric_name: {
+                        "a": 1,
+                        "b": 2,
+                        "requestId": ANY,
+                        "installationId": self.test_installation_id,
+                        "sessionId": self.test_session_id,
+                        "executionEnvironment": "CLI",
+                        "pyversion": platform.python_version(),
+                        "samcliVersion": samcli_version,
+                    }
                 }
-            }]
+            ]
         }
         requests_mock.post.assert_called_once_with(ANY, json=expected, timeout=ANY)
 
     @patch("samcli.lib.telemetry.telemetry.requests")
-    @patch('samcli.lib.telemetry.telemetry.uuid')
+    @patch("samcli.lib.telemetry.telemetry.uuid")
     def test_must_add_request_id_as_uuid_v4(self, uuid_mock, requests_mock):
         fake_uuid = uuid_mock.uuid4.return_value = "fake uuid"
 
         telemetry = Telemetry(url=self.url)
         telemetry.emit("metric_name", {})
 
-        expected = {
-            "metrics": [{
-                "metric_name": _ignore_other_attrs({
-                    "requestId": fake_uuid,
-                })
-            }]
-        }
+        expected = {"metrics": [{"metric_name": _ignore_other_attrs({"requestId": fake_uuid})}]}
         requests_mock.post.assert_called_once_with(ANY, json=expected, timeout=ANY)
 
     @patch("samcli.lib.telemetry.telemetry.requests")
@@ -87,11 +82,7 @@ class TestTelemetry(TestCase):
         expected_execution_environment = "CLI"
 
         expected = {
-            "metrics": [{
-                "metric_name": _ignore_other_attrs({
-                    "executionEnvironment": expected_execution_environment
-                })
-            }]
+            "metrics": [{"metric_name": _ignore_other_attrs({"executionEnvironment": expected_execution_environment})}]
         }
         requests_mock.post.assert_called_once_with(ANY, json=expected, timeout=ANY)
 
@@ -100,7 +91,7 @@ class TestTelemetry(TestCase):
         telemetry = Telemetry(url=self.url)
 
         telemetry.emit("metric_name", {})
-        requests_mock.post.assert_called_once_with(ANY, json=ANY, timeout=(2, 0.1))   # 100ms response timeout
+        requests_mock.post.assert_called_once_with(ANY, json=ANY, timeout=(2, 0.1))  # 100ms response timeout
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_request_must_wait_for_2_seconds_for_response(self, requests_mock):
@@ -147,7 +138,7 @@ class TestTelemetry(TestCase):
         with self.assertRaises(IOError):
             telemetry.emit("metric_name", {})
 
-    @patch('samcli.lib.telemetry.telemetry.DEFAULT_ENDPOINT_URL')
+    @patch("samcli.lib.telemetry.telemetry.DEFAULT_ENDPOINT_URL")
     def test_must_use_default_endpoint_url_if_not_customized(self, default_endpoint_url_mock):
         telemetry = Telemetry()
 

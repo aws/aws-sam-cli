@@ -6,7 +6,6 @@ from samcli import __version__ as SAM_CLI_VERSION
 
 
 class TestSendInstalledMetric(IntegBase):
-
     def test_send_installed_metric_on_first_run(self):
         """
         On the first run, send the installed metric
@@ -36,19 +35,20 @@ class TestSendInstalledMetric(IntegBase):
             self.assertEquals(request["headers"]["Content-Type"], "application/json")
 
             expected_data = {
-                "metrics": [{
-                    "installed": {
-                        "installationId": self.get_global_config().installation_id,
-                        "samcliVersion": SAM_CLI_VERSION,
-                        "osPlatform": platform.system(),
-
-                        "executionEnvironment": ANY,
-                        "pyversion": ANY,
-                        "sessionId": ANY,
-                        "requestId": ANY,
-                        "telemetryEnabled": True
+                "metrics": [
+                    {
+                        "installed": {
+                            "installationId": self.get_global_config().installation_id,
+                            "samcliVersion": SAM_CLI_VERSION,
+                            "osPlatform": platform.system(),
+                            "executionEnvironment": ANY,
+                            "pyversion": ANY,
+                            "sessionId": ANY,
+                            "requestId": ANY,
+                            "telemetryEnabled": True,
+                        }
                     }
-                }]
+                ]
             }
 
             self.assertEquals(request["data"], expected_data)
@@ -92,8 +92,9 @@ class TestSendInstalledMetric(IntegBase):
             retcode = process1.poll()
             self.assertEquals(retcode, 0, "Command should successfully complete")
             self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
-            self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())),
-                              "'installed' metric should be sent")
+            self.assertEquals(
+                1, len(filter_installed_metric_requests(server.get_all_requests())), "'installed' metric should be sent"
+            )
 
             # Second Run
             process2 = self.run_cmd()
@@ -102,8 +103,11 @@ class TestSendInstalledMetric(IntegBase):
             self.assertEquals(retcode, 0)
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
-            self.assertEquals(1, len(filter_installed_metric_requests(server.get_all_requests())),
-                              "Only one 'installed' metric should be sent")
+            self.assertEquals(
+                1,
+                len(filter_installed_metric_requests(server.get_all_requests())),
+                "Only one 'installed' metric should be sent",
+            )
 
 
 def filter_installed_metric_requests(all_requests):

@@ -14,7 +14,7 @@ from nose_parameterized import parameterized, param
 from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissions
 
 # On Windows, permissions do not match 1:1 with permissions on Unix systems.
-SKIP_UNZIP_PERMISSION_TESTS = platform.system() == 'Windows'
+SKIP_UNZIP_PERMISSION_TESTS = platform.system() == "Windows"
 
 
 @skipIf(SKIP_UNZIP_PERMISSION_TESTS, "Skip UnZip Permissions tests in Windows only")
@@ -23,7 +23,7 @@ class TestUnzipWithPermissions(TestCase):
         "folder1/1.txt": 0o644,
         "folder1/2.txt": 0o777,
         "folder2/subdir/1.txt": 0o666,
-        "folder2/subdir/2.txt": 0o400
+        "folder2/subdir/2.txt": 0o400,
     }
 
     @parameterized.expand([param(True), param(False)])
@@ -44,15 +44,15 @@ class TestUnzipWithPermissions(TestCase):
                         self.assertIn(key, self.files_with_permissions)
 
                         if check_permissions:
-                            self.assertEquals(expected_permission,
-                                              perm,
-                                              "File {} has wrong permission {}".format(key, perm))
+                            self.assertEquals(
+                                expected_permission, perm, "File {} has wrong permission {}".format(key, perm)
+                            )
 
     @contextmanager
     def _create_zip(self, files_with_permissions, add_permissions=True):
 
         zipfilename = None
-        data = b'hello world'
+        data = b"hello world"
         try:
             zipfilename = NamedTemporaryFile(mode="w+b").name
 
@@ -85,23 +85,18 @@ class TestUnzipWithPermissions(TestCase):
 
 
 class TestUnzipFromUri(TestCase):
-
-    @patch('samcli.local.lambdafn.zip.unzip')
-    @patch('samcli.local.lambdafn.zip.Path')
-    @patch('samcli.local.lambdafn.zip.progressbar')
-    @patch('samcli.local.lambdafn.zip.requests')
-    @patch('samcli.local.lambdafn.zip.open')
-    @patch('samcli.local.lambdafn.zip.os')
-    def test_successfully_unzip_from_uri(self,
-                                         os_patch,
-                                         open_patch,
-                                         requests_patch,
-                                         progressbar_patch,
-                                         path_patch,
-                                         unzip_patch):
+    @patch("samcli.local.lambdafn.zip.unzip")
+    @patch("samcli.local.lambdafn.zip.Path")
+    @patch("samcli.local.lambdafn.zip.progressbar")
+    @patch("samcli.local.lambdafn.zip.requests")
+    @patch("samcli.local.lambdafn.zip.open")
+    @patch("samcli.local.lambdafn.zip.os")
+    def test_successfully_unzip_from_uri(
+        self, os_patch, open_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
+    ):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}
-        get_request_mock.iter_content.return_value = [b'data1']
+        get_request_mock.iter_content.return_value = [b"data1"]
         requests_patch.get.return_value = get_request_mock
 
         file_mock = Mock()
@@ -116,34 +111,30 @@ class TestUnzipFromUri(TestCase):
 
         os_patch.environ.get.return_value = True
 
-        unzip_from_uri('uri', 'layer_zip_path', 'output_zip_dir', 'layer_arn')
+        unzip_from_uri("uri", "layer_zip_path", "output_zip_dir", "layer_arn")
 
-        requests_patch.get.assert_called_with('uri', stream=True, verify=True)
+        requests_patch.get.assert_called_with("uri", stream=True, verify=True)
         get_request_mock.iter_content.assert_called_with(chunk_size=None)
-        open_patch.assert_called_with('layer_zip_path', 'wb')
-        file_mock.write.assert_called_with(b'data1')
+        open_patch.assert_called_with("layer_zip_path", "wb")
+        file_mock.write.assert_called_with(b"data1")
         progressbar_mock.update.assert_called_with(5)
-        path_patch.assert_called_with('layer_zip_path')
+        path_patch.assert_called_with("layer_zip_path")
         path_mock.unlink.assert_called()
-        unzip_patch.assert_called_with('layer_zip_path', 'output_zip_dir', permission=0o700)
-        os_patch.environ.get.assert_called_with('AWS_CA_BUNDLE', True)
+        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700)
+        os_patch.environ.get.assert_called_with("AWS_CA_BUNDLE", True)
 
-    @patch('samcli.local.lambdafn.zip.unzip')
-    @patch('samcli.local.lambdafn.zip.Path')
-    @patch('samcli.local.lambdafn.zip.progressbar')
-    @patch('samcli.local.lambdafn.zip.requests')
-    @patch('samcli.local.lambdafn.zip.open')
-    @patch('samcli.local.lambdafn.zip.os')
-    def test_not_unlink_file_when_file_doesnt_exist(self,
-                                                    os_patch,
-                                                    open_patch,
-                                                    requests_patch,
-                                                    progressbar_patch,
-                                                    path_patch,
-                                                    unzip_patch):
+    @patch("samcli.local.lambdafn.zip.unzip")
+    @patch("samcli.local.lambdafn.zip.Path")
+    @patch("samcli.local.lambdafn.zip.progressbar")
+    @patch("samcli.local.lambdafn.zip.requests")
+    @patch("samcli.local.lambdafn.zip.open")
+    @patch("samcli.local.lambdafn.zip.os")
+    def test_not_unlink_file_when_file_doesnt_exist(
+        self, os_patch, open_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
+    ):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}
-        get_request_mock.iter_content.return_value = [b'data1']
+        get_request_mock.iter_content.return_value = [b"data1"]
         requests_patch.get.return_value = get_request_mock
 
         file_mock = Mock()
@@ -158,33 +149,30 @@ class TestUnzipFromUri(TestCase):
 
         os_patch.environ.get.return_value = True
 
-        unzip_from_uri('uri', 'layer_zip_path', 'output_zip_dir', 'layer_arn')
+        unzip_from_uri("uri", "layer_zip_path", "output_zip_dir", "layer_arn")
 
-        requests_patch.get.assert_called_with('uri', stream=True, verify=True)
+        requests_patch.get.assert_called_with("uri", stream=True, verify=True)
         get_request_mock.iter_content.assert_called_with(chunk_size=None)
-        open_patch.assert_called_with('layer_zip_path', 'wb')
-        file_mock.write.assert_called_with(b'data1')
+        open_patch.assert_called_with("layer_zip_path", "wb")
+        file_mock.write.assert_called_with(b"data1")
         progressbar_mock.update.assert_called_with(5)
-        path_patch.assert_called_with('layer_zip_path')
+        path_patch.assert_called_with("layer_zip_path")
         path_mock.unlink.assert_not_called()
-        unzip_patch.assert_called_with('layer_zip_path', 'output_zip_dir', permission=0o700)
-        os_patch.environ.get.assert_called_with('AWS_CA_BUNDLE', True)
+        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700)
+        os_patch.environ.get.assert_called_with("AWS_CA_BUNDLE", True)
 
-    @patch('samcli.local.lambdafn.zip.unzip')
-    @patch('samcli.local.lambdafn.zip.Path')
-    @patch('samcli.local.lambdafn.zip.progressbar')
-    @patch('samcli.local.lambdafn.zip.requests')
-    @patch('samcli.local.lambdafn.zip.open')
-    @patch('samcli.local.lambdafn.zip.os')
-    def test_unzip_from_uri_reads_AWS_CA_BUNDLE_env_var(self, os_patch,
-                                                        open_patch,
-                                                        requests_patch,
-                                                        progressbar_patch,
-                                                        path_patch,
-                                                        unzip_patch):
+    @patch("samcli.local.lambdafn.zip.unzip")
+    @patch("samcli.local.lambdafn.zip.Path")
+    @patch("samcli.local.lambdafn.zip.progressbar")
+    @patch("samcli.local.lambdafn.zip.requests")
+    @patch("samcli.local.lambdafn.zip.open")
+    @patch("samcli.local.lambdafn.zip.os")
+    def test_unzip_from_uri_reads_AWS_CA_BUNDLE_env_var(
+        self, os_patch, open_patch, requests_patch, progressbar_patch, path_patch, unzip_patch
+    ):
         get_request_mock = Mock()
         get_request_mock.headers = {"Content-length": "200"}
-        get_request_mock.iter_content.return_value = [b'data1']
+        get_request_mock.iter_content.return_value = [b"data1"]
         requests_patch.get.return_value = get_request_mock
 
         file_mock = Mock()
@@ -197,30 +185,29 @@ class TestUnzipFromUri(TestCase):
         path_mock.exists.return_value = True
         path_patch.return_value = path_mock
 
-        os_patch.environ.get.return_value = '/some/path/on/the/system'
+        os_patch.environ.get.return_value = "/some/path/on/the/system"
 
-        unzip_from_uri('uri', 'layer_zip_path', 'output_zip_dir', 'layer_arn')
+        unzip_from_uri("uri", "layer_zip_path", "output_zip_dir", "layer_arn")
 
-        requests_patch.get.assert_called_with('uri', stream=True, verify='/some/path/on/the/system')
+        requests_patch.get.assert_called_with("uri", stream=True, verify="/some/path/on/the/system")
         get_request_mock.iter_content.assert_called_with(chunk_size=None)
-        open_patch.assert_called_with('layer_zip_path', 'wb')
-        file_mock.write.assert_called_with(b'data1')
+        open_patch.assert_called_with("layer_zip_path", "wb")
+        file_mock.write.assert_called_with(b"data1")
         progressbar_mock.update.assert_called_with(5)
-        path_patch.assert_called_with('layer_zip_path')
+        path_patch.assert_called_with("layer_zip_path")
         path_mock.unlink.assert_called()
-        unzip_patch.assert_called_with('layer_zip_path', 'output_zip_dir', permission=0o700)
-        os_patch.environ.get.assert_called_with('AWS_CA_BUNDLE', True)
+        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700)
+        os_patch.environ.get.assert_called_with("AWS_CA_BUNDLE", True)
 
 
 class TestOverridePermissions(TestCase):
-
-    @patch('samcli.local.lambdafn.zip.os')
+    @patch("samcli.local.lambdafn.zip.os")
     def test_must_override_permissions(self, os_patch):
         _override_permissions(path="./home", permission=0o700)
 
         os_patch.chmod.assert_called_once_with("./home", 0o700)
 
-    @patch('samcli.local.lambdafn.zip.os')
+    @patch("samcli.local.lambdafn.zip.os")
     def test_must_not_override_permissions(self, os_patch):
         _override_permissions(path="./home", permission=None)
 
