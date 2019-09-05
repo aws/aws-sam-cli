@@ -18,7 +18,7 @@ Resources:
         AllowOrigin: "'*''"
         AllowMethods: "'GET'"
         AllowHeaders: "'origin, x-requested-with'"
-        MaxAge: 510
+        MaxAge: "'510'"
       DefinitionBody:
         swagger: "2.0"
         info:
