@@ -132,7 +132,7 @@ class SamFunctionProvider(FunctionProvider):
             codeuri=codeuri,
             environment=resource_properties.get("Environment"),
             rolearn=resource_properties.get("Role"),
-            layers=layers
+            layers=layers,
         )
 
     @staticmethod
@@ -156,11 +156,14 @@ class SamFunctionProvider(FunctionProvider):
         """
         codeuri = resource_properties.get(code_property_key, SamFunctionProvider._DEFAULT_CODEURI)
         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
-        if isinstance(codeuri, dict) or \
-                (isinstance(codeuri, six.string_types) and codeuri.startswith("s3://")):
+        if isinstance(codeuri, dict) or (isinstance(codeuri, six.string_types) and codeuri.startswith("s3://")):
             codeuri = SamFunctionProvider._DEFAULT_CODEURI
-            LOG.warning("Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
-                        "Using default value of '%s' instead", name, codeuri)
+            LOG.warning(
+                "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
+                "Using default value of '%s' instead",
+                name,
+                codeuri,
+            )
         return codeuri
 
     @staticmethod
@@ -189,7 +192,7 @@ class SamFunctionProvider(FunctionProvider):
             codeuri=codeuri,
             environment=resource_properties.get("Environment"),
             rolearn=resource_properties.get("Role"),
-            layers=layers
+            layers=layers,
         )
 
     @staticmethod
@@ -239,13 +242,15 @@ class SamFunctionProvider(FunctionProvider):
         """
         layers = []
         for layer in list_of_layers:
-            if layer == 'arn:aws:lambda:::awslayer:AmazonLinux1803':
-                LOG.debug('Skipped arn:aws:lambda:::awslayer:AmazonLinux1803 as the containers are AmazonLinux1803')
+            if layer == "arn:aws:lambda:::awslayer:AmazonLinux1803":
+                LOG.debug("Skipped arn:aws:lambda:::awslayer:AmazonLinux1803 as the containers are AmazonLinux1803")
                 continue
 
-            if layer == 'arn:aws:lambda:::awslayer:AmazonLinux1703':
-                raise InvalidLayerVersionArn('Building and invoking locally only supports AmazonLinux1803. See '
-                                             'https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ for more detials.')  # noqa: E501
+            if layer == "arn:aws:lambda:::awslayer:AmazonLinux1703":
+                raise InvalidLayerVersionArn(
+                    "Building and invoking locally only supports AmazonLinux1803. See "
+                    "https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ for more detials."
+                )  # noqa: E501
 
             # If the layer is a string, assume it is the arn
             if isinstance(layer, six.string_types):
@@ -257,9 +262,10 @@ class SamFunctionProvider(FunctionProvider):
             if isinstance(layer, dict) and layer.get("Ref"):
                 layer_logical_id = layer.get("Ref")
                 layer_resource = resources.get(layer_logical_id)
-                if not layer_resource or \
-                        layer_resource.get("Type", "") not in (SamFunctionProvider._SERVERLESS_LAYER,
-                                                               SamFunctionProvider._LAMBDA_LAYER):
+                if not layer_resource or layer_resource.get("Type", "") not in (
+                    SamFunctionProvider._SERVERLESS_LAYER,
+                    SamFunctionProvider._LAMBDA_LAYER,
+                ):
                     raise InvalidLayerReference()
 
                 layer_properties = layer_resource.get("Properties", {})
@@ -270,9 +276,9 @@ class SamFunctionProvider(FunctionProvider):
                     codeuri = SamFunctionProvider._extract_lambda_function_code(layer_properties, "Content")
 
                 if resource_type == SamFunctionProvider._SERVERLESS_LAYER:
-                    codeuri = SamFunctionProvider._extract_sam_function_codeuri(layer_logical_id,
-                                                                                layer_properties,
-                                                                                "ContentUri")
+                    codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+                        layer_logical_id, layer_properties, "ContentUri"
+                    )
 
                 layers.append(LayerVersion(layer_logical_id, codeuri))
 

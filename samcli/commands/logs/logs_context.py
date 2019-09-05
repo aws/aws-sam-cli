@@ -27,13 +27,9 @@ class LogsCommandContext(object):
             context.fetcher.fetch(...)
     """
 
-    def __init__(self,
-                 function_name,
-                 stack_name=None,
-                 filter_pattern=None,
-                 start_time=None,
-                 end_time=None,
-                 output_file=None):
+    def __init__(
+        self, function_name, stack_name=None, filter_pattern=None, start_time=None, end_time=None, output_file=None
+    ):
         """
         Initializes the context
 
@@ -69,8 +65,8 @@ class LogsCommandContext(object):
         # No colors when we write to a file. Otherwise use colors
         self._must_print_colors = not self._output_file
 
-        self._logs_client = boto3.client('logs')
-        self._cfn_client = boto3.client('cloudformation')
+        self._logs_client = boto3.client("logs")
+        self._cfn_client = boto3.client("cloudformation")
 
     def __enter__(self):
         """
@@ -110,11 +106,9 @@ class LogsCommandContext(object):
         """
         formatter_chain = [
             LambdaLogMsgFormatters.colorize_errors,
-
             # Format JSON "before" highlighting the keywords. Otherwise, JSON will be invalid from all the
             # ANSI color codes and fail to pretty print
             JSONMsgFormatter.format_json,
-
             KeywordHighlighter(self._filter_pattern).highlight_keywords,
         ]
 
@@ -122,11 +116,11 @@ class LogsCommandContext(object):
 
     @property
     def start_time(self):
-        return self._parse_time(self._start_time, 'start-time')
+        return self._parse_time(self._start_time, "start-time")
 
     @property
     def end_time(self):
-        return self._parse_time(self._end_time, 'end-time')
+        return self._parse_time(self._end_time, "end-time")
 
     @property
     def log_group_name(self):
@@ -143,8 +137,12 @@ class LogsCommandContext(object):
         function_id = self._function_name
         if self._stack_name:
             function_id = self._get_resource_id_from_stack(self._cfn_client, self._stack_name, self._function_name)
-            LOG.debug("Function with LogicalId '%s' in stack '%s' resolves to actual physical ID '%s'",
-                      self._function_name, self._stack_name, function_id)
+            LOG.debug(
+                "Function with LogicalId '%s' in stack '%s' resolves to actual physical ID '%s'",
+                self._function_name,
+                self._stack_name,
+                function_id,
+            )
 
         return LogGroupProvider.for_lambda_function(function_id)
 
@@ -185,7 +183,7 @@ class LogsCommandContext(object):
         if not output_file:
             return None
 
-        return open(output_file, 'wb')
+        return open(output_file, "wb")
 
     @staticmethod
     def _parse_time(time_str, property_name):
@@ -247,8 +245,11 @@ class LogsCommandContext(object):
             If the stack or resource does not exist
         """
 
-        LOG.debug("Getting resource's PhysicalId from AWS CloudFormation stack. StackName=%s, LogicalId=%s",
-                  stack_name, logical_id)
+        LOG.debug(
+            "Getting resource's PhysicalId from AWS CloudFormation stack. StackName=%s, LogicalId=%s",
+            stack_name,
+            logical_id,
+        )
 
         try:
             response = cfn_client.describe_stack_resource(StackName=stack_name, LogicalResourceId=logical_id)
@@ -257,8 +258,13 @@ class LogsCommandContext(object):
             return response["StackResourceDetail"]["PhysicalResourceId"]
 
         except botocore.exceptions.ClientError as ex:
-            LOG.debug("Unable to fetch resource name from CloudFormation Stack: "
-                      "StackName=%s, ResourceLogicalId=%s, Response=%s", stack_name, logical_id, ex.response)
+            LOG.debug(
+                "Unable to fetch resource name from CloudFormation Stack: "
+                "StackName=%s, ResourceLogicalId=%s, Response=%s",
+                stack_name,
+                logical_id,
+                ex.response,
+            )
 
             # The exception message already has a well formatted error message that we can surface to user
             raise UserException(str(ex))

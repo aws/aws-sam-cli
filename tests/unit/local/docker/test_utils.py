@@ -11,7 +11,6 @@ from samcli.local.docker.utils import to_posix_path
 
 
 class TestUtils(TestCase):
-
     def setUp(self):
         self.ntpath = "C:\\Users\\UserName\\AppData\\Local\\Temp\\temp1337"
         self.posixpath = "/c/Users/UserName/AppData/Local/Temp/temp1337"

@@ -36,23 +36,23 @@ class Colored(object):
 
     def red(self, msg):
         """Color the input red"""
-        return self._color(msg, 'red')
+        return self._color(msg, "red")
 
     def green(self, msg):
         """Color the input green"""
-        return self._color(msg, 'green')
+        return self._color(msg, "green")
 
     def cyan(self, msg):
         """Color the input cyan"""
-        return self._color(msg, 'cyan')
+        return self._color(msg, "cyan")
 
     def white(self, msg):
         """Color the input white"""
-        return self._color(msg, 'white')
+        return self._color(msg, "white")
 
     def yellow(self, msg):
         """Color the input yellow"""
-        return self._color(msg, 'yellow')
+        return self._color(msg, "yellow")
 
     def underline(self, msg):
         """Underline the input"""
@@ -60,5 +60,5 @@ class Colored(object):
 
     def _color(self, msg, color):
         """Internal helper method to add colors to input"""
-        kwargs = {'fg': color}
+        kwargs = {"fg": color}
         return click.style(msg, **kwargs) if self.colorize else msg

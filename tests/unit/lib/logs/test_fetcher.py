@@ -1,4 +1,3 @@
-
 import copy
 import datetime
 import botocore.session
@@ -13,10 +12,9 @@ from samcli.lib.utils.time import to_timestamp, to_datetime
 
 
 class TestLogsFetcher_fetch(TestCase):
-
     def setUp(self):
 
-        real_client = botocore.session.get_session().create_client('logs', region_name="us-east-1")
+        real_client = botocore.session.get_session().create_client("logs", region_name="us-east-1")
         self.client_stubber = Stubber(real_client)
         self.fetcher = LogsFetcher(real_client)
 
@@ -31,46 +29,47 @@ class TestLogsFetcher_fetch(TestCase):
                     "ingestionTime": 0,
                     "logStreamName": self.stream_name,
                     "message": "message 1",
-                    "timestamp": self.timestamp
+                    "timestamp": self.timestamp,
                 },
-
                 {
                     "eventId": "id2",
                     "ingestionTime": 0,
                     "logStreamName": self.stream_name,
                     "message": "message 2",
-                    "timestamp": self.timestamp
-                }
+                    "timestamp": self.timestamp,
+                },
             ]
         }
 
         self.expected_events = [
-                LogEvent(self.log_group_name, {
+            LogEvent(
+                self.log_group_name,
+                {
                     "eventId": "id1",
                     "ingestionTime": 0,
                     "logStreamName": self.stream_name,
                     "message": "message 1",
-                    "timestamp": self.timestamp
-                }),
-
-                LogEvent(self.log_group_name, {
+                    "timestamp": self.timestamp,
+                },
+            ),
+            LogEvent(
+                self.log_group_name,
+                {
                     "eventId": "id2",
                     "ingestionTime": 0,
                     "logStreamName": self.stream_name,
                     "message": "message 2",
-                    "timestamp": self.timestamp
-                })
+                    "timestamp": self.timestamp,
+                },
+            ),
         ]
 
     def test_must_fetch_logs_for_log_group(self):
-        expected_params = {
-            "logGroupName": self.log_group_name,
-            "interleaved": True
-        }
+        expected_params = {"logGroupName": self.log_group_name, "interleaved": True}
 
         # Configure the stubber to return the configured response. The stubber also verifies
         # that input params were provided as expected
-        self.client_stubber.add_response('filter_log_events', self.mock_api_response, expected_params)
+        self.client_stubber.add_response("filter_log_events", self.mock_api_response, expected_params)
 
         with self.client_stubber:
             events_iterable = self.fetcher.fetch(self.log_group_name)
@@ -88,10 +87,10 @@ class TestLogsFetcher_fetch(TestCase):
             "interleaved": True,
             "startTime": to_timestamp(start),
             "endTime": to_timestamp(end),
-            "filterPattern": pattern
+            "filterPattern": pattern,
         }
 
-        self.client_stubber.add_response('filter_log_events', self.mock_api_response, expected_params)
+        self.client_stubber.add_response("filter_log_events", self.mock_api_response, expected_params)
 
         with self.client_stubber:
             events_iterable = self.fetcher.fetch(self.log_group_name, start=start, end=end, filter_pattern=pattern)
@@ -102,27 +101,20 @@ class TestLogsFetcher_fetch(TestCase):
     def test_must_paginate_using_next_token(self):
         """Make three API calls, first two returns a nextToken and last does not."""
         token = "token"
-        expected_params = {
-            "logGroupName": self.log_group_name,
-            "interleaved": True
-        }
-        expected_params_with_token = {
-            "logGroupName": self.log_group_name,
-            "interleaved": True,
-            "nextToken": token
-        }
+        expected_params = {"logGroupName": self.log_group_name, "interleaved": True}
+        expected_params_with_token = {"logGroupName": self.log_group_name, "interleaved": True, "nextToken": token}
 
         mock_response_with_token = copy.deepcopy(self.mock_api_response)
         mock_response_with_token["nextToken"] = token
 
         # Call 1 returns a token. Also when first call is made, token is **not** passed as API params
-        self.client_stubber.add_response('filter_log_events', mock_response_with_token, expected_params)
+        self.client_stubber.add_response("filter_log_events", mock_response_with_token, expected_params)
 
         # Call 2 returns a token
-        self.client_stubber.add_response('filter_log_events', mock_response_with_token, expected_params_with_token)
+        self.client_stubber.add_response("filter_log_events", mock_response_with_token, expected_params_with_token)
 
         # Call 3 DOES NOT return a token. This will terminate the loop.
-        self.client_stubber.add_response('filter_log_events', self.mock_api_response, expected_params_with_token)
+        self.client_stubber.add_response("filter_log_events", self.mock_api_response, expected_params_with_token)
 
         # Same data was returned in each API call
         expected_events_result = self.expected_events + self.expected_events + self.expected_events
@@ -135,7 +127,6 @@ class TestLogsFetcher_fetch(TestCase):
 
 
 class TestLogsFetcher_tail(TestCase):
-
     def setUp(self):
 
         self.fetcher = LogsFetcher(Mock())
@@ -164,7 +155,6 @@ class TestLogsFetcher_tail(TestCase):
 
         self.fetcher.fetch.side_effect = [
             self.mock_events1,
-
             # Return empty data for `max_retries` number of polls
             self.mock_events_empty,
             self.mock_events_empty,
@@ -174,7 +164,6 @@ class TestLogsFetcher_tail(TestCase):
         expected_fetch_calls = [
             # First fetch returns data
             call(ANY, start=self.start_time, filter_pattern=self.filter_pattern),
-
             # Three empty fetches
             call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
             call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
@@ -182,15 +171,15 @@ class TestLogsFetcher_tail(TestCase):
         ]
 
         # One per poll
-        expected_sleep_calls = [
-            call(self.poll_interval) for i in expected_fetch_calls
-        ]
+        expected_sleep_calls = [call(self.poll_interval) for i in expected_fetch_calls]
 
-        result_itr = self.fetcher.tail(self.log_group_name,
-                                       start=self.start_time,
-                                       filter_pattern=self.filter_pattern,
-                                       max_retries=self.max_retries,
-                                       poll_interval=self.poll_interval)
+        result_itr = self.fetcher.tail(
+            self.log_group_name,
+            start=self.start_time,
+            filter_pattern=self.filter_pattern,
+            max_retries=self.max_retries,
+            poll_interval=self.poll_interval,
+        )
 
         self.assertEquals(self.mock_events1, list(result_itr))
         self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
@@ -203,13 +192,10 @@ class TestLogsFetcher_tail(TestCase):
 
         self.fetcher.fetch.side_effect = [
             self.mock_events1,
-
             # Just one empty fetch
             self.mock_events_empty,
-
             # This fetch returns data
             self.mock_events2,
-
             # Return empty data for `max_retries` number of polls
             self.mock_events_empty,
             self.mock_events_empty,
@@ -219,13 +205,10 @@ class TestLogsFetcher_tail(TestCase):
         expected_fetch_calls = [
             # First fetch returns data
             call(ANY, start=self.start_time, filter_pattern=self.filter_pattern),
-
             # This fetch was empty
             call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
-
             # This fetch returned data
             call(ANY, start=to_datetime(13), filter_pattern=self.filter_pattern),
-
             # Three empty fetches
             call(ANY, start=to_datetime(15), filter_pattern=self.filter_pattern),
             call(ANY, start=to_datetime(15), filter_pattern=self.filter_pattern),
@@ -233,15 +216,15 @@ class TestLogsFetcher_tail(TestCase):
         ]
 
         # One per poll
-        expected_sleep_calls = [
-            call(self.poll_interval) for i in expected_fetch_calls
-        ]
+        expected_sleep_calls = [call(self.poll_interval) for i in expected_fetch_calls]
 
-        result_itr = self.fetcher.tail(self.log_group_name,
-                                       start=self.start_time,
-                                       filter_pattern=self.filter_pattern,
-                                       max_retries=self.max_retries,
-                                       poll_interval=self.poll_interval)
+        result_itr = self.fetcher.tail(
+            self.log_group_name,
+            start=self.start_time,
+            filter_pattern=self.filter_pattern,
+            max_retries=self.max_retries,
+            poll_interval=self.poll_interval,
+        )
 
         self.assertEquals(self.mock_events1 + self.mock_events2, list(result_itr))
         self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
@@ -261,10 +244,12 @@ class TestLogsFetcher_tail(TestCase):
             call(ANY, start=to_datetime(0), filter_pattern=ANY),
         ]
 
-        result_itr = self.fetcher.tail(self.log_group_name,
-                                       filter_pattern=self.filter_pattern,
-                                       max_retries=self.max_retries,
-                                       poll_interval=self.poll_interval)
+        result_itr = self.fetcher.tail(
+            self.log_group_name,
+            filter_pattern=self.filter_pattern,
+            max_retries=self.max_retries,
+            poll_interval=self.poll_interval,
+        )
 
         self.assertEquals([], list(result_itr))
         self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)

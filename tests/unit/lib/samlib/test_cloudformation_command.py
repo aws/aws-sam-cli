@@ -12,7 +12,6 @@ from samcli.lib.samlib.cloudformation_command import execute_command, find_execu
 
 
 class TestExecuteCommand(TestCase):
-
     def setUp(self):
         self.args = ("--arg1", "value1", "different args", "more")
 
@@ -23,15 +22,18 @@ class TestExecuteCommand(TestCase):
         check_call_mock.return_value = True
         execute_command("command", self.args, "/path/to/template")
 
-        check_call_mock.assert_called_with(["mycmd", "cloudformation", "command"] +
-                                           ["--arg1", "value1", "different args", "more",
-                                            "--template-file", "/path/to/template"], env=ANY)
+        check_call_mock.assert_called_with(
+            ["mycmd", "cloudformation", "command"]
+            + ["--arg1", "value1", "different args", "more", "--template-file", "/path/to/template"],
+            env=ANY,
+        )
 
     @patch("subprocess.check_call")
     @patch("samcli.lib.samlib.cloudformation_command.find_executable")
     @patch("samcli.lib.samlib.cloudformation_command.GlobalConfig")
-    def test_must_add_sam_cli_info_to_execution_env_var_if_telemetry_is_on(self, global_config_mock,
-                                                                           find_executable_mock, check_call_mock):
+    def test_must_add_sam_cli_info_to_execution_env_var_if_telemetry_is_on(
+        self, global_config_mock, find_executable_mock, check_call_mock
+    ):
         installation_id = "testtest"
         global_config_mock.return_value.installation_id = installation_id
         global_config_mock.return_value.telemetry_enabled = True
@@ -78,7 +80,6 @@ class TestExecuteCommand(TestCase):
 
 
 class TestFindExecutable(TestCase):
-
     @patch("subprocess.Popen")
     @patch("platform.system")
     def test_must_use_raw_name(self, platform_system_mock, popen_mock):
@@ -87,9 +88,7 @@ class TestFindExecutable(TestCase):
 
         find_executable(execname)
 
-        self.assertEquals(popen_mock.mock_calls, [
-            call([execname], stdout=PIPE, stderr=PIPE)
-        ])
+        self.assertEquals(popen_mock.mock_calls, [call([execname], stdout=PIPE, stderr=PIPE)])
 
     @patch("subprocess.Popen")
     @patch("platform.system")
@@ -101,9 +100,7 @@ class TestFindExecutable(TestCase):
         result = find_executable(execname)
         self.assertEquals(result, expected)
 
-        self.assertEquals(popen_mock.mock_calls, [
-            call(["foo.cmd"], stdout=PIPE, stderr=PIPE)
-        ])
+        self.assertEquals(popen_mock.mock_calls, [call(["foo.cmd"], stdout=PIPE, stderr=PIPE)])
 
     @patch("subprocess.Popen")
     @patch("platform.system")
@@ -117,10 +114,10 @@ class TestFindExecutable(TestCase):
         result = find_executable(execname)
         self.assertEquals(result, expected)
 
-        self.assertEquals(popen_mock.mock_calls, [
-            call(["foo.cmd"], stdout=PIPE, stderr=PIPE),
-            call(["foo.exe"], stdout=PIPE, stderr=PIPE)
-        ])
+        self.assertEquals(
+            popen_mock.mock_calls,
+            [call(["foo.cmd"], stdout=PIPE, stderr=PIPE), call(["foo.exe"], stdout=PIPE, stderr=PIPE)],
+        )
 
     @patch("subprocess.Popen")
     @patch("platform.system")
@@ -134,11 +131,14 @@ class TestFindExecutable(TestCase):
         result = find_executable(execname)
         self.assertEquals(result, expected)
 
-        self.assertEquals(popen_mock.mock_calls, [
-            call(["foo.cmd"], stdout=PIPE, stderr=PIPE),
-            call(["foo.exe"], stdout=PIPE, stderr=PIPE),
-            call(["foo"], stdout=PIPE, stderr=PIPE),
-        ])
+        self.assertEquals(
+            popen_mock.mock_calls,
+            [
+                call(["foo.cmd"], stdout=PIPE, stderr=PIPE),
+                call(["foo.exe"], stdout=PIPE, stderr=PIPE),
+                call(["foo"], stdout=PIPE, stderr=PIPE),
+            ],
+        )
 
     @patch("subprocess.Popen")
     @patch("platform.system")
@@ -152,11 +152,15 @@ class TestFindExecutable(TestCase):
             find_executable(execname)
 
         expected = "Cannot find AWS CLI installation, was looking at executables with names: {}".format(
-            ["foo.cmd", "foo.exe", "foo"])
+            ["foo.cmd", "foo.exe", "foo"]
+        )
         self.assertEquals(expected, str(ctx.exception))
 
-        self.assertEquals(popen_mock.mock_calls, [
-            call(["foo.cmd"], stdout=PIPE, stderr=PIPE),
-            call(["foo.exe"], stdout=PIPE, stderr=PIPE),
-            call(["foo"], stdout=PIPE, stderr=PIPE),
-        ])
+        self.assertEquals(
+            popen_mock.mock_calls,
+            [
+                call(["foo.cmd"], stdout=PIPE, stderr=PIPE),
+                call(["foo.exe"], stdout=PIPE, stderr=PIPE),
+                call(["foo"], stdout=PIPE, stderr=PIPE),
+            ],
+        )

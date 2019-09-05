@@ -12,7 +12,7 @@ def echo_event_handler(event, context):
 
 
 def echo_event_handler_2(event, context):
-    event['handler'] = 'echo_event_handler_2'
+    event["handler"] = "echo_event_handler_2"
 
     return {"statusCode": 200, "body": json.dumps(event)}
 
@@ -71,9 +71,7 @@ def base64_response(event, context):
         "statusCode": 200,
         "body": gifImageBase64,
         "isBase64Encoded": True,
-        "headers": {
-            "Content-Type": "image/gif"
-        }
+        "headers": {"Content-Type": "image/gif"},
     }
 
 
@@ -81,10 +79,8 @@ def echo_base64_event_body(event, context):
     return {
         "statusCode": 200,
         "body": event["body"],
-        "headers": {
-            "Content-Type": event["headers"]["Content-Type"]
-        },
-        "isBase64Encoded": event["isBase64Encoded"]
+        "headers": {"Content-Type": event["headers"]["Content-Type"]},
+        "isBase64Encoded": event["isBase64Encoded"],
     }
 
 
@@ -93,7 +89,7 @@ def multiple_headers(event, context):
         "statusCode": 200,
         "body": "hello",
         "headers": {"Content-Type": "text/plain"},
-        "multiValueHeaders": {"MyCustomHeader": ['Value1', 'Value2']}
+        "multiValueHeaders": {"MyCustomHeader": ["Value1", "Value2"]},
     }
 
 
@@ -101,6 +97,6 @@ def multiple_headers_overrides_headers(event, context):
     return {
         "statusCode": 200,
         "body": "hello",
-        "headers": {"Content-Type": "text/plain", "MyCustomHeader": 'Custom'},
-        "multiValueHeaders": {"MyCustomHeader": ['Value1', 'Value2']}
+        "headers": {"Content-Type": "text/plain", "MyCustomHeader": "Custom"},
+        "multiValueHeaders": {"MyCustomHeader": ["Value1", "Value2"]},
     }

@@ -46,7 +46,7 @@ class GlobalConfig(object):
         if not self._config_dir:
             # Internal Environment variable to customize SAM CLI App Dir. Currently used only by integ tests.
             app_dir = os.getenv("__SAM_CLI_APP_DIR")
-            self._config_dir = Path(app_dir) if app_dir else Path(click.get_app_dir('AWS SAM', force_posix=True))
+            self._config_dir = Path(app_dir) if app_dir else Path(click.get_app_dir("AWS SAM", force_posix=True))
         return Path(self._config_dir)
 
     @property
@@ -106,7 +106,7 @@ class GlobalConfig(object):
         # If environment variable is set, its value takes precedence over the value from config file.
         env_name = "SAM_CLI_TELEMETRY"
         if env_name in os.environ:
-            return os.getenv(env_name) in ('1', 1)
+            return os.getenv(env_name) in ("1", 1)
 
         try:
             self._telemetry_enabled = self._get_value(TELEMETRY_ENABLED_KEY)
@@ -200,7 +200,7 @@ class GlobalConfig(object):
         json_body[key] = value
         file_body = json.dumps(json_body, indent=4) + "\n"
         try:
-            with open(str(filepath), 'w') as f:
+            with open(str(filepath), "w") as f:
                 f.write(file_body)
         except IOError as ex:
             LOG.debug("Error writing to {filepath}", exc_info=ex)

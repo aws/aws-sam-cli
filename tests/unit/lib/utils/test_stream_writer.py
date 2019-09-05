@@ -10,7 +10,6 @@ from mock import Mock
 
 
 class TestStreamWriter(TestCase):
-
     def test_must_write_to_stream(self):
         buffer = "something"
         stream_mock = Mock()

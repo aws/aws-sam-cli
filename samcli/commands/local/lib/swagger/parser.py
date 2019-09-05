@@ -74,8 +74,11 @@ class SwaggerParser(object):
 
                 function_name = self._get_integration_function_name(method_config)
                 if not function_name:
-                    LOG.debug("Lambda function integration not found in Swagger document at path='%s' method='%s'",
-                              full_path, method)
+                    LOG.debug(
+                        "Lambda function integration not found in Swagger document at path='%s' method='%s'",
+                        full_path,
+                        method,
+                    )
                     continue
 
                 if method.lower() == self._ANY_METHOD_EXTENSION_KEY:
@@ -108,8 +111,6 @@ class SwaggerParser(object):
 
         integration = method_config[self._INTEGRATION_KEY]
 
-        if integration \
-                and isinstance(integration, dict) \
-                and integration.get("type") == IntegrationType.aws_proxy.value:
+        if integration and isinstance(integration, dict) and integration.get("type") == IntegrationType.aws_proxy.value:
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("uri"))

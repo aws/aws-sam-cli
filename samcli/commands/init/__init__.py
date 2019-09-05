@@ -17,18 +17,29 @@ from samcli.lib.telemetry.metrics import track_command
 LOG = logging.getLogger(__name__)
 
 
-@click.command("init",
-               short_help="Init an AWS SAM application.",
-               context_settings=dict(help_option_names=[u'-h', u'--help']))
-@click.option('-l', '--location', help="Template location (git, mercurial, http(s), zip, path)")
-@click.option('-r', '--runtime', type=click.Choice(INIT_RUNTIMES), default=DEFAULT_RUNTIME,
-              help="Lambda Runtime of your app")
-@click.option('-d', '--dependency-manager', type=click.Choice(SUPPORTED_DEP_MANAGERS), default=None,
-              help="Dependency manager of your Lambda runtime", required=False)
-@click.option('-o', '--output-dir', default='.', type=click.Path(), help="Where to output the initialized app into")
-@click.option('-n', '--name', default="sam-app", help="Name of your project to be generated as a folder")
-@click.option('--no-input', is_flag=True, default=False,
-              help="Disable prompting and accept default values defined template config")
+@click.command(
+    "init", short_help="Init an AWS SAM application.", context_settings=dict(help_option_names=[u"-h", u"--help"])
+)
+@click.option("-l", "--location", help="Template location (git, mercurial, http(s), zip, path)")
+@click.option(
+    "-r", "--runtime", type=click.Choice(INIT_RUNTIMES), default=DEFAULT_RUNTIME, help="Lambda Runtime of your app"
+)
+@click.option(
+    "-d",
+    "--dependency-manager",
+    type=click.Choice(SUPPORTED_DEP_MANAGERS),
+    default=None,
+    help="Dependency manager of your Lambda runtime",
+    required=False,
+)
+@click.option("-o", "--output-dir", default=".", type=click.Path(), help="Where to output the initialized app into")
+@click.option("-n", "--name", default="sam-app", help="Name of your project to be generated as a folder")
+@click.option(
+    "--no-input",
+    is_flag=True,
+    default=False,
+    help="Disable prompting and accept default values defined template config",
+)
 @common_options
 @pass_context
 @track_command
@@ -77,8 +88,7 @@ def cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
 
     """
     # All logic must be implemented in the `do_cli` method. This helps ease unit tests
-    do_cli(ctx, location, runtime, dependency_manager, output_dir,
-           name, no_input)  # pragma: no cover
+    do_cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input)  # pragma: no cover
 
 
 def do_cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
@@ -95,7 +105,9 @@ Steps you can take next within the project folder
 ===================================================
 [*] Invoke Function: sam local invoke HelloWorldFunction --event event.json
 [*] Start API Gateway locally: sam local start-api
-""".format(output_dir=output_dir, name=name)
+""".format(
+        output_dir=output_dir, name=name
+    )
 
     build_msg = """
 Project generated: {output_dir}/{name}
@@ -105,11 +117,21 @@ Steps you can take next within the project folder
 [*] Install dependencies
 [*] Invoke Function: sam local invoke HelloWorldFunction --event event.json
 [*] Start API Gateway locally: sam local start-api
-""".format(output_dir=output_dir, name=name)
+""".format(
+        output_dir=output_dir, name=name
+    )
 
     no_build_step_required = (
-        "python", "python3.7", "python3.6", "python2.7", "nodejs",
-        "nodejs4.3", "nodejs6.10", "nodejs8.10", "nodejs10.x", "ruby2.5"
+        "python",
+        "python3.7",
+        "python3.6",
+        "python2.7",
+        "nodejs",
+        "nodejs4.3",
+        "nodejs6.10",
+        "nodejs8.10",
+        "nodejs10.x",
+        "ruby2.5",
     )
     next_step_msg = no_build_msg if runtime in no_build_step_required else build_msg
 

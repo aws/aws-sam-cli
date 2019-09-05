@@ -15,7 +15,7 @@ from .command import BaseCommand
 from .global_config import GlobalConfig
 
 LOG = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 
 pass_context = click.make_pass_decorator(Context)
@@ -47,9 +47,7 @@ def print_info(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
 
-    click.echo(json.dumps({
-        "version": __version__
-    }, indent=2))
+    click.echo(json.dumps({"version": __version__}, indent=2))
 
     ctx.exit()
 
@@ -96,9 +94,9 @@ def cli(ctx):
         except (IOError, ValueError) as ex:
             LOG.debug("Unable to write telemetry flag", exc_info=ex)
 
-    sam_cli_logger = logging.getLogger('samcli')
-    sam_cli_formatter = logging.Formatter('%(message)s')
-    lambda_builders_logger = logging.getLogger('aws_lambda_builders')
+    sam_cli_logger = logging.getLogger("samcli")
+    sam_cli_formatter = logging.Formatter("%(message)s")
+    lambda_builders_logger = logging.getLogger("aws_lambda_builders")
 
     SamCliLogger.configure_logger(sam_cli_logger, sam_cli_formatter, logging.INFO)
     SamCliLogger.configure_logger(lambda_builders_logger, sam_cli_formatter, logging.INFO)

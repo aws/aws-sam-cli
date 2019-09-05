@@ -21,7 +21,6 @@ LOG = logging.getLogger(__name__)
 
 
 class LayerDownloader(object):
-
     def __init__(self, layer_cache, cwd, lambda_client=None):
         """
 
@@ -40,7 +39,7 @@ class LayerDownloader(object):
 
     @property
     def lambda_client(self):
-        self._lambda_client = self._lambda_client or boto3.client('lambda')
+        self._lambda_client = self._lambda_client or boto3.client("lambda")
         return self._lambda_client
 
     @property
@@ -108,12 +107,14 @@ class LayerDownloader(object):
             LOG.info("%s is already cached. Skipping download", layer.arn)
             return layer
 
-        layer_zip_path = layer.codeuri + '.zip'
+        layer_zip_path = layer.codeuri + ".zip"
         layer_zip_uri = self._fetch_layer_uri(layer)
-        unzip_from_uri(layer_zip_uri,
-                       layer_zip_path,
-                       unzip_output_dir=layer.codeuri,
-                       progressbar_label='Downloading {}'.format(layer.layer_arn))
+        unzip_from_uri(
+            layer_zip_uri,
+            layer_zip_path,
+            unzip_output_dir=layer.codeuri,
+            progressbar_label="Downloading {}".format(layer.layer_arn),
+        )
 
         return layer
 
@@ -137,17 +138,19 @@ class LayerDownloader(object):
             When the Credentials given are not sufficient to call AWS Lambda
         """
         try:
-            layer_version_response = self.lambda_client.get_layer_version(LayerName=layer.layer_arn,
-                                                                          VersionNumber=layer.version)
+            layer_version_response = self.lambda_client.get_layer_version(
+                LayerName=layer.layer_arn, VersionNumber=layer.version
+            )
         except NoCredentialsError:
             raise CredentialsRequired("Layers require credentials to download the layers locally.")
         except ClientError as e:
-            error_code = e.response.get('Error').get('Code')
+            error_code = e.response.get("Error").get("Code")
             error_exc = {
-                'AccessDeniedException': CredentialsRequired(
+                "AccessDeniedException": CredentialsRequired(
                     "Credentials provided are missing lambda:Getlayerversion policy that is needed to download the "
-                    "layer or you do not have permission to download the layer"),
-                'ResourceNotFoundException': ResourceNotFound("{} was not found.".format(layer.arn))
+                    "layer or you do not have permission to download the layer"
+                ),
+                "ResourceNotFoundException": ResourceNotFound("{} was not found.".format(layer.arn)),
             }
 
             if error_code in error_exc:

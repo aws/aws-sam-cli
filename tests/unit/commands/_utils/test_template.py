@@ -1,4 +1,3 @@
-
 import os
 import copy
 import yaml
@@ -7,12 +6,16 @@ from unittest import TestCase
 from mock import patch, mock_open
 from parameterized import parameterized, param
 
-from samcli.commands._utils.template import get_template_data, _METADATA_WITH_LOCAL_PATHS, \
-     _RESOURCES_WITH_LOCAL_PATHS, _update_relative_paths, move_template
+from samcli.commands._utils.template import (
+    get_template_data,
+    _METADATA_WITH_LOCAL_PATHS,
+    _RESOURCES_WITH_LOCAL_PATHS,
+    _update_relative_paths,
+    move_template,
+)
 
 
 class Test_get_template_data(TestCase):
-
     def test_must_raise_if_file_does_not_exist(self):
         filename = "filename"
 
@@ -39,13 +42,10 @@ class Test_get_template_data(TestCase):
 
             self.assertEquals(result, parse_result)
 
-        m.assert_called_with(filename, 'r')
+        m.assert_called_with(filename, "r")
         yaml_parse_mock.assert_called_with(file_data)
 
-    @parameterized.expand([
-        param(ValueError()),
-        param(yaml.YAMLError())
-    ])
+    @parameterized.expand([param(ValueError()), param(yaml.YAMLError())])
     @patch("samcli.commands._utils.template.yaml_parse")
     @patch("samcli.commands._utils.template.pathlib")
     def test_must_raise_on_parse_errors(self, exception, pathlib_mock, yaml_parse_mock):
@@ -67,7 +67,6 @@ class Test_get_template_data(TestCase):
 
 
 class Test_update_relative_paths(TestCase):
-
     def setUp(self):
 
         self.s3path = "s3://foo/bar"
@@ -78,90 +77,53 @@ class Test_update_relative_paths(TestCase):
 
         self.expected_result = os.path.join("..", "foo", "bar")
 
-    @parameterized.expand(
-        [(resource_type, props) for resource_type, props in _METADATA_WITH_LOCAL_PATHS.items()]
-    )
+    @parameterized.expand([(resource_type, props) for resource_type, props in _METADATA_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_metadata_paths(self, resource_type, properties):
 
         for propname in properties:
             for path in [self.s3path, self.abspath, self.curpath]:
                 template_dict = {
-                    "Metadata": {
-                        resource_type: {
-                            propname: path
-                        },
-                        "AWS::Ec2::Instance": {
-                            propname: path
-                        }
-                    },
-                    "Parameters": {
-                        "a": "b"
-                    }
+                    "Metadata": {resource_type: {propname: path}, "AWS::Ec2::Instance": {propname: path}},
+                    "Parameters": {"a": "b"},
                 }
 
                 expected_template_dict = copy.deepcopy(template_dict)
                 if path == self.curpath:
-                    expected_template_dict["Metadata"][resource_type][propname] = \
-                        self.expected_result
+                    expected_template_dict["Metadata"][resource_type][propname] = self.expected_result
 
                 result = _update_relative_paths(template_dict, self.src, self.dest)
 
                 self.maxDiff = None
                 self.assertEquals(result, expected_template_dict)
 
-    @parameterized.expand(
-        [(resource_type, props) for resource_type, props in _RESOURCES_WITH_LOCAL_PATHS.items()]
-    )
+    @parameterized.expand([(resource_type, props) for resource_type, props in _RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
 
         for propname in properties:
 
             template_dict = {
                 "Resources": {
-                    "MyResourceWithRelativePath": {
-                        "Type": resource_type,
-                        "Properties": {
-                            propname: self.curpath
-                        }
-                    },
-                    "MyResourceWithS3Path": {
-                        "Type": resource_type,
-                        "Properties": {
-                            propname: self.s3path
-                        }
-                    },
-                    "MyResourceWithAbsolutePath": {
-                        "Type": resource_type,
-                        "Properties": {
-                            propname: self.abspath
-                        }
-                    },
+                    "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {propname: self.curpath}},
+                    "MyResourceWithS3Path": {"Type": resource_type, "Properties": {propname: self.s3path}},
+                    "MyResourceWithAbsolutePath": {"Type": resource_type, "Properties": {propname: self.abspath}},
                     "MyResourceWithInvalidPath": {
                         "Type": resource_type,
                         "Properties": {
                             # Path is not a string
                             propname: {"foo": "bar"}
-                        }
+                        },
                     },
-                    "MyResourceWithoutProperties": {
-                        "Type": resource_type
-                    },
-                    "UnsupportedResourceType": {
-                        "Type": "AWS::Ec2::Instance",
-                        "Properties": {
-                            "Code": "bar"
-                        }
-                    },
+                    "MyResourceWithoutProperties": {"Type": resource_type},
+                    "UnsupportedResourceType": {"Type": "AWS::Ec2::Instance", "Properties": {"Code": "bar"}},
                     "ResourceWithoutType": {"foo": "bar"},
                 },
-                "Parameters": {
-                    "a": "b"
-                }
+                "Parameters": {"a": "b"},
             }
 
             expected_template_dict = copy.deepcopy(template_dict)
-            expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Properties"][propname] = \
-                self.expected_result
+            expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Properties"][
+                propname
+            ] = self.expected_result
 
             result = _update_relative_paths(template_dict, self.src, self.dest)
 
@@ -173,29 +135,32 @@ class Test_update_relative_paths(TestCase):
             "Resources": {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.curpath}}},
             "list_prop": [
                 "a",
-                1, 2, 3,
+                1,
+                2,
+                3,
                 {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.curpath}}},
-
                 # S3 path
                 {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.s3path}}},
             ],
             "Fn::Transform": {"Name": "AWS::OtherTransform"},
             "key1": {"Fn::Transform": "Invalid value"},
-            "key2": {"Fn::Transform": {"no": "name"}}
+            "key2": {"Fn::Transform": {"no": "name"}},
         }
 
         expected_template_dict = {
             "Resources": {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.expected_result}}},
             "list_prop": [
                 "a",
-                1, 2, 3,
+                1,
+                2,
+                3,
                 {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.expected_result}}},
                 # S3 path
                 {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": self.s3path}}},
             ],
             "Fn::Transform": {"Name": "AWS::OtherTransform"},
             "key1": {"Fn::Transform": "Invalid value"},
-            "key2": {"Fn::Transform": {"no": "name"}}
+            "key2": {"Fn::Transform": {"no": "name"}},
         }
 
         result = _update_relative_paths(template_dict, self.src, self.dest)
@@ -204,12 +169,9 @@ class Test_update_relative_paths(TestCase):
 
 
 class Test_move_template(TestCase):
-
     @patch("samcli.commands._utils.template._update_relative_paths")
     @patch("samcli.commands._utils.template.yaml_dump")
-    def test_must_update_and_write_template(self,
-                                            yaml_dump_mock,
-                                            update_relative_paths_mock):
+    def test_must_update_and_write_template(self, yaml_dump_mock, update_relative_paths_mock):
         template_dict = {"a": "b"}
 
         # Moving from /tmp/original/root/template.yaml to /tmp/new/root/othertemplate.yaml
@@ -223,9 +185,9 @@ class Test_move_template(TestCase):
         with patch("samcli.commands._utils.template.open", m):
             move_template(source, dest, template_dict)
 
-        update_relative_paths_mock.assert_called_once_with(template_dict,
-                                                           os.path.dirname(source),
-                                                           os.path.dirname(dest))
+        update_relative_paths_mock.assert_called_once_with(
+            template_dict, os.path.dirname(source), os.path.dirname(dest)
+        )
         yaml_dump_mock.assert_called_with(modified_template)
-        m.assert_called_with(dest, 'w')
+        m.assert_called_with(dest, "w")
         m.return_value.write.assert_called_with(dumped_yaml)

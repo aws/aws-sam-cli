@@ -8,7 +8,6 @@ from samcli.cli.command import DEPRECATION_NOTICE
 
 
 class TestPy2DeprecationWarning(TestCase):
-
     def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):

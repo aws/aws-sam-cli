@@ -1,12 +1,12 @@
 import sys
 import site
 
-sys.path.insert(0, '/opt')
+sys.path.insert(0, "/opt")
 site.addsitedir("/opt")
 
 
 def handler(event, context):
-    return 'hello'
+    return "hello"
 
 
 def custom_layer_handler(event, context):

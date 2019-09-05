@@ -14,7 +14,6 @@ except ImportError:
 
 
 class TestGlobalConfig(TestCase):
-
     def setUp(self):
         self._cfg_dir = tempfile.mkdtemp()
 
@@ -34,7 +33,7 @@ class TestGlobalConfig(TestCase):
 
     def test_installation_id_on_existing_file(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"foo": "bar"}
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir)
@@ -45,7 +44,7 @@ class TestGlobalConfig(TestCase):
 
     def test_installation_id_exists(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir)
@@ -59,7 +58,7 @@ class TestGlobalConfig(TestCase):
 
     def test_invalid_json(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             f.write("NOT JSON, PROBABLY VALID YAML AM I RIGHT!?")
         gc = GlobalConfig(config_dir=self._cfg_dir)
         self.assertIsNone(gc.installation_id)
@@ -71,7 +70,7 @@ class TestGlobalConfig(TestCase):
 
     def test_telemetry_flag_from_cfg(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir)
@@ -83,7 +82,7 @@ class TestGlobalConfig(TestCase):
 
     def test_telemetry_flag_not_in_cfg(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir)
@@ -102,7 +101,7 @@ class TestGlobalConfig(TestCase):
 
     def test_set_telemetry_flag_no_key(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"installationId": "stub-uuid"}
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir)
@@ -113,7 +112,7 @@ class TestGlobalConfig(TestCase):
 
     def test_set_telemetry_flag_overwrite(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir)
@@ -125,7 +124,7 @@ class TestGlobalConfig(TestCase):
 
     def test_telemetry_flag_explicit_false(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
         gc = GlobalConfig(config_dir=self._cfg_dir, telemetry_enabled=False)
@@ -133,7 +132,7 @@ class TestGlobalConfig(TestCase):
 
     def test_setter_raises_on_invalid_json(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             f.write("NOT JSON, PROBABLY VALID YAML AM I RIGHT!?")
         gc = GlobalConfig(config_dir=self._cfg_dir)
         with self.assertRaises(JSONDecodeError):
@@ -141,12 +140,12 @@ class TestGlobalConfig(TestCase):
 
     def test_setter_cannot_open_file(self):
         path = Path(self._cfg_dir, "metadata.json")
-        with open(str(path), 'w') as f:
+        with open(str(path), "w") as f:
             cfg = {"telemetryEnabled": True}
             f.write(json.dumps(cfg, indent=4) + "\n")
         m = mock_open()
         m.side_effect = IOError("fail")
         gc = GlobalConfig(config_dir=self._cfg_dir)
-        with patch('samcli.cli.global_config.open', m):
+        with patch("samcli.cli.global_config.open", m):
             with self.assertRaises(IOError):
                 gc.telemetry_enabled = True

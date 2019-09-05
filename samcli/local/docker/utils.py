@@ -5,6 +5,7 @@ Helper methods that aid with changing the mount path to unix style.
 import os
 import re
 import posixpath
+
 try:
     import pathlib
 except ImportError:
@@ -31,6 +32,12 @@ def to_posix_path(code_path):
     /c/Users/UserName/AppData/Local/Temp/mydir
     """
 
-    return re.sub("^([A-Za-z])+:",
-                  lambda match: posixpath.sep + match.group().replace(":", "").lower(),
-                  pathlib.PureWindowsPath(code_path).as_posix()) if os.name == "nt" else code_path
+    return (
+        re.sub(
+            "^([A-Za-z])+:",
+            lambda match: posixpath.sep + match.group().replace(":", "").lower(),
+            pathlib.PureWindowsPath(code_path).as_posix(),
+        )
+        if os.name == "nt"
+        else code_path
+    )

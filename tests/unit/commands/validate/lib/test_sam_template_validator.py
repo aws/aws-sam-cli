@@ -8,9 +8,8 @@ from samcli.commands.validate.lib.sam_template_validator import SamTemplateValid
 
 
 class TestSamTemplateValidator(TestCase):
-
-    @patch('samcli.commands.validate.lib.sam_template_validator.Translator')
-    @patch('samcli.commands.validate.lib.sam_template_validator.parser')
+    @patch("samcli.commands.validate.lib.sam_template_validator.Translator")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parser")
     def test_is_valid_returns_true(self, sam_parser, sam_translator):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
@@ -28,14 +27,14 @@ class TestSamTemplateValidator(TestCase):
         # Should not throw an Exception
         validator.is_valid()
 
-        sam_translator.assert_called_once_with(managed_policy_map={"policy": "SomePolicy"},
-                                               sam_parser=parser,
-                                               plugins=[])
+        sam_translator.assert_called_once_with(
+            managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[]
+        )
         translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
         sam_parser.Parser.assert_called_once()
 
-    @patch('samcli.commands.validate.lib.sam_template_validator.Translator')
-    @patch('samcli.commands.validate.lib.sam_template_validator.parser')
+    @patch("samcli.commands.validate.lib.sam_template_validator.Translator")
+    @patch("samcli.commands.validate.lib.sam_template_validator.parser")
     def test_is_valid_raises_exception(self, sam_parser, sam_translator):
         managed_policy_mock = Mock()
         managed_policy_mock.load.return_value = {"policy": "SomePolicy"}
@@ -45,7 +44,7 @@ class TestSamTemplateValidator(TestCase):
         sam_parser.Parser.return_value = parser
 
         translate_mock = Mock()
-        translate_mock.translate.side_effect = InvalidDocumentException([Exception('message')])
+        translate_mock.translate.side_effect = InvalidDocumentException([Exception("message")])
         sam_translator.return_value = translate_mock
 
         validator = SamTemplateValidator(template, managed_policy_mock)
@@ -53,9 +52,9 @@ class TestSamTemplateValidator(TestCase):
         with self.assertRaises(InvalidSamDocumentException):
             validator.is_valid()
 
-        sam_translator.assert_called_once_with(managed_policy_map={"policy": "SomePolicy"},
-                                               sam_parser=parser,
-                                               plugins=[])
+        sam_translator.assert_called_once_with(
+            managed_policy_map={"policy": "SomePolicy"}, sam_parser=parser, plugins=[]
+        )
         translate_mock.translate.assert_called_once_with(sam_template=template, parameter_values={})
         sam_parser.Parser.assert_called_once()
 
@@ -90,8 +89,9 @@ class TestSamTemplateValidator(TestCase):
         property_value = {"CodeUri": {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212}}
         SamTemplateValidator._update_to_s3_uri("CodeUri", property_value)
 
-        self.assertEquals(property_value.get("CodeUri"),
-                          {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212})
+        self.assertEquals(
+            property_value.get("CodeUri"), {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212}
+        )
 
     def test_update_to_s3_url_with_s3_uri(self):
         property_value = {"CodeUri": "s3://bucket/key/version"}
@@ -106,27 +106,14 @@ class TestSamTemplateValidator(TestCase):
             "Resources": {
                 "ServerlessApi": {
                     "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                        "DefinitionUri": "./"
-                    }
+                    "Properties": {"StageName": "Prod", "DefinitionUri": "./"},
                 },
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "Handler": "index.handler",
-                        "CodeUri": "./",
-                        "Runtime": "nodejs6.10",
-                        "Timeout": 60
-                    }
+                    "Properties": {"Handler": "index.handler", "CodeUri": "./", "Runtime": "nodejs6.10", "Timeout": 60},
                 },
-                "ServerlessLayerVersion": {
-                    "Type": "AWS::Serverless::LayerVersion",
-                    "Properties": {
-                        "ContentUri": "./"
-                    }
-                }
-            }
+                "ServerlessLayerVersion": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "./"}},
+            },
         }
 
         managed_policy_mock = Mock()
@@ -137,33 +124,27 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         template_resources = validator.sam_template.get("Resources")
-        self.assertEquals(template_resources.get("ServerlessApi").get("Properties").get("DefinitionUri"),
-                          "s3://bucket/value")
-        self.assertEquals(template_resources.get("ServerlessFunction").get("Properties").get("CodeUri"),
-                          "s3://bucket/value")
-        self.assertEquals(template_resources.get("ServerlessLayerVersion").get("Properties").get("ContentUri"),
-                          "s3://bucket/value")
+        self.assertEquals(
+            template_resources.get("ServerlessApi").get("Properties").get("DefinitionUri"), "s3://bucket/value"
+        )
+        self.assertEquals(
+            template_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
+        )
+        self.assertEquals(
+            template_resources.get("ServerlessLayerVersion").get("Properties").get("ContentUri"), "s3://bucket/value"
+        )
 
     def test_replace_local_codeuri_when_no_codeuri_given(self):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
             "Resources": {
-                "ServerlessApi": {
-                    "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                    }
-                },
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
                 "ServerlessFunction": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "Handler": "index.handler",
-                        "Runtime": "nodejs6.10",
-                        "Timeout": 60
-                    }
-                }
-            }
+                    "Properties": {"Handler": "index.handler", "Runtime": "nodejs6.10", "Timeout": 60},
+                },
+            },
         }
 
         managed_policy_mock = Mock()
@@ -174,8 +155,9 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         tempalte_resources = validator.sam_template.get("Resources")
-        self.assertEquals(tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"),
-                          "s3://bucket/value")
+        self.assertEquals(
+            tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
+        )
 
     def test_DefinitionUri_does_not_get_added_to_template_when_DefinitionBody_given(self):
         template = {
@@ -184,14 +166,9 @@ class TestSamTemplateValidator(TestCase):
             "Resources": {
                 "ServerlessApi": {
                     "Type": "AWS::Serverless::Api",
-                    "Properties": {
-                        "StageName": "Prod",
-                        "DefinitionBody": {
-                            "swagger": {}
-                        }
-                    }
+                    "Properties": {"StageName": "Prod", "DefinitionBody": {"swagger": {}}},
                 }
-            }
+            },
         }
 
         managed_policy_mock = Mock()
@@ -209,7 +186,7 @@ class TestSamTemplateValidator(TestCase):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Transform": "AWS::Serverless-2016-10-31",
-            "Resources": {}
+            "Resources": {},
         }
 
         managed_policy_mock = Mock()

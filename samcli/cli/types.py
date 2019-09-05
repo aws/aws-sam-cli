@@ -15,9 +15,9 @@ class CfnParameterOverridesType(click.ParamType):
     __EXAMPLE = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
 
     # Regex that parses CloudFormation parameter key-value pairs: https://regex101.com/r/xqfSjW/2
-    _pattern = r'(?:ParameterKey=([A-Za-z0-9\"]+),ParameterValue=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))'
+    _pattern = r"(?:ParameterKey=([A-Za-z0-9\"]+),ParameterValue=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
 
-    name = ''
+    name = ""
 
     def convert(self, value, param, ctx):
         result = {}
@@ -27,9 +27,7 @@ class CfnParameterOverridesType(click.ParamType):
         groups = re.findall(self._pattern, value)
         if not groups:
             return self.fail(
-                "{} is not in valid format. It must look something like '{}'".format(value, self.__EXAMPLE),
-                param,
-                ctx
+                "{} is not in valid format. It must look something like '{}'".format(value, self.__EXAMPLE), param, ctx
             )
 
         # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]

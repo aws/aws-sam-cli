@@ -1,4 +1,3 @@
-
 import json
 
 from unittest import TestCase
@@ -10,17 +9,12 @@ from samcli.lib.logs.event import LogEvent
 
 
 class TestLogsFormatter_pretty_print_event(TestCase):
-
     def setUp(self):
         self.colored_mock = Mock()
         self.group_name = "group name"
         self.stream_name = "stream name"
         self.message = "message"
-        self.event_dict = {
-            "timestamp": 1,
-            "message": self.message,
-            "logStreamName": self.stream_name
-        }
+        self.event_dict = {"timestamp": 1, "message": self.message, "logStreamName": self.stream_name}
 
     def test_must_serialize_event(self):
         colored_timestamp = "colored timestamp"
@@ -30,7 +24,7 @@ class TestLogsFormatter_pretty_print_event(TestCase):
 
         event = LogEvent(self.group_name, self.event_dict)
 
-        expected = ' '.join([colored_stream_name, colored_timestamp, self.message])
+        expected = " ".join([colored_stream_name, colored_timestamp, self.message])
         result = LogsFormatter._pretty_print_event(event, self.colored_mock)
 
         self.assertEquals(expected, result)
@@ -43,7 +37,6 @@ def _passthru_formatter(event, colored):
 
 
 class TestLogsFormatter_do_format(TestCase):
-
     def setUp(self):
         self.colored_mock = Mock()
 
@@ -62,7 +55,7 @@ class TestLogsFormatter_do_format(TestCase):
         expected_call_order = [
             call(1, colored=self.colored_mock),
             call(2, colored=self.colored_mock),
-            call(3, colored=self.colored_mock)
+            call(3, colored=self.colored_mock),
         ]
 
         formatter = LogsFormatter(self.colored_mock, self.formatter_chain)
@@ -83,7 +76,7 @@ class TestLogsFormatter_do_format(TestCase):
         expected_call_order = [
             call(1, colored=self.colored_mock),
             call(2, colored=self.colored_mock),
-            call(3, colored=self.colored_mock)
+            call(3, colored=self.colored_mock),
         ]
 
         # No formatter chain.
@@ -100,12 +93,13 @@ class TestLogsFormatter_do_format(TestCase):
 
 
 class TestLambdaLogMsgFormatters_colorize_crashes(TestCase):
-
-    @parameterized.expand([
-        "Task timed out",
-        "Something happened. Task timed out. Something else happend",
-        "Process exited before completing request"
-    ])
+    @parameterized.expand(
+        [
+            "Task timed out",
+            "Something happened. Task timed out. Something else happend",
+            "Process exited before completing request",
+        ]
+    )
     def test_must_color_crash_messages(self, input_msg):
         color_result = "colored messaage"
         colored = Mock()
@@ -126,7 +120,6 @@ class TestLambdaLogMsgFormatters_colorize_crashes(TestCase):
 
 
 class TestKeywordHighlight_highlight_keyword(TestCase):
-
     def test_must_highlight_all_keywords(self):
         input_msg = "this keyword some keyword other keyword"
         keyword = "keyword"
@@ -152,7 +145,6 @@ class TestKeywordHighlight_highlight_keyword(TestCase):
 
 
 class TestJSONMsgFormatter_format_json(TestCase):
-
     def test_must_pretty_print_json(self):
         data = {"a": "b"}
         input_msg = '{"a": "b"}'
@@ -163,10 +155,7 @@ class TestJSONMsgFormatter_format_json(TestCase):
         result = JSONMsgFormatter.format_json(event, None)
         self.assertEquals(result.message, expected_msg)
 
-    @parameterized.expand([
-        "this is not json",
-        '{"not a valid json"}',
-    ])
+    @parameterized.expand(["this is not json", '{"not a valid json"}'])
     def test_ignore_non_json(self, input_msg):
 
         event = LogEvent("group_name", {"message": input_msg})

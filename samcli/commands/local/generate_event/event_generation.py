@@ -92,7 +92,7 @@ class EventTypeSubCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    TAGS = 'tags'
+    TAGS = "tags"
 
     def __init__(self, events_lib, top_level_cmd_name, subcmd_definition, *args, **kwargs):
         """
@@ -139,20 +139,23 @@ class EventTypeSubCommand(click.MultiCommand):
         parameters = []
         for param_name in self.subcmd_definition[cmd_name][self.TAGS].keys():
             default = self.subcmd_definition[cmd_name][self.TAGS][param_name]["default"]
-            parameters.append(click.Option(
-                ["--{}".format(param_name)],
-                default=default,
-                help="Specify the {} name you'd like, otherwise the default = {}".format(param_name, default)
-            ))
+            parameters.append(
+                click.Option(
+                    ["--{}".format(param_name)],
+                    default=default,
+                    help="Specify the {} name you'd like, otherwise the default = {}".format(param_name, default),
+                )
+            )
 
-        command_callback = functools.partial(self.cmd_implementation,
-                                             self.events_lib,
-                                             self.top_level_cmd_name,
-                                             cmd_name)
-        cmd = click.Command(name=cmd_name,
-                            short_help=self.subcmd_definition[cmd_name]["help"],
-                            params=parameters,
-                            callback=command_callback)
+        command_callback = functools.partial(
+            self.cmd_implementation, self.events_lib, self.top_level_cmd_name, cmd_name
+        )
+        cmd = click.Command(
+            name=cmd_name,
+            short_help=self.subcmd_definition[cmd_name]["help"],
+            params=parameters,
+            callback=command_callback,
+        )
 
         cmd = debug_option(cmd)
         return cmd

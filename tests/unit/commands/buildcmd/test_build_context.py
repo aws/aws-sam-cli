@@ -6,13 +6,13 @@ from samcli.commands.build.build_context import BuildContext
 
 
 class TestBuildContext__enter__(TestCase):
-
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
-    def test_must_setup_context(self, ContainerManagerMock, pathlib_mock, SamFunctionProviderMock,
-                                get_template_data_mock):
+    def test_must_setup_context(
+        self, ContainerManagerMock, pathlib_mock, SamFunctionProviderMock, get_template_data_mock
+    ):
 
         template_dict = get_template_data_mock.return_value = "template dict"
         func_provider_mock = Mock()
@@ -21,17 +21,19 @@ class TestBuildContext__enter__(TestCase):
         base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
         container_mgr_mock = ContainerManagerMock.return_value = Mock()
 
-        context = BuildContext("function_identifier",
-                               "template_file",
-                               None,  # No base dir is provided
-                               "build_dir",
-                               manifest_path="manifest_path",
-                               clean=True,
-                               use_container=True,
-                               docker_network="network",
-                               parameter_overrides="overrides",
-                               skip_pull_image=True,
-                               mode="buildmode")
+        context = BuildContext(
+            "function_identifier",
+            "template_file",
+            None,  # No base dir is provided
+            "build_dir",
+            manifest_path="manifest_path",
+            clean=True,
+            use_container=True,
+            docker_network="network",
+            parameter_overrides="overrides",
+            skip_pull_image=True,
+            mode="buildmode",
+        )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
         context._setup_build_dir = setup_build_dir_mock
@@ -55,16 +57,16 @@ class TestBuildContext__enter__(TestCase):
         SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
-        ContainerManagerMock.assert_called_once_with(docker_network_id="network",
-                                                     skip_pull_image=True)
+        ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get.assert_called_once_with("function_identifier")
 
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
-    def test_must_return_many_functions_to_build(self, ContainerManagerMock, pathlib_mock, SamFunctionProviderMock,
-                                                 get_template_data_mock):
+    def test_must_return_many_functions_to_build(
+        self, ContainerManagerMock, pathlib_mock, SamFunctionProviderMock, get_template_data_mock
+    ):
         template_dict = get_template_data_mock.return_value = "template dict"
         func_provider_mock = Mock()
         func_provider_mock.get_all.return_value = ["function to build", "and another function"]
@@ -72,17 +74,19 @@ class TestBuildContext__enter__(TestCase):
         base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
         container_mgr_mock = ContainerManagerMock.return_value = Mock()
 
-        context = BuildContext(None,
-                               "template_file",
-                               None,  # No base dir is provided
-                               "build_dir",
-                               manifest_path="manifest_path",
-                               clean=True,
-                               use_container=True,
-                               docker_network="network",
-                               parameter_overrides="overrides",
-                               skip_pull_image=True,
-                               mode="buildmode")
+        context = BuildContext(
+            None,
+            "template_file",
+            None,  # No base dir is provided
+            "build_dir",
+            manifest_path="manifest_path",
+            clean=True,
+            use_container=True,
+            docker_network="network",
+            parameter_overrides="overrides",
+            skip_pull_image=True,
+            mode="buildmode",
+        )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
         context._setup_build_dir = setup_build_dir_mock
@@ -106,13 +110,11 @@ class TestBuildContext__enter__(TestCase):
         SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
-        ContainerManagerMock.assert_called_once_with(docker_network_id="network",
-                                                     skip_pull_image=True)
+        ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get_all.assert_called_once()
 
 
 class TestBuildContext_setup_build_dir(TestCase):
-
     @patch("samcli.commands.build.build_context.shutil")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.pathlib")

@@ -205,7 +205,7 @@ class SwaggerReader(object):
         botocore.exceptions.ClientError if we were unable to download the file from S3
         """
 
-        s3 = boto3.client('s3')
+        s3 = boto3.client("s3")
 
         extra_args = {}
         if version:
@@ -213,9 +213,7 @@ class SwaggerReader(object):
 
         with tempfile.TemporaryFile() as fp:
             try:
-                s3.download_fileobj(
-                    bucket, key, fp,
-                    ExtraArgs=extra_args)
+                s3.download_fileobj(bucket, key, fp, ExtraArgs=extra_args)
 
                 # go to start of file
                 fp.seek(0)
@@ -224,8 +222,9 @@ class SwaggerReader(object):
                 return fp.read()
 
             except botocore.exceptions.ClientError:
-                LOG.error("Unable to download Swagger document from S3 Bucket=%s Key=%s Version=%s",
-                          bucket, key, version)
+                LOG.error(
+                    "Unable to download Swagger document from S3 Bucket=%s Key=%s Version=%s", bucket, key, version
+                )
                 raise
 
     @staticmethod
@@ -259,11 +258,7 @@ class SwaggerReader(object):
         if isinstance(location, dict):
             # This is a S3 Location dictionary. Just grab the fields. It is very well possible that
             # this dictionary has none of the fields we expect. Return None if the fields don't exist.
-            bucket, key, version = (
-                location.get("Bucket"),
-                location.get("Key"),
-                location.get("Version")
-            )
+            bucket, key, version = (location.get("Bucket"), location.get("Key"), location.get("Version"))
 
         elif isinstance(location, string_types) and location.startswith("s3://"):
             # This is a S3 URI. Parse it using a standard URI parser to extract the components
@@ -272,11 +267,11 @@ class SwaggerReader(object):
             query = parse_qs(parsed.query)
 
             bucket = parsed.netloc
-            key = parsed.path.lstrip('/')  # Leading '/' messes with S3 APIs. Remove it.
+            key = parsed.path.lstrip("/")  # Leading '/' messes with S3 APIs. Remove it.
 
             # If there is a query string that has a single versionId field,
             # set the object version and return
-            if query and 'versionId' in query and len(query['versionId']) == 1:
-                version = query['versionId'][0]
+            if query and "versionId" in query and len(query["versionId"]) == 1:
+                version = query["versionId"][0]
 
         return bucket, key, version

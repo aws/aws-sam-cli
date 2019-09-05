@@ -22,10 +22,7 @@ def send_installed_metric():
     LOG.debug("Sending Installed Metric")
 
     telemetry = Telemetry()
-    telemetry.emit("installed", {
-        "osPlatform": platform.system(),
-        "telemetryEnabled": _telemetry_enabled(),
-    })
+    telemetry.emit("installed", {"osPlatform": platform.system(), "telemetryEnabled": _telemetry_enabled()})
 
 
 def track_command(func):
@@ -77,18 +74,20 @@ def track_command(func):
             exit_reason = type(ex).__name__
 
         ctx = Context.get_current_context()
-        telemetry.emit("commandRun", {
-            # Metric about command's general environment
-            "awsProfileProvided": bool(ctx.profile),
-            "debugFlagProvided": bool(ctx.debug),
-            "region": ctx.region or "",
-            "commandName": ctx.command_path,  # Full command path. ex: sam local start-api
-
-            # Metric about command's execution characteristics
-            "duration": duration_fn(),
-            "exitReason": exit_reason,
-            "exitCode": exit_code
-        })
+        telemetry.emit(
+            "commandRun",
+            {
+                # Metric about command's general environment
+                "awsProfileProvided": bool(ctx.profile),
+                "debugFlagProvided": bool(ctx.debug),
+                "region": ctx.region or "",
+                "commandName": ctx.command_path,  # Full command path. ex: sam local start-api
+                # Metric about command's execution characteristics
+                "duration": duration_fn(),
+                "exitReason": exit_reason,
+                "exitCode": exit_code,
+            },
+        )
 
         if exception:
             raise exception  # pylint: disable=raising-bad-type

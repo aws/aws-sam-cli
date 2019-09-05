@@ -89,7 +89,7 @@ class Events(object):
         string: the base64_utf encoded value
         """
 
-        return base64.b64encode(value.encode('utf8')).decode('utf-8')
+        return base64.b64encode(value.encode("utf8")).decode("utf-8")
 
     def generate_event(self, service_name, event_type, values_to_sub):
         """
@@ -111,12 +111,12 @@ class Events(object):
         """
 
         # set variables for easy calling
-        tags = self.event_mapping[service_name][event_type]['tags']
-        values_to_sub = self.encode(tags, 'encoding', values_to_sub)
+        tags = self.event_mapping[service_name][event_type]["tags"]
+        values_to_sub = self.encode(tags, "encoding", values_to_sub)
 
         # construct the path to the Events json file
         this_folder = os.path.dirname(os.path.abspath(__file__))
-        file_name = self.event_mapping[service_name][event_type]['filename'] + ".json"
+        file_name = self.event_mapping[service_name][event_type]["filename"] + ".json"
         file_path = os.path.join(this_folder, "events", service_name, file_name)
 
         # open the file
