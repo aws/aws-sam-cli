@@ -114,18 +114,15 @@ class SamApiProvider(CfnBaseApiProvider):
             max_age = self._get_cors_prop(cors_prop, "MaxAge")
 
             cors = Cors(
-                allow_origin=allow_origin,
-                allow_methods=allow_methods,
-                allow_headers=allow_headers,
-                max_age=max_age,
+                allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
             )
         elif cors_prop and isinstance(cors_prop, string_types):
             allow_origin = cors_prop
-            if allow_origin[0] != "\'" or allow_origin[-1] != "\'":
+            if allow_origin[0] != "'" or allow_origin[-1] != "'":
                 raise InvalidSamDocumentException(
-                    "AllowOrigin must be a quoted string "
-                    "(i.e. \"'*'\" is correct, but \"*\" is not).")
-            allow_origin = allow_origin.strip("\'")
+                    "AllowOrigin must be a quoted string " '(i.e. "\'*\'" is correct, but "*" is not).'
+                )
+            allow_origin = allow_origin.strip("'")
 
             cors = Cors(
                 allow_origin=allow_origin,
@@ -151,11 +148,11 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         prop = cors_dict.get(prop_name)
         if prop:
-            if (not isinstance(prop, string_types)) or prop[0] != "\'" or prop[-1] != "\'":
+            if (not isinstance(prop, string_types)) or prop[0] != "'" or prop[-1] != "'":
                 raise InvalidSamDocumentException(
-                    "{} must be a quoted string "
-                    "(i.e. \"'value'\" is correct, but \"value\" is not).".format(prop_name))
-            prop = prop.strip("\'")
+                    "{} must be a quoted string " '(i.e. "\'value\'" is correct, but "value" is not).'.format(prop_name)
+                )
+            prop = prop.strip("'")
         return prop
 
     @staticmethod
