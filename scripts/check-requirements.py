@@ -23,9 +23,9 @@ for package in process.stdout.readlines():
     if package.split("==")[0] not in exclude_packages:
         all_pkgs_list.append(package)
 all_pkgs_list = sorted(all_pkgs_list)
-print("installed package/versions" + os.linesep)
-print(",".join(all_pkgs_list))
-print(os.linesep)
+print ("installed package/versions" + os.linesep)
+print (",".join(all_pkgs_list))
+print (os.linesep)
 
 content = read(os.path.join("requirements", "isolated.txt"))
 
@@ -35,9 +35,9 @@ for line in content.split(os.linesep):
         locked_pkgs.append(line)
 
 locked_pkgs = sorted(locked_pkgs)
-print("locked package/versions" + os.linesep)
-print(",".join(locked_pkgs))
-print(os.linesep)
+print ("locked package/versions" + os.linesep)
+print (",".join(locked_pkgs))
+print (os.linesep)
 
 assert len(locked_pkgs) == len(all_pkgs_list), "Number of expected dependencies do not match the number installed"
 assert locked_pkgs == all_pkgs_list, "The list of expected dependencies do not match what is installed"

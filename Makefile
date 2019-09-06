@@ -32,10 +32,10 @@ lint:
 dev: lint test
 
 black:
-	black samcli/* tests/*
+	black samcli/* tests/* scripts/*
 
 black-check:
-	black --check samcli/* tests/*
+	black --check samcli/* tests/* scripts/*
 
 # Verifications to run before sending a pull request
 pr: init dev black-check

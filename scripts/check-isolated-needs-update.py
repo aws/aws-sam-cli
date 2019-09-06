@@ -23,6 +23,7 @@ def get_requirements_list(content):
 
     return pkgs_versions
 
+
 # Don't try and compare the isolated list with the Python2 version. SAM CLI installers
 # all use Python3.6+ and Python2.7 is going EOL
 if sys.version_info[0] < 3:
@@ -49,7 +50,9 @@ for installed_pkg_version in all_installed_pkgs_list:
         # full requirement==version is within the isolated list.
         installed_pkg = installed_pkg_version.split("==")[0]
         # There is a py library we use but due to how we are comparing requirements, we need to handle this as a special case. :(
-        if installed_pkg != 'py' and base_req.startswith(installed_pkg):
-            assert installed_pkg_version in isolated_req_list, "{} is in base.txt but not in isolated.txt".format(installed_pkg_version)
-            print("{} is in the isolated.txt file".format(installed_pkg_version))
+        if installed_pkg not in ("py", "boto3") and base_req.startswith(installed_pkg):
+            assert installed_pkg_version in isolated_req_list, "{} is in base.txt but not in isolated.txt".format(
+                installed_pkg_version
+            )
+            print ("{} is in the isolated.txt file".format(installed_pkg_version))
             break

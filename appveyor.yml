@@ -81,7 +81,7 @@ test_script:
 
     # Runs only in Linux
     - sh: "pytest -vv tests/integration"
-    - sh: "/tmp/black --check setup.py tests samcli"
+    - sh: "/tmp/black --check setup.py tests samcli scripts"
     - sh: "python scripts/check-isolated-needs-update.py"
 
     # Smoke tests run in parallel - it runs on both Linux & Windows
