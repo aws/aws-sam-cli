@@ -118,7 +118,7 @@ class SamApiProvider(CfnBaseApiProvider):
             )
         elif cors_prop and isinstance(cors_prop, string_types):
             allow_origin = cors_prop
-            if allow_origin[0] != "'" or allow_origin[-1] != "'":
+            if not (allow_origin.startswith("'") and allow_origin.endswith("'")):
                 raise InvalidSamDocumentException(
                     "AllowOrigin must be a quoted string " '(i.e. "\'*\'" is correct, but "*" is not).'
                 )
@@ -148,7 +148,7 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         prop = cors_dict.get(prop_name)
         if prop:
-            if (not isinstance(prop, string_types)) or prop[0] != "'" or prop[-1] != "'":
+            if (not isinstance(prop, string_types)) or (not (prop.startswith("'") and prop.endswith("'"))):
                 raise InvalidSamDocumentException(
                     "{} must be a quoted string " '(i.e. "\'value\'" is correct, but "value" is not).'.format(prop_name)
                 )
