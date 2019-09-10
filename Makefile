@@ -32,10 +32,15 @@ lint:
 dev: lint test
 
 black:
-	black samcli/* tests/*
+	black samcli/* tests/* scripts/*
 
 black-check:
-	black --check samcli/* tests/*
+	black --check samcli/* tests/* scripts/*
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
+
+update-isolated-req:
+	pipenv --three
+	pipenv run pip install -r requirements/base.txt
+	pipenv run pip freeze > requirements/isolated.txt
