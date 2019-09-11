@@ -816,7 +816,7 @@ class TestSamCors(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
                         "StageName": "Prod",
-                        "Cors": "*",
+                        "Cors": "'*'",
                         "DefinitionBody": {
                             "paths": {
                                 "/path2": {
@@ -873,10 +873,10 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "Cors": {
-                            "AllowMethods": "POST, GET",
-                            "AllowOrigin": "*",
-                            "AllowHeaders": "Upgrade-Insecure-Requests",
-                            "MaxAge": 600,
+                            "AllowMethods": "'POST, GET'",
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
                             "paths": {
@@ -918,7 +918,7 @@ class TestSamCors(TestCase):
             allow_origin="*",
             allow_methods=",".join(sorted(["POST", "GET", "OPTIONS"])),
             allow_headers="Upgrade-Insecure-Requests",
-            max_age=600,
+            max_age="600",
         )
         route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
@@ -936,10 +936,10 @@ class TestSamCors(TestCase):
                     "Properties": {
                         "StageName": "Prod",
                         "Cors": {
-                            "AllowMethods": "*",
-                            "AllowOrigin": "*",
-                            "AllowHeaders": "Upgrade-Insecure-Requests",
-                            "MaxAge": 600,
+                            "AllowMethods": "'*'",
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
                             "paths": {
@@ -981,7 +981,7 @@ class TestSamCors(TestCase):
             allow_origin="*",
             allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
             allow_headers="Upgrade-Insecure-Requests",
-            max_age=600,
+            max_age="600",
         )
         route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
@@ -991,7 +991,7 @@ class TestSamCors(TestCase):
         self.assertIn(route2, routes)
         self.assertEquals(provider.api.cors, cors)
 
-    def test_invalid_cors_dict_allow_methods(self):
+    def test_raises_error_when_cors_allowmethods_not_single_quoted(self):
         template = {
             "Resources": {
                 "TestApi": {
@@ -1000,9 +1000,104 @@ class TestSamCors(TestCase):
                         "StageName": "Prod",
                         "Cors": {
                             "AllowMethods": "GET, INVALID_METHOD",
-                            "AllowOrigin": "*",
-                            "AllowHeaders": "Upgrade-Insecure-Requests",
-                            "MaxAge": 600,
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
+                        },
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                                "/path": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    },
+                }
+            }
+        }
+        with self.assertRaises(
+            InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors AllowMethods not single quoted"
+        ):
+            ApiProvider(template)
+
+    def test_raises_error_when_cors_value_not_single_quoted(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": "example.com",
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                                "/path": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    },
+                }
+            }
+        }
+        with self.assertRaises(
+            InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors value not single quoted"
+        ):
+            ApiProvider(template)
+
+    def test_invalid_cors_dict_allow_methods(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": {
+                            "AllowMethods": "'GET, INVALID_METHOD'",
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
                             "paths": {
@@ -1048,7 +1143,7 @@ class TestSamCors(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
                         "StageName": "Prod",
-                        "Cors": {"AllowOrigin": "www.domain.com"},
+                        "Cors": {"AllowOrigin": "'www.domain.com'"},
                         "DefinitionBody": {
                             "paths": {
                                 "/path2": {
@@ -1085,10 +1180,10 @@ class TestSamCors(TestCase):
             "Globals": {
                 "Api": {
                     "Cors": {
-                        "AllowMethods": "GET",
-                        "AllowOrigin": "*",
-                        "AllowHeaders": "Upgrade-Insecure-Requests",
-                        "MaxAge": 600,
+                        "AllowMethods": "'GET'",
+                        "AllowOrigin": "'*'",
+                        "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                        "MaxAge": "'600'",
                     }
                 }
             },
@@ -1137,7 +1232,7 @@ class TestSamCors(TestCase):
             allow_origin="*",
             allow_headers="Upgrade-Insecure-Requests",
             allow_methods=",".join(["GET", "OPTIONS"]),
-            max_age=600,
+            max_age="600",
         )
         route1 = Route(path="/path2", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")

@@ -103,22 +103,57 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = cors_prop.get("AllowMethods", ",".join(sorted(Route.ANY_HTTP_METHODS)))
-            allow_methods = self.normalize_cors_allow_methods(allow_methods)
+            allow_methods = self._get_cors_prop(cors_prop, "AllowMethods")
+            if allow_methods:
+                allow_methods = self.normalize_cors_allow_methods(allow_methods)
+            else:
+                allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
+
+            allow_origin = self._get_cors_prop(cors_prop, "AllowOrigin")
+            allow_headers = self._get_cors_prop(cors_prop, "AllowHeaders")
+            max_age = self._get_cors_prop(cors_prop, "MaxAge")
+
             cors = Cors(
-                allow_origin=cors_prop.get("AllowOrigin"),
-                allow_methods=allow_methods,
-                allow_headers=cors_prop.get("AllowHeaders"),
-                max_age=cors_prop.get("MaxAge"),
+                allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
             )
         elif cors_prop and isinstance(cors_prop, string_types):
+            allow_origin = cors_prop
+            if not (allow_origin.startswith("'") and allow_origin.endswith("'")):
+                raise InvalidSamDocumentException(
+                    "Cors Properties must be a quoted string " '(i.e. "\'*\'" is correct, but "*" is not).'
+                )
+            allow_origin = allow_origin.strip("'")
+
             cors = Cors(
-                allow_origin=cors_prop,
+                allow_origin=allow_origin,
                 allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
                 max_age=None,
             )
         return cors
+
+    @staticmethod
+    def _get_cors_prop(cors_dict, prop_name):
+        """
+        Extract cors properties from dictionary and remove extra quotes.
+
+        Parameters
+        ----------
+        cors_dict : dict
+            Resource properties for Cors
+
+        Return
+        ------
+        A string with the extra quotes removed
+        """
+        prop = cors_dict.get(prop_name)
+        if prop:
+            if (not isinstance(prop, string_types)) or (not (prop.startswith("'") and prop.endswith("'"))):
+                raise InvalidSamDocumentException(
+                    "{} must be a quoted string " '(i.e. "\'value\'" is correct, but "value" is not).'.format(prop_name)
+                )
+            prop = prop.strip("'")
+        return prop
 
     @staticmethod
     def normalize_cors_allow_methods(allow_methods):
