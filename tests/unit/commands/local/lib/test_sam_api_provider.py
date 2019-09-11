@@ -1040,7 +1040,7 @@ class TestSamCors(TestCase):
             InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors AllowMethods not single quoted"
         ):
             ApiProvider(template)
-    
+
     def test_raises_error_when_cors_value_not_single_quoted(self):
         template = {
             "Resources": {
