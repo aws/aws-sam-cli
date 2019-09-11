@@ -991,6 +991,101 @@ class TestSamCors(TestCase):
         self.assertIn(route2, routes)
         self.assertEquals(provider.api.cors, cors)
 
+    def test_raises_error_when_cors_allowmethods_not_single_quoted(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": {
+                            "AllowMethods": "GET, INVALID_METHOD",
+                            "AllowOrigin": "'*'",
+                            "AllowHeaders": "'Upgrade-Insecure-Requests'",
+                            "MaxAge": "'600'",
+                        },
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                                "/path": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    },
+                }
+            }
+        }
+        with self.assertRaises(
+            InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors AllowMethods not single quoted"
+        ):
+            ApiProvider(template)
+    
+    def test_raises_error_when_cors_value_not_single_quoted(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": "example.com",
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                                "/path": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    },
+                }
+            }
+        }
+        with self.assertRaises(
+            InvalidSamDocumentException, msg="ApiProvider should fail for Invalid Cors value not single quoted"
+        ):
+            ApiProvider(template)
+
     def test_invalid_cors_dict_allow_methods(self):
         template = {
             "Resources": {

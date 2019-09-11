@@ -120,7 +120,7 @@ class SamApiProvider(CfnBaseApiProvider):
             allow_origin = cors_prop
             if not (allow_origin.startswith("'") and allow_origin.endswith("'")):
                 raise InvalidSamDocumentException(
-                    "AllowOrigin must be a quoted string " '(i.e. "\'*\'" is correct, but "*" is not).'
+                    "Cors Properties must be a quoted string " '(i.e. "\'*\'" is correct, but "*" is not).'
                 )
             allow_origin = allow_origin.strip("'")
 
