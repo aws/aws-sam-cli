@@ -35,17 +35,17 @@ class TestContainer_init(TestCase):
             self.mock_docker_client,
         )
 
-        self.assertEquals(self.image, container._image)
-        self.assertEquals(self.cmd, container._cmd)
-        self.assertEquals(self.working_dir, container._working_dir)
-        self.assertEquals(self.host_dir, container._host_dir)
-        self.assertEquals(self.exposed_ports, container._exposed_ports)
-        self.assertEquals(self.entrypoint, container._entrypoint)
-        self.assertEquals(self.env_vars, container._env_vars)
-        self.assertEquals(self.memory_mb, container._memory_limit_mb)
-        self.assertEquals(None, container._network_id)
-        self.assertEquals(None, container.id)
-        self.assertEquals(self.mock_docker_client, container.docker_client)
+        self.assertEqual(self.image, container._image)
+        self.assertEqual(self.cmd, container._cmd)
+        self.assertEqual(self.working_dir, container._working_dir)
+        self.assertEqual(self.host_dir, container._host_dir)
+        self.assertEqual(self.exposed_ports, container._exposed_ports)
+        self.assertEqual(self.entrypoint, container._entrypoint)
+        self.assertEqual(self.env_vars, container._env_vars)
+        self.assertEqual(self.memory_mb, container._memory_limit_mb)
+        self.assertEqual(None, container._network_id)
+        self.assertEqual(None, container.id)
+        self.assertEqual(self.mock_docker_client, container.docker_client)
 
 
 class TestContainer_create(TestCase):
@@ -83,8 +83,8 @@ class TestContainer_create(TestCase):
         )
 
         container_id = container.create()
-        self.assertEquals(container_id, generated_id)
-        self.assertEquals(container.id, generated_id)
+        self.assertEqual(container_id, generated_id)
+        self.assertEqual(container.id, generated_id)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -127,8 +127,8 @@ class TestContainer_create(TestCase):
         )
 
         container_id = container.create()
-        self.assertEquals(container_id, generated_id)
-        self.assertEquals(container.id, generated_id)
+        self.assertEqual(container_id, generated_id)
+        self.assertEqual(container.id, generated_id)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -184,8 +184,8 @@ class TestContainer_create(TestCase):
         )
 
         container_id = container.create()
-        self.assertEquals(container_id, generated_id)
-        self.assertEquals(container.id, generated_id)
+        self.assertEqual(container_id, generated_id)
+        self.assertEqual(container.id, generated_id)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -225,7 +225,7 @@ class TestContainer_create(TestCase):
         container.network_id = network_id
 
         container_id = container.create()
-        self.assertEquals(container_id, generated_id)
+        self.assertEqual(container_id, generated_id)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -262,7 +262,7 @@ class TestContainer_create(TestCase):
         container.network_id = network_id
 
         container_id = container.create()
-        self.assertEquals(container_id, generated_id)
+        self.assertEqual(container_id, generated_id)
 
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
@@ -519,7 +519,7 @@ class TestContainer_image(TestCase):
         image = "myimage"
         container = Container(image, "cmd", "dir", "dir")
 
-        self.assertEquals(image, container.image)
+        self.assertEqual(image, container.image)
 
 
 class TestContainer_copy(TestCase):

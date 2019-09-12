@@ -209,7 +209,7 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
 
         result = self.runtime._configure_interrupt(self.name, self.timeout, self.container, is_debugging)
 
-        self.assertEquals(result, timer_obj)
+        self.assertEqual(result, timer_obj)
 
         ThreadingMock.Timer.assert_called_with(self.timeout, ANY, ())
         timer_obj.start.assert_called_with()
@@ -285,7 +285,7 @@ class TestLambdaRuntime_get_code_dir(TestCase):
         os_mock.path.isfile.return_value = True
 
         with self.runtime._get_code_dir(code_path) as result:
-            self.assertEquals(result, decompressed_dir)
+            self.assertEqual(result, decompressed_dir)
 
         unzip_file_mock.assert_called_with(code_path)
         os_mock.path.isfile.assert_called_with(code_path)
@@ -306,7 +306,7 @@ class TestLambdaRuntime_get_code_dir(TestCase):
 
         with self.runtime._get_code_dir(code_path) as result:
             # code path must be returned. No decompression
-            self.assertEquals(result, code_path)
+            self.assertEqual(result, code_path)
 
         unzip_file_mock.assert_not_called()  # Unzip must not be called
         os_mock.path.isfile.assert_called_with(code_path)
@@ -329,7 +329,7 @@ class TestUnzipFile(TestCase):
         os_mock.name = "not-posix"
 
         output = _unzip_file(inputpath)
-        self.assertEquals(output, realpath)
+        self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
         unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
@@ -349,7 +349,7 @@ class TestUnzipFile(TestCase):
         os_mock.name = "posix"
 
         output = _unzip_file(inputpath)
-        self.assertEquals(output, realpath)
+        self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
         unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory

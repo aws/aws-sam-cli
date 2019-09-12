@@ -8,4 +8,4 @@ class TestLogGroupProvider_for_lambda_function(TestCase):
         expected = "/aws/lambda/myfunctionname"
         result = LogGroupProvider.for_lambda_function("myfunctionname")
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)

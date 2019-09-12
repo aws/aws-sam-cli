@@ -19,7 +19,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [])
+        self.assertEqual(provider.routes, [])
 
     @parameterized.expand([("GET"), ("get")])
     def test_provider_has_correct_api(self, method):
@@ -39,8 +39,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(len(provider.routes), 1)
-        self.assertEquals(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
+        self.assertEqual(len(provider.routes), 1)
+        self.assertEqual(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
 
     def test_provider_creates_api_for_all_events(self):
         template = {
@@ -65,7 +65,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         api = Route(path="/path", methods=["GET", "POST"], function_name="SamFunc1")
 
         self.assertIn(api, provider.routes)
-        self.assertEquals(len(provider.routes), 1)
+        self.assertEqual(len(provider.routes), 1)
 
     def test_provider_has_correct_template(self):
         template = {
@@ -116,7 +116,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [])
+        self.assertEqual(provider.routes, [])
 
     def test_provider_with_no_serverless_function(self):
         template = {
@@ -130,7 +130,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [])
+        self.assertEqual(provider.routes, [])
 
     def test_provider_get_all(self):
         template = {
@@ -174,7 +174,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         result = [f for f in provider.get_all()]
         routes = result[0].routes
 
-        self.assertEquals(routes, [])
+        self.assertEqual(routes, [])
 
     @parameterized.expand([("ANY"), ("any")])
     def test_provider_with_any_method(self, method):
@@ -198,7 +198,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
             path="/path", methods=["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"], function_name="SamFunc1"
         )
 
-        self.assertEquals(len(provider.routes), 1)
+        self.assertEqual(len(provider.routes), 1)
         self.assertIn(api1, provider.routes)
 
     def test_provider_must_support_binary_media_types(self):
@@ -221,11 +221,11 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(len(provider.routes), 1)
-        self.assertEquals(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
+        self.assertEqual(len(provider.routes), 1)
+        self.assertEqual(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
 
         assertCountEqual(self, provider.api.binary_media_types, ["image/gif", "image/png"])
-        self.assertEquals(provider.api.stage_name, "Prod")
+        self.assertEqual(provider.api.stage_name, "Prod")
 
     def test_provider_must_support_binary_media_types_with_any_method(self):
         template = {
@@ -274,7 +274,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [])
+        self.assertEqual(provider.routes, [])
 
     def test_with_inline_swagger_routes(self):
         template = {
@@ -687,8 +687,8 @@ class TestSamStageValues(TestCase):
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
-        self.assertEquals(provider.api.stage_name, "dev")
-        self.assertEquals(provider.api.stage_variables, None)
+        self.assertEqual(provider.api.stage_name, "dev")
+        self.assertEqual(provider.api.stage_variables, None)
 
     def test_provider_stage_variables(self):
         template = {
@@ -723,8 +723,8 @@ class TestSamStageValues(TestCase):
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
-        self.assertEquals(provider.api.stage_name, "dev")
-        self.assertEquals(provider.api.stage_variables, {"vis": "data", "random": "test", "foo": "bar"})
+        self.assertEqual(provider.api.stage_name, "dev")
+        self.assertEqual(provider.api.stage_variables, {"vis": "data", "random": "test", "foo": "bar"})
 
     def test_multi_stage_get_all(self):
         template = OrderedDict({"Resources": {}})
@@ -799,13 +799,13 @@ class TestSamStageValues(TestCase):
         route1 = Route(path="/path2", methods=["GET"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
         route3 = Route(path="/anotherpath", methods=["POST"], function_name="NoApiEventFunction")
-        self.assertEquals(len(routes), 3)
+        self.assertEqual(len(routes), 3)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
         self.assertIn(route3, routes)
 
-        self.assertEquals(provider.api.stage_name, "Production")
-        self.assertEquals(provider.api.stage_variables, {"vis": "prod data", "random": "test", "foo": "bar"})
+        self.assertEqual(provider.api.stage_name, "Production")
+        self.assertEqual(provider.api.stage_variables, {"vis": "prod data", "random": "test", "foo": "bar"})
 
 
 class TestSamCors(TestCase):
@@ -860,10 +860,10 @@ class TestSamCors(TestCase):
         route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
 
-        self.assertEquals(len(routes), 2)
+        self.assertEqual(len(routes), 2)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
-        self.assertEquals(provider.api.cors, cors)
+        self.assertEqual(provider.api.cors, cors)
 
     def test_provider_parse_cors_dict(self):
         template = {
@@ -923,10 +923,10 @@ class TestSamCors(TestCase):
         route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
 
-        self.assertEquals(len(routes), 2)
+        self.assertEqual(len(routes), 2)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
-        self.assertEquals(provider.api.cors, cors)
+        self.assertEqual(provider.api.cors, cors)
 
     def test_provider_parse_cors_dict_star_allow(self):
         template = {
@@ -986,10 +986,10 @@ class TestSamCors(TestCase):
         route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
 
-        self.assertEquals(len(routes), 2)
+        self.assertEqual(len(routes), 2)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
-        self.assertEquals(provider.api.cors, cors)
+        self.assertEqual(provider.api.cors, cors)
 
     def test_raises_error_when_cors_allowmethods_not_single_quoted(self):
         template = {
@@ -1171,9 +1171,9 @@ class TestSamCors(TestCase):
         routes = provider.routes
         cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)))
         route1 = Route(path="/path2", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
-        self.assertEquals(len(routes), 1)
+        self.assertEqual(len(routes), 1)
         self.assertIn(route1, routes)
-        self.assertEquals(provider.api.cors, cors)
+        self.assertEqual(provider.api.cors, cors)
 
     def test_global_cors(self):
         template = {
@@ -1237,10 +1237,10 @@ class TestSamCors(TestCase):
         route1 = Route(path="/path2", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
         route2 = Route(path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
 
-        self.assertEquals(len(routes), 2)
+        self.assertEqual(len(routes), 2)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
-        self.assertEquals(provider.api.cors, cors)
+        self.assertEqual(provider.api.cors, cors)
 
 
 def make_swagger(routes, binary_media_types=None):

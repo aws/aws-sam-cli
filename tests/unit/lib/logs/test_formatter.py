@@ -27,7 +27,7 @@ class TestLogsFormatter_pretty_print_event(TestCase):
         expected = " ".join([colored_stream_name, colored_timestamp, self.message])
         result = LogsFormatter._pretty_print_event(event, self.colored_mock)
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
         self.colored_mock.yellow.has_calls()
         self.colored_mock.cyan.assert_called_with(self.stream_name)
 
@@ -61,7 +61,7 @@ class TestLogsFormatter_do_format(TestCase):
         formatter = LogsFormatter(self.colored_mock, self.formatter_chain)
 
         result_iterable = formatter.do_format(events_iterable)
-        self.assertEquals(list(result_iterable), expected_result)
+        self.assertEqual(list(result_iterable), expected_result)
 
         self.chain_method1.assert_has_calls(expected_call_order)
         self.chain_method2.assert_has_calls(expected_call_order)
@@ -83,7 +83,7 @@ class TestLogsFormatter_do_format(TestCase):
         formatter = LogsFormatter(self.colored_mock)
 
         result_iterable = formatter.do_format(events_iterable)
-        self.assertEquals(list(result_iterable), expected_result)
+        self.assertEqual(list(result_iterable), expected_result)
 
         # Pretty Print is always called, even if there are no other formatters in the chain.
         pretty_print_mock.assert_has_calls(expected_call_order)
@@ -107,7 +107,7 @@ class TestLambdaLogMsgFormatters_colorize_crashes(TestCase):
         event = LogEvent("group_name", {"message": input_msg})
 
         result = LambdaLogMsgFormatters.colorize_errors(event, colored)
-        self.assertEquals(result.message, color_result)
+        self.assertEqual(result.message, color_result)
         colored.red.assert_called_with(input_msg)
 
     def test_must_ignore_other_messages(self):
@@ -115,7 +115,7 @@ class TestLambdaLogMsgFormatters_colorize_crashes(TestCase):
         event = LogEvent("group_name", {"message": "some msg"})
 
         result = LambdaLogMsgFormatters.colorize_errors(event, colored)
-        self.assertEquals(result.message, "some msg")
+        self.assertEqual(result.message, "some msg")
         colored.red.assert_not_called()
 
 
@@ -131,7 +131,7 @@ class TestKeywordHighlight_highlight_keyword(TestCase):
         event = LogEvent("group_name", {"message": input_msg})
 
         result = KeywordHighlighter(keyword).highlight_keywords(event, colored)
-        self.assertEquals(result.message, expected_msg)
+        self.assertEqual(result.message, expected_msg)
         colored.underline.assert_called_with(keyword)
 
     def test_must_ignore_if_keyword_is_absent(self):
@@ -140,7 +140,7 @@ class TestKeywordHighlight_highlight_keyword(TestCase):
         event = LogEvent("group_name", {"message": input_msg})
 
         result = KeywordHighlighter().highlight_keywords(event, colored)
-        self.assertEquals(result.message, input_msg)
+        self.assertEqual(result.message, input_msg)
         colored.underline.assert_not_called()
 
 
@@ -153,7 +153,7 @@ class TestJSONMsgFormatter_format_json(TestCase):
         event = LogEvent("group_name", {"message": input_msg})
 
         result = JSONMsgFormatter.format_json(event, None)
-        self.assertEquals(result.message, expected_msg)
+        self.assertEqual(result.message, expected_msg)
 
     @parameterized.expand(["this is not json", '{"not a valid json"}'])
     def test_ignore_non_json(self, input_msg):
@@ -161,4 +161,4 @@ class TestJSONMsgFormatter_format_json(TestCase):
         event = LogEvent("group_name", {"message": input_msg})
 
         result = JSONMsgFormatter.format_json(event, None)
-        self.assertEquals(result.message, input_msg)
+        self.assertEqual(result.message, input_msg)

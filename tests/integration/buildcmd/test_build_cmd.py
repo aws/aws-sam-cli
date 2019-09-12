@@ -91,7 +91,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
@@ -107,7 +107,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         process.wait()
 
         process_stdout = b"".join(process.stdout.readlines()).strip().decode("utf-8")
-        self.assertEquals(1, process.returncode)
+        self.assertEqual(1, process.returncode)
 
         self.assertIn("Build Failed", process_stdout)
 
@@ -172,11 +172,11 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
         all_modules = set(os.listdir(str(resource_artifact_dir.joinpath("node_modules"))))
         actual_files = all_modules.intersection(expected_modules)
-        self.assertEquals(actual_files, expected_modules)
+        self.assertEqual(actual_files, expected_modules)
 
 
 class TestBuildCommand_RubyFunctions(BuildIntegBase):
@@ -230,7 +230,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
         ruby_version = None
         ruby_bundled_path = None
@@ -314,10 +314,10 @@ class TestBuildCommand_Java(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
         lib_dir_contents = set(os.listdir(str(resource_artifact_dir.joinpath("lib"))))
-        self.assertEquals(lib_dir_contents, expected_modules)
+        self.assertEqual(lib_dir_contents, expected_modules)
 
 
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
@@ -396,7 +396,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         process.wait()
 
         # Must error out, because container builds are not supported
-        self.assertEquals(process.returncode, 1)
+        self.assertEqual(process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
@@ -414,7 +414,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
 
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
@@ -437,7 +437,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         process = subprocess.Popen(cmdlist, cwd=self.working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
 
-        self.assertEquals(process.returncode, 1)
+        self.assertEqual(process.returncode, 1)
         self.assertIn("FunctionNotInTemplate not found", str(stderr.decode("utf8")))
 
     @parameterized.expand(
@@ -488,7 +488,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)

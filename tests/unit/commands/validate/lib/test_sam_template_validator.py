@@ -64,8 +64,8 @@ class TestSamTemplateValidator(TestCase):
 
         validator = SamTemplateValidator(template, managed_policy_mock)
 
-        self.assertEquals(validator.managed_policy_loader, managed_policy_mock)
-        self.assertEquals(validator.sam_template, template)
+        self.assertEqual(validator.managed_policy_loader, managed_policy_mock)
+        self.assertEqual(validator.sam_template, template)
 
         # check to see if SamParser was created
         self.assertIsNotNone(validator.sam_parser)
@@ -83,13 +83,13 @@ class TestSamTemplateValidator(TestCase):
         property_value = {"CodeUri": "somevalue"}
         SamTemplateValidator._update_to_s3_uri("CodeUri", property_value)
 
-        self.assertEquals(property_value.get("CodeUri"), "s3://bucket/value")
+        self.assertEqual(property_value.get("CodeUri"), "s3://bucket/value")
 
     def test_update_to_s3_url_with_dict(self):
         property_value = {"CodeUri": {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212}}
         SamTemplateValidator._update_to_s3_uri("CodeUri", property_value)
 
-        self.assertEquals(
+        self.assertEqual(
             property_value.get("CodeUri"), {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212}
         )
 
@@ -97,7 +97,7 @@ class TestSamTemplateValidator(TestCase):
         property_value = {"CodeUri": "s3://bucket/key/version"}
         SamTemplateValidator._update_to_s3_uri("CodeUri", property_value)
 
-        self.assertEquals(property_value.get("CodeUri"), "s3://bucket/key/version")
+        self.assertEqual(property_value.get("CodeUri"), "s3://bucket/key/version")
 
     def test_replace_local_codeuri(self):
         template = {
@@ -124,13 +124,13 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         template_resources = validator.sam_template.get("Resources")
-        self.assertEquals(
+        self.assertEqual(
             template_resources.get("ServerlessApi").get("Properties").get("DefinitionUri"), "s3://bucket/value"
         )
-        self.assertEquals(
+        self.assertEqual(
             template_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
         )
-        self.assertEquals(
+        self.assertEqual(
             template_resources.get("ServerlessLayerVersion").get("Properties").get("ContentUri"), "s3://bucket/value"
         )
 
@@ -155,7 +155,7 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         tempalte_resources = validator.sam_template.get("Resources")
-        self.assertEquals(
+        self.assertEqual(
             tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
         )
 
@@ -196,4 +196,4 @@ class TestSamTemplateValidator(TestCase):
         validator._replace_local_codeuri()
 
         # check template
-        self.assertEquals(validator.sam_template.get("Resources"), {})
+        self.assertEqual(validator.sam_template.get("Resources"), {})

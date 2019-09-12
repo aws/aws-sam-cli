@@ -12,41 +12,41 @@ class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
         self.symbol_table = IntrinsicsSymbolTable(template={})
 
     def test_handle_account_id_default(self):
-        self.assertEquals(self.symbol_table.handle_pseudo_account_id(), "123456789012")
+        self.assertEqual(self.symbol_table.handle_pseudo_account_id(), "123456789012")
 
     def test_pseudo_partition(self):
-        self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws")
+        self.assertEqual(self.symbol_table.handle_pseudo_partition(), "aws")
 
     @patch("samcli.lib.intrinsic_resolver.intrinsics_symbol_table.os")
     def test_pseudo_partition_gov(self, mock_os):
         mock_os.getenv.return_value = "us-west-gov-1"
-        self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws-us-gov")
+        self.assertEqual(self.symbol_table.handle_pseudo_partition(), "aws-us-gov")
 
     @patch("samcli.lib.intrinsic_resolver.intrinsics_symbol_table.os")
     def test_pseudo_partition_china(self, mock_os):
         mock_os.getenv.return_value = "cn-west-1"
-        self.assertEquals(self.symbol_table.handle_pseudo_partition(), "aws-cn")
+        self.assertEqual(self.symbol_table.handle_pseudo_partition(), "aws-cn")
 
     @patch("samcli.lib.intrinsic_resolver.intrinsics_symbol_table.os")
     def test_pseudo_region_environ(self, mock_os):
         mock_os.getenv.return_value = "mytemp"
-        self.assertEquals(self.symbol_table.handle_pseudo_region(), "mytemp")
+        self.assertEqual(self.symbol_table.handle_pseudo_region(), "mytemp")
 
     @patch("samcli.lib.intrinsic_resolver.intrinsics_symbol_table.os")
     def test_pseudo_default_region(self, mock_os):
         mock_os.getenv.return_value = None
-        self.assertEquals(self.symbol_table.handle_pseudo_region(), "us-east-1")
+        self.assertEqual(self.symbol_table.handle_pseudo_region(), "us-east-1")
 
     def test_pseudo_no_value(self):
         self.assertIsNone(self.symbol_table.handle_pseudo_no_value())
 
     def test_pseudo_url_prefix_default(self):
-        self.assertEquals(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com")
+        self.assertEqual(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com")
 
     @patch("samcli.lib.intrinsic_resolver.intrinsics_symbol_table.os")
     def test_pseudo_url_prefix_china(self, mock_os):
         mock_os.getenv.return_value = "cn-west-1"
-        self.assertEquals(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com.cn")
+        self.assertEqual(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com.cn")
 
     def test_get_availability_zone(self):
         res = IntrinsicsSymbolTable.get_availability_zone("us-east-1")
@@ -72,7 +72,7 @@ class TestSymbolResolution(TestCase):
         template = {"Resources": {}, "Parameters": {"Test": {"Default": "data"}}}
         symbol_resolver = IntrinsicsSymbolTable(template=template)
         result = symbol_resolver.resolve_symbols("Test", IntrinsicResolver.REF)
-        self.assertEquals(result, "data")
+        self.assertEqual(result, "data")
 
     def test_default_type_resolver_function(self):
         template = {"Resources": {"MyApi": {"Type": "AWS::ApiGateway::RestApi"}}}
@@ -81,7 +81,7 @@ class TestSymbolResolution(TestCase):
         symbol_resolver = IntrinsicsSymbolTable(template=template, default_type_resolver=default_type_resolver)
         result = symbol_resolver.resolve_symbols("MyApi", "RootResourceId")
 
-        self.assertEquals(result, "MyApi")
+        self.assertEqual(result, "MyApi")
 
     def test_custom_attribute_resolver(self):
         template = {"Resources": {"MyApi": {"Type": "AWS::ApiGateway::RestApi"}}}
@@ -90,7 +90,7 @@ class TestSymbolResolution(TestCase):
         symbol_resolver = IntrinsicsSymbolTable(template=template, common_attribute_resolver=common_attribute_resolver)
         result = symbol_resolver.resolve_symbols("MyApi", "Arn")
 
-        self.assertEquals(result, "test")
+        self.assertEqual(result, "test")
 
     def test_unknown_symbol_translation(self):
         symbol_resolver = IntrinsicsSymbolTable(template={})
@@ -109,11 +109,11 @@ class TestSymbolResolution(TestCase):
 
     def test_arn_resolver_lambda(self):
         res = IntrinsicsSymbolTable().arn_resolver("test")
-        self.assertEquals(res, "arn:aws:lambda:us-east-1:123456789012:function:test")
+        self.assertEqual(res, "arn:aws:lambda:us-east-1:123456789012:function:test")
 
     def test_arn_resolver(self):
         res = IntrinsicsSymbolTable().arn_resolver("test", service_name="sns")
-        self.assertEquals(res, "arn:aws:sns:us-east-1:123456789012:test")
+        self.assertEqual(res, "arn:aws:sns:us-east-1:123456789012:test")
 
     def test_resolver_ignore_errors(self):
         resolver = IntrinsicsSymbolTable()

@@ -62,7 +62,7 @@ class TestInit(TestCase):
                 name=self.name,
                 no_input=self.no_input,
             )
-        self.assertEquals(
+        self.assertEqual(
             "An error occurred while generating this "
             "testing project: Lambda Runtime python3.6 "
             "does not support dependency manager: gradle",
@@ -90,7 +90,7 @@ class TestInit(TestCase):
                 no_input=self.no_input,
             )
 
-        self.assertEquals(expected_msg, str(ctx.exception))
+        self.assertEqual(expected_msg, str(ctx.exception))
 
     @patch("samcli.local.init.cookiecutter")
     def test_must_not_set_name_when_location_is_given(self, cookiecutter_patch):

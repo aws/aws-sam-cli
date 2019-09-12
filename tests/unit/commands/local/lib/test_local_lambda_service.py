@@ -15,10 +15,10 @@ class TestLocalLambdaService(TestCase):
 
         service = LocalLambdaService(lambda_invoke_context=lambda_invoke_context_mock, port=3000, host="localhost")
 
-        self.assertEquals(service.port, 3000)
-        self.assertEquals(service.host, "localhost")
-        self.assertEquals(service.lambda_runner, lambda_runner_mock)
-        self.assertEquals(service.stderr_stream, stderr_mock)
+        self.assertEqual(service.port, 3000)
+        self.assertEqual(service.host, "localhost")
+        self.assertEqual(service.lambda_runner, lambda_runner_mock)
+        self.assertEqual(service.stderr_stream, stderr_mock)
 
     @patch("samcli.commands.local.lib.local_lambda_service.LocalLambdaInvokeService")
     def test_start(self, local_lambda_invoke_service_mock):

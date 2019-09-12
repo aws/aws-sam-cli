@@ -67,7 +67,7 @@ class TestLambdaRuntime(TestCase):
         self.runtime.invoke(config, input_event, stdout=stdout_stream_writer)
 
         actual_output = stdout_stream.getvalue()
-        self.assertEquals(actual_output.strip(), expected_output)
+        self.assertEqual(actual_output.strip(), expected_output)
 
     def test_function_timeout(self):
         """
@@ -103,7 +103,7 @@ class TestLambdaRuntime(TestCase):
 
         # There should be no output from the function because timer was interrupted
         actual_output = stdout_stream.getvalue()
-        self.assertEquals(actual_output.strip(), b"")
+        self.assertEqual(actual_output.strip(), b"")
 
     @parameterized.expand([("zip"), ("jar"), ("ZIP"), ("JAR")])
     def test_echo_function_with_zip_file(self, file_name_extension):
@@ -129,7 +129,7 @@ class TestLambdaRuntime(TestCase):
             self.runtime.invoke(config, input_event, stdout=stdout_stream_writer)
 
             actual_output = stdout_stream.getvalue()
-            self.assertEquals(actual_output.strip(), expected_output)
+            self.assertEqual(actual_output.strip(), expected_output)
 
     def test_check_environment_variables(self):
         variables = {"var1": "value1", "var2": "value2"}
@@ -180,7 +180,7 @@ class TestLambdaRuntime(TestCase):
         for key, value in expected_output.items():
             # Do the key check first to print a nice error error message when it fails
             self.assertTrue(key in actual_output, "'{}' should be in environment variable output".format(key))
-            self.assertEquals(
+            self.assertEqual(
                 actual_output[key],
                 expected_output[key],
                 "Value of environment variable '{}' differs fromm expectation".format(key),
@@ -232,7 +232,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
             self.runtime.invoke(config, sleep_duration, stdout=stdout_stream_writer)
             actual_output = stdout_stream.getvalue().strip()  # Must output the sleep duration
             if check_stdout:
-                self.assertEquals(actual_output.decode("utf-8"), str(sleep_duration))
+                self.assertEqual(actual_output.decode("utf-8"), str(sleep_duration))
         except Exception as ex:
             if exceptions is not None:
                 exceptions.append({"name": name, "error": ex})

@@ -180,7 +180,7 @@ class TestCli(TestCase):
             )
 
         msg = str(ex_ctx.exception)
-        self.assertEquals(msg, "no_event and event cannot be used together. Please provide only one.")
+        self.assertEqual(msg, "no_event and event cannot be used together. Please provide only one.")
 
     @parameterized.expand(
         [
@@ -228,7 +228,7 @@ class TestCli(TestCase):
             )
 
         msg = str(ex_ctx.exception)
-        self.assertEquals(msg, expected_exectpion_message)
+        self.assertEqual(msg, expected_exectpion_message)
 
     @parameterized.expand(
         [
@@ -276,7 +276,7 @@ class TestCli(TestCase):
             )
 
         msg = str(ex_ctx.exception)
-        self.assertEquals(msg, execption_message)
+        self.assertEqual(msg, execption_message)
 
     @patch("samcli.commands.local.invoke.cli.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -312,7 +312,7 @@ class TestCli(TestCase):
             )
 
         msg = str(ex_ctx.exception)
-        self.assertEquals(msg, "bad env vars")
+        self.assertEqual(msg, "bad env vars")
 
 
 class TestGetEvent(TestCase):
@@ -330,5 +330,5 @@ class TestGetEvent(TestCase):
 
         result = invoke_cli_get_event(filename)
 
-        self.assertEquals(result, event_data)
+        self.assertEqual(result, event_data)
         fp_mock.read.assert_called_with()

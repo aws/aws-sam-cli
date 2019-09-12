@@ -109,13 +109,13 @@ class TestLogsCommandContext(TestCase):
         self.context._parse_time = Mock()
         self.context._parse_time.return_value = "foo"
 
-        self.assertEquals(self.context.start_time, "foo")
+        self.assertEqual(self.context.start_time, "foo")
 
     def test_end_time_property(self):
         self.context._parse_time = Mock()
         self.context._parse_time.return_value = "foo"
 
-        self.assertEquals(self.context.end_time, "foo")
+        self.assertEqual(self.context.end_time, "foo")
 
     @patch("samcli.commands.logs.logs_context.parse_date")
     @patch("samcli.commands.logs.logs_context.to_utc")
@@ -127,7 +127,7 @@ class TestLogsCommandContext(TestCase):
         to_utc_mock.return_value = expected
 
         actual = LogsCommandContext._parse_time(input, "some prop")
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
         parse_date_mock.assert_called_with(input)
         to_utc_mock.assert_called_with(parsed_result)
@@ -141,7 +141,7 @@ class TestLogsCommandContext(TestCase):
         with self.assertRaises(UserException) as ctx:
             LogsCommandContext._parse_time(input, "some prop")
 
-        self.assertEquals(str(ctx.exception), "Unable to parse the time provided by 'some prop'")
+        self.assertEqual(str(ctx.exception), "Unable to parse the time provided by 'some prop'")
 
     def test_parse_time_empty_time(self):
         result = LogsCommandContext._parse_time(None, "some prop")
@@ -153,7 +153,7 @@ class TestLogsCommandContext(TestCase):
         open_mock.return_value = "handle"
         result = LogsCommandContext._setup_output_file(self.output_file)
 
-        self.assertEquals(result, "handle")
+        self.assertEqual(result, "handle")
         open_mock.assert_called_with(self.output_file, "wb")
 
     def test_setup_output_file_without_file(self):
@@ -172,7 +172,7 @@ class TestLogsCommandContext(TestCase):
             end_time=self.end_time,
             output_file=self.output_file,
         ) as context:
-            self.assertEquals(context._output_file_handle, handle)
+            self.assertEqual(context._output_file_handle, handle)
 
         # Context should be reset
         self.assertIsNone(self.context._output_file_handle)
@@ -191,7 +191,7 @@ class TestLogsCommandContext(TestCase):
             end_time=self.end_time,
             output_file=None,
         ) as context:
-            self.assertEquals(context._output_file_handle, None)
+            self.assertEqual(context._output_file_handle, None)
 
         # Context should be reset
         setup_output_file_mock.assert_called_with(None)
@@ -226,7 +226,7 @@ class TestLogsCommandContext_get_resource_id_from_stack(TestCase):
         with self.cfn_client_stubber:
             result = LogsCommandContext._get_resource_id_from_stack(self.real_client, self.stack_name, self.logical_id)
 
-        self.assertEquals(result, self.physical_id)
+        self.assertEqual(result, self.physical_id)
 
     def test_must_handle_resource_not_found(self):
         errmsg = "Something went wrong"
@@ -243,4 +243,4 @@ class TestLogsCommandContext_get_resource_id_from_stack(TestCase):
             with self.assertRaises(UserException) as context:
                 LogsCommandContext._get_resource_id_from_stack(self.real_client, self.stack_name, self.logical_id)
 
-            self.assertEquals(expected_error_msg, str(context.exception))
+            self.assertEqual(expected_error_msg, str(context.exception))

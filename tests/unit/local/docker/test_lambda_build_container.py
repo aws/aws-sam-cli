@@ -48,22 +48,22 @@ class TestLambdaBuildContainer_init(TestCase):
             mode="mode",
         )
 
-        self.assertEquals(container.image, image)
-        self.assertEquals(container.executable_name, "lambda-builders")
-        self.assertEquals(container._entrypoint, entry)
-        self.assertEquals(container._cmd, [])
-        self.assertEquals(container._working_dir, container_dirs["source_dir"])
-        self.assertEquals(container._host_dir, str(pathlib.Path("/foo/source").resolve()))
-        self.assertEquals(container._env_vars, {"LAMBDA_BUILDERS_LOG_LEVEL": "log-level"})
-        self.assertEquals(
+        self.assertEqual(container.image, image)
+        self.assertEqual(container.executable_name, "lambda-builders")
+        self.assertEqual(container._entrypoint, entry)
+        self.assertEqual(container._cmd, [])
+        self.assertEqual(container._working_dir, container_dirs["source_dir"])
+        self.assertEqual(container._host_dir, str(pathlib.Path("/foo/source").resolve()))
+        self.assertEqual(container._env_vars, {"LAMBDA_BUILDERS_LOG_LEVEL": "log-level"})
+        self.assertEqual(
             container._additional_volumes,
             {str(pathlib.Path("/bar").resolve()): {"bind": container_dirs["manifest_dir"], "mode": "ro"}},
         )
 
-        self.assertEquals(container._exposed_ports, None)
-        self.assertEquals(container._memory_limit_mb, None)
-        self.assertEquals(container._network_id, None)
-        self.assertEquals(container._container_opts, None)
+        self.assertEqual(container._exposed_ports, None)
+        self.assertEqual(container._memory_limit_mb, None)
+        self.assertEqual(container._network_id, None)
+        self.assertEqual(container._container_opts, None)
 
         make_request_mock.assert_called_once()
         get_entrypoint_mock.assert_called_once_with(request)
@@ -132,7 +132,7 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
 
         result = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
 
-        self.assertEquals(
+        self.assertEqual(
             result,
             {
                 "source_dir": "/tmp/samcli/source",
@@ -148,7 +148,7 @@ class TestLambdaBuildContainer_get_container_dirs(TestCase):
 
         result = LambdaBuildContainer._get_container_dirs(source_dir, manifest_dir)
 
-        self.assertEquals(
+        self.assertEqual(
             result,
             {
                 # When source & manifest directories are the same, manifest_dir must be equal to source
@@ -165,12 +165,12 @@ class TestLambdaBuildContainer_get_image(TestCase):
         [("myruntime", "lambci/lambda:build-myruntime"), ("nodejs10.x", "amazon/lambda-build-node10.x")]
     )
     def test_must_get_image_name(self, runtime, expected_image_name):
-        self.assertEquals(expected_image_name, LambdaBuildContainer._get_image(runtime))
+        self.assertEqual(expected_image_name, LambdaBuildContainer._get_image(runtime))
 
 
 class TestLambdaBuildContainer_get_entrypoint(TestCase):
     def test_must_get_entrypoint(self):
-        self.assertEquals(["lambda-builders", "requestjson"], LambdaBuildContainer._get_entrypoint("requestjson"))
+        self.assertEqual(["lambda-builders", "requestjson"], LambdaBuildContainer._get_entrypoint("requestjson"))
 
 
 class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
@@ -182,7 +182,7 @@ class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
         expected = ["/first", "/second", "/third"]
         result = LambdaBuildContainer._convert_to_container_dirs(input, mapping)
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_must_skip_unknown_paths(self):
 
@@ -192,7 +192,7 @@ class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
         expected = ["/first", "/unknown/path"]
         result = LambdaBuildContainer._convert_to_container_dirs(input, mapping)
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_must_skip_on_empty_input(self):
 
@@ -202,4 +202,4 @@ class TestLambdaBuildContainer_convert_to_container_dirs(TestCase):
         expected = None
         result = LambdaBuildContainer._convert_to_container_dirs(input, mapping)
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)

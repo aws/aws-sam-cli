@@ -11,10 +11,10 @@ class TestLambdaImage(TestCase):
     def test_initialization_without_defaults(self):
         lambda_image = LambdaImage("layer_downloader", False, False, docker_client="docker_client")
 
-        self.assertEquals(lambda_image.layer_downloader, "layer_downloader")
+        self.assertEqual(lambda_image.layer_downloader, "layer_downloader")
         self.assertFalse(lambda_image.skip_pull_image)
         self.assertFalse(lambda_image.force_image_build)
-        self.assertEquals(lambda_image.docker_client, "docker_client")
+        self.assertEqual(lambda_image.docker_client, "docker_client")
 
     @patch("samcli.local.docker.lambda_image.docker")
     def test_initialization_with_defaults(self, docker_patch):
@@ -23,17 +23,17 @@ class TestLambdaImage(TestCase):
 
         lambda_image = LambdaImage("layer_downloader", False, False)
 
-        self.assertEquals(lambda_image.layer_downloader, "layer_downloader")
+        self.assertEqual(lambda_image.layer_downloader, "layer_downloader")
         self.assertFalse(lambda_image.skip_pull_image)
         self.assertFalse(lambda_image.force_image_build)
-        self.assertEquals(lambda_image.docker_client, docker_client_mock)
+        self.assertEqual(lambda_image.docker_client, docker_client_mock)
 
     def test_building_image_with_no_layers(self):
         docker_client_mock = Mock()
 
         lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
 
-        self.assertEquals(lambda_image.build("python3.6", []), "lambci/lambda:python3.6")
+        self.assertEqual(lambda_image.build("python3.6", []), "lambci/lambda:python3.6")
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
@@ -52,7 +52,7 @@ class TestLambdaImage(TestCase):
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
         actual_image_id = lambda_image.build("python3.6", [layer_mock])
 
-        self.assertEquals(actual_image_id, "samcli/lambda:image-version")
+        self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
         layer_downloader_mock.download_all.assert_called_once_with([layer_mock], False)
         generate_docker_image_version_patch.assert_called_once_with([layer_mock], "python3.6")
@@ -75,7 +75,7 @@ class TestLambdaImage(TestCase):
         lambda_image = LambdaImage(layer_downloader_mock, False, True, docker_client=docker_client_mock)
         actual_image_id = lambda_image.build("python3.6", ["layers1"])
 
-        self.assertEquals(actual_image_id, "samcli/lambda:image-version")
+        self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
         layer_downloader_mock.download_all.assert_called_once_with(["layers1"], True)
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
@@ -98,7 +98,7 @@ class TestLambdaImage(TestCase):
         lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
         actual_image_id = lambda_image.build("python3.6", ["layers1"])
 
-        self.assertEquals(actual_image_id, "samcli/lambda:image-version")
+        self.assertEqual(actual_image_id, "samcli/lambda:image-version")
 
         layer_downloader_mock.download_all.assert_called_once_with(["layers1"], False)
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
@@ -116,7 +116,7 @@ class TestLambdaImage(TestCase):
 
         image_version = LambdaImage._generate_docker_image_version([layer_mock], "runtime")
 
-        self.assertEquals(image_version, "runtime-thisisahexdigestofshahash")
+        self.assertEqual(image_version, "runtime-thisisahexdigestofshahash")
 
         hashlib_patch.sha256.assert_called_once_with(b"layer1")
 
@@ -130,7 +130,7 @@ class TestLambdaImage(TestCase):
         layer_mock = Mock()
         layer_mock.name = "layer1"
 
-        self.assertEquals(LambdaImage._generate_dockerfile("python", [layer_mock]), expected_docker_file)
+        self.assertEqual(LambdaImage._generate_dockerfile("python", [layer_mock]), expected_docker_file)
 
     @patch("samcli.local.docker.lambda_image.create_tarball")
     @patch("samcli.local.docker.lambda_image.uuid")

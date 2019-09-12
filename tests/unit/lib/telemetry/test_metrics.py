@@ -63,7 +63,7 @@ class TestTrackCommand(TestCase):
 
         track_command(real_fn)()
 
-        self.assertEquals(
+        self.assertEqual(
             self.telemetry_instance.emit.mock_calls, [call("commandRun", ANY)], "The one command metric must be sent"
         )
 
@@ -114,7 +114,7 @@ class TestTrackCommand(TestCase):
         # And grab the second argument passed to this call, which are the attributes
         args, kwargs = self.telemetry_instance.emit.call_args_list[0]
         metric_name, actual_attrs = args
-        self.assertEquals("commandRun", metric_name)
+        self.assertEqual("commandRun", metric_name)
         self.assertGreaterEqual(
             actual_attrs["duration"],
             sleep_duration,
@@ -132,7 +132,7 @@ class TestTrackCommand(TestCase):
 
         with self.assertRaises(UserException) as context:
             track_command(real_fn)()
-            self.assertEquals(
+            self.assertEqual(
                 context.exception,
                 expected_exception,
                 "Must re-raise the original exception object " "without modification",
@@ -151,7 +151,7 @@ class TestTrackCommand(TestCase):
 
         with self.assertRaises(KeyError) as context:
             track_command(real_fn)()
-            self.assertEquals(
+            self.assertEqual(
                 context.exception,
                 expected_exception,
                 "Must re-raise the original exception object " "without modification",
@@ -170,7 +170,7 @@ class TestTrackCommand(TestCase):
             return expected_value
 
         actual = track_command(real_fn)()
-        self.assertEquals(actual, "some return value")
+        self.assertEqual(actual, "some return value")
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_pass_all_arguments_to_wrapped_function(self, ContextMock):
@@ -179,8 +179,8 @@ class TestTrackCommand(TestCase):
             return args, kwargs
 
         actual_args, actual_kwargs = track_command(real_fn)(1, 2, 3, a=1, b=2, c=3)
-        self.assertEquals(actual_args, (1, 2, 3))
-        self.assertEquals(actual_kwargs, {"a": 1, "b": 2, "c": 3})
+        self.assertEqual(actual_args, (1, 2, 3))
+        self.assertEqual(actual_kwargs, {"a": 1, "b": 2, "c": 3})
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_decorate_functions(self, ContextMock):
@@ -189,9 +189,9 @@ class TestTrackCommand(TestCase):
             return "{} {}".format(a, b)
 
         actual = real_fn("hello", b="world")
-        self.assertEquals(actual, "hello world")
+        self.assertEqual(actual, "hello world")
 
-        self.assertEquals(
+        self.assertEqual(
             self.telemetry_instance.emit.mock_calls,
             [call("commandRun", ANY)],
             "The command metrics be emitted when used as a decorator",
@@ -205,7 +205,7 @@ class TestTrackCommand(TestCase):
         self.gc_instance_mock.telemetry_enabled = False
         result = track_command(real_fn)()
 
-        self.assertEquals(result, "hello")
+        self.assertEqual(result, "hello")
         self.telemetry_instance.emit.assert_not_called()
 
 

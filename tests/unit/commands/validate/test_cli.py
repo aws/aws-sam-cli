@@ -32,7 +32,7 @@ class TestValidateCli(TestCase):
 
         actual_template = _read_sam_file(template_path)
 
-        self.assertEquals(actual_template, {"a": "b"})
+        self.assertEqual(actual_template, {"a": "b"})
 
     @patch("samcli.commands.validate.validate.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
