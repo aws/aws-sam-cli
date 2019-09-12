@@ -16,6 +16,7 @@ from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.exceptions import UserException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.commands.build.exceptions import InvalidBuildDirException
 
 LOG = logging.getLogger(__name__)
 
@@ -82,6 +83,13 @@ class BuildContext(object):
     @staticmethod
     def _setup_build_dir(build_dir, clean):
         build_path = pathlib.Path(build_dir)
+
+        if os.path.abspath(build_path) == os.path.abspath(pathlib.Path.cwd()):
+            exception_message = "'build-dir' should not be the current workding directoy as the directory " \
+                "will be deleted. In the intention is to use the current working directory as the where the " \
+                "output should be place, either remove the 'build-dir' option and use the default or create a " \
+                "sub-directoy and pass that path to the option instead."
+            raise InvalidBuildDirException(exception_message)
 
         if build_path.exists() and os.listdir(build_dir) and clean:
             # build folder contains something inside. Clear everything.
