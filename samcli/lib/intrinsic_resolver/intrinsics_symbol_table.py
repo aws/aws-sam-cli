@@ -197,13 +197,14 @@ class IntrinsicsSymbolTable(object):
         This resolves the attribute
         """
         # pylint: disable-msg=too-many-return-statements
-        translated = self.get_translation(logical_id, resource_attribute)
-        if translated:
-            return translated
 
         if logical_id in self.SUPPORTED_PSEUDO_TYPES:
             translated = self.default_pseudo_resolver.get(logical_id)()
             self.logical_id_translator[logical_id] = translated
+            return translated
+
+        translated = self.get_translation(logical_id, resource_attribute)
+        if translated:
             return translated
 
         # Handle Default Parameters
