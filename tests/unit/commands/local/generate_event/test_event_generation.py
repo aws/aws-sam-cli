@@ -133,7 +133,7 @@ class TestEventTypeSubCommand(TestCase):
         self.events_lib_mock.expose_event_metadata.return_value = subcmd_def
         s = EventTypeSubCommand(self.events_lib_mock, "hello", subcmd_def)
         expected = ["hello", "hi"]
-        self.assertEquals(s.list_commands(ctx=None), expected)
+        self.assertEqual(s.list_commands(ctx=None), expected)
 
     def test_must_print_sample_event_json(self):
         event_json = '{"hello": "world"}'

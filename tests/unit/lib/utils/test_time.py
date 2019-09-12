@@ -10,13 +10,13 @@ class TestTimestampToIso(TestCase):
         timestamp = 1530882594123
         expected = "2018-07-06T13:09:54.123000"
 
-        self.assertEquals(expected, timestamp_to_iso(timestamp))
+        self.assertEqual(expected, timestamp_to_iso(timestamp))
 
     def test_must_ignore_float_microseconds(self):
         timestamp = 1530882594123.9876
         expected = "2018-07-06T13:09:54.123000"
 
-        self.assertEquals(expected, timestamp_to_iso(timestamp))
+        self.assertEqual(expected, timestamp_to_iso(timestamp))
 
 
 class TestToTimestamp(TestCase):
@@ -24,7 +24,7 @@ class TestToTimestamp(TestCase):
         date = datetime.datetime.utcfromtimestamp(1530882594.123)
         expected = 1530882594123
 
-        self.assertEquals(expected, to_timestamp(date))
+        self.assertEqual(expected, to_timestamp(date))
 
 
 class TestToUtc(TestCase):
@@ -34,7 +34,7 @@ class TestToUtc(TestCase):
         expected = datetime.datetime(2018, 7, 6, 20, 9, 54)
 
         result = to_utc(date)
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_with_utc_timezone(self):
 
@@ -42,7 +42,7 @@ class TestToUtc(TestCase):
         expected = datetime.datetime(2018, 7, 6, 13, 9, 54)
 
         result = to_utc(date)
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_without_timezone(self):
 
@@ -50,7 +50,7 @@ class TestToUtc(TestCase):
         expected = datetime.datetime(2018, 7, 6, 13, 9, 54)
 
         result = to_utc(date)
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
 
 class TestParseDate(TestCase):
@@ -58,7 +58,7 @@ class TestParseDate(TestCase):
         date_str = "2018-07-06T13:09:54"
         expected = datetime.datetime(2018, 7, 6, 13, 9, 54)
 
-        self.assertEquals(expected, parse_date(date_str))
+        self.assertEqual(expected, parse_date(date_str))
 
     def test_must_parse_relative_time_in_utc(self):
         now = datetime.datetime.utcnow()
@@ -68,4 +68,4 @@ class TestParseDate(TestCase):
         expected = (now - datetime.timedelta(hours=1)).replace(microsecond=0, second=0)
         result = parse_date(date_str).replace(microsecond=0, second=0)
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)

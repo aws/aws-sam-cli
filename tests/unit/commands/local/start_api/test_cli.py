@@ -93,7 +93,7 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = "Template does not have any APIs connected to Lambda functions"
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
     @parameterized.expand(
         [
@@ -117,7 +117,7 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = execption_message
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
     @patch("samcli.commands.local.start_api.cli.InvokeContext")
     def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
@@ -128,7 +128,7 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = "bad env vars"
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
     def call_cli(self):
         start_api_cli(

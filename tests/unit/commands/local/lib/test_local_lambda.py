@@ -52,7 +52,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         expected = {"region": self.region, "key": self.key, "secret": self.secret, "sessiontoken": self.token}
 
         actual = self.local_lambda.get_aws_creds()
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
@@ -72,7 +72,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         expected = {"key": self.key, "secret": self.secret, "sessiontoken": self.token}
 
         actual = self.local_lambda.get_aws_creds()
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
@@ -92,7 +92,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         expected = {"region": self.region, "secret": self.secret, "sessiontoken": self.token}
 
         actual = self.local_lambda.get_aws_creds()
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
@@ -112,7 +112,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         expected = {"region": self.region, "key": self.key, "sessiontoken": self.token}
 
         actual = self.local_lambda.get_aws_creds()
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
 
@@ -133,7 +133,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         expected = {"region": self.region, "key": self.key, "secret": self.secret}
 
         actual = self.local_lambda.get_aws_creds()
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called()
 
@@ -146,7 +146,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
 
         expected = {}
         actual = self.local_lambda.get_aws_creds()
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called()
 
@@ -157,7 +157,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
 
         expected = {}
         actual = self.local_lambda.get_aws_creds()
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called()
 
@@ -348,7 +348,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         config = "someconfig"
         FunctionConfigMock.return_value = config
         actual = self.local_lambda._get_invoke_config(function)
-        self.assertEquals(actual, config)
+        self.assertEqual(actual, config)
 
         FunctionConfigMock.assert_called_with(
             name=function.name,
@@ -392,7 +392,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         config = "someconfig"
         FunctionConfigMock.return_value = config
         actual = self.local_lambda._get_invoke_config(function)
-        self.assertEquals(actual, config)
+        self.assertEqual(actual, config)
 
         FunctionConfigMock.assert_called_with(
             name=function.name,

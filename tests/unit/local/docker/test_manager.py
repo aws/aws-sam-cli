@@ -189,7 +189,7 @@ class TestContainerManager_pull_image(TestCase):
         self.manager.pull_image(self.image_name, stream=stream)
 
         self.mock_docker_client.api.pull.assert_called_with(self.image_name, stream=True, decode=True)
-        self.assertEquals(stream.getvalue(), expected_stream_output)
+        self.assertEqual(stream.getvalue(), expected_stream_output)
 
     def test_must_raise_if_image_not_found(self):
         msg = "some error"
@@ -199,7 +199,7 @@ class TestContainerManager_pull_image(TestCase):
             self.manager.pull_image("imagename")
 
         ex = context.exception
-        self.assertEquals(str(ex), msg)
+        self.assertEqual(str(ex), msg)
 
 
 class TestContainerManager_is_docker_reachable(TestCase):

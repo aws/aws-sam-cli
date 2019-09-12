@@ -24,5 +24,5 @@ class TestColored(TestCase):
         with_color = Colored()
         without_color = Colored(colorize=False)
 
-        self.assertEquals(expected, getattr(with_color, decoration_name)(self.msg))
-        self.assertEquals(self.msg, getattr(without_color, decoration_name)(self.msg))
+        self.assertEqual(expected, getattr(with_color, decoration_name)(self.msg))
+        self.assertEqual(self.msg, getattr(without_color, decoration_name)(self.msg))

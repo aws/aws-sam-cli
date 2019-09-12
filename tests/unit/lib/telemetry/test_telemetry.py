@@ -142,7 +142,7 @@ class TestTelemetry(TestCase):
     def test_must_use_default_endpoint_url_if_not_customized(self, default_endpoint_url_mock):
         telemetry = Telemetry()
 
-        self.assertEquals(telemetry._url, default_endpoint_url_mock)
+        self.assertEqual(telemetry._url, default_endpoint_url_mock)
 
 
 def _ignore_other_attrs(data):

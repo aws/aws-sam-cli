@@ -90,7 +90,7 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = execption_message
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
     @patch("samcli.commands.local.start_lambda.cli.InvokeContext")
     def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
@@ -101,7 +101,7 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = "bad env vars"
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
     def call_cli(self):
         start_lambda_cli(

@@ -110,7 +110,7 @@ class BuildIntegBase(TestCase):
 
         with open(template_path, "r") as fp:
             template_dict = yaml_parse(fp.read())
-            self.assertEquals(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
+            self.assertEqual(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
 
     def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
         LOG.info("Invoking built function '{}'".format(function_logical_id))
@@ -131,4 +131,4 @@ class BuildIntegBase(TestCase):
         process.wait()
 
         process_stdout = b"".join(process.stdout.readlines()).strip().decode("utf-8")
-        self.assertEquals(json.loads(process_stdout), expected_result)
+        self.assertEqual(json.loads(process_stdout), expected_result)

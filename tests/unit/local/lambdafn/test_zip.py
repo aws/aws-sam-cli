@@ -44,7 +44,7 @@ class TestUnzipWithPermissions(TestCase):
                         self.assertIn(key, self.files_with_permissions)
 
                         if check_permissions:
-                            self.assertEquals(
+                            self.assertEqual(
                                 expected_permission, perm, "File {} has wrong permission {}".format(key, perm)
                             )
 

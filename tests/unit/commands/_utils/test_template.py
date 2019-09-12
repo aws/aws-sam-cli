@@ -23,7 +23,7 @@ class Test_get_template_data(TestCase):
             get_template_data(filename)
 
         ex = exception_ctx.exception
-        self.assertEquals(str(ex), "Template file not found at {}".format(filename))
+        self.assertEqual(str(ex), "Template file not found at {}".format(filename))
 
     @patch("samcli.commands._utils.template.yaml_parse")
     @patch("samcli.commands._utils.template.pathlib")
@@ -40,7 +40,7 @@ class Test_get_template_data(TestCase):
         with patch("samcli.commands._utils.template.open", m):
             result = get_template_data(filename)
 
-            self.assertEquals(result, parse_result)
+            self.assertEqual(result, parse_result)
 
         m.assert_called_with(filename, "r")
         yaml_parse_mock.assert_called_with(file_data)
@@ -94,7 +94,7 @@ class Test_update_relative_paths(TestCase):
                 result = _update_relative_paths(template_dict, self.src, self.dest)
 
                 self.maxDiff = None
-                self.assertEquals(result, expected_template_dict)
+                self.assertEqual(result, expected_template_dict)
 
     @parameterized.expand([(resource_type, props) for resource_type, props in _RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
@@ -128,7 +128,7 @@ class Test_update_relative_paths(TestCase):
             result = _update_relative_paths(template_dict, self.src, self.dest)
 
             self.maxDiff = None
-            self.assertEquals(result, expected_template_dict)
+            self.assertEqual(result, expected_template_dict)
 
     def test_must_update_aws_include_also(self):
         template_dict = {
@@ -165,7 +165,7 @@ class Test_update_relative_paths(TestCase):
 
         result = _update_relative_paths(template_dict, self.src, self.dest)
         self.maxDiff = None
-        self.assertEquals(result, expected_template_dict)
+        self.assertEqual(result, expected_template_dict)
 
 
 class Test_move_template(TestCase):

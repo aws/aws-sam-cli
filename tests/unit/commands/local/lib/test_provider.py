@@ -21,23 +21,23 @@ class TestLayerVersion(TestCase):
     def test_layer_version_returned(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 
-        self.assertEquals(layer_version.version, 1)
+        self.assertEqual(layer_version.version, 1)
 
     def test_layer_arn_returned(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 
-        self.assertEquals(layer_version.layer_arn, "arn:aws:lambda:region:account-id:layer:layer-name")
+        self.assertEqual(layer_version.layer_arn, "arn:aws:lambda:region:account-id:layer:layer-name")
 
     def test_codeuri_is_setable(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
         layer_version.codeuri = "./some_value"
 
-        self.assertEquals(layer_version.codeuri, "./some_value")
+        self.assertEqual(layer_version.codeuri, "./some_value")
 
     def test_name_is_computed(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)
 
-        self.assertEquals(layer_version.name, "layer-name-1-8cebcd0539")
+        self.assertEqual(layer_version.name, "layer-name-1-8cebcd0539")
 
     def test_layer_version_is_defined_in_template(self):
         layer_version = LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", ".")

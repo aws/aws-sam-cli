@@ -11,7 +11,7 @@ class TestBasicInitCommand(TestCase):
             process = Popen([TestBasicInitCommand._get_command(), "init", "-o", temp])
             return_code = process.wait()
 
-            self.assertEquals(return_code, 0)
+            self.assertEqual(return_code, 0)
             self.assertTrue(os.path.isdir(temp + "/sam-app"))
 
     @staticmethod

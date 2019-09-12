@@ -23,7 +23,7 @@ class TestLocalLambda_get_code_path(TestCase):
         expected = os.path.normpath(os.path.join(self.os_cwd, codeuri))
 
         actual = resolve_code_path(cwd_path, codeuri)
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
         self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
 
     @parameterized.expand([("var/task"), ("some/dir")])
@@ -35,7 +35,7 @@ class TestLocalLambda_get_code_path(TestCase):
         expected = os.path.normpath(os.path.join(abs_cwd, codeuri))
 
         actual = resolve_code_path(cwd_path, codeuri)
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
         self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
 
     @parameterized.expand([(""), ("."), ("hello"), ("a/b/c/d"), ("../../c/d/e")])
@@ -44,7 +44,7 @@ class TestLocalLambda_get_code_path(TestCase):
         expected = os.path.normpath(os.path.join(self.cwd, codeuri))
 
         actual = resolve_code_path(self.cwd, codeuri)
-        self.assertEquals(str(Path(expected).resolve()), actual)
+        self.assertEqual(str(Path(expected).resolve()), actual)
         self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")
 
     @parameterized.expand([("/a/b/c"), ("/")])
@@ -53,5 +53,5 @@ class TestLocalLambda_get_code_path(TestCase):
         expected = codeuri  # CodeUri must be return as is for absolute paths
 
         actual = resolve_code_path(None, codeuri)
-        self.assertEquals(expected, actual)
+        self.assertEqual(expected, actual)
         self.assertTrue(os.path.isabs(actual), "Result must be an absolute path")

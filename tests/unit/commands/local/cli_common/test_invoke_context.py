@@ -176,10 +176,10 @@ class TestInvokeContextAsContextManager(TestCase):
             debug_args="args",
             aws_profile="profile",
         ) as context:
-            self.assertEquals(context_obj, context)
+            self.assertEqual(context_obj, context)
 
         EnterMock.assert_called_with()
-        self.assertEquals(1, ExitMock.call_count)
+        self.assertEqual(1, ExitMock.call_count)
 
 
 class TestInvokeContext_function_name_property(TestCase):
@@ -187,7 +187,7 @@ class TestInvokeContext_function_name_property(TestCase):
         id = "id"
         context = InvokeContext(template_file="template_file", function_identifier=id)
 
-        self.assertEquals(id, context.function_name)
+        self.assertEqual(id, context.function_name)
 
     def test_must_return_one_function_from_template(self):
         context = InvokeContext(template_file="template_file")
@@ -197,7 +197,7 @@ class TestInvokeContext_function_name_property(TestCase):
         context._function_provider = Mock()
         context._function_provider.get_all.return_value = [function]  # Provider returns only one function
 
-        self.assertEquals("myname", context.function_name)
+        self.assertEqual("myname", context.function_name)
 
     def test_must_raise_if_more_than_one_function(self):
         context = InvokeContext(template_file="template_file")
@@ -263,7 +263,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
 
         with self.context:
             result = self.context.local_lambda_runner
-            self.assertEquals(result, runner_mock)
+            self.assertEqual(result, runner_mock)
 
             LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
             lambda_image_patch.assert_called_once_with(download_mock, True, True)
@@ -491,7 +491,7 @@ class TestInvokeContext_template_property(TestCase):
         context = InvokeContext(template_file="file")
         context._template_dict = "My template"
 
-        self.assertEquals("My template", context.template)
+        self.assertEqual("My template", context.template)
 
 
 class TestInvokeContextget_cwd(TestCase):
@@ -502,14 +502,14 @@ class TestInvokeContextget_cwd(TestCase):
         expected = os.path.dirname(os.path.abspath(filename))
         result = context.get_cwd()
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_must_return_docker_volume_dir(self):
         filename = "filename"
         context = InvokeContext(template_file=filename, docker_volume_basedir="basedir")
 
         result = context.get_cwd()
-        self.assertEquals(result, "basedir")
+        self.assertEqual(result, "basedir")
 
 
 class TestInvokeContext_get_env_vars_value(TestCase):
@@ -527,7 +527,7 @@ class TestInvokeContext_get_env_vars_value(TestCase):
         with patch("samcli.commands.local.cli_common.invoke_context.open", m):
             result = InvokeContext._get_env_vars_value(filename)
 
-            self.assertEquals(expected, result)
+            self.assertEqual(expected, result)
 
         m.assert_called_with(filename, "r")
 
@@ -587,9 +587,9 @@ class TestInvokeContext_get_debug_context(TestCase):
     def test_no_debug_port(self):
         debug_context = InvokeContext._get_debug_context(None, None, None)
 
-        self.assertEquals(debug_context.debugger_path, None)
-        self.assertEquals(debug_context.debug_port, None)
-        self.assertEquals(debug_context.debug_args, None)
+        self.assertEqual(debug_context.debugger_path, None)
+        self.assertEqual(debug_context.debug_port, None)
+        self.assertEqual(debug_context.debug_args, None)
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_non_path_not_found_oserror_is_thrown(self, pathlib_mock):
@@ -604,7 +604,7 @@ class TestInvokeContext_get_debug_context(TestCase):
 
         debug_context = InvokeContext._get_debug_context(1111, None, None)
 
-        self.assertEquals(debug_context, "I am the DebugContext")
+        self.assertEqual(debug_context, "I am the DebugContext")
 
         debug_context_mock.assert_called_once_with(debug_port=1111, debug_args=None, debugger_path=None)
 
@@ -623,7 +623,7 @@ class TestInvokeContext_get_debug_context(TestCase):
 
         debug_context = InvokeContext._get_debug_context(1111, "args", "./path")
 
-        self.assertEquals(debug_context, "I am the DebugContext")
+        self.assertEqual(debug_context, "I am the DebugContext")
 
         debug_context_mock.assert_called_once_with(debug_port=1111, debug_args="args", debugger_path="full/path")
         resolve_path_mock.is_dir.assert_called_once()

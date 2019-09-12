@@ -41,17 +41,17 @@ class TestBuildContext__enter__(TestCase):
         # call the enter method
         result = context.__enter__()
 
-        self.assertEquals(result, context)  # __enter__ must return self
-        self.assertEquals(context.template_dict, template_dict)
-        self.assertEquals(context.function_provider, funcprovider)
-        self.assertEquals(context.base_dir, base_dir)
-        self.assertEquals(context.container_manager, container_mgr_mock)
-        self.assertEquals(context.build_dir, build_dir_result)
-        self.assertEquals(context.use_container, True)
-        self.assertEquals(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
-        self.assertEquals(context.manifest_path_override, os.path.abspath("manifest_path"))
+        self.assertEqual(result, context)  # __enter__ must return self
+        self.assertEqual(context.template_dict, template_dict)
+        self.assertEqual(context.function_provider, funcprovider)
+        self.assertEqual(context.base_dir, base_dir)
+        self.assertEqual(context.container_manager, container_mgr_mock)
+        self.assertEqual(context.build_dir, build_dir_result)
+        self.assertEqual(context.use_container, True)
+        self.assertEqual(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
+        self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
-        self.assertEquals(context.functions_to_build, ["function to build"])
+        self.assertEqual(context.functions_to_build, ["function to build"])
 
         get_template_data_mock.assert_called_once_with("template_file")
         SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
@@ -94,17 +94,17 @@ class TestBuildContext__enter__(TestCase):
         # call the enter method
         result = context.__enter__()
 
-        self.assertEquals(result, context)  # __enter__ must return self
-        self.assertEquals(context.template_dict, template_dict)
-        self.assertEquals(context.function_provider, funcprovider)
-        self.assertEquals(context.base_dir, base_dir)
-        self.assertEquals(context.container_manager, container_mgr_mock)
-        self.assertEquals(context.build_dir, build_dir_result)
-        self.assertEquals(context.use_container, True)
-        self.assertEquals(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
-        self.assertEquals(context.manifest_path_override, os.path.abspath("manifest_path"))
+        self.assertEqual(result, context)  # __enter__ must return self
+        self.assertEqual(context.template_dict, template_dict)
+        self.assertEqual(context.function_provider, funcprovider)
+        self.assertEqual(context.base_dir, base_dir)
+        self.assertEqual(context.container_manager, container_mgr_mock)
+        self.assertEqual(context.build_dir, build_dir_result)
+        self.assertEqual(context.use_container, True)
+        self.assertEqual(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
+        self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
-        self.assertEquals(context.functions_to_build, ["function to build", "and another function"])
+        self.assertEqual(context.functions_to_build, ["function to build", "and another function"])
 
         get_template_data_mock.assert_called_once_with("template_file")
         SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
@@ -128,7 +128,7 @@ class TestBuildContext_setup_build_dir(TestCase):
 
         full_build_path = BuildContext._setup_build_dir(build_dir, True)
 
-        self.assertEquals(full_build_path, "long/full/path")
+        self.assertEqual(full_build_path, "long/full/path")
 
         os_patch.listdir.assert_called_once()
         path_mock.exists.assert_called_once()
@@ -149,7 +149,7 @@ class TestBuildContext_setup_build_dir(TestCase):
 
         full_build_path = BuildContext._setup_build_dir(build_dir, True)
 
-        self.assertEquals(full_build_path, "long/full/path")
+        self.assertEqual(full_build_path, "long/full/path")
 
         os_patch.listdir.assert_called_once()
         path_mock.exists.assert_called_once()
@@ -169,7 +169,7 @@ class TestBuildContext_setup_build_dir(TestCase):
 
         full_build_path = BuildContext._setup_build_dir(build_dir, True)
 
-        self.assertEquals(full_build_path, "long/full/path")
+        self.assertEqual(full_build_path, "long/full/path")
 
         os_patch.listdir.assert_not_called()
         path_mock.exists.assert_called_once()
@@ -190,7 +190,7 @@ class TestBuildContext_setup_build_dir(TestCase):
 
         full_build_path = BuildContext._setup_build_dir(build_dir, False)
 
-        self.assertEquals(full_build_path, "long/full/path")
+        self.assertEqual(full_build_path, "long/full/path")
 
         os_patch.listdir.assert_called_once()
         path_mock.exists.assert_called_once()

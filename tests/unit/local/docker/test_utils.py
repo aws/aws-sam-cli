@@ -19,9 +19,9 @@ class TestUtils(TestCase):
     @patch("samcli.local.docker.utils.os")
     def test_convert_posix_path_if_windows_style_path(self, mock_os):
         mock_os.name = "nt"
-        self.assertEquals(self.posixpath, to_posix_path(self.ntpath))
+        self.assertEqual(self.posixpath, to_posix_path(self.ntpath))
 
     @patch("samcli.local.docker.utils.os")
     def test_do_not_convert_posix_path(self, mock_os):
         mock_os.name = "posix"
-        self.assertEquals(self.current_working_dir, to_posix_path(self.current_working_dir))
+        self.assertEqual(self.current_working_dir, to_posix_path(self.current_working_dir))

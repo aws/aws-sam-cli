@@ -12,6 +12,6 @@ class TestProgressBar(TestCase):
 
         actual = progressbar(100, "this is a label")
 
-        self.assertEquals(actual, progressbar_mock)
+        self.assertEqual(actual, progressbar_mock)
 
         click_patch.progressbar.assert_called_with(length=100, label="this is a label", show_pos=True)

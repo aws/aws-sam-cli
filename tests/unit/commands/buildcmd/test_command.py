@@ -89,7 +89,7 @@ class TestDoCli(TestCase):
                 "mode",
             )
 
-        self.assertEquals(str(ctx.exception), str(exception))
+        self.assertEqual(str(ctx.exception), str(exception))
 
     @patch("samcli.commands.build.command.BuildContext")
     @patch("samcli.commands.build.command.ApplicationBuilder")
@@ -114,7 +114,7 @@ class TestDoCli(TestCase):
                 "mode",
             )
 
-        self.assertEquals(str(ctx.exception), "Function Not Found")
+        self.assertEqual(str(ctx.exception), "Function Not Found")
 
 
 class TestGetModeValueFromEnvvar(TestCase):
@@ -131,7 +131,7 @@ class TestGetModeValueFromEnvvar(TestCase):
         os.environ[self.varname] = "A"
         result = _get_mode_value_from_envvar(self.varname, self.choices)
 
-        self.assertEquals(result, "A")
+        self.assertEqual(result, "A")
 
     def test_must_raise_if_value_not_in_choice(self):
 
