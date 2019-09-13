@@ -20,6 +20,12 @@ LOG = logging.getLogger(__name__)
 @click.command(
     "init", short_help="Init an AWS SAM application.", context_settings=dict(help_option_names=[u"-h", u"--help"])
 )
+@click.option(
+    "--no-interactive",
+    is_flag=True,
+    default=False,
+    help="Disable interactive prompting for values, and fail if any required values are missing.",
+)
 @click.option("-l", "--location", help="Template location (git, mercurial, http(s), zip, path)")
 @click.option(
     "-r", "--runtime", type=click.Choice(INIT_RUNTIMES), default=DEFAULT_RUNTIME, help="Lambda Runtime of your app"
@@ -40,10 +46,15 @@ LOG = logging.getLogger(__name__)
     default=False,
     help="Disable prompting and accept default values defined template config",
 )
+@click.option(
+    "--application-template",
+    default=None,
+    help="If using a managed AWS SAM CLI application template, provide its identifier."
+)
 @common_options
 @pass_context
 @track_command
-def cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
+def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, app_template):
     """ \b
         Initialize a serverless application with a SAM template, folder
         structure for your Lambda functions, connected to an event source such as APIs,
@@ -57,41 +68,37 @@ def cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
     Common usage:
 
         \b
-        Initializes a new SAM project using Python 3.6 default template runtime
+        Starts an interactive prompt process to initialize a new project:
         \b
-        $ sam init --runtime python3.6
-        \b
-        Initializes a new SAM project using Java 8 and Gradle dependency manager
-        \b
-        $ sam init --runtime java8 --dependency-manager gradle
+        $ sam init
         \b
         Initializes a new SAM project using custom template in a Git/Mercurial repository
         \b
         # gh being expanded to github url
-        $ sam init --location gh:aws-samples/cookiecutter-aws-sam-python
+        $ sam init --location gh:aws-samples/cookiecutter-aws-sam-python --name python-sam-app
         \b
-        $ sam init --location git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git
+        $ sam init --location git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git --name python-sam-app
         \b
-        $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name
+        $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name --name python-sam-app
 
         \b
         Initializes a new SAM project using custom template in a Zipfile
         \b
-        $ sam init --location /path/to/template.zip
+        $ sam init --location /path/to/template.zip --name sam-app
         \b
-        $ sam init --location https://example.com/path/to/template.zip
+        $ sam init --location https://example.com/path/to/template.zip --name sam-app
 
         \b
         Initializes a new SAM project using custom template in a local path
         \b
-        $ sam init --location /path/to/template/folder
+        $ sam init --location /path/to/template/folder --name sam-app
 
     """
     # All logic must be implemented in the `do_cli` method. This helps ease unit tests
-    do_cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input)  # pragma: no cover
+    do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, app_template)  # pragma: no cover
 
 
-def do_cli(ctx, location, runtime, dependency_manager, output_dir, name, no_input):
+def do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, app_template):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """

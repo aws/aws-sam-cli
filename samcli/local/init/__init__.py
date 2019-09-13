@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 def generate_project(
-    location=None, runtime="nodejs10.x", dependency_manager=None, output_dir=".", name="sam-sample-app", no_input=False
+    location=None, runtime=None, dependency_manager=None, output_dir=".", name=None, no_input=False
 ):
     """Generates project using cookiecutter and options given
 
@@ -27,16 +27,15 @@ def generate_project(
     location: Path, optional
         Git, HTTP, Local path or Zip containing cookiecutter template
         (the default is None, which means no custom template)
-    runtime: str, optional
-        Lambda Runtime (the default is "nodejs", which creates a nodejs project)
+    runtime: str
+        Lambda Runtime
     dependency_manager: str, optional
-        Dependency Manager for the Lambda Runtime Project(the default is "npm" for a "nodejs" Lambda runtime)
+        Dependency Manager for the Lambda Runtime Project
     output_dir: str, optional
         Output directory where project should be generated
         (the default is ".", which implies current folder)
-    name: str, optional
+    name: str
         Name of the project
-        (the default is "sam-sample-app", which implies a project named sam-sample-app will be created)
     no_input : bool, optional
         Whether to prompt for input or to accept default values
         (the default is False, which prompts the user for values it doesn't know for baking)
@@ -68,7 +67,7 @@ def generate_project(
         params["extra_context"] = {"project_name": name, "runtime": runtime}
         params["no_input"] = True
         LOG.debug("Parameters dict updated with project name as extra_context")
-        LOG.debug("%s", params)
+        LOG.dpebug("%s", params)
 
     try:
         LOG.debug("Baking a new template with cookiecutter with all parameters")
