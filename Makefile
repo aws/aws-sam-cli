@@ -22,7 +22,7 @@ func-test:
 
 smoke-test:
 	# Smoke tests run in parallel
-	pytest -n 4 tests/functional
+	SAM_CLI_DEV=1 pytest -n 4 tests/smoke
 
 lint:
 	# Linter performs static analysis to catch latent bugs
