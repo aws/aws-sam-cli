@@ -63,7 +63,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 @click.option('--build-dir', '-b',
               default=DEFAULT_BUILD_DIR,
               type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-              help="Path to a folder where the built artifacts will be stored. If a clean build, this directory will be first removed.")
+              help="Path to a folder where the built artifacts will be stored. This directory will be first removed before starting a build.")
 @click.option("--base-dir", "-s",
               default=None,
               type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
