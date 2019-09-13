@@ -21,14 +21,14 @@ class TestIntrinsicFnJoinResolver(TestCase):
 
     def test_basic_fn_join(self):
         intrinsic = {"Fn::Join": [",", ["a", "b", "c", "d"]]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "a,b,c,d")
 
     def test_nested_fn_join(self):
         intrinsic_base_1 = {"Fn::Join": [",", ["a", "b", "c", "d"]]}
         intrinsic_base_2 = {"Fn::Join": [";", ["g", "h", "i", intrinsic_base_1]]}
         intrinsic = {"Fn::Join": [":", [intrinsic_base_1, "e", "f", intrinsic_base_2]]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "a,b,c,d:e:f:g;h;i;a,b,c,d")
 
     @parameterized.expand(
@@ -39,7 +39,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
     )
     def test_fn_join_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Join": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Join": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -49,7 +49,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
     )
     def test_fn_join_delimiter_invalid_type(self, name, delimiter):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Join": [delimiter, []]})
+            self.resolver.intrinsic_property_resolver({"Fn::Join": [delimiter, []]}, True)
 
     @parameterized.expand(
         [
@@ -59,7 +59,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
     )
     def test_fn_list_of_objects_invalid_type(self, name, list_of_objects):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Join": ["", list_of_objects]})
+            self.resolver.intrinsic_property_resolver({"Fn::Join": ["", list_of_objects]}, True)
 
     @parameterized.expand(
         [
@@ -69,7 +69,7 @@ class TestIntrinsicFnJoinResolver(TestCase):
     )
     def test_fn_join_items_all_str(self, name, single_obj):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Join": ["", ["test", single_obj, "abcd"]]})
+            self.resolver.intrinsic_property_resolver({"Fn::Join": ["", ["test", single_obj, "abcd"]]}, True)
 
 
 class TestIntrinsicFnSplitResolver(TestCase):
@@ -78,7 +78,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
 
     def test_basic_fn_split(self):
         intrinsic = {"Fn::Split": ["|", "a|b|c"]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, ["a", "b", "c"])
 
     def test_nested_fn_split(self):
@@ -86,7 +86,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
 
         intrinsic_base_2 = {"Fn::Join": [",", intrinsic_base_1]}
         intrinsic = {"Fn::Split": [",", {"Fn::Join": [",", [intrinsic_base_2, ",e", ",f,", intrinsic_base_2]]}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, ["a", "b", "c", "", "e", "", "f", "", "a", "b", "c"])
 
     @parameterized.expand(
@@ -97,7 +97,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
     )
     def test_fn_split_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Split": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Split": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -107,7 +107,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
     )
     def test_fn_split_delimiter_invalid_type(self, name, delimiter):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Split": [delimiter, []]})
+            self.resolver.intrinsic_property_resolver({"Fn::Split": [delimiter, []]}, True)
 
     @parameterized.expand(
         [
@@ -117,7 +117,7 @@ class TestIntrinsicFnSplitResolver(TestCase):
     )
     def test_fn_split_source_string_invalid_type(self, name, source_string):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Split": ["", source_string]})
+            self.resolver.intrinsic_property_resolver({"Fn::Split": ["", source_string]}, True)
 
 
 class TestIntrinsicFnBase64Resolver(TestCase):
@@ -126,7 +126,7 @@ class TestIntrinsicFnBase64Resolver(TestCase):
 
     def test_basic_fn_split(self):
         intrinsic = {"Fn::Base64": "AWS CloudFormation"}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "QVdTIENsb3VkRm9ybWF0aW9u")
 
     def test_nested_fn_base64(self):
@@ -134,7 +134,7 @@ class TestIntrinsicFnBase64Resolver(TestCase):
 
         intrinsic_base_2 = {"Fn::Base64": intrinsic_base_1}
         intrinsic = {"Fn::Base64": {"Fn::Join": [",", [intrinsic_base_2, ",e", ",f,", intrinsic_base_2]]}}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
             "VVZaa1ZFbEZUbk5pTTFaclVtMDVlV0pYUmpCaFZ6bDEsLGUsLGYsLFVWWmtWRWxGVG5OaU0xWnJ" "VbTA1ZVdKWFJqQmhWemwx",
@@ -148,7 +148,7 @@ class TestIntrinsicFnBase64Resolver(TestCase):
     )
     def test_fn_base64_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Base64": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Base64": intrinsic}, True)
 
 
 class TestIntrinsicFnSelectResolver(TestCase):
@@ -157,14 +157,14 @@ class TestIntrinsicFnSelectResolver(TestCase):
 
     def test_basic_fn_select(self):
         intrinsic = {"Fn::Select": [2, ["a", "b", "c", "d"]]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "c")
 
     def test_nested_fn_select(self):
         intrinsic_base_1 = {"Fn::Select": [0, ["a", "b", "c", "d"]]}
         intrinsic_base_2 = {"Fn::Join": [";", ["g", "h", "i", intrinsic_base_1]]}
         intrinsic = {"Fn::Select": [3, [intrinsic_base_2, "e", "f", intrinsic_base_2]]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "g;h;i;a")
 
     @parameterized.expand(
@@ -175,7 +175,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
     )
     def test_fn_select_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Select": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Select": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -185,14 +185,14 @@ class TestIntrinsicFnSelectResolver(TestCase):
     )
     def test_fn_select_index_invalid_index_type(self, name, index):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Select": [index, [0]]})
+            self.resolver.intrinsic_property_resolver({"Fn::Select": [index, [0]]}, True)
 
     @parameterized.expand(
         [("Fn::Select should fail if the index is out of bounds: {}".format(number), number) for number in [-2, 7]]
     )
     def test_fn_select_out_of_bounds(self, name, index):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Select": [index, []]})
+            self.resolver.intrinsic_property_resolver({"Fn::Select": [index, []]}, True)
 
     @parameterized.expand(
         [
@@ -202,7 +202,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
     )
     def test_fn_select_second_argument_invalid_type(self, name, argument):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Select": [0, argument]})
+            self.resolver.intrinsic_property_resolver({"Fn::Select": [0, argument]}, True)
 
 
 class TestIntrinsicFnFindInMapResolver(TestCase):
@@ -218,14 +218,14 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
 
     def test_basic_find_in_map(self):
         intrinsic = {"Fn::FindInMap": ["Basic", "Test", "key"]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "value")
 
     def test_nested_find_in_map(self):
         intrinsic_base_1 = {"Fn::FindInMap": ["Basic", "Test", "key"]}
         intrinsic_base_2 = {"Fn::FindInMap": [intrinsic_base_1, "anotherkey", "key"]}
         intrinsic = {"Fn::FindInMap": [intrinsic_base_2, intrinsic_base_1, "key"]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "final")
 
     @parameterized.expand(
@@ -236,7 +236,7 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
     )
     def test_fn_find_in_map_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::FindInMap": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::FindInMap": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -246,7 +246,7 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
     )
     def test_fn_find_in_map_invalid_number_arguments(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::FindInMap": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::FindInMap": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -260,7 +260,7 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
     )
     def test_fn_find_in_map_invalid_key_entries(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::FindInMap": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::FindInMap": intrinsic}, True)
 
 
 class TestIntrinsicFnAzsResolver(TestCase):
@@ -272,11 +272,11 @@ class TestIntrinsicFnAzsResolver(TestCase):
 
     def test_basic_azs(self):
         intrinsic = {"Ref": "AWS::Region"}
-        result = self.resolver.intrinsic_property_resolver({"Fn::GetAZs": intrinsic})
+        result = self.resolver.intrinsic_property_resolver({"Fn::GetAZs": intrinsic}, True)
         self.assertEqual(result, ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"])
 
     def test_default_get_azs(self):
-        result = self.resolver.intrinsic_property_resolver({"Fn::GetAZs": ""})
+        result = self.resolver.intrinsic_property_resolver({"Fn::GetAZs": ""}, True)
         self.assertEqual(result, ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"])
 
     @parameterized.expand(
@@ -287,12 +287,12 @@ class TestIntrinsicFnAzsResolver(TestCase):
     )
     def test_fn_azs_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::GetAZs": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::GetAZs": intrinsic}, True)
 
     def test_fn_azs_invalid_region(self):
         intrinsic = "UNKOWN REGION"
         with self.assertRaises(InvalidIntrinsicException, msg="FN::GetAzs should fail for unknown region"):
-            self.resolver.intrinsic_property_resolver({"Fn::GetAZs": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::GetAZs": intrinsic}, True)
 
 
 class TestFnTransform(TestCase):
@@ -304,12 +304,12 @@ class TestFnTransform(TestCase):
 
     def test_basic_fn_transform(self):
         intrinsic = {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": "test"}}}
-        self.resolver.intrinsic_property_resolver(intrinsic)
+        self.resolver.intrinsic_property_resolver(intrinsic, True)
 
     def test_fn_transform_unsupported_macro(self):
         intrinsic = {"Fn::Transform": {"Name": "UNKNOWN", "Parameters": {"Location": "test"}}}
         with self.assertRaises(InvalidIntrinsicException, msg="FN::Transform should fail for unknown region"):
-            self.resolver.intrinsic_property_resolver(intrinsic)
+            self.resolver.intrinsic_property_resolver(intrinsic, True)
 
 
 class TestIntrinsicFnRefResolver(TestCase):
@@ -324,12 +324,12 @@ class TestIntrinsicFnRefResolver(TestCase):
 
     def test_basic_ref_translation(self):
         intrinsic = {"Ref": "RestApi"}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "NewRestApi")
 
     def test_default_ref_translation(self):
         intrinsic = {"Ref": "UnknownApi"}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "UnknownApi")
 
     @parameterized.expand(
@@ -340,7 +340,7 @@ class TestIntrinsicFnRefResolver(TestCase):
     )
     def test_ref_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Ref": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Ref": intrinsic}, True)
 
 
 class TestIntrinsicFnGetAttResolver(TestCase):
@@ -385,12 +385,12 @@ class TestIntrinsicFnGetAttResolver(TestCase):
 
     def test_fn_getatt_basic_translation(self):
         intrinsic = {"Fn::GetAtt": ["RestApi", "RootResourceId"]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "/")
 
     def test_fn_getatt_logical_id_translated(self):
         intrinsic = {"Fn::GetAtt": ["LambdaFunction", "Arn"]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
             "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
@@ -399,7 +399,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
 
     def test_fn_getatt_with_fn_join(self):
         intrinsic = self.resources.get("LambdaFunction").get("Properties").get("Uri")
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
             "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us"
@@ -414,7 +414,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     )
     def test_fn_getatt_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -424,7 +424,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     )
     def test_fn_getatt_invalid_number_arguments(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -434,7 +434,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     )
     def test_fn_getatt_first_arguments_invalid(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": [intrinsic, IntrinsicResolver.REF]})
+            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": [intrinsic, IntrinsicResolver.REF]}, True)
 
     @parameterized.expand(
         [
@@ -444,7 +444,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     )
     def test_fn_getatt_second_arguments_invalid(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": ["some logical Id", intrinsic]})
+            self.resolver.intrinsic_property_resolver({"Fn::GetAtt": ["some logical Id", intrinsic]}, True)
 
 
 class TestIntrinsicFnSubResolver(TestCase):
@@ -461,7 +461,7 @@ class TestIntrinsicFnSubResolver(TestCase):
         intrinsic = {
             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
         }
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
             "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1"
@@ -475,7 +475,7 @@ class TestIntrinsicFnSubResolver(TestCase):
                 {"MyItem": {"Ref": "AWS::Region"}, "MyOtherItem": "LambdaFunction.Arn"},
             ]
         }
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
             "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
@@ -490,7 +490,7 @@ class TestIntrinsicFnSubResolver(TestCase):
     )
     def test_fn_sub_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Sub": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Sub": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -500,7 +500,7 @@ class TestIntrinsicFnSubResolver(TestCase):
     )
     def test_fn_sub_first_argument_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Sub": [intrinsic, {}]})
+            self.resolver.intrinsic_property_resolver({"Fn::Sub": [intrinsic, {}]}, True)
 
     @parameterized.expand(
         [
@@ -510,7 +510,7 @@ class TestIntrinsicFnSubResolver(TestCase):
     )
     def test_fn_sub_second_argument_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Sub": ["some str", intrinsic]})
+            self.resolver.intrinsic_property_resolver({"Fn::Sub": ["some str", intrinsic]}, True)
 
     @parameterized.expand(
         [
@@ -520,7 +520,7 @@ class TestIntrinsicFnSubResolver(TestCase):
     )
     def test_fn_sub_invalid_number_arguments(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Sub": ["test"] + intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Sub": ["test"] + intrinsic}, True)
 
 
 class TestIntrinsicFnImportValueResolver(TestCase):
@@ -529,7 +529,7 @@ class TestIntrinsicFnImportValueResolver(TestCase):
 
     def test_fn_import_value_unsupported(self):
         with self.assertRaises(InvalidIntrinsicException, msg="Fn::ImportValue should be unsupported"):
-            self.resolver.intrinsic_property_resolver({"Fn::ImportValue": ""})
+            self.resolver.intrinsic_property_resolver({"Fn::ImportValue": ""}, True)
 
 
 class TestIntrinsicFnEqualsResolver(TestCase):
@@ -541,12 +541,12 @@ class TestIntrinsicFnEqualsResolver(TestCase):
 
     def test_fn_equals_basic_true(self):
         intrinsic = {"Fn::Equals": [{"Ref": "EnvironmentType"}, "prod"]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_equals_basic_false(self):
         intrinsic = {"Fn::Equals": [{"Ref": "EnvironmentType"}, "NotProd"]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     def test_fn_equals_nested_true(self):
@@ -554,7 +554,7 @@ class TestIntrinsicFnEqualsResolver(TestCase):
         intrinsic_base_2 = {"Fn::Equals": [{"Ref": "AWS::AccountId"}, "123456789012"]}
 
         intrinsic = {"Fn::Equals": [intrinsic_base_1, intrinsic_base_2]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_equals_nested_false(self):
@@ -562,7 +562,7 @@ class TestIntrinsicFnEqualsResolver(TestCase):
         intrinsic_base_2 = {"Fn::Equals": [{"Ref": "AWS::AccountId"}, "NOT_A_VALID_ACCOUNT_ID"]}
 
         intrinsic = {"Fn::Equals": [intrinsic_base_1, intrinsic_base_2]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     @parameterized.expand(
@@ -573,7 +573,7 @@ class TestIntrinsicFnEqualsResolver(TestCase):
     )
     def test_fn_equals_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Equals": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Equals": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -583,7 +583,7 @@ class TestIntrinsicFnEqualsResolver(TestCase):
     )
     def test_fn_equals_invalid_number_arguments(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Equals": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Equals": intrinsic}, True)
 
 
 class TestIntrinsicFnNotResolver(TestCase):
@@ -599,12 +599,12 @@ class TestIntrinsicFnNotResolver(TestCase):
 
     def test_fn_not_basic_false(self):
         intrinsic = {"Fn::Not": [{"Fn::Equals": [{"Ref": "EnvironmentType"}, "prod"]}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     def test_fn_not_basic_true(self):
         intrinsic = {"Fn::Not": [{"Fn::Equals": [{"Ref": "EnvironmentType"}, "NotProd"]}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_not_nested_true(self):
@@ -612,7 +612,7 @@ class TestIntrinsicFnNotResolver(TestCase):
         intrinsic_base_2 = {"Fn::Equals": [{"Ref": "AWS::AccountId"}, "123456789012"]}
         # !(True && True)
         intrinsic = {"Fn::Not": [{"Fn::Equals": [intrinsic_base_1, intrinsic_base_2]}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_not_nested_false(self):
@@ -620,17 +620,17 @@ class TestIntrinsicFnNotResolver(TestCase):
         intrinsic_base_2 = {"Fn::Not": [{"Fn::Equals": [{"Ref": "AWS::AccountId"}, "123456789012"]}]}
 
         intrinsic = {"Fn::Not": [{"Fn::Equals": [intrinsic_base_1, intrinsic_base_2]}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     def test_fn_not_condition_false(self):
         intrinsic = {"Fn::Not": [{"Condition": "TestCondition"}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     def test_fn_not_condition_true(self):
         intrinsic = {"Fn::Not": [{"Condition": "NotTestCondition"}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     @parameterized.expand(
@@ -641,7 +641,7 @@ class TestIntrinsicFnNotResolver(TestCase):
     )
     def test_fn_not_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Not": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Not": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -651,7 +651,7 @@ class TestIntrinsicFnNotResolver(TestCase):
     )
     def test_fn_not_first_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Not": [intrinsic]})
+            self.resolver.intrinsic_property_resolver({"Fn::Not": [intrinsic]}, True)
 
     @parameterized.expand(
         [
@@ -661,11 +661,11 @@ class TestIntrinsicFnNotResolver(TestCase):
     )
     def test_fn_not_invalid_number_arguments(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Not": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Not": intrinsic}, True)
 
     def test_fn_not_invalid_condition(self):
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
-            self.resolver.intrinsic_property_resolver({"Fn::Not": [{"Condition": "NOT_VALID_CONDITION"}]})
+            self.resolver.intrinsic_property_resolver({"Fn::Not": [{"Condition": "NOT_VALID_CONDITION"}]}, True)
 
 
 class TestIntrinsicFnAndResolver(TestCase):
@@ -682,13 +682,13 @@ class TestIntrinsicFnAndResolver(TestCase):
     def test_fn_and_basic_true(self):
         prod_fn_equals = {"Fn::Equals": [{"Ref": "EnvironmentType"}, "prod"]}
         intrinsic = {"Fn::And": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_and_basic_false(self):
         prod_fn_equals = {"Fn::Equals": [{"Ref": "EnvironmentType"}, "prod"]}
         intrinsic = {"Fn::And": [prod_fn_equals, {"Condition": "NotTestCondition"}, prod_fn_equals]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     def test_fn_and_nested_true(self):
@@ -696,7 +696,7 @@ class TestIntrinsicFnAndResolver(TestCase):
         intrinsic_base = {"Fn::And": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]}
         fn_not_intrinsic = {"Fn::Not": [{"Condition": "NotTestCondition"}]}
         intrinsic = {"Fn::And": [intrinsic_base, fn_not_intrinsic, prod_fn_equals]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_and_nested_false(self):
@@ -704,7 +704,7 @@ class TestIntrinsicFnAndResolver(TestCase):
         prod_fn_not_equals = {"Fn::Equals": [{"Ref": "EnvironmentType"}, "NOT_EQUAL"]}
         intrinsic_base = {"Fn::And": [prod_fn_equals, {"Condition": "NotTestCondition"}, prod_fn_equals]}
         intrinsic = {"Fn::And": [{"Fn::Not": [intrinsic_base]}, prod_fn_not_equals]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     @parameterized.expand(
@@ -715,7 +715,7 @@ class TestIntrinsicFnAndResolver(TestCase):
     )
     def test_fn_and_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::And": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::And": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -725,11 +725,11 @@ class TestIntrinsicFnAndResolver(TestCase):
     )
     def test_fn_and_all_arguments_bool(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::And": [intrinsic, intrinsic, intrinsic]})
+            self.resolver.intrinsic_property_resolver({"Fn::And": [intrinsic, intrinsic, intrinsic]}, True)
 
     def test_fn_and_invalid_condition(self):
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
-            self.resolver.intrinsic_property_resolver({"Fn::And": [{"Condition": "NOT_VALID_CONDITION"}]})
+            self.resolver.intrinsic_property_resolver({"Fn::And": [{"Condition": "NOT_VALID_CONDITION"}]}, True)
 
 
 class TestIntrinsicFnOrResolver(TestCase):
@@ -747,12 +747,12 @@ class TestIntrinsicFnOrResolver(TestCase):
     def test_fn_or_basic_true(self):
         prod_fn_equals = {"Fn::Equals": [{"Ref": "EnvironmentType"}, "prod"]}
         intrinsic = {"Fn::Or": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_or_basic_single_true(self):
         intrinsic = {"Fn::Or": [False, False, {"Condition": "TestCondition"}, False]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_or_basic_false(self):
@@ -760,7 +760,7 @@ class TestIntrinsicFnOrResolver(TestCase):
         intrinsic = {
             "Fn::Or": [{"Fn::Not": [prod_fn_equals]}, {"Condition": "NotTestCondition"}, {"Fn::Not": [prod_fn_equals]}]
         }
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     def test_fn_or_nested_true(self):
@@ -771,7 +771,7 @@ class TestIntrinsicFnOrResolver(TestCase):
         intrinsic_base = {"Fn::Or": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]}
         fn_not_intrinsic = {"Fn::Not": [{"Condition": "NotTestCondition"}]}
         intrinsic = {"Fn::Or": [failed_intrinsic_or, intrinsic_base, fn_not_intrinsic, fn_not_intrinsic]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_or_nested_false(self):
@@ -781,7 +781,7 @@ class TestIntrinsicFnOrResolver(TestCase):
         }
         intrinsic_base = {"Fn::Or": [prod_fn_equals, {"Condition": "TestCondition"}, prod_fn_equals]}
         intrinsic = {"Fn::Or": [failed_intrinsic_or, {"Fn::Not": [intrinsic_base]}]}
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     @parameterized.expand(
@@ -792,7 +792,7 @@ class TestIntrinsicFnOrResolver(TestCase):
     )
     def test_fn_or_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Or": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Or": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -802,11 +802,11 @@ class TestIntrinsicFnOrResolver(TestCase):
     )
     def test_fn_or_all_arguments_bool(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Or": [intrinsic, intrinsic, intrinsic]})
+            self.resolver.intrinsic_property_resolver({"Fn::Or": [intrinsic, intrinsic, intrinsic]}, True)
 
     def test_fn_or_invalid_condition(self):
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
-            self.resolver.intrinsic_property_resolver({"Fn::Or": [{"Condition": "NOT_VALID_CONDITION"}]})
+            self.resolver.intrinsic_property_resolver({"Fn::Or": [{"Condition": "NOT_VALID_CONDITION"}]}, True)
 
 
 class TestIntrinsicFnIfResolver(TestCase):
@@ -824,13 +824,13 @@ class TestIntrinsicFnIfResolver(TestCase):
     def test_fn_if_basic_true(self):
         intrinsic = {"Fn::If": ["TestCondition", True, False]}
 
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_fn_if_basic_false(self):
         intrinsic = {"Fn::If": ["NotTestCondition", True, False]}
 
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     def test_nested_fn_if_true(self):
@@ -838,7 +838,7 @@ class TestIntrinsicFnIfResolver(TestCase):
         intrinsic_base_2 = {"Fn::If": ["TestCondition", True, False]}
         intrinsic = {"Fn::If": ["TestCondition", intrinsic_base_2, intrinsic_base_1]}
 
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertTrue(result)
 
     def test_nested_fn_if_false(self):
@@ -846,7 +846,7 @@ class TestIntrinsicFnIfResolver(TestCase):
         intrinsic_base_2 = {"Fn::If": ["TestCondition", True, False]}
         intrinsic = {"Fn::If": ["TestCondition", intrinsic_base_1, intrinsic_base_2]}
 
-        result = self.resolver.intrinsic_property_resolver(intrinsic)
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
 
     @parameterized.expand(
@@ -857,7 +857,7 @@ class TestIntrinsicFnIfResolver(TestCase):
     )
     def test_fn_if_arguments_invalid_formats(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::If": intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::If": intrinsic}, True)
 
     @parameterized.expand(
         [
@@ -867,11 +867,11 @@ class TestIntrinsicFnIfResolver(TestCase):
     )
     def test_fn_if_condition_arguments_invalid_type(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::If": [intrinsic, True, False]})
+            self.resolver.intrinsic_property_resolver({"Fn::If": [intrinsic, True, False]}, True)
 
     def test_fn_if_invalid_condition(self):
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
-            self.resolver.intrinsic_property_resolver({"Fn::If": ["NOT_VALID_CONDITION", "test", "test"]})
+            self.resolver.intrinsic_property_resolver({"Fn::If": ["NOT_VALID_CONDITION", "test", "test"]}, True)
 
     @parameterized.expand(
         [
@@ -881,11 +881,11 @@ class TestIntrinsicFnIfResolver(TestCase):
     )
     def test_fn_if_invalid_number_arguments(self, name, intrinsic):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
-            self.resolver.intrinsic_property_resolver({"Fn::Not": ["TestCondition"] + intrinsic})
+            self.resolver.intrinsic_property_resolver({"Fn::Not": ["TestCondition"] + intrinsic}, True)
 
     def test_fn_if_condition_not_bool_fail(self):
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
-            self.resolver.intrinsic_property_resolver({"Fn::If": ["InvalidCondition", "test", "test"]})
+            self.resolver.intrinsic_property_resolver({"Fn::If": ["InvalidCondition", "test", "test"]}, True)
 
 
 class TestIntrinsicAttribteResolution(TestCase):
@@ -986,15 +986,8 @@ class TestIntrinsicAttribteResolution(TestCase):
                 },
                 "Type": "AWS::Lambda::Function",
             },
-            "RestApi.Deployment": {
-                "Properties": {
-                    "Body": {
-                        "Fn::Base64": {
-                            "Fn::Join": [";", {"Fn::Split": [",", {"Fn::Join": [",", ["a", "e", "f", "d"]]}]}]  # NOQA
-                        }
-                    },
-                    "BodyS3Location": {"Fn::FindInMap": []},
-                },
+            "RestApi": {
+                "Properties": {"Body": "YTtlO2Y7ZA==", "BodyS3Location": {"Fn::FindInMap": []}},
                 "Type": "AWS::ApiGateway::RestApi",
             },
             "RestApiResource": {"Properties": {"PathPart": "{proxy+}", "RestApiId": "RestApi", "parentId": "/"}},
