@@ -84,7 +84,7 @@ class BuildContext(object):
     def _setup_build_dir(build_dir, clean):
         build_path = pathlib.Path(build_dir)
 
-        if os.path.abspath(build_path) == os.path.abspath(pathlib.Path.cwd()):
+        if os.path.abspath(str(build_path)) == os.path.abspath(str(pathlib.Path.cwd())):
             exception_message = "'build-dir' should not be the current workding directoy as the directory " \
                 "will be deleted. In the intention is to use the current working directory as the where the " \
                 "output should be place, either remove the 'build-dir' option and use the default or create a " \
