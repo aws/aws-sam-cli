@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import logging
+from unittest import skipIf
 
 try:
     from pathlib import Path
@@ -16,6 +17,7 @@ from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI
 LOG = logging.getLogger(__name__)
 
 
+@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -98,6 +100,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 
+@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     def test_unsupported_runtime(self):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
@@ -113,6 +116,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         self.assertIn("Build Failed", process_stdout)
 
 
+@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -180,6 +184,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         self.assertEquals(actual_files, expected_modules)
 
 
+@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
 class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -187,7 +192,6 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
     EXPECTED_RUBY_GEM = "httparty"
 
     FUNCTION_LOGICAL_ID = "Function"
-
 
     @parameterized.expand([("ruby2.5", False), ("ruby2.5", "use_container")])
     def test_with_default_gemfile(self, runtime, use_container):
@@ -215,7 +219,6 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
             ),
         )
         self.verify_docker_container_cleanedup(runtime)
-
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
 
@@ -248,6 +251,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
 
 
+@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
 class TestBuildCommand_Java(BuildIntegBase):
 
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
@@ -259,8 +263,8 @@ class TestBuildCommand_Java(BuildIntegBase):
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
-    WINDOWS_LINE_ENDING = b'\r\n'
-    UNIX_LINE_ENDING = b'\n'
+    WINDOWS_LINE_ENDING = b"\r\n"
+    UNIX_LINE_ENDING = b"\n"
 
     @parameterized.expand(
         [
@@ -275,12 +279,10 @@ class TestBuildCommand_Java(BuildIntegBase):
         ]
     )
     def test_with_building_java(self, runtime, code_path, expected_files, use_container):
-        if IS_WINDOWS and RUNNING_ON_CI:
-            self.skipTest("Bypassing Java build tests on windows while running on CI environment")
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
-            self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, 'gradlew'))
+            self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
@@ -329,15 +331,16 @@ class TestBuildCommand_Java(BuildIntegBase):
         self.assertEquals(lib_dir_contents, expected_modules)
 
     def _change_to_unix_line_ending(self, path):
-        with open(os.path.abspath(path), 'rb') as open_file:
+        with open(os.path.abspath(path), "rb") as open_file:
             content = open_file.read()
 
         content = content.replace(self.WINDOWS_LINE_ENDING, self.UNIX_LINE_ENDING)
 
-        with open(os.path.abspath(path), 'wb') as open_file:
+        with open(os.path.abspath(path), "wb") as open_file:
             open_file.write(content)
 
 
+@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -435,6 +438,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.assertEquals(actual_files, expected_files)
 
 
+@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
