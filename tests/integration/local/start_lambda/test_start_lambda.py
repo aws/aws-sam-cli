@@ -46,6 +46,7 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
         for result in results:
             self.assertEqual(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
 
+
 class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     template_path = "/testdata/invoke/template.yml"
 
