@@ -42,29 +42,9 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
 
         self.assertEqual(len(results), 10)
         self.assertGreater(end_time - start_time, 10)
-        self.assertLess(end_time - start_time, 20)
 
         for result in results:
             self.assertEqual(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
-
-
-class TestLambdaToLambdaInvoke(StartLambdaIntegBaseClass):
-    template_path = "/testdata/start_lambda/template.yml"
-
-    def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
-
-    def test_local_lambda_calling_local_lambda(self):
-        pass
-
 
 class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     template_path = "/testdata/invoke/template.yml"

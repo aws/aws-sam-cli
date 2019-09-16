@@ -3,9 +3,6 @@ image:
   - Ubuntu
   - Visual Studio 2017
 
-configuration: 
-  - smoke
-
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
