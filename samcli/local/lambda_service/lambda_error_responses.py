@@ -9,22 +9,22 @@ from samcli.local.services.base_local_service import BaseLocalService
 class LambdaErrorResponses(object):
 
     # The content type of the Invoke request body is not JSON.
-    UnsupportedMediaTypeException = ('UnsupportedMediaType', 415)
+    UnsupportedMediaTypeException = ("UnsupportedMediaType", 415)
 
     # The AWS Lambda service encountered an internal error.
-    ServiceException = ('Service', 500)
+    ServiceException = ("Service", 500)
 
     # The resource (for example, a Lambda function or access policy statement) specified in the request does not exist.
-    ResourceNotFoundException = ('ResourceNotFound', 404)
+    ResourceNotFoundException = ("ResourceNotFound", 404)
 
     # The request body could not be parsed as JSON.
-    InvalidRequestContentException = ('InvalidRequestContent', 400)
+    InvalidRequestContentException = ("InvalidRequestContent", 400)
 
-    NotImplementedException = ('NotImplemented', 501)
+    NotImplementedException = ("NotImplemented", 501)
 
-    PathNotFoundException = ('PathNotFoundLocally', 404)
+    PathNotFoundException = ("PathNotFoundLocally", 404)
 
-    MethodNotAllowedException = ('MethodNotAllowedLocally', 405)
+    MethodNotAllowedException = ("MethodNotAllowedLocally", 405)
 
     # Error Types
     USER_ERROR = "User"
@@ -32,8 +32,8 @@ class LambdaErrorResponses(object):
     LOCAL_SERVICE_ERROR = "LocalService"
 
     # Header Information
-    CONTENT_TYPE = 'application/json'
-    CONTENT_TYPE_HEADER_KEY = 'Content-Type'
+    CONTENT_TYPE = "application/json"
+    CONTENT_TYPE_HEADER_KEY = "Content-Type"
 
     @staticmethod
     def resource_not_found(function_name):
@@ -55,10 +55,10 @@ class LambdaErrorResponses(object):
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(
                 LambdaErrorResponses.USER_ERROR,
-                "Function not found: arn:aws:lambda:us-west-2:012345678901:function:{}".format(function_name)
+                "Function not found: arn:aws:lambda:us-west-2:012345678901:function:{}".format(function_name),
             ),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
-            exception_tuple[1]
+            exception_tuple[1],
         )
 
     @staticmethod
@@ -81,7 +81,7 @@ class LambdaErrorResponses(object):
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR, message),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
-            exception_tuple[1]
+            exception_tuple[1],
         )
 
     @staticmethod
@@ -102,10 +102,11 @@ class LambdaErrorResponses(object):
         exception_tuple = LambdaErrorResponses.UnsupportedMediaTypeException
 
         return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.USER_ERROR,
-                                                                "Unsupported content type: {}".format(content_type)),
+            LambdaErrorResponses._construct_error_response_body(
+                LambdaErrorResponses.USER_ERROR, "Unsupported content type: {}".format(content_type)
+            ),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
-            exception_tuple[1]
+            exception_tuple[1],
         )
 
     @staticmethod
@@ -128,7 +129,7 @@ class LambdaErrorResponses(object):
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.SERVICE_ERROR, "ServiceException"),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
-            exception_tuple[1]
+            exception_tuple[1],
         )
 
     @staticmethod
@@ -151,7 +152,7 @@ class LambdaErrorResponses(object):
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR, message),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
-            exception_tuple[1]
+            exception_tuple[1],
         )
 
     @staticmethod
@@ -173,9 +174,10 @@ class LambdaErrorResponses(object):
 
         return BaseLocalService.service_response(
             LambdaErrorResponses._construct_error_response_body(
-                LambdaErrorResponses.LOCAL_SERVICE_ERROR, "PathNotFoundException"),
+                LambdaErrorResponses.LOCAL_SERVICE_ERROR, "PathNotFoundException"
+            ),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
-            exception_tuple[1]
+            exception_tuple[1],
         )
 
     @staticmethod
@@ -196,10 +198,11 @@ class LambdaErrorResponses(object):
         exception_tuple = LambdaErrorResponses.MethodNotAllowedException
 
         return BaseLocalService.service_response(
-            LambdaErrorResponses._construct_error_response_body(LambdaErrorResponses.LOCAL_SERVICE_ERROR,
-                                                                "MethodNotAllowedException"),
+            LambdaErrorResponses._construct_error_response_body(
+                LambdaErrorResponses.LOCAL_SERVICE_ERROR, "MethodNotAllowedException"
+            ),
             LambdaErrorResponses._construct_headers(exception_tuple[0]),
-            exception_tuple[1]
+            exception_tuple[1],
         )
 
     @staticmethod
@@ -238,5 +241,4 @@ class LambdaErrorResponses(object):
         dict
             Dict representing the Lambda Error Response Headers
         """
-        return {'x-amzn-errortype': error_type,
-                'Content-Type': 'application/json'}
+        return {"x-amzn-errortype": error_type, "Content-Type": "application/json"}

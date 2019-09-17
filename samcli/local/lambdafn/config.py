@@ -14,15 +14,7 @@ class FunctionConfig(object):
     _DEFAULT_TIMEOUT_SECONDS = 3
     _DEFAULT_MEMORY = 128
 
-    def __init__(self,
-                 name,
-                 runtime,
-                 handler,
-                 code_abs_path,
-                 layers,
-                 memory=None,
-                 timeout=None,
-                 env_vars=None):
+    def __init__(self, name, runtime, handler, code_abs_path, layers, memory=None, timeout=None, env_vars=None):
         """
         Initialize the class.
 

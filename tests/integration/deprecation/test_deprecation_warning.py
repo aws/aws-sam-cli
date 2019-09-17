@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 
@@ -8,7 +9,6 @@ from samcli.cli.command import DEPRECATION_NOTICE
 
 
 class TestPy2DeprecationWarning(TestCase):
-
     def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
@@ -26,6 +26,7 @@ class TestPy2DeprecationWarning(TestCase):
         process = self.run_cmd()
         (stdoutdata, stderrdata) = process.communicate()
 
+        expected_notice = re.sub(r"\n", os.linesep, DEPRECATION_NOTICE)
         # Deprecation notice should be part of the command output if running in python 2
         if sys.version_info.major == 2:
-            self.assertIn(DEPRECATION_NOTICE, stderrdata.decode())
+            self.assertIn(expected_notice, stderrdata.decode())

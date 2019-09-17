@@ -21,7 +21,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.package",
     "samcli.commands.deploy",
     "samcli.commands.logs",
-    "samcli.commands.publish"
+    "samcli.commands.publish",
 ]
 
 DEPRECATION_NOTICE = (
@@ -85,7 +85,7 @@ class BaseCommand(click.MultiCommand):
         commands = OrderedDict()
 
         for pkg_name in package_names:
-            cmd_name = pkg_name.split('.')[-1]
+            cmd_name = pkg_name.split(".")[-1]
             commands[cmd_name] = pkg_name
 
         return commands

@@ -31,20 +31,18 @@ class EnvironmentVariables(object):
     """
 
     _BLANK_VALUE = ""
-    _DEFAULT_AWS_CREDS = {
-        "region": "us-east-1",
-        "key": "defaultkey",
-        "secret": "defaultsecret"
-    }
+    _DEFAULT_AWS_CREDS = {"region": "us-east-1", "key": "defaultkey", "secret": "defaultsecret"}
 
-    def __init__(self,
-                 function_memory=None,
-                 function_timeout=None,
-                 function_handler=None,
-                 variables=None,
-                 shell_env_values=None,
-                 override_values=None,
-                 aws_creds=None):
+    def __init__(
+        self,
+        function_memory=None,
+        function_timeout=None,
+        function_handler=None,
+        variables=None,
+        shell_env_values=None,
+        override_values=None,
+        aws_creds=None,
+    ):
         """
         Initializes this class. It takes in two sets of properties:
             a) (Required) Function information
@@ -63,11 +61,7 @@ class EnvironmentVariables(object):
             environment variables. It should contain "key", "secret", "region" and optional "sessiontoken" keys
         """
 
-        self._function = {
-            "memory": function_memory,
-            "timeout": function_timeout,
-            "handler": function_handler
-        }
+        self._function = {"memory": function_memory, "timeout": function_timeout, "handler": function_handler}
 
         self.variables = variables or {}
         self.shell_env_values = shell_env_values or {}
@@ -144,21 +138,15 @@ class EnvironmentVariables(object):
         result = {
             # Variable that says this function is running in Local Lambda
             "AWS_SAM_LOCAL": "true",
-
             # Function configuration
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": str(self.memory),
             "AWS_LAMBDA_FUNCTION_TIMEOUT": str(self.timeout),
             "AWS_LAMBDA_FUNCTION_HANDLER": str(self._function["handler"]),
-
             # AWS Credentials - Use the input credentials or use the defaults
             "AWS_REGION": self.aws_creds.get("region", self._DEFAULT_AWS_CREDS["region"]),
-
             "AWS_DEFAULT_REGION": self.aws_creds.get("region", self._DEFAULT_AWS_CREDS["region"]),
-
             "AWS_ACCESS_KEY_ID": self.aws_creds.get("key", self._DEFAULT_AWS_CREDS["key"]),
-
             "AWS_SECRET_ACCESS_KEY": self.aws_creds.get("secret", self._DEFAULT_AWS_CREDS["secret"])
-
             # Additional variables we don't fill in
             # "AWS_ACCOUNT_ID="
             # "AWS_LAMBDA_EVENT_BODY=",

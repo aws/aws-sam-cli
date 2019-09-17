@@ -30,16 +30,19 @@ run aws cloudformation package help.
 
 
 @click.command("package", short_help=SHORT_HELP, context_settings={"ignore_unknown_options": True}, help=HELP_TEXT)
-@click.option('--template-file',
-              default=_TEMPLATE_OPTION_DEFAULT_VALUE,
-              type=click.Path(),
-              callback=partial(get_or_default_template_file_name, include_build=True),
-              show_default=False,
-              help="The path where your AWS SAM template is located")
-@click.option('--s3-bucket',
-              required=True,
-              help="The name of the S3 bucket where this command uploads the artifacts that "
-                   "are referenced in your template.")
+@click.option(
+    "--template-file",
+    default=_TEMPLATE_OPTION_DEFAULT_VALUE,
+    type=click.Path(),
+    callback=partial(get_or_default_template_file_name, include_build=True),
+    show_default=False,
+    help="The path where your AWS SAM template is located",
+)
+@click.option(
+    "--s3-bucket",
+    required=True,
+    help="The name of the S3 bucket where this command uploads the artifacts that " "are referenced in your template.",
+)
 @click.argument("args", nargs=-1, type=click.UNPROCESSED)
 @common_options
 @pass_context
@@ -52,7 +55,7 @@ def cli(ctx, args, template_file, s3_bucket):
 
 
 def do_cli(args, template_file, s3_bucket):
-    args = args + ('--s3-bucket', s3_bucket)
+    args = args + ("--s3-bucket", s3_bucket)
 
     try:
         execute_command("package", args, template_file)

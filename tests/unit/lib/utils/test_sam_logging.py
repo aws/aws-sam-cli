@@ -5,7 +5,6 @@ from samcli.lib.utils.sam_logging import SamCliLogger
 
 
 class TestSamCliLogger(TestCase):
-
     @patch("samcli.lib.utils.sam_logging.logging")
     def test_configure_samcli_logger(self, logging_patch):
         formatter_mock = Mock()

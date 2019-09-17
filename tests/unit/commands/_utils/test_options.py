@@ -10,13 +10,12 @@ from samcli.commands._utils.options import get_or_default_template_file_name, _T
 
 
 class TestGetOrDefaultTemplateFileName(TestCase):
-
     def test_must_return_abspath_of_user_provided_value(self):
         filename = "foo.txt"
         expected = os.path.abspath(filename)
 
         result = get_or_default_template_file_name(None, None, filename, include_build=False)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     @patch("samcli.commands._utils.options.os")
     def test_must_return_yml_extension(self, os_mock):
@@ -26,7 +25,7 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         os_mock.path.abspath.return_value = "absPath"
 
         result = get_or_default_template_file_name(None, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=False)
-        self.assertEquals(result, "absPath")
+        self.assertEqual(result, "absPath")
         os_mock.path.abspath.assert_called_with(expected)
 
     @patch("samcli.commands._utils.options.os")
@@ -37,7 +36,7 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         os_mock.path.abspath.return_value = "absPath"
 
         result = get_or_default_template_file_name(None, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=False)
-        self.assertEquals(result, "absPath")
+        self.assertEqual(result, "absPath")
         os_mock.path.abspath.assert_called_with(expected)
 
     @patch("samcli.commands._utils.options.os")
@@ -49,5 +48,5 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         os_mock.path.abspath.return_value = "absPath"
 
         result = get_or_default_template_file_name(None, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
-        self.assertEquals(result, "absPath")
+        self.assertEqual(result, "absPath")
         os_mock.path.abspath.assert_called_with(expected)

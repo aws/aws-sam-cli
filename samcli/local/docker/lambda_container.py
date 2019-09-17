@@ -31,15 +31,17 @@ class LambdaContainer(Container):
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
     _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
 
-    def __init__(self,  # pylint: disable=R0914
-                 runtime,
-                 handler,
-                 code_dir,
-                 layers,
-                 image_builder,
-                 memory_mb=128,
-                 env_vars=None,
-                 debug_options=None):
+    def __init__(
+        self,  # pylint: disable=R0914
+        runtime,
+        handler,
+        code_dir,
+        layers,
+        image_builder,
+        memory_mb=128,
+        env_vars=None,
+        debug_options=None,
+    ):
         """
         Initializes the class
 
@@ -74,16 +76,18 @@ class LambdaContainer(Container):
         additional_volumes = LambdaContainer._get_additional_volumes(debug_options)
         cmd = [handler]
 
-        super(LambdaContainer, self).__init__(image,
-                                              cmd,
-                                              self._WORKING_DIR,
-                                              code_dir,
-                                              memory_limit_mb=memory_mb,
-                                              exposed_ports=ports,
-                                              entrypoint=entry,
-                                              env_vars=env_vars,
-                                              container_opts=additional_options,
-                                              additional_volumes=additional_volumes)
+        super(LambdaContainer, self).__init__(
+            image,
+            cmd,
+            self._WORKING_DIR,
+            code_dir,
+            memory_limit_mb=memory_mb,
+            exposed_ports=ports,
+            entrypoint=entry,
+            env_vars=env_vars,
+            container_opts=additional_options,
+            additional_volumes=additional_volumes,
+        )
 
     @staticmethod
     def _get_exposed_ports(debug_options):
@@ -135,9 +139,7 @@ class LambdaContainer(Container):
         if not debug_options or not debug_options.debugger_path:
             return None
 
-        return {
-            debug_options.debugger_path: LambdaContainer._DEBUGGER_VOLUME_MOUNT
-        }
+        return {debug_options.debugger_path: LambdaContainer._DEBUGGER_VOLUME_MOUNT}
 
     @staticmethod
     def _get_image(image_builder, runtime, layers):
@@ -185,7 +187,9 @@ class LambdaContainer(Container):
 
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
-        return LambdaDebugEntryPoint.get_entry_point(debug_port=debug_port,
-                                                     debug_args_list=debug_args_list,
-                                                     runtime=runtime,
-                                                     options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS)
+        return LambdaDebugEntryPoint.get_entry_point(
+            debug_port=debug_port,
+            debug_args_list=debug_args_list,
+            runtime=runtime,
+            options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,
+        )

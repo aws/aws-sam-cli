@@ -10,7 +10,6 @@ from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
 
 
 class TestApiProvider_init(TestCase):
-
     @patch.object(ApiProvider, "_extract_api")
     @patch("samcli.commands.local.lib.api_provider.SamBaseProvider")
     def test_provider_with_valid_template(self, SamBaseProviderMock, extract_api_mock):
@@ -19,11 +18,11 @@ class TestApiProvider_init(TestCase):
         SamBaseProviderMock.get_template.return_value = template
 
         provider = ApiProvider(template)
-        self.assertEquals(len(provider.routes), 3)
-        self.assertEquals(provider.routes, set(["set", "of", "values"]))
+        self.assertEqual(len(provider.routes), 3)
+        self.assertEqual(provider.routes, set(["set", "of", "values"]))
 
-        self.assertEquals(provider.template_dict, {"Resources": {"a": "b"}})
-        self.assertEquals(provider.resources, {"a": "b"})
+        self.assertEqual(provider.template_dict, {"Resources": {"a": "b"}})
+        self.assertEqual(provider.resources, {"a": "b"})
 
 
 class TestApiProviderSelection(TestCase):
@@ -42,16 +41,15 @@ class TestApiProviderSelection(TestCase):
                                         "type": "aws_proxy",
                                         "uri": {
                                             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            "/functions/${NoApiEventFunction.Arn}/invocations"
                                         },
                                         "responses": {},
-                                    },
+                                    }
                                 }
                             }
-
                         }
-                    }
-                }
+                    },
+                },
             }
         }
 
@@ -73,16 +71,15 @@ class TestApiProviderSelection(TestCase):
                                         "type": "aws_proxy",
                                         "uri": {
                                             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            "/functions/${NoApiEventFunction.Arn}/invocations"
                                         },
                                         "responses": {},
-                                    },
+                                    }
                                 }
                             }
-
                         }
-                    }
-                }
+                    },
+                },
             }
         }
 
@@ -104,16 +101,15 @@ class TestApiProviderSelection(TestCase):
                                         "type": "aws_proxy",
                                         "uri": {
                                             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            "/functions/${NoApiEventFunction.Arn}/invocations"
                                         },
                                         "responses": {},
-                                    },
+                                    }
                                 }
                             }
-
                         }
-                    }
-                }
+                    },
+                },
             }
         }
 
@@ -136,16 +132,15 @@ class TestApiProviderSelection(TestCase):
                                         "type": "aws_proxy",
                                         "uri": {
                                             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                       "/functions/${NoApiEventFunction.Arn}/invocations",
+                                            "/functions/${NoApiEventFunction.Arn}/invocations"
                                         },
                                         "responses": {},
-                                    },
+                                    }
                                 }
                             }
-
                         }
-                    }
-                }
+                    },
+                },
             }
         }
 
@@ -167,16 +162,15 @@ class TestApiProviderSelection(TestCase):
                                     "type": "aws_proxy",
                                     "uri": {
                                         "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        "/functions/${NoApiEventFunction.Arn}/invocations"
                                     },
                                     "responses": {},
-                                },
+                                }
                             }
                         }
-
                     }
-                }
-            }
+                },
+            },
         }
         resources["OtherApi"] = {
             "Type": "AWS::Serverless::Api",
@@ -191,16 +185,15 @@ class TestApiProviderSelection(TestCase):
                                     "type": "aws_proxy",
                                     "uri": {
                                         "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
-                                                   "/functions/${NoApiEventFunction.Arn}/invocations",
+                                        "/functions/${NoApiEventFunction.Arn}/invocations"
                                     },
                                     "responses": {},
-                                },
+                                }
                             }
                         }
-
                     }
-                }
-            }
+                },
+            },
         }
 
         provider = ApiProvider.find_api_provider(resources)

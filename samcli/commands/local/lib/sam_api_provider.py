@@ -15,10 +15,7 @@ LOG = logging.getLogger(__name__)
 class SamApiProvider(CfnBaseApiProvider):
     SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     SERVERLESS_API = "AWS::Serverless::Api"
-    TYPES = [
-        SERVERLESS_FUNCTION,
-        SERVERLESS_API
-    ]
+    TYPES = [SERVERLESS_FUNCTION, SERVERLESS_API]
     _FUNCTION_EVENT_TYPE_API = "Api"
     _FUNCTION_EVENT = "Events"
     _EVENT_PATH = "Path"
@@ -85,8 +82,9 @@ class SamApiProvider(CfnBaseApiProvider):
         stage_variables = properties.get("Variables")
         if not body and not uri:
             # Swagger is not found anywhere.
-            LOG.debug("Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri",
-                      logical_id)
+            LOG.debug(
+                "Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri", logical_id
+            )
             return
         self.extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=cwd)
         collector.stage_name = stage_name
@@ -105,22 +103,57 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = cors_prop.get("AllowMethods", ','.join(sorted(Route.ANY_HTTP_METHODS)))
-            allow_methods = self.normalize_cors_allow_methods(allow_methods)
+            allow_methods = self._get_cors_prop(cors_prop, "AllowMethods")
+            if allow_methods:
+                allow_methods = self.normalize_cors_allow_methods(allow_methods)
+            else:
+                allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
+
+            allow_origin = self._get_cors_prop(cors_prop, "AllowOrigin")
+            allow_headers = self._get_cors_prop(cors_prop, "AllowHeaders")
+            max_age = self._get_cors_prop(cors_prop, "MaxAge")
+
             cors = Cors(
-                allow_origin=cors_prop.get("AllowOrigin"),
-                allow_methods=allow_methods,
-                allow_headers=cors_prop.get("AllowHeaders"),
-                max_age=cors_prop.get("MaxAge")
+                allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
             )
         elif cors_prop and isinstance(cors_prop, string_types):
+            allow_origin = cors_prop
+            if not (allow_origin.startswith("'") and allow_origin.endswith("'")):
+                raise InvalidSamDocumentException(
+                    "Cors Properties must be a quoted string " '(i.e. "\'*\'" is correct, but "*" is not).'
+                )
+            allow_origin = allow_origin.strip("'")
+
             cors = Cors(
-                allow_origin=cors_prop,
-                allow_methods=','.join(sorted(Route.ANY_HTTP_METHODS)),
+                allow_origin=allow_origin,
+                allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
-                max_age=None
+                max_age=None,
             )
         return cors
+
+    @staticmethod
+    def _get_cors_prop(cors_dict, prop_name):
+        """
+        Extract cors properties from dictionary and remove extra quotes.
+
+        Parameters
+        ----------
+        cors_dict : dict
+            Resource properties for Cors
+
+        Return
+        ------
+        A string with the extra quotes removed
+        """
+        prop = cors_dict.get(prop_name)
+        if prop:
+            if (not isinstance(prop, string_types)) or (not (prop.startswith("'") and prop.endswith("'"))):
+                raise InvalidSamDocumentException(
+                    "{} must be a quoted string " '(i.e. "\'value\'" is correct, but "value" is not).'.format(prop_name)
+                )
+            prop = prop.strip("'")
+        return prop
 
     @staticmethod
     def normalize_cors_allow_methods(allow_methods):
@@ -137,7 +170,7 @@ class SamApiProvider(CfnBaseApiProvider):
         A string with normalized route
         """
         if allow_methods == "*":
-            return ','.join(sorted(Route.ANY_HTTP_METHODS))
+            return ",".join(sorted(Route.ANY_HTTP_METHODS))
         methods = allow_methods.split(",")
         normalized_methods = []
         for method in methods:
@@ -149,7 +182,7 @@ class SamApiProvider(CfnBaseApiProvider):
         if "OPTIONS" not in normalized_methods:
             normalized_methods.append("OPTIONS")
 
-        return ','.join(sorted(normalized_methods))
+        return ",".join(sorted(normalized_methods))
 
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
         """
@@ -219,9 +252,10 @@ class SamApiProvider(CfnBaseApiProvider):
         # This is still a dictionary. Something wrong with the template
         if isinstance(api_resource_id, dict):
             LOG.debug("Invalid RestApiId property of event %s", event_properties)
-            raise InvalidSamDocumentException("RestApiId property of resource with logicalId '{}' is invalid. "
-                                              "It should either be a LogicalId string or a Ref of a Logical Id string"
-                                              .format(lambda_logical_id))
+            raise InvalidSamDocumentException(
+                "RestApiId property of resource with logicalId '{}' is invalid. "
+                "It should either be a LogicalId string or a Ref of a Logical Id string".format(lambda_logical_id)
+            )
 
         return api_resource_id, Route(path=path, methods=[method], function_name=lambda_logical_id)
 
@@ -271,6 +305,10 @@ class SamApiProvider(CfnBaseApiProvider):
                 all_routes[key] = config
 
         result = set(all_routes.values())  # Assign to a set() to de-dupe
-        LOG.debug("Removed duplicates from '%d' Explicit APIs and '%d' Implicit APIs to produce '%d' APIs",
-                  len(explicit_routes), len(implicit_routes), len(result))
+        LOG.debug(
+            "Removed duplicates from '%d' Explicit APIs and '%d' Implicit APIs to produce '%d' APIs",
+            len(explicit_routes),
+            len(implicit_routes),
+            len(result),
+        )
         return list(result)

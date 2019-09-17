@@ -8,37 +8,36 @@ from samcli.cli.context import Context
 
 
 class TestContext(TestCase):
-
     def test_must_initialize_with_defaults(self):
         ctx = Context()
 
-        self.assertEquals(ctx.debug, False, "debug must default to False")
+        self.assertEqual(ctx.debug, False, "debug must default to False")
 
     def test_must_set_get_debug_flag(self):
         ctx = Context()
 
         ctx.debug = True
-        self.assertEquals(ctx.debug, True, "debug must be set to True")
-        self.assertEquals(logging.getLogger('samcli').getEffectiveLevel(), logging.DEBUG)
-        self.assertEquals(logging.getLogger('aws_lambda_builders').getEffectiveLevel(), logging.DEBUG)
+        self.assertEqual(ctx.debug, True, "debug must be set to True")
+        self.assertEqual(logging.getLogger("samcli").getEffectiveLevel(), logging.DEBUG)
+        self.assertEqual(logging.getLogger("aws_lambda_builders").getEffectiveLevel(), logging.DEBUG)
 
     def test_must_unset_get_debug_flag(self):
         ctx = Context()
 
         ctx.debug = True
-        self.assertEquals(ctx.debug, True, "debug must be set to True")
+        self.assertEqual(ctx.debug, True, "debug must be set to True")
 
         # Flipping from True to False
         ctx.debug = False
-        self.assertEquals(ctx.debug, False, "debug must be set to False")
+        self.assertEqual(ctx.debug, False, "debug must be set to False")
 
     def test_must_set_aws_region_in_boto_session(self):
         region = "myregion"
         ctx = Context()
 
         ctx.region = region
-        self.assertEquals(ctx.region, region)
-        self.assertEquals(region, boto3._get_default_session().region_name)
+        self.assertEqual(ctx.region, region)
+        self.assertEqual(region, boto3._get_default_session().region_name)
 
     @patch("samcli.cli.context.boto3")
     def test_must_set_aws_profile_in_boto_session(self, boto_mock):
@@ -47,7 +46,7 @@ class TestContext(TestCase):
         ctx = Context()
 
         ctx.profile = profile
-        self.assertEquals(ctx.profile, profile)
+        self.assertEqual(ctx.profile, profile)
         boto_mock.setup_default_session.assert_called_with(region_name=None, profile_name=profile)
 
     @patch("samcli.cli.context.boto3")
@@ -65,7 +64,7 @@ class TestContext(TestCase):
         uuid_mock.uuid4.return_value = "abcd"
         ctx = Context()
 
-        self.assertEquals(ctx.session_id, "abcd")
+        self.assertEqual(ctx.session_id, "abcd")
 
     @patch("samcli.cli.context.click")
     def test_must_find_context(self, click_mock):
@@ -73,7 +72,7 @@ class TestContext(TestCase):
         ctx = Context()
         result = ctx.get_current_context()
 
-        self.assertEquals(click_mock.get_current_context.return_value.find_object.return_value, result)
+        self.assertEqual(click_mock.get_current_context.return_value.find_object.return_value, result)
         click_mock.get_current_context.return_value.find_object.assert_called_once_with(Context)
 
     @patch("samcli.cli.context.click")
@@ -85,7 +84,7 @@ class TestContext(TestCase):
         ctx = Context()
         result = ctx.get_current_context()
 
-        self.assertEquals(click_mock.get_current_context.return_value.ensure_object.return_value, result)
+        self.assertEqual(click_mock.get_current_context.return_value.ensure_object.return_value, result)
         click_mock.get_current_context.return_value.ensure_object.assert_called_once_with(Context)
 
     @patch("samcli.cli.context.click")

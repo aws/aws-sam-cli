@@ -15,8 +15,12 @@ import functools
 import boto3
 
 # SAM Translator Library Internal module imports #
-from samtranslator.model.exceptions import \
-    InvalidDocumentException, InvalidTemplateException, InvalidResourceException, InvalidEventException
+from samtranslator.model.exceptions import (
+    InvalidDocumentException,
+    InvalidTemplateException,
+    InvalidResourceException,
+    InvalidEventException,
+)
 from samtranslator.validator.validator import SamTemplateValidator
 from samtranslator.model import ResourceTypeResolver, sam_resources
 from samtranslator.plugins import LifeCycleEvents
@@ -67,7 +71,8 @@ class SamTranslatorWrapper(object):
             parser.parse(template_copy, all_plugins)  # parse() will run all configured plugins
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
+                functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
+            )
 
         return template_copy
 
@@ -79,13 +84,14 @@ class SamTranslatorWrapper(object):
         template_copy = self.template
 
         sam_parser = Parser()
-        sam_translator = Translator(managed_policy_map=self.__managed_policy_map(),
-                                    sam_parser=sam_parser,
-                                    # Default plugins are already initialized within the Translator
-                                    plugins=self.extra_plugins)
+        sam_translator = Translator(
+            managed_policy_map=self.__managed_policy_map(),
+            sam_parser=sam_parser,
+            # Default plugins are already initialized within the Translator
+            plugins=self.extra_plugins,
+        )
 
-        return sam_translator.translate(sam_template=template_copy,
-                                        parameter_values=parameter_values)
+        return sam_translator.translate(sam_template=template_copy, parameter_values=parameter_values)
 
     @property
     def template(self):
@@ -96,14 +102,14 @@ class SamTranslatorWrapper(object):
         This method is unused and a Work In Progress
         """
         try:
-            iam_client = boto3.client('iam')
+            iam_client = boto3.client("iam")
             return ManagedPolicyLoader(iam_client).load()
         except Exception as ex:
 
             if self._offline_fallback:
                 # If offline flag is set, then fall back to the list of default managed policies
                 # This should be sufficient for most cases
-                with open(self._DEFAULT_MANAGED_POLICIES_FILE, 'r') as fp:
+                with open(self._DEFAULT_MANAGED_POLICIES_FILE, "r") as fp:
                     return json.load(fp)
 
             # Offline is not enabled. So just raise the exception
@@ -124,9 +130,9 @@ class _SamParserReimplemented(object):
         for logical_id, resource in sam_template["Resources"].items():
             try:
                 if macro_resolver.can_resolve(resource):
-                    macro_resolver \
-                        .resolve_resource_type(resource) \
-                        .from_dict(logical_id, resource, sam_plugins=sam_plugins)
+                    macro_resolver.resolve_resource_type(resource).from_dict(
+                        logical_id, resource, sam_plugins=sam_plugins
+                    )
             except (InvalidResourceException, InvalidEventException) as e:
                 document_errors.append(e)
 
@@ -139,9 +145,11 @@ class _SamParserReimplemented(object):
         :param dict sam_template: SAM template
         """
 
-        if "Resources" not in sam_template or not isinstance(sam_template["Resources"], dict) \
-                or not sam_template["Resources"]:
-            raise InvalidDocumentException(
-                [InvalidTemplateException("'Resources' section is required")])
+        if (
+            "Resources" not in sam_template
+            or not isinstance(sam_template["Resources"], dict)
+            or not sam_template["Resources"]
+        ):
+            raise InvalidDocumentException([InvalidTemplateException("'Resources' section is required")])
 
         SamTemplateValidator.validate(sam_template)

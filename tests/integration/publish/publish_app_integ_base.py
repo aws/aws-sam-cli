@@ -15,7 +15,6 @@ except ImportError:
 
 
 class PublishAppIntegBase(TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
@@ -24,10 +23,10 @@ class PublishAppIntegBase(TestCase):
         cls.application_name_placeholder = "<application-name>"
         cls.temp_dir = Path(tempfile.mkdtemp())
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "publish")
-        cls.sar_client = boto3.client('serverlessrepo', region_name=cls.region_name)
+        cls.sar_client = boto3.client("serverlessrepo", region_name=cls.region_name)
 
         # Create S3 bucket
-        s3 = boto3.resource('s3')
+        s3 = boto3.resource("s3")
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
         cls.s3_bucket.create()
 
@@ -53,12 +52,11 @@ class PublishAppIntegBase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.s3_bucket.delete_objects(Delete={
-            'Objects': [
-                {'Key': 'LICENSE'}, {'Key': 'README.md'},
-                {'Key': 'README_UPDATE.md'}, {'Key': 'main.py'}
-            ]
-        })
+        cls.s3_bucket.delete_objects(
+            Delete={
+                "Objects": [{"Key": "LICENSE"}, {"Key": "README.md"}, {"Key": "README_UPDATE.md"}, {"Key": "main.py"}]
+            }
+        )
         cls.s3_bucket.delete()
 
     @classmethod
@@ -82,7 +80,7 @@ class PublishAppIntegBase(TestCase):
 
     def assert_metadata_details(self, app_metadata, std_output):
         # Strip newlines and spaces in the std output
-        stripped_std_output = std_output.replace('\n', '').replace('\r', '').replace(' ', '')
+        stripped_std_output = std_output.replace("\n", "").replace("\r", "").replace(" ", "")
         # Assert expected app metadata in the std output regardless of key order
         for key, value in app_metadata.items():
             self.assertIn('"{}":{}'.format(key, json.dumps(value)), stripped_std_output)
