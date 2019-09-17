@@ -5,7 +5,6 @@ from unittest import TestCase
 
 from unittest.mock import patch
 from nose_parameterized import parameterized
-from six import assertCountEqual
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.api_provider import ApiProvider
@@ -224,7 +223,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         self.assertEqual(len(provider.routes), 1)
         self.assertEqual(list(provider.routes)[0], Route(path="/path", methods=["GET"], function_name="SamFunc1"))
 
-        assertCountEqual(self, provider.api.binary_media_types, ["image/gif", "image/png"])
+        self.assertCountEqual(provider.api.binary_media_types, ["image/gif", "image/png"])
         self.assertEqual(provider.api.stage_name, "Prod")
 
     def test_provider_must_support_binary_media_types_with_any_method(self):
@@ -255,8 +254,8 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         provider = ApiProvider(template)
 
-        assertCountEqual(self, provider.routes, expected_routes)
-        assertCountEqual(self, provider.api.binary_media_types, binary)
+        self.assertCountEqual(provider.routes, expected_routes)
+        self.assertCountEqual(provider.api.binary_media_types, binary)
 
 
 class TestSamApiProviderWithExplicitApis(TestCase):
@@ -287,7 +286,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, self.input_routes, provider.routes)
+        self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_with_swagger_as_local_file(self):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as fp:
@@ -307,7 +306,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             }
 
             provider = ApiProvider(template)
-            assertCountEqual(self, self.input_routes, provider.routes)
+            self.assertCountEqual(self.input_routes, provider.routes)
 
     @patch("samcli.commands.local.lib.cfn_base_api_provider.SwaggerReader")
     def test_with_swagger_as_both_body_and_uri_called(self, SwaggerReaderMock):
@@ -327,7 +326,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
 
         cwd = "foo"
         provider = ApiProvider(template, cwd=cwd)
-        assertCountEqual(self, self.input_routes, provider.routes)
+        self.assertCountEqual(self.input_routes, provider.routes)
         SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
@@ -351,7 +350,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_routes, provider.routes)
+        self.assertCountEqual(expected_routes, provider.routes)
 
     def test_with_binary_media_types(self):
         template = {
@@ -374,8 +373,8 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         ]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
+        self.assertCountEqual(expected_routes, provider.routes)
+        self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
@@ -398,8 +397,8 @@ class TestSamApiProviderWithExplicitApis(TestCase):
         expected_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
+        self.assertCountEqual(expected_routes, provider.routes)
+        self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
 
 class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
@@ -445,7 +444,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_routes, provider.routes)
+        self.assertCountEqual(expected_routes, provider.routes)
 
     def test_must_prefer_implicit_api_over_explicit(self):
         implicit_routes = {
@@ -473,7 +472,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_routes, provider.routes)
+        self.assertCountEqual(expected_routes, provider.routes)
 
     def test_must_prefer_implicit_with_any_method(self):
         implicit_routes = {
@@ -505,7 +504,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_routes, provider.routes)
+        self.assertCountEqual(expected_routes, provider.routes)
 
     def test_with_any_method_on_both(self):
         implicit_routes = {
@@ -547,7 +546,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_routes, provider.routes)
+        self.assertCountEqual(expected_routes, provider.routes)
 
     def test_must_add_explicit_api_when_ref_with_rest_api_id(self):
         events = {
@@ -583,7 +582,7 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_routes, provider.routes)
+        self.assertCountEqual(expected_routes, provider.routes)
 
     def test_both_routes_must_get_binary_media_types(self):
         events = {
@@ -613,8 +612,8 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.binary_media_types, expected_explicit_binary_types)
+        self.assertCountEqual(expected_routes, provider.routes)
+        self.assertCountEqual(provider.api.binary_media_types, expected_explicit_binary_types)
 
     def test_binary_media_types_with_rest_api_id_reference(self):
         events = {
@@ -650,8 +649,8 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         ]
 
         provider = ApiProvider(self.template)
-        assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.binary_media_types, expected_explicit_binary_types)
+        self.assertCountEqual(expected_routes, provider.routes)
+        self.assertCountEqual(provider.api.binary_media_types, expected_explicit_binary_types)
 
 
 class TestSamStageValues(TestCase):
