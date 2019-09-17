@@ -209,7 +209,7 @@ class LogsCommandContext:
             If the string cannot be parsed as a timestamp
         """
         if not time_str:
-            return
+            return None
 
         parsed = parse_date(time_str)
         if not parsed:

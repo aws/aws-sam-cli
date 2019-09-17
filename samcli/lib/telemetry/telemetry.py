@@ -109,6 +109,8 @@ class Telemetry:
         if ctx:
             return ctx.session_id
 
+        return None
+
     def _get_execution_environment(self):
         """
         Returns the environment in which SAM CLI is running. Possible options are:

@@ -114,3 +114,5 @@ class SwaggerParser:
         if integration and isinstance(integration, dict) and integration.get("type") == IntegrationType.aws_proxy.value:
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("uri"))
+
+        return None

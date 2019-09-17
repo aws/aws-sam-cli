@@ -109,7 +109,7 @@ class BaseCommand(click.MultiCommand):
         """
         if cmd_name not in self._commands:
             logger.error("Command %s not available", cmd_name)
-            return
+            return None
 
         pkg_name = self._commands[cmd_name]
 
@@ -117,10 +117,10 @@ class BaseCommand(click.MultiCommand):
             mod = importlib.import_module(pkg_name)
         except ImportError:
             logger.exception("Command '%s' is not configured correctly. Unable to import '%s'", cmd_name, pkg_name)
-            return
+            return None
 
         if not hasattr(mod, "cli"):
             logger.error("Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name)
-            return
+            return None
 
         return mod.cli

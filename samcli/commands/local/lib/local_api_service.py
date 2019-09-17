@@ -129,3 +129,5 @@ class LocalApiService:
         if os.path.exists(static_dir_path):
             LOG.info("Mounting static files from %s at /", static_dir_path)
             return static_dir_path
+
+        return None

@@ -43,10 +43,10 @@ def parse_aws_include_transform(data):
     """
 
     if not data:
-        return
+        return None
 
     if _FN_TRANSFORM not in data:
-        return
+        return None
 
     transform_data = data[_FN_TRANSFORM]
 
@@ -55,6 +55,8 @@ def parse_aws_include_transform(data):
     if name == "AWS::Include":
         LOG.debug("Successfully parsed location from AWS::Include transform: %s", location)
         return location
+
+    return None
 
 
 class SwaggerReader:
@@ -152,7 +154,7 @@ class SwaggerReader:
         """
 
         if not location:
-            return
+            return None
 
         bucket, key, version = self._parse_s3_location(location)
         if bucket and key:
@@ -163,7 +165,7 @@ class SwaggerReader:
         if not isinstance(location, string_types):
             # This is not a string and not a S3 Location dictionary. Probably something invalid
             LOG.debug("Unable to download Swagger file. Invalid location: %s", location)
-            return
+            return None
 
         # ``location`` is a string and not a S3 path. It is probably a local path. Let's resolve relative path if any
         filepath = location
@@ -173,7 +175,7 @@ class SwaggerReader:
 
         if not os.path.exists(filepath):
             LOG.debug("Unable to download Swagger file. File not found at location %s", filepath)
-            return
+            return None
 
         LOG.debug("Reading Swagger document from local file at %s", filepath)
         with open(filepath, "r") as fp:
