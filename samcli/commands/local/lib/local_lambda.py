@@ -86,7 +86,7 @@ class LocalLambdaRunner:
                 function_name, all_functions
             )
             LOG.info(available_function_message)
-            raise FunctionNotFound("Unable to find a Function with name '%s'", function_name)
+            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_name))
 
         LOG.debug("Found one Lambda function with name '%s'", function_name)
 

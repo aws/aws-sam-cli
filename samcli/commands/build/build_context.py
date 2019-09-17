@@ -146,7 +146,7 @@ class BuildContext:
                 available_function_message = "{} not found. Possible options in your template: {}" \
                     .format(self._function_identifier, all_functions)
                 LOG.info(available_function_message)
-                raise FunctionNotFound("Unable to find a Function with name '%s'", self._function_identifier)
+                raise FunctionNotFound("Unable to find a Function with name '{}'".format(self._function_identifier))
 
             return [function]
 
