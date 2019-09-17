@@ -22,7 +22,7 @@ from samcli.local.docker.lambda_image import LambdaImage
 
 from tests.functional.function_code import nodejs_lambda, API_GATEWAY_ECHO_EVENT
 from unittest import TestCase
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 logging.basicConfig(level=logging.INFO)
 

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, Mock, mock_open
+from unittest.mock import patch, Mock, mock_open
 
 from docker.errors import ImageNotFound, BuildError, APIError
 

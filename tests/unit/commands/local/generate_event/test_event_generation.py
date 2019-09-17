@@ -1,8 +1,7 @@
 import os
 
 from unittest import TestCase
-from mock import Mock
-from mock import patch
+from unittest.mock import Mock, patch
 
 from samcli.commands.local.lib.generated_sample_events import events
 from samcli.commands.local.generate_event.event_generation import ServiceCommand

@@ -2,7 +2,7 @@
 Testing local lambda runner
 """
 from unittest import TestCase
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner

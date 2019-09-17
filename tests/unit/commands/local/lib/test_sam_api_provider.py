@@ -3,7 +3,7 @@ import tempfile
 from collections import OrderedDict
 from unittest import TestCase
 
-from mock import patch
+from unittest.mock import patch
 from nose_parameterized import parameterized
 from six import assertCountEqual
 

@@ -5,7 +5,7 @@ import botocore
 
 from unittest import TestCase
 from parameterized import parameterized, param
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from samcli.commands.local.lib.swagger.reader import parse_aws_include_transform, SwaggerReader
 

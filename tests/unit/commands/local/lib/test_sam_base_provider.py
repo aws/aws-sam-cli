@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, Mock, call
+from unittest.mock import Mock, call, patch
 
 from botocore.exceptions import NoCredentialsError, ClientError
 from pathlib import Path

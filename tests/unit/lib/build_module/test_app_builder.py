@@ -3,7 +3,7 @@ import docker
 import json
 
 from unittest import TestCase
-from mock import Mock, call, patch
+from unittest.mock import Mock, call, patch
 from pathlib import Path
 
 from samcli.lib.build.app_builder import (

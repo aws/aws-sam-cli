@@ -8,7 +8,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvokeContextExcept
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
 from unittest import TestCase
-from mock import Mock, PropertyMock, patch, ANY, mock_open
+from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open
 
 
 class TestInvokeContext__enter__(TestCase):

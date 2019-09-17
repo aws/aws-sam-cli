@@ -3,7 +3,7 @@ Tests Local Invoke CLI
 """
 
 from unittest import TestCase
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
 from samcli.local.lambdafn.exceptions import FunctionNotFound

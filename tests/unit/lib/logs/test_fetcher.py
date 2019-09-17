@@ -3,7 +3,7 @@ import datetime
 import botocore.session
 
 from unittest import TestCase
-from mock import Mock, patch, call, ANY
+from unittest.mock import Mock, patch, call, ANY
 from botocore.stub import Stubber
 
 from samcli.lib.logs.fetcher import LogsFetcher

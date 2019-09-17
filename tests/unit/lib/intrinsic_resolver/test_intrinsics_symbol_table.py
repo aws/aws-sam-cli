@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import patch
+from unittest.mock import patch
 
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver

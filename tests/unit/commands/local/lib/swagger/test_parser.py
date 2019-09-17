@@ -3,7 +3,7 @@ Test the swagger parser
 """
 from unittest import TestCase
 
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.swagger.parser import SwaggerParser

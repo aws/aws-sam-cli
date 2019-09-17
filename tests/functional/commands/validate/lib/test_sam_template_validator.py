@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock
+from unittest.mock import Mock
 from parameterized import parameterized
 
 import samcli.yamlhelper as yamlhelper

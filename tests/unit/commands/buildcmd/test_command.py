@@ -2,7 +2,7 @@ import os
 import click
 
 from unittest import TestCase
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from parameterized import parameterized
 
 from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
 
