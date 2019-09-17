@@ -53,7 +53,7 @@ class BaseCommand(click.MultiCommand):
     will produce a command name "baz".
     """
 
-    def __init__(self, cmd_packages=None, *args, **kwargs):
+    def __init__(self, *args, cmd_packages=None, **kwargs):
         """
         Initializes the class, optionally with a list of available commands
 
