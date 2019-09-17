@@ -343,8 +343,8 @@ class InvokeContext:
             except OSError as error:
                 if error.errno == errno.ENOENT:
                     raise DebugContextException("'{}' could not be found.".format(debugger_path))
-                else:
-                    raise error
+
+                raise error
 
             # We turn off pylint here due to https://github.com/PyCQA/pylint/issues/1660
             if not debugger.is_dir():  # pylint: disable=no-member

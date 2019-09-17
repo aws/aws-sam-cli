@@ -206,7 +206,8 @@ class IntrinsicResolver:
         if key in self.intrinsic_key_function_map:
             intrinsic_value = intrinsic.get(key)
             return self.intrinsic_key_function_map.get(key)(intrinsic_value, ignore_errors)
-        elif key in self.conditional_key_function_map:
+
+        if key in self.conditional_key_function_map:
             intrinsic_value = intrinsic.get(key)
             return self.conditional_key_function_map.get(key)(intrinsic_value, ignore_errors)
 

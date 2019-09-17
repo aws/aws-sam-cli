@@ -161,7 +161,7 @@ class LambdaUri:
             LOG.debug("Stage variables are not supported. Ignoring integration with function ARN %s", function_arn)
             return None
 
-        elif re.match(LambdaUri._REGEX_VALID_FUNCTION_NAME, maybe_function_name):
+        if re.match(LambdaUri._REGEX_VALID_FUNCTION_NAME, maybe_function_name):
             # Yes, this is a real function name
             return maybe_function_name
 

@@ -318,8 +318,7 @@ class ApplicationBuilder:
                 LOG.debug("Builder library does not support the supplied method")
                 raise UnsupportedBuilderLibraryVersionError(image_name, msg)
 
-            else:
-                LOG.debug("Builder crashed")
-                raise ValueError(msg)
+            LOG.debug("Builder crashed")
+            raise ValueError(msg)
 
         return response
