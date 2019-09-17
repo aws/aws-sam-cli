@@ -5,11 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider

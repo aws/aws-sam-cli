@@ -10,11 +10,7 @@ import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.lib.utils.tar import create_tarball
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 LOG = logging.getLogger(__name__)

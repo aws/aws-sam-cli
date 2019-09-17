@@ -17,14 +17,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.local.layers.layer_downloader import LayerDownloader
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
-
-# This is an attempt to do a controlled import. pathlib is in the
-# Python standard library starting at 3.4. This will import pathlib2,
-# which is a backport of the Python Standard Library pathlib
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class InvokeContext(object):

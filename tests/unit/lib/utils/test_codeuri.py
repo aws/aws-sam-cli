@@ -2,10 +2,7 @@ import os
 from unittest import TestCase
 from parameterized import parameterized
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 from samcli.lib.utils.codeuri import resolve_code_path
 

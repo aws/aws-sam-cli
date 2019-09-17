@@ -2,11 +2,7 @@ from mock import mock_open, patch, Mock
 from unittest import TestCase
 from parameterized import parameterized
 from samcli.cli.global_config import GlobalConfig
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class TestGlobalConfig(TestCase):

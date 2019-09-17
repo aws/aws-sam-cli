@@ -6,11 +6,7 @@ import os
 import io
 import json
 import logging
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 import docker
 

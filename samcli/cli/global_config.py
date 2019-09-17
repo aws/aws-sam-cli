@@ -6,13 +6,10 @@ import json
 import logging
 import uuid
 import os
+from pathlib import Path
 
 import click
 
-try:
-    from pathlib import Path
-except ImportError:  # pragma: no cover
-    from pathlib2 import Path  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 

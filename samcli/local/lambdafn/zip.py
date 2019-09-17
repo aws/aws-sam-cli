@@ -10,11 +10,7 @@ import logging
 import requests
 
 from samcli.lib.utils.progressbar import progressbar
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 LOG = logging.getLogger(__name__)

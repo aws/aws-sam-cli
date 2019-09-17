@@ -5,11 +5,7 @@ Utilities to manipulate template
 import os
 import six
 import yaml
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
