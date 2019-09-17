@@ -16,7 +16,7 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 
-class LayerDownloader(object):
+class LayerDownloader:
     def __init__(self, layer_cache, cwd, lambda_client=None):
         """
 

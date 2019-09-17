@@ -37,7 +37,7 @@ class BuildError(Exception):
     pass
 
 
-class ApplicationBuilder(object):
+class ApplicationBuilder:
     """
     Class to build an entire application. Currently, this class builds Lambda functions only, but there is nothing that
     is stopping this class from supporting other resource types. Building in context of Lambda functions refer to

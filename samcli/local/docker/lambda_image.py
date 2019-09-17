@@ -43,7 +43,7 @@ class Runtime(Enum):
         return any(value == item.value for item in cls)
 
 
-class LambdaImage(object):
+class LambdaImage:
     _LAYERS_DIR = "/opt"
     _DOCKER_LAMBDA_REPO_NAME = "lambci/lambda"
     _SAM_CLI_REPO_NAME = "samcli/lambda"

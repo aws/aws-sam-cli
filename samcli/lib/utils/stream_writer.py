@@ -3,7 +3,7 @@ This class acts like a wrapper around output streams to provide any flexibility 
 """
 
 
-class StreamWriter(object):
+class StreamWriter:
     def __init__(self, stream, auto_flush=False):
         """
         Instatiates new StreamWriter to the specified stream

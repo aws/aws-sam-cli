@@ -16,7 +16,7 @@ from .zip import unzip
 LOG = logging.getLogger(__name__)
 
 
-class LambdaRuntime(object):
+class LambdaRuntime:
     """
     This class represents a Local Lambda runtime. It can run the Lambda function code locally in a Docker container
     and return results. Public methods exposed by this class are similar to the AWS Lambda APIs, for convenience only.

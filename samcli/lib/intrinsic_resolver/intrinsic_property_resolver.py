@@ -27,7 +27,7 @@ from samcli.commands._utils.template import get_template_data
 LOG = logging.getLogger(__name__)
 
 
-class IntrinsicResolver(object):
+class IntrinsicResolver:
     AWS_INCLUDE = "AWS::Include"
     SUPPORTED_MACRO_TRANSFORMATIONS = [AWS_INCLUDE]
     _PSEUDO_REGEX = r"AWS::.*?"

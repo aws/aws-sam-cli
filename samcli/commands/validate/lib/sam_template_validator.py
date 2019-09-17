@@ -14,7 +14,7 @@ from .exceptions import InvalidSamDocumentException
 LOG = logging.getLogger(__name__)
 
 
-class SamTemplateValidator(object):
+class SamTemplateValidator:
     def __init__(self, sam_template, managed_policy_loader):
         """
         Construct a SamTemplateValidator

@@ -12,7 +12,7 @@ from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 LOG = logging.getLogger(__name__)
 
 
-class SamBaseProvider(object):
+class SamBaseProvider:
     """
     Base class for SAM Template providers
     """

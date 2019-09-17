@@ -12,7 +12,7 @@ from six import string_types
 LOG = logging.getLogger(__name__)
 
 
-class LambdaUri(object):
+class LambdaUri:
     """
     Purely static class that helps you parse Lambda Function Integration URI ARN
     """

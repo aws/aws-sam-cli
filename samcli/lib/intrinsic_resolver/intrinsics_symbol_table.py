@@ -12,7 +12,7 @@ from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSym
 LOG = logging.getLogger(__name__)
 
 
-class IntrinsicsSymbolTable(object):
+class IntrinsicsSymbolTable:
     AWS_ACCOUNT_ID = "AWS::AccountId"
     AWS_NOTIFICATION_ARN = "AWS::NotificationArn"
     AWS_PARTITION = "AWS::Partition"

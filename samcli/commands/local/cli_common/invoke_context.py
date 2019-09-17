@@ -20,7 +20,7 @@ from ..lib.sam_function_provider import SamFunctionProvider
 from pathlib import Path
 
 
-class InvokeContext(object):
+class InvokeContext:
     """
     Sets up a context to invoke Lambda functions locally by parsing all command line arguments necessary for the
     invoke.

@@ -17,7 +17,7 @@ from samcli.commands.build.exceptions import InvalidBuildDirException
 LOG = logging.getLogger(__name__)
 
 
-class BuildContext(object):
+class BuildContext:
 
     # Build directories need not be world writable.
     # This is usually a optimal permission for directories

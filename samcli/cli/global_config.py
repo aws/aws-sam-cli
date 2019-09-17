@@ -18,7 +18,7 @@ INSTALLATION_ID_KEY = "installationId"
 TELEMETRY_ENABLED_KEY = "telemetryEnabled"
 
 
-class GlobalConfig(object):
+class GlobalConfig:
     """
     Contains helper methods for global configuration files and values. Handles
     configuration file creation, updates, and fetching in a platform-neutral way.

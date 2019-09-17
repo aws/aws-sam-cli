@@ -16,7 +16,7 @@ from samcli.lib.utils.time import to_utc, parse_date
 LOG = logging.getLogger(__name__)
 
 
-class LogsCommandContext(object):
+class LogsCommandContext:
     """
     Sets up a context to run the Logs command by parsing the CLI arguments and creating necessary objects to be able
     to fetch and display logs

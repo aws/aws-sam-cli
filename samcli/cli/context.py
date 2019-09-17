@@ -8,7 +8,7 @@ import boto3
 import click
 
 
-class Context(object):
+class Context:
     """
     Top level context object for the CLI. Exposes common functionality required by a CLI, including logging,
     environment config parsing, debug logging etc.

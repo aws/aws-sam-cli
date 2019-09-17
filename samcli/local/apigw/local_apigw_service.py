@@ -18,7 +18,7 @@ from .path_converter import PathConverter
 LOG = logging.getLogger(__name__)
 
 
-class Route(object):
+class Route:
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
     def __init__(self, function_name, path, methods):

@@ -13,7 +13,7 @@ ASSET_PROPERTY_METADATA_KEY = "aws:asset:property"
 LOG = logging.getLogger(__name__)
 
 
-class ResourceMetadataNormalizer(object):
+class ResourceMetadataNormalizer:
     @staticmethod
     def normalize(template_dict):
         """

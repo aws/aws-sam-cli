@@ -5,7 +5,7 @@ Wrapper to generated colored messages for printing in Terminal
 import click
 
 
-class Colored(object):
+class Colored:
     """
     Helper class to add ANSI colors and decorations to text. Given a string, ANSI colors are added with special prefix
     and suffix characters that are specially interpreted by Terminals to display colors.

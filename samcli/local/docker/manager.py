@@ -13,7 +13,7 @@ from samcli.lib.utils.stream_writer import StreamWriter
 LOG = logging.getLogger(__name__)
 
 
-class ContainerManager(object):
+class ContainerManager:
     """
     This class knows how to interface with Docker to create, execute and manage the container's life cycle. It can
     run multiple containers in parallel, and also comes with the ability to reuse existing containers in order to
