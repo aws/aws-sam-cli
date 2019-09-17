@@ -9,12 +9,12 @@ import logging
 import pathlib
 
 import docker
-
-import samcli.lib.utils.osutils as osutils
-from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+
+import samcli.lib.utils.osutils as osutils
+from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, supports_build_in_container
 
 

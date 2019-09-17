@@ -4,13 +4,13 @@ this feature natively (https://bugs.python.org/issue15795).
 """
 
 import os
-import zipfile
 import logging
+import zipfile
+from pathlib import Path
 
 import requests
 
 from samcli.lib.utils.progressbar import progressbar
-from pathlib import Path
 
 
 LOG = logging.getLogger(__name__)

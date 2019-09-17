@@ -3,9 +3,9 @@ Utilities to manipulate template
 """
 
 import os
+import pathlib
 import six
 import yaml
-import pathlib
 
 from samcli.yamlhelper import yaml_parse, yaml_dump
 

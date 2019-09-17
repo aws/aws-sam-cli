@@ -5,6 +5,7 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 import errno
 import json
 import os
+from pathlib import Path
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -17,7 +18,6 @@ from samcli.commands._utils.template import get_template_data
 from samcli.local.layers.layer_downloader import LayerDownloader
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
-from pathlib import Path
 
 
 class InvokeContext:

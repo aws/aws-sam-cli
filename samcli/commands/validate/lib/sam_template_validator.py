@@ -3,12 +3,13 @@ Library for Validating Sam Templates
 """
 import logging
 import functools
+
+import six
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
-from samcli.yamlhelper import yaml_dump
-import six
 
+from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)

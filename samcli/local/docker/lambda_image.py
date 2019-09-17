@@ -1,16 +1,16 @@
 """
 Generates a Docker Image to be used for invoking a function locally
 """
-from enum import Enum
 import uuid
 import logging
 import hashlib
+from enum import Enum
+from pathlib import Path
 
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.lib.utils.tar import create_tarball
-from pathlib import Path
 
 
 LOG = logging.getLogger(__name__)
