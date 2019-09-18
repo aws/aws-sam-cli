@@ -18,8 +18,6 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
 
-stack: python %PYTHON_VERSION%
-
 for:
   - 
     matrix:
@@ -32,6 +30,7 @@ for:
       - "echo %PATH%"
       - "python --version"
       # Upgrade setuptools, wheel and virtualenv
+      - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
       - "python -m pip install --upgrade setuptools wheel virtualenv"
 
       # Create new virtual environment and activate it
