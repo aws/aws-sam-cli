@@ -4,7 +4,6 @@ Library for Validating Sam Templates
 import logging
 import functools
 
-import six
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
@@ -114,7 +113,7 @@ class SamTemplateValidator:
             Returns True if the uri given is an S3 uri, otherwise False
 
         """
-        return isinstance(uri, six.string_types) and uri.startswith("s3://")
+        return isinstance(uri, str) and uri.startswith("s3://")
 
     @staticmethod
     def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):

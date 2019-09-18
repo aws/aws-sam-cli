@@ -5,8 +5,6 @@ source
 import hashlib
 from collections import namedtuple
 
-import six
-
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 # Named Tuple to representing the properties of a Lambda Function
@@ -54,7 +52,7 @@ class LayerVersion:
         codeuri str
             CodeURI of the layer. This should contain the path to the layer code
         """
-        if not isinstance(arn, six.string_types):
+        if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
         self._arn = arn
