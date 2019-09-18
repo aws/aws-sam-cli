@@ -18,7 +18,7 @@ environment:
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
 
-stack: python %PYTHON%
+stack: python %PYTHON_VERSION%
 
 for:
   - 
