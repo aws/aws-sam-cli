@@ -30,7 +30,7 @@ for:
       - "echo %PATH%"
       - "python --version"
       # Upgrade setuptools, wheel and virtualenv
-      - "python -m pip install --upgrade setuptools wheel virtualenv"
+      - "python3 -m pip install --upgrade setuptools wheel virtualenv"
 
       # Create new virtual environment and activate it
       - "rm -rf venv"
