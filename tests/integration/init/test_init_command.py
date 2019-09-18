@@ -1,8 +1,7 @@
 from unittest import TestCase
 from subprocess import Popen
 import os
-
-from backports import tempfile
+import tempfile
 
 
 class TestBasicInitCommand(TestCase):
