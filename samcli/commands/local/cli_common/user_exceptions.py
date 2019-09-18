@@ -23,7 +23,6 @@ class SamTemplateNotFoundException(UserException):
     """
 
 
-
 class DebugContextException(UserException):
     """
     Something went wrong when creating the DebugContext

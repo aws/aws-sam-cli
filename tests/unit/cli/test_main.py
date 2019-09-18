@@ -37,9 +37,7 @@ class TestCliBase(TestCase):
 
     @patch("samcli.cli.main.send_installed_metric")
     def test_cli_enable_telemetry_with_prompt(self, send_installed_metric_mock):
-        with patch(
-            "samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock
-        ) as mock_flag:
+        with patch("samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock) as mock_flag:
             mock_flag.return_value = None
             runner = CliRunner()
             runner.invoke(cli, ["local", "generate-event", "s3"])
@@ -50,9 +48,7 @@ class TestCliBase(TestCase):
 
     @patch("samcli.cli.main.send_installed_metric")
     def test_prompt_skipped_when_value_set(self, send_installed_metric_mock):
-        with patch(
-            "samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock
-        ) as mock_flag:
+        with patch("samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock) as mock_flag:
             mock_flag.return_value = True
             runner = CliRunner()
             runner.invoke(cli, ["local", "generate-event", "s3"])
