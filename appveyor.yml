@@ -30,7 +30,7 @@ for:
       - "echo %PATH%"
       - "python --version"
       # Upgrade setuptools, wheel and virtualenv
-      - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+      - "SET PATH=%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PATH%"
       - "refreshenv"
       - "echo %PATH%"
       - "python -m pip install --upgrade setuptools wheel virtualenv"
