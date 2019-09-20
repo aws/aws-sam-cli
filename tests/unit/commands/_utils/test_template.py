@@ -42,7 +42,7 @@ class Test_get_template_data(TestCase):
 
             self.assertEqual(result, parse_result)
 
-        m.assert_called_with(filename, "r")
+        m.assert_called_with(filename, "rb")
         yaml_parse_mock.assert_called_with(file_data)
 
     @parameterized.expand([param(ValueError()), param(yaml.YAMLError())])
