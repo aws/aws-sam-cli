@@ -33,8 +33,6 @@ for:
       - "SET PATH=%PYTHON_HOME%;%PATH%"
       - "echo %PYTHON_HOME%"
       - "echo %PATH%"
-      - "refreshenv"
-      - "echo %PATH%"
       - "python -m pip install --upgrade setuptools wheel virtualenv"
 
       # Create new virtual environment and activate it
