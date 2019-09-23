@@ -4,6 +4,5 @@ pylint==2.3.1
 
 # Test requirements
 pytest==5.1.2
-#mock==2.0.0 # mock is now part of the Python standard library, available as unittest.mock in Python 3.3 onwards.
 parameterized==0.7.0
 pytest-xdist==1.29.0
