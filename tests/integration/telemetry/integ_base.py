@@ -192,5 +192,5 @@ class TelemetryServer(Thread):
     def _shutdown_flask(self):
         # Based on http://flask.pocoo.org/snippets/67/
         request.environ.get("werkzeug.server.shutdown")()
-        print ("Server shutting down...")
+        print("Server shutting down...")
         return ""
