@@ -189,7 +189,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
-    EXPECTED_RUBY_GEM = "httparty"
+    EXPECTED_RUBY_GEM = "aws-record"
 
     FUNCTION_LOGICAL_ID = "Function"
 
