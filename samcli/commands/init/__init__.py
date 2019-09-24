@@ -105,6 +105,16 @@ def do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_di
     LOG.debug("Init command")
     click.secho("[+] Initializing project structure...", fg="green")
 
+    # check for mutually exclusive parameters and fail
+    if app_template and location:
+        raise "You must not provide both --application-template and --location"
+
+    # check for required parameters
+    if runtime and name and (app_template or location):
+        # proceed to generation
+    else:
+        # proceed to interactive state machine
+
     no_build_msg = """
 Project generated: {output_dir}/{name}
 
