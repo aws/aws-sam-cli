@@ -57,32 +57,6 @@ install:
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 
-
-    # To run Nodejs workflow integ tests
-    - "choco install nodejs-lts -y --force"
-    - "refreshenv"
-    # setup Ruby
-    - "choco install ruby --version 2.5.3.1 --force -y"
-    - "refreshenv"
-    - "ruby --version"
-    - "gem --version"
-    - "gem install bundler -v 2.0.2"
-    - "refreshenv"
-    - "bundler --version"
-    - "echo %PATH%"
-
-    # setup Java, Maven and Gradle
-    - "refreshenv"
-    - "choco install jdk8 -y --force"
-    - "refreshenv"
-    - "choco install maven -y --force"
-    - "refreshenv"
-    - "choco install gradle -y --force"
-    - "refreshenv"
-    - "java -version"
-    - "gradle -v"
-    - "mvn --version"
-
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 
