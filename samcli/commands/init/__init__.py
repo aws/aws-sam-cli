@@ -8,11 +8,10 @@ import click
 
 from samcli.cli.main import pass_context, common_options
 from samcli.commands.exceptions import UserException
-from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, DEFAULT_RUNTIME
+from samcli.local.common.runtime_template import INIT_RUNTIMES, RUNTIME_TO_DEPENDENCY_MANAGERS, SUPPORTED_DEP_MANAGERS
 from samcli.local.init import generate_project
 from samcli.local.init.exceptions import GenerateProjectFailedError
 from samcli.lib.telemetry.metrics import track_command
-
 
 LOG = logging.getLogger(__name__)
 
@@ -27,9 +26,7 @@ LOG = logging.getLogger(__name__)
     help="Disable interactive prompting for values, and fail if any required values are missing.",
 )
 @click.option("-l", "--location", help="Template location (git, mercurial, http(s), zip, path)")
-@click.option(
-    "-r", "--runtime", type=click.Choice(INIT_RUNTIMES), default=DEFAULT_RUNTIME, help="Lambda Runtime of your app"
-)
+@click.option("-r", "--runtime", type=click.Choice(INIT_RUNTIMES), help="Lambda Runtime of your app")
 @click.option(
     "-d",
     "--dependency-manager",
@@ -38,8 +35,8 @@ LOG = logging.getLogger(__name__)
     help="Dependency manager of your Lambda runtime",
     required=False,
 )
-@click.option("-o", "--output-dir", default=".", type=click.Path(), help="Where to output the initialized app into")
-@click.option("-n", "--name", default="sam-app", help="Name of your project to be generated as a folder")
+@click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into")
+@click.option("-n", "--name", help="Name of your project to be generated as a folder")
 @click.option(
     "--no-input",
     is_flag=True,
@@ -49,72 +46,92 @@ LOG = logging.getLogger(__name__)
 @click.option(
     "--application-template",
     default=None,
-    help="If using a managed AWS SAM CLI application template, provide its identifier."
+    help="If using a managed AWS SAM CLI application template, provide its identifier.",
 )
 @common_options
 @pass_context
 @track_command
-def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, app_template):
-    """ \b
-        Initialize a serverless application with a SAM template, folder
-        structure for your Lambda functions, connected to an event source such as APIs,
-        S3 Buckets or DynamoDB Tables. This application includes everything you need to
-        get started with serverless and eventually grow into a production scale application.
-        \b
-        This command can initialize a boilerplate serverless app. If you want to create your own
-        template as well as use a custom location please take a look at our official documentation.
-
-    \b
-    Common usage:
-
-        \b
-        Starts an interactive prompt process to initialize a new project:
-        \b
-        $ sam init
-        \b
-        Initializes a new SAM project using custom template in a Git/Mercurial repository
-        \b
-        # gh being expanded to github url
-        $ sam init --location gh:aws-samples/cookiecutter-aws-sam-python --name python-sam-app
-        \b
-        $ sam init --location git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git --name python-sam-app
-        \b
-        $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name --name python-sam-app
-
-        \b
-        Initializes a new SAM project using custom template in a Zipfile
-        \b
-        $ sam init --location /path/to/template.zip --name sam-app
-        \b
-        $ sam init --location https://example.com/path/to/template.zip --name sam-app
-
-        \b
-        Initializes a new SAM project using custom template in a local path
-        \b
-        $ sam init --location /path/to/template/folder --name sam-app
-
-    """
-    # All logic must be implemented in the `do_cli` method. This helps ease unit tests
-    do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, app_template)  # pragma: no cover
+def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, application_template):
+    do_cli(
+        ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, application_template
+    )  # pragma: no cover
 
 
 def do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, no_input, app_template):
-    """
-    Implementation of the ``cli`` method, just separated out for unit testing purposes
-    """
-    LOG.debug("Init command")
-    click.secho("[+] Initializing project structure...", fg="green")
-
     # check for mutually exclusive parameters and fail
     if app_template and location:
         raise "You must not provide both --application-template and --location"
 
     # check for required parameters
-    if runtime and name and (app_template or location):
-        # proceed to generation
-    else:
-        # proceed to interactive state machine
+    if name and ((runtime and app_template) or location):
+        _do_generate(location, runtime, dependency_manager, output_dir, name, no_input, app_template)
+    elif no_interactive:
+        # raise error - this message is a slight mess, and hard to read
+        error_msg = """
+ERROR: Missing required parameters, with --no-interactive set.
 
+Must provide at one of the following required parameter combinations:
+    --name and --application-template and --runtime
+    --name and --location
+
+You can also re-run without the --no-interactive flag to be prompted for required values.
+        """
+        raise UserException(error_msg)
+    else:
+        # proceed to interactive state machine, which will call _do_generate
+        _do_interactive(location, runtime, dependency_manager, output_dir, name, no_input, app_template)
+
+
+def _do_interactive(location, runtime, dependency_manager, output_dir, name, no_input, app_template):
+    if not name:
+        name = click.prompt("Project Name", type=str)
+    if not location:
+        if not runtime:
+            # TODO: Better output than click default choices.
+            runtime = click.prompt("Runtime", type=click.Choice(INIT_RUNTIMES))
+        # TODO: Only fetch this for default app templates? Don't want to give a false impression of all templates being
+        # available for multiple dependency managers.
+        if not dependency_manager:
+            valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
+            if valid_dep_managers is None:
+                dependency_manager = None
+            else:
+                dependency_manager = click.prompt(
+                    "Dependency Manager", type=click.Choice(valid_dep_managers), default=valid_dep_managers[0]
+                )
+        if not (location or app_template):
+            # pull app template choices from github and display
+            # with alternate option to pick custom, which prompts location
+            templates_folder = _clone_app_templates
+            app_template_options = _get_manifest_options(runtime, templates_folder)
+            app_template_options.append("Custom Template")
+            # this should display with number codes for selection - 
+            at_choice = click.prompt("Template", type=click.Choice(app_template_options))
+            if at_choice is "Custom Template":
+                print("Doc Link for Valid Options: ***")
+                location = click.prompt("App Template Location", type=str)
+            else:
+                # location is in the local filepath - send extra context to cookiecutter
+                location = _get_app_template_folder(templates_folder, at_choice)
+        if not output_dir:
+            output_dir = click.prompt("Output Directory", type=click.Path(), default=".")
+    _do_generate(location, runtime, dependency_manager, output_dir, name, no_input, app_template)
+
+
+def _clone_app_templates():
+    return None
+
+
+def _get_app_template_folder(templates_folder, app_template_choice):
+    return None
+
+
+def _get_manifest_options(runtime, templates_folder):
+    return ["Option 1", "Option 2"]
+
+
+def _do_generate(location, runtime, dependency_manager, output_dir, name, no_input, app_template):
+    # Todo: This needs to handle app_template
     no_build_msg = """
 Project generated: {output_dir}/{name}
 
@@ -151,7 +168,6 @@ Steps you can take next within the project folder
         "ruby2.5",
     )
     next_step_msg = no_build_msg if runtime in no_build_step_required else build_msg
-
     try:
         generate_project(location, runtime, dependency_manager, output_dir, name, no_input)
         if not location:

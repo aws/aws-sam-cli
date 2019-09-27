@@ -78,6 +78,22 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
 }
 
+RUNTIME_TO_DEPENDENCY_MANAGERS = {
+    "python3.7": ["pip"],
+    "python3.6": ["pip"],
+    "python2.7": ["pip"],
+    "ruby2.5": ["bundler"],
+    "nodejs10.x": ["npm"],
+    "nodejs8.10": ["npm"],
+    "nodejs6.10": ["npm"],
+    "dotnetcore2.1": ["cli-package"],
+    "dotnetcore2.0": ["cli-package"],
+    "dotnetcore1.0": ["cli-package"],
+    "go1.x": None,
+    "java8": ["maven", "gradle"],
+}
+
+
 SUPPORTED_DEP_MANAGERS = set(
     [
         c["dependency_manager"]

@@ -13,9 +13,7 @@ from samcli.local.init.exceptions import GenerateProjectFailedError
 LOG = logging.getLogger(__name__)
 
 
-def generate_project(
-    location=None, runtime=None, dependency_manager=None, output_dir=".", name=None, no_input=False
-):
+def generate_project(location=None, runtime=None, dependency_manager=None, output_dir=".", name=None, no_input=False):
     """Generates project using cookiecutter and options given
 
     Generate project scaffolds a project using default templates if user
@@ -67,7 +65,7 @@ def generate_project(
         params["extra_context"] = {"project_name": name, "runtime": runtime}
         params["no_input"] = True
         LOG.debug("Parameters dict updated with project name as extra_context")
-        LOG.dpebug("%s", params)
+        LOG.debug("%s", params)
 
     try:
         LOG.debug("Baking a new template with cookiecutter with all parameters")
