@@ -8,6 +8,7 @@ clone_folder: D:\source
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  APPVEYOR_CI_OVERRIDE: 1
 
   # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker. 
   # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
@@ -26,15 +27,19 @@ environment:
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
 
+  matrix:
+    - optional_gate: true
+
+matrix:
+  allow_failures:
+    - optional_gate: true
+
 init:
   # Uncomment this for RDP
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
 
-cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor.yml
-  - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
 
@@ -56,6 +61,16 @@ install:
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 
+    # setup Ruby
+    - "choco install ruby --version 2.5.3.1 --force -y"
+    - "refreshenv"
+    - "ruby --version"
+    - "gem --version"
+    - "gem install bundler -v 2.0.2"
+    - "refreshenv"
+    - "bundler --version"
+    - "echo %PATH%"
+
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 
@@ -66,7 +81,7 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_RubyFunctions"
 
 # Uncomment for RDP
 # on_finish:

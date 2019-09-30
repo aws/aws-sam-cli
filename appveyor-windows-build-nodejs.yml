@@ -8,6 +8,7 @@ clone_folder: D:\source
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
+  APPVEYOR_CI_OVERRIDE: 1
 
   # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker. 
   # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
@@ -32,9 +33,6 @@ init:
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
 
-cache:
-  - C:\ProgramData\chocolatey\bin -> appveyor.yml
-  - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
 
@@ -56,6 +54,12 @@ install:
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 
+
+    # To run Nodejs workflow integ tests
+    - "choco install nodejs-lts -y --force"
+    - "refreshenv"
+
+
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 
@@ -66,7 +70,7 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_NodeFunctions"
 
 # Uncomment for RDP
 # on_finish:

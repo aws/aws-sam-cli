@@ -11,13 +11,16 @@ except ImportError:
 from parameterized import parameterized
 
 from .build_integ_base import BuildIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
 
 LOG = logging.getLogger(__name__)
 
 
-@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -100,7 +103,10 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 
-@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     def test_unsupported_runtime(self):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
@@ -116,7 +122,10 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         self.assertIn("Build Failed", process_stdout)
 
 
-@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -184,7 +193,10 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         self.assertEqual(actual_files, expected_modules)
 
 
-@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -251,7 +263,10 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
 
 
-@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_Java(BuildIntegBase):
 
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
@@ -340,7 +355,10 @@ class TestBuildCommand_Java(BuildIntegBase):
             open_file.write(content)
 
 
-@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -438,7 +456,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.assertEqual(actual_files, expected_files)
 
 
-@skipIf(IS_WINDOWS and RUNNING_ON_CI, "Skip build tests on windows when running in CI")
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
