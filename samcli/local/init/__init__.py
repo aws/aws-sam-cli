@@ -13,7 +13,9 @@ from samcli.local.init.exceptions import GenerateProjectFailedError
 LOG = logging.getLogger(__name__)
 
 
-def generate_project(location=None, runtime=None, dependency_manager=None, output_dir=".", name=None, no_input=False):
+def generate_project(
+    location=None, runtime=None, dependency_manager=None, output_dir=".", name=None, no_input=False, extra_context=None
+):
     """Generates project using cookiecutter and options given
 
     Generate project scaffolds a project using default templates if user
@@ -46,17 +48,21 @@ def generate_project(location=None, runtime=None, dependency_manager=None, outpu
 
     template = None
 
-    for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
-        if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
-            if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
-                template = mapping["init_location"]
-                break
+    if runtime:
+        for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
+            if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
+                if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
+                    template = mapping["init_location"]
+                    break
 
-    if not template:
-        msg = "Lambda Runtime {} does not support dependency manager: {}".format(runtime, dependency_manager)
-        raise GenerateProjectFailedError(project=name, provider_error=msg)
+        if not template:
+            msg = "Lambda Runtime {} does not support dependency manager: {}".format(runtime, dependency_manager)
+            raise GenerateProjectFailedError(project=name, provider_error=msg)
 
     params = {"template": location if location else template, "output_dir": output_dir, "no_input": no_input}
+
+    if extra_context:
+        params["extra_context"] = extra_context
 
     LOG.debug("Parameters dict created with input given")
     LOG.debug("%s", params)

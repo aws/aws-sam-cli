@@ -48,7 +48,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnetcore2.1", "dotnetcore2.0", "dotnetcore1.0", "dotnetcore"],
+            "runtimes": ["dotnetcore2.1", "dotnetcore2.0", "dotnetcore1.0"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -101,9 +101,11 @@ SUPPORTED_DEP_MANAGERS = set(
         if c["dependency_manager"]
     ]
 )
+
 RUNTIMES = set(
     itertools.chain(*[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))])
 )
+
 INIT_RUNTIMES = RUNTIMES.union(RUNTIME_DEP_TEMPLATE_MAPPING.keys())
 
 # NOTE(TheSriram): Default Runtime Choice when runtime is not chosen
