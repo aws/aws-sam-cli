@@ -39,7 +39,7 @@ class TestCli(TestCase):
         self.region_name = "region"
         self.profile = "profile"
 
-    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_cli_must_setup_context_and_invoke(self, get_event_mock, InvokeContextMock):
         event_data = "data"
@@ -95,7 +95,7 @@ class TestCli(TestCase):
         )
         get_event_mock.assert_called_with(self.eventfile)
 
-    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_cli_must_invoke_with_no_event(self, get_event_mock, InvokeContextMock):
         self.no_event = True
@@ -149,7 +149,7 @@ class TestCli(TestCase):
         )
         get_event_mock.assert_not_called()
 
-    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_no_event_and_event(self, get_event_mock, InvokeContextMock):
         self.no_event = True
@@ -188,7 +188,7 @@ class TestCli(TestCase):
             param(DockerImagePullFailedException("Failed to pull image"), "Failed to pull image"),
         ]
     )
-    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_function_not_found(
         self, side_effect_exception, expected_exectpion_message, get_event_mock, InvokeContextMock
@@ -240,7 +240,7 @@ class TestCli(TestCase):
             (DebuggingNotSupported("Debugging not supported"), "Debugging not supported"),
         ]
     )
-    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_invalid_sam_template(
         self, exeception_to_raise, execption_message, get_event_mock, InvokeContextMock
@@ -278,7 +278,7 @@ class TestCli(TestCase):
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, execption_message)
 
-    @patch("samcli.commands.local.invoke.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_must_raise_user_exception_on_invalid_env_vars(self, get_event_mock, InvokeContextMock):
         event_data = "data"

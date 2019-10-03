@@ -13,9 +13,9 @@ from samcli.local.lambdafn.exceptions import FunctionNotFound
 
 
 class TestDoCli(TestCase):
-    @patch("samcli.commands.build.command.BuildContext")
-    @patch("samcli.commands.build.command.ApplicationBuilder")
-    @patch("samcli.commands.build.command.move_template")
+    @patch("samcli.commands.build.build_context.BuildContext")
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder")
+    @patch("samcli.commands._utils.template.move_template")
     @patch("samcli.commands.build.command.os")
     def test_must_succeed_build(self, os_mock, move_template_mock, ApplicationBuilderMock, BuildContextMock):
 
@@ -63,8 +63,8 @@ class TestDoCli(TestCase):
             (UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),),
         ]
     )
-    @patch("samcli.commands.build.command.BuildContext")
-    @patch("samcli.commands.build.command.ApplicationBuilder")
+    @patch("samcli.commands.build.build_context.BuildContext")
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder")
     def test_must_catch_known_exceptions(self, exception, ApplicationBuilderMock, BuildContextMock):
 
         ctx_mock = Mock()
@@ -91,8 +91,8 @@ class TestDoCli(TestCase):
 
         self.assertEqual(str(ctx.exception), str(exception))
 
-    @patch("samcli.commands.build.command.BuildContext")
-    @patch("samcli.commands.build.command.ApplicationBuilder")
+    @patch("samcli.commands.build.build_context.BuildContext")
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder")
     def test_must_catch_function_not_found_exception(self, ApplicationBuilderMock, BuildContextMock):
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__ = Mock()
