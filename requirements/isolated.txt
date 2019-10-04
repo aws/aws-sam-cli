@@ -11,7 +11,7 @@ chevron==0.13.1
 Click==7.0
 cookiecutter==1.6.0
 dateparser==0.7.2
-docker==4.0.2
+docker==4.1.0
 docutils==0.15.2
 Flask==1.0.4
 future==0.17.1
