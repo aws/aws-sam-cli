@@ -5,14 +5,15 @@ from samcli.commands.init.init_generator import do_generate
 from samcli.commands.init.init_templates import InitTemplates
 
 
-def do_interactive(location, runtime, dependency_manager, output_dir, name, no_input):
+def do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
     extra_context = None
     if not location:
-        print(
-            "1 - Use a Managed Application Template\n2 - Provide a Custom Location"
-        )
-        location_opt_choice = click.prompt("Location Choice", type=click.Choice(['1', '2']), show_choices=False)
-        if location_opt_choice == '2':
+        if app_template:
+            location_opt_choice = "1"
+        else:
+            print ("1 - Use a Managed Application Template\n2 - Provide a Custom Location")
+            location_opt_choice = click.prompt("Location Choice", type=click.Choice(["1", "2"]), show_choices=False)
+        if location_opt_choice == "2":
             location = click.prompt("Template location (git, mercurial, http(s), zip, path)", type=str)
         else:
             if not name:
@@ -29,9 +30,15 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, no_i
                         "Dependency Manager", type=click.Choice(valid_dep_managers), default=valid_dep_managers[0]
                     )
             templates = InitTemplates()
-            location = templates.prompt_for_location(runtime, dependency_manager)
-            no_input = True  # because we specified the template ourselves
-            extra_context = {"project_name": name, "runtime": runtime}
+            if app_template is not None:
+                # need to get the init templates, and select by name
+                location = templates.location_from_app_template(runtime, dependency_manager, app_template)
+                no_input = True
+                extra_context = {"project_name": name, "runtime": runtime}
+            else:
+                location = templates.prompt_for_location(runtime, dependency_manager)
+                no_input = True  # because we specified the template ourselves
+                extra_context = {"project_name": name, "runtime": runtime}
         if not output_dir:
             output_dir = click.prompt("Output Directory", type=click.Path(), default=".")
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)

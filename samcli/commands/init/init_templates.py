@@ -12,17 +12,19 @@ import subprocess
 from pathlib import Path  # must come after Py2.7 deprecation
 
 from samcli.cli.main import global_cfg
+from samcli.commands.exceptions import UserException
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 
 
 class InitTemplates:
-    def __init__(self):
+    def __init__(self, no_interactive=False):
         # self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
         # testing only, delete this and uncomment the above line before shipping
         self._repo_url = "git@github.com:awslabs/aws-sam-cli-app-templates.git"
         self._repo_name = "aws-sam-cli-app-templates"
         self.repo_path = None
         self.clone_attempted = False
+        self._no_interactive = no_interactive
 
     def prompt_for_location(self, runtime, dependency_manager):
         options = self.init_options(runtime, dependency_manager)
@@ -49,6 +51,23 @@ class InitTemplates:
         else:
             raise UserException("Invalid template. This should not be possible, please raise an issue.")
 
+    def location_from_app_template(self, runtime, dependency_manager, app_template):
+        options = self.init_options(runtime, dependency_manager)
+        try:
+            template = next(item for item in options if self._check_app_template(item, app_template))
+            if template.get("init_location") is not None:
+                return template["init_location"]
+            elif template.get("directory") is not None:
+                return os.path.join(self.repo_path, template["directory"])
+            else:
+                raise UserException("Invalid template. This should not be possible, please raise an issue.")
+        except StopIteration:
+            msg = "Can't find application template " + app_template + " - check valid values in interactive init."
+            raise UserException(msg)
+
+    def _check_app_template(self, entry, app_template):
+        return entry["appTemplate"] == app_template
+
     def init_options(self, runtime, dependency_manager):
         if self.clone_attempted is False:
             self._clone_repo()
@@ -73,6 +92,7 @@ class InitTemplates:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
+                    mapping["appTemplate"] = "hello-world" # when bundled, use this default template name
                     return [mapping]
         msg = "Lambda Runtime {} and dependency manager {} does not have an available initialization template.".format(
             runtime, dependency_manager
@@ -97,12 +117,17 @@ class InitTemplates:
     def _should_clone_repo(self, expected_path):
         path = Path(expected_path)
         if path.exists():
-            overwrite = click.confirm("Init templates exist on disk. Do you wish to update?")
-            if overwrite:
-                # possible alternative: pull down first, THEN delete old version - safer if there is a problem
-                shutil.rmtree(expected_path)  # fail hard if there is an issue
-                return True
+            if not self._no_interactive:
+                overwrite = click.confirm("Init templates exist on disk. Do you wish to update?")
+                if overwrite:
+                    # possible alternative: pull down first, THEN delete old version - safer if there is a problem
+                    shutil.rmtree(expected_path)  # fail hard if there is an issue
+                    return True
             self.repo_path = expected_path
             return False
         else:
-            return True
+            if self._no_interactive:
+                return True
+            else:
+                do_clone = click.confirm("This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?")
+                return do_clone
