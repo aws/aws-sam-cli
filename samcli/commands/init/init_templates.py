@@ -17,14 +17,14 @@ from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 
 
 class InitTemplates:
-    def __init__(self, no_interactive=False):
-        # self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
-        # testing only, delete this and uncomment the above line before shipping
-        self._repo_url = "git@github.com:awslabs/aws-sam-cli-app-templates.git"
+    def __init__(self, no_interactive=False, auto_clone=True):
+        self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
+        # self._repo_url = "git@github.com:awslabs/aws-sam-cli-app-templates.git"
         self._repo_name = "aws-sam-cli-app-templates"
         self.repo_path = None
         self.clone_attempted = False
         self._no_interactive = no_interactive
+        self._auto_clone = auto_clone
 
     def prompt_for_location(self, runtime, dependency_manager):
         options = self.init_options(runtime, dependency_manager)
@@ -92,7 +92,7 @@ class InitTemplates:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
             if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
                 if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
-                    mapping["appTemplate"] = "hello-world" # when bundled, use this default template name
+                    mapping["appTemplate"] = "hello-world"  # when bundled, use this default template name
                     return [mapping]
         msg = "Lambda Runtime {} and dependency manager {} does not have an available initialization template.".format(
             runtime, dependency_manager
@@ -127,7 +127,9 @@ class InitTemplates:
             return False
         else:
             if self._no_interactive:
-                return True
+                return self._auto_clone
             else:
-                do_clone = click.confirm("This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?")
+                do_clone = click.confirm(
+                    "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?"
+                )
                 return do_clone

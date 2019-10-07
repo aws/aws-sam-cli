@@ -56,10 +56,12 @@ LOG = logging.getLogger(__name__)
 @pass_context
 @track_command
 def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input):
-    do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input)  # pragma: no cover
+    do_cli(
+        ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input
+    )  # pragma: no cover
 
 
-def do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input):
+def do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input, auto_clone=True):
     # check for mutually exclusive parameters
     if location and app_template:
         msg = """
@@ -75,12 +77,12 @@ You can run 'sam init' without any options for an interactive initialization flo
         # need to turn app_template into a location before we generate
         extra_context = None
         if app_template:
-            templates = InitTemplates(no_interactive)
+            templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
             extra_context = {"project_name": name, "runtime": runtime}
         if not output_dir:
-            output_dir = "." # default - should I lift this to overall options and seed default?
+            output_dir = "."  # default - should I lift this to overall options and seed default?
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     elif no_interactive:
         error_msg = """
