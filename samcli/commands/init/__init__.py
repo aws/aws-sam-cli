@@ -7,12 +7,8 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options
-from samcli.commands.exceptions import UserException
-from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, DEFAULT_RUNTIME
-from samcli.local.init import generate_project
-from samcli.local.init.exceptions import GenerateProjectFailedError
 from samcli.lib.telemetry.metrics import track_command
-
+from samcli.local.common.runtime_template import INIT_RUNTIMES, SUPPORTED_DEP_MANAGERS, DEFAULT_RUNTIME
 
 LOG = logging.getLogger(__name__)
 
@@ -95,6 +91,10 @@ def do_cli(ctx, location, runtime, dependency_manager, output_dir, name, no_inpu
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
+    from samcli.commands.exceptions import UserException
+    from samcli.local.init import generate_project
+    from samcli.local.init.exceptions import GenerateProjectFailedError
+
     LOG.debug("Init command")
     click.secho("[+] Initializing project structure...", fg="green")
 

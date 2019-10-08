@@ -35,8 +35,8 @@ class TestCli(TestCase):
         self.host = "host"
         self.port = 123
 
-    @patch("samcli.commands.local.start_lambda.cli.InvokeContext")
-    @patch("samcli.commands.local.start_lambda.cli.LocalLambdaService")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.lib.local_lambda_service.LocalLambdaService")
     def test_cli_must_setup_context_and_start_service(self, local_lambda_service_mock, invoke_context_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -79,7 +79,7 @@ class TestCli(TestCase):
             (DebuggingNotSupported("Debugging not supported"), "Debugging not supported"),
         ]
     )
-    @patch("samcli.commands.local.start_lambda.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     def test_must_raise_user_exception_on_invalid_sam_template(
         self, exeception_to_raise, execption_message, invoke_context_mock
     ):
@@ -92,7 +92,7 @@ class TestCli(TestCase):
         expected = execption_message
         self.assertEqual(msg, expected)
 
-    @patch("samcli.commands.local.start_lambda.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
         invoke_context_mock.side_effect = OverridesNotWellDefinedError("bad env vars")
 

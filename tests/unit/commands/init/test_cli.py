@@ -16,7 +16,7 @@ class TestCli(TestCase):
         self.name = "testing project"
         self.no_input = False
 
-    @patch("samcli.commands.init.generate_project")
+    @patch("samcli.local.init.generate_project")
     def test_init_cli(self, generate_project_patch):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
@@ -35,7 +35,7 @@ class TestCli(TestCase):
             self.location, self.runtime, self.dependency_manager, self.output_dir, self.name, self.no_input
         )
 
-    @patch("samcli.commands.init.generate_project")
+    @patch("samcli.local.init.generate_project")
     def test_init_cli_generate_project_fails(self, generate_project_patch):
 
         # GIVEN generate_project fails to create a project
