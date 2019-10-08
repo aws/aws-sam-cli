@@ -27,7 +27,7 @@ class TestLambdaContainer(TestCase):
     necessary to tests them here.
     """
 
-    IMAGE_NAME = "lambci/lambda:nodejs4.3"
+    IMAGE_NAME = "lambci/lambda:nodejs10.x"
 
     HELLO_WORLD_CODE = """
     exports.handler = function(event, context, callback){
@@ -47,7 +47,7 @@ class TestLambdaContainer(TestCase):
     def setUp(self):
         random.seed()
 
-        self.runtime = "nodejs4.3"
+        self.runtime = "nodejs10.x"
         self.expected_docker_image = self.IMAGE_NAME
         self.handler = "index.handler"
         self.layers = []

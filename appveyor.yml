@@ -48,6 +48,9 @@ for:
       - "venv\\Scripts\\activate"
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
+      # There are some functional tests that are currently broken due to not being updated with changed code or still running with node4.3 runtimes
+      # We need to update those but this allows us to at least runs the ones we currently have working
+      - "pytest tests/functional/commands/validate tests/functional/local/docker tests/functional/local/lambdafn tests/functional/commands/cli/test_global_config.py"
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"
@@ -88,6 +91,9 @@ for:
     test_script:
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
+      # There are some functional tests that are currently broken due to not being updated with changed code or still running with node4.3 runtimes
+      # We need to update those but this allows us to at least runs the ones we currently have working
+      - "pytest tests/functional/commands/validate tests/functional/local/docker tests/functional/local/lambdafn tests/functional/commands/cli/test_global_config.py"
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"
