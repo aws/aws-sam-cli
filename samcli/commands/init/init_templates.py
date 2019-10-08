@@ -2,7 +2,6 @@
 Manages the set of application templates.
 """
 
-import click
 import itertools
 import json
 import os
@@ -10,6 +9,8 @@ import shutil
 import subprocess
 
 from pathlib import Path  # must come after Py2.7 deprecation
+
+import click
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException
@@ -32,15 +33,11 @@ class InitTemplates:
         choice_num = 1
         for o in options:
             if o.get("displayName") is not None:
-                print (choice_num, "-", o.get("displayName"))
+                msg = str(choice_num) + " - " + o.get("displayName")
+                click.echo(msg)
             else:
-                print (
-                    choice_num,
-                    "- Default Template for runtime",
-                    runtime,
-                    "with dependency manager",
-                    dependency_manager,
-                )
+                msg = str(choice_num) + " - Default Template for runtime " + runtime + " with dependency manager " + dependency_manager
+                click.echo(msg)
             choice_num = choice_num + 1
         choice = click.prompt("Template Selection", type=click.Choice(choices), show_choices=False)
         template_md = options[int(choice) - 1]  # zero index
@@ -73,8 +70,7 @@ class InitTemplates:
             self._clone_repo()
         if self.repo_path is None:
             return self._init_options_from_bundle(runtime, dependency_manager)
-        else:
-            return self._init_options_from_manifest(runtime, dependency_manager)
+        return self._init_options_from_manifest(runtime, dependency_manager)
 
     def _init_options_from_manifest(self, runtime, dependency_manager):
         manifest_path = os.path.join(self.repo_path, "manifest.json")
@@ -85,8 +81,7 @@ class InitTemplates:
             if templates is None:
                 # Fallback to bundled templates
                 return self._init_options_from_bundle(runtime, dependency_manager)
-            else:
-                return templates
+            return templates
 
     def _init_options_from_bundle(self, runtime, dependency_manager):
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
@@ -110,9 +105,9 @@ class InitTemplates:
             except subprocess.CalledProcessError as clone_error:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
-                    print ("WARN: Could not clone app template repo.")
+                    click.echo("WARN: Could not clone app template repo.")
                 # do we ever want to hard fail?
-        self._clone_attempted = True
+        self.clone_attempted = True
 
     def _should_clone_repo(self, expected_path):
         path = Path(expected_path)
@@ -128,8 +123,7 @@ class InitTemplates:
         else:
             if self._no_interactive:
                 return self._auto_clone
-            else:
-                do_clone = click.confirm(
-                    "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?"
-                )
-                return do_clone
+            do_clone = click.confirm(
+                "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?"
+            )
+            return do_clone

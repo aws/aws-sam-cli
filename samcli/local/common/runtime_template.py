@@ -57,7 +57,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     "go": [
         {
             "runtimes": ["go1.x"],
-            "dependency_manager": None,
+            "dependency_manager": "mod",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-golang"),
             "build": False,
         }
@@ -89,7 +89,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "dotnetcore2.1": ["cli-package"],
     "dotnetcore2.0": ["cli-package"],
     "dotnetcore1.0": ["cli-package"],
-    "go1.x": None,
+    "go1.x": ["mod"],
     "java8": ["maven", "gradle"],
 }
 
@@ -107,6 +107,3 @@ RUNTIMES = set(
 )
 
 INIT_RUNTIMES = RUNTIMES.union(RUNTIME_DEP_TEMPLATE_MAPPING.keys())
-
-# NOTE(TheSriram): Default Runtime Choice when runtime is not chosen
-DEFAULT_RUNTIME = RUNTIME_DEP_TEMPLATE_MAPPING["nodejs"][0]["runtimes"][0]

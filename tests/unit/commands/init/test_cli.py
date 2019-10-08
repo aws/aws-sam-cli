@@ -17,7 +17,7 @@ class TestCli(TestCase):
         self.name = "testing project"
         self.app_template = "hello-world"
         self.no_input = False
-        self.extra_context = {'project_name': 'testing project', 'runtime': 'python3.6'}
+        self.extra_context = {"project_name": "testing project", "runtime": "python3.6"}
 
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli(self, generate_project_patch):
@@ -33,13 +33,19 @@ class TestCli(TestCase):
             name=self.name,
             app_template=self.app_template,
             no_input=self.no_input,
-            auto_clone=False
+            auto_clone=False,
         )
 
         # THEN we should receive no errors
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
-            ANY, self.runtime, self.dependency_manager, self.output_dir, self.name, True, self.extra_context
+            ANY,
+            self.runtime,
+            self.dependency_manager,
+            self.output_dir,
+            self.name,
+            True,
+            self.extra_context,
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -63,7 +69,7 @@ class TestCli(TestCase):
                 name=self.name,
                 app_template=self.app_template,
                 no_input=self.no_input,
-                auto_clone=False
+                auto_clone=False,
             )
 
             generate_project_patch.assert_called_with(

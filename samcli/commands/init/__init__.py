@@ -61,7 +61,18 @@ def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, 
     )  # pragma: no cover
 
 
-def do_cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input, auto_clone=True):
+def do_cli(
+    ctx,
+    no_interactive,
+    location,
+    runtime,
+    dependency_manager,
+    output_dir,
+    name,
+    app_template,
+    no_input,
+    auto_clone=True,
+):
     # check for mutually exclusive parameters
     if location and app_template:
         msg = """

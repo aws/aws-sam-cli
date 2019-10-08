@@ -11,7 +11,7 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
         if app_template:
             location_opt_choice = "1"
         else:
-            print ("1 - Use a Managed Application Template\n2 - Provide a Custom Location")
+            click.echo("1 - Use a Managed Application Template\n2 - Provide a Custom Location")
             location_opt_choice = click.prompt("Location Choice", type=click.Choice(["1", "2"]), show_choices=False)
         if location_opt_choice == "2":
             location = click.prompt("Template location (git, mercurial, http(s), zip, path)", type=str)
