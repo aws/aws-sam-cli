@@ -8,6 +8,8 @@ from functools import partial
 
 import click
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType
+from samcli.commands._utils.custom_options import OptionNargs
+
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 
@@ -113,6 +115,7 @@ def docker_click_options():
 def parameter_override_click_option():
     return click.option(
         "--parameter-overrides",
+        cls=OptionNargs,
         type=CfnParameterOverridesType(),
         help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
         "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
@@ -134,3 +137,26 @@ def metadata_click_option():
 
 def metadata_override_option(f):
     return metadata_click_option()(f)
+
+
+def capabilities_click_option():
+    return click.option(
+        "--capabilities",
+        cls=OptionNargs,
+        type=click.STRING,
+        help="A list of  capabilities  that  you  must  specify"
+        "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
+        "plates might include resources that can affect permissions in your  AWS"
+        "account,  for  example, by creating new AWS Identity and Access Manage-"
+        "ment (IAM) users. For those stacks,  you  must  explicitly  acknowledge"
+        "their  capabilities by specifying this parameter. The only valid values"
+        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources,"
+        "you  can specify either capability. If you have IAM resources with cus-"
+        "tom names, you must specify CAPABILITY_NAMED_IAM. If you don't  specify"
+        "this  parameter, this action returns an InsufficientCapabilities error.",
+    )
+
+
+def capabilities_override_option(f):
+    return capabilities_click_option()(f)
+

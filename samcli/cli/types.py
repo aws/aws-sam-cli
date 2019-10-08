@@ -15,27 +15,39 @@ class CfnParameterOverridesType(click.ParamType):
     parameters as "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
     """
 
-    __EXAMPLE = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
+    __EXAMPLE_1 = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
+    __EXAMPLE_2 = "KeyPairName=MyKey InstanceType=t1.micro"
 
     # Regex that parses CloudFormation parameter key-value pairs: https://regex101.com/r/xqfSjW/2
-    _pattern = r"(?:ParameterKey=([A-Za-z0-9\"]+),ParameterValue=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
+    _pattern_1 = r"(?:ParameterKey=([A-Za-z0-9\"]+),ParameterValue=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
+    _pattern_2 = r"(?:([A-Za-z0-9\"]+)=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
 
-    name = ""
+    ordered_pattern_match = [_pattern_1, _pattern_2]
 
     def convert(self, value, param, ctx):
         result = {}
         if not value:
             return result
 
-        groups = re.findall(self._pattern, value)
-        if not groups:
-            return self.fail(
-                "{} is not in valid format. It must look something like '{}'".format(value, self.__EXAMPLE), param, ctx
-            )
+        for val in value:
 
-        # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
-        for key, param_value in groups:
-            result[self._unquote(key)] = self._unquote(param_value)
+            try:
+                # NOTE(TheSriram): find the first regex that matched.
+                pattern = next(i for i in filter(lambda item: re.findall(item, val), self.ordered_pattern_match))
+            except StopIteration:
+                return self.fail(
+                    "{} is not in valid format. It must look something like '{}' or '{}'".format(
+                        val, self.__EXAMPLE_1, self.__EXAMPLE_2
+                    ),
+                    param,
+                    ctx,
+                )
+
+            groups = re.findall(pattern, val)
+
+            # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
+            for key, param_value in groups:
+                result[self._unquote(key)] = self._unquote(param_value)
 
         return result
 
