@@ -1,3 +1,6 @@
+"""
+Cookiecutter-based generation logic for project templates.
+"""
 import click
 
 from samcli.commands.exceptions import UserException
