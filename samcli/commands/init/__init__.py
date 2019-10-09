@@ -93,7 +93,7 @@ You can run 'sam init' without any options for an interactive initialization flo
             no_input = True
             extra_context = {"project_name": name, "runtime": runtime}
         if not output_dir:
-            output_dir = "."  # default - should I lift this to overall options and seed default?
+            output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
     elif no_interactive:
         error_msg = """
