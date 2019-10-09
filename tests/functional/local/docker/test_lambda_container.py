@@ -80,7 +80,7 @@ class TestLambdaContainer(TestCase):
 
             # Call Docker API to make sure container indeed exists
             actual_container = self.docker_client.containers.get(container.id)
-            self.assertEquals(actual_container.status, "created")
+            self.assertEqual(actual_container.status, "created")
             self.assertTrue(
                 self.expected_docker_image in actual_container.image.tags,
                 "Image name of the container must be " + self.expected_docker_image,
@@ -101,8 +101,8 @@ class TestLambdaContainer(TestCase):
             # After container is started, query the container to make sure it is bound to the right ports
             port_binding = self.docker_client.api.port(container.id, self.debug_port)
             self.assertIsNotNone(port_binding, "Container must be bound to a port on host machine")
-            self.assertEquals(1, len(port_binding), "Only one port must be bound to the container")
-            self.assertEquals(port_binding[0]["HostPort"], str(self.debug_port))
+            self.assertEqual(1, len(port_binding), "Only one port must be bound to the container")
+            self.assertEqual(port_binding[0]["HostPort"], str(self.debug_port))
 
     def test_container_is_attached_to_network(self):
         layer_downloader = LayerDownloader("./", "./")
@@ -121,8 +121,8 @@ class TestLambdaContainer(TestCase):
                 # Fetch the latest information about this network from server
                 network.reload()
 
-                self.assertEquals(1, len(network.containers))
-                self.assertEquals(container.id, network.containers[0].id)
+                self.assertEqual(1, len(network.containers))
+                self.assertEqual(container.id, network.containers[0].id)
 
     def test_function_result_is_available_in_stdout_and_logs_in_stderr(self):
 
@@ -149,7 +149,7 @@ class TestLambdaContainer(TestCase):
             function_output = stdout_stream.getvalue()
             function_stderr = stderr_stream.getvalue()
 
-            self.assertEquals(function_output.strip(), expected_output)
+            self.assertEqual(function_output.strip(), expected_output)
             self.assertIn(expected_stderr, function_stderr)
 
     @contextmanager

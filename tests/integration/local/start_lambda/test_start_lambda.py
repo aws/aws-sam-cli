@@ -40,30 +40,11 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
 
         end_time = time()
 
-        self.assertEquals(len(results), 10)
+        self.assertEqual(len(results), 10)
         self.assertGreater(end_time - start_time, 10)
-        self.assertLess(end_time - start_time, 20)
 
         for result in results:
-            self.assertEquals(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
-
-
-class TestLambdaToLambdaInvoke(StartLambdaIntegBaseClass):
-    template_path = "/testdata/start_lambda/template.yml"
-
-    def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
-
-    def test_local_lambda_calling_local_lambda(self):
-        pass
+            self.assertEqual(result.get("Payload").read().decode("utf-8"), '"Slept for 10s"')
 
 
 class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
@@ -89,7 +70,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload="notat:asdfasdf")
 
-        self.assertEquals(str(error.exception), expected_error_message)
+        self.assertEqual(str(error.exception), expected_error_message)
 
     def test_invoke_with_log_type_not_None(self):
         expected_error_message = (
@@ -100,7 +81,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", LogType="Tail")
 
-        self.assertEquals(str(error.exception), expected_error_message)
+        self.assertEqual(str(error.exception), expected_error_message)
 
     def test_invoke_with_invocation_type_not_RequestResponse(self):
         expected_error_message = (
@@ -111,7 +92,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="DryRun")
 
-        self.assertEquals(str(error.exception), expected_error_message)
+        self.assertEqual(str(error.exception), expected_error_message)
 
 
 class TestLambdaService(StartLambdaIntegBaseClass):
@@ -131,43 +112,43 @@ class TestLambdaService(StartLambdaIntegBaseClass):
     def test_invoke_with_data(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='"This is json data"')
 
-        self.assertEquals(response.get("Payload").read().decode("utf-8"), '"This is json data"')
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), '"This is json data"')
         self.assertIsNone(response.get("FunctionError"))
-        self.assertEquals(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("StatusCode"), 200)
 
     def test_invoke_with_no_data(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction")
 
-        self.assertEquals(response.get("Payload").read().decode("utf-8"), "{}")
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
         self.assertIsNone(response.get("FunctionError"))
-        self.assertEquals(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("StatusCode"), 200)
 
     def test_invoke_with_log_type_None(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction", LogType="None")
 
-        self.assertEquals(response.get("Payload").read().decode("utf-8"), "{}")
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
         self.assertIsNone(response.get("FunctionError"))
-        self.assertEquals(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("StatusCode"), 200)
 
     def test_invoke_with_invocation_type_RequestResponse(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="RequestResponse")
 
-        self.assertEquals(response.get("Payload").read().decode("utf-8"), "{}")
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
         self.assertIsNone(response.get("FunctionError"))
-        self.assertEquals(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("StatusCode"), 200)
 
     def test_lambda_function_raised_error(self):
         response = self.lambda_client.invoke(FunctionName="RaiseExceptionFunction", InvocationType="RequestResponse")
 
-        self.assertEquals(
+        self.assertEqual(
             response.get("Payload").read().decode("utf-8"),
             '{"errorMessage": "Lambda is raising an exception", '
             '"errorType": "Exception", '
             '"stackTrace": [["/var/task/main.py", 48, "raise_exception", '
             '"raise Exception(\\"Lambda is raising an exception\\")"]]}',
         )
-        self.assertEquals(response.get("FunctionError"), "Unhandled")
-        self.assertEquals(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("FunctionError"), "Unhandled")
+        self.assertEqual(response.get("StatusCode"), 200)
 
     def test_invoke_with_function_timeout(self):
         """
@@ -182,6 +163,6 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         """
         response = self.lambda_client.invoke(FunctionName="TimeoutFunction")
 
-        self.assertEquals(response.get("Payload").read().decode("utf-8"), "")
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "")
         self.assertIsNone(response.get("FunctionError"))
-        self.assertEquals(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("StatusCode"), 200)

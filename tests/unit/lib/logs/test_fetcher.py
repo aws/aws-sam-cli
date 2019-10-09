@@ -75,7 +75,7 @@ class TestLogsFetcher_fetch(TestCase):
             events_iterable = self.fetcher.fetch(self.log_group_name)
 
             actual_result = list(events_iterable)
-            self.assertEquals(self.expected_events, actual_result)
+            self.assertEqual(self.expected_events, actual_result)
 
     def test_must_fetch_logs_with_all_params(self):
         pattern = "foobar"
@@ -96,7 +96,7 @@ class TestLogsFetcher_fetch(TestCase):
             events_iterable = self.fetcher.fetch(self.log_group_name, start=start, end=end, filter_pattern=pattern)
 
             actual_result = list(events_iterable)
-            self.assertEquals(self.expected_events, actual_result)
+            self.assertEqual(self.expected_events, actual_result)
 
     def test_must_paginate_using_next_token(self):
         """Make three API calls, first two returns a nextToken and last does not."""
@@ -123,7 +123,7 @@ class TestLogsFetcher_fetch(TestCase):
             events_iterable = self.fetcher.fetch(self.log_group_name)
 
             actual_result = list(events_iterable)
-            self.assertEquals(expected_events_result, actual_result)
+            self.assertEqual(expected_events_result, actual_result)
 
 
 class TestLogsFetcher_tail(TestCase):
@@ -181,9 +181,9 @@ class TestLogsFetcher_tail(TestCase):
             poll_interval=self.poll_interval,
         )
 
-        self.assertEquals(self.mock_events1, list(result_itr))
-        self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
-        self.assertEquals(expected_sleep_calls, time_mock.sleep.call_args_list)
+        self.assertEqual(self.mock_events1, list(result_itr))
+        self.assertEqual(expected_fetch_calls, self.fetcher.fetch.call_args_list)
+        self.assertEqual(expected_sleep_calls, time_mock.sleep.call_args_list)
 
     @patch("samcli.lib.logs.fetcher.time")
     def test_must_tail_logs_with_multiple_data_fetches(self, time_mock):
@@ -226,9 +226,9 @@ class TestLogsFetcher_tail(TestCase):
             poll_interval=self.poll_interval,
         )
 
-        self.assertEquals(self.mock_events1 + self.mock_events2, list(result_itr))
-        self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
-        self.assertEquals(expected_sleep_calls, time_mock.sleep.call_args_list)
+        self.assertEqual(self.mock_events1 + self.mock_events2, list(result_itr))
+        self.assertEqual(expected_fetch_calls, self.fetcher.fetch.call_args_list)
+        self.assertEqual(expected_sleep_calls, time_mock.sleep.call_args_list)
 
     @patch("samcli.lib.logs.fetcher.time")
     def test_without_start_time(self, time_mock):
@@ -251,5 +251,5 @@ class TestLogsFetcher_tail(TestCase):
             poll_interval=self.poll_interval,
         )
 
-        self.assertEquals([], list(result_itr))
-        self.assertEquals(expected_fetch_calls, self.fetcher.fetch.call_args_list)
+        self.assertEqual([], list(result_itr))
+        self.assertEqual(expected_fetch_calls, self.fetcher.fetch.call_args_list)

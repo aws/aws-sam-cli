@@ -20,7 +20,7 @@ class TestDownloadLayers(TestCase):
 
         download_layers = LayerDownloader("/some/path", ".")
 
-        self.assertEquals(download_layers.layer_cache, "/some/path")
+        self.assertEqual(download_layers.layer_cache, "/some/path")
         create_cache_patch.assert_called_with("/some/path")
 
     @patch("samcli.local.layers.layer_downloader.LayerDownloader.download")
@@ -31,7 +31,7 @@ class TestDownloadLayers(TestCase):
 
         acutal_results = download_layers.download_all(["layer1", "layer2"])
 
-        self.assertEquals(acutal_results, ["/home/layer1", "/home/layer2"])
+        self.assertEqual(acutal_results, ["/home/layer1", "/home/layer2"])
 
         download_patch.assert_has_calls([call("layer1", False), call("layer2", False)])
 
@@ -43,7 +43,7 @@ class TestDownloadLayers(TestCase):
 
         acutal_results = download_layers.download_all(["layer1", "layer2"], force=True)
 
-        self.assertEquals(acutal_results, ["/home/layer1", "/home/layer2"])
+        self.assertEqual(acutal_results, ["/home/layer1", "/home/layer2"])
 
         download_patch.assert_has_calls([call("layer1", True), call("layer2", True)])
 
@@ -60,7 +60,7 @@ class TestDownloadLayers(TestCase):
 
         actual = download_layers.download(layer_mock)
 
-        self.assertEquals(actual.codeuri, str(Path("/home/layer1").resolve()))
+        self.assertEqual(actual.codeuri, str(Path("/home/layer1").resolve()))
 
         create_cache_patch.assert_called_once_with("/home")
 
@@ -79,7 +79,7 @@ class TestDownloadLayers(TestCase):
 
         actual = download_layers.download(layer_mock)
 
-        self.assertEquals(actual.codeuri, "./some/custom/path")
+        self.assertEqual(actual.codeuri, "./some/custom/path")
 
         create_cache_patch.assert_not_called()
         resolve_code_path_patch.assert_called_once_with(".", "/some/custom/path")
@@ -105,7 +105,7 @@ class TestDownloadLayers(TestCase):
 
         actual = download_layers.download(layer_mock)
 
-        self.assertEquals(actual.codeuri, str(Path("/home/layer1").resolve()))
+        self.assertEqual(actual.codeuri, str(Path("/home/layer1").resolve()))
 
         create_cache_patch.assert_called_once_with("/home")
         fetch_layer_uri_patch.assert_called_once_with(layer_mock)
@@ -154,7 +154,7 @@ class TestLayerDownloader_fetch_layer_uri(TestCase):
         layer.version = 1
         actual_uri = download_layers._fetch_layer_uri(layer=layer)
 
-        self.assertEquals(actual_uri, "some/uri")
+        self.assertEqual(actual_uri, "some/uri")
 
     def test_fetch_layer_uri_fails_with_no_creds(self):
         lambda_client_mock = Mock()

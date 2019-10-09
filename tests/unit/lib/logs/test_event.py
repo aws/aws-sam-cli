@@ -16,23 +16,23 @@ class TestLogEvent(TestCase):
             self.group_name, {"timestamp": self.timestamp, "logStreamName": self.stream_name, "message": self.message}
         )
 
-        self.assertEquals(event.log_group_name, self.group_name)
-        self.assertEquals(event.log_stream_name, self.stream_name)
-        self.assertEquals(event.message, self.message)
-        self.assertEquals(self.timestamp_str, event.timestamp)
+        self.assertEqual(event.log_group_name, self.group_name)
+        self.assertEqual(event.log_stream_name, self.stream_name)
+        self.assertEqual(event.message, self.message)
+        self.assertEqual(self.timestamp_str, event.timestamp)
 
     def test_must_ignore_if_some_fields_are_empty(self):
         event = LogEvent(self.group_name, {"logStreamName": "stream name"})
 
-        self.assertEquals(event.log_group_name, self.group_name)
-        self.assertEquals(event.log_stream_name, self.stream_name)
-        self.assertEquals(event.message, "")
+        self.assertEqual(event.log_group_name, self.group_name)
+        self.assertEqual(event.log_stream_name, self.stream_name)
+        self.assertEqual(event.message, "")
         self.assertIsNone(event.timestamp)
 
     def test_must_ignore_if_event_is_empty(self):
         event = LogEvent(self.group_name, {})
 
-        self.assertEquals(event.log_group_name, self.group_name)
+        self.assertEqual(event.log_group_name, self.group_name)
         self.assertIsNone(event.log_stream_name)
         self.assertIsNone(event.message)
         self.assertIsNone(event.timestamp)
@@ -46,10 +46,10 @@ class TestLogEvent(TestCase):
             self.group_name, {"timestamp": self.timestamp, "logStreamName": self.stream_name, "message": self.message}
         )
 
-        self.assertEquals(event, other)
+        self.assertEqual(event, other)
 
     def test_check_for_equality_with_other_data_types(self):
         event = LogEvent(self.group_name, {})
         other = "this is not an event"
 
-        self.assertNotEquals(event, other)
+        self.assertNotEqual(event, other)

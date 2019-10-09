@@ -47,7 +47,7 @@ class TestApiGatewayService(TestCase):
 
         result = self.service._request_handler()
 
-        self.assertEquals(result, make_response_mock)
+        self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -75,7 +75,7 @@ class TestApiGatewayService(TestCase):
 
         result = self.service._request_handler()
 
-        self.assertEquals(result, make_response_mock)
+        self.assertEqual(result, make_response_mock)
         lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY)
 
         # Make sure the parse method is called only on the returned response and not on the raw data from stdout
@@ -103,7 +103,7 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         result = self.service._request_handler()
 
-        self.assertEquals(result, make_response_mock)
+        self.assertEqual(result, make_response_mock)
 
     def test_create_creates_dict_of_routes(self):
         function_name_1 = Mock()
@@ -120,7 +120,7 @@ class TestApiGatewayService(TestCase):
 
         service.create()
 
-        self.assertEquals(service._dict_of_routes, {"/:GET": api_gateway_route_1, "/:POST": api_gateway_route_2})
+        self.assertEqual(service._dict_of_routes, {"/:GET": api_gateway_route_1, "/:POST": api_gateway_route_2})
 
     @patch("samcli.local.apigw.local_apigw_service.Flask")
     def test_create_creates_flask_app_with_url_rules(self, flask):
@@ -136,20 +136,20 @@ class TestApiGatewayService(TestCase):
         )
 
     def test_initalize_creates_default_values(self):
-        self.assertEquals(self.service.port, 3000)
-        self.assertEquals(self.service.host, "127.0.0.1")
-        self.assertEquals(self.service.api.routes, self.list_of_routes)
+        self.assertEqual(self.service.port, 3000)
+        self.assertEqual(self.service.host, "127.0.0.1")
+        self.assertEqual(self.service.api.routes, self.list_of_routes)
         self.assertIsNone(self.service.static_dir)
-        self.assertEquals(self.service.lambda_runner, self.lambda_runner)
+        self.assertEqual(self.service.lambda_runner, self.lambda_runner)
 
     def test_initalize_with_values(self):
         lambda_runner = Mock()
         local_service = LocalApigwService(Api(), lambda_runner, static_dir="dir/static", port=5000, host="129.0.0.0")
-        self.assertEquals(local_service.port, 5000)
-        self.assertEquals(local_service.host, "129.0.0.0")
-        self.assertEquals(local_service.api.routes, [])
-        self.assertEquals(local_service.static_dir, "dir/static")
-        self.assertEquals(local_service.lambda_runner, lambda_runner)
+        self.assertEqual(local_service.port, 5000)
+        self.assertEqual(local_service.host, "129.0.0.0")
+        self.assertEqual(local_service.api.routes, [])
+        self.assertEqual(local_service.static_dir, "dir/static")
+        self.assertEqual(local_service.lambda_runner, lambda_runner)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
@@ -165,7 +165,7 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         response = self.service._request_handler()
 
-        self.assertEquals(response, not_found_response_mock)
+        self.assertEqual(response, not_found_response_mock)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_request_throws_when_invoke_fails(self, request_mock):
@@ -198,7 +198,7 @@ class TestApiGatewayService(TestCase):
         request_mock.return_value = ("test", "test")
         result = self.service._request_handler()
 
-        self.assertEquals(result, failure_response_mock)
+        self.assertEqual(result, failure_response_mock)
 
     @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
     def test_request_handler_errors_when_get_current_route_fails(self, service_error_responses_patch):
@@ -224,7 +224,7 @@ class TestApiGatewayService(TestCase):
 
         request_mock.return_value = ("test", "test")
         result = self.service._request_handler()
-        self.assertEquals(result, failure_mock)
+        self.assertEqual(result, failure_mock)
 
     @patch("samcli.local.apigw.local_apigw_service.request")
     def test_get_current_route(self, request_patch):
@@ -239,7 +239,7 @@ class TestApiGatewayService(TestCase):
         self.service._route_key = route_key_method_mock
         self.service._dict_of_routes = {"method:path": "function"}
 
-        self.assertEquals(self.service._get_current_route(request_mock), "function")
+        self.assertEqual(self.service._get_current_route(request_mock), "function")
 
     @patch("samcli.local.apigw.local_apigw_service.request")
     def test_get_current_route_keyerror(self, request_patch):
@@ -269,9 +269,9 @@ class TestApiGatewayModel(TestCase):
         self.api_gateway = Route(function_name=self.function_name, methods=["Post"], path="/")
 
     def test_class_initialization(self):
-        self.assertEquals(self.api_gateway.methods, ["POST"])
-        self.assertEquals(self.api_gateway.function_name, self.function_name)
-        self.assertEquals(self.api_gateway.path, "/")
+        self.assertEqual(self.api_gateway.methods, ["POST"])
+        self.assertEqual(self.api_gateway.function_name, self.function_name)
+        self.assertEqual(self.api_gateway.path, "/")
 
 
 class TestLambdaHeaderDictionaryMerge(TestCase):
@@ -281,7 +281,7 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
 
         result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
 
-        self.assertEquals(result, Headers({}))
+        self.assertEqual(result, Headers({}))
 
     def test_headers_are_merged(self):
         headers = {"h1": "value1", "h2": "value2", "h3": "value3"}
@@ -292,9 +292,9 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         self.assertIn("h1", result)
         self.assertIn("h2", result)
         self.assertIn("h3", result)
-        self.assertEquals(result["h1"], "value1")
-        self.assertEquals(result["h2"], "value2")
-        self.assertEquals(result.get_all("h3"), ["value4", "value3"])
+        self.assertEqual(result["h1"], "value1")
+        self.assertEqual(result["h2"], "value2")
+        self.assertEqual(result.get_all("h3"), ["value4", "value3"])
 
     def test_merge_does_not_duplicate_values(self):
         headers = {"h1": "ValueB"}
@@ -303,7 +303,7 @@ class TestLambdaHeaderDictionaryMerge(TestCase):
         result = LocalApigwService._merge_response_headers(headers, multi_value_headers)
 
         self.assertIn("h1", result)
-        self.assertEquals(result.get_all("h1"), ["ValueA", "ValueB", "ValueC"])
+        self.assertEqual(result.get_all("h1"), ["ValueA", "ValueB", "ValueC"])
 
 
 class TestServiceParsingLambdaOutput(TestCase):
@@ -315,7 +315,7 @@ class TestServiceParsingLambdaOutput(TestCase):
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
         self.assertIn("Content-Type", headers)
-        self.assertEquals(headers["Content-Type"], "application/json")
+        self.assertEqual(headers["Content-Type"], "application/json")
 
     def test_default_content_type_header_added_with_empty_headers(self):
         lambda_output = (
@@ -326,7 +326,7 @@ class TestServiceParsingLambdaOutput(TestCase):
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
         self.assertIn("Content-Type", headers)
-        self.assertEquals(headers["Content-Type"], "application/json")
+        self.assertEqual(headers["Content-Type"], "application/json")
 
     def test_custom_content_type_header_is_not_modified(self):
         lambda_output = (
@@ -336,7 +336,7 @@ class TestServiceParsingLambdaOutput(TestCase):
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
         self.assertIn("Content-Type", headers)
-        self.assertEquals(headers["Content-Type"], "text/xml")
+        self.assertEqual(headers["Content-Type"], "text/xml")
 
     def test_custom_content_type_multivalue_header_is_not_modified(self):
         lambda_output = (
@@ -347,7 +347,7 @@ class TestServiceParsingLambdaOutput(TestCase):
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
         self.assertIn("Content-Type", headers)
-        self.assertEquals(headers["Content-Type"], "text/xml")
+        self.assertEqual(headers["Content-Type"], "text/xml")
 
     def test_multivalue_headers(self):
         lambda_output = (
@@ -357,7 +357,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
-        self.assertEquals(headers, Headers({"Content-Type": "application/json", "X-Foo": ["bar", "42"]}))
+        self.assertEqual(headers, Headers({"Content-Type": "application/json", "X-Foo": ["bar", "42"]}))
 
     def test_single_and_multivalue_headers(self):
         lambda_output = (
@@ -368,7 +368,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
-        self.assertEquals(
+        self.assertEqual(
             headers, Headers({"Content-Type": "application/json", "X-Bar": "bar", "X-Foo": ["bar", "42", "foo"]})
         )
 
@@ -391,9 +391,9 @@ class TestServiceParsingLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
-        self.assertEquals(status_code, 200)
-        self.assertEquals(headers, Headers({"Content-Type": "application/json"}))
-        self.assertEquals(body, '{"message":"Hello from Lambda"}')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(body, '{"message":"Hello from Lambda"}')
 
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_decode_body")
     def test_parse_returns_decodes_base64_to_binary(self, should_decode_body_patch):
@@ -412,9 +412,9 @@ class TestServiceParsingLambdaOutput(TestCase):
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=Mock()
         )
 
-        self.assertEquals(status_code, 200)
-        self.assertEquals(headers, Headers({"Content-Type": "application/octet-stream"}))
-        self.assertEquals(body, binary_body)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(headers, Headers({"Content-Type": "application/octet-stream"}))
+        self.assertEqual(body, binary_body)
 
     def test_status_code_not_int(self):
         lambda_output = (
@@ -434,7 +434,7 @@ class TestServiceParsingLambdaOutput(TestCase):
         (status_code, _, _) = LocalApigwService._parse_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
-        self.assertEquals(status_code, 200)
+        self.assertEqual(status_code, 200)
 
     def test_status_code_negative_int(self):
         lambda_output = (
@@ -473,9 +473,9 @@ class TestServiceParsingLambdaOutput(TestCase):
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
-        self.assertEquals(status_code, 200)
-        self.assertEquals(headers, Headers({"Content-Type": "application/json"}))
-        self.assertEquals(body, "no data")
+        self.assertEqual(status_code, 200)
+        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(body, "no data")
 
 
 class TestService_construct_event(TestCase):
@@ -519,14 +519,14 @@ class TestService_construct_event(TestCase):
 
     def test_construct_event_with_data(self):
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
-        self.assertEquals(json.loads(actual_event_str), self.expected_dict)
+        self.assertEqual(json.loads(actual_event_str), self.expected_dict)
 
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
         self.expected_dict["body"] = None
 
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
-        self.assertEquals(json.loads(actual_event_str), self.expected_dict)
+        self.assertEqual(json.loads(actual_event_str), self.expected_dict)
 
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_encode")
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
@@ -541,7 +541,7 @@ class TestService_construct_event(TestCase):
         self.maxDiff = None
 
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
-        self.assertEquals(json.loads(actual_event_str), self.expected_dict)
+        self.assertEqual(json.loads(actual_event_str), self.expected_dict)
 
     def test_event_headers_with_empty_list(self):
         request_mock = Mock()
@@ -551,7 +551,7 @@ class TestService_construct_event(TestCase):
         request_mock.scheme = "http"
 
         actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
-        self.assertEquals(
+        self.assertEqual(
             actual_query_string,
             (
                 {"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"},
@@ -569,7 +569,7 @@ class TestService_construct_event(TestCase):
         request_mock.scheme = "http"
 
         actual_query_string = LocalApigwService._event_headers(request_mock, "3000")
-        self.assertEquals(
+        self.assertEqual(
             actual_query_string,
             (
                 {
@@ -594,7 +594,7 @@ class TestService_construct_event(TestCase):
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
-        self.assertEquals(actual_query_string, ({}, {}))
+        self.assertEqual(actual_query_string, ({}, {}))
 
     def test_query_string_params_with_param_value_being_empty_list(self):
         request_mock = Mock()
@@ -603,7 +603,7 @@ class TestService_construct_event(TestCase):
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
-        self.assertEquals(actual_query_string, ({"param": ""}, {"param": [""]}))
+        self.assertEqual(actual_query_string, ({"param": ""}, {"param": [""]}))
 
     def test_query_string_params_with_param_value_being_non_empty_list(self):
         request_mock = Mock()
@@ -612,7 +612,7 @@ class TestService_construct_event(TestCase):
         request_mock.args = query_param_args_mock
 
         actual_query_string = LocalApigwService._query_string_params(request_mock)
-        self.assertEquals(actual_query_string, ({"param": "b"}, {"param": ["a", "b"]}))
+        self.assertEqual(actual_query_string, ({"param": "b"}, {"param": ["a", "b"]}))
 
 
 class TestService_should_base64_encode(TestCase):
@@ -638,7 +638,7 @@ class TestServiceCorsToHeaders(TestCase):
         )
         headers = Cors.cors_to_headers(cors)
 
-        self.assertEquals(
+        self.assertEqual(
             headers,
             {
                 "Access-Control-Allow-Origin": "*",
@@ -652,7 +652,7 @@ class TestServiceCorsToHeaders(TestCase):
         cors = Cors(allow_origin="www.domain.com", allow_methods=",".join(["GET", "POST", "OPTIONS"]))
         headers = Cors.cors_to_headers(cors)
 
-        self.assertEquals(
+        self.assertEqual(
             headers,
             {"Access-Control-Allow-Origin": "www.domain.com", "Access-Control-Allow-Methods": "GET,POST,OPTIONS"},
         )
@@ -667,12 +667,12 @@ class TestRouteEqualsHash(TestCase):
     def test_route_method_order_equals(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
         route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
-        self.assertEquals(route1, route2)
+        self.assertEqual(route1, route2)
 
     def test_route_hash(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
         dic = {route1: "test"}
-        self.assertEquals(dic[route1], "test")
+        self.assertEqual(dic[route1], "test")
 
     def test_route_object_equals(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
@@ -692,7 +692,7 @@ class TestRouteEqualsHash(TestCase):
 
     def test_same_object_equals(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
-        self.assertEquals(route1, copy.deepcopy(route1))
+        self.assertEqual(route1, copy.deepcopy(route1))
 
     def test_route_function_name_hash(self):
         route1 = Route(function_name="test1", path="/test", methods=["GET", "POST"])
@@ -706,9 +706,9 @@ class TestRouteEqualsHash(TestCase):
 
     def test_same_object_hash(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
-        self.assertEquals(route1.__hash__(), copy.deepcopy(route1).__hash__())
+        self.assertEqual(route1.__hash__(), copy.deepcopy(route1).__hash__())
 
     def test_route_method_order_hash(self):
         route1 = Route(function_name="test", path="/test", methods=["POST", "GET"])
         route2 = Route(function_name="test", path="/test", methods=["GET", "POST"])
-        self.assertEquals(route1.__hash__(), route2.__hash__())
+        self.assertEqual(route1.__hash__(), route2.__hash__())

@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 
@@ -25,6 +26,7 @@ class TestPy2DeprecationWarning(TestCase):
         process = self.run_cmd()
         (stdoutdata, stderrdata) = process.communicate()
 
+        expected_notice = re.sub(r"\n", os.linesep, DEPRECATION_NOTICE)
         # Deprecation notice should be part of the command output if running in python 2
         if sys.version_info.major == 2:
-            self.assertIn(DEPRECATION_NOTICE, stderrdata.decode())
+            self.assertIn(expected_notice, stderrdata.decode())

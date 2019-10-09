@@ -6,7 +6,7 @@ Flask~=1.0.2
 boto3~=1.9, >=1.9.56
 PyYAML~=5.1
 cookiecutter~=1.6.0
-aws-sam-translator==1.11.0
+aws-sam-translator==1.14.0
 docker~=4.0
 dateparser~=0.7
 python-dateutil~=2.6

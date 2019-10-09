@@ -18,11 +18,11 @@ class TestApiProvider_init(TestCase):
         SamBaseProviderMock.get_template.return_value = template
 
         provider = ApiProvider(template)
-        self.assertEquals(len(provider.routes), 3)
-        self.assertEquals(provider.routes, set(["set", "of", "values"]))
+        self.assertEqual(len(provider.routes), 3)
+        self.assertEqual(provider.routes, set(["set", "of", "values"]))
 
-        self.assertEquals(provider.template_dict, {"Resources": {"a": "b"}})
-        self.assertEquals(provider.resources, {"a": "b"})
+        self.assertEqual(provider.template_dict, {"Resources": {"a": "b"}})
+        self.assertEqual(provider.resources, {"a": "b"})
 
 
 class TestApiProviderSelection(TestCase):

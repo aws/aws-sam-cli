@@ -19,9 +19,9 @@ class TestEnvironmentVariables_init(TestCase):
         environ.timeout = timeout
         environ.handler = handler
 
-        self.assertEquals(environ.memory, memory)
-        self.assertEquals(environ.timeout, timeout)
-        self.assertEquals(environ.handler, handler)
+        self.assertEqual(environ.memory, memory)
+        self.assertEqual(environ.timeout, timeout)
+        self.assertEqual(environ.handler, handler)
 
     def test_must_initialize_values_with_required_values(self):
         memory = 123
@@ -29,13 +29,13 @@ class TestEnvironmentVariables_init(TestCase):
         handler = "handler"
 
         environ = EnvironmentVariables(memory, timeout, handler)
-        self.assertEquals(environ.memory, memory)
-        self.assertEquals(environ.timeout, timeout)
-        self.assertEquals(environ.handler, handler)
-        self.assertEquals(environ.variables, {})
-        self.assertEquals(environ.shell_env_values, {})
-        self.assertEquals(environ.override_values, {})
-        self.assertEquals(environ.aws_creds, {})
+        self.assertEqual(environ.memory, memory)
+        self.assertEqual(environ.timeout, timeout)
+        self.assertEqual(environ.handler, handler)
+        self.assertEqual(environ.variables, {})
+        self.assertEqual(environ.shell_env_values, {})
+        self.assertEqual(environ.override_values, {})
+        self.assertEqual(environ.aws_creds, {})
 
     def test_must_initialize_with_optional_values(self):
         memory = 123
@@ -56,10 +56,10 @@ class TestEnvironmentVariables_init(TestCase):
             aws_creds=aws_creds,
         )
 
-        self.assertEquals(environ.variables, {"a": "b"})
-        self.assertEquals(environ.shell_env_values, {"c": "d"})
-        self.assertEquals(environ.override_values, {"e": "f"})
-        self.assertEquals(environ.aws_creds, {"g": "h"})
+        self.assertEqual(environ.variables, {"a": "b"})
+        self.assertEqual(environ.shell_env_values, {"c": "d"})
+        self.assertEqual(environ.override_values, {"e": "f"})
+        self.assertEqual(environ.aws_creds, {"g": "h"})
 
 
 class TestEnvironmentVariables_resolve(TestCase):
@@ -122,7 +122,7 @@ class TestEnvironmentVariables_resolve(TestCase):
         result = environ.resolve()
 
         # With no additional environment variables, resolve() should just return all AWS variables
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_with_only_default_values_for_variables(self):
         """
@@ -150,7 +150,7 @@ class TestEnvironmentVariables_resolve(TestCase):
 
         environ = EnvironmentVariables(self.memory, self.timeout, self.handler, variables=self.variables)
 
-        self.assertEquals(environ.resolve(), expected)
+        self.assertEqual(environ.resolve(), expected)
 
     def test_with_shell_env_value(self):
         """
@@ -181,7 +181,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             self.memory, self.timeout, self.handler, variables=self.variables, shell_env_values=self.shell_env
         )
 
-        self.assertEquals(environ.resolve(), expected)
+        self.assertEqual(environ.resolve(), expected)
 
     def test_with_overrides_value(self):
         """
@@ -217,7 +217,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             override_values=self.override,
         )
 
-        self.assertEquals(environ.resolve(), expected)
+        self.assertEqual(environ.resolve(), expected)
 
 
 class TestEnvironmentVariables_get_aws_variables(TestCase):
@@ -249,7 +249,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
 
         environ = EnvironmentVariables(self.memory, self.timeout, self.handler, aws_creds=self.aws_creds)
 
-        self.assertEquals(expected, environ._get_aws_variables())
+        self.assertEqual(expected, environ._get_aws_variables())
 
     def test_must_work_without_any_aws_creds(self):
 
@@ -266,7 +266,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
         }
 
         environ = EnvironmentVariables(self.memory, self.timeout, self.handler)
-        self.assertEquals(expected, environ._get_aws_variables())
+        self.assertEqual(expected, environ._get_aws_variables())
 
     def test_must_work_with_partial_aws_creds(self):
 
@@ -287,7 +287,7 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
         }
 
         environ = EnvironmentVariables(self.memory, self.timeout, self.handler, aws_creds=creds)
-        self.assertEquals(expected, environ._get_aws_variables())
+        self.assertEqual(expected, environ._get_aws_variables())
 
 
 class TestEnvironmentVariables_stringify_value(TestCase):
@@ -297,7 +297,7 @@ class TestEnvironmentVariables_stringify_value(TestCase):
 
     @parameterized.expand([param([1, 2, 3]), param({"a": {"b": "c"}}), param(("this", "is", "tuple")), param(None)])
     def test_must_replace_non_scalar_with_blank_values(self, input):
-        self.assertEquals("", self.environ._stringify_value(input))
+        self.assertEqual("", self.environ._stringify_value(input))
 
     @parameterized.expand(
         [
@@ -310,7 +310,7 @@ class TestEnvironmentVariables_stringify_value(TestCase):
         ]
     )
     def test_must_stringify(self, input, expected):
-        self.assertEquals(expected, self.environ._stringify_value(input))
+        self.assertEqual(expected, self.environ._stringify_value(input))
 
 
 class TestEnvironmentVariables_add_lambda_event_body(TestCase):
@@ -321,4 +321,4 @@ class TestEnvironmentVariables_add_lambda_event_body(TestCase):
         environ = EnvironmentVariables()
         environ.add_lambda_event_body(value)
 
-        self.assertEquals(environ.variables.get("AWS_LAMBDA_EVENT_BODY"), value)
+        self.assertEqual(environ.variables.get("AWS_LAMBDA_EVENT_BODY"), value)

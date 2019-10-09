@@ -61,7 +61,7 @@ class TestGlobalConfig(TestCase):
         mock_click.get_app_dir.return_value = "mock/folders"
         mock_io = mock_open(Mock())
         with patch("samcli.cli.global_config.open", mock_io):
-            self.assertEquals("SevenLayerDipMock", gc.installation_id)
+            self.assertEqual("SevenLayerDipMock", gc.installation_id)
 
     def test_explicit_telemetry_enabled(self):
         gc = GlobalConfig(telemetry_enabled=True)
@@ -120,7 +120,7 @@ class TestGlobalConfig(TestCase):
         mock_os.environ = {"SAM_CLI_TELEMETRY": env_value}
         mock_os.getenv.return_value = env_value
 
-        self.assertEquals(gc.telemetry_enabled, expected_result)
+        self.assertEqual(gc.telemetry_enabled, expected_result)
 
         mock_os.getenv.assert_called_once_with("SAM_CLI_TELEMETRY")
 

@@ -14,7 +14,7 @@ class TestLogsCliCommand(TestCase):
         self.end_time = "end"
 
     @patch("samcli.commands.logs.command.click")
-    @patch("samcli.commands.logs.command.LogsCommandContext")
+    @patch("samcli.commands.logs.logs_context.LogsCommandContext")
     def test_without_tail(self, LogsCommandContextMock, click_mock):
         tailing = False
         events_iterable = [1, 2, 3]
@@ -48,7 +48,7 @@ class TestLogsCliCommand(TestCase):
         click_mock.echo.assert_has_calls([call(v, nl=False) for v in formatted_events])
 
     @patch("samcli.commands.logs.command.click")
-    @patch("samcli.commands.logs.command.LogsCommandContext")
+    @patch("samcli.commands.logs.logs_context.LogsCommandContext")
     def test_with_tailing(self, LogsCommandContextMock, click_mock):
         tailing = True
         events_iterable = [1, 2, 3]

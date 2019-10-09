@@ -15,7 +15,7 @@ class TestTar(TestCase):
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
 
         with create_tarball({"/some/path": "/layer1", "/some/dockerfile/path": "/Dockerfile"}) as acutal:
-            self.assertEquals(acutal, temp_file_mock)
+            self.assertEqual(acutal, temp_file_mock)
 
         tarfile_file_mock.add.assert_called()
         tarfile_file_mock.add.assert_has_calls(

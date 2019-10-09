@@ -18,17 +18,17 @@ class TestTelemetryContract(IntegBase):
             process = self.run_cmd(optout_envvar_value="0")
             (_, stderrdata) = process.communicate()
             retcode = process.poll()
-            self.assertEquals(retcode, 0, "Command should successfully complete")
+            self.assertEqual(retcode, 0, "Command should successfully complete")
             all_requests = server.get_all_requests()
-            self.assertEquals(0, len(all_requests), "No metrics should be sent")
+            self.assertEqual(0, len(all_requests), "No metrics should be sent")
 
             # Now run again without the Env Var Opt out
             process = self.run_cmd()
             (_, stderrdata) = process.communicate()
             retcode = process.poll()
-            self.assertEquals(retcode, 0, "Command should successfully complete")
+            self.assertEqual(retcode, 0, "Command should successfully complete")
             all_requests = server.get_all_requests()
-            self.assertEquals(1, len(all_requests), "Command run metric should be sent")
+            self.assertEqual(1, len(all_requests), "Command run metric should be sent")
 
     def test_must_send_metrics_if_enabled_via_envvar(self):
         """
@@ -42,17 +42,17 @@ class TestTelemetryContract(IntegBase):
             process = self.run_cmd()
             (_, stderrdata) = process.communicate()
             retcode = process.poll()
-            self.assertEquals(retcode, 0, "Command should successfully complete")
+            self.assertEqual(retcode, 0, "Command should successfully complete")
             all_requests = server.get_all_requests()
-            self.assertEquals(0, len(all_requests), "No metric should be sent")
+            self.assertEqual(0, len(all_requests), "No metric should be sent")
 
             # Opt-in via env var
             process = self.run_cmd(optout_envvar_value="1")
             (_, stderrdata) = process.communicate()
             retcode = process.poll()
-            self.assertEquals(retcode, 0, "Command should successfully complete")
+            self.assertEqual(retcode, 0, "Command should successfully complete")
             all_requests = server.get_all_requests()
-            self.assertEquals(1, len(all_requests), "Command run metric must be sent")
+            self.assertEqual(1, len(all_requests), "Command run metric must be sent")
 
     def test_must_not_crash_when_offline(self):
         """
@@ -69,4 +69,4 @@ class TestTelemetryContract(IntegBase):
         (_, stderrdata) = process.communicate()
 
         retcode = process.poll()
-        self.assertEquals(retcode, 0, "Command should successfully complete")
+        self.assertEqual(retcode, 0, "Command should successfully complete")

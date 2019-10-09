@@ -9,19 +9,19 @@ class TestLocalLambdaService(TestCase):
     def test_initalize_creates_default_values(self):
         lambda_runner_mock = Mock()
         service = LocalLambdaInvokeService(lambda_runner=lambda_runner_mock, port=3001, host="127.0.0.1")
-        self.assertEquals(service.port, 3001)
-        self.assertEquals(service.host, "127.0.0.1")
-        self.assertEquals(service.lambda_runner, lambda_runner_mock)
+        self.assertEqual(service.port, 3001)
+        self.assertEqual(service.host, "127.0.0.1")
+        self.assertEqual(service.lambda_runner, lambda_runner_mock)
         self.assertIsNone(service.stderr)
 
     def test_initalize_with_values(self):
         lambda_runner_mock = Mock()
         stderr_mock = Mock()
         local_service = LocalLambdaInvokeService(lambda_runner_mock, port=5000, host="129.0.0.0", stderr=stderr_mock)
-        self.assertEquals(local_service.port, 5000)
-        self.assertEquals(local_service.host, "129.0.0.0")
-        self.assertEquals(local_service.stderr, stderr_mock)
-        self.assertEquals(local_service.lambda_runner, lambda_runner_mock)
+        self.assertEqual(local_service.port, 5000)
+        self.assertEqual(local_service.host, "129.0.0.0")
+        self.assertEqual(local_service.stderr, stderr_mock)
+        self.assertEqual(local_service.lambda_runner, lambda_runner_mock)
 
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.LocalLambdaInvokeService._construct_error_handling")
     @patch("samcli.local.lambda_service.local_lambda_invoke_service.Flask")
@@ -57,7 +57,7 @@ class TestLocalLambdaService(TestCase):
 
         response = service._invoke_request_handler(function_name="HelloWorld")
 
-        self.assertEquals(response, "request response")
+        self.assertEqual(response, "request response")
 
         lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
@@ -75,7 +75,7 @@ class TestLocalLambdaService(TestCase):
 
         response = service._invoke_request_handler(function_name="NotFound")
 
-        self.assertEquals(response, "Couldn't find Lambda")
+        self.assertEqual(response, "Couldn't find Lambda")
 
         lambda_runner_mock.invoke.assert_called_once_with("NotFound", "{}", stdout=ANY, stderr=None)
 
@@ -104,7 +104,7 @@ class TestLocalLambdaService(TestCase):
 
         result = service._invoke_request_handler(function_name="HelloWorld")
 
-        self.assertEquals(result, "request response")
+        self.assertEqual(result, "request response")
         lambda_output_parser_mock.get_lambda_output.assert_called_with(ANY)
 
         # Make sure the logs are written to stderr
@@ -141,7 +141,7 @@ class TestLocalLambdaService(TestCase):
 
         response = service._invoke_request_handler(function_name="HelloWorld")
 
-        self.assertEquals(response, "request response")
+        self.assertEqual(response, "request response")
 
         lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
         service_response_mock.assert_called_once_with(
@@ -161,7 +161,7 @@ class TestLocalLambdaService(TestCase):
 
         response = service._invoke_request_handler(function_name="HelloWorld")
 
-        self.assertEquals(response, "request response")
+        self.assertEqual(response, "request response")
 
         lambda_runner_mock.invoke.assert_called_once_with("HelloWorld", "{}", stdout=ANY, stderr=None)
         service_response_mock.assert_called_once_with("hello world", {"Content-Type": "application/json"}, 200)
@@ -180,7 +180,7 @@ class TestValidateRequestHandling(TestCase):
 
         response = LocalLambdaInvokeService.validate_request()
 
-        self.assertEquals(response, "InvalidRequestContent")
+        self.assertEqual(response, "InvalidRequestContent")
 
         expected_called_with = "Could not parse request body into json: No JSON object could be decoded"
 
@@ -198,7 +198,7 @@ class TestValidateRequestHandling(TestCase):
 
         response = LocalLambdaInvokeService.validate_request()
 
-        self.assertEquals(response, "InvalidRequestContent")
+        self.assertEqual(response, "InvalidRequestContent")
 
         lambda_error_responses_mock.invalid_request_content.assert_called_once_with(
             "Query Parameters are not supported"
@@ -216,7 +216,7 @@ class TestValidateRequestHandling(TestCase):
 
         response = LocalLambdaInvokeService.validate_request()
 
-        self.assertEquals(response, "NotImplementedLocally")
+        self.assertEqual(response, "NotImplementedLocally")
 
         lambda_error_responses_mock.not_implemented_locally.assert_called_once_with(
             "log-type: Tail is not supported. None is only supported."
@@ -234,7 +234,7 @@ class TestValidateRequestHandling(TestCase):
 
         response = LocalLambdaInvokeService.validate_request()
 
-        self.assertEquals(response, "NotImplementedLocally")
+        self.assertEqual(response, "NotImplementedLocally")
 
         lambda_error_responses_mock.not_implemented_locally.assert_called_once_with(
             "invocation-type: DryRun is not supported. RequestResponse is only supported."

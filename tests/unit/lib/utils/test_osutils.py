@@ -33,7 +33,7 @@ class Test_stderr(TestCase):
         if sys.version_info.major > 2:
             expected_stderr = sys.stderr.buffer
 
-        self.assertEquals(expected_stderr, osutils.stderr())
+        self.assertEqual(expected_stderr, osutils.stderr())
 
 
 class Test_stdout(TestCase):
@@ -44,4 +44,4 @@ class Test_stdout(TestCase):
         if sys.version_info.major > 2:
             expected_stdout = sys.stdout.buffer
 
-        self.assertEquals(expected_stdout, osutils.stdout())
+        self.assertEqual(expected_stdout, osutils.stdout())

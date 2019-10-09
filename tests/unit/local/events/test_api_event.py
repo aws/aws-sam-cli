@@ -19,16 +19,16 @@ class TestContextIdentity(TestCase):
             "account_id",
         )
 
-        self.assertEquals(identity.api_key, "api_key")
-        self.assertEquals(identity.user_arn, "user_arn")
-        self.assertEquals(identity.cognito_authentication_type, "cognito_authentication_type")
-        self.assertEquals(identity.caller, "caller")
-        self.assertEquals(identity.user_agent, "user_agent")
-        self.assertEquals(identity.user, "user")
-        self.assertEquals(identity.cognito_identity_pool_id, "cognito_identity_pool_id")
-        self.assertEquals(identity.cognito_authentication_provider, "cognito_authentication_provider")
-        self.assertEquals(identity.source_ip, "source_ip")
-        self.assertEquals(identity.account_id, "account_id")
+        self.assertEqual(identity.api_key, "api_key")
+        self.assertEqual(identity.user_arn, "user_arn")
+        self.assertEqual(identity.cognito_authentication_type, "cognito_authentication_type")
+        self.assertEqual(identity.caller, "caller")
+        self.assertEqual(identity.user_agent, "user_agent")
+        self.assertEqual(identity.user, "user")
+        self.assertEqual(identity.cognito_identity_pool_id, "cognito_identity_pool_id")
+        self.assertEqual(identity.cognito_authentication_provider, "cognito_authentication_provider")
+        self.assertEqual(identity.source_ip, "source_ip")
+        self.assertEqual(identity.account_id, "account_id")
 
     def test_to_dict(self):
         identity = ContextIdentity(
@@ -57,7 +57,7 @@ class TestContextIdentity(TestCase):
             "accountId": "account_id",
         }
 
-        self.assertEquals(identity.to_dict(), expected)
+        self.assertEqual(identity.to_dict(), expected)
 
     def test_to_dict_with_defaults(self):
         identity = ContextIdentity()
@@ -75,7 +75,7 @@ class TestContextIdentity(TestCase):
             "accountId": None,
         }
 
-        self.assertEquals(identity.to_dict(), expected)
+        self.assertEqual(identity.to_dict(), expected)
 
 
 class TestRequestContext(TestCase):
@@ -95,16 +95,16 @@ class TestRequestContext(TestCase):
             "path",
         )
 
-        self.assertEquals(request_context.resource_id, "resource_id")
-        self.assertEquals(request_context.api_id, "api_id")
-        self.assertEquals(request_context.resource_path, "request_path")
-        self.assertEquals(request_context.http_method, "request_method")
-        self.assertEquals(request_context.request_id, "request_id")
-        self.assertEquals(request_context.account_id, "account_id")
-        self.assertEquals(request_context.stage, "prod")
-        self.assertEquals(request_context.identity, identity_mock)
-        self.assertEquals(request_context.extended_request_id, "extended_request_id")
-        self.assertEquals(request_context.path, "path")
+        self.assertEqual(request_context.resource_id, "resource_id")
+        self.assertEqual(request_context.api_id, "api_id")
+        self.assertEqual(request_context.resource_path, "request_path")
+        self.assertEqual(request_context.http_method, "request_method")
+        self.assertEqual(request_context.request_id, "request_id")
+        self.assertEqual(request_context.account_id, "account_id")
+        self.assertEqual(request_context.stage, "prod")
+        self.assertEqual(request_context.identity, identity_mock)
+        self.assertEqual(request_context.extended_request_id, "extended_request_id")
+        self.assertEqual(request_context.path, "path")
 
     def test_to_dict(self):
         identity_mock = Mock()
@@ -136,7 +136,7 @@ class TestRequestContext(TestCase):
             "path": "path",
         }
 
-        self.assertEquals(request_context.to_dict(), expected)
+        self.assertEqual(request_context.to_dict(), expected)
 
     def test_to_dict_with_defaults(self):
         request_context = RequestContext()
@@ -154,7 +154,7 @@ class TestRequestContext(TestCase):
             "path": None,
         }
 
-        self.assertEquals(request_context.to_dict(), expected)
+        self.assertEqual(request_context.to_dict(), expected)
 
 
 class TestApiGatewayLambdaEvent(TestCase):
@@ -174,16 +174,16 @@ class TestApiGatewayLambdaEvent(TestCase):
             False,
         )
 
-        self.assertEquals(event.http_method, "request_method")
-        self.assertEquals(event.body, "request_data")
-        self.assertEquals(event.resource, "resource")
-        self.assertEquals(event.request_context, "request_context")
-        self.assertEquals(event.query_string_params, {"query": "some query"})
-        self.assertEquals(event.headers, {"header_key": "value"})
-        self.assertEquals(event.path_parameters, {"param": "some param"})
-        self.assertEquals(event.stage_variables, {"stage_vars": "some vars"})
-        self.assertEquals(event.path, "request_path")
-        self.assertEquals(event.is_base_64_encoded, False)
+        self.assertEqual(event.http_method, "request_method")
+        self.assertEqual(event.body, "request_data")
+        self.assertEqual(event.resource, "resource")
+        self.assertEqual(event.request_context, "request_context")
+        self.assertEqual(event.query_string_params, {"query": "some query"})
+        self.assertEqual(event.headers, {"header_key": "value"})
+        self.assertEqual(event.path_parameters, {"param": "some param"})
+        self.assertEqual(event.stage_variables, {"stage_vars": "some vars"})
+        self.assertEqual(event.path, "request_path")
+        self.assertEqual(event.is_base_64_encoded, False)
 
     def test_to_dict(self):
         request_context_mock = Mock()
@@ -219,7 +219,7 @@ class TestApiGatewayLambdaEvent(TestCase):
             "isBase64Encoded": False,
         }
 
-        self.assertEquals(event.to_dict(), expected)
+        self.assertEqual(event.to_dict(), expected)
 
     def test_to_dict_with_defaults(self):
         event = ApiGatewayLambdaEvent()
@@ -239,7 +239,7 @@ class TestApiGatewayLambdaEvent(TestCase):
             "isBase64Encoded": False,
         }
 
-        self.assertEquals(event.to_dict(), expected)
+        self.assertEqual(event.to_dict(), expected)
 
     def test_init_with_invalid_query_string_params(self):
         with self.assertRaises(TypeError):

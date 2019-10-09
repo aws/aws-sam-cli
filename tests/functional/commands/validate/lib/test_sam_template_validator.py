@@ -285,11 +285,11 @@ class TestValidate(TestCase):
         validator.is_valid()
 
         # validate the CodeUri was not changed
-        self.assertEquals(
+        self.assertEqual(
             validator.sam_template.get("Resources").get("ServerlessApi").get("Properties").get("DefinitionUri"),
             {"Bucket": "mybucket-name", "Key": "swagger", "Version": 121212},
         )
-        self.assertEquals(
+        self.assertEqual(
             validator.sam_template.get("Resources").get("ServerlessFunction").get("Properties").get("CodeUri"),
             {"Bucket": "mybucket-name", "Key": "code.zip", "Version": 121212},
         )

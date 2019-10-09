@@ -36,7 +36,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         return_code = process.wait()
 
-        self.assertEquals(return_code, 0)
+        self.assertEqual(return_code, 0)
 
     def test_function_with_metadata(self):
         command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)
@@ -45,7 +45,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertEquals(process_stdout.decode("utf-8"), '"Hello World in a different dir"')
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello World in a different dir"')
 
     def test_invoke_returns_execpted_results(self):
         command_list = self.get_command_list(
@@ -55,7 +55,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode("utf-8"), '"Hello world"')
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     def test_invoke_of_lambda_function(self):
         command_list = self.get_command_list(
@@ -65,7 +65,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode("utf-8"), '"Hello world"')
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     @parameterized.expand([("TimeoutFunction"), ("TimeoutFunctionWithParameter")])
     def test_invoke_with_timeout_set(self, function_name):
@@ -86,8 +86,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertGreater(wall_clock_cli_duration, 5)
         self.assertLess(wall_clock_cli_duration, 20)
 
-        self.assertEquals(return_code, 0)
-        self.assertEquals(
+        self.assertEqual(return_code, 0)
+        self.assertEqual(
             process_stdout.decode("utf-8"),
             "",
             msg="The return statement in the LambdaFunction " "should never return leading to an empty string",
@@ -104,7 +104,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode("utf-8"), '"MyVar"')
+        self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list(
@@ -139,8 +139,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         return_code = process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertEquals(return_code, 0)
-        self.assertEquals("{}", process_stdout.decode("utf-8"))
+        self.assertEqual(return_code, 0)
+        self.assertEqual("{}", process_stdout.decode("utf-8"))
 
     def test_invoke_raises_exception_with_noargs_and_event(self):
         command_list = self.get_command_list(
@@ -167,18 +167,18 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["Region"], "us-east-1")
-        self.assertEquals(environ["AccountId"], "123456789012")
-        self.assertEquals(environ["Partition"], "aws")
-        self.assertEquals(environ["StackName"], "local")
-        self.assertEquals(
+        self.assertEqual(environ["Region"], "us-east-1")
+        self.assertEqual(environ["AccountId"], "123456789012")
+        self.assertEqual(environ["Partition"], "aws")
+        self.assertEqual(environ["StackName"], "local")
+        self.assertEqual(
             environ["StackId"],
             "arn:aws:cloudformation:us-east-1:123456789012:stack/" "local/51af3dc0-da77-11e4-872e-1234567db123",
         )
 
-        self.assertEquals(environ["URLSuffix"], "localhost")
-        self.assertEquals(environ["Timeout"], "100")
-        self.assertEquals(environ["MyRuntimeVersion"], "v0")
+        self.assertEqual(environ["URLSuffix"], "localhost")
+        self.assertEqual(environ["Timeout"], "100")
+        self.assertEqual(environ["MyRuntimeVersion"], "v0")
 
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "my-custom-region"
@@ -192,7 +192,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["Region"], custom_region)
+        self.assertEqual(environ["Region"], custom_region)
 
     def test_invoke_with_env_with_aws_creds(self):
         custom_region = "my-custom-region"
@@ -216,11 +216,11 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], custom_region)
-        self.assertEquals(environ["AWS_REGION"], custom_region)
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], key)
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], secret)
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], session)
+        self.assertEqual(environ["AWS_DEFAULT_REGION"], custom_region)
+        self.assertEqual(environ["AWS_REGION"], custom_region)
+        self.assertEqual(environ["AWS_ACCESS_KEY_ID"], key)
+        self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], secret)
+        self.assertEqual(environ["AWS_SESSION_TOKEN"], session)
 
     def test_invoke_with_docker_network_of_host(self):
         command_list = self.get_command_list(
@@ -233,7 +233,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         return_code = process.wait()
 
-        self.assertEquals(return_code, 0)
+        self.assertEqual(return_code, 0)
 
     @skipIf(IS_WINDOWS, "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
@@ -261,7 +261,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertEquals(process_stdout.decode("utf-8"), '"Hello world"')
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     def test_skip_pull_image_in_env_var(self):
         docker.from_env().api.pull("lambci/lambda:python3.6")
@@ -316,11 +316,11 @@ class TestUsingConfigFiles(InvokeIntegBase):
         environ = json.loads(process_stdout.decode("utf-8"))
 
         # Environment variables we explicitly set take priority over profiles.
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], "sa-east-1")
-        self.assertEquals(environ["AWS_REGION"], "sa-east-1")
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "priority_access_key_id")
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "priority_secret_key_id")
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], "priority_secret_token")
+        self.assertEqual(environ["AWS_DEFAULT_REGION"], "sa-east-1")
+        self.assertEqual(environ["AWS_REGION"], "sa-east-1")
+        self.assertEqual(environ["AWS_ACCESS_KEY_ID"], "priority_access_key_id")
+        self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], "priority_secret_key_id")
+        self.assertEqual(environ["AWS_SESSION_TOKEN"], "priority_secret_token")
 
     def test_default_profile_with_custom_configs(self):
         profile = "default"
@@ -347,11 +347,11 @@ class TestUsingConfigFiles(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], "us-west-1")
-        self.assertEquals(environ["AWS_REGION"], "us-west-1")
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], "sessiontoken")
+        self.assertEqual(environ["AWS_DEFAULT_REGION"], "us-west-1")
+        self.assertEqual(environ["AWS_REGION"], "us-west-1")
+        self.assertEqual(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
+        self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
+        self.assertEqual(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     def test_custom_profile_with_custom_configs(self):
         custom_config = self._create_config_file("custom")
@@ -377,11 +377,11 @@ class TestUsingConfigFiles(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], "us-west-1")
-        self.assertEquals(environ["AWS_REGION"], "us-west-1")
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], "sessiontoken")
+        self.assertEqual(environ["AWS_DEFAULT_REGION"], "us-west-1")
+        self.assertEqual(environ["AWS_REGION"], "us-west-1")
+        self.assertEqual(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
+        self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
+        self.assertEqual(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     def test_custom_profile_through_envrionment_variables(self):
         # When using a custom profile in a custom location, you need both the config
@@ -412,11 +412,11 @@ class TestUsingConfigFiles(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEquals(environ["AWS_DEFAULT_REGION"], "us-west-1")
-        self.assertEquals(environ["AWS_REGION"], "us-west-1")
-        self.assertEquals(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
-        self.assertEquals(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
-        self.assertEquals(environ["AWS_SESSION_TOKEN"], "sessiontoken")
+        self.assertEqual(environ["AWS_DEFAULT_REGION"], "us-west-1")
+        self.assertEqual(environ["AWS_REGION"], "us-west-1")
+        self.assertEqual(environ["AWS_ACCESS_KEY_ID"], "someaccesskeyid")
+        self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
+        self.assertEqual(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     def _create_config_file(self, profile):
         if profile == "default":
@@ -503,7 +503,7 @@ class TestLayerVersion(InvokeIntegBase):
 
         expected_output = '"This is a Layer Ping from simple_python"'
 
-        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
 
     @parameterized.expand([("OneLayerVersionServerlessFunction"), ("OneLayerVersionLambdaFunction")])
     def test_download_one_layer(self, function_logical_id):
@@ -522,7 +522,7 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
         expected_output = '"Layer1"'
 
-        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
 
     @parameterized.expand([("ChangedLayerVersionServerlessFunction"), ("ChangedLayerVersionLambdaFunction")])
     def test_publish_changed_download_layer(self, function_logical_id):
@@ -544,7 +544,7 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
         expected_output = '"Layer1"'
 
-        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
 
         self.layer_utils.upsert_layer(
             layer_name=layer_name, ref_layer_name="ChangedLayerArn", layer_zip="changedlayer1.zip"
@@ -565,7 +565,7 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
         expected_output = '"Changed_Layer_1"'
 
-        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
 
     @parameterized.expand([("TwoLayerVersionServerlessFunction"), ("TwoLayerVersionLambdaFunction")])
     def test_download_two_layers(self, function_logical_id):
@@ -587,7 +587,7 @@ class TestLayerVersion(InvokeIntegBase):
         process_stdout = b"".join(stdout[-1:]).strip()
         expected_output = '"Layer2"'
 
-        self.assertEquals(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
 
     def test_caching_two_layers(self):
 
@@ -603,7 +603,7 @@ class TestLayerVersion(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         process.wait()
 
-        self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
+        self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
 
     def test_caching_two_layers_with_layer_cache_env_set(self):
 
@@ -621,7 +621,7 @@ class TestLayerVersion(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE, env=env)
         process.wait()
 
-        self.assertEquals(2, len(os.listdir(str(self.layer_cache))))
+        self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
 
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Travis only")

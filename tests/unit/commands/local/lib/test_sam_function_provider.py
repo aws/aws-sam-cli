@@ -139,14 +139,14 @@ class TestSamFunctionProviderEndToEnd(TestCase):
     def test_get_must_return_each_function(self, name, expected_output):
 
         actual = self.provider.get(name)
-        self.assertEquals(actual, expected_output)
+        self.assertEqual(actual, expected_output)
 
     def test_get_all_must_return_all_functions(self):
 
         result = {f.name for f in self.provider.get_all()}
         expected = {"SamFunc1", "SamFunc2", "SamFunc3", "LambdaFunc1", "LambdaFuncWithLocalPath"}
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
 
 class TestSamFunctionProvider_init(TestCase):
@@ -165,7 +165,7 @@ class TestSamFunctionProvider_init(TestCase):
 
         extract_mock.assert_called_with({"a": "b"})
         SamBaseProviderMock.get_template.assert_called_with(template, self.parameter_overrides)
-        self.assertEquals(provider.functions, extract_result)
+        self.assertEqual(provider.functions, extract_result)
 
     @patch.object(SamFunctionProvider, "_extract_functions")
     @patch("samcli.commands.local.lib.sam_function_provider.SamBaseProvider")
@@ -178,8 +178,8 @@ class TestSamFunctionProvider_init(TestCase):
         provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
         extract_mock.assert_called_with({})  # Empty Resources value must be passed
-        self.assertEquals(provider.functions, extract_result)
-        self.assertEquals(provider.resources, {})
+        self.assertEqual(provider.functions, extract_result)
+        self.assertEqual(provider.resources, {})
 
 
 class TestSamFunctionProvider_extract_functions(TestCase):
@@ -193,7 +193,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"Func1": "some result"}
 
         result = SamFunctionProvider._extract_functions(resources)
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
         convert_mock.assert_called_with("Func1", {"a": "b"}, [])
 
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
@@ -211,7 +211,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"Func1": "some result"}
 
         result = SamFunctionProvider._extract_functions(resources)
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
         convert_mock.assert_called_with("Func1", {}, [])
 
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
@@ -224,7 +224,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {"Func1": "some result"}
 
         result = SamFunctionProvider._extract_functions(resources)
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
         convert_mock.assert_called_with("Func1", {"a": "b"}, [])
 
     def test_must_skip_unknown_resource(self):
@@ -233,7 +233,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         expected = {}
 
         result = SamFunctionProvider._extract_functions(resources)
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
 
 class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
@@ -265,7 +265,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
 
@@ -286,7 +286,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_must_default_missing_code_uri(self):
 
@@ -294,7 +294,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         properties = {"Runtime": "myruntime"}
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
-        self.assertEquals(result.codeuri, ".")  # Default value
+        self.assertEqual(result.codeuri, ".")  # Default value
 
     def test_must_handle_code_dict(self):
 
@@ -307,7 +307,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         }
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
-        self.assertEquals(result.codeuri, ".")  # Default value
+        self.assertEqual(result.codeuri, ".")  # Default value
 
     def test_must_handle_code_s3_uri(self):
 
@@ -315,7 +315,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         properties = {"CodeUri": "s3://bucket/key"}
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
-        self.assertEquals(result.codeuri, ".")  # Default value
+        self.assertEqual(result.codeuri, ".")  # Default value
 
 
 class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
@@ -347,7 +347,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, ["Layer1", "Layer2"])
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_must_skip_non_existent_properties(self):
 
@@ -368,7 +368,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, [])
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
 
 class TestSamFunctionProvider_parse_layer_info(TestCase):
@@ -406,7 +406,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         for (actual_layer, expected_layer) in zip(
             actual, [LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None)]
         ):
-            self.assertEquals(actual_layer, expected_layer)
+            self.assertEqual(actual_layer, expected_layer)
 
     def test_layers_created_from_template_resources(self):
         resources = {
@@ -430,14 +430,14 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
                 LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", None),
             ],
         ):
-            self.assertEquals(actual_layer, expected_layer)
+            self.assertEqual(actual_layer, expected_layer)
 
     def test_return_empty_list_on_no_layers(self):
         resources = {"Function": {"Type": "AWS::Serverless::Function", "Properties": {}}}
 
         actual = SamFunctionProvider._parse_layer_info([], resources)
 
-        self.assertEquals(actual, [])
+        self.assertEqual(actual, [])
 
 
 class TestSamFunctionProvider_get(TestCase):
@@ -451,7 +451,7 @@ class TestSamFunctionProvider_get(TestCase):
         provider = SamFunctionProvider({})
         provider.functions = {"func1": "value"}  # Cheat a bit here by setting the value of this property directly
 
-        self.assertEquals("value", provider.get("func1"))
+        self.assertEqual("value", provider.get("func1"))
 
     def test_return_none_if_function_not_found(self):
         provider = SamFunctionProvider({})
@@ -464,4 +464,4 @@ class TestSamFunctionProvider_get_all(TestCase):
         provider = SamFunctionProvider({})
 
         result = [f for f in provider.get_all()]
-        self.assertEquals(result, [])
+        self.assertEqual(result, [])

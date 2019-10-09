@@ -6,17 +6,11 @@ import os
 import logging
 import click
 
-from samcli.commands.exceptions import UserException
-from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_option_without_build, docker_common_options, \
     parameter_override_option
-from samcli.commands.build.build_context import BuildContext
-from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError, \
-    ContainerBuildNotSupported
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands._utils.template import move_template
+from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
+
 
 LOG = logging.getLogger(__name__)
 
@@ -63,7 +57,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 @click.option('--build-dir', '-b',
               default=DEFAULT_BUILD_DIR,
               type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
-              help="Path to a folder where the built artifacts will be stored")
+              help="Path to a folder where the built artifacts will be stored. This directory will be first removed before starting a build.")
 @click.option("--base-dir", "-s",
               default=None,
               type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
@@ -105,7 +99,7 @@ def cli(ctx,
            skip_pull_image, parameter_overrides, mode)  # pragma: no cover
 
 
-def do_cli(function_identifier,  # pylint: disable=too-many-locals
+def do_cli(function_identifier,  # pylint: disable=too-many-locals, too-many-statements
            template,
            base_dir,
            build_dir,
@@ -119,6 +113,15 @@ def do_cli(function_identifier,  # pylint: disable=too-many-locals
     """
     Implementation of the ``cli`` method
     """
+
+    from samcli.commands.exceptions import UserException
+
+    from samcli.commands.build.build_context import BuildContext
+    from samcli.lib.build.app_builder import ApplicationBuilder, BuildError, UnsupportedBuilderLibraryVersionError, \
+        ContainerBuildNotSupported
+    from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+    from samcli.local.lambdafn.exceptions import FunctionNotFound
+    from samcli.commands._utils.template import move_template
 
     LOG.debug("'build' command is called")
 

@@ -78,14 +78,14 @@ class TestLambdaContainer_init(TestCase):
             debug_options=self.debug_options,
         )
 
-        self.assertEquals(image, container._image)
-        self.assertEquals(expected_cmd, container._cmd)
-        self.assertEquals("/var/task", container._working_dir)
-        self.assertEquals(self.code_dir, container._host_dir)
-        self.assertEquals(ports, container._exposed_ports)
-        self.assertEquals(entry, container._entrypoint)
-        self.assertEquals(self.env_var, container._env_vars)
-        self.assertEquals(self.memory_mb, container._memory_limit_mb)
+        self.assertEqual(image, container._image)
+        self.assertEqual(expected_cmd, container._cmd)
+        self.assertEqual("/var/task", container._working_dir)
+        self.assertEqual(self.code_dir, container._host_dir)
+        self.assertEqual(ports, container._exposed_ports)
+        self.assertEqual(entry, container._entrypoint)
+        self.assertEqual(self.env_var, container._env_vars)
+        self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(image_builder_mock, self.runtime, [])
         get_exposed_ports_mock.assert_called_with(self.debug_options)
@@ -102,7 +102,7 @@ class TestLambdaContainer_init(TestCase):
         with self.assertRaises(ValueError) as context:
             LambdaContainer(runtime, self.handler, self.code_dir, [], image_builder_mock)
 
-        self.assertEquals(str(context.exception), "Unsupported Lambda runtime foo")
+        self.assertEqual(str(context.exception), "Unsupported Lambda runtime foo")
 
 
 class TestLambdaContainer_get_exposed_ports(TestCase):
@@ -112,7 +112,7 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
         expected = {debug_options.debug_port: debug_options.debug_port}
         result = LambdaContainer._get_exposed_ports(debug_options)
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_must_skip_if_port_is_not_given(self):
 
@@ -127,7 +127,7 @@ class TestLambdaContainer_get_image(TestCase):
         image_builder = Mock()
         image_builder.build.return_value = expected
 
-        self.assertEquals(LambdaContainer._get_image(image_builder, "foo", []), expected)
+        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", []), expected)
 
 
 class TestLambdaContainer_get_entry_point(TestCase):
@@ -161,7 +161,7 @@ class TestLambdaContainer_get_entry_point(TestCase):
         result = LambdaContainer._get_entry_point(runtime, self.debug_options)
         actual = result[1:4]
 
-        self.assertEquals(actual, expected_debug_args)
+        self.assertEqual(actual, expected_debug_args)
 
     @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT)])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_bootstrap_based_entrypoint(self, runtime):
@@ -194,7 +194,7 @@ class TestLambdaContainer_get_additional_options(TestCase):
         debug_options = DebugContext(debug_port=1235)
 
         result = LambdaContainer._get_additional_options(runtime, debug_options)
-        self.assertEquals(result, {})
+        self.assertEqual(result, {})
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_go_runtime_returns_additional_options(self, runtime):
@@ -203,7 +203,7 @@ class TestLambdaContainer_get_additional_options(TestCase):
         debug_options = DebugContext(debug_port=1235)
 
         result = LambdaContainer._get_additional_options(runtime, debug_options)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
 
 class TestLambdaContainer_get_additional_volumes(TestCase):
@@ -225,4 +225,4 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
         debug_options = DebugContext(debug_port=1234, debugger_path="/somepath")
 
         result = LambdaContainer._get_additional_volumes(debug_options)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)

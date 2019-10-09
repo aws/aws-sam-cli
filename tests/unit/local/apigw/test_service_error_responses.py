@@ -13,7 +13,7 @@ class TestServiceErrorResponses(TestCase):
 
         response = ServiceErrorResponses.lambda_failure_response()
 
-        self.assertEquals(response, {"Some Response"})
+        self.assertEqual(response, {"Some Response"})
 
         jsonify_patch.assert_called_with({"message": "Internal server error"})
         make_response_patch.assert_called_with({"json": "Response"}, 502)
@@ -27,7 +27,7 @@ class TestServiceErrorResponses(TestCase):
 
         response = ServiceErrorResponses.lambda_not_found_response(error_mock)
 
-        self.assertEquals(response, {"Some Response"})
+        self.assertEqual(response, {"Some Response"})
 
         jsonify_patch.assert_called_with({"message": "No function defined for resource method"})
         make_response_patch.assert_called_with({"json": "Response"}, 502)
@@ -41,7 +41,7 @@ class TestServiceErrorResponses(TestCase):
 
         response = ServiceErrorResponses.route_not_found(error_mock)
 
-        self.assertEquals(response, {"Some Response"})
+        self.assertEqual(response, {"Some Response"})
 
         jsonify_patch.assert_called_with({"message": "Missing Authentication Token"})
         make_response_patch.assert_called_with({"json": "Response"}, 403)
