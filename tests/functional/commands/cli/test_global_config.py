@@ -94,7 +94,7 @@ class TestGlobalConfig(TestCase):
     def test_set_telemetry_flag_no_file(self):
         path = Path(self._cfg_dir, "metadata.json")
         gc = GlobalConfig(config_dir=self._cfg_dir)
-        self.assertIsFalse(gc.telemetry_enabled)  # pre-state test
+        self.assertFalse(gc.telemetry_enabled)  # pre-state test
         gc.telemetry_enabled = True
         from_gc = gc.telemetry_enabled
         json_body = json.loads(path.read_text())
