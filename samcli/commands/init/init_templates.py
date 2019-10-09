@@ -20,7 +20,6 @@ from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 class InitTemplates:
     def __init__(self, no_interactive=False, auto_clone=True):
         self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
-        # self._repo_url = "git@github.com:awslabs/aws-sam-cli-app-templates.git"
         self._repo_name = "aws-sam-cli-app-templates"
         self.repo_path = None
         self.clone_attempted = False
@@ -81,6 +80,9 @@ class InitTemplates:
             if templates is None:
                 # Fallback to bundled templates
                 return self._init_options_from_bundle(runtime, dependency_manager)
+            if dependency_manager is not None:
+                templates_by_dep = itertools.takewhile(lambda x: x["dependencyManager"] == dependency_manager, templates)
+                return list(templates_by_dep)
             return templates
 
     def _init_options_from_bundle(self, runtime, dependency_manager):
@@ -100,13 +102,11 @@ class InitTemplates:
         if self._should_clone_repo(expected_path):
             try:
                 subprocess.check_output(["git", "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT)
-                # check for repo in path?
                 self.repo_path = expected_path
             except subprocess.CalledProcessError as clone_error:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
-                # do we ever want to hard fail?
         self.clone_attempted = True
 
     def _should_clone_repo(self, expected_path):
@@ -115,7 +115,6 @@ class InitTemplates:
             if not self._no_interactive:
                 overwrite = click.confirm("Init templates exist on disk. Do you wish to update?")
                 if overwrite:
-                    # possible alternative: pull down first, THEN delete old version - safer if there is a problem
                     shutil.rmtree(expected_path)  # fail hard if there is an issue
                     return True
             self.repo_path = expected_path
