@@ -4,7 +4,6 @@ import shutil
 
 from mock import mock_open, patch
 from unittest import TestCase
-from json import JSONDecodeError
 from samcli.cli.global_config import GlobalConfig
 
 try:
@@ -135,7 +134,7 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             f.write("NOT JSON, PROBABLY VALID YAML AM I RIGHT!?")
         gc = GlobalConfig(config_dir=self._cfg_dir)
-        with self.assertRaises(JSONDecodeError):
+        with self.assertRaises(ValueError):
             gc.telemetry_enabled = True
 
     def test_setter_cannot_open_file(self):
