@@ -25,9 +25,9 @@ _SAM_CLI_COMMAND_PACKAGES = [
 ]
 
 DEPRECATION_NOTICE = (
-    "Warning : AWS SAM CLI will no longer support "
-    "installations on Python 2.7 starting on October 1st, 2019."
-    " Install AWS SAM CLI via https://docs.aws.amazon.com/serverless-application-model/"
+    "Deprecated : AWS SAM CLI no longer supports "
+    "installations on Python 2.7. "
+    "Install AWS SAM CLI via https://docs.aws.amazon.com/serverless-application-model/"
     "latest/developerguide/serverless-sam-cli-install.html for continued support with new versions. \n"
 )
 
@@ -70,7 +70,7 @@ class BaseCommand(click.MultiCommand):
         self._commands = BaseCommand._set_commands(cmd_packages)
 
         if sys.version_info.major == 2:
-            click.secho(DEPRECATION_NOTICE, fg="yellow", err=True)
+            click.secho(DEPRECATION_NOTICE, fg="red", err=True)
 
     @staticmethod
     def _set_commands(package_names):

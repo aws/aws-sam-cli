@@ -18,7 +18,7 @@ class TestParseAwsIncludeTransform(TestCase):
         expected = "s3://bucket/swagger.yaml"
         result = parse_aws_include_transform(data)
 
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     @parameterized.expand(
         [
@@ -59,7 +59,7 @@ class TestSamSwaggerReader_read(TestCase):
         reader._read_from_definition_body.return_value = expected
 
         actual = reader.read()
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
         reader._read_from_definition_body.assert_called_with()
         reader._download_swagger.assert_not_called()
@@ -73,7 +73,7 @@ class TestSamSwaggerReader_read(TestCase):
         reader._download_swagger.return_value = expected
 
         actual = reader.read()
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
         reader._download_swagger.assert_called_with(uri)
 
@@ -91,7 +91,7 @@ class TestSamSwaggerReader_read(TestCase):
         reader._read_from_definition_body.return_value = None
 
         actual = reader.read()
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
         reader._read_from_definition_body.assert_called_with()
         reader._download_swagger.assert_called_with(uri)
@@ -110,7 +110,7 @@ class TestSamSwaggerReader_read_from_definition_body(TestCase):
         parse_mock.return_value = location
 
         actual = reader._read_from_definition_body()
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
         parse_mock.assert_called_with(body)
 
     @patch("samcli.commands.local.lib.swagger.reader.parse_aws_include_transform")
@@ -121,7 +121,7 @@ class TestSamSwaggerReader_read_from_definition_body(TestCase):
         parse_mock.return_value = None  # No location is returned from aws_include parser
 
         actual = reader._read_from_definition_body()
-        self.assertEquals(actual, body)
+        self.assertEqual(actual, body)
 
 
 class TestSamSwaggerReader_download_swagger(TestCase):
@@ -138,7 +138,7 @@ class TestSamSwaggerReader_download_swagger(TestCase):
 
         actual = reader._download_swagger(location)
 
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
         reader._download_from_s3.assert_called_with(location["Bucket"], location["Key"], location["Version"])
         yaml_parse_mock.assert_called_with(swagger_str)
 
@@ -174,7 +174,7 @@ class TestSamSwaggerReader_download_swagger(TestCase):
             reader = SwaggerReader(definition_uri=filename, working_dir=cwd)
             actual = reader._download_swagger(filename)
 
-            self.assertEquals(actual, expected)
+            self.assertEqual(actual, expected)
             yaml_parse_mock.assert_called_with('{"some": "value"}')  # data was read back from the file as JSON string
 
     @patch("samcli.commands.local.lib.swagger.reader.yaml_parse")
@@ -192,7 +192,7 @@ class TestSamSwaggerReader_download_swagger(TestCase):
             reader = SwaggerReader(definition_uri=filepath)
             actual = reader._download_swagger(filepath)
 
-            self.assertEquals(actual, expected)
+            self.assertEqual(actual, expected)
             yaml_parse_mock.assert_called_with('{"some": "value"}')  # data was read back from the file as JSON string
 
     @patch("samcli.commands.local.lib.swagger.reader.yaml_parse")
@@ -234,7 +234,7 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
         fp_mock.read.return_value = expected
 
         actual = SwaggerReader._download_from_s3(self.bucket, self.key, self.version)
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
         s3_mock.download_fileobj.assert_called_with(
             self.bucket, self.key, fp_mock, ExtraArgs={"VersionId": self.version}
@@ -271,7 +271,7 @@ class TestSamSwaggerReaderDownloadFromS3(TestCase):
         fp_mock.read.return_value = expected
 
         actual = SwaggerReader._download_from_s3(self.bucket, self.key)
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
         s3_mock.download_fileobj.assert_called_with(self.bucket, self.key, fp_mock, ExtraArgs={})
 
@@ -302,25 +302,25 @@ class TestSamSwaggerReader_parse_s3_location(TestCase):
         location = {"Bucket": self.bucket, "Key": self.key, "Version": self.version}
 
         result = SwaggerReader._parse_s3_location(location)
-        self.assertEquals(result, (self.bucket, self.key, self.version))
+        self.assertEqual(result, (self.bucket, self.key, self.version))
 
     def test_must_parse_dict_without_version(self):
         location = {"Bucket": self.bucket, "Key": self.key}
 
         result = SwaggerReader._parse_s3_location(location)
-        self.assertEquals(result, (self.bucket, self.key, None))
+        self.assertEqual(result, (self.bucket, self.key, None))
 
     def test_must_parse_s3_uri_string(self):
         location = "s3://{}/{}?versionId={}".format(self.bucket, self.key, self.version)
 
         result = SwaggerReader._parse_s3_location(location)
-        self.assertEquals(result, (self.bucket, self.key, self.version))
+        self.assertEqual(result, (self.bucket, self.key, self.version))
 
     def test_must_parse_s3_uri_string_without_version_id(self):
         location = "s3://{}/{}".format(self.bucket, self.key)
 
         result = SwaggerReader._parse_s3_location(location)
-        self.assertEquals(result, (self.bucket, self.key, None))
+        self.assertEqual(result, (self.bucket, self.key, None))
 
     @parameterized.expand(
         [
@@ -333,4 +333,4 @@ class TestSamSwaggerReader_parse_s3_location(TestCase):
     def test_must_parse_invalid_location(self, location):
 
         result = SwaggerReader._parse_s3_location(location)
-        self.assertEquals(result, (None, None, None))
+        self.assertEqual(result, (None, None, None))

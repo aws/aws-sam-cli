@@ -40,8 +40,8 @@ class TestCli(TestCase):
         self.port = 123
         self.static_dir = "staticdir"
 
-    @patch("samcli.commands.local.start_api.cli.InvokeContext")
-    @patch("samcli.commands.local.start_api.cli.LocalApiService")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
     def test_cli_must_setup_context_and_start_service(self, local_api_service_mock, invoke_context_mock):
         # Mock the __enter__ method to return a object inside a context manager
         context_mock = Mock()
@@ -76,8 +76,8 @@ class TestCli(TestCase):
 
         service_mock.start.assert_called_with()
 
-    @patch("samcli.commands.local.start_api.cli.InvokeContext")
-    @patch("samcli.commands.local.start_api.cli.LocalApiService")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
     def test_must_raise_if_no_api_defined(self, local_api_service_mock, invoke_context_mock):
 
         # Mock the __enter__ method to return a object inside a context manager
@@ -93,7 +93,7 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = "Template does not have any APIs connected to Lambda functions"
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
     @parameterized.expand(
         [
@@ -105,7 +105,7 @@ class TestCli(TestCase):
             (DebuggingNotSupported("Debugging not supported"), "Debugging not supported"),
         ]
     )
-    @patch("samcli.commands.local.start_api.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     def test_must_raise_user_exception_on_invalid_sam_template(
         self, exeception_to_raise, execption_message, invoke_context_mock
     ):
@@ -117,9 +117,9 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = execption_message
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
-    @patch("samcli.commands.local.start_api.cli.InvokeContext")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     def test_must_raise_user_exception_on_invalid_env_vars(self, invoke_context_mock):
         invoke_context_mock.side_effect = OverridesNotWellDefinedError("bad env vars")
 
@@ -128,7 +128,7 @@ class TestCli(TestCase):
 
         msg = str(context.exception)
         expected = "bad env vars"
-        self.assertEquals(msg, expected)
+        self.assertEqual(msg, expected)
 
     def call_cli(self):
         start_api_cli(

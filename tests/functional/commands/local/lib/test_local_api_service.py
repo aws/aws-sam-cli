@@ -99,13 +99,13 @@ class TestFunctionalLocalLambda(TestCase):
         self._start_service_thread(local_service)
 
         response = requests.get(self.url + "/get")
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
         response = requests.post(self.url + "/post", {})
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
         response = requests.get(self.url + "/post")
-        self.assertEquals(response.status_code, 403)  # "HTTP GET /post" must not exist
+        self.assertEqual(response.status_code, 403)  # "HTTP GET /post" must not exist
 
     @patch("samcli.commands.local.lib.sam_api_provider.SamApiProvider")
     def test_must_serve_static_files(self, sam_api_provider_mock):
@@ -120,8 +120,8 @@ class TestFunctionalLocalLambda(TestCase):
         # NOTE: The URL does not contain the static_dir because this directory is mounted directly at /
         response = requests.get("{}/{}".format(self.url, self.static_file_name))
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(self.static_file_content, response.text)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.static_file_content, response.text)
 
     @staticmethod
     def _start_service_thread(service):

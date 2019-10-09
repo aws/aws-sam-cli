@@ -70,7 +70,7 @@ class TestLambdaUri(TestCase):
     def test_get_function_name_success(self, test_case_name, uri):
 
         result = LambdaUri.get_function_name(uri)
-        self.assertEquals(result, self.FUNCTION_NAME)
+        self.assertEqual(result, self.FUNCTION_NAME)
 
     FAILURE_CASES = [
         (

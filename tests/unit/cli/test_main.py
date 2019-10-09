@@ -15,7 +15,7 @@ class TestCliBase(TestCase):
         with mock.patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, [])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
             self.assertTrue("--help" in result.output, "Help text must be printed")
             self.assertTrue("--debug" in result.output, "--debug option must be present in help text")
 
@@ -25,7 +25,7 @@ class TestCliBase(TestCase):
         with mock.patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, ["local", "generate-event", "s3"])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
     def test_cli_with_debug(self):
 
@@ -33,7 +33,7 @@ class TestCliBase(TestCase):
         with mock.patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, ["local", "generate-event", "s3", "put", "--debug"])
-            self.assertEquals(result.exit_code, 0)
+            self.assertEqual(result.exit_code, 0)
 
     @mock.patch("samcli.cli.main.send_installed_metric")
     def test_cli_enable_telemetry_with_prompt(self, send_installed_metric_mock):

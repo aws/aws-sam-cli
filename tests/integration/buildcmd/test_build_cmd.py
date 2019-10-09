@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import logging
+from unittest import skipIf
 
 try:
     from pathlib import Path
@@ -10,11 +11,16 @@ except ImportError:
 from parameterized import parameterized
 
 from .build_integ_base import BuildIntegBase
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
 
 LOG = logging.getLogger(__name__)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -91,15 +97,19 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_ErrorCases(BuildIntegBase):
     def test_unsupported_runtime(self):
-        overrides = {"Runtime": "unsupportedpython", "CodeUri": "NoThere"}
+        overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
@@ -107,11 +117,15 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         process.wait()
 
         process_stdout = b"".join(process.stdout.readlines()).strip().decode("utf-8")
-        self.assertEquals(1, process.returncode)
+        self.assertEqual(1, process.returncode)
 
         self.assertIn("Build Failed", process_stdout)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
@@ -172,18 +186,22 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
         all_modules = set(os.listdir(str(resource_artifact_dir.joinpath("node_modules"))))
         actual_files = all_modules.intersection(expected_modules)
-        self.assertEquals(actual_files, expected_modules)
+        self.assertEqual(actual_files, expected_modules)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
-    EXPECTED_RUBY_GEM = "httparty"
+    EXPECTED_RUBY_GEM = "aws-record"
 
     FUNCTION_LOGICAL_ID = "Function"
 
@@ -230,7 +248,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
         ruby_version = None
         ruby_bundled_path = None
@@ -245,6 +263,10 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_Java(BuildIntegBase):
 
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
@@ -255,7 +277,9 @@ class TestBuildCommand_Java(BuildIntegBase):
     USING_GRADLE_PATH = os.path.join("Java", "gradle")
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
-    USING_MAVEN_PATH = str(Path("Java", "maven"))
+    USING_MAVEN_PATH = os.path.join("Java", "maven")
+    WINDOWS_LINE_ENDING = b"\r\n"
+    UNIX_LINE_ENDING = b"\n"
 
     @parameterized.expand(
         [
@@ -272,6 +296,8 @@ class TestBuildCommand_Java(BuildIntegBase):
     def test_with_building_java(self, runtime, code_path, expected_files, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
+            self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
         process = subprocess.Popen(cmdlist, cwd=self.working_dir)
@@ -314,12 +340,25 @@ class TestBuildCommand_Java(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
         lib_dir_contents = set(os.listdir(str(resource_artifact_dir.joinpath("lib"))))
-        self.assertEquals(lib_dir_contents, expected_modules)
+        self.assertEqual(lib_dir_contents, expected_modules)
+
+    def _change_to_unix_line_ending(self, path):
+        with open(os.path.abspath(path), "rb") as open_file:
+            content = open_file.read()
+
+        content = content.replace(self.WINDOWS_LINE_ENDING, self.UNIX_LINE_ENDING)
+
+        with open(os.path.abspath(path), "wb") as open_file:
+            open_file.write(content)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -396,7 +435,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         process.wait()
 
         # Must error out, because container builds are not supported
-        self.assertEquals(process.returncode, 1)
+        self.assertEqual(process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
@@ -414,9 +453,13 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
 
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
@@ -437,7 +480,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         process = subprocess.Popen(cmdlist, cwd=self.working_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
 
-        self.assertEquals(process.returncode, 1)
+        self.assertEqual(process.returncode, 1)
         self.assertIn("FunctionNotInTemplate not found", str(stderr.decode("utf8")))
 
     @parameterized.expand(
@@ -488,7 +531,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)
-        self.assertEquals(actual_files, expected_files)
+        self.assertEqual(actual_files, expected_files)
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)

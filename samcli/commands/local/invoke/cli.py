@@ -7,14 +7,6 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options
-from samcli.commands.exceptions import UserException
-from samcli.commands.local.lib.exceptions import InvalidLayerReference
-from samcli.commands.local.cli_common.invoke_context import InvokeContext
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-from samcli.local.docker.manager import DockerImagePullFailedException
-from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
 from samcli.lib.telemetry.metrics import track_command
 
 
@@ -112,6 +104,15 @@ def do_cli(  # pylint: disable=R0914
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
+
+    from samcli.commands.exceptions import UserException
+    from samcli.commands.local.lib.exceptions import InvalidLayerReference
+    from samcli.commands.local.cli_common.invoke_context import InvokeContext
+    from samcli.local.lambdafn.exceptions import FunctionNotFound
+    from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+    from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+    from samcli.local.docker.manager import DockerImagePullFailedException
+    from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
 
     LOG.debug("local invoke command is called")
 

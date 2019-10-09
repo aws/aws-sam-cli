@@ -24,7 +24,7 @@ class TestSwaggerParser_get_apis(TestCase):
         expected = [Route(path="/path1", methods=["get"], function_name=function_name)]
         result = parser.get_routes()
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
         parser._get_integration_function_name.assert_called_with(
             {"x-amazon-apigateway-integration": {"type": "aws_proxy", "uri": "someuri"}}
         )
@@ -52,7 +52,7 @@ class TestSwaggerParser_get_apis(TestCase):
         }
         result = parser.get_routes()
 
-        self.assertEquals(expected, set(result))
+        self.assertEqual(expected, set(result))
 
     def test_with_any_method(self):
         function_name = "myfunction"
@@ -73,7 +73,7 @@ class TestSwaggerParser_get_apis(TestCase):
         expected = [Route(methods=["ANY"], path="/path1", function_name=function_name)]
         result = parser.get_routes()
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     def test_does_not_have_function_name(self):
         swagger = {
@@ -87,7 +87,7 @@ class TestSwaggerParser_get_apis(TestCase):
         expected = []
         result = parser.get_routes()
 
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
     @parameterized.expand(
         [
@@ -103,7 +103,7 @@ class TestSwaggerParser_get_apis(TestCase):
         result = parser.get_routes()
 
         expected = []
-        self.assertEquals(expected, result)
+        self.assertEqual(expected, result)
 
 
 class TestSwaggerParser_get_integration_function_name(TestCase):
@@ -117,7 +117,7 @@ class TestSwaggerParser_get_integration_function_name(TestCase):
         parser = SwaggerParser({})
         result = parser._get_integration_function_name(method_config)
 
-        self.assertEquals(function_name, result)
+        self.assertEqual(function_name, result)
         LambdaUriMock.get_function_name.assert_called_with("someuri")
 
     @parameterized.expand(
@@ -155,4 +155,4 @@ class TestSwaggerParser_get_binary_media_types(TestCase):
     def test_binary_media_type_returned(self, test_case_name, swagger, expected_result):
         parser = SwaggerParser(swagger)
 
-        self.assertEquals(parser.get_binary_media_types(), expected_result)
+        self.assertEqual(parser.get_binary_media_types(), expected_result)

@@ -20,7 +20,7 @@ class TestValidateCli(TestCase):
         with self.assertRaises(SamTemplateNotFoundException):
             _read_sam_file(template_path)
 
-    @patch("samcli.commands.validate.validate.yaml_parse")
+    @patch("samcli.yamlhelper.yaml_parse")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate.os.path.exists")
     def test_file_parsed(self, path_exists_patch, click_patch, yaml_parse_patch):
@@ -32,9 +32,9 @@ class TestValidateCli(TestCase):
 
         actual_template = _read_sam_file(template_path)
 
-        self.assertEquals(actual_template, {"a": "b"})
+        self.assertEqual(actual_template, {"a": "b"})
 
-    @patch("samcli.commands.validate.validate.SamTemplateValidator")
+    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_template_fails_validation(self, read_sam_file_patch, click_patch, template_valiadator):
@@ -48,7 +48,7 @@ class TestValidateCli(TestCase):
         with self.assertRaises(InvalidSamTemplateException):
             do_cli(ctx=None, template=template_path)
 
-    @patch("samcli.commands.validate.validate.SamTemplateValidator")
+    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_no_credentials_provided(self, read_sam_file_patch, click_patch, template_valiadator):
@@ -62,7 +62,7 @@ class TestValidateCli(TestCase):
         with self.assertRaises(UserException):
             do_cli(ctx=None, template=template_path)
 
-    @patch("samcli.commands.validate.validate.SamTemplateValidator")
+    @patch("samcli.commands.validate.lib.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate._read_sam_file")
     def test_template_passes_validation(self, read_sam_file_patch, click_patch, template_valiadator):

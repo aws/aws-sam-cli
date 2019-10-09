@@ -19,20 +19,20 @@ class TestSendInstalledMetric(IntegBase):
             (_, stderrdata) = process.communicate()
 
             retcode = process.poll()
-            self.assertEquals(retcode, 0, "Command should successfully complete")
+            self.assertEqual(retcode, 0, "Command should successfully complete")
 
             # Make sure the prompt was printed. Otherwise this test is not valid
             self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
             all_requests = server.get_all_requests()
-            self.assertEquals(2, len(all_requests), "There should be exactly two metrics request")
+            self.assertEqual(2, len(all_requests), "There should be exactly two metrics request")
 
             # First one is usually the installed metric
             requests = filter_installed_metric_requests(all_requests)
-            self.assertEquals(1, len(requests), "There should be only one 'installed' metric")
+            self.assertEqual(1, len(requests), "There should be only one 'installed' metric")
             request = requests[0]
             self.assertIn("Content-Type", request["headers"])
-            self.assertEquals(request["headers"]["Content-Type"], "application/json")
+            self.assertEqual(request["headers"]["Content-Type"], "application/json")
 
             expected_data = {
                 "metrics": [
@@ -51,7 +51,7 @@ class TestSendInstalledMetric(IntegBase):
                 ]
             }
 
-            self.assertEquals(request["data"], expected_data)
+            self.assertEqual(request["data"], expected_data)
 
     def test_must_not_send_installed_metric_when_prompt_is_disabled(self):
         """
@@ -69,12 +69,12 @@ class TestSendInstalledMetric(IntegBase):
             (stdoutdata, stderrdata) = process.communicate()
 
             retcode = process.poll()
-            self.assertEquals(retcode, 0, "Command should successfully complete")
+            self.assertEqual(retcode, 0, "Command should successfully complete")
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
             requests = filter_installed_metric_requests(server.get_all_requests())
-            self.assertEquals(0, len(requests), "'installed' metric should NOT be sent")
+            self.assertEqual(0, len(requests), "'installed' metric should NOT be sent")
 
     def test_must_not_send_installed_metric_on_second_run(self):
         """
@@ -90,9 +90,9 @@ class TestSendInstalledMetric(IntegBase):
             process1 = self.run_cmd()
             (_, stderrdata) = process1.communicate()
             retcode = process1.poll()
-            self.assertEquals(retcode, 0, "Command should successfully complete")
+            self.assertEqual(retcode, 0, "Command should successfully complete")
             self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
-            self.assertEquals(
+            self.assertEqual(
                 1, len(filter_installed_metric_requests(server.get_all_requests())), "'installed' metric should be sent"
             )
 
@@ -100,10 +100,10 @@ class TestSendInstalledMetric(IntegBase):
             process2 = self.run_cmd()
             (stdoutdata, stderrdata) = process2.communicate()
             retcode = process2.poll()
-            self.assertEquals(retcode, 0)
+            self.assertEqual(retcode, 0)
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
-            self.assertEquals(
+            self.assertEqual(
                 1,
                 len(filter_installed_metric_requests(server.get_all_requests())),
                 "Only one 'installed' metric should be sent",

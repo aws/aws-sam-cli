@@ -19,14 +19,14 @@ class TestBaseCommand(TestCase):
         expected = {"cmd1": "a.b.cmd1", "cmd2": "foo.cmd2", "cmd3": "cmd3"}
 
         result = BaseCommand._set_commands(self.packages)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
     def test_list_commands_must_return_commands_name(self):
         expected = ["cmd1", "cmd2", "cmd3"].sort()
 
         cmd = BaseCommand(cmd_packages=self.packages)
         result = cmd.list_commands(ctx=None)
-        self.assertEquals(result.sort(), expected)
+        self.assertEqual(result.sort(), expected)
 
     @patch("samcli.cli.command.importlib")
     def test_get_command_must_return_command_module(self, importlib_mock):
@@ -39,13 +39,13 @@ class TestBaseCommand(TestCase):
         cmd = BaseCommand(cmd_packages=self.packages)
 
         result = cmd.get_command(None, "cmd1")
-        self.assertEquals(result, module_mock.cli)
+        self.assertEqual(result, module_mock.cli)
 
         result = cmd.get_command(None, "cmd2")
-        self.assertEquals(result, module_mock.cli)
+        self.assertEqual(result, module_mock.cli)
 
         result = cmd.get_command(None, "cmd3")
-        self.assertEquals(result, module_mock.cli)
+        self.assertEqual(result, module_mock.cli)
 
         # Library to import the modules must be called three times
         importlib_mock.import_module.assert_has_calls([call("a.b.cmd1"), call("foo.cmd2"), call("cmd3")])
@@ -55,7 +55,7 @@ class TestBaseCommand(TestCase):
         cmd = BaseCommand(cmd_packages=self.packages)
         result = cmd.get_command(None, "unknown_command")
 
-        self.assertEquals(result, None, "must not return a command")
+        self.assertEqual(result, None, "must not return a command")
 
     @patch("samcli.cli.command.importlib")
     def test_get_command_must_skip_on_exception_loading_module(self, importlib_mock):
@@ -66,7 +66,7 @@ class TestBaseCommand(TestCase):
         importlib_mock.import_module.side_effect = ImportError()
 
         result = cmd.get_command(None, "cmd1")
-        self.assertEquals(result, None, "must not return a command")
+        self.assertEqual(result, None, "must not return a command")
 
     @patch("samcli.cli.command.importlib")
     def test_get_command_must_skip_on_absence_of_cli_method(self, importlib_mock):
@@ -77,4 +77,4 @@ class TestBaseCommand(TestCase):
         importlib_mock.import_module.return_value = {}  # Returned Module does *not* have 'cli' property
 
         result = cmd.get_command(None, "cmd1")
-        self.assertEquals(result, None, "must not return a command")
+        self.assertEqual(result, None, "must not return a command")

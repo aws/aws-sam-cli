@@ -1,3 +1,3 @@
 source "https://rubygems.org"
 
-gem "httparty"
+gem "aws-record", "~> 2"

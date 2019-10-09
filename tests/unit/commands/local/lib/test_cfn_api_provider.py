@@ -26,7 +26,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [])
+        self.assertEqual(provider.routes, [])
 
     def test_with_inline_swagger_apis(self):
         template = {
@@ -188,8 +188,8 @@ class TestCloudFormationStageValues(TestCase):
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
 
         self.assertIn(route1, provider.routes)
-        self.assertEquals(provider.api.stage_name, "dev")
-        self.assertEquals(provider.api.stage_variables, None)
+        self.assertEqual(provider.api.stage_name, "dev")
+        self.assertEqual(provider.api.stage_variables, None)
 
     def test_provider_stage_variables(self):
         template = {
@@ -229,8 +229,8 @@ class TestCloudFormationStageValues(TestCase):
         provider = ApiProvider(template)
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
         self.assertIn(route1, provider.routes)
-        self.assertEquals(provider.api.stage_name, "dev")
-        self.assertEquals(provider.api.stage_variables, {"vis": "data", "random": "test", "foo": "bar"})
+        self.assertEqual(provider.api.stage_name, "dev")
+        self.assertEqual(provider.api.stage_variables, {"vis": "data", "random": "test", "foo": "bar"})
 
     def test_multi_stage_get_all(self):
         resources = OrderedDict(
@@ -296,12 +296,12 @@ class TestCloudFormationStageValues(TestCase):
 
         route1 = Route(path="/path", methods=["GET"], function_name="NoApiEventFunction")
         route2 = Route(path="/anotherpath", methods=["POST"], function_name="NoApiEventFunction")
-        self.assertEquals(len(routes), 2)
+        self.assertEqual(len(routes), 2)
         self.assertIn(route1, routes)
         self.assertIn(route2, routes)
 
-        self.assertEquals(provider.api.stage_name, "Production")
-        self.assertEquals(provider.api.stage_variables, {"vis": "prod data", "random": "test", "foo": "bar"})
+        self.assertEqual(provider.api.stage_name, "Production")
+        self.assertEqual(provider.api.stage_variables, {"vis": "prod data", "random": "test", "foo": "bar"})
 
 
 class TestCloudFormationResourceMethod(TestCase):
@@ -327,7 +327,7 @@ class TestCloudFormationResourceMethod(TestCase):
 
         provider = ApiProvider(template)
 
-        self.assertEquals(provider.routes, [Route(function_name=None, path="/{proxy+}", methods=["POST"])])
+        self.assertEqual(provider.routes, [Route(function_name=None, path="/{proxy+}", methods=["POST"])])
 
     def test_resolve_correct_resource_path(self):
         resources = {
@@ -343,7 +343,7 @@ class TestCloudFormationResourceMethod(TestCase):
         resources["BetaApiResource"] = beta_resource
         provider = CfnApiProvider()
         full_path = provider.resolve_resource_path(resources, beta_resource, "/test")
-        self.assertEquals(full_path, "/root/beta/test")
+        self.assertEqual(full_path, "/root/beta/test")
 
     def test_resolve_correct_multi_parent_resource_path(self):
         template = {

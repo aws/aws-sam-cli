@@ -114,7 +114,7 @@ class TestLocalApiService_print_routes(TestCase):
         }
 
         actual = LocalApiService._print_routes(apis, host, port)
-        self.assertEquals(expected, set(actual))
+        self.assertEqual(expected, set(actual))
 
 
 class TestLocalApiService_make_static_dir_path(TestCase):
@@ -132,7 +132,7 @@ class TestLocalApiService_make_static_dir_path(TestCase):
         os_mock.path.exists.return_value = True  # Fake the path to exist
 
         result = LocalApiService._make_static_dir_path(cwd, static_dir)
-        self.assertEquals(resolved_path, result)
+        self.assertEqual(resolved_path, result)
 
         os_mock.path.join.assert_called_with(cwd, static_dir)
         os_mock.path.exists.assert_called_with(resolved_path)

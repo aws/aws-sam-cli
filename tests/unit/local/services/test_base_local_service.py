@@ -52,8 +52,8 @@ class TestLocalHostRunner(TestCase):
 
         flask_response_patch.assert_called_once_with("this is the body")
 
-        self.assertEquals(actual_response.status_code, 200)
-        self.assertEquals(actual_response.headers, {"Content-Type": "application/json"})
+        self.assertEqual(actual_response.status_code, 200)
+        self.assertEqual(actual_response.headers, {"Content-Type": "application/json"})
 
     def test_create_returns_not_implemented(self):
         is_debugging = False
@@ -89,8 +89,8 @@ class TestLambdaOutputParser(TestCase):
         stdout.getvalue.return_value = stdout_data
 
         response, logs, is_customer_error = LambdaOutputParser.get_lambda_output(stdout)
-        self.assertEquals(logs, expected_logs)
-        self.assertEquals(response, expected_response)
+        self.assertEqual(logs, expected_logs)
+        self.assertEqual(response, expected_response)
         self.assertFalse(is_customer_error)
 
     @parameterized.expand(
@@ -112,4 +112,4 @@ class TestLambdaOutputParser(TestCase):
         ]
     )
     def test_is_lambda_error_response(self, input, exected_result):
-        self.assertEquals(LambdaOutputParser.is_lambda_error_response(input), exected_result)
+        self.assertEqual(LambdaOutputParser.is_lambda_error_response(input), exected_result)

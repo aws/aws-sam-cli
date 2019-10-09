@@ -6,16 +6,10 @@ import os
 import boto3
 from botocore.exceptions import NoCredentialsError
 import click
-from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
-from samcli.commands.exceptions import UserException
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_option_without_build
-from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException, SamTemplateNotFoundException
-from samcli.yamlhelper import yaml_parse
 from samcli.lib.telemetry.metrics import track_command
-from .lib.exceptions import InvalidSamDocumentException
-from .lib.sam_template_validator import SamTemplateValidator
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
@@ -35,6 +29,12 @@ def do_cli(ctx, template):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
+    from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
+
+    from samcli.commands.exceptions import UserException
+    from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
+    from .lib.exceptions import InvalidSamDocumentException
+    from .lib.sam_template_validator import SamTemplateValidator
 
     sam_template = _read_sam_file(template)
 
@@ -54,12 +54,16 @@ def do_cli(ctx, template):
 
 def _read_sam_file(template):
     """
-    Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
+        Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
 
-    :param str template: Path to the template file
-    :return dict: Dictionary representing the SAM Template
-    :raises: SamTemplateNotFoundException when the template file does not exist
+        :param str template: Path to the template file
+        :return dict: Dictionary representing the SAM Template
+        :raises: SamTemplateNotFoundException when the template file does not exist
     """
+
+    from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+    from samcli.yamlhelper import yaml_parse
+
     if not os.path.exists(template):
         click.secho("SAM Template Not Found", bg="red")
         raise SamTemplateNotFoundException("Template at {} is not found".format(template))

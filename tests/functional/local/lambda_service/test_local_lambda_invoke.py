@@ -99,8 +99,8 @@ class TestLocalLambdaService(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 200)
 
     def test_request_with_non_existing_function(self):
         expected_data = {
@@ -113,9 +113,9 @@ class TestLocalLambdaService(TestCase):
         actual_data = response.json()
         acutal_error_type_header = response.headers.get("x-amzn-errortype")
 
-        self.assertEquals(actual_data, expected_data)
-        self.assertEquals(acutal_error_type_header, "ResourceNotFound")
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(acutal_error_type_header, "ResourceNotFound")
+        self.assertEqual(response.status_code, 404)
 
     def test_request_a_function_that_throws_an_error(self):
         expected_data = {
@@ -129,9 +129,9 @@ class TestLocalLambdaService(TestCase):
         actual_data = response.json()
         acutal_error_type_header = response.headers.get("x-amz-function-error")
 
-        self.assertEquals(actual_data, expected_data)
-        self.assertEquals(acutal_error_type_header, "Unhandled")
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(acutal_error_type_header, "Unhandled")
+        self.assertEqual(response.status_code, 200)
 
 
 class TestLocalEchoLambdaService(TestCase):
@@ -182,8 +182,8 @@ class TestLocalEchoLambdaService(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 200)
 
     def test_binary_octet_stream_format(self):
         expected = {"key1": "value1"}
@@ -196,8 +196,8 @@ class TestLocalEchoLambdaService(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 200)
 
     def test_function_executed_when_no_data_provided(self):
         expected = {}
@@ -206,8 +206,8 @@ class TestLocalEchoLambdaService(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 200)
 
 
 class TestLocalLambdaService_NotSupportedRequests(TestCase):
@@ -261,10 +261,10 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "InvalidRequestContent")
-        self.assertEquals(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "InvalidRequestContent")
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
     def test_payload_is_not_json_serializable(self):
         expected = {
@@ -276,10 +276,10 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "InvalidRequestContent")
-        self.assertEquals(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "InvalidRequestContent")
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
     def test_log_type_tail_in_request(self):
         expected = {"Type": "LocalService", "Message": "log-type: Tail is not supported. None is only supported."}
@@ -290,10 +290,10 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 501)
-        self.assertEquals(response.headers.get("Content-Type"), "application/json")
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "NotImplemented")
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 501)
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "NotImplemented")
 
     def test_log_type_tail_in_request_with_lowercase_header(self):
         expected = {"Type": "LocalService", "Message": "log-type: Tail is not supported. None is only supported."}
@@ -304,10 +304,10 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 501)
-        self.assertEquals(response.headers.get("Content-Type"), "application/json")
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "NotImplemented")
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 501)
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "NotImplemented")
 
     def test_invocation_type_event_in_request(self):
         expected = {
@@ -321,10 +321,10 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 501)
-        self.assertEquals(response.headers.get("Content-Type"), "application/json")
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "NotImplemented")
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 501)
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "NotImplemented")
 
     def test_invocation_type_dry_run_in_request(self):
         expected = {
@@ -338,10 +338,10 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual = response.json()
 
-        self.assertEquals(actual, expected)
-        self.assertEquals(response.status_code, 501)
-        self.assertEquals(response.headers.get("Content-Type"), "application/json")
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "NotImplemented")
+        self.assertEqual(actual, expected)
+        self.assertEqual(response.status_code, 501)
+        self.assertEqual(response.headers.get("Content-Type"), "application/json")
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "NotImplemented")
 
     def test_generic_404_error_when_request_to_nonexisting_endpoint(self):
         expected_data = {"Type": "LocalService", "Message": "PathNotFoundException"}
@@ -350,9 +350,9 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual_data = response.json()
 
-        self.assertEquals(actual_data, expected_data)
-        self.assertEquals(response.status_code, 404)
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "PathNotFoundLocally")
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "PathNotFoundLocally")
 
     def test_generic_405_error_when_request_path_with_invalid_method(self):
         expected_data = {"Type": "LocalService", "Message": "MethodNotAllowedException"}
@@ -361,9 +361,9 @@ class TestLocalLambdaService_NotSupportedRequests(TestCase):
 
         actual_data = response.json()
 
-        self.assertEquals(actual_data, expected_data)
-        self.assertEquals(response.status_code, 405)
-        self.assertEquals(response.headers.get("x-amzn-errortype"), "MethodNotAllowedLocally")
+        self.assertEqual(actual_data, expected_data)
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.headers.get("x-amzn-errortype"), "MethodNotAllowedLocally")
 
 
 def make_service(function_provider, cwd):

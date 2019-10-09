@@ -11,7 +11,7 @@ class TestLambdaErrorResponses(TestCase):
 
         response = LambdaErrorResponses.resource_not_found("HelloFunction")
 
-        self.assertEquals(response, "ResourceNotFound")
+        self.assertEqual(response, "ResourceNotFound")
         service_response_mock.assert_called_once_with(
             '{"Type": "User", "Message": "Function not found: '
             'arn:aws:lambda:us-west-2:012345678901:function:HelloFunction"}',
@@ -25,7 +25,7 @@ class TestLambdaErrorResponses(TestCase):
 
         response = LambdaErrorResponses.invalid_request_content("InvalidRequestContent")
 
-        self.assertEquals(response, "InvalidRequestContent")
+        self.assertEqual(response, "InvalidRequestContent")
         service_response_mock.assert_called_once_with(
             '{"Type": "User", "Message": "InvalidRequestContent"}',
             {"x-amzn-errortype": "InvalidRequestContent", "Content-Type": "application/json"},
@@ -38,7 +38,7 @@ class TestLambdaErrorResponses(TestCase):
 
         response = LambdaErrorResponses.unsupported_media_type("UnsupportedMediaType")
 
-        self.assertEquals(response, "UnsupportedMediaType")
+        self.assertEqual(response, "UnsupportedMediaType")
         service_response_mock.assert_called_once_with(
             '{"Type": "User", "Message": "Unsupported content type: UnsupportedMediaType"}',
             {"x-amzn-errortype": "UnsupportedMediaType", "Content-Type": "application/json"},
@@ -51,7 +51,7 @@ class TestLambdaErrorResponses(TestCase):
 
         response = LambdaErrorResponses.generic_service_exception("GenericServiceException")
 
-        self.assertEquals(response, "GenericServiceException")
+        self.assertEqual(response, "GenericServiceException")
         service_response_mock.assert_called_once_with(
             '{"Type": "Service", "Message": "ServiceException"}',
             {"x-amzn-errortype": "Service", "Content-Type": "application/json"},
@@ -64,7 +64,7 @@ class TestLambdaErrorResponses(TestCase):
 
         response = LambdaErrorResponses.not_implemented_locally("NotImplementedLocally")
 
-        self.assertEquals(response, "NotImplementedLocally")
+        self.assertEqual(response, "NotImplementedLocally")
         service_response_mock.assert_called_once_with(
             '{"Type": "LocalService", "Message": "NotImplementedLocally"}',
             {"x-amzn-errortype": "NotImplemented", "Content-Type": "application/json"},
@@ -77,7 +77,7 @@ class TestLambdaErrorResponses(TestCase):
 
         response = LambdaErrorResponses.generic_path_not_found("GenericPathNotFound")
 
-        self.assertEquals(response, "GenericPathNotFound")
+        self.assertEqual(response, "GenericPathNotFound")
         service_response_mock.assert_called_once_with(
             '{"Type": "LocalService", "Message": "PathNotFoundException"}',
             {"x-amzn-errortype": "PathNotFoundLocally", "Content-Type": "application/json"},
@@ -90,7 +90,7 @@ class TestLambdaErrorResponses(TestCase):
 
         response = LambdaErrorResponses.generic_method_not_allowed("GenericMethodNotAllowed")
 
-        self.assertEquals(response, "GenericMethodNotAllowed")
+        self.assertEqual(response, "GenericMethodNotAllowed")
         service_response_mock.assert_called_once_with(
             '{"Type": "LocalService", "Message": "MethodNotAllowedException"}',
             {"x-amzn-errortype": "MethodNotAllowedLocally", "Content-Type": "application/json"},

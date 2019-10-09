@@ -39,9 +39,9 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         return_code = process.wait()
 
-        self.assertEquals(return_code, 0)
+        self.assertEqual(return_code, 0)
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode("utf-8"), '"Hello World"')
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello World"')
 
     def test_custom_provided_runtime(self):
         command_list = self.get_command_list(
@@ -53,6 +53,6 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE)
         return_code = process.wait()
 
-        self.assertEquals(return_code, 0)
+        self.assertEqual(return_code, 0)
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEquals(process_stdout.decode("utf-8"), u'{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')
+        self.assertEqual(process_stdout.decode("utf-8"), u'{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')

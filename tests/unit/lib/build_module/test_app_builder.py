@@ -33,7 +33,7 @@ class TestApplicationBuilder_build(TestCase):
 
         result = self.builder.build()
 
-        self.assertEquals(
+        self.assertEqual(
             result,
             {self.func1.name: build_function_mock.return_value, self.func2.name: build_function_mock.return_value},
         )
@@ -78,14 +78,14 @@ class TestApplicationBuilder_update_template(TestCase):
         }
 
         actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
-        self.assertEquals(actual, expected_result)
+        self.assertEqual(actual, expected_result)
 
     def test_must_skip_if_no_artifacts(self):
 
         built_artifacts = {}
         actual = self.builder.update_template(self.template_dict, "/foo/bar/template.txt", built_artifacts)
 
-        self.assertEquals(actual, self.template_dict)
+        self.assertEqual(actual, self.template_dict)
 
 
 class TestApplicationBuilder_build_function(TestCase):
@@ -157,7 +157,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         result = self.builder._build_function_in_process(
             config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
         )
-        self.assertEquals(result, "artifacts_dir")
+        self.assertEqual(result, "artifacts_dir")
 
         lambda_builder_mock.assert_called_with(
             language=config_mock.language,
@@ -217,7 +217,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         result = self.builder._build_function_on_container(
             config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
         )
-        self.assertEquals(result, "artifacts_dir")
+        self.assertEqual(result, "artifacts_dir")
 
         LambdaBuildContainerMock.assert_called_once_with(
             protocol_version_mock,
@@ -262,7 +262,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             "Reason: 'myexecutable executable not found in container'"
         )
 
-        self.assertEquals(str(ctx.exception), msg)
+        self.assertEqual(str(ctx.exception), msg)
         self.container_manager.stop.assert_called_with(container_mock)
 
     def test_must_raise_on_docker_not_running(self):
@@ -275,7 +275,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
                 config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
             )
 
-        self.assertEquals(
+        self.assertEqual(
             str(ctx.exception), "Docker is unreachable. Docker needs to be running to build inside a container."
         )
 
@@ -291,7 +291,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
                 config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
             )
 
-        self.assertEquals(str(ctx.exception), reason)
+        self.assertEqual(str(ctx.exception), reason)
 
 
 class TestApplicationBuilder_parse_builder_response(TestCase):
@@ -303,7 +303,7 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
         data = {"valid": "json"}
 
         result = self.builder._parse_builder_response(json.dumps(data), self.image_name)
-        self.assertEquals(result, data)
+        self.assertEqual(result, data)
 
     def test_must_fail_on_invalid_json(self):
         data = "{invalid: json}"
@@ -318,7 +318,7 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
         with self.assertRaises(BuildError) as ctx:
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
-        self.assertEquals(str(ctx.exception), msg)
+        self.assertEqual(str(ctx.exception), msg)
 
     def test_must_raise_on_version_mismatch(self):
         msg = "invalid params"
@@ -328,7 +328,7 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         expected = str(UnsupportedBuilderLibraryVersionError(self.image_name, msg))
-        self.assertEquals(str(ctx.exception), expected)
+        self.assertEqual(str(ctx.exception), expected)
 
     def test_must_raise_on_method_not_found(self):
         msg = "invalid method"
@@ -338,7 +338,7 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         expected = str(UnsupportedBuilderLibraryVersionError(self.image_name, msg))
-        self.assertEquals(str(ctx.exception), expected)
+        self.assertEqual(str(ctx.exception), expected)
 
     def test_must_raise_on_all_other_codes(self):
         msg = "builder crashed"
@@ -347,4 +347,4 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
         with self.assertRaises(ValueError) as ctx:
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
-        self.assertEquals(str(ctx.exception), msg)
+        self.assertEqual(str(ctx.exception), msg)

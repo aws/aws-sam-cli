@@ -48,7 +48,7 @@ class TestExecuteCommand(TestCase):
         check_call_mock.assert_called()
         kwargs = check_call_mock.call_args[1]
         self.assertIn("env", kwargs)
-        self.assertEquals(kwargs["env"], expected_env)
+        self.assertEqual(kwargs["env"], expected_env)
 
     @patch("subprocess.check_call")
     @patch("samcli.lib.samlib.cloudformation_command.find_executable")
@@ -66,7 +66,7 @@ class TestExecuteCommand(TestCase):
         check_call_mock.assert_called()
         kwargs = check_call_mock.call_args[1]
         self.assertIn("env", kwargs)
-        self.assertEquals(kwargs["env"], expected_env)
+        self.assertEqual(kwargs["env"], expected_env)
 
     @patch("sys.exit")
     @patch("subprocess.check_call")
@@ -88,7 +88,7 @@ class TestFindExecutable(TestCase):
 
         find_executable(execname)
 
-        self.assertEquals(popen_mock.mock_calls, [call([execname], stdout=PIPE, stderr=PIPE)])
+        self.assertEqual(popen_mock.mock_calls, [call([execname], stdout=PIPE, stderr=PIPE)])
 
     @patch("subprocess.Popen")
     @patch("platform.system")
@@ -98,9 +98,9 @@ class TestFindExecutable(TestCase):
         expected = "foo.cmd"
 
         result = find_executable(execname)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
-        self.assertEquals(popen_mock.mock_calls, [call(["foo.cmd"], stdout=PIPE, stderr=PIPE)])
+        self.assertEqual(popen_mock.mock_calls, [call(["foo.cmd"], stdout=PIPE, stderr=PIPE)])
 
     @patch("subprocess.Popen")
     @patch("platform.system")
@@ -112,9 +112,9 @@ class TestFindExecutable(TestCase):
         popen_mock.side_effect = [OSError, "success"]  # fail on .cmd extension
 
         result = find_executable(execname)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
-        self.assertEquals(
+        self.assertEqual(
             popen_mock.mock_calls,
             [call(["foo.cmd"], stdout=PIPE, stderr=PIPE), call(["foo.exe"], stdout=PIPE, stderr=PIPE)],
         )
@@ -129,9 +129,9 @@ class TestFindExecutable(TestCase):
         popen_mock.side_effect = [OSError, OSError, "success"]  # fail on .cmd and .exe extension
 
         result = find_executable(execname)
-        self.assertEquals(result, expected)
+        self.assertEqual(result, expected)
 
-        self.assertEquals(
+        self.assertEqual(
             popen_mock.mock_calls,
             [
                 call(["foo.cmd"], stdout=PIPE, stderr=PIPE),
@@ -154,9 +154,9 @@ class TestFindExecutable(TestCase):
         expected = "Cannot find AWS CLI installation, was looking at executables with names: {}".format(
             ["foo.cmd", "foo.exe", "foo"]
         )
-        self.assertEquals(expected, str(ctx.exception))
+        self.assertEqual(expected, str(ctx.exception))
 
-        self.assertEquals(
+        self.assertEqual(
             popen_mock.mock_calls,
             [
                 call(["foo.cmd"], stdout=PIPE, stderr=PIPE),
