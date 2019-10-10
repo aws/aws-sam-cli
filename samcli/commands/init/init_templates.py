@@ -5,6 +5,7 @@ Manages the set of application templates.
 import itertools
 import json
 import os
+import platform
 import shutil
 import subprocess
 
@@ -35,7 +36,13 @@ class InitTemplates:
                 msg = str(choice_num) + " - " + o.get("displayName")
                 click.echo(msg)
             else:
-                msg = str(choice_num) + " - Default Template for runtime " + runtime + " with dependency manager " + dependency_manager
+                msg = (
+                    str(choice_num)
+                    + " - Default Template for runtime "
+                    + runtime
+                    + " with dependency manager "
+                    + dependency_manager
+                )
                 click.echo(msg)
             choice_num = choice_num + 1
         choice = click.prompt("Template Selection", type=click.Choice(choices), show_choices=False)
@@ -81,7 +88,9 @@ class InitTemplates:
                 # Fallback to bundled templates
                 return self._init_options_from_bundle(runtime, dependency_manager)
             if dependency_manager is not None:
-                templates_by_dep = itertools.takewhile(lambda x: x["dependencyManager"] == dependency_manager, templates)
+                templates_by_dep = itertools.takewhile(
+                    lambda x: x["dependencyManager"] == dependency_manager, templates
+                )
                 return list(templates_by_dep)
             return templates
 
@@ -101,13 +110,29 @@ class InitTemplates:
         expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
         if self._should_clone_repo(expected_path):
             try:
-                subprocess.check_output(["git", "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT)
+                subprocess.check_output(
+                    [self._git_executable, "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT
+                )
                 self.repo_path = expected_path
+            except OSError as os_error:
+                output = os_error.output.decode("utf-8")
+                click.echo("WARN: Can't clone app repo, git executable not found.")
             except subprocess.CalledProcessError as clone_error:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
         self.clone_attempted = True
+
+    def _git_executable():
+        execname = "git"  # do we want to abstract the AWS CLI version of this?
+        if platform.system().lower() == "windows":
+            options = ["{}.cmd".format(execname), "{}.exe".format(execname), execname]
+        else:
+            options = [execname]
+            for name in options:
+                subprocess.Popen([name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # No exception. Let's pick this
+                return name
 
     def _should_clone_repo(self, expected_path):
         path = Path(expected_path)

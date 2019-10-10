@@ -24,11 +24,13 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
         else:
             _generate_from_app_template(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
 
+
 def _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
     location = click.prompt("Template location (git, mercurial, http(s), zip, path)", type=str)
     if not output_dir:
         output_dir = click.prompt("Output Directory", type=click.Path(), default=".")
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, None)
+
 
 def _generate_from_app_template(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
     extra_context = None
