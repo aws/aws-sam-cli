@@ -1,6 +1,10 @@
 from unittest import TestCase
 from mock import patch, ANY
 
+import click
+from click.testing import CliRunner
+
+from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
 from samcli.local.init.exceptions import GenerateProjectFailedError
 from samcli.commands.exceptions import UserException
@@ -29,7 +33,7 @@ class TestCli(TestCase):
             location=self.location,
             runtime=self.runtime,
             dependency_manager=self.dependency_manager,
-            output_dir=self.output_dir,
+            output_dir=None,
             name=self.name,
             app_template=self.app_template,
             no_input=self.no_input,
@@ -47,6 +51,136 @@ class TestCli(TestCase):
             True,
             self.extra_context,
         )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_interactive(self, generate_project_patch):
+        # WHEN the user follows interactice init prompts
+
+        # 1: selecting managed templates
+        # test-project: response to name
+        # ruby2.5: response to runtime
+        # bundler: response to dependency manager
+        # N: Don't clone/update the source repo
+        # 1: First choice will always be the hello world example
+        user_input = """
+1
+test-project
+ruby2.5
+bundler
+N
+1
+.
+        """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+
+        # THEN we should receive no errors
+        assert not result.exception
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            ANY,
+            "ruby2.5",
+            "bundler",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "ruby2.5"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_int_with_app_template(self, generate_project_patch):
+        # WHEN the user follows interactice init prompts
+
+        # test-project: response to name
+        # ruby2.5: response to runtime
+        # bundler: response to dependency manager
+        # N: Don't clone/update the source repo
+        # .: output dir
+        user_input = """
+test-project
+ruby2.5
+bundler
+N
+.
+        """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, ["--app-template", "hello-world"], input=user_input)
+
+        # THEN we should receive no errors
+        assert not result.exception
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            ANY,
+            "ruby2.5",
+            "bundler",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "ruby2.5"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_int_from_location(self, generate_project_patch):
+        # WHEN the user follows interactice init prompts
+
+        # 2: selecting custom location
+        # foo: the "location"
+        # output/: the "output dir"
+        user_input = """
+2
+foo
+output/
+        """
+
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+
+        # THEN we should receive no errors
+        assert not result.exception
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            "foo",
+            None,
+            None,
+            "output/",
+            None,
+            False,
+            None,
+        )
+
+    def test_init_cli_missing_params_fails(self):
+        # WHEN we call init without necessary parameters
+        # THEN we should receive a UserException
+        with self.assertRaises(UserException):
+            init_cli(
+                self.ctx,
+                no_interactive=True,
+                location=None,
+                runtime=None,
+                dependency_manager=None,
+                output_dir=None,
+                name=None,
+                app_template=None,
+                no_input=True,
+                auto_clone=False,
+            )
+
+    def test_init_cli_mutually_exclusive_params_fails(self):
+        # WHEN we call init without necessary parameters
+        # THEN we should receive a UserException
+        with self.assertRaises(UserException):
+            init_cli(
+                self.ctx,
+                no_interactive=self.no_interactive,
+                location="whatever",
+                runtime=self.runtime,
+                dependency_manager=self.dependency_manager,
+                output_dir=self.output_dir,
+                name=self.name,
+                app_template="fails-anyways",
+                no_input=self.no_input,
+                auto_clone=False,
+            )
 
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_generate_project_fails(self, generate_project_patch):
@@ -67,7 +201,7 @@ class TestCli(TestCase):
                 dependency_manager=self.dependency_manager,
                 output_dir=self.output_dir,
                 name=self.name,
-                app_template=self.app_template,
+                app_template=None,
                 no_input=self.no_input,
                 auto_clone=False,
             )
