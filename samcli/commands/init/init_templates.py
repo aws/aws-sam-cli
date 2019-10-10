@@ -111,7 +111,7 @@ class InitTemplates:
         if self._should_clone_repo(expected_path):
             try:
                 subprocess.check_output(
-                    [self._git_executable, "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT
+                    [self._git_executable(), "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT
                 )
                 self.repo_path = expected_path
             except OSError as os_error:
@@ -124,7 +124,7 @@ class InitTemplates:
         self.clone_attempted = True
 
     def _git_executable(self):
-        execname = "git"  # do we want to abstract the AWS CLI version of this?
+        execname = "git"
         if platform.system().lower() == "windows":
             options = ["{}.cmd".format(execname), "{}.exe".format(execname), execname]
         else:
