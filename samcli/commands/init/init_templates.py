@@ -123,7 +123,7 @@ class InitTemplates:
                     click.echo("WARN: Could not clone app template repo.")
         self.clone_attempted = True
 
-    def _git_executable():
+    def _git_executable(self):
         execname = "git"  # do we want to abstract the AWS CLI version of this?
         if platform.system().lower() == "windows":
             options = ["{}.cmd".format(execname), "{}.exe".format(execname), execname]
