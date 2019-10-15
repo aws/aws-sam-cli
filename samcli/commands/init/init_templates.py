@@ -88,9 +88,7 @@ class InitTemplates:
                 # Fallback to bundled templates
                 return self._init_options_from_bundle(runtime, dependency_manager)
             if dependency_manager is not None:
-                templates_by_dep = filter(
-                    lambda x: x["dependencyManager"] == dependency_manager, templates
-                )
+                templates_by_dep = filter(lambda x: x["dependencyManager"] == dependency_manager, templates)
                 return list(templates_by_dep)
             return templates
 
@@ -115,7 +113,6 @@ class InitTemplates:
                 )
                 self.repo_path = expected_path
             except OSError as os_error:
-                output = os_error.output.decode("utf-8")
                 click.echo("WARN: Can't clone app repo, git executable not found.")
             except subprocess.CalledProcessError as clone_error:
                 output = clone_error.output.decode("utf-8")
