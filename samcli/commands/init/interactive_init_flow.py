@@ -17,7 +17,7 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
     if location_opt_choice == "2":
         _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
     else:
-        _generate_from_app_template(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
+        _generate_from_app_template(location, runtime, dependency_manager, output_dir, name, app_template)
 
 
 def _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
@@ -27,7 +27,7 @@ def _generate_from_location(location, runtime, dependency_manager, output_dir, n
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, None)
 
 
-def _generate_from_app_template(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
+def _generate_from_app_template(location, runtime, dependency_manager, output_dir, name, app_template):
     extra_context = None
     if not name:
         name = click.prompt("Project Name", type=str)
@@ -44,12 +44,11 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
     templates = InitTemplates()
     if app_template is not None:
         location = templates.location_from_app_template(runtime, dependency_manager, app_template)
-        no_input = True
         extra_context = {"project_name": name, "runtime": runtime}
     else:
         location = templates.prompt_for_location(runtime, dependency_manager)
-        no_input = True  # because we specified the template ourselves
         extra_context = {"project_name": name, "runtime": runtime}
+    no_input = True
     if not output_dir:
         output_dir = click.prompt("Output Directory", type=click.Path(), default=".")
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)

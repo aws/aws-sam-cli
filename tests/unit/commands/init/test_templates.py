@@ -32,7 +32,7 @@ class TestTemplates(TestCase):
             mock_cfg.return_value = "/tmp/test-sam"
             with patch("samcli.commands.init.init_templates.open", m):
                 location = it.location_from_app_template("ruby2.5", "bundler", "hello-world")
-                assert location == "/tmp/test-sam/aws-sam-cli-app-templates/mock-ruby-template"
+                self.assertEqual(location, "/tmp/test-sam/aws-sam-cli-app-templates/mock-ruby-template")
 
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("click.prompt")
@@ -44,7 +44,7 @@ class TestTemplates(TestCase):
                 mock_cfg.return_value = "/tmp/test-sam"
                 it = InitTemplates(True)
                 location = it.prompt_for_location("ruby2.5", "bundler")
-                assert search("cookiecutter-aws-sam-hello-ruby", location)
+                self.assertTrue(search("cookiecutter-aws-sam-hello-ruby", location))
 
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("click.prompt")
@@ -56,4 +56,4 @@ class TestTemplates(TestCase):
                 mock_cfg.return_value = "/tmp/test-sam"
                 it = InitTemplates(True)
                 location = it.prompt_for_location("ruby2.5", "bundler")
-                assert search("cookiecutter-aws-sam-hello-ruby", location)
+                self.assertTrue(search("cookiecutter-aws-sam-hello-ruby", location))

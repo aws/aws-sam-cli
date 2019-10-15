@@ -109,7 +109,7 @@ N
         result = runner.invoke(init_cmd, input=user_input)
 
         # THEN we should receive no errors
-        assert not result.exception
+        self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
@@ -141,7 +141,7 @@ N
         result = runner.invoke(init_cmd, ["--app-template", "hello-world"], input=user_input)
 
         # THEN we should receive no errors
-        assert not result.exception
+        self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
@@ -170,7 +170,7 @@ output/
         result = runner.invoke(init_cmd, input=user_input)
 
         # THEN we should receive no errors
-        assert not result.exception
+        self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             "foo",
