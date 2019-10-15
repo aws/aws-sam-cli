@@ -88,7 +88,7 @@ class InitTemplates:
                 # Fallback to bundled templates
                 return self._init_options_from_bundle(runtime, dependency_manager)
             if dependency_manager is not None:
-                templates_by_dep = itertools.takewhile(
+                templates_by_dep = filter(
                     lambda x: x["dependencyManager"] == dependency_manager, templates
                 )
                 return list(templates_by_dep)
