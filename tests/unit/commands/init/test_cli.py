@@ -52,9 +52,43 @@ class TestCli(TestCase):
             self.extra_context,
         )
 
+    def test_init_fails_invalid_template(self):
+        # WHEN an unknown app template is passed in
+        # THEN an exception should be raised
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                location=self.location,
+                runtime=self.runtime,
+                dependency_manager=self.dependency_manager,
+                output_dir=None,
+                name=self.name,
+                app_template="wrong-and-bad",
+                no_input=self.no_input,
+                auto_clone=False,
+            )
+
+    def test_init_fails_invalid_dep_mgr(self):
+        # WHEN an unknown app template is passed in
+        # THEN an exception should be raised
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                location=self.location,
+                runtime=self.runtime,
+                dependency_manager="bad-wrong",
+                output_dir=None,
+                name=self.name,
+                app_template=self.app_template,
+                no_input=self.no_input,
+                auto_clone=False,
+            )
+
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_interactive(self, generate_project_patch):
-        # WHEN the user follows interactice init prompts
+        # WHEN the user follows interactive init prompts
 
         # 1: selecting managed templates
         # test-project: response to name
@@ -89,7 +123,7 @@ N
 
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_int_with_app_template(self, generate_project_patch):
-        # WHEN the user follows interactice init prompts
+        # WHEN the user follows interactive init prompts
 
         # test-project: response to name
         # ruby2.5: response to runtime
@@ -121,7 +155,7 @@ N
 
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_int_from_location(self, generate_project_patch):
-        # WHEN the user follows interactice init prompts
+        # WHEN the user follows interactive init prompts
 
         # 2: selecting custom location
         # foo: the "location"

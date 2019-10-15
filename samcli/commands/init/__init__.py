@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
     "--no-interactive",
     is_flag=True,
     default=False,
-    help="Disable interactive prompting for values, and fail if any required values are missing.",
+    help="Disable interactive prompting for init parameters, and fail if any required values are missing.",
 )
 @click.option("-l", "--location", help="Template location (git, mercurial, http(s), zip, path)")
 @click.option("-r", "--runtime", type=click.Choice(RUNTIMES), help="Lambda Runtime of your app")
@@ -50,7 +50,7 @@ LOG = logging.getLogger(__name__)
     "--no-input",
     is_flag=True,
     default=False,
-    help="Disable prompting and accept default values defined template config",
+    help="Disable Cookiecutter prompting and accept default values defined template config",
 )
 @common_options
 @pass_context
