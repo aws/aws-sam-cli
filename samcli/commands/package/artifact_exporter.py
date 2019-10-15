@@ -17,7 +17,7 @@ import tempfile
 import zipfile
 import contextlib
 import uuid
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
 
@@ -69,8 +69,8 @@ def parse_s3_url(url, bucket_name_property="Bucket", object_key_property="Key", 
         # Python < 2.7.10 don't parse query parameters from URI with custom
         # scheme such as s3://blah/blah. As a workaround, remove scheme
         # altogether to trigger the parser "s3://foo/bar?v=1" =>"//foo/bar?v=1"
-        parsed = urlparse.urlparse(url[3:])
-        query = urlparse.parse_qs(parsed.query)
+        parsed = urlparse(url[3:])
+        query = parse_qs(parsed.query)
 
         if parsed.netloc and parsed.path:
             result = dict()
