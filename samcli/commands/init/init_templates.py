@@ -112,7 +112,7 @@ class InitTemplates:
                     [self._git_executable(), "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT
                 )
                 self.repo_path = expected_path
-            except OSError as os_error:
+            except OSError:
                 click.echo("WARN: Can't clone app repo, git executable not found.")
             except subprocess.CalledProcessError as clone_error:
                 output = clone_error.output.decode("utf-8")
