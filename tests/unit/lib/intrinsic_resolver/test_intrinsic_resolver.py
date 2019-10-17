@@ -8,6 +8,8 @@ except ImportError:
     from pathlib2 import Path
 from unittest import TestCase
 
+from mock import patch
+
 from parameterized import parameterized
 
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
@@ -302,9 +304,12 @@ class TestFnTransform(TestCase):
             template={}, symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator)
         )
 
-    def test_basic_fn_transform(self):
+    @patch("samcli.lib.intrinsic_resolver.intrinsic_property_resolver.get_template_data")
+    def test_basic_fn_transform(self, get_template_data_patch):
         intrinsic = {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": "test"}}}
+        get_template_data_patch.return_value = {"data": "test"}
         self.resolver.intrinsic_property_resolver(intrinsic, True)
+        get_template_data_patch.assert_called_once_with("test")
 
     def test_fn_transform_unsupported_macro(self):
         intrinsic = {"Fn::Transform": {"Name": "UNKNOWN", "Parameters": {"Location": "test"}}}

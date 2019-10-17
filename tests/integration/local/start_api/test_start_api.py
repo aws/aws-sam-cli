@@ -991,3 +991,16 @@ class TestServerlessApiGateway(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestSwaggerIncludedFromSeparateFile(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-with-included-swagger.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    def test_swagger_was_tranformed_and_api_is_reachable(self):
+        response = requests.patch(self.url + "/anyandall")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
