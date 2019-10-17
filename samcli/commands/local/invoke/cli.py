@@ -14,14 +14,17 @@ LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
 You can use this command to execute your function in a Lambda-like environment locally.
-You can pass in the event body via stdin or by using the -e (--event) parameter.
-Logs from the Lambda function will be output via stdout.\n
+You can pass in an event body using the -e (--event) parameter.
+Logs from the Lambda function will be written to stdout.\n
+\b
+Invoking a Lambda function without an input event
+$ sam local invoke "HelloWorldFunction"\n
 \b
 Invoking a Lambda function using an event file
 $ sam local invoke "HelloWorldFunction" -e event.json\n
 \b
 Invoking a Lambda function using input from stdin
-$ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction" \n
+$ echo '{"message": "Hey, are you there?" }' | sam local invoke "HelloWorldFunction" --event - \n
 """
 STDIN_FILE_NAME = "-"
 
@@ -31,11 +34,10 @@ STDIN_FILE_NAME = "-"
     "--event",
     "-e",
     type=click.Path(),
-    default=STDIN_FILE_NAME,  # Defaults to stdin
     help="JSON file containing event data passed to the Lambda function during invoke. If this option "
-    "is not specified, we will default to reading JSON from stdin",
+    "is not specified, no event is assumed. Pass in the value '-' to input JSON via stdin",
 )
-@click.option("--no-event", is_flag=True, default=False, help="Invoke Function with an empty event")
+@click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options
@@ -116,14 +118,10 @@ def do_cli(  # pylint: disable=R0914
 
     LOG.debug("local invoke command is called")
 
-    if no_event and event != STDIN_FILE_NAME:
-        # Do not know what the user wants. no_event and event both passed in.
-        raise UserException("no_event and event cannot be used together. Please provide only one.")
-
-    if no_event:
-        event_data = "{}"
-    else:
+    if event:
         event_data = _get_event(event)
+    else:
+        event_data = "{}"
 
     # Pass all inputs to setup necessary context to invoke function locally.
     # Handler exception raised by the processor for invalid args and print errors
