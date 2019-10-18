@@ -25,18 +25,43 @@ for:
         - image: Visual Studio 2017
 
     install:
+      - "SET PATH=%PYTHON_HOME%;%PATH%"
+      - "echo %PYTHON_HOME%"
+      - "echo %PATH%"
+      - "python --version"
       # Upgrade setuptools, wheel and virtualenv
       - "python -m pip install --upgrade setuptools wheel virtualenv"
 
       # Create new virtual environment and activate it
       - "rm -rf venv"
       - "python -m virtualenv venv"
-      - "venv/Scripts/activate"
+      - "venv\\Scripts\\activate"
 
+    build_script:
+      # Activate virtualenv again on windows
+      - "venv\\Scripts\\activate"
+      - "python -c \"import sys; print(sys.executable)\""
+      - "pip install -e \".[dev]\""
+
+    test_script:
+      # Activate virtualenv again on windows
+      - "venv\\Scripts\\activate"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pylint --rcfile .pylintrc samcli"
+
+      # Runs only in Linux
+      - sh: "pytest -vv tests/integration"
+      - sh: "/tmp/black --check setup.py tests samcli scripts"
+      - sh: "python scripts/check-isolated-needs-update.py"
+
+      # Smoke tests run in parallel - it runs on both Linux & Windows
+      # Presence of the RUN_SMOKE envvar will run the smoke tests
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
   - 
     matrix:
       only:
         - image: Ubuntu
+
     install:
       - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
@@ -53,67 +78,30 @@ for:
       - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.3b0/black"
       - sh: "chmod +x /tmp/black"
       - sh: "/tmp/black --version"
+
+    build_script:
+      - "python -c \"import sys; print(sys.executable)\""
+      - "pip install -e \".[dev]\""
+
+    test_script:
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pylint --rcfile .pylintrc samcli"
+
+      # Runs only in Linux
+      - sh: "pytest -vv tests/integration"
+      - sh: "/tmp/black --check setup.py tests samcli scripts"
+      - sh: "python scripts/check-isolated-needs-update.py"
+
+      # Smoke tests run in parallel - it runs on both Linux & Windows
+      # Presence of the RUN_SMOKE envvar will run the smoke tests
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
   
   - 
     matrix:
       only:
         - ONLY_SMOKE: 1
+
     test_script:
       # Smoke tests run in parallel
-      - "venv/Scripts/activate"
-      - "pytest -n 4 -vv tests/smoke"
-
-  -
-    matrix:
-      only:
-        - image: Visual Studio 2017
-    build_script:
-      - "python -c \"import sys; print(sys.executable)\""
-      - "pip install -e \".[dev]\""
-
-  -
-    matrix:
-      only:
-        - image: Ubuntu
-    build_script:
-      # Activate virtualenv again on windows
-      - "venv\\Scripts\\activate"
-      - "python -c \"import sys; print(sys.executable)\""
-      - "pip install -e \".[dev]\""
-
-  -
-    matrix:
-      only:
-        - image: Ubuntu
-    test_script:
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-
-      # Runs only in Linux
-      - sh: "pytest -vv tests/integration"
-      - sh: "/tmp/black --check setup.py tests samcli scripts"
-      - sh: "python scripts/check-isolated-needs-update.py"
-
-      # Smoke tests run in parallel - it runs on both Linux & Windows
-      # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
-
-  -
-    matrix:
-      only:
-        - image: Visual Studio 2017
-    test_script:
-      # Activate virtualenv again on windows
-      - "venv\\Scripts\\activate"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-
-      # Runs only in Linux
-      - sh: "pytest -vv tests/integration"
-      - sh: "/tmp/black --check setup.py tests samcli scripts"
-      - sh: "python scripts/check-isolated-needs-update.py"
-
-      # Smoke tests run in parallel - it runs on both Linux & Windows
-      # Presence of the RUN_SMOKE envvar will run the smoke tests
-      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
-
+      - sh: "venv/Scripts/activate"
+      - sh: "pytest -n 4 -vv tests/smoke"
