@@ -6,12 +6,14 @@ Resources:
       Code: "."
       Handler: main.base64_response
       Runtime: python3.6
+      Timeout: 20
     Type: AWS::Lambda::Function
   EchoBase64EventBodyFunction:
     Properties:
       Code: "."
       Handler: main.echo_base64_event_body
       Runtime: python3.6
+      Timeout: 20
     Type: AWS::Lambda::Function
 
   Dev:
@@ -27,6 +29,7 @@ Resources:
       Code: "."
       Handler: main.handler
       Runtime: python3.6
+      Timeout: 20
     Type: AWS::Lambda::Function
 
   TestApi:
