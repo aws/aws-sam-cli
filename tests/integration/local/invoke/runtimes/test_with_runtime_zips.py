@@ -31,7 +31,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     def tearDown(self):
         os.remove(self.events_file_path)
 
-    @pytest.mark.timeout(timeout=300, method='thread')
+    @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand([param("Go1xFunction"), param("Java8Function")])
     def test_runtime_zip(self, function_name):
         command_list = self.get_command_list(
@@ -45,7 +45,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello World"')
 
-    @pytest.mark.timeout(timeout=300, method='thread')
+    @pytest.mark.timeout(timeout=300, method="thread")
     def test_custom_provided_runtime(self):
         command_list = self.get_command_list(
             "CustomBashFunction", template_path=self.template_path, event_path=self.events_file_path
