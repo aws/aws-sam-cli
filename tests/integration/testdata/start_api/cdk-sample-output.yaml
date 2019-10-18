@@ -26,7 +26,7 @@ Resources:
       Code: '.'
       Handler: main.handler
       Runtime: python3.6
-      Timeout: 0
+      Timeout: 600
 
   HelloHandlerApiPermissionANYAC4E141E:
     Type: AWS::Lambda::Permission

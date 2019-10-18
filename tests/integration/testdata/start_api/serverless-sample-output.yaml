@@ -60,7 +60,7 @@ Resources:
       FunctionName: serverless-hello-world-dev-helloWorld
       Handler: main.handler
       MemorySize: 1024
-      Timeout: 0
+      Timeout: 600
       Role:
         Fn::GetAtt:
           - IamRoleLambdaExecution

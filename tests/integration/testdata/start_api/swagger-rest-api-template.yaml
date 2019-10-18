@@ -89,5 +89,5 @@ Resources:
       Code: "."
       Handler: main.handler
       Runtime: python3.6
-      Timeout: 0
+      Timeout: 600
     Type: AWS::Lambda::Function

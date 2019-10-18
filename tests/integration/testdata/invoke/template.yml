@@ -24,7 +24,7 @@ Resources:
     Properties:
       Handler: main.handler
       Runtime: python3.6
-      Timeout: 20
+      Timeout: 600
 
   TimeoutFunction:
     Type: AWS::Serverless::Function
@@ -40,7 +40,7 @@ Resources:
       Handler: main.sleep_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 15
+      Timeout: 600
 
   EchoCustomEnvVarFunction:
     Type: AWS::Serverless::Function
@@ -51,7 +51,7 @@ Resources:
       Environment:
         Variables:
           CustomEnvVar: "MyVar"
-      Timeout: 20
+      Timeout: 600
 
   WriteToStderrFunction:
     Type: AWS::Serverless::Function
@@ -59,7 +59,7 @@ Resources:
       Handler: main.write_to_stderr
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 600
 
   WriteToStdoutFunction:
     Type: AWS::Serverless::Function
@@ -67,7 +67,7 @@ Resources:
       Handler: main.write_to_stdout
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 600
 
   EchoEventFunction:
     Type: AWS::Serverless::Function
@@ -75,7 +75,7 @@ Resources:
       Handler: main.echo_event
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 600
 
   RaiseExceptionFunction:
     Type: AWS::Serverless::Function
@@ -83,7 +83,7 @@ Resources:
       Handler: main.raise_exception
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 600
 
   TimeoutFunctionWithParameter:
     Type: AWS::Serverless::Function
@@ -99,7 +99,7 @@ Resources:
     Properties:
       Runtime: python3.6
       Handler: main.echo_hello_world
-      Timeout: 20
+      Timeout: 600
     Metadata:
       aws:asset:property: CodeUri
       aws:asset:path: ./different_code_location
@@ -110,7 +110,7 @@ Resources:
       Handler: main.env_var_echo_hanler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 600
       Environment:
         Variables:
           Region: !Ref "AWS::Region"
