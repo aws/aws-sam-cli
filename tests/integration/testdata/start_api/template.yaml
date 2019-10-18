@@ -17,7 +17,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         IdBasePath:
           Type: Api
@@ -43,7 +43,7 @@ Resources:
       Handler: main.echo_event_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         PathWithPathParams:
           Type: Api
@@ -68,7 +68,7 @@ Resources:
     Properties:
       Handler: main.echo_event_handler_2
       Runtime: python3.6
-      Timeout: 20
+      Timeout: 0
       CodeUri: .
       Events:
         EchoEventBodyPath:
@@ -83,7 +83,7 @@ Resources:
       Handler: main.echo_integer_body
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         EchoEventBodyPath:
           Type: Api
@@ -97,7 +97,7 @@ Resources:
       Handler: main.content_type_setter_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         ContentTypeSetter:
           Type: Api
@@ -111,7 +111,7 @@ Resources:
       Handler: main.only_set_status_code_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         OnlySetStatusCodePath:
           Type: Api
@@ -125,7 +125,7 @@ Resources:
       Handler: main.only_set_body_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         OnlySetBodyPath:
           Type: Api
@@ -139,7 +139,7 @@ Resources:
       Handler: main.string_status_code_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         StringStatusCodePath:
           Type: Api
@@ -153,7 +153,7 @@ Resources:
       Handler: main.sleep_10_sec_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         SleepPath:
           Type: Api
@@ -167,7 +167,7 @@ Resources:
       Handler: main.sleep_10_sec_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         SleepPath:
           Type: Api
@@ -181,7 +181,7 @@ Resources:
       Handler: main.write_to_stderr
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         WriteToStderrPath:
           Type: Api
@@ -195,7 +195,7 @@ Resources:
       Handler: main.write_to_stdout
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         WriteToStdoutPath:
           Type: Api
@@ -209,7 +209,7 @@ Resources:
       Handler: main.invalid_response_returned
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         InvalidResponseReturned:
           Type: Api
@@ -223,7 +223,7 @@ Resources:
       Handler: main.invalid_hash_response
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         InvalidResponseReturned:
           Type: Api
@@ -237,7 +237,7 @@ Resources:
       Handler: main.base64_response
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         Base64ResponsePath:
           Type: Api
@@ -251,7 +251,7 @@ Resources:
       Handler: main.echo_base64_event_body
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         EchoBase64EventBodyPath:
           Type: Api
@@ -265,7 +265,7 @@ Resources:
       Handler: main.multiple_headers
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         IdBasePath:
           Type: Api
@@ -279,7 +279,7 @@ Resources:
       Handler: main.multiple_headers_overrides_headers
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         IdBasePath:
           Type: Api

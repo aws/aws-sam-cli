@@ -89,7 +89,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         GetApi:
           Type: Api
@@ -105,7 +105,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
 
   MyNonServerlessLambdaFunction:
     Type: AWS::Lambda::Function
@@ -113,7 +113,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
 
   Base64ResponseFunction:
     Type: AWS::Serverless::Function
@@ -121,7 +121,7 @@ Resources:
       Handler: main.base64_response
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
 
   EchoBase64EventBodyFunction:
     Type: AWS::Serverless::Function
@@ -129,7 +129,7 @@ Resources:
       Handler: main.echo_base64_event_body
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
 
   EchoEventHandlerFunction:
     Type:  AWS::Serverless::Function
@@ -137,7 +137,7 @@ Resources:
       Handler: main.echo_event_handler
       Runtime: python3.6
       CodeUri: .
-      Timeout: 20
+      Timeout: 0
       Events:
         GetApi:
           Type: Api
