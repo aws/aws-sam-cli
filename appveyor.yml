@@ -9,10 +9,6 @@ environment:
  
   matrix:
 
-    - PYTHON_HOME: "C:\\Python27-x64"
-      PYTHON_VERSION: '2.7.16'
-      PYTHON_ARCH: '32'
-
     - PYTHON_HOME: "C:\\Python36-x64"
       PYTHON_VERSION: '3.6.8'
       PYTHON_ARCH: '64'
@@ -64,23 +60,60 @@ for:
         - ONLY_SMOKE: 1
     test_script:
       # Smoke tests run in parallel
+      - "venv/Scripts/activate"
       - "pytest -n 4 -vv tests/smoke"
 
-build_script:
-  - "python -c \"import sys; print(sys.executable)\""
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2017
+    build_script:
+      - "python -c \"import sys; print(sys.executable)\""
+      - "pip install -e \".[dev]\""
 
-  # Actually install SAM CLI's dependencies
-  - "pip install -e \".[dev]\""
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+    build_script:
+      # Activate virtualenv again on windows
+      - "venv\\Scripts\\activate"
+      - "python -c \"import sys; print(sys.executable)\""
+      - "pip install -e \".[dev]\""
 
-test_script:
-    - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-    - "pylint --rcfile .pylintrc samcli"
+  -
+    matrix:
+      only:
+        - image: Ubuntu
+    test_script:
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pylint --rcfile .pylintrc samcli"
 
-    # Runs only in Linux
-    - sh: "pytest -vv tests/integration"
-    - sh: "/tmp/black --check setup.py tests samcli scripts"
-    - sh: "python scripts/check-isolated-needs-update.py"
+      # Runs only in Linux
+      - sh: "pytest -vv tests/integration"
+      - sh: "/tmp/black --check setup.py tests samcli scripts"
+      - sh: "python scripts/check-isolated-needs-update.py"
 
-    # Smoke tests run in parallel - it runs on both Linux & Windows
-    # Presence of the RUN_SMOKE envvar will run the smoke tests
-    - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+      # Smoke tests run in parallel - it runs on both Linux & Windows
+      # Presence of the RUN_SMOKE envvar will run the smoke tests
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+
+  -
+    matrix:
+      only:
+        - image: Visual Studio 2017
+    test_script:
+      # Activate virtualenv again on windows
+      - "venv\\Scripts\\activate"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pylint --rcfile .pylintrc samcli"
+
+      # Runs only in Linux
+      - sh: "pytest -vv tests/integration"
+      - sh: "/tmp/black --check setup.py tests samcli scripts"
+      - sh: "python scripts/check-isolated-needs-update.py"
+
+      # Smoke tests run in parallel - it runs on both Linux & Windows
+      # Presence of the RUN_SMOKE envvar will run the smoke tests
+      - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
+
