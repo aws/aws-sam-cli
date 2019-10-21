@@ -4,7 +4,7 @@ from mock import patch, MagicMock
 import tempfile
 
 
-from samcli.commands.package.command import PackageCommand
+from samcli.commands.package.package_context import PackageCommand
 from samcli.commands.package.artifact_exporter import Template
 from samcli.commands.package import exceptions
 
@@ -26,7 +26,7 @@ class TestPackageCommand(TestCase):
                 profile=None,
             )
 
-    @patch.object(Template, 'export', MagicMock(return_value={}))
+    @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid_with_output_template(self, patched_boto):
         with tempfile.NamedTemporaryFile() as temp_template_file:
@@ -44,7 +44,7 @@ class TestPackageCommand(TestCase):
                     profile=None,
                 )
 
-    @patch.object(Template, 'export', MagicMock(return_value={}))
+    @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid(self, patched_boto):
         with tempfile.NamedTemporaryFile() as temp_template_file:
@@ -61,7 +61,7 @@ class TestPackageCommand(TestCase):
                 profile=None,
             )
 
-    @patch.object(Template, 'export', MagicMock(return_value={}))
+    @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid_no_json(self, patched_boto):
         with tempfile.NamedTemporaryFile() as temp_template_file:

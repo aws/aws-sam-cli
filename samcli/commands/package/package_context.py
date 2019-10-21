@@ -1,3 +1,7 @@
+"""
+Logic for uploading to s3 based on supplied template file and s3 bucket
+"""
+
 # Copyright 2012-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You
@@ -27,7 +31,7 @@ import boto3
 LOG = logging.getLogger(__name__)
 
 
-class PackageCommand(object):
+class PackageCommandContext(object):
 
     MSG_PACKAGED_TEMPLATE_WRITTEN = (
         "Successfully packaged artifacts and wrote output template "
@@ -42,7 +46,7 @@ class PackageCommand(object):
 
     NAME = "package"
 
-    def run(
+    def __init__(
         self,
         template_file,
         s3_bucket,
@@ -55,20 +59,39 @@ class PackageCommand(object):
         region,
         profile,
     ):
+        self.template_file = template_file
+        self.s3_bucket = s3_bucket
+        self.s3_prefix = s3_prefix
+        self.kms_key_id = kms_key_id
+        self.output_template_file = output_template_file
+        self.use_json = use_json
+        self.force_upload = force_upload
+        self.metadata = metadata
+        self.region = region
+        self.profile = profile
+        self.s3_uploader = None
 
-        session = boto3.Session(profile_name=profile if profile else None)
-        s3_client = session.client("s3", region_name=region if region else None)
+    def __enter__(self):
+        pass
 
-        template_path = template_file
+    def __exit__(self, *args):
+        pass
+
+    def run(self):
+
+        session = boto3.Session(profile_name=self.profile if self.profile else None)
+        s3_client = session.client("s3", region_name=self.region if self.region else None)
+
+        template_path = self.template_file
         if not os.path.isfile(template_path):
             raise exceptions.InvalidTemplatePathError(template_path=template_path)
 
-        self.s3_uploader = S3Uploader(s3_client, s3_bucket, s3_prefix, kms_key_id, force_upload)
+        self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
         # attach the given metadata to the artifacts to be uploaded
-        self.s3_uploader.artifact_metadata = metadata
+        self.s3_uploader.artifact_metadata = self.metadata
 
-        output_file = output_template_file
-        use_json = use_json
+        output_file = self.output_template_file
+        use_json = self.use_json
         exported_str = self._export(template_path, use_json)
 
         sys.stdout.write("\n")
