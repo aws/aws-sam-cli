@@ -1,3 +1,8 @@
+"""
+Exceptions that are raised by sam package and sam deploy
+"""
+
+
 class CloudFormationCommandError(Exception):
     fmt = "An unspecified error occurred"
 

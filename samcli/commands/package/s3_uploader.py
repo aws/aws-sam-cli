@@ -1,3 +1,7 @@
+"""
+Client for uploading packaged artifacts to s3
+"""
+
 # Copyright 2012-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You
@@ -16,13 +20,13 @@ import logging
 import threading
 import os
 import sys
+from collections import abc
 
 import botocore
 import botocore.exceptions
 
 from boto3.s3 import transfer
 
-from collections import abc
 
 LOG = logging.getLogger(__name__)
 
@@ -56,11 +60,11 @@ class S3Uploader(object):
         self._artifact_metadata = val
 
     def __init__(self, s3_client, bucket_name, prefix=None, kms_key_id=None, force_upload=False):
+        self.s3 = s3_client
         self.bucket_name = bucket_name
         self.prefix = prefix
         self.kms_key_id = kms_key_id or None
         self.force_upload = force_upload
-        self.s3 = s3_client
         self.transfer_manager = transfer.create_transfer_manager(self.s3, transfer.TransferConfig())
 
         self._artifact_metadata = None
@@ -73,12 +77,12 @@ class S3Uploader(object):
         :return: VersionId of the latest upload
         """
 
-        if self.prefix and len(self.prefix) > 0:
+        if self.prefix:
             remote_path = "{0}/{1}".format(self.prefix, remote_path)
 
         # Check if a file with same data exists
         if not self.force_upload and self.file_exists(remote_path):
-            LOG.debug("File with same data is already exists at {0}. " "Skipping upload".format(remote_path))
+            LOG.debug("File with same data is already exists at %s. " "Skipping upload", remote_path)
             return self.make_url(remote_path)
 
         try:
@@ -161,7 +165,7 @@ class S3Uploader(object):
             file_handle.seek(0)
 
             buf = file_handle.read(block_size)
-            while len(buf) > 0:
+            while buf:
                 md5.update(buf)
                 buf = file_handle.read(block_size)
 
@@ -193,7 +197,7 @@ class ProgressPercentage(object):
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
-    def on_progress(self, future, bytes_transferred, **kwargs):
+    def on_progress(self, bytes_transferred, **kwargs):
 
         # To simplify we'll assume this is hooked up
         # to a single filename.
