@@ -1,3 +1,8 @@
+"""
+Logic for uploading to S3 per Cloudformation Specific Resource
+"""
+# pylint: disable=no-member
+
 # Copyright 2012-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You
@@ -16,13 +21,13 @@ import os
 import tempfile
 import zipfile
 import contextlib
+from contextlib import contextmanager
 import uuid
 from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
 
 
-from contextlib import contextmanager
 from samcli.commands.package import exceptions
 from samcli.yamlhelper import yaml_dump, yaml_parse
 import jmespath
@@ -38,8 +43,7 @@ def is_path_value_valid(path):
 def make_abs_path(directory, path):
     if is_path_value_valid(path) and not os.path.isabs(path):
         return os.path.normpath(os.path.join(directory, path))
-    else:
-        return path
+    return path
 
 
 def is_s3_url(url):
@@ -123,7 +127,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
         # This check is supporting the case where your resource does not
         # refer to local artifacts
         # Nothing to do if property value is an S3 URL
-        LOG.debug("Property {0} of {1} is already a S3 URL".format(property_name, resource_id))
+        LOG.debug("Property %s of %s is already a S3 URL", property_name, resource_id)
         return local_path
 
     local_path = make_abs_path(parent_dir, local_path)
@@ -140,8 +144,8 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
 
 def zip_and_upload(local_path, uploader):
-    with zip_folder(local_path) as zipfile:
-        return uploader.upload_with_dedup(zipfile)
+    with zip_folder(local_path) as zip_file:
+        return uploader.upload_with_dedup(zip_file)
 
 
 @contextmanager
@@ -164,13 +168,13 @@ def zip_folder(folder_path):
             os.remove(zipfile_name)
 
 
-def make_zip(filename, source_root):
-    zipfile_name = "{0}.zip".format(filename)
+def make_zip(file_name, source_root):
+    zipfile_name = "{0}.zip".format(file_name)
     source_root = os.path.abspath(source_root)
     with open(zipfile_name, "wb") as f:
         zip_file = zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED)
         with contextlib.closing(zip_file) as zf:
-            for root, dirs, files in os.walk(source_root, followlinks=True):
+            for root, _, files in os.walk(source_root, followlinks=True):
                 for filename in files:
                     full_path = os.path.join(root, filename)
                     relative_path = os.path.relpath(full_path, source_root)
@@ -224,7 +228,7 @@ class Resource(object):
             return
 
         if isinstance(property_value, dict):
-            LOG.debug("Property {0} of {1} resource is not a URL".format(self.PROPERTY_NAME, resource_id))
+            LOG.debug("Property %s of %s resource is not a URL", self.PROPERTY_NAME, resource_id)
             return
 
         # If property is a file but not a zip file, place file in temp
@@ -264,9 +268,6 @@ class ResourceWithS3UrlDict(Resource):
     BUCKET_NAME_PROPERTY = None
     OBJECT_KEY_PROPERTY = None
     VERSION_PROPERTY = None
-
-    def __init__(self, uploader):
-        super(ResourceWithS3UrlDict, self).__init__(uploader)
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
@@ -403,9 +404,6 @@ class CloudFormationStackResource(Resource):
     RESOURCE_TYPE = "AWS::CloudFormation::Stack"
     PROPERTY_NAME = "TemplateURL"
 
-    def __init__(self, uploader):
-        super(CloudFormationStackResource, self).__init__(uploader)
-
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
         If the nested stack template is valid, this method will
@@ -521,8 +519,8 @@ class Template(object):
         template_path,
         parent_dir,
         uploader,
-        resources_to_export=RESOURCES_EXPORT_LIST,
-        metadata_to_export=METADATA_EXPORT_LIST,
+        resources_to_export=frozenset(RESOURCES_EXPORT_LIST),
+        metadata_to_export=frozenset(METADATA_EXPORT_LIST),
     ):
         """
         Reads the template and makes it ready for export
