@@ -17,7 +17,7 @@ import sys
 
 import json
 
-from .artifact_exporter import Template
+from samcli.commands.package.artifact_exporter import Template
 from samcli.yamlhelper import yaml_dump
 from samcli.commands.package import exceptions
 from samcli.commands.package.s3_uploader import S3Uploader
@@ -55,16 +55,15 @@ class PackageCommand(object):
         region,
         profile,
     ):
-        session = boto3.Session(profile_name=profile)
-        s3_client = session.client("s3", region_name=region)
+
+        session = boto3.Session(profile_name=profile if profile else None)
+        s3_client = session.client("s3", region_name=region if region else None)
 
         template_path = template_file
         if not os.path.isfile(template_path):
             raise exceptions.InvalidTemplatePathError(template_path=template_path)
 
-        bucket = s3_bucket
-
-        self.s3_uploader = S3Uploader(s3_client, bucket, s3_prefix, kms_key_id, force_upload)
+        self.s3_uploader = S3Uploader(s3_client, s3_bucket, s3_prefix, kms_key_id, force_upload)
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = metadata
 

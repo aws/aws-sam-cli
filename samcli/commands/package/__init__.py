@@ -7,7 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
-from samcli.commands.package.package import PackageCommand
+from samcli.commands.package.command import PackageCommand
 from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.metrics import track_command
 
