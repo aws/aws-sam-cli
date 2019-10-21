@@ -4,7 +4,6 @@ Base classes that implement the CLI framework
 
 import logging
 import importlib
-import sys
 from collections import OrderedDict
 
 import click
@@ -23,6 +22,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.logs",
     "samcli.commands.publish",
 ]
+
 
 class BaseCommand(click.MultiCommand):
     """
