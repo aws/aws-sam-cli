@@ -32,8 +32,8 @@ class TestPackageCommand(TestCase):
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid_with_output_template(self, patched_boto):
-        with tempfile.NamedTemporaryFile() as temp_template_file:
-            with tempfile.NamedTemporaryFile() as temp_output_template_file:
+        with tempfile.NamedTemporaryFile(mode="w") as temp_template_file:
+            with tempfile.NamedTemporaryFile(mode="w") as temp_output_template_file:
                 package_command_context = PackageCommandContext(
                     template_file=temp_template_file.name,
                     s3_bucket="s3-bucket",
@@ -51,7 +51,7 @@ class TestPackageCommand(TestCase):
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid(self, patched_boto):
-        with tempfile.NamedTemporaryFile() as temp_template_file:
+        with tempfile.NamedTemporaryFile(mode="w") as temp_template_file:
             package_command_context = PackageCommandContext(
                 template_file=temp_template_file.name,
                 s3_bucket="s3-bucket",
@@ -69,7 +69,7 @@ class TestPackageCommand(TestCase):
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
     def test_template_path_valid_no_json(self, patched_boto):
-        with tempfile.NamedTemporaryFile() as temp_template_file:
+        with tempfile.NamedTemporaryFile(mode="w") as temp_template_file:
             package_command_context = PackageCommandContext(
                 template_file=temp_template_file.name,
                 s3_bucket="s3-bucket",

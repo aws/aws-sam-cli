@@ -120,8 +120,8 @@ def do_cli(
         metadata=metadata,
         region=region,
         profile=profile,
-    ) as ctx:
+    ) as package_context:
         try:
-            ctx.run()
+            package_context.run()
         except OSError as ex:
             raise UserException(str(ex))

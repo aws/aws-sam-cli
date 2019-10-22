@@ -110,7 +110,7 @@ class TestS3Uploader(TestCase):
             kms_key_id=self.kms_key_id,
             force_upload=self.force_upload,
         )
-        with tempfile.NamedTemporaryFile() as f:
+        with tempfile.NamedTemporaryFile(mode="wb") as f:
             f.write(b"Hello World!")
             f.seek(0)
             self.assertEqual("ed076287532e86365e841e92bfc50d8c", s3_uploader.file_checksum(f.name))
@@ -139,7 +139,7 @@ class TestS3Uploader(TestCase):
         s3_uploader.artifact_metadata = {"a": "b"}
         remote_path = Path.joinpath(Path(os.getcwd()), Path("tmp"))
         self.s3.head_object = MagicMock(side_effect=ClientError(error_response={}, operation_name="head_object"))
-        with tempfile.NamedTemporaryFile() as f:
+        with tempfile.NamedTemporaryFile(mode="w") as f:
             s3_url = s3_uploader.upload(f.name, remote_path)
             self.assertEqual(s3_url, "s3://{0}/{1}/{2}".format(self.bucket_name, self.prefix, remote_path))
 
@@ -152,7 +152,7 @@ class TestS3Uploader(TestCase):
             force_upload=self.force_upload,
         )
         self.s3.head_object = MagicMock(side_effect=ClientError(error_response={}, operation_name="head_object"))
-        with tempfile.NamedTemporaryFile() as f:
+        with tempfile.NamedTemporaryFile(mode="w") as f:
             s3_url = s3_uploader.upload_with_dedup(f.name, "zip")
             self.assertEqual(
                 s3_url, "s3://{0}/{1}/{2}.zip".format(self.bucket_name, self.prefix, s3_uploader.file_checksum(f.name))

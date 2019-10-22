@@ -27,6 +27,7 @@ from samcli.commands.package import exceptions
 from samcli.commands.package.s3_uploader import S3Uploader
 
 import boto3
+from botocore.config import Config
 
 LOG = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class PackageCommandContext(object):
         self.s3_uploader = None
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, *args):
         pass
@@ -80,7 +81,9 @@ class PackageCommandContext(object):
     def run(self):
 
         session = boto3.Session(profile_name=self.profile if self.profile else None)
-        s3_client = session.client("s3", region_name=self.region if self.region else None)
+        s3_client = session.client(
+            "s3", config=Config(signature_version="s3v4", region_name=self.region if self.region else None)
+        )
 
         template_path = self.template_file
         if not os.path.isfile(template_path):
