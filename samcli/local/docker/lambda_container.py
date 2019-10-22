@@ -102,10 +102,15 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
-        return {
-            # container port : host port
-            debug_options.debug_port: debug_options.debug_port
-        }
+        if not debug_options.debug_ports:
+            return None
+
+        # container port : host port
+        ports_map = {}
+        for port in debug_options.debug_ports:
+            ports_map[port] = port
+
+        return ports_map
 
     @staticmethod
     def _get_additional_options(runtime, debug_options):
@@ -179,7 +184,7 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
-        debug_port = debug_options.debug_port
+        debug_ports = debug_options.debug_ports
         debug_args_list = []
 
         if debug_options.debug_args:
@@ -188,7 +193,7 @@ class LambdaContainer(Container):
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
         return LambdaDebugEntryPoint.get_entry_point(
-            debug_port=debug_port,
+            debug_port=debug_ports,
             debug_args_list=debug_args_list,
             runtime=runtime,
             options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,

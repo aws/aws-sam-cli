@@ -51,8 +51,8 @@ class TestLambdaContainer(TestCase):
         self.expected_docker_image = self.IMAGE_NAME
         self.handler = "index.handler"
         self.layers = []
-        self.debug_port = _rand_port()
-        self.debug_context = DebugContext(debug_port=self.debug_port, debugger_path=None, debug_args=None)
+        self.debug_ports = [_rand_port()]
+        self.debug_context = DebugContext(debug_ports=self.debug_ports, debugger_path=None, debug_args=None)
         self.code_dir = nodejs_lambda(self.HELLO_WORLD_CODE)
         self.network_prefix = "sam_cli_test_network"
 
@@ -99,10 +99,10 @@ class TestLambdaContainer(TestCase):
             container.start()
 
             # After container is started, query the container to make sure it is bound to the right ports
-            port_binding = self.docker_client.api.port(container.id, self.debug_port)
+            port_binding = self.docker_client.api.port(container.id, self.debug_ports)
             self.assertIsNotNone(port_binding, "Container must be bound to a port on host machine")
             self.assertEqual(1, len(port_binding), "Only one port must be bound to the container")
-            self.assertEqual(port_binding[0]["HostPort"], str(self.debug_port))
+            self.assertEqual(port_binding[0]["HostPort"], str(self.debug_ports))
 
     def test_container_is_attached_to_network(self):
         layer_downloader = LayerDownloader("./", "./")

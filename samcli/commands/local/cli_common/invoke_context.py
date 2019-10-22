@@ -358,7 +358,11 @@ class InvokeContext(object):
                 raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
             debugger_path = str(debugger)
 
-        return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
+        debug_ports = None
+        if debug_port:
+            debug_ports = [int(port.strip()) for port in str(debug_port).split(',')]
+
+        return DebugContext(debug_ports=debug_ports, debug_args=debug_args, debugger_path=debugger_path)
 
     @staticmethod
     def _get_container_manager(docker_network, skip_pull_image):
