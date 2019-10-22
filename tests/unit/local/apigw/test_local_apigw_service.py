@@ -51,6 +51,30 @@ class TestApiGatewayService(TestCase):
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_options_request_must_invoke_lambda(self, request_mock):
+        make_response_mock = Mock()
+
+        self.service.service_response = make_response_mock
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.return_value.methods = ["OPTIONS"]
+        self.service._construct_event = Mock()
+
+        parse_output_mock = Mock()
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        self.service._parse_lambda_output = parse_output_mock
+
+        service_response_mock = Mock()
+        service_response_mock.return_value = make_response_mock
+        self.service.service_response = service_response_mock
+
+        request_mock.return_value = ("OPTIONS", "test")
+
+        result = self.service._request_handler()
+
+        self.assertEqual(result, make_response_mock)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LambdaOutputParser")
     def test_request_handler_returns_process_stdout_when_making_response(self, lambda_output_parser_mock, request_mock):
         make_response_mock = Mock()
