@@ -573,7 +573,10 @@ class TestServiceRequests(StartApiIntegBaseClass):
         Form-encoded data should be put into the Event to Lambda
         """
         response = requests.post(
-            self.url + "/echoeventbody", headers={"Content-Type": "application/x-www-form-urlencoded"}, data="key=value", timeout=300
+            self.url + "/echoeventbody",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data="key=value",
+            timeout=300,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -596,7 +599,9 @@ class TestServiceRequests(StartApiIntegBaseClass):
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_multi_value_headers(self):
         response = requests.get(
-            self.url + "/echoeventbody", headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"}, timeout=300
+            self.url + "/echoeventbody",
+            headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"},
+            timeout=300,
         )
 
         self.assertEqual(response.status_code, 200)
