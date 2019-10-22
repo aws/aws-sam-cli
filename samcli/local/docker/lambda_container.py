@@ -96,18 +96,18 @@ class LambdaContainer(Container):
         bind to same port both inside and outside the container ie. Runtime process is started in debug mode with
         at given port inside the container and exposed to the host machine at the same port
 
-        :param int debug_port: Optional, integer value of debug port
+        :param list(int) debug_port: Optional, List of integer values of debug ports
         :return dict: Dictionary containing port binding information. None, if debug_port was not given
         """
         if not debug_options:
             return None
 
-        if not debug_options.debug_ports:
+        if not debug_options.debug_port:
             return None
 
         # container port : host port
         ports_map = {}
-        for port in debug_options.debug_ports:
+        for port in debug_options.debug_port:
             ports_map[port] = port
 
         return ports_map
@@ -184,7 +184,7 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
-        debug_ports = debug_options.debug_ports
+        debug_port = debug_options.debug_port
         debug_args_list = []
 
         if debug_options.debug_args:
@@ -193,7 +193,7 @@ class LambdaContainer(Container):
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
         return LambdaDebugEntryPoint.get_entry_point(
-            debug_port=debug_ports,
+            debug_port=debug_port,
             debug_args_list=debug_args_list,
             runtime=runtime,
             options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,

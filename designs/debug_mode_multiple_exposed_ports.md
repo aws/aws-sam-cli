@@ -10,20 +10,20 @@ implementation specific (the Debugger connect to two sockets to collect differen
 What will be changed?
 ---------------------
 SAM CLI has a ``--debug-port`` parameter that provide a port. This parameter is stored in DebugContext object.
-``DebugContext`` should store an array of ports instead of one single port. This array should be transformed
+``DebugContext`` should store an array of ports instead of a single port. This array should be transformed
 into a map containing each stored port when passing to docker container arguments.
 
 Success criteria for the change
 -------------------------------
-All ports (comma separated) specified in ``--debug-port`` SAM CLI parameter should be exposed by docker container.
+All ports specified via single or multiple ``--debug-port`` SAM CLI options should be exposed by docker container.
 
 Out-of-Scope
 ------------
 
 User Experience Walkthrough
 ---------------------------
-From the user perspective, it should only affect --debug-port parameter that should allow to specify
-multiple ports, e.g. ``--debug-port 5600,5601``
+From the user perspective, it should only provide an ability to specify multiple ``--debug-port`` options:
+``--debug-port 5600 --debug-port 5601``
 
 Implementation
 ==============
@@ -31,19 +31,18 @@ Implementation
 CLI Changes
 -----------
 
-SAM CLI provide an option to specify multiple ports ``--debug-port 5600,5601`` 
-instead of current one value ``--debug-port 5600``.
+SAM CLI provide an option to specify multiple ports ``--debug-port 5600 --debug-port 5601``.
 
 ### Breaking Change
 
-Rename DebugContex parameter from ``debug_port`` to ``debug_ports``.
+No changes.
 
 Design
 ------
 
-The ``--debug-port`` CLI parameter should be properly processed (expecting comma separated values)
-and split to single integer values that are stored in ``DebugContext``.
-This array should be converted into the map of ``{ container_port : host_port }``
+Update ``--debug-port`` option to allow to use it multiple times in SAM CLI.
+The option type should take only integer values. The value is stored in ``DebugContext``. 
+This value should be converted into a map of ``{ container_port : host_port }``
 that is passed to ``ports`` argument when creating a docker container.
 
 `.samrc` Changes
@@ -79,7 +78,7 @@ Goal
 Make sure SAM CLI users can specify multiple ports and those ports are exposed
 after creating a docker container in debug mode:
 
-``sam local invoke --template <path_to_template>/template.yaml --event <path_to_event>/event.json --debugger-path <path_to_debugger> --debug-port 51799,51728``
+``sam local invoke --template <path_to_template>/template.yaml --event <path_to_event>/event.json --debugger-path <path_to_debugger> --debug-port 5600 --debug-port 5601``
 
 Pre-requesites
 --------------
@@ -88,7 +87,7 @@ Running SAM CLI with debug mode.
 Test Scenarios/Cases
 --------------------
 1. Single port is specified: ``--debug-port 5600``
-2. Multiple ports are specified: ``--debug-port 5600,5601``
+2. Multiple ports are specified: ``--debug-port 5600 --debug-port 5601``
 3. No ports specified: ``--debug-port ``
 4. No ``--debug-port`` parameter is specified
 

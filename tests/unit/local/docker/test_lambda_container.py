@@ -36,7 +36,7 @@ class TestLambdaContainer_init(TestCase):
         self.code_dir = "codedir"
         self.env_var = {"var": "value"}
         self.memory_mb = 1024
-        self.debug_options = DebugContext(debug_args="a=b c=d e=f", debug_ports=[1235])
+        self.debug_options = DebugContext(debug_args="a=b c=d e=f", debug_port=[1235])
 
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
@@ -108,30 +108,30 @@ class TestLambdaContainer_init(TestCase):
 class TestLambdaContainer_get_exposed_ports(TestCase):
     def test_must_map_same_port_on_host_and_container(self):
 
-        debug_options = DebugContext(debug_ports=[12345])
-        expected = {port: port for port in debug_options.debug_ports}
+        debug_options = DebugContext(debug_port=[12345])
+        expected = {port: port for port in debug_options.debug_port}
         result = LambdaContainer._get_exposed_ports(debug_options)
 
         self.assertEqual(expected, result)
 
     def test_must_map_multiple_ports_on_host_and_container(self):
 
-        debug_options = DebugContext(debug_ports=[12345, 67890])
-        expected = {port: port for port in debug_options.debug_ports}
+        debug_options = DebugContext(debug_port=[12345, 67890])
+        expected = {port: port for port in debug_options.debug_port}
         result = LambdaContainer._get_exposed_ports(debug_options)
 
         self.assertEqual(expected, result)
 
     def test_empty_ports_list(self):
 
-        debug_options = DebugContext(debug_ports=[])
+        debug_options = DebugContext(debug_port=[])
         result = LambdaContainer._get_exposed_ports(debug_options)
 
         self.assertEqual(None, result)
 
     def test_none_ports_specified(self):
 
-        debug_options = DebugContext(debug_ports=None)
+        debug_options = DebugContext(debug_port=None)
         result = LambdaContainer._get_exposed_ports(debug_options)
 
         self.assertEqual(None, result)
@@ -155,9 +155,9 @@ class TestLambdaContainer_get_image(TestCase):
 class TestLambdaContainer_get_entry_point(TestCase):
     def setUp(self):
 
-        self.debug_ports = [1235]
+        self.debug_port = [1235]
         self.debug_args = "a=b c=d e=f"
-        self.debug_options = DebugContext(debug_ports=[1235], debug_args="a=b c=d e=f")
+        self.debug_options = DebugContext(debug_port=[1235], debug_args="a=b c=d e=f")
 
     def test_must_skip_if_debug_port_is_not_specified(self):
         self.assertIsNone(
@@ -198,7 +198,7 @@ class TestLambdaContainer_get_entry_point(TestCase):
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT])
     def test_must_provide_entrypoint_even_without_debug_args(self, runtime):
-        debug_options = DebugContext(debug_ports=[1235], debug_args=None)
+        debug_options = DebugContext(debug_port=[1235], debug_args=None)
         result = LambdaContainer._get_entry_point(runtime, debug_options)
 
         self.assertIsNotNone(result)
@@ -206,14 +206,14 @@ class TestLambdaContainer_get_entry_point(TestCase):
 
 class TestLambdaContainer_get_additional_options(TestCase):
     def test_no_additional_options_when_debug_options_is_none(self):
-        debug_options = DebugContext(debug_ports=None)
+        debug_options = DebugContext(debug_port=None)
 
         result = LambdaContainer._get_additional_options("runtime", debug_options)
         self.assertIsNone(result)
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if not r.startswith("go")])
     def test_default_value_returned_for_non_go_runtimes(self, runtime):
-        debug_options = DebugContext(debug_ports=[1235])
+        debug_options = DebugContext(debug_port=[1235])
 
         result = LambdaContainer._get_additional_options(runtime, debug_options)
         self.assertEqual(result, {})
@@ -222,7 +222,7 @@ class TestLambdaContainer_get_additional_options(TestCase):
     def test_go_runtime_returns_additional_options(self, runtime):
         expected = {"security_opt": ["seccomp:unconfined"], "cap_add": ["SYS_PTRACE"]}
 
-        debug_options = DebugContext(debug_ports=[1235])
+        debug_options = DebugContext(debug_port=[1235])
 
         result = LambdaContainer._get_additional_options(runtime, debug_options)
         self.assertEqual(result, expected)
@@ -230,13 +230,13 @@ class TestLambdaContainer_get_additional_options(TestCase):
 
 class TestLambdaContainer_get_additional_volumes(TestCase):
     def test_no_additional_volumes_when_debug_options_is_none(self):
-        debug_options = DebugContext(debug_ports=None)
+        debug_options = DebugContext(debug_port=None)
 
         result = LambdaContainer._get_additional_volumes(debug_options)
         self.assertIsNone(result)
 
     def test_no_additional_volumes_when_debuggr_path_is_none(self):
-        debug_options = DebugContext(debug_ports=[1234])
+        debug_options = DebugContext(debug_port=[1234])
 
         result = LambdaContainer._get_additional_volumes(debug_options)
         self.assertIsNone(result)
@@ -244,7 +244,7 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
     def test_additional_volumes_returns_volume_with_debugger_path_is_set(self):
         expected = {"/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"}}
 
-        debug_options = DebugContext(debug_ports=[1234], debugger_path="/somepath")
+        debug_options = DebugContext(debug_port=[1234], debugger_path="/somepath")
 
         result = LambdaContainer._get_additional_volumes(debug_options)
         self.assertEqual(result, expected)
