@@ -19,6 +19,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_same_endpoint(self):
         """
@@ -44,6 +45,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
             self.assertEqual(result.status_code, 200)
             self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_different_endpoints(self):
         """
@@ -83,6 +85,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_invalid_http_verb_for_endpoint(self):
         response = requests.get(self.url + "/id", timeout=300)
@@ -90,6 +93,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json(), {"message": "Missing Authentication Token"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_invalid_response_from_lambda(self):
         response = requests.get(self.url + "/invalidresponsereturned", timeout=300)
@@ -97,6 +101,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_invalid_json_response_from_lambda(self):
         response = requests.get(self.url + "/invalidresponsehash", timeout=300)
@@ -104,6 +109,7 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_timeout(self):
         pass
@@ -122,6 +128,7 @@ class TestService(StartApiIntegBaseClass):
     def test_static_directory(self):
         pass
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_calling_proxy_endpoint(self):
         response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
@@ -129,6 +136,7 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_implicit_api(self):
         """
@@ -139,6 +147,7 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_implicit_api(self):
         """
@@ -149,6 +158,7 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_implicit_api(self):
         """
@@ -159,6 +169,7 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_implicit_api(self):
         """
@@ -168,6 +179,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_implicit_api(self):
         """
@@ -178,6 +190,7 @@ class TestService(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_implicit_api(self):
         """
@@ -187,6 +200,7 @@ class TestService(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_implicit_api(self):
         """
@@ -205,6 +219,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_swagger(self):
         """
@@ -215,6 +230,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_swagger(self):
         """
@@ -225,6 +241,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_swagger(self):
         """
@@ -235,6 +252,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_swagger(self):
         """
@@ -244,6 +262,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_swagger(self):
         """
@@ -254,6 +273,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_swagger(self):
         """
@@ -263,6 +283,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_swagger(self):
         """
@@ -273,6 +294,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_not_defined_in_template(self):
         response = requests.get(self.url + "/nofunctionfound", timeout=300)
@@ -280,6 +302,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "No function defined for resource method"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_with_no_api_event_is_reachable(self):
         response = requests.get(self.url + "/functionwithnoapievent", timeout=300)
@@ -287,6 +310,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
         response = requests.get(self.url + "/nonserverlessfunction", timeout=300)
@@ -294,6 +318,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -308,6 +333,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -329,6 +355,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_swagger(self):
         """
@@ -339,6 +366,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_swagger(self):
         """
@@ -349,6 +377,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_swagger(self):
         """
@@ -359,6 +388,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_swagger(self):
         """
@@ -368,6 +398,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_swagger(self):
         """
@@ -378,6 +409,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_swagger(self):
         """
@@ -387,6 +419,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_swagger(self):
         """
@@ -397,6 +430,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_not_defined_in_template(self):
         response = requests.get(self.url + "/nofunctionfound", timeout=300)
@@ -404,6 +438,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "No function defined for resource method"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
         response = requests.get(self.url + "/nonserverlessfunction", timeout=300)
@@ -411,6 +446,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -425,6 +461,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -450,6 +487,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_multiple_headers_response(self):
         response = requests.get(self.url + "/multipleheaders", timeout=300)
@@ -458,6 +496,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "text/plain")
         self.assertEqual(response.headers.get("MyCustomHeader"), "Value1, Value2")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_multiple_headers_overrides_headers_response(self):
         response = requests.get(self.url + "/multipleheadersoverridesheaders", timeout=300)
@@ -466,6 +505,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "text/plain")
         self.assertEqual(response.headers.get("MyCustomHeader"), "Value1, Value2, Custom")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -479,6 +519,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_header_content_type(self):
         """
@@ -490,6 +531,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.content.decode("utf-8"), "no data")
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_status_code(self):
         """
@@ -501,6 +543,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_string_status_code(self):
         """
@@ -510,6 +553,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_body(self):
         """
@@ -520,6 +564,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "no data")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_writing_to_stdout(self):
         response = requests.get(self.url + "/writetostdout", timeout=300)
@@ -527,6 +572,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_writing_to_stderr(self):
         response = requests.get(self.url + "/writetostderr", timeout=300)
@@ -534,6 +580,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_integer_body(self):
         response = requests.get(self.url + "/echo_integer_body", timeout=300)
@@ -553,6 +600,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -567,6 +615,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_form_data(self):
         """
@@ -586,6 +635,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
         self.assertEqual(response_data.get("body"), "key=value")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_to_an_endpoint_with_two_different_handlers(self):
         response = requests.get(self.url + "/echoeventbody", timeout=300)
@@ -596,6 +646,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("handler"), "echo_event_handler_2")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_multi_value_headers(self):
         response = requests.get(
@@ -613,6 +664,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
             response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded, image/gif"
         )
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_query_params(self):
         """
@@ -627,6 +679,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("queryStringParameters"), {"key": "value"})
         self.assertEqual(response_data.get("multiValueQueryStringParameters"), {"key": ["value"]})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_list_of_query_params(self):
         """
@@ -641,6 +694,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("queryStringParameters"), {"key": "value2"})
         self.assertEqual(response_data.get("multiValueQueryStringParameters"), {"key": ["value", "value2"]})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_path_params(self):
         """
@@ -654,6 +708,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("pathParameters"), {"id": "4"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_many_path_params(self):
         """
@@ -667,6 +722,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("pathParameters"), {"id": "4", "user": "jacob"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_forward_headers_are_added_to_event(self):
         """
@@ -692,6 +748,7 @@ class TestStartApiWithStage(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_stage_name(self):
         response = requests.get(self.url + "/echoeventbody", timeout=300)
@@ -702,6 +759,7 @@ class TestStartApiWithStage(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "Prod")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_global_stage_variables(self):
         response = requests.get(self.url + "/echoeventbody", timeout=300)
@@ -723,6 +781,7 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_stage_name(self):
         response = requests.get(self.url + "/echoeventbody", timeout=300)
@@ -732,6 +791,7 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         response_data = response.json()
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "dev")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_stage_variable(self):
         response = requests.get(self.url + "/echoeventbody", timeout=300)
@@ -753,6 +813,7 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_cors_swagger_options(self):
         """
@@ -778,6 +839,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_cors_global(self):
         """
@@ -791,6 +853,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_cors_global_get(self):
         """
@@ -817,6 +880,7 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_stage_name(self):
         response = requests.get(self.url + "/echoeventbody", timeout=300)
@@ -826,6 +890,7 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
         response_data = response.json()
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "Dev")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_global_stage_variables(self):
         response = requests.get(self.url + "/echoeventbody", timeout=300)
@@ -844,6 +909,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_swagger(self):
         """
@@ -854,6 +920,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_swagger(self):
         """
@@ -864,6 +931,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_swagger(self):
         """
@@ -874,6 +942,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_swagger(self):
         """
@@ -883,6 +952,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_swagger(self):
         """
@@ -893,6 +963,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_swagger(self):
         """
@@ -902,6 +973,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_swagger(self):
         """
@@ -912,6 +984,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_not_defined_in_template(self):
         response = requests.get(self.url + "/root/nofunctionfound", timeout=300)
@@ -919,6 +992,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "No function defined for resource method"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
         response = requests.get(self.url + "/root/nonserverlessfunction", timeout=300)
@@ -926,6 +1000,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -940,6 +1015,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -953,6 +1029,7 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_proxy_response(self):
         """
@@ -970,6 +1047,7 @@ class TestCDKApiGateway(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_with_cdk(self):
         """
@@ -987,6 +1065,7 @@ class TestServerlessApiGateway(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_with_serverless(self):
         """
@@ -1004,6 +1083,8 @@ class TestSwaggerIncludedFromSeparateFile(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_was_tranformed_and_api_is_reachable(self):
         response = requests.patch(self.url + "/anyandall", timeout=300)
 
