@@ -19,6 +19,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_same_endpoint(self):
         """
@@ -44,6 +45,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
             self.assertEqual(result.status_code, 200)
             self.assertEqual(result.json(), {"message": "HelloWorld! I just slept and waking up."})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_different_endpoints(self):
         """
@@ -83,27 +85,31 @@ class TestServiceErrorResponses(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_invalid_http_verb_for_endpoint(self):
-        response = requests.get(self.url + "/id")
+        response = requests.get(self.url + "/id", timeout=300)
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.json(), {"message": "Missing Authentication Token"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_invalid_response_from_lambda(self):
-        response = requests.get(self.url + "/invalidresponsereturned")
+        response = requests.get(self.url + "/invalidresponsereturned", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_invalid_json_response_from_lambda(self):
-        response = requests.get(self.url + "/invalidresponsehash")
+        response = requests.get(self.url + "/invalidresponsehash", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "Internal server error"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_timeout(self):
         pass
@@ -122,77 +128,85 @@ class TestService(StartApiIntegBaseClass):
     def test_static_directory(self):
         pass
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_calling_proxy_endpoint(self):
-        response = requests.get(self.url + "/proxypath/this/is/some/path")
+        response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_implicit_api(self):
         """
         Get Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.get(self.url + "/anyandall")
+        response = requests.get(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_implicit_api(self):
         """
         Post Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.post(self.url + "/anyandall", json={})
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_implicit_api(self):
         """
         Put Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.put(self.url + "/anyandall", json={})
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_implicit_api(self):
         """
         Head Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.head(self.url + "/anyandall")
+        response = requests.head(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_implicit_api(self):
         """
         Delete Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.delete(self.url + "/anyandall")
+        response = requests.delete(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_implicit_api(self):
         """
         Options Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.options(self.url + "/anyandall")
+        response = requests.options(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_implicit_api(self):
         """
         Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
         """
-        response = requests.patch(self.url + "/anyandall")
+        response = requests.patch(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -205,95 +219,106 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_swagger(self):
         """
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.get(self.url + "/anyandall")
+        response = requests.get(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_swagger(self):
         """
         Post Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.post(self.url + "/anyandall", json={})
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_swagger(self):
         """
         Put Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.put(self.url + "/anyandall", json={})
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_swagger(self):
         """
         Head Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.head(self.url + "/anyandall")
+        response = requests.head(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_swagger(self):
         """
         Delete Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.delete(self.url + "/anyandall")
+        response = requests.delete(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_swagger(self):
         """
         Options Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.options(self.url + "/anyandall")
+        response = requests.options(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_swagger(self):
         """
         Patch Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.patch(self.url + "/anyandall")
+        response = requests.patch(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_not_defined_in_template(self):
-        response = requests.get(self.url + "/nofunctionfound")
+        response = requests.get(self.url + "/nofunctionfound", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "No function defined for resource method"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_with_no_api_event_is_reachable(self):
-        response = requests.get(self.url + "/functionwithnoapievent")
+        response = requests.get(self.url + "/functionwithnoapievent", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
-        response = requests.get(self.url + "/nonserverlessfunction")
+        response = requests.get(self.url + "/nonserverlessfunction", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -301,13 +326,14 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
+            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data, timeout=300
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -315,7 +341,7 @@ class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
         """
         expected = self.get_binary_data(self.binary_data_file)
 
-        response = requests.get(self.url + "/base64response")
+        response = requests.get(self.url + "/base64response", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
@@ -329,88 +355,98 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_swagger(self):
         """
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.get(self.url + "/anyandall")
+        response = requests.get(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_swagger(self):
         """
         Post Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.post(self.url + "/anyandall", json={})
+        response = requests.post(self.url + "/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_swagger(self):
         """
         Put Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.put(self.url + "/anyandall", json={})
+        response = requests.put(self.url + "/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_swagger(self):
         """
         Head Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.head(self.url + "/anyandall")
+        response = requests.head(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_swagger(self):
         """
         Delete Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.delete(self.url + "/anyandall")
+        response = requests.delete(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_swagger(self):
         """
         Options Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.options(self.url + "/anyandall")
+        response = requests.options(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_swagger(self):
         """
         Patch Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.patch(self.url + "/anyandall")
+        response = requests.patch(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_not_defined_in_template(self):
-        response = requests.get(self.url + "/nofunctionfound")
+        response = requests.get(self.url + "/nofunctionfound", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "No function defined for resource method"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
-        response = requests.get(self.url + "/nonserverlessfunction")
+        response = requests.get(self.url + "/nonserverlessfunction", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -418,13 +454,14 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
+            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data, timeout=300
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -432,7 +469,7 @@ class TestStartApiWithSwaggerRestApis(StartApiIntegBaseClass):
         """
         expected = self.get_binary_data(self.binary_data_file)
 
-        response = requests.get(self.url + "/base64response")
+        response = requests.get(self.url + "/base64response", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
@@ -450,22 +487,25 @@ class TestServiceResponses(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_multiple_headers_response(self):
-        response = requests.get(self.url + "/multipleheaders")
+        response = requests.get(self.url + "/multipleheaders", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "text/plain")
         self.assertEqual(response.headers.get("MyCustomHeader"), "Value1, Value2")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_multiple_headers_overrides_headers_response(self):
-        response = requests.get(self.url + "/multipleheadersoverridesheaders")
+        response = requests.get(self.url + "/multipleheadersoverridesheaders", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "text/plain")
         self.assertEqual(response.headers.get("MyCustomHeader"), "Value1, Value2, Custom")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -473,70 +513,77 @@ class TestServiceResponses(StartApiIntegBaseClass):
         """
         expected = self.get_binary_data(self.binary_data_file)
 
-        response = requests.get(self.url + "/base64response")
+        response = requests.get(self.url + "/base64response", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_header_content_type(self):
         """
         Test that if no ContentType is given the default is "application/json"
         """
-        response = requests.get(self.url + "/onlysetstatuscode")
+        response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "no data")
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_status_code(self):
         """
         Test that if no status_code is given, the status code is 200
         :return:
         """
-        response = requests.get(self.url + "/onlysetbody")
+        response = requests.get(self.url + "/onlysetbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_string_status_code(self):
         """
         Test that an integer-string can be returned as the status code
         """
-        response = requests.get(self.url + "/stringstatuscode")
+        response = requests.get(self.url + "/stringstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_body(self):
         """
         Test that if no body is given, the response is 'no data'
         """
-        response = requests.get(self.url + "/onlysetstatuscode")
+        response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "no data")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_writing_to_stdout(self):
-        response = requests.get(self.url + "/writetostdout")
+        response = requests.get(self.url + "/writetostdout", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_writing_to_stderr(self):
-        response = requests.get(self.url + "/writetostderr")
+        response = requests.get(self.url + "/writetostderr", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_integer_body(self):
-        response = requests.get(self.url + "/echo_integer_body")
+        response = requests.get(self.url + "/echo_integer_body", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "42")
@@ -553,6 +600,7 @@ class TestServiceRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -560,20 +608,24 @@ class TestServiceRequests(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
+            self.url + "/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data, timeout=300
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_form_data(self):
         """
         Form-encoded data should be put into the Event to Lambda
         """
         response = requests.post(
-            self.url + "/echoeventbody", headers={"Content-Type": "application/x-www-form-urlencoded"}, data="key=value"
+            self.url + "/echoeventbody",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            data="key=value",
+            timeout=300,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -583,9 +635,10 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded")
         self.assertEqual(response_data.get("body"), "key=value")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_to_an_endpoint_with_two_different_handlers(self):
-        response = requests.get(self.url + "/echoeventbody")
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -593,10 +646,13 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("handler"), "echo_event_handler_2")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_multi_value_headers(self):
         response = requests.get(
-            self.url + "/echoeventbody", headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"}
+            self.url + "/echoeventbody",
+            headers={"Content-Type": "application/x-www-form-urlencoded, image/gif"},
+            timeout=300,
         )
 
         self.assertEqual(response.status_code, 200)
@@ -608,12 +664,13 @@ class TestServiceRequests(StartApiIntegBaseClass):
             response_data.get("headers").get("Content-Type"), "application/x-www-form-urlencoded, image/gif"
         )
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_query_params(self):
         """
         Query params given should be put into the Event to Lambda
         """
-        response = requests.get(self.url + "/id/4", params={"key": "value"})
+        response = requests.get(self.url + "/id/4", params={"key": "value"}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -622,12 +679,13 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("queryStringParameters"), {"key": "value"})
         self.assertEqual(response_data.get("multiValueQueryStringParameters"), {"key": ["value"]})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_list_of_query_params(self):
         """
         Query params given should be put into the Event to Lambda
         """
-        response = requests.get(self.url + "/id/4", params={"key": ["value", "value2"]})
+        response = requests.get(self.url + "/id/4", params={"key": ["value", "value2"]}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -636,12 +694,13 @@ class TestServiceRequests(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("queryStringParameters"), {"key": "value2"})
         self.assertEqual(response_data.get("multiValueQueryStringParameters"), {"key": ["value", "value2"]})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_path_params(self):
         """
         Path Parameters given should be put into the Event to Lambda
         """
-        response = requests.get(self.url + "/id/4")
+        response = requests.get(self.url + "/id/4", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -649,12 +708,13 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("pathParameters"), {"id": "4"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_request_with_many_path_params(self):
         """
         Path Parameters given should be put into the Event to Lambda
         """
-        response = requests.get(self.url + "/id/4/user/jacob")
+        response = requests.get(self.url + "/id/4/user/jacob", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -662,12 +722,13 @@ class TestServiceRequests(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("pathParameters"), {"id": "4", "user": "jacob"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_forward_headers_are_added_to_event(self):
         """
         Test the Forwarding Headers exist in the Api Event to Lambda
         """
-        response = requests.get(self.url + "/id/4")
+        response = requests.get(self.url + "/id/4", timeout=300)
 
         response_data = response.json()
 
@@ -687,9 +748,10 @@ class TestStartApiWithStage(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_stage_name(self):
-        response = requests.get(self.url + "/echoeventbody")
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -697,9 +759,10 @@ class TestStartApiWithStage(StartApiIntegBaseClass):
 
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "Prod")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_global_stage_variables(self):
-        response = requests.get(self.url + "/echoeventbody")
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -718,18 +781,20 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_stage_name(self):
-        response = requests.get(self.url + "/echoeventbody")
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "dev")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_stage_variable(self):
-        response = requests.get(self.url + "/echoeventbody")
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -748,12 +813,13 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_cors_swagger_options(self):
         """
         This tests that the Cors are added to option requests in the swagger template
         """
-        response = requests.options(self.url + "/echobase64eventbody")
+        response = requests.options(self.url + "/echobase64eventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -773,12 +839,13 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_cors_global(self):
         """
         This tests that the Cors are added to options requests when the global property is set
         """
-        response = requests.options(self.url + "/echobase64eventbody")
+        response = requests.options(self.url + "/echobase64eventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
@@ -786,12 +853,13 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_cors_global_get(self):
         """
         This tests that the Cors are added to post requests when the global property is set
         """
-        response = requests.get(self.url + "/onlysetstatuscode")
+        response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.decode("utf-8"), "no data")
@@ -812,18 +880,20 @@ class TestStartApiWithCloudFormationStage(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_stage_name(self):
-        response = requests.get(self.url + "/echoeventbody")
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
         response_data = response.json()
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "Dev")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_global_stage_variables(self):
-        response = requests.get(self.url + "/echoeventbody")
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
@@ -839,88 +909,98 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_call_with_path_setup_with_any_swagger(self):
         """
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.get(self.url + "/root/anyandall")
+        response = requests.get(self.url + "/root/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_post_call_with_path_setup_with_any_swagger(self):
         """
         Post Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.post(self.url + "/root/anyandall", json={})
+        response = requests.post(self.url + "/root/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_put_call_with_path_setup_with_any_swagger(self):
         """
         Put Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.put(self.url + "/root/anyandall", json={})
+        response = requests.put(self.url + "/root/anyandall", json={}, timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_head_call_with_path_setup_with_any_swagger(self):
         """
         Head Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.head(self.url + "/root/anyandall")
+        response = requests.head(self.url + "/root/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_delete_call_with_path_setup_with_any_swagger(self):
         """
         Delete Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.delete(self.url + "/root/anyandall")
+        response = requests.delete(self.url + "/root/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_options_call_with_path_setup_with_any_swagger(self):
         """
         Options Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.options(self.url + "/root/anyandall")
+        response = requests.options(self.url + "/root/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_patch_call_with_path_setup_with_any_swagger(self):
         """
         Patch Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.patch(self.url + "/root/anyandall")
+        response = requests.patch(self.url + "/root/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_function_not_defined_in_template(self):
-        response = requests.get(self.url + "/root/nofunctionfound")
+        response = requests.get(self.url + "/root/nofunctionfound", timeout=300)
 
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json(), {"message": "No function defined for resource method"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_lambda_function_resource_is_reachable(self):
-        response = requests.get(self.url + "/root/nonserverlessfunction")
+        response = requests.get(self.url + "/root/nonserverlessfunction", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_request(self):
         """
@@ -928,13 +1008,14 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         """
         input_data = self.get_binary_data(self.binary_data_file)
         response = requests.post(
-            self.url + "/root/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data
+            self.url + "/root/echobase64eventbody", headers={"Content-Type": "image/gif"}, data=input_data, timeout=300
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, input_data)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_binary_response(self):
         """
@@ -942,18 +1023,19 @@ class TestStartApiWithMethodsAndResources(StartApiIntegBaseClass):
         """
         expected = self.get_binary_data(self.binary_data_file)
 
-        response = requests.get(self.url + "/root/base64response")
+        response = requests.get(self.url + "/root/base64response", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Content-Type"), "image/gif")
         self.assertEqual(response.content, expected)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_proxy_response(self):
         """
         Binary data is returned correctly
         """
-        response = requests.get(self.url + "/root/v1/test")
+        response = requests.get(self.url + "/root/v1/test", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -965,12 +1047,13 @@ class TestCDKApiGateway(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_with_cdk(self):
         """
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.get(self.url + "/hello-world")
+        response = requests.get(self.url + "/hello-world", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
@@ -982,12 +1065,28 @@ class TestServerlessApiGateway(StartApiIntegBaseClass):
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_get_with_serverless(self):
         """
         Get Request to a path that was defined as ANY in SAM through Swagger
         """
-        response = requests.get(self.url + "/hello-world")
+        response = requests.get(self.url + "/hello-world", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestSwaggerIncludedFromSeparateFile(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-with-included-swagger.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_swagger_was_tranformed_and_api_is_reachable(self):
+        response = requests.patch(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})

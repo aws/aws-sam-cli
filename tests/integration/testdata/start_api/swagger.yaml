@@ -1,0 +1,13 @@
+swagger: "2.0"
+info:
+  title:
+    Ref: AWS::StackName
+paths:
+  "/anyandall":
+    x-amazon-apigateway-any-method:
+      x-amazon-apigateway-integration:
+        httpMethod: POST
+        type: aws_proxy
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyLambdaFunction.Arn}/invocations
+        responses: {}
