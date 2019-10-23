@@ -5,6 +5,7 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 import errno
 import json
 import os
+from pathlib import Path
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -18,16 +19,8 @@ from samcli.local.layers.layer_downloader import LayerDownloader
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
 
-# This is an attempt to do a controlled import. pathlib is in the
-# Python standard library starting at 3.4. This will import pathlib2,
-# which is a backport of the Python Standard Library pathlib
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
 
-
-class InvokeContext(object):
+class InvokeContext:
     """
     Sets up a context to invoke Lambda functions locally by parsing all command line arguments necessary for the
     invoke.
@@ -350,11 +343,10 @@ class InvokeContext(object):
             except OSError as error:
                 if error.errno == errno.ENOENT:
                     raise DebugContextException("'{}' could not be found.".format(debugger_path))
-                else:
-                    raise error
 
-            # We turn off pylint here due to https://github.com/PyCQA/pylint/issues/1660
-            if not debugger.is_dir():  # pylint: disable=no-member
+                raise error
+
+            if not debugger.is_dir():
                 raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
             debugger_path = str(debugger)
 

@@ -110,6 +110,8 @@ class LocalLambdaInvokeService(BaseLocalService):
                 "invocation-type: {} is not supported. RequestResponse is only supported.".format(invocation_type)
             )
 
+        return None
+
     def _construct_error_handling(self):
         """
         Updates the Flask app with Error Handlers for different Error Codes

@@ -7,7 +7,7 @@ from unittest import TestCase
 
 import requests
 
-from mock import Mock
+from unittest.mock import Mock
 from docker.errors import APIError, ImageNotFound
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 

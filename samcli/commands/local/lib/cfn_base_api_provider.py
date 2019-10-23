@@ -7,7 +7,7 @@ from samcli.commands.local.lib.swagger.reader import SwaggerReader
 LOG = logging.getLogger(__name__)
 
 
-class CfnBaseApiProvider(object):
+class CfnBaseApiProvider:
     RESOURCE_TYPE = "Type"
 
     def extract_resources(self, resources, collector, cwd=None):

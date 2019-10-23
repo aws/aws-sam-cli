@@ -25,6 +25,7 @@ environment:
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
+  NOSE_PARAMETERIZED_NO_WARN: 1
 
 init:
   # Uncomment this for RDP

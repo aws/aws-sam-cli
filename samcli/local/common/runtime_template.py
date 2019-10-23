@@ -4,11 +4,7 @@ All-in-one metadata about runtimes
 
 import itertools
 import os
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
 _templates = os.path.join(_init_path, "init", "templates")
@@ -78,13 +74,12 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
 }
 
-SUPPORTED_DEP_MANAGERS = set(
-    [
-        c["dependency_manager"]
-        for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
-        if c["dependency_manager"]
-    ]
-)
+SUPPORTED_DEP_MANAGERS = {
+    c["dependency_manager"]
+    for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
+    if c["dependency_manager"]
+}
+
 RUNTIMES = set(
     itertools.chain(*[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))])
 )

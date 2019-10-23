@@ -14,7 +14,7 @@ from samcli.commands.local.lib.provider import Api
 LOG = logging.getLogger(__name__)
 
 
-class ApiCollector(object):
+class ApiCollector:
     def __init__(self):
         # Route properties stored per resource.
         self._route_per_resource = defaultdict(list)

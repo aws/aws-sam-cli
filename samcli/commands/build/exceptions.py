@@ -7,4 +7,3 @@ class InvalidBuildDirException(UserException):
     """
     Value provided to --build-dir is invalid
     """
-    pass

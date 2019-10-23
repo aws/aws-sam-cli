@@ -12,11 +12,13 @@ environment:
     - PYTHON_HOME: "C:\\Python36-x64"
       PYTHON_VERSION: '3.6.8'
       PYTHON_ARCH: '64'
+      NOSE_PARAMETERIZED_NO_WARN: 1
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
+      NOSE_PARAMETERIZED_NO_WARN: 1
 
 for:
   - 
@@ -30,12 +32,16 @@ for:
       - "echo %PATH%"
       - "python --version"
       # Upgrade setuptools, wheel and virtualenv
+      - "SET PATH=%PYTHON_HOME%;%PATH%"
+      - "echo %PYTHON_HOME%"
+      - "echo %PATH%"
       - "python -m pip install --upgrade setuptools wheel virtualenv"
 
       # Create new virtual environment and activate it
       - "rm -rf venv"
       - "python -m virtualenv venv"
       - "venv\\Scripts\\activate"
+      - "python --version"
 
     build_script:
       # Activate virtualenv again on windows

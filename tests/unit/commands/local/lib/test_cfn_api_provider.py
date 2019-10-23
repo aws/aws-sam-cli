@@ -3,8 +3,7 @@ import tempfile
 from collections import OrderedDict
 from unittest import TestCase
 
-from mock import patch
-from six import assertCountEqual
+from unittest.mock import patch
 
 from samcli.commands.local.lib.api_provider import ApiProvider
 from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
@@ -36,7 +35,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, self.input_routes, provider.routes)
+        self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_with_swagger_as_local_file(self):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as fp:
@@ -52,7 +51,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             }
 
             provider = ApiProvider(template)
-            assertCountEqual(self, self.input_routes, provider.routes)
+            self.assertCountEqual(self.input_routes, provider.routes)
 
     def test_body_with_swagger_as_local_file_expect_fail(self):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as fp:
@@ -81,7 +80,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
 
         cwd = "foo"
         provider = ApiProvider(template, cwd=cwd)
-        assertCountEqual(self, self.input_routes, provider.routes)
+        self.assertCountEqual(self.input_routes, provider.routes)
         SwaggerReaderMock.assert_called_with(definition_body=body, definition_uri=filename, working_dir=cwd)
 
     def test_swagger_with_any_method(self):
@@ -100,7 +99,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_routes, provider.routes)
+        self.assertCountEqual(expected_routes, provider.routes)
 
     def test_with_binary_media_types(self):
         template = {
@@ -120,8 +119,8 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         ]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_apis, provider.routes)
-        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
+        self.assertCountEqual(expected_apis, provider.routes)
+        self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
     def test_with_binary_media_types_in_swagger_and_on_resource(self):
         input_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
@@ -143,8 +142,8 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
         expected_routes = [Route(path="/path", methods=["OPTIONS"], function_name="SamFunc1")]
 
         provider = ApiProvider(template)
-        assertCountEqual(self, expected_routes, provider.routes)
-        assertCountEqual(self, provider.api.binary_media_types, expected_binary_types)
+        self.assertCountEqual(expected_routes, provider.routes)
+        self.assertCountEqual(provider.api.binary_media_types, expected_binary_types)
 
 
 class TestCloudFormationStageValues(TestCase):
@@ -377,8 +376,7 @@ class TestCloudFormationResourceMethod(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(
-            self,
+        self.assertCountEqual(
             provider.routes,
             [
                 Route(path="/root/v1/beta", methods=["POST"], function_name=None),
@@ -401,8 +399,7 @@ class TestCloudFormationResourceMethod(TestCase):
             }
         }
         provider = ApiProvider(template)
-        assertCountEqual(
-            self,
+        self.assertCountEqual(
             provider.routes,
             [
                 Route(
@@ -475,8 +472,7 @@ class TestCloudFormationResourceMethod(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(
-            self,
+        self.assertCountEqual(
             provider.routes,
             [
                 Route(path="/root/v1/beta", methods=["POST"], function_name="AWSLambdaFunction"),
@@ -550,7 +546,7 @@ class TestCloudFormationResourceMethod(TestCase):
         }
 
         provider = ApiProvider(template)
-        assertCountEqual(self, provider.api.binary_media_types, ["image/png", "image/jpg"])
+        self.assertCountEqual(provider.api.binary_media_types, ["image/png", "image/jpg"])
 
     def test_cdk(self):
         template = {
@@ -668,4 +664,4 @@ class TestCloudFormationResourceMethod(TestCase):
         provider = ApiProvider(template)
         proxy_paths = [Route(path="/{proxy+}", methods=Route.ANY_HTTP_METHODS, function_name="HelloHandler2E4FBA4D")]
         root_paths = [Route(path="/", methods=Route.ANY_HTTP_METHODS, function_name="HelloHandler2E4FBA4D")]
-        assertCountEqual(self, provider.routes, proxy_paths + root_paths)
+        self.assertCountEqual(provider.routes, proxy_paths + root_paths)

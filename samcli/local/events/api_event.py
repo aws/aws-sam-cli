@@ -1,7 +1,7 @@
 """Holds Classes for API Gateway to Lambda Events"""
 
 
-class ContextIdentity(object):
+class ContextIdentity:
     def __init__(
         self,
         api_key=None,
@@ -62,7 +62,7 @@ class ContextIdentity(object):
         return json_dict
 
 
-class RequestContext(object):
+class RequestContext:
     def __init__(
         self,
         resource_id="123456",
@@ -128,7 +128,7 @@ class RequestContext(object):
         return json_dict
 
 
-class ApiGatewayLambdaEvent(object):
+class ApiGatewayLambdaEvent:
     def __init__(
         self,
         http_method=None,

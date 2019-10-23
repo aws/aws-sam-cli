@@ -1,20 +1,16 @@
 """
 Generates a Docker Image to be used for invoking a function locally
 """
-from enum import Enum
 import uuid
 import logging
 import hashlib
+from enum import Enum
+from pathlib import Path
 
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.lib.utils.tar import create_tarball
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
 
 
 LOG = logging.getLogger(__name__)
@@ -47,7 +43,7 @@ class Runtime(Enum):
         return any(value == item.value for item in cls)
 
 
-class LambdaImage(object):
+class LambdaImage:
     _LAYERS_DIR = "/opt"
     _DOCKER_LAMBDA_REPO_NAME = "lambci/lambda"
     _SAM_CLI_REPO_NAME = "samcli/lambda"

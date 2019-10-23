@@ -1,7 +1,7 @@
 """Test sam publish CLI."""
 import json
 from unittest import TestCase
-from mock import patch, call, Mock
+from unittest.mock import patch, call, Mock
 
 from serverlessrepo.exceptions import ServerlessRepoError, InvalidS3UriError
 from serverlessrepo.publish import CREATE_APPLICATION, UPDATE_APPLICATION

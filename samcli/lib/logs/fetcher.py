@@ -12,7 +12,7 @@ from .event import LogEvent
 LOG = logging.getLogger(__name__)
 
 
-class LogsFetcher(object):
+class LogsFetcher:
     """
     Fetch logs from a CloudWatch Logs group with the ability to scope to a particular time, filter by
     a pattern, and in the future possibly multiplex from from multiple streams together.

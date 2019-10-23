@@ -4,7 +4,7 @@ Unit test for local API service
 
 from unittest import TestCase
 
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.local.lib.api_collector import ApiCollector

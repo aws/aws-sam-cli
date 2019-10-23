@@ -3,7 +3,7 @@ import copy
 import yaml
 
 from unittest import TestCase
-from mock import patch, mock_open
+from unittest.mock import patch, mock_open
 from parameterized import parameterized, param
 
 from samcli.commands._utils.template import (

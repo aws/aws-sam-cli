@@ -54,5 +54,5 @@ for installed_pkg_version in all_installed_pkgs_list:
             assert installed_pkg_version in isolated_req_list, "{} is in base.txt but not in isolated.txt".format(
                 installed_pkg_version
             )
-            print ("{} is in the isolated.txt file".format(installed_pkg_version))
+            print("{} is in the isolated.txt file".format(installed_pkg_version))
             break

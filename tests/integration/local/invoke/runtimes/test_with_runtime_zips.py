@@ -8,11 +8,7 @@ from nose_parameterized import parameterized, param
 import pytest
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
@@ -58,4 +54,4 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
 
         self.assertEqual(return_code, 0)
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEqual(process_stdout.decode("utf-8"), u'{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')
+        self.assertEqual(process_stdout.decode("utf-8"), '{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')

@@ -3,13 +3,8 @@ Utilities to manipulate template
 """
 
 import os
-import six
+import pathlib
 import yaml
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
 
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
@@ -218,7 +213,7 @@ def _resolve_relative_to(path, original_root, new_root):
     Updated path if the given path is a relative path. None, if the path is not a relative path.
     """
 
-    if not isinstance(path, six.string_types) or path.startswith("s3://") or os.path.isabs(path):
+    if not isinstance(path, str) or path.startswith("s3://") or os.path.isabs(path):
         # Value is definitely NOT a relative path. It is either a S3 URi or Absolute path or not a string at all
         return None
 

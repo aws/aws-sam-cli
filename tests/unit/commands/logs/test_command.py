@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, call
+from unittest.mock import Mock, patch, call
 
 from samcli.commands.logs.command import do_cli
 

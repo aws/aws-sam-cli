@@ -3,7 +3,7 @@ Information and debug options for a specific runtime.
 """
 
 
-class DebugContext(object):
+class DebugContext:
     def __init__(self, debug_port=None, debugger_path=None, debug_args=None):
 
         self.debug_port = debug_port

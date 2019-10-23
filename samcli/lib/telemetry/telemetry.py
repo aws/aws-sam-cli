@@ -17,7 +17,7 @@ from samcli.settings import telemetry_endpoint_url as DEFAULT_ENDPOINT_URL
 LOG = logging.getLogger(__name__)
 
 
-class Telemetry(object):
+class Telemetry:
     def __init__(self, url=None):
         """
         Initialize the Telemetry object.
@@ -108,6 +108,8 @@ class Telemetry(object):
         ctx = Context.get_current_context()
         if ctx:
             return ctx.session_id
+
+        return None
 
     def _get_execution_environment(self):
         """

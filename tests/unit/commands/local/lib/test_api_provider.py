@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from mock import patch
+from unittest.mock import patch
 
 from samcli.commands.local.lib.provider import Api
 from samcli.commands.local.lib.api_provider import ApiProvider

@@ -3,7 +3,7 @@ Unit tests for Lambda runtime
 """
 
 from unittest import TestCase
-from mock import Mock, patch, MagicMock, ANY
+from unittest.mock import Mock, patch, MagicMock, ANY
 from parameterized import parameterized
 
 from samcli.local.lambdafn.runtime import LambdaRuntime, _unzip_file

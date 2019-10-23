@@ -16,7 +16,7 @@ from .zip import unzip
 LOG = logging.getLogger(__name__)
 
 
-class LambdaRuntime(object):
+class LambdaRuntime:
     """
     This class represents a Local Lambda runtime. It can run the Lambda function code locally in a Docker container
     and return results. Public methods exposed by this class are similar to the AWS Lambda APIs, for convenience only.
@@ -137,12 +137,13 @@ class LambdaRuntime(object):
         if is_debugging:
             LOG.debug("Setting up SIGTERM interrupt handler")
             signal.signal(signal.SIGTERM, signal_handler)
-        else:
-            # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
-            LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_name)
-            timer = threading.Timer(timeout, timer_handler, ())
-            timer.start()
-            return timer
+            return None
+
+        # Start a timer, we'll use this to abort the function if it runs beyond the specified timeout
+        LOG.debug("Starting a timer for %s seconds for function '%s'", timeout, function_name)
+        timer = threading.Timer(timeout, timer_handler, ())
+        timer.start()
+        return timer
 
     @contextmanager
     def _get_code_dir(self, code_path):
