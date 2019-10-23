@@ -34,7 +34,7 @@ class TestCli(TestCase):
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch("samcli.commands.publish.command.get_template_data", Mock(return_value={}))
-    @patch("samcli.commands.publish.command.publish_application")
+    @patch("serverlessrepo.publish_application")
     @patch("samcli.commands.publish.command.click")
     def test_must_raise_if_serverlessrepo_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = ServerlessRepoError()
@@ -44,7 +44,7 @@ class TestCli(TestCase):
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch("samcli.commands.publish.command.get_template_data", Mock(return_value={}))
-    @patch("samcli.commands.publish.command.publish_application")
+    @patch("serverlessrepo.publish_application")
     @patch("samcli.commands.publish.command.click")
     def test_must_raise_if_invalid_S3_uri_error(self, click_mock, publish_application_mock):
         publish_application_mock.side_effect = InvalidS3UriError(message="")
@@ -56,7 +56,7 @@ class TestCli(TestCase):
         click_mock.secho.assert_called_with("Publish Failed", fg="red")
 
     @patch("samcli.commands.publish.command.get_template_data", Mock(return_value={}))
-    @patch("samcli.commands.publish.command.publish_application")
+    @patch("serverlessrepo.publish_application")
     @patch("samcli.commands.publish.command.click")
     def test_must_succeed_to_create_application(self, click_mock, publish_application_mock):
         publish_application_mock.return_value = {
@@ -78,7 +78,7 @@ class TestCli(TestCase):
         )
 
     @patch("samcli.commands.publish.command.get_template_data", Mock(return_value={}))
-    @patch("samcli.commands.publish.command.publish_application")
+    @patch("serverlessrepo.publish_application")
     @patch("samcli.commands.publish.command.click")
     def test_must_succeed_to_update_application(self, click_mock, publish_application_mock):
         publish_application_mock.return_value = {
@@ -100,7 +100,7 @@ class TestCli(TestCase):
         )
 
     @patch("samcli.commands.publish.command.get_template_data", Mock(return_value={}))
-    @patch("samcli.commands.publish.command.publish_application")
+    @patch("serverlessrepo.publish_application")
     @patch("samcli.commands.publish.command.boto3")
     @patch("samcli.commands.publish.command.click")
     def test_print_console_link_if_context_region_not_set(self, click_mock, boto3_mock, publish_application_mock):
@@ -120,7 +120,7 @@ class TestCli(TestCase):
         click_mock.secho.assert_called_with(expected_link, fg="yellow")
 
     @patch("samcli.commands.publish.command.get_template_data")
-    @patch("samcli.commands.publish.command.publish_application")
+    @patch("serverlessrepo.publish_application")
     def test_must_use_template_semantic_version(self, publish_application_mock, get_template_data_mock):
         template_data = {METADATA: {SERVERLESS_REPO_APPLICATION: {SEMANTIC_VERSION: "0.1"}}}
         get_template_data_mock.return_value = template_data
@@ -129,7 +129,7 @@ class TestCli(TestCase):
         publish_application_mock.assert_called_with(template_data)
 
     @patch("samcli.commands.publish.command.get_template_data")
-    @patch("samcli.commands.publish.command.publish_application")
+    @patch("serverlessrepo.publish_application")
     def test_must_override_template_semantic_version(self, publish_application_mock, get_template_data_mock):
         template_data = {METADATA: {SERVERLESS_REPO_APPLICATION: {SEMANTIC_VERSION: "0.1"}}}
         get_template_data_mock.return_value = template_data

@@ -40,6 +40,8 @@ install:
 
     # Make sure the temp directory exists for Python to use.
     - ps: "mkdir -Force D:\\tmp"
+    - "SET PATH=%PYTHON_HOME%;%PATH%"
+    - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
 
@@ -47,41 +49,12 @@ install:
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
     # Create new virtual environment with chosen python version and activate it
-    - "rm -rf venv"
-    - "dir C:\\Python36-x64"
-    - "virtualenv -p %PYTHON_EXE% venv"
+    - "python -m virtualenv venv"
     - "venv\\Scripts\\activate"
-    - "python -c \"import sys; print(sys.executable)\""
     - "python --version"
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
-
-
-    # To run Nodejs workflow integ tests
-    - "choco install nodejs-lts -y --force"
-    - "refreshenv"
-    # setup Ruby
-    - "choco install ruby --version 2.5.3.1 --force -y"
-    - "refreshenv"
-    - "ruby --version"
-    - "gem --version"
-    - "gem install bundler -v 2.0.2"
-    - "refreshenv"
-    - "bundler --version"
-    - "echo %PATH%"
-
-    # setup Java, Maven and Gradle
-    - "refreshenv"
-    - "choco install jdk8 -y --force"
-    - "refreshenv"
-    - "choco install maven -y --force"
-    - "refreshenv"
-    - "choco install gradle -y --force"
-    - "refreshenv"
-    - "java -version"
-    - "gradle -v"
-    - "mvn --version"
 
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
