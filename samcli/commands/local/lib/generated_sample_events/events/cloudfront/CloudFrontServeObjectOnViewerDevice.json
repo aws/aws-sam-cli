@@ -16,7 +16,7 @@
                 "value": "d123.cf.net"
               }
             ],
-            "cloudfront-is-dektop-viewer": [
+            "cloudfront-is-desktop-viewer": [
               {
                 "key": "CloudFront-Is-Desktop-Viewer",
                 "value": "true"
