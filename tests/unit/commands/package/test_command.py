@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, call
+from mock import Mock, patch
 
 from samcli.commands.package.command import do_cli
 
@@ -19,7 +19,7 @@ class TestPackageCliCommand(TestCase):
         self.profile = None
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.command.PackageCommandContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     def test_all_args(self, package_command_context, click_mock):
 
         context_mock = Mock()

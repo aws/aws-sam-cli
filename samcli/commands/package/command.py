@@ -7,8 +7,8 @@ import click
 
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
-from samcli.commands.package.package_context import PackageCommandContext
-from samcli.commands.exceptions import UserException
+
+
 from samcli.lib.telemetry.metrics import track_command
 
 
@@ -21,7 +21,7 @@ uploaded the artifacts.
 """
 
 
-@click.command("package", short_help=SHORT_HELP, context_settings={"ignore_unknown_options": True}, help=HELP_TEXT)
+@click.command("package", short_help=SHORT_HELP, help=HELP_TEXT)
 @click.option(
     "--template-file",
     default=_TEMPLATE_OPTION_DEFAULT_VALUE,
@@ -50,6 +50,7 @@ uploaded the artifacts.
 @click.option(
     "--output-template-file",
     required=False,
+    type=click.Path(),
     help="The path to the file where the command"
     "writes the output AWS CloudFormation template. If you don't specify a"
     "path, the command writes the template to the standard output.",
@@ -108,8 +109,10 @@ def do_cli(
     region,
     profile,
 ):
+    from samcli.commands.package.package_context import PackageContext
+    from samcli.commands.exceptions import UserException
 
-    with PackageCommandContext(
+    with PackageContext(
         template_file=template_file,
         s3_bucket=s3_bucket,
         s3_prefix=s3_prefix,

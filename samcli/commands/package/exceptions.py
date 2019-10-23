@@ -1,67 +1,62 @@
 """
-Exceptions that are raised by sam package and sam deploy
+Exceptions that are raised by sam package
 """
+from samcli.commands.exceptions import UserException
 
 
-class CloudFormationCommandError(Exception):
-    fmt = "An unspecified error occurred"
-
-    def __init__(self, **kwargs):
-        msg = self.fmt.format(**kwargs)
-        Exception.__init__(self, msg)
-        self.kwargs = kwargs
-
-
-class InvalidTemplatePathError(CloudFormationCommandError):
-    fmt = "Invalid template path {template_path}"
-
-
-class ChangeEmptyError(CloudFormationCommandError):
-    fmt = "No changes to deploy. Stack {stack_name} is up to date"
-
-
-class InvalidLocalPathError(CloudFormationCommandError):
-    fmt = (
-        "Parameter {property_name} of resource {resource_id} refers "
-        "to a file or folder that does not exist {local_path}"
-    )
+class InvalidLocalPathError(UserException):
+    def __init__(self, resource_id, property_name, local_path):
+        self.resource_id = resource_id
+        self.property_name = property_name
+        self.local_path = local_path
+        message_fmt = (
+            "Parameter {property_name} of resource {resource_id} refers "
+            "to a file or folder that does not exist {local_path}"
+        )
+        super(InvalidLocalPathError, self).__init__(
+            message=message_fmt.format(
+                resource_id=self.resource_id, property_name=self.property_name, local_path=self.local_path
+            )
+        )
 
 
-class InvalidTemplateUrlParameterError(CloudFormationCommandError):
-    fmt = (
-        "{property_name} parameter of {resource_id} resource is invalid. "
-        "It must be a S3 URL or path to CloudFormation "
-        "template file. Actual: {template_path}"
-    )
+class InvalidTemplateUrlParameterError(UserException):
+    def __init__(self, resource_id, property_name, template_path):
+        self.resource_id = resource_id
+        self.property_name = property_name
+        self.template_path = template_path
+
+        message_fmt = (
+            "{property_name} parameter of {resource_id} resource is invalid. "
+            "It must be a S3 URL or path to CloudFormation "
+            "template file. Actual: {template_path}"
+        )
+        super(InvalidTemplateUrlParameterError, self).__init__(
+            message=message_fmt.format(
+                property_name=self.property_name, resource_id=self.resource_id, template_path=self.template_path
+            )
+        )
 
 
-class ExportFailedError(CloudFormationCommandError):
-    fmt = (
-        "Unable to upload artifact {property_value} referenced "
-        "by {property_name} parameter of {resource_id} resource."
-        "\n"
-        "{ex}"
-    )
+class ExportFailedError(UserException):
+    def __init__(self, resource_id, property_name, property_value, ex):
+        self.resource_id = resource_id
+        self.property_name = property_name
+        self.property_value = property_value
+        self.ex = ex
 
+        message_fmt = (
+            "Unable to upload artifact {property_value} referenced "
+            "by {property_name} parameter of {resource_id} resource."
+            "\n"
+            "{ex}"
+        )
 
-class InvalidKeyValuePairArgumentError(CloudFormationCommandError):
-    fmt = "{value} value passed to --{argname} must be of format " "Key=Value"
-
-
-class DeployFailedError(CloudFormationCommandError):
-    fmt = (
-        "Failed to create/update the stack. Run the following command"
-        "\n"
-        "to fetch the list of events leading up to the failure"
-        "\n"
-        "aws cloudformation describe-stack-events --stack-name {stack_name}"
-    )
-
-
-class DeployBucketRequiredError(CloudFormationCommandError):
-    fmt = (
-        "Templates with a size greater than 51,200 bytes must be deployed "
-        "via an S3 Bucket. Please add the --s3-bucket parameter to your "
-        "command. The local template will be copied to that S3 bucket and "
-        "then deployed."
-    )
+        super(ExportFailedError, self).__init__(
+            message=message_fmt.format(
+                property_value=self.property_value,
+                property_name=self.property_name,
+                resource_id=self.resource_id,
+                ex=self.ex,
+            )
+        )

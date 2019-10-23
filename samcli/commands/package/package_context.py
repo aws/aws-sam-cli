@@ -17,22 +17,21 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 
 import os
 import logging
-import sys
 
 import json
 
 from samcli.commands.package.artifact_exporter import Template
 from samcli.yamlhelper import yaml_dump
-from samcli.commands.package import exceptions
 from samcli.commands.package.s3_uploader import S3Uploader
 
 import boto3
 from botocore.config import Config
+import click
 
 LOG = logging.getLogger(__name__)
 
 
-class PackageCommandContext(object):
+class PackageContext(object):
 
     MSG_PACKAGED_TEMPLATE_WRITTEN = (
         "Successfully packaged artifacts and wrote output template "
@@ -44,8 +43,6 @@ class PackageCommandContext(object):
         "--stack-name <YOUR STACK NAME>"
         "\n"
     )
-
-    NAME = "package"
 
     def __init__(
         self,
@@ -85,29 +82,19 @@ class PackageCommandContext(object):
             "s3", config=Config(signature_version="s3v4", region_name=self.region if self.region else None)
         )
 
-        template_path = self.template_file
-        if not os.path.isfile(template_path):
-            raise exceptions.InvalidTemplatePathError(template_path=template_path)
-
         self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
 
-        output_file = self.output_template_file
-        use_json = self.use_json
-        exported_str = self._export(template_path, use_json)
+        exported_str = self._export(self.template_file, self.use_json)
 
-        sys.stdout.write("\n")
-        self.write_output(output_file, exported_str)
+        self.write_output(self.output_template_file, exported_str)
 
-        if output_file:
+        if self.output_template_file:
             msg = self.MSG_PACKAGED_TEMPLATE_WRITTEN.format(
-                output_file_name=output_file, output_file_path=os.path.abspath(output_file)
+                output_file_name=self.output_template_file, output_file_path=os.path.abspath(self.output_template_file)
             )
-            sys.stdout.write(msg)
-
-        sys.stdout.flush()
-        return 0
+            click.echo(msg)
 
     def _export(self, template_path, use_json):
         template = Template(template_path, os.getcwd(), self.s3_uploader)
@@ -122,7 +109,7 @@ class PackageCommandContext(object):
 
     def write_output(self, output_file_name, data):
         if output_file_name is None:
-            sys.stdout.write(data)
+            click.echo(data)
             return
 
         with open(output_file_name, "w") as fp:

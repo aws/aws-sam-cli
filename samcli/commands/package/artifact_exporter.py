@@ -27,7 +27,23 @@ from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
 
+from samcli.commands._utils.resources import (
+    AWS_SERVERLESSREPO_APPLICATION,
+    AWS_SERVERLESS_FUNCTION,
+    AWS_SERVERLESS_API,
+    AWS_APPSYNC_GRAPHQLSCHEMA,
+    AWS_APPSYNC_RESOLVER,
+    AWS_APPSYNC_FUNCTIONCONFIGURATION,
+    AWS_LAMBDA_FUNCTION,
+    AWS_APIGATEWAY_RESTAPI,
+    AWS_ELASTICBEANSTALK_APPLICATIONVERSION,
+    AWS_CLOUDFORMATION_STACK,
+    AWS_SERVERLESS_APPLICATION,
+    AWS_LAMBDA_LAYERVERSION,
+    AWS_SERVERLESS_LAYERVERSION,
+    AWS_GLUE_JOB)
 
+from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands.package import exceptions
 from samcli.yamlhelper import yaml_dump, yaml_parse
 import jmespath
@@ -70,10 +86,7 @@ def parse_s3_url(url, bucket_name_property="Bucket", object_key_property="Key", 
 
     if isinstance(url, str) and url.startswith("s3://"):
 
-        # Python < 2.7.10 don't parse query parameters from URI with custom
-        # scheme such as s3://blah/blah. As a workaround, remove scheme
-        # altogether to trigger the parser "s3://foo/bar?v=1" =>"//foo/bar?v=1"
-        parsed = urlparse(url[3:])
+        parsed = urlparse(url)
         query = parse_qs(parsed.query)
 
         if parsed.netloc and parsed.path:
@@ -289,62 +302,62 @@ class ResourceWithS3UrlDict(Resource):
 
 
 class ServerlessFunctionResource(Resource):
-    RESOURCE_TYPE = "AWS::Serverless::Function"
-    PROPERTY_NAME = "CodeUri"
+    RESOURCE_TYPE = AWS_SERVERLESS_FUNCTION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     FORCE_ZIP = True
 
 
 class ServerlessApiResource(Resource):
-    RESOURCE_TYPE = "AWS::Serverless::Api"
-    PROPERTY_NAME = "DefinitionUri"
+    RESOURCE_TYPE = AWS_SERVERLESS_API
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     # Don't package the directory if DefinitionUri is omitted.
     # Necessary to support DefinitionBody
     PACKAGE_NULL_PROPERTY = False
 
 
 class GraphQLSchemaResource(Resource):
-    RESOURCE_TYPE = "AWS::AppSync::GraphQLSchema"
-    PROPERTY_NAME = "DefinitionS3Location"
+    RESOURCE_TYPE = AWS_APPSYNC_GRAPHQLSCHEMA
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     # Don't package the directory if DefinitionS3Location is omitted.
     # Necessary to support Definition
     PACKAGE_NULL_PROPERTY = False
 
 
 class AppSyncResolverRequestTemplateResource(Resource):
-    RESOURCE_TYPE = "AWS::AppSync::Resolver"
-    PROPERTY_NAME = "RequestMappingTemplateS3Location"
+    RESOURCE_TYPE = AWS_APPSYNC_RESOLVER
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     # Don't package the directory if RequestMappingTemplateS3Location is omitted.
     # Necessary to support RequestMappingTemplate
     PACKAGE_NULL_PROPERTY = False
 
 
 class AppSyncResolverResponseTemplateResource(Resource):
-    RESOURCE_TYPE = "AWS::AppSync::Resolver"
-    PROPERTY_NAME = "ResponseMappingTemplateS3Location"
+    RESOURCE_TYPE = AWS_APPSYNC_RESOLVER
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
     # Don't package the directory if ResponseMappingTemplateS3Location is omitted.
     # Necessary to support ResponseMappingTemplate
     PACKAGE_NULL_PROPERTY = False
 
 
 class AppSyncFunctionConfigurationRequestTemplateResource(Resource):
-    RESOURCE_TYPE = "AWS::AppSync::FunctionConfiguration"
-    PROPERTY_NAME = "RequestMappingTemplateS3Location"
+    RESOURCE_TYPE = AWS_APPSYNC_FUNCTIONCONFIGURATION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     # Don't package the directory if RequestMappingTemplateS3Location is omitted.
     # Necessary to support RequestMappingTemplate
     PACKAGE_NULL_PROPERTY = False
 
 
 class AppSyncFunctionConfigurationResponseTemplateResource(Resource):
-    RESOURCE_TYPE = "AWS::AppSync::FunctionConfiguration"
-    PROPERTY_NAME = "ResponseMappingTemplateS3Location"
+    RESOURCE_TYPE = AWS_APPSYNC_FUNCTIONCONFIGURATION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
     # Don't package the directory if ResponseMappingTemplateS3Location is omitted.
     # Necessary to support ResponseMappingTemplate
     PACKAGE_NULL_PROPERTY = False
 
 
 class LambdaFunctionResource(ResourceWithS3UrlDict):
-    RESOURCE_TYPE = "AWS::Lambda::Function"
-    PROPERTY_NAME = "Code"
+    RESOURCE_TYPE = AWS_LAMBDA_FUNCTION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     BUCKET_NAME_PROPERTY = "S3Bucket"
     OBJECT_KEY_PROPERTY = "S3Key"
     VERSION_PROPERTY = "S3ObjectVersion"
@@ -352,8 +365,8 @@ class LambdaFunctionResource(ResourceWithS3UrlDict):
 
 
 class ApiGatewayRestApiResource(ResourceWithS3UrlDict):
-    RESOURCE_TYPE = "AWS::ApiGateway::RestApi"
-    PROPERTY_NAME = "BodyS3Location"
+    RESOURCE_TYPE = AWS_APIGATEWAY_RESTAPI
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     PACKAGE_NULL_PROPERTY = False
     BUCKET_NAME_PROPERTY = "Bucket"
     OBJECT_KEY_PROPERTY = "Key"
@@ -361,16 +374,16 @@ class ApiGatewayRestApiResource(ResourceWithS3UrlDict):
 
 
 class ElasticBeanstalkApplicationVersion(ResourceWithS3UrlDict):
-    RESOURCE_TYPE = "AWS::ElasticBeanstalk::ApplicationVersion"
-    PROPERTY_NAME = "SourceBundle"
+    RESOURCE_TYPE = AWS_ELASTICBEANSTALK_APPLICATIONVERSION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     BUCKET_NAME_PROPERTY = "S3Bucket"
     OBJECT_KEY_PROPERTY = "S3Key"
     VERSION_PROPERTY = None
 
 
 class LambdaLayerVersionResource(ResourceWithS3UrlDict):
-    RESOURCE_TYPE = "AWS::Lambda::LayerVersion"
-    PROPERTY_NAME = "Content"
+    RESOURCE_TYPE = AWS_LAMBDA_LAYERVERSION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     BUCKET_NAME_PROPERTY = "S3Bucket"
     OBJECT_KEY_PROPERTY = "S3Key"
     VERSION_PROPERTY = "S3ObjectVersion"
@@ -378,20 +391,20 @@ class LambdaLayerVersionResource(ResourceWithS3UrlDict):
 
 
 class ServerlessLayerVersionResource(Resource):
-    RESOURCE_TYPE = "AWS::Serverless::LayerVersion"
-    PROPERTY_NAME = "ContentUri"
+    RESOURCE_TYPE = AWS_SERVERLESS_LAYERVERSION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     FORCE_ZIP = True
 
 
-class ServerlessRepoApplicationReadme(Resource):
-    RESOURCE_TYPE = "AWS::ServerlessRepo::Application"
-    PROPERTY_NAME = "ReadmeUrl"
+class ServerlessRepoApplicationLicense(Resource):
+    RESOURCE_TYPE = AWS_SERVERLESSREPO_APPLICATION
+    PROPERTY_NAME = METADATA_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     PACKAGE_NULL_PROPERTY = False
 
 
-class ServerlessRepoApplicationLicense(Resource):
-    RESOURCE_TYPE = "AWS::ServerlessRepo::Application"
-    PROPERTY_NAME = "LicenseUrl"
+class ServerlessRepoApplicationReadme(Resource):
+    RESOURCE_TYPE = AWS_SERVERLESSREPO_APPLICATION
+    PROPERTY_NAME = METADATA_WITH_LOCAL_PATHS[RESOURCE_TYPE][1]
     PACKAGE_NULL_PROPERTY = False
 
 
@@ -401,8 +414,8 @@ class CloudFormationStackResource(Resource):
     stack template via TemplateURL property.
     """
 
-    RESOURCE_TYPE = "AWS::CloudFormation::Stack"
-    PROPERTY_NAME = "TemplateURL"
+    RESOURCE_TYPE = AWS_CLOUDFORMATION_STACK
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
@@ -450,8 +463,8 @@ class ServerlessApplicationResource(CloudFormationStackResource):
     app template via Location property.
     """
 
-    RESOURCE_TYPE = "AWS::Serverless::Application"
-    PROPERTY_NAME = "Location"
+    RESOURCE_TYPE = AWS_SERVERLESS_APPLICATION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_APPLICATION][0]
 
 
 class GlueJobCommandScriptLocationResource(Resource):
@@ -459,9 +472,9 @@ class GlueJobCommandScriptLocationResource(Resource):
     Represents Glue::Job resource.
     """
 
-    RESOURCE_TYPE = "AWS::Glue::Job"
+    RESOURCE_TYPE = AWS_GLUE_JOB
     # Note the PROPERTY_NAME includes a '.' implying it's nested.
-    PROPERTY_NAME = "Command.ScriptLocation"
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_GLUE_JOB][0]
 
 
 RESOURCES_EXPORT_LIST = [
