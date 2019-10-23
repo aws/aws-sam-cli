@@ -1,5 +1,5 @@
 """
-Enums for Resources and thier Location Properties
+Enums for Resources and thier Location Properties, along with utlity functions
 """
 
 AWS_SERVERLESSREPO_APPLICATION = "AWS::ServerlessRepo::Application"
@@ -17,9 +17,7 @@ AWS_LAMBDA_LAYERVERSION = "AWS::Lambda::LayerVersion"
 AWS_SERVERLESS_LAYERVERSION = "AWS::Serverless::LayerVersion"
 AWS_GLUE_JOB = "AWS::Glue::Job"
 
-METADATA_WITH_LOCAL_PATHS = {
-    AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "ReadmeUrl"]
-}
+METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "ReadmeUrl"]}
 
 RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_FUNCTION: ["CodeUri"],
@@ -34,5 +32,11 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_APPLICATION: ["Location"],
     AWS_LAMBDA_LAYERVERSION: ["Content"],
     AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
-    AWS_GLUE_JOB: ["Command.ScriptLocation"]
+    AWS_GLUE_JOB: ["Command.ScriptLocation"],
 }
+
+
+def resources_generator():
+    for resource, locations in dict({**METADATA_WITH_LOCAL_PATHS, **RESOURCES_WITH_LOCAL_PATHS}).items():
+        for location in locations:
+            yield "\nResource : {resource} | Location : {location}\n".format(resource=resource, location=location)

@@ -41,7 +41,8 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_APPLICATION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_LAYERVERSION,
-    AWS_GLUE_JOB)
+    AWS_GLUE_JOB,
+)
 
 from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands.package import exceptions

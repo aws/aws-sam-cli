@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
+from samcli.commands._utils.resources import resources_generator
 
 
 from samcli.lib.telemetry.metrics import track_command
@@ -15,13 +16,30 @@ from samcli.lib.telemetry.metrics import track_command
 SHORT_HELP = "Package an AWS SAM application."
 
 
-HELP_TEXT = """The SAM package command creates a zip of your code and dependencies and uploads it to S3. The command
+def resources_and_properties_help_string():
+    resources_remain = True
+    gen = resources_generator()
+    help_string = ""
+    while resources_remain:
+        try:
+            help_string += next(gen)
+        except StopIteration:
+            resources_remain = False
+    return help_string
+
+
+HELP_TEXT = (
+    """The SAM package command creates a zip of your code and dependencies and uploads it to S3. The command
 returns a copy of your template, replacing references to local artifacts with the S3 location where the command
 uploaded the artifacts.
+
+The following resources and their property locations are supported.
 """
+    + resources_and_properties_help_string()
+)
 
 
-@click.command("package", short_help=SHORT_HELP, help=HELP_TEXT)
+@click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
 @click.option(
     "--template-file",
     default=_TEMPLATE_OPTION_DEFAULT_VALUE,
