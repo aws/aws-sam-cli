@@ -20,7 +20,7 @@ from samcli.local.docker.lambda_image import LambdaImage
 
 logging.basicConfig(level=logging.INFO)
 
-RUNTIME = "nodejs4.3"
+RUNTIME = "nodejs10.x"
 HANDLER = "index.handler"
 MEMORY = 1024
 
