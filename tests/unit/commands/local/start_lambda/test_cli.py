@@ -1,5 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
+from pathlib import Path
 
 from parameterized import parameterized
 
@@ -18,6 +19,7 @@ class TestCli(TestCase):
         self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
+        self.additional_volumes = [Path.home()]
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -58,6 +60,7 @@ class TestCli(TestCase):
             debug_ports=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            additional_volumes=self.additional_volumes,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
@@ -113,6 +116,7 @@ class TestCli(TestCase):
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            additional_volume=self.additional_volumes,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,

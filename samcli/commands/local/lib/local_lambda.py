@@ -32,6 +32,7 @@ class LocalLambdaRunner:
         aws_region=None,
         env_vars_values=None,
         debug_context=None,
+        additional_volumes=None,
     ):
         """
         Initializes the class
@@ -44,6 +45,7 @@ class LocalLambdaRunner:
         :param string aws_region: Optional. AWS Region to use.
         :param dict env_vars_values: Optional. Dictionary containing values of environment variables.
         :param DebugContext debug_context: Optional. Debug context for the function (includes port, args, and path).
+        :param tuple(Path) additional_volumes: Optional. Additional volumes to be mounted inside a container.
         """
 
         self.local_runtime = local_runtime
@@ -53,6 +55,7 @@ class LocalLambdaRunner:
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
+        self.additional_volumes = additional_volumes
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
         """
@@ -95,7 +98,14 @@ class LocalLambdaRunner:
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        self.local_runtime.invoke(
+            config,
+            event,
+            debug_context=self.debug_context,
+            additional_volumes=self.additional_volumes,
+            stdout=stdout,
+            stderr=stderr,
+        )
 
     def is_debugging(self):
         """

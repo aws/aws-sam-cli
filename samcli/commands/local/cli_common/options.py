@@ -102,6 +102,12 @@ def invoke_common_options(f):
                 "--debug-args", help="Additional arguments to be passed to the debugger.", envvar="DEBUGGER_ARGS"
             ),
             click.option(
+                "--additional-volume",
+                help="Additional volumes that will be mounted into the Lambda container.",
+                type=click.Path(exists=True, file_okay=False),
+                multiple=True,
+            ),
+            click.option(
                 "--docker-volume-basedir",
                 "-v",
                 envvar="SAM_DOCKER_VOLUME_BASEDIR",

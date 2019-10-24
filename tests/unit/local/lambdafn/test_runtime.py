@@ -40,6 +40,7 @@ class LambdaRuntime_invoke(TestCase):
         container = Mock()
         timer = Mock()
         debug_options = Mock()
+        additional_volumes = Mock()
         lambda_image_mock = Mock()
 
         self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
@@ -54,7 +55,14 @@ class LambdaRuntime_invoke(TestCase):
 
         LambdaContainerMock.return_value = container
 
-        self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
+        self.runtime.invoke(
+            self.func_config,
+            event,
+            debug_context=debug_options,
+            additional_volumes=additional_volumes,
+            stdout=stdout,
+            stderr=stderr,
+        )
 
         # Verify if Lambda Event data is set
         self.env_vars.add_lambda_event_body.assert_called_with(event)
@@ -75,6 +83,7 @@ class LambdaRuntime_invoke(TestCase):
             memory_mb=self.DEFAULT_MEMORY,
             env_vars=self.env_var_value,
             debug_options=debug_options,
+            additional_volumes=additional_volumes,
         )
 
         # Run the container and get results

@@ -23,6 +23,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         self.cwd = "cwd"
         self.env_vars_values = {}
         self.debug_context = None
+        self.additional_volumes = []
         self.aws_profile = "myprofile"
         self.aws_region = "region"
 
@@ -32,6 +33,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
             self.cwd,
             env_vars_values=self.env_vars_values,
             debug_context=self.debug_context,
+            additional_volumes=self.additional_volumes,
             aws_profile=self.aws_profile,
             aws_region=self.aws_region,
         )
@@ -442,7 +444,7 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr
+            invoke_config, event, debug_context=None, additional_volumes=None, stdout=stdout, stderr=stderr
         )
 
     def test_must_raise_if_function_not_found(self):

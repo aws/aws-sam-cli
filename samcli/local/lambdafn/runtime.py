@@ -39,7 +39,7 @@ class LambdaRuntime:
         self._container_manager = container_manager
         self._image_builder = image_builder
 
-    def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
+    def invoke(self, function_config, event, debug_context=None, additional_volumes=None, stdout=None, stderr=None):
         """
         Invoke the given Lambda function locally.
 
@@ -53,8 +53,9 @@ class LambdaRuntime:
         :param FunctionConfig function_config: Configuration of the function to invoke
         :param event: String input event passed to Lambda function
         :param DebugContext debug_context: Debugging context for the function (includes port, args, and path)
-        :param io.IOBase stdout: Optional. IO Stream to that receives stdout text from container.
-        :param io.IOBase stderr: Optional. IO Stream that receives stderr text from container
+        :param tuple(Path) additional_volumes: Additional volumes to be mounted in container
+        :param io.IOBase stdout: Optional. IO Stream to that receives stdout text from container
+        :param io.IOBase stderr: Optional. IO Stream that receives stderr text from container.
         :raises Keyboard
         """
         timer = None
@@ -75,6 +76,7 @@ class LambdaRuntime:
                 memory_mb=function_config.memory,
                 env_vars=env_vars,
                 debug_options=debug_context,
+                additional_volumes=additional_volumes,
             )
 
             try:

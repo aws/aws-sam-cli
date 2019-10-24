@@ -275,6 +275,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 env_vars_values=ANY,
                 aws_profile="profile",
                 aws_region="region",
+                additional_volumes=None,
             )
 
 

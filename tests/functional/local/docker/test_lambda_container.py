@@ -7,6 +7,7 @@ import random
 import shutil
 import docker
 
+from pathlib import Path
 from contextlib import contextmanager
 from unittest import TestCase
 
@@ -51,8 +52,9 @@ class TestLambdaContainer(TestCase):
         self.expected_docker_image = self.IMAGE_NAME
         self.handler = "index.handler"
         self.layers = []
-        self.debug_port = [_rand_port()]
-        self.debug_context = DebugContext(debug_ports=self.debug_port, debugger_path=None, debug_args=None)
+        self.debug_port = _rand_port()
+        self.debug_context = DebugContext(debug_ports=[self.debug_port], debugger_path=None, debug_args=None)
+        self.additional_volumes = []
         self.code_dir = nodejs_lambda(self.HELLO_WORLD_CODE)
         self.network_prefix = "sam_cli_test_network"
 
@@ -91,7 +93,13 @@ class TestLambdaContainer(TestCase):
         layer_downloader = LayerDownloader("./", "./")
         image_builder = LambdaImage(layer_downloader, False, False)
         container = LambdaContainer(
-            self.runtime, self.handler, self.code_dir, self.layers, image_builder, debug_options=self.debug_context
+            runtime=self.runtime,
+            handler=self.handler,
+            code_dir=self.code_dir,
+            layers=self.layers,
+            image_builder=image_builder,
+            debug_options=self.debug_context,
+            additional_volumes=self.additional_volumes,
         )
 
         with self._create(container):
@@ -103,6 +111,31 @@ class TestLambdaContainer(TestCase):
             self.assertIsNotNone(port_binding, "Container must be bound to a port on host machine")
             self.assertEqual(1, len(port_binding), "Only one port must be bound to the container")
             self.assertEqual(port_binding[0]["HostPort"], str(self.debug_port))
+
+    def test_volume_is_mounted_inside_container(self):
+
+        layer_downloader = LayerDownloader("./", "./")
+        image_builder = LambdaImage(layer_downloader, False, False)
+        container = LambdaContainer(
+            runtime=self.runtime,
+            handler=self.handler,
+            code_dir=self.code_dir,
+            layers=self.layers,
+            image_builder=image_builder,
+            debug_options=self.debug_context,
+            additional_volumes={Path.home()},
+        )
+
+        with self._create(container):
+            container.start()
+
+            # After container is started, query the container to make sure it is bound to the right volume
+            volumes_dict = self.docker_client.api.volumes()
+            self.assertIsNotNone(volumes_dict, "Container must have a volumes dictionary set")
+            volumes = volumes_dict["Volumes"]
+            self.assertIsNotNone(volumes, "Container must mount a directory")
+            self.assertEqual(1, len(volumes), "One volume must be mounted in the container")
+            self.assertEqual(volumes[0]["Path"], str(Path.home()))
 
     def test_container_is_attached_to_network(self):
         layer_downloader = LayerDownloader("./", "./")

@@ -2,6 +2,9 @@
 Unit test for Lambda container management
 """
 
+import os.path
+
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
@@ -37,14 +40,17 @@ class TestLambdaContainer_init(TestCase):
         self.env_var = {"var": "value"}
         self.memory_mb = 1024
         self.debug_options = DebugContext(debug_args="a=b c=d e=f", debug_ports=[1235])
+        self.additional_volumes = {Path.home()}
 
     @patch.object(LambdaContainer, "_get_image")
     @patch.object(LambdaContainer, "_get_exposed_ports")
     @patch.object(LambdaContainer, "_get_entry_point")
     @patch.object(LambdaContainer, "_get_additional_options")
     @patch.object(LambdaContainer, "_get_additional_volumes")
+    @patch.object(LambdaContainer, "_get_debugger_volume")
     def test_must_configure_container_properly(
         self,
+        get_debugger_volume_mock,
         get_additional_volumes_mock,
         get_additional_options_mock,
         get_entry_point_mock,
@@ -55,6 +61,7 @@ class TestLambdaContainer_init(TestCase):
         image = "image"
         ports = {"a": "b"}
         addtl_options = {}
+        debugger_volume = {}
         addtl_volumes = {}
         entry = [1, 2, 3]
         expected_cmd = [self.handler]
@@ -63,6 +70,7 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock.return_value = ports
         get_entry_point_mock.return_value = entry
         get_additional_options_mock.return_value = addtl_options
+        get_debugger_volume_mock.return_value = debugger_volume
         get_additional_volumes_mock.return_value = addtl_volumes
 
         image_builder_mock = Mock()
@@ -76,6 +84,7 @@ class TestLambdaContainer_init(TestCase):
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
+            additional_volumes=self.additional_volumes,
         )
 
         self.assertEqual(image, container._image)
@@ -91,7 +100,8 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_entry_point_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.debug_options)
+        get_debugger_volume_mock.assert_called_with(self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.additional_volumes)
 
     def test_must_fail_for_unsupported_runtime(self):
 
@@ -228,23 +238,62 @@ class TestLambdaContainer_get_additional_options(TestCase):
         self.assertEqual(result, expected)
 
 
-class TestLambdaContainer_get_additional_volumes(TestCase):
-    def test_no_additional_volumes_when_debug_options_is_none(self):
+class TestLambdaContainer_get_debugger_volume(TestCase):
+    def test_no_debugger_volume_when_debug_options_is_none(self):
         debug_options = DebugContext(debug_ports=None)
 
-        result = LambdaContainer._get_additional_volumes(debug_options)
+        result = LambdaContainer._get_debugger_volume(debug_options)
         self.assertIsNone(result)
 
-    def test_no_additional_volumes_when_debuggr_path_is_none(self):
+    def test_no_debugger_volume_when_debugger_path_is_none(self):
         debug_options = DebugContext(debug_ports=[1234])
 
-        result = LambdaContainer._get_additional_volumes(debug_options)
+        result = LambdaContainer._get_debugger_volume(debug_options)
         self.assertIsNone(result)
 
-    def test_additional_volumes_returns_volume_with_debugger_path_is_set(self):
+    def test_debugger_volume_returns_volume_with_debugger_path_is_set(self):
         expected = {"/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"}}
 
         debug_options = DebugContext(debug_ports=[1234], debugger_path="/somepath")
 
-        result = LambdaContainer._get_additional_volumes(debug_options)
+        result = LambdaContainer._get_debugger_volume(debug_options)
         self.assertEqual(result, expected)
+
+
+class TestLambdaContainer_get_additional_volumes(TestCase):
+    def test_no_additional_volumes_when_debug_options_is_none(self):
+        host_volumes = None
+        actual_volumes = LambdaContainer._get_additional_volumes(host_volumes=host_volumes)
+        self.assertIsNone(actual_volumes)
+
+    def test_no_additional_volumes_when_debug_options_is_empty(self):
+        host_volumes = []
+        actual_volumes = LambdaContainer._get_additional_volumes(host_volumes=host_volumes)
+        self.assertIsNone(actual_volumes)
+
+    def test_additional_volumes_single_volume(self):
+        host_path = Path.home()
+        host_volumes = [host_path]
+
+        actual_volumes = LambdaContainer._get_additional_volumes(host_volumes=host_volumes)
+        self.assertIsNotNone(actual_volumes)
+
+        expected_remote_path = str(os.path.join(LambdaContainer._VOLUME_MOUNT_PATH, host_path.parts[-1]))
+        expected_volume = {host_path: {"bind": expected_remote_path, "mode": ""}}
+        self.assertEqual(expected_volume, actual_volumes)
+
+    def test_additional_volumes_multiple_volumes(self):
+        host_home_path = Path.home()
+        host_cwd_path = Path.cwd()
+        host_volumes = [host_home_path, host_cwd_path]
+
+        actual_volumes = LambdaContainer._get_additional_volumes(host_volumes=host_volumes)
+        self.assertIsNotNone(actual_volumes)
+
+        expected_home_remote_path = str(os.path.join(LambdaContainer._VOLUME_MOUNT_PATH, host_home_path.parts[-1]))
+        expected_cwd_remote_path = str(os.path.join(LambdaContainer._VOLUME_MOUNT_PATH, host_cwd_path.parts[-1]))
+        expected_volumes = {
+            host_home_path: {"bind": expected_home_remote_path, "mode": ""},
+            host_cwd_path: {"bind": expected_cwd_remote_path, "mode": ""},
+        }
+        self.assertEqual(expected_volumes, actual_volumes)

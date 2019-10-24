@@ -48,6 +48,7 @@ class InvokeContext:
         debug_ports=None,
         debug_args=None,
         debugger_path=None,
+        additional_volumes=None,
         parameter_overrides=None,
         layer_cache_basedir=None,
         force_image_build=None,
@@ -70,8 +71,7 @@ class InvokeContext:
         docker_network str
             Docker network identifier
         log_file str
-            Path to a file to send container output to. If the file does not exist, it will be
-            created
+            Path to a file to send container output to. If the file does not exist, it will be created
         skip_pull_image bool
             Should we skip pulling the Docker container image?
         aws_profile str
@@ -82,6 +82,8 @@ class InvokeContext:
             Additional arguments passed to the debugger
         debugger_path str
             Path to the directory of the debugger to mount on Docker
+        additional_volumes tuple(Path)
+            Additional volumes to be mounted inside a container
         parameter_overrides dict
             Values for the template parameters
         layer_cache_basedir str
@@ -101,6 +103,7 @@ class InvokeContext:
         self._debug_ports = debug_ports
         self._debug_args = debug_args
         self._debugger_path = debugger_path
+        self._additional_volumes = additional_volumes
         self._parameter_overrides = parameter_overrides or {}
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
@@ -196,6 +199,7 @@ class InvokeContext:
             aws_region=self._aws_region,
             env_vars_values=self._env_vars_value,
             debug_context=self._debug_context,
+            additional_volumes=self._additional_volumes,
         )
 
     @property
