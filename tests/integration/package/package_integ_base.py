@@ -18,6 +18,8 @@ class PackageIntegBase(TestCase):
 
         # Create S3 bucket
         s3 = boto3.resource("s3")
+        # Use a pre-created KMS Key
+        cls.kms_key = os.environ.get("AWS_KMS_KEY")
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
         cls.s3_bucket.create()
 
@@ -36,7 +38,16 @@ class PackageIntegBase(TestCase):
 
         return command
 
-    def get_command_list(self, s3_bucket=None, template_file=None):
+    def get_command_list(
+        self,
+        s3_bucket=None,
+        template_file=None,
+        s3_prefix=None,
+        output_template_file=None,
+        use_json=False,
+        force_upload=False,
+        kms_key_id=None,
+    ):
         command_list = [self.base_command(), "package"]
 
         if s3_bucket:
@@ -44,5 +55,17 @@ class PackageIntegBase(TestCase):
 
         if template_file:
             command_list = command_list + ["--template-file", str(template_file)]
+
+        if s3_prefix:
+            command_list = command_list + ["--s3-prefix", str(s3_prefix)]
+
+        if output_template_file:
+            command_list = command_list + ["--output-template-file", str(output_template_file)]
+        if kms_key_id:
+            command_list = command_list + ["--kms-key-id", str(kms_key_id)]
+        if use_json:
+            command_list = command_list + ["--use-json"]
+        if force_upload:
+            command_list = command_list + ["--force-upload"]
 
         return command_list

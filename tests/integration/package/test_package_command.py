@@ -1,4 +1,5 @@
 from subprocess import Popen, PIPE
+import tempfile
 
 from unittest import skipIf
 
@@ -8,6 +9,9 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD and when the branch is not master.
 SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+
+
+# TODO(TheSriram): Need to incorporate all package-able resources. Currently we only look at AWS::Serverless::Function
 
 
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
@@ -26,4 +30,140 @@ class TestPackage(PackageIntegBase):
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertIn("CodeUri: s3://", process_stdout.decode("utf-8"))
+        self.assertIn(
+            "CodeUri: s3://{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8")
+        )
+
+    def test_package_without_required_args(self):
+        command_list = self.get_command_list()
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+        self.assertTrue(process.returncode, 1)
+
+    def test_package_with_prefix(self):
+        template_path = self.test_data_path.joinpath("template.yaml")
+        s3_prefix = "integ_test_prefix"
+        command_list = self.get_command_list(
+            s3_bucket=self.s3_bucket.name, template_file=template_path, s3_prefix=s3_prefix
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+
+        self.assertIn(
+            "CodeUri: s3://{bucket_name}/{s3_prefix}".format(bucket_name=self.s3_bucket.name, s3_prefix=s3_prefix),
+            process_stdout.decode("utf-8"),
+        )
+
+    def test_package_with_output_template_file(self):
+        template_path = self.test_data_path.joinpath("template.yaml")
+        s3_prefix = "integ_test_prefix"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+
+            command_list = self.get_command_list(
+                s3_bucket=self.s3_bucket.name,
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                output_template_file=output_template.name,
+            )
+
+            process = Popen(command_list, stdout=PIPE)
+            process.wait()
+            process_stdout = b"".join(process.stdout.readlines()).strip()
+
+            self.assertIn(
+                bytes(
+                    "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
+                        output_template_file=str(output_template.name)
+                    ).encode("utf-8")
+                ),
+                process_stdout,
+            )
+
+    def test_package_with_json(self):
+        template_path = self.test_data_path.joinpath("template.yaml")
+        s3_prefix = "integ_test_prefix"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+
+            command_list = self.get_command_list(
+                s3_bucket=self.s3_bucket.name,
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                output_template_file=output_template.name,
+                use_json=True,
+            )
+
+            process = Popen(command_list, stdout=PIPE)
+            process.wait()
+            process_stdout = b"".join(process.stdout.readlines()).strip()
+
+            self.assertIn(
+                bytes(
+                    "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
+                        output_template_file=str(output_template.name)
+                    ).encode("utf-8")
+                ),
+                process_stdout,
+            )
+
+    def test_package_with_force_upload(self):
+        template_path = self.test_data_path.joinpath("template.yaml")
+        s3_prefix = "integ_test_prefix"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+            # Upload twice and see the string to have packaged artifacts both times.
+            for _ in range(2):
+
+                command_list = self.get_command_list(
+                    s3_bucket=self.s3_bucket.name,
+                    template_file=template_path,
+                    s3_prefix=s3_prefix,
+                    output_template_file=output_template.name,
+                    force_upload=True,
+                )
+
+                process = Popen(command_list, stdout=PIPE)
+                process.wait()
+                process_stdout = b"".join(process.stdout.readlines()).strip()
+
+                self.assertIn(
+                    bytes(
+                        "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
+                            output_template_file=str(output_template.name)
+                        ).encode(
+                            "utf-8"
+                        )
+                    ),
+                    process_stdout,
+                )
+
+    def test_package_with_kms_key(self):
+        template_path = self.test_data_path.joinpath("template.yaml")
+        s3_prefix = "integ_test_prefix"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+            command_list = self.get_command_list(
+                s3_bucket=self.s3_bucket.name,
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                output_template_file=output_template.name,
+                force_upload=True,
+                kms_key_id=self.kms_key,
+            )
+
+            process = Popen(command_list, stdout=PIPE)
+            process.wait()
+            process_stdout = b"".join(process.stdout.readlines()).strip()
+
+            self.assertIn(
+                bytes(
+                    "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
+                        output_template_file=str(output_template.name)
+                    ).encode("utf-8")
+                ),
+                process_stdout,
+            )
