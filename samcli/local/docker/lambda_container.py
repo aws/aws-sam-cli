@@ -92,11 +92,11 @@ class LambdaContainer(Container):
     @staticmethod
     def _get_exposed_ports(debug_options):
         """
-        Return Docker container port binding information. If a debug port is given, then we will ask Docker to
-        bind to same port both inside and outside the container ie. Runtime process is started in debug mode with
+        Return Docker container port binding information. If a debug port tuple is given, then we will ask Docker to
+        bind every given port to same port both inside and outside the container ie. Runtime process is started in debug mode with
         at given port inside the container and exposed to the host machine at the same port
 
-        :param list(int) debug_port: Optional, List of integer values of debug ports
+        :param DebugContext debug_options: Debugging options for the function (includes debug port, args, and path)
         :return dict: Dictionary containing port binding information. None, if debug_port was not given
         """
         if not debug_options:
