@@ -19,7 +19,7 @@ class TestCli(TestCase):
     def setUp(self):
         self.template = "template"
         self.env_vars = "env-vars"
-        self.debug_port = 123
+        self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
         self.docker_volume_basedir = "basedir"
@@ -60,7 +60,7 @@ class TestCli(TestCase):
             docker_network=self.docker_network,
             log_file=self.log_file,
             skip_pull_image=self.skip_pull_image,
-            debug_port=self.debug_port,
+            debug_ports=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             parameter_overrides=self.parameter_overrides,
@@ -138,7 +138,7 @@ class TestCli(TestCase):
             static_dir=self.static_dir,
             template=self.template,
             env_vars=self.env_vars,
-            debug_port=self.debug_port,
+            debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             docker_volume_basedir=self.docker_volume_basedir,

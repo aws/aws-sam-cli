@@ -9,7 +9,7 @@ class TestDebugContext(TestCase):
     def test_init(self):
         context = DebugContext("port", "debuggerpath", "debug_args")
 
-        self.assertEqual(context.debug_port, "port")
+        self.assertEqual(context.debug_ports, "port")
         self.assertEqual(context.debugger_path, "debuggerpath")
         self.assertEqual(context.debug_args, "debug_args")
 
