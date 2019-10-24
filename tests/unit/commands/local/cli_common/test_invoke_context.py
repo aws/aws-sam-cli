@@ -635,7 +635,9 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_path_mock = Mock()
         pathlib_mock.return_value = pathlib_path_mock
 
-        debug_context = InvokeContext._get_debug_context(debug_ports=["1111", "1112"], debug_args=None, debugger_path="somepath")
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=["1111", "1112"], debug_args=None, debugger_path="somepath"
+        )
         self.assertEqual(["1111", "1112"], debug_context.debug_ports)
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
@@ -643,7 +645,9 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_path_mock = Mock()
         pathlib_mock.return_value = pathlib_path_mock
 
-        debug_context = InvokeContext._get_debug_context(debug_ports=[1111, 1112], debug_args=None, debugger_path="somepath")
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=[1111, 1112], debug_args=None, debugger_path="somepath"
+        )
         self.assertEqual([1111, 1112], debug_context.debug_ports)
 
     @patch("samcli.commands.local.cli_common.invoke_context.DebugContext")

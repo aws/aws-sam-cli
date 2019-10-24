@@ -23,7 +23,7 @@ class TestDebugContext(TestCase):
             ([1000, 1001], "debuggerpath", "debug_args"),
             ([1000], None, None),
             ([1000], None, "debug_args"),
-            ([1000], "debuggerpath", None)
+            ([1000], "debuggerpath", None),
         ]
     )
     def test_bool_truthy(self, port, debug_path, debug_ars):

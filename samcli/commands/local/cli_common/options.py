@@ -93,7 +93,7 @@ def invoke_common_options(f):
                 "port on localhost.",
                 envvar="SAM_DEBUG_PORT",
                 type=click.INT,
-                multiple=True
+                multiple=True,
             ),
             click.option(
                 "--debugger-path", help="Host path to a debugger that will be mounted into the Lambda container."
