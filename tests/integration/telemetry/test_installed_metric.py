@@ -1,6 +1,6 @@
 import platform
 
-from mock import ANY
+from unittest.mock import ANY
 from .integ_base import IntegBase, TelemetryServer, EXPECTED_TELEMETRY_PROMPT
 from samcli import __version__ as SAM_CLI_VERSION
 

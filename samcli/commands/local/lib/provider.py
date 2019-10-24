@@ -5,8 +5,6 @@ source
 import hashlib
 from collections import namedtuple
 
-import six
-
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 # Named Tuple to representing the properties of a Lambda Function
@@ -37,7 +35,7 @@ Function = namedtuple(
 )
 
 
-class LayerVersion(object):
+class LayerVersion:
     """
     Represents the LayerVersion Resource for AWS Lambda
     """
@@ -54,7 +52,7 @@ class LayerVersion(object):
         codeuri str
             CodeURI of the layer. This should contain the path to the layer code
         """
-        if not isinstance(arn, six.string_types):
+        if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
         self._arn = arn
@@ -171,7 +169,7 @@ class LayerVersion(object):
         return False
 
 
-class FunctionProvider(object):
+class FunctionProvider:
     """
     Abstract base class of the function provider.
     """
@@ -194,7 +192,7 @@ class FunctionProvider(object):
         raise NotImplementedError("not implemented")
 
 
-class Api(object):
+class Api:
     def __init__(self, routes=None):
         if routes is None:
             routes = []
@@ -259,7 +257,7 @@ class Cors(_CorsTuple):
         return {h_key: h_value for h_key, h_value in headers.items() if h_value is not None}
 
 
-class AbstractApiProvider(object):
+class AbstractApiProvider:
     """
     Abstract base class to return APIs and the functions they route to
     """

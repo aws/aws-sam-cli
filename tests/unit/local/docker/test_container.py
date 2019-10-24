@@ -3,7 +3,7 @@ Unit test for Container class
 """
 from docker.errors import NotFound, APIError
 from unittest import TestCase
-from mock import Mock, call, patch
+from unittest.mock import Mock, call, patch
 
 from samcli.local.docker.container import Container
 

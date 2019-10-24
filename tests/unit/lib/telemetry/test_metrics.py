@@ -2,7 +2,7 @@ import platform
 import time
 
 from unittest import TestCase
-from mock import patch, Mock, ANY, call
+from unittest.mock import patch, Mock, ANY, call
 
 from samcli.lib.telemetry.metrics import send_installed_metric, track_command
 from samcli.commands.exceptions import UserException

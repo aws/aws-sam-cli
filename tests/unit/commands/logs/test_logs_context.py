@@ -2,7 +2,7 @@ import botocore.session
 from botocore.stub import Stubber
 
 from unittest import TestCase
-from mock import Mock, patch, ANY
+from unittest.mock import Mock, patch, ANY
 
 from samcli.commands.logs.logs_context import LogsCommandContext
 from samcli.commands.exceptions import UserException

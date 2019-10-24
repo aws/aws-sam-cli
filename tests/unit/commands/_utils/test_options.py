@@ -5,7 +5,7 @@ Test the common CLI options
 import os
 
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
 
 

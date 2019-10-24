@@ -18,7 +18,7 @@ integ-test:
 func-test:
 	# Verify function test coverage only for `samcli.local` package
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
-	pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional
+	pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py
 
 smoke-test:
 	# Smoke tests run in parallel

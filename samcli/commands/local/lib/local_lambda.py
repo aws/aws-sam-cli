@@ -15,7 +15,7 @@ from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 LOG = logging.getLogger(__name__)
 
 
-class LocalLambdaRunner(object):
+class LocalLambdaRunner:
     """
     Runs Lambda functions locally. This class is a wrapper around the `samcli.local` library which takes care
     of actually running the function on a Docker container.
@@ -87,7 +87,7 @@ class LocalLambdaRunner(object):
                 function_name, all_functions
             )
             LOG.info(available_function_message)
-            raise FunctionNotFound("Unable to find a Function with name '%s'", function_name)
+            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_name))
 
         LOG.debug("Found one Lambda function with name '%s'", function_name)
 

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from samcli.commands.init import do_cli as init_cli
 from samcli.local.init.exceptions import GenerateProjectFailedError

@@ -3,6 +3,7 @@ Downloads Layers locally
 """
 
 import logging
+from pathlib import Path
 
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
@@ -11,16 +12,11 @@ from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.local.lambdafn.zip import unzip_from_uri
 from samcli.commands.local.cli_common.user_exceptions import CredentialsRequired, ResourceNotFound
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
-
 
 LOG = logging.getLogger(__name__)
 
 
-class LayerDownloader(object):
+class LayerDownloader:
     def __init__(self, layer_cache, cwd, lambda_client=None):
         """
 
@@ -98,8 +94,7 @@ class LayerDownloader(object):
             layer.codeuri = resolve_code_path(self.cwd, layer.codeuri)
             return layer
 
-        # disabling no-member due to https://github.com/PyCQA/pylint/issues/1660
-        layer_path = Path(self.layer_cache).resolve().joinpath(layer.name)  # pylint: disable=no-member
+        layer_path = Path(self.layer_cache).resolve().joinpath(layer.name)
         is_layer_downloaded = self._is_layer_cached(layer_path)
         layer.codeuri = str(layer_path)
 

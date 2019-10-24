@@ -20,7 +20,7 @@ from samcli.local.docker.lambda_image import LambdaImage
 
 logging.basicConfig(level=logging.INFO)
 
-RUNTIME = "nodejs4.3"
+RUNTIME = "nodejs10.x"
 HANDLER = "index.handler"
 MEMORY = 1024
 
@@ -95,7 +95,7 @@ class TestLambdaRuntime(TestCase):
 
         # Make sure that the wall clock duration is around the ballpark of timeout value
         wall_clock_func_duration = end - start
-        print ("Function completed in {} seconds".format(wall_clock_func_duration))
+        print("Function completed in {} seconds".format(wall_clock_func_duration))
         # The function should *not* preemptively stop
         self.assertGreater(wall_clock_func_duration, timeout - 1)
         # The function should not run for much longer than timeout.
@@ -214,7 +214,7 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
     def _invoke_sleep(self, timeout, sleep_duration, check_stdout, exceptions=None):
 
         name = "sleepfunction_timeout_{}_sleep_{}".format(timeout, sleep_duration)
-        print ("Invoking function " + name)
+        print("Invoking function " + name)
         try:
             stdout_stream = io.BytesIO()
             stdout_stream_writer = StreamWriter(stdout_stream)
@@ -276,10 +276,10 @@ class TestLambdaRuntime_MultipleInvokes(TestCase):
             t.join()
 
         for e in exceptions:
-            print ("-------------")
-            print ("ERROR in function " + e["name"])
-            print (e["error"])
-            print ("-------------")
+            print("-------------")
+            print("ERROR in function " + e["name"])
+            print(e["error"])
+            print("-------------")
 
         if len(exceptions) > 0:
             raise AssertionError("Test failed. See print outputs above for details on the thread that failed")

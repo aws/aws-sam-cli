@@ -3,7 +3,7 @@ Tests Deploy CLI command
 """
 
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from samcli.commands.deploy import do_cli as deploy_cli
 

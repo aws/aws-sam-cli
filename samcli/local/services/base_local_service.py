@@ -9,7 +9,7 @@ from flask import Response
 LOG = logging.getLogger(__name__)
 
 
-class BaseLocalService(object):
+class BaseLocalService:
     def __init__(self, is_debugging, port, host):
         """
         Creates a BaseLocalService class
@@ -78,7 +78,7 @@ class BaseLocalService(object):
         return response
 
 
-class LambdaOutputParser(object):
+class LambdaOutputParser:
     @staticmethod
     def get_lambda_output(stdout_stream):
         """

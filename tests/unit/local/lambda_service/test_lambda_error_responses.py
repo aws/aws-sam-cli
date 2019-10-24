@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from samcli.local.lambda_service.lambda_error_responses import LambdaErrorResponses
 

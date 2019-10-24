@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, call
+from unittest.mock import Mock, patch, call
 
 from samcli.lib.utils.tar import create_tarball
 

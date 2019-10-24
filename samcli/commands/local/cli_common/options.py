@@ -1,14 +1,11 @@
 """
 Common CLI options for invoke command
 """
+from pathlib import Path
 
 import click
-from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
 
 
 def get_application_dir():

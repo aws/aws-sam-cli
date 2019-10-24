@@ -1,10 +1,6 @@
 import os
 from unittest import TestCase
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class InvokeIntegBase(TestCase):

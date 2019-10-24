@@ -3,7 +3,7 @@ Tests Package CLI command
 """
 
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from samcli.commands.package import do_cli as package_cli
 

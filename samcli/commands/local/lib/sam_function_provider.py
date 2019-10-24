@@ -3,7 +3,6 @@ Class that provides functions from a given SAM template
 """
 
 import logging
-import six
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from .exceptions import InvalidLayerReference
@@ -156,7 +155,7 @@ class SamFunctionProvider(FunctionProvider):
         """
         codeuri = resource_properties.get(code_property_key, SamFunctionProvider._DEFAULT_CODEURI)
         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
-        if isinstance(codeuri, dict) or (isinstance(codeuri, six.string_types) and codeuri.startswith("s3://")):
+        if isinstance(codeuri, dict) or (isinstance(codeuri, str) and codeuri.startswith("s3://")):
             codeuri = SamFunctionProvider._DEFAULT_CODEURI
             LOG.warning(
                 "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
@@ -253,7 +252,7 @@ class SamFunctionProvider(FunctionProvider):
                 )  # noqa: E501
 
             # If the layer is a string, assume it is the arn
-            if isinstance(layer, six.string_types):
+            if isinstance(layer, str):
                 layers.append(LayerVersion(layer, None))
                 continue
 
