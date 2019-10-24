@@ -37,6 +37,10 @@ RESOURCES_WITH_LOCAL_PATHS = {
 
 
 def resources_generator():
+    """
+    Generator to yield set of resources and thier locations that are supported for package operations
+    :return:
+    """
     for resource, locations in dict({**METADATA_WITH_LOCAL_PATHS, **RESOURCES_WITH_LOCAL_PATHS}).items():
         for location in locations:
             yield "\nResource : {resource} | Location : {location}\n".format(resource=resource, location=location)

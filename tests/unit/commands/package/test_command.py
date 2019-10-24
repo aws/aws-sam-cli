@@ -14,7 +14,7 @@ class TestPackageCliCommand(TestCase):
         self.output_template_file = "output-template-file"
         self.use_json = True
         self.force_upload = False
-        self.metadata = {}
+        self.metadata = {"abc": "def"}
         self.region = None
         self.profile = None
 

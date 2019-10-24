@@ -6,7 +6,11 @@ from functools import partial
 import click
 
 from samcli.cli.main import pass_context, common_options, aws_creds_options
-from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
+from samcli.commands._utils.options import (
+    get_or_default_template_file_name,
+    _TEMPLATE_OPTION_DEFAULT_VALUE,
+    metadata_override_option,
+)
 from samcli.commands._utils.resources import resources_generator
 
 
@@ -17,6 +21,10 @@ SHORT_HELP = "Package an AWS SAM application."
 
 
 def resources_and_properties_help_string():
+    """
+    Total list of resources and their property locations that are supported for `sam package`
+    :return: str
+    """
     return "".join(resource_property_string for resource_property_string in resources_generator())
 
 
@@ -80,11 +88,7 @@ The following resources and their property locations are supported.
     "in the S3 bucket. Specify this flag to upload artifacts even if they"
     "match existing artifacts in the S3 bucket.",
 )
-@click.option(
-    "--metadata",
-    required=False,
-    help="A map of metadata to attach to ALL the artifacts that" "are referenced in your template",
-)
+@metadata_override_option
 @common_options
 @aws_creds_options
 @pass_context

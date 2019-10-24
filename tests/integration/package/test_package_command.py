@@ -264,3 +264,47 @@ class TestPackage(PackageIntegBase):
                 ),
                 process_stdout,
             )
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+        ]
+    )
+    def test_package_with_metadata(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        s3_prefix = "integ_test_prefix"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+            command_list = self.get_command_list(
+                s3_bucket=self.s3_bucket.name,
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                output_template_file=output_template.name,
+                force_upload=True,
+                metadata={"integ": "yes"},
+            )
+
+            process = Popen(command_list, stdout=PIPE)
+            process.wait()
+            process_stdout = b"".join(process.stdout.readlines()).strip()
+
+            self.assertIn(
+                bytes(
+                    "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
+                        output_template_file=str(output_template.name)
+                    ).encode("utf-8")
+                ),
+                process_stdout,
+            )

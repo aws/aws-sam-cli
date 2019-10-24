@@ -1,5 +1,6 @@
 import os
 import uuid
+import json
 import tempfile
 import time
 from pathlib import Path
@@ -47,6 +48,7 @@ class PackageIntegBase(TestCase):
         use_json=False,
         force_upload=False,
         kms_key_id=None,
+        metadata=None,
     ):
         command_list = [self.base_command(), "package"]
 
@@ -67,5 +69,7 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--use-json"]
         if force_upload:
             command_list = command_list + ["--force-upload"]
+        if metadata:
+            command_list = command_list + ["--metadata", json.dumps(metadata)]
 
         return command_list
