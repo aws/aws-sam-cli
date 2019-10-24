@@ -863,13 +863,10 @@
         "account-id": {
           "default": "123456789012"
         },
-        "bucket": {
-          "default": "sagemakerexample"
+        "source-ref": {
+          "default": "s3://sagemakerexample/object_to_annotate.jpg"
         },
-	"data_object_key": {
-          "default": "object_to_annotate.jpg"
-	},
-	"labeling_job_name": {
+	"labeling-job-name": {
           "default": "example-job"
 	}
       }
@@ -887,19 +884,19 @@
         "account-id": {
           "default": "123456789012"
         },
-	"labeling_job_name": {
+	"labeling-job-name": {
           "default": "example-job"
 	},
-	"label_attribute_name": {
+	"label-attribute-name": {
           "default": "example-attribute"
 	},
-        "bucket": {
-          "default": "sagemakerexample"
+        "s3-output-path": {
+          "default": "s3://sagemakerexample/output"
         },
-	"execution_role": {
+	"execution-role": {
           "default": "sagemaker-role"
 	},
-	"iteration_object_timestamp": {
+	"iteration-object-timestamp": {
           "default": "iteration-1/0/2019-09-06_18:35:03"
 	}
       }
