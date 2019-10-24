@@ -2,6 +2,7 @@ from subprocess import Popen, PIPE
 import tempfile
 
 from unittest import skipIf
+from parameterized import parameterized
 
 from .package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
@@ -9,9 +10,6 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD and when the branch is not master.
 SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
-
-
-# TODO(TheSriram): Need to incorporate all package-able resources. Currently we only look at AWS::Serverless::Function
 
 
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
@@ -22,17 +20,32 @@ class TestPackage(PackageIntegBase):
     def tearDown(self):
         super(TestPackage, self).tearDown()
 
-    def test_package_barebones(self):
-        template_path = self.test_data_path.joinpath("template.yaml")
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+        ]
+    )
+    def test_package_barebones(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
         command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template_file=template_path)
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertIn(
-            "CodeUri: s3://{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8")
-        )
+        self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
 
     def test_package_without_required_args(self):
         command_list = self.get_command_list()
@@ -41,8 +54,25 @@ class TestPackage(PackageIntegBase):
         process.wait()
         self.assertTrue(process.returncode, 1)
 
-    def test_package_with_prefix(self):
-        template_path = self.test_data_path.joinpath("template.yaml")
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+        ]
+    )
+    def test_package_with_prefix(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
         s3_prefix = "integ_test_prefix"
         command_list = self.get_command_list(
             s3_bucket=self.s3_bucket.name, template_file=template_path, s3_prefix=s3_prefix
@@ -52,13 +82,29 @@ class TestPackage(PackageIntegBase):
         process.wait()
         process_stdout = b"".join(process.stdout.readlines()).strip()
 
-        self.assertIn(
-            "CodeUri: s3://{bucket_name}/{s3_prefix}".format(bucket_name=self.s3_bucket.name, s3_prefix=s3_prefix),
-            process_stdout.decode("utf-8"),
-        )
+        self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
 
-    def test_package_with_output_template_file(self):
-        template_path = self.test_data_path.joinpath("template.yaml")
+        self.assertIn("{s3_prefix}".format(s3_prefix=s3_prefix), process_stdout.decode("utf-8"))
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+        ]
+    )
+    def test_package_with_output_template_file(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -83,8 +129,25 @@ class TestPackage(PackageIntegBase):
                 process_stdout,
             )
 
-    def test_package_with_json(self):
-        template_path = self.test_data_path.joinpath("template.yaml")
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+        ]
+    )
+    def test_package_with_json(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -110,8 +173,25 @@ class TestPackage(PackageIntegBase):
                 process_stdout,
             )
 
-    def test_package_with_force_upload(self):
-        template_path = self.test_data_path.joinpath("template.yaml")
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+        ]
+    )
+    def test_package_with_force_upload(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:
@@ -141,8 +221,25 @@ class TestPackage(PackageIntegBase):
                     process_stdout,
                 )
 
-    def test_package_with_kms_key(self):
-        template_path = self.test_data_path.joinpath("template.yaml")
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+        ]
+    )
+    def test_package_with_kms_key(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
         s3_prefix = "integ_test_prefix"
 
         with tempfile.NamedTemporaryFile(delete=False) as output_template:

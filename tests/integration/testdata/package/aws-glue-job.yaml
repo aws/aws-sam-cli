@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple Glue Job
+
+Resources:
+  MyJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation: "."
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-enable"
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: cf-job1
+      Role: !Ref MyJobRole
