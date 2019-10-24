@@ -26,6 +26,7 @@ import uuid
 from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
+import jmespath
 
 from samcli.commands._utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
@@ -47,7 +48,6 @@ from samcli.commands._utils.resources import (
 from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands.package import exceptions
 from samcli.yamlhelper import yaml_dump, yaml_parse
-import jmespath
 
 
 LOG = logging.getLogger(__name__)
@@ -151,7 +151,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
         return zip_and_upload(local_path, uploader)
 
     # Path could be pointing to a file. Upload the file
-    elif is_local_file(local_path):
+    if is_local_file(local_path):
         return uploader.upload_with_dedup(local_path)
 
     raise exceptions.InvalidLocalPathError(resource_id=resource_id, property_name=property_name, local_path=local_path)
@@ -217,7 +217,7 @@ def copy_to_temp_dir(filepath):
     return tmp_dir
 
 
-class Resource(object):
+class Resource:
     """
     Base class representing a CloudFormation resource that can be exported
     """
@@ -523,7 +523,7 @@ def include_transform_export_handler(template_dict, uploader, parent_dir):
 GLOBAL_EXPORT_DICT = {"Fn::Transform": include_transform_export_handler}
 
 
-class Template(object):
+class Template:
     """
     Class to export a CloudFormation template
     """

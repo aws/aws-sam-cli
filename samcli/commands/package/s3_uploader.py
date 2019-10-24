@@ -40,7 +40,7 @@ class NoSuchBucketError(Exception):
     fmt = "S3 Bucket does not exist. " "Execute the command to create a new bucket" "\n" "aws s3 mb s3://{bucket_name}"
 
 
-class S3Uploader(object):
+class S3Uploader:
     """
     Class to upload objects to S3 bucket that use versioning. If bucket
     does not already use versioning, this class will turn on versioning.
@@ -187,7 +187,7 @@ class S3Uploader(object):
         return result
 
 
-class ProgressPercentage(object):
+class ProgressPercentage:
     # This class was copied directly from S3Transfer docs
 
     def __init__(self, filename, remote_path):

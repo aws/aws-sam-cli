@@ -1,4 +1,3 @@
-import mock
 import tempfile
 import os
 import string
@@ -7,7 +6,8 @@ import zipfile
 import unittest
 
 from contextlib import contextmanager, closing
-from mock import patch, Mock
+from unittest import mock
+from unittest.mock import patch, Mock
 from tests.testing_utils import FileCreator
 from samcli.commands.package import exceptions
 from samcli.commands.package.artifact_exporter import (

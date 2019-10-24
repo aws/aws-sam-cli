@@ -17,21 +17,20 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 
 import os
 import logging
-
 import json
-
-from samcli.commands.package.artifact_exporter import Template
-from samcli.yamlhelper import yaml_dump
-from samcli.commands.package.s3_uploader import S3Uploader
 
 import boto3
 from botocore.config import Config
 import click
 
+from samcli.commands.package.artifact_exporter import Template
+from samcli.yamlhelper import yaml_dump
+from samcli.commands.package.s3_uploader import S3Uploader
+
 LOG = logging.getLogger(__name__)
 
 
-class PackageContext(object):
+class PackageContext:
 
     MSG_PACKAGED_TEMPLATE_WRITTEN = (
         "Successfully packaged artifacts and wrote output template "

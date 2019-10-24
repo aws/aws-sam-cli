@@ -17,15 +17,7 @@ SHORT_HELP = "Package an AWS SAM application."
 
 
 def resources_and_properties_help_string():
-    resources_remain = True
-    gen = resources_generator()
-    help_string = ""
-    while resources_remain:
-        try:
-            help_string += next(gen)
-        except StopIteration:
-            resources_remain = False
-    return help_string
+    return "".join(resource_property_string for resource_property_string in resources_generator())
 
 
 HELP_TEXT = (

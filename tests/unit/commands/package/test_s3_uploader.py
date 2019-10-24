@@ -1,7 +1,7 @@
 import os
 
 from unittest import TestCase
-from mock import MagicMock
+from unittest.mock import MagicMock
 import tempfile
 
 from pathlib import Path
