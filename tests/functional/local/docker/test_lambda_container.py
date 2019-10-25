@@ -51,8 +51,8 @@ class TestLambdaContainer(TestCase):
         self.expected_docker_image = self.IMAGE_NAME
         self.handler = "index.handler"
         self.layers = []
-        self.debug_port = _rand_port()
-        self.debug_context = DebugContext(debug_port=self.debug_port, debugger_path=None, debug_args=None)
+        self.debug_port = [_rand_port()]
+        self.debug_context = DebugContext(debug_ports=self.debug_port, debugger_path=None, debug_args=None)
         self.code_dir = nodejs_lambda(self.HELLO_WORLD_CODE)
         self.network_prefix = "sam_cli_test_network"
 

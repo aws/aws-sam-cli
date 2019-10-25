@@ -40,9 +40,10 @@ class LocalLambdaRunner:
         :param samcli.commands.local.lib.provider.FunctionProvider function_provider: Provider that can return a
             Lambda function
         :param string cwd: Current working directory. We will resolve all function CodeURIs relative to this directory.
-        :param dict env_vars_values: Optional. Dictionary containing values of environment variables
-        :param integer debug_port: Optional. Port to bind the debugger to
-        :param string debug_args: Optional. Additional arguments passed to the debugger
+        :param string aws_profile: Optional. Name of the profile to fetch AWS credentials from.
+        :param string aws_region: Optional. AWS Region to use.
+        :param dict env_vars_values: Optional. Dictionary containing values of environment variables.
+        :param DebugContext debug_context: Optional. Debug context for the function (includes port, args, and path).
         """
 
         self.local_runtime = local_runtime

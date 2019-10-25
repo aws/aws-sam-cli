@@ -92,6 +92,8 @@ def invoke_common_options(f):
                 help="When specified, Lambda function container will start in debug mode and will expose this "
                 "port on localhost.",
                 envvar="SAM_DEBUG_PORT",
+                type=click.INT,
+                multiple=True,
             ),
             click.option(
                 "--debugger-path", help="Host path to a debugger that will be mounted into the Lambda container."
