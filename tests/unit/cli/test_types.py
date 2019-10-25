@@ -84,10 +84,16 @@ class TestCfnMetadataType(TestCase):
         [
             # Just a string
             ("some string"),
-            # Unfinished map with just a key
+            # Unfinished dict with just a key
             ("{'a'}"),
-            # Unfinished map with just a key and :
+            # Unfinished dict just a key and :
             ("{'a'}:"),
+            # Dict with nested dict:
+            ("{'a':{'b':'c'}}"),
+            # Dict with list value:
+            ("{'a':['b':'c']}"),
+            # Just a list:
+            ("['b':'c']"),
             # Non-string
             ("{1:1}"),
             # Wrong notation

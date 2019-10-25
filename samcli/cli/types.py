@@ -79,23 +79,31 @@ class CfnMetadataType(click.ParamType):
 
     _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
 
+    name = ""
+
     def convert(self, value, param, ctx):
         result = {}
+        fail = False
         if not value:
             return result
         try:
             result = json.loads(value)
+            for val in result.values():
+                if isinstance(val, (dict, list)):
+                    # Need a non nested dictionary or a dictionary with non list values.
+                    fail = True
         except JSONDecodeError:
             groups = re.findall(self._pattern, value)
 
             if not groups:
-                return self.fail(
-                    "{} is not in valid format. It must look something like '{}'".format(value, self._EXAMPLE),
-                    param,
-                    ctx,
-                )
+                fail = True
             for group in groups:
                 key, value = group
                 result[key] = value
+
+        if fail:
+            return self.fail(
+                "{} is not in valid format. It must look something like '{}'".format(value, self._EXAMPLE), param, ctx
+            )
 
         return result
