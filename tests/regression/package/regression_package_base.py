@@ -9,17 +9,15 @@ from unittest import TestCase
 import boto3
 
 
-class PackageIntegBase(TestCase):
+class PackageRegressionBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
         cls.bucket_name = str(uuid.uuid4())
-        cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "package")
+        cls.test_data_path = Path(__file__).resolve().parents[2].joinpath("integration", "testdata", "package")
 
         # Create S3 bucket
         s3 = boto3.resource("s3")
-        # Use a pre-created KMS Key
-        cls.kms_key = os.environ.get("AWS_KMS_KEY")
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
         cls.s3_bucket.create()
 
@@ -31,15 +29,18 @@ class PackageIntegBase(TestCase):
         cls.s3_bucket.objects.all().delete()
         cls.s3_bucket.delete()
 
-    def base_command(self):
-        command = "sam"
-        if os.getenv("SAM_CLI_DEV"):
-            command = "samdev"
+    def base_command(self, base):
+        command = [base]
+        if os.getenv("SAM_CLI_DEV") and base == "sam":
+            command = ["samdev"]
+        elif base == "aws":
+            command = [base, "cloudformation"]
 
         return command
 
     def get_command_list(
         self,
+        base="sam",
         s3_bucket=None,
         template_file=None,
         s3_prefix=None,
@@ -49,7 +50,9 @@ class PackageIntegBase(TestCase):
         kms_key_id=None,
         metadata=None,
     ):
-        command_list = [self.base_command(), "package"]
+        command_list = self.base_command(base=base)
+
+        command_list = command_list + ["package"]
 
         if s3_bucket:
             command_list = command_list + ["--s3-bucket", str(s3_bucket)]

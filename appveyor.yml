@@ -42,6 +42,8 @@ for:
       - "python -m virtualenv venv"
       - "venv\\Scripts\\activate"
       - "python --version"
+      # Install AWS CLI
+      - "python -m pip install awscli"
 
     build_script:
       # Activate virtualenv again on windows
@@ -97,6 +99,7 @@ for:
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"
+      - sh: "pytest -vv tests/regression"
       - sh: "/tmp/black --check setup.py tests samcli scripts"
       - sh: "python scripts/check-isolated-needs-update.py"
 

@@ -54,6 +54,8 @@ install:
     - "venv\\Scripts\\activate"
     - "python --version"
 
+    # Install AWS CLI
+    - "pip install awscli"
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 
@@ -68,6 +70,7 @@ test_script:
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
+    - "pytest -vv tests/regression"
 
 # Uncomment for RDP
 # on_finish:
