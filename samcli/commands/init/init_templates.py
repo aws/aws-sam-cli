@@ -134,6 +134,7 @@ class InitTemplates:
                 return name
             except OSError as ex:
                 LOG.debug("Unable to find executable %s", name, exc_info=ex)
+        raise OSError("Cannot find git, was looking at executables: {}".format(options))
 
     def _should_clone_repo(self, expected_path):
         path = Path(expected_path)
