@@ -114,7 +114,7 @@ class InitTemplates:
                 )
                 self.repo_path = expected_path
             except OSError as ex:
-                LOG.warn("WARN: Can't clone app repo, git executable not found", exc_info=ex)
+                LOG.warning("WARN: Can't clone app repo, git executable not found", exc_info=ex)
             except subprocess.CalledProcessError as clone_error:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
