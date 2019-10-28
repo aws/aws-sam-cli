@@ -5,6 +5,7 @@ Manages the set of application templates.
 import itertools
 import json
 import os
+import logging
 import platform
 import shutil
 import subprocess
@@ -16,6 +17,8 @@ import click
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
+
+LOG = logging.getLogger(__name__)
 
 
 class InitTemplates:
@@ -125,9 +128,12 @@ class InitTemplates:
         else:
             options = [execname]
         for name in options:
-            subprocess.Popen([name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            # No exception. Let's pick this
-            return name
+            try:
+                subprocess.Popen([name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # No exception. Let's pick this
+                return name
+            except OSError as ex:
+                LOG.debug("Unable to find executable %s", name, exc_info=ex)
 
     def _should_clone_repo(self, expected_path):
         path = Path(expected_path)
