@@ -49,10 +49,9 @@ class InitTemplates:
         template_md = options[int(choice) - 1]  # zero index
         if template_md.get("init_location") is not None:
             return template_md["init_location"]
-        elif template_md.get("directory") is not None:
+        if template_md.get("directory") is not None:
             return os.path.join(self.repo_path, template_md["directory"])
-        else:
-            raise UserException("Invalid template. This should not be possible, please raise an issue.")
+        raise UserException("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, runtime, dependency_manager, app_template):
         options = self.init_options(runtime, dependency_manager)
@@ -60,10 +59,9 @@ class InitTemplates:
             template = next(item for item in options if self._check_app_template(item, app_template))
             if template.get("init_location") is not None:
                 return template["init_location"]
-            elif template.get("directory") is not None:
+            if template.get("directory") is not None:
                 return os.path.join(self.repo_path, template["directory"])
-            else:
-                raise UserException("Invalid template. This should not be possible, please raise an issue.")
+            raise UserException("Invalid template. This should not be possible, please raise an issue.")
         except StopIteration:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
             raise UserException(msg)
@@ -126,10 +124,10 @@ class InitTemplates:
             options = ["{}.cmd".format(execname), "{}.exe".format(execname), execname]
         else:
             options = [execname]
-            for name in options:
-                subprocess.Popen([name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                # No exception. Let's pick this
-                return name
+        for name in options:
+            subprocess.Popen([name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            # No exception. Let's pick this
+            return name
 
     def _should_clone_repo(self, expected_path):
         path = Path(expected_path)
@@ -141,10 +139,10 @@ class InitTemplates:
                     return True
             self.repo_path = expected_path
             return False
-        else:
-            if self._no_interactive:
-                return self._auto_clone
-            do_clone = click.confirm(
-                "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?"
-            )
-            return do_clone
+
+        if self._no_interactive:
+            return self._auto_clone
+        do_clone = click.confirm(
+            "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?"
+        )
+        return do_clone
