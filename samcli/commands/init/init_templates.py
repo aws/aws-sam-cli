@@ -121,7 +121,7 @@ class InitTemplates:
     def _git_executable(self):
         execname = "git"
         if platform.system().lower() == "windows":
-            options = ["{}.cmd".format(execname), "{}.exe".format(execname), execname]
+            options = ["{}.cmd".format(execname), "{}.exe".format(execname), "{}.bat".format(execname), execname]
         else:
             options = [execname]
         for name in options:
