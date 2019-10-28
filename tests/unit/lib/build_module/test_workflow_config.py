@@ -1,6 +1,6 @@
 from unittest import TestCase
 from parameterized import parameterized
-from mock import patch
+from unittest.mock import patch
 
 from samcli.lib.build.workflow_config import get_workflow_config, UnsupportedRuntimeException
 

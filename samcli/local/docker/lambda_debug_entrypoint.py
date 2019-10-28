@@ -11,7 +11,7 @@ class DebuggingNotSupported(Exception):
     pass
 
 
-class LambdaDebugEntryPoint(object):
+class LambdaDebugEntryPoint:
     @staticmethod
     def get_entry_point(debug_port, debug_args_list, runtime, options):
 

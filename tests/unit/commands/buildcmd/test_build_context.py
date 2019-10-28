@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from mock import patch, Mock
+from unittest.mock import patch, Mock
 
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException

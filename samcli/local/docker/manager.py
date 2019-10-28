@@ -13,7 +13,7 @@ from samcli.lib.utils.stream_writer import StreamWriter
 LOG = logging.getLogger(__name__)
 
 
-class ContainerManager(object):
+class ContainerManager:
     """
     This class knows how to interface with Docker to create, execute and manage the container's life cycle. It can
     run multiple containers in parallel, and also comes with the ability to reuse existing containers in order to
@@ -127,16 +127,16 @@ class ContainerManager(object):
             raise DockerImagePullFailedException(str(ex))
 
         # io streams, especially StringIO, work only with unicode strings
-        stream_writer.write(u"\nFetching {} Docker container image...".format(image_name))
+        stream_writer.write("\nFetching {} Docker container image...".format(image_name))
 
         # Each line contains information on progress of the pull. Each line is a JSON string
         for _ in result_itr:
             # For every line, print a dot to show progress
-            stream_writer.write(u".")
+            stream_writer.write(".")
             stream_writer.flush()
 
         # We are done. Go to the next line
-        stream_writer.write(u"\n")
+        stream_writer.write("\n")
 
     def has_image(self, image_name):
         """

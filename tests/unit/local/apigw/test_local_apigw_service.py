@@ -3,7 +3,7 @@ import copy
 import json
 from unittest import TestCase
 
-from mock import Mock, patch, ANY, MagicMock
+from unittest.mock import Mock, patch, ANY, MagicMock
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 

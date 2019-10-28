@@ -7,7 +7,7 @@ import time
 
 import requests
 import random
-from mock import Mock
+from unittest.mock import Mock
 
 from samcli.local.apigw.local_apigw_service import Route, LocalApigwService
 from tests.functional.function_code import (

@@ -9,7 +9,7 @@ class TestContainerManager(TestCase):
     Verifies functionality of ContainerManager by calling Docker APIs
     """
 
-    IMAGE = "busybox"  # small sized Linux container
+    IMAGE = "busybox:latest"  # small sized Linux container
 
     @classmethod
     def setUpClass(cls):

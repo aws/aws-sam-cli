@@ -5,13 +5,10 @@ import tempfile
 
 from subprocess import Popen, PIPE
 from nose_parameterized import parameterized, param
+import pytest
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
@@ -30,6 +27,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     def tearDown(self):
         os.remove(self.events_file_path)
 
+    @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand([param("Go1xFunction"), param("Java8Function")])
     def test_runtime_zip(self, function_name):
         command_list = self.get_command_list(
@@ -43,6 +41,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello World"')
 
+    @pytest.mark.timeout(timeout=300, method="thread")
     def test_custom_provided_runtime(self):
         command_list = self.get_command_list(
             "CustomBashFunction", template_path=self.template_path, event_path=self.events_file_path
@@ -55,4 +54,4 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
 
         self.assertEqual(return_code, 0)
         process_stdout = b"".join(process.stdout.readlines()).strip()
-        self.assertEqual(process_stdout.decode("utf-8"), u'{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')
+        self.assertEqual(process_stdout.decode("utf-8"), '{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')

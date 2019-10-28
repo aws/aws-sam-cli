@@ -1,12 +1,8 @@
 from unittest import TestCase
-from mock import patch, Mock, call
+from unittest.mock import Mock, call, patch
 
 from botocore.exceptions import NoCredentialsError, ClientError
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 from samcli.local.layers.layer_downloader import LayerDownloader

@@ -4,8 +4,7 @@ Unit test for Utils
 
 import os
 from unittest import TestCase
-
-from mock import patch
+from unittest.mock import patch
 
 from samcli.local.docker.utils import to_posix_path
 

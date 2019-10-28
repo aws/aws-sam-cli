@@ -87,7 +87,8 @@ class ApiProvider(AbstractApiProvider):
         for _, resource in resources.items():
             if resource.get(CfnBaseApiProvider.RESOURCE_TYPE) in SamApiProvider.TYPES:
                 return SamApiProvider()
-            elif resource.get(CfnBaseApiProvider.RESOURCE_TYPE) in CfnApiProvider.TYPES:
+
+            if resource.get(CfnBaseApiProvider.RESOURCE_TYPE) in CfnApiProvider.TYPES:
                 return CfnApiProvider()
 
         return SamApiProvider()

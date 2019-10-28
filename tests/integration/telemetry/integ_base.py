@@ -12,11 +12,7 @@ from flask import Flask, request, Response
 from threading import Thread
 from collections import deque
 from unittest import TestCase
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.cli.main import TELEMETRY_PROMPT
@@ -196,5 +192,5 @@ class TelemetryServer(Thread):
     def _shutdown_flask(self):
         # Based on http://flask.pocoo.org/snippets/67/
         request.environ.get("werkzeug.server.shutdown")()
-        print ("Server shutting down...")
+        print("Server shutting down...")
         return ""

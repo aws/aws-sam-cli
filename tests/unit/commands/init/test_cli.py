@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, ANY
+from unittest.mock import patch, ANY
 
 import click
 from click.testing import CliRunner

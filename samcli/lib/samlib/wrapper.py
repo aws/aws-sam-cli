@@ -32,7 +32,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from .local_uri_plugin import SupportLocalUriPlugin
 
 
-class SamTranslatorWrapper(object):
+class SamTranslatorWrapper:
 
     _thisdir = os.path.dirname(os.path.abspath(__file__))
     _DEFAULT_MANAGED_POLICIES_FILE = os.path.join(_thisdir, "default_managed_policies.json")
@@ -116,7 +116,7 @@ class SamTranslatorWrapper(object):
             raise ex
 
 
-class _SamParserReimplemented(object):
+class _SamParserReimplemented:
     """
     Re-implementation (almost copy) of Parser class from SAM Translator
     """

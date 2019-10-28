@@ -22,11 +22,12 @@ from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
     verify_all_list_intrinsic_type,
 )
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, InvalidSymbolException
+from samcli.commands._utils.template import get_template_data
 
 LOG = logging.getLogger(__name__)
 
 
-class IntrinsicResolver(object):
+class IntrinsicResolver:
     AWS_INCLUDE = "AWS::Include"
     SUPPORTED_MACRO_TRANSFORMATIONS = [AWS_INCLUDE]
     _PSEUDO_REGEX = r"AWS::.*?"
@@ -205,7 +206,8 @@ class IntrinsicResolver(object):
         if key in self.intrinsic_key_function_map:
             intrinsic_value = intrinsic.get(key)
             return self.intrinsic_key_function_map.get(key)(intrinsic_value, ignore_errors)
-        elif key in self.conditional_key_function_map:
+
+        if key in self.conditional_key_function_map:
             intrinsic_value = intrinsic.get(key)
             return self.conditional_key_function_map.get(key)(intrinsic_value, ignore_errors)
 
@@ -562,7 +564,9 @@ class IntrinsicResolver(object):
         )
 
         location = self.intrinsic_property_resolver(parameters.get("Location"), ignore_errors)
-        return location
+        location_data = get_template_data(location)
+
+        return location_data
 
     def handle_fn_import_value(self, intrinsic_value, ignore_errors):
         """

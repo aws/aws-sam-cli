@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock
+from unittest.mock import Mock
 
 from samcli.local.events.api_event import ContextIdentity, RequestContext, ApiGatewayLambdaEvent
 

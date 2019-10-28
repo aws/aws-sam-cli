@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 
 
 @click.command(
-    "init", short_help="Init an AWS SAM application.", context_settings=dict(help_option_names=[u"-h", u"--help"])
+    "init", short_help="Init an AWS SAM application.", context_settings=dict(help_option_names=["-h", "--help"])
 )
 @click.option(
     "--no-interactive",

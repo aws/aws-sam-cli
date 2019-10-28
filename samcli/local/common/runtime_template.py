@@ -4,11 +4,7 @@ All-in-one metadata about runtimes
 
 import itertools
 import os
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
 _templates = os.path.join(_init_path, "init", "templates")
@@ -92,7 +88,6 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "go1.x": ["mod"],
     "java8": ["maven", "gradle"],
 }
-
 
 SUPPORTED_DEP_MANAGERS = set(
     [

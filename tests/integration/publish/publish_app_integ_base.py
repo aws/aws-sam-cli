@@ -7,11 +7,7 @@ import time
 from unittest import TestCase
 
 import boto3
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class PublishAppIntegBase(TestCase):
