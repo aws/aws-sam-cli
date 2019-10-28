@@ -57,3 +57,11 @@ class TestTemplates(TestCase):
                 it = InitTemplates(True)
                 location = it.prompt_for_location("ruby2.5", "bundler")
                 self.assertTrue(search("cookiecutter-aws-sam-hello-ruby", location))
+
+    def test_git_executable_windows(self):
+        with patch("platform.system", new_callable=MagicMock) as mock_platform:
+            mock_platform.return_value = "Windows"
+            with patch("subprocess.Popen", new_callable=MagicMock) as mock_popen:
+                it = InitTemplates(True)
+                executable = it._git_executable()
+                self.assertEqual(executable, "git")
