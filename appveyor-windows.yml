@@ -60,6 +60,9 @@ install:
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 
+    # Check for git executable
+    - "git --version"
+
     # Echo final Path
     - "echo %PATH%"
 
