@@ -32,7 +32,7 @@ class TestTemplates(TestCase):
             mock_cfg.return_value = "/tmp/test-sam"
             with patch("samcli.commands.init.init_templates.open", m):
                 location = it.location_from_app_template("ruby2.5", "bundler", "hello-world")
-                self.assertEqual(location, "/tmp/test-sam/aws-sam-cli-app-templates/mock-ruby-template")
+                self.assertTrue(search("mock-ruby-template", location))
 
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("click.prompt")
