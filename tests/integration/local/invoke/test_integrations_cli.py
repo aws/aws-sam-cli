@@ -74,11 +74,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    @parameterized.expand([
-        ("TimeoutFunction"),
-        ("TimeoutFunctionWithParameter"),
-        ("TimeoutFunctionWithStringParameter"),
-    ])
+    @parameterized.expand(
+        [("TimeoutFunction"), ("TimeoutFunctionWithParameter"), ("TimeoutFunctionWithStringParameter")]
+    )
     def test_invoke_with_timeout_set(self, function_name):
         command_list = self.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path

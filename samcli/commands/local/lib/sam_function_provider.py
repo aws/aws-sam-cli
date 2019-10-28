@@ -127,8 +127,8 @@ class SamFunctionProvider(FunctionProvider):
         if isinstance(timeout, str):
             try:
                 timeout = ast.literal_eval(timeout)
-            except SyntaxError:
-                raise InvalidSamTemplateException('Invalid Number for Timeout: {}'.format(timeout))
+            except ValueError:
+                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(timeout))
 
         return Function(
             name=name,
