@@ -2,7 +2,7 @@ import json
 import subprocess
 import click
 
-from mock import mock_open, patch, PropertyMock, MagicMock
+from unittest.mock import mock_open, patch, PropertyMock, MagicMock
 from re import search
 from unittest import TestCase
 
