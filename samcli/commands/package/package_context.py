@@ -23,6 +23,7 @@ import boto3
 from botocore.config import Config
 import click
 
+from samcli.commands.package.exceptions import PackageFailedError
 from samcli.commands.package.artifact_exporter import Template
 from samcli.yamlhelper import yaml_dump
 from samcli.commands.package.s3_uploader import S3Uploader
@@ -85,15 +86,19 @@ class PackageContext:
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
 
-        exported_str = self._export(self.template_file, self.use_json)
+        try:
+            exported_str = self._export(self.template_file, self.use_json)
 
-        self.write_output(self.output_template_file, exported_str)
+            self.write_output(self.output_template_file, exported_str)
 
-        if self.output_template_file:
-            msg = self.MSG_PACKAGED_TEMPLATE_WRITTEN.format(
-                output_file_name=self.output_template_file, output_file_path=os.path.abspath(self.output_template_file)
-            )
-            click.echo(msg)
+            if self.output_template_file:
+                msg = self.MSG_PACKAGED_TEMPLATE_WRITTEN.format(
+                    output_file_name=self.output_template_file,
+                    output_file_path=os.path.abspath(self.output_template_file),
+                )
+                click.echo(msg)
+        except OSError as ex:
+            raise PackageFailedError(template_file=self.template_file, ex=str(ex))
 
     def _export(self, template_path, use_json):
         template = Template(template_path, os.getcwd(), self.s3_uploader)

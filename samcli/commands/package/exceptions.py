@@ -60,3 +60,15 @@ class ExportFailedError(UserException):
                 ex=self.ex,
             )
         )
+
+
+class PackageFailedError(UserException):
+    def __init__(self, template_file, ex):
+        self.template_file = template_file
+        self.ex = ex
+
+        message_fmt = "Failed to package template: {template_file}. \n {ex}"
+
+        super(PackageFailedError, self).__init__(
+            message=message_fmt.format(template_file=self.template_file, ex=self.ex)
+        )

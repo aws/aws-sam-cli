@@ -49,13 +49,14 @@ install:
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
+    # Install AWS CLI Globally via pip3
+    - "pip3 install awscli"
+
     # Create new virtual environment with chosen python version and activate it
     - "python -m virtualenv venv"
     - "venv\\Scripts\\activate"
     - "python --version"
 
-    # Install AWS CLI
-    - "pip install awscli"
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 

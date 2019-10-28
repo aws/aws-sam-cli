@@ -41,6 +41,7 @@ class PackageIntegBase(TestCase):
     def get_command_list(
         self,
         s3_bucket=None,
+        template=None,
         template_file=None,
         s3_prefix=None,
         output_template_file=None,
@@ -53,7 +54,8 @@ class PackageIntegBase(TestCase):
 
         if s3_bucket:
             command_list = command_list + ["--s3-bucket", str(s3_bucket)]
-
+        if template:
+            command_list = command_list + ["--template", str(template)]
         if template_file:
             command_list = command_list + ["--template-file", str(template_file)]
 

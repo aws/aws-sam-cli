@@ -79,7 +79,8 @@ class CfnMetadataType(click.ParamType):
 
     _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
 
-    name = ""
+    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
+    name = "CfnMetadata"
 
     def convert(self, value, param, ctx):
         result = {}
@@ -87,18 +88,23 @@ class CfnMetadataType(click.ParamType):
         if not value:
             return result
         try:
+            # Look to load the value into json if we can.
             result = json.loads(value)
             for val in result.values():
                 if isinstance(val, (dict, list)):
-                    # Need a non nested dictionary or a dictionary with non list values.
+                    # Need a non nested dictionary or a dictionary with non list values,
+                    # If either is found, fail the conversion.
                     fail = True
         except JSONDecodeError:
+            # if looking for a json format failed, look at if the specified value follows
+            # KeyName1=string,KeyName2=string format
             groups = re.findall(self._pattern, value)
 
             if not groups:
                 fail = True
             for group in groups:
                 key, value = group
+                # assign to result['KeyName1'] = string and so on.
                 result[key] = value
 
         if fail:

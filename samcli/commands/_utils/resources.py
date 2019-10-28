@@ -43,4 +43,4 @@ def resources_generator():
     """
     for resource, locations in dict({**METADATA_WITH_LOCAL_PATHS, **RESOURCES_WITH_LOCAL_PATHS}).items():
         for location in locations:
-            yield "\nResource : {resource} | Location : {location}\n".format(resource=resource, location=location)
+            yield resource, location

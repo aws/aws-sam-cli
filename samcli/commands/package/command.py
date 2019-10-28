@@ -1,21 +1,18 @@
 """
 CLI command for "package" command
 """
-
 from functools import partial
+
 import click
 
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import (
-    get_or_default_template_file_name,
-    _TEMPLATE_OPTION_DEFAULT_VALUE,
     metadata_override_option,
+    _TEMPLATE_OPTION_DEFAULT_VALUE,
+    get_or_default_template_file_name,
 )
 from samcli.commands._utils.resources import resources_generator
-
-
 from samcli.lib.telemetry.metrics import track_command
-
 
 SHORT_HELP = "Package an AWS SAM application."
 
@@ -25,7 +22,10 @@ def resources_and_properties_help_string():
     Total list of resources and their property locations that are supported for `sam package`
     :return: str
     """
-    return "".join(resource_property_string for resource_property_string in resources_generator())
+    return "".join(
+        f"\nResource : {resource} | Location : {location}\n".format(resource=resource, location=location)
+        for resource, location in resources_generator()
+    )
 
 
 HELP_TEXT = (
@@ -40,13 +40,17 @@ The following resources and their property locations are supported.
 
 
 @click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
+# TODO(TheSriram): Move to template_common_option across aws-sam-cli
 @click.option(
+    "--template",
     "--template-file",
+    "-t",
     default=_TEMPLATE_OPTION_DEFAULT_VALUE,
     type=click.Path(),
+    envvar="SAM_TEMPLATE_FILE",
     callback=partial(get_or_default_template_file_name, include_build=True),
-    show_default=False,
-    help="The path where your AWS SAM template is located",
+    show_default=True,
+    help="AWS SAM template file",
 )
 @click.option(
     "--s3-bucket",
@@ -56,36 +60,36 @@ The following resources and their property locations are supported.
 @click.option(
     "--s3-prefix",
     required=False,
-    help="A prefix name that the command adds to the arti"
-    "facts name when it uploads them to the S3 bucket. The prefix name is a"
+    help="A prefix name that the command adds to the artifacts "
+    "name when it uploads them to the S3 bucket. The prefix name is a "
     "path name (folder name) for the S3 bucket.",
 )
 @click.option(
     "--kms-key-id",
     required=False,
-    help="The ID of an AWS KMS key that the command uses to" "encrypt artifacts that are at rest in the S3 bucket.",
+    help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
 )
 @click.option(
     "--output-template-file",
     required=False,
     type=click.Path(),
-    help="The path to the file where the command"
-    "writes the output AWS CloudFormation template. If you don't specify a"
+    help="The path to the file where the command "
+    "writes the output AWS CloudFormation template. If you don't specify a "
     "path, the command writes the template to the standard output.",
 )
 @click.option(
     "--use-json",
     required=False,
     is_flag=True,
-    help="Indicates whether to use JSON as the format for"
+    help="Indicates whether to use JSON as the format for "
     "the output AWS CloudFormation template. YAML is used by default.",
 )
 @click.option(
     "--force-upload",
     required=False,
     is_flag=True,
-    help="Indicates whether to override  existing  files"
-    "in the S3 bucket. Specify this flag to upload artifacts even if they"
+    help="Indicates whether to override existing files "
+    "in the S3 bucket. Specify this flag to upload artifacts even if they "
     "match existing artifacts in the S3 bucket.",
 )
 @metadata_override_option
@@ -93,12 +97,12 @@ The following resources and their property locations are supported.
 @aws_creds_options
 @pass_context
 @track_command
-def cli(ctx, template_file, s3_bucket, s3_prefix, kms_key_id, output_template_file, use_json, force_upload, metadata):
+def cli(ctx, template, s3_bucket, s3_prefix, kms_key_id, output_template_file, use_json, force_upload, metadata):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
-        template_file,
+        template,
         s3_bucket,
         s3_prefix,
         kms_key_id,
@@ -124,7 +128,6 @@ def do_cli(
     profile,
 ):
     from samcli.commands.package.package_context import PackageContext
-    from samcli.commands.exceptions import UserException
 
     with PackageContext(
         template_file=template_file,
@@ -138,7 +141,4 @@ def do_cli(
         region=region,
         profile=profile,
     ) as package_context:
-        try:
-            package_context.run()
-        except OSError as ex:
-            raise UserException(str(ex))
+        package_context.run()

@@ -20,6 +20,17 @@ class TestPackage(PackageIntegBase):
     def tearDown(self):
         super(TestPackage, self).tearDown()
 
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_package_template_flag(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template=template_path)
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+
+        self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
+
     @parameterized.expand(
         [
             "aws-serverless-function.yaml",

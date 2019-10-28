@@ -5,6 +5,7 @@ import tempfile
 
 
 from samcli.commands.package.package_context import PackageContext
+from samcli.commands.package.exceptions import PackageFailedError
 from samcli.commands.package.artifact_exporter import Template
 
 
@@ -15,13 +16,19 @@ class TestPackageCommand(TestCase):
             s3_bucket="s3-bucket",
             s3_prefix="s3-prefix",
             kms_key_id="kms-key-id",
-            output_template_file="output-template-file",
+            output_template_file=None,
             use_json=True,
             force_upload=True,
             metadata={},
             region=None,
             profile=None,
         )
+
+    @patch.object(Template, "export", MagicMock(sideeffect=OSError))
+    @patch("boto3.Session")
+    def test_template_permissions_error(self, patched_boto):
+        with self.assertRaises(PackageFailedError):
+            self.package_command_context.run()
 
     @patch.object(Template, "export", MagicMock(return_value={}))
     @patch("boto3.Session")
@@ -51,7 +58,7 @@ class TestPackageCommand(TestCase):
                 s3_bucket="s3-bucket",
                 s3_prefix="s3-prefix",
                 kms_key_id="kms-key-id",
-                output_template_file="output-template-file",
+                output_template_file=None,
                 use_json=True,
                 force_upload=True,
                 metadata={},
@@ -69,7 +76,7 @@ class TestPackageCommand(TestCase):
                 s3_bucket="s3-bucket",
                 s3_prefix="s3-prefix",
                 kms_key_id="kms-key-id",
-                output_template_file="output-template-file",
+                output_template_file=None,
                 use_json=False,
                 force_upload=True,
                 metadata={},
