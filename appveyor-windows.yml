@@ -68,6 +68,7 @@ install:
 
 test_script:
     # Reactivate virtualenv before running tests
+    - "git --version"
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
