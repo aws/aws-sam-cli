@@ -80,6 +80,8 @@ class IntrinsicsSymbolTable:
     ARN_SUFFIX = ".Arn"
 
     CFN_RESOURCE_TYPE = "Type"
+    CFN_RESOURCE_PROPERTIES = "Properties"
+    CFN_LAMBDA_FUNCTION_NAME = "FunctionName"
 
     def __init__(
         self, template=None, logical_id_translator=None, default_type_resolver=None, common_attribute_resolver=None
@@ -254,11 +256,16 @@ class IntrinsicsSymbolTable:
             self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID) or self.handle_pseudo_account_id()
         )
         partition_name = self.handle_pseudo_partition()
-        resource_name = logical_id
-        resource_name = self.logical_id_translator.get(resource_name) or resource_name
-        str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{resource_name}"
         if service_name == "lambda":
+            resource_name = self._get_function_name(logical_id)
+            resource_name = self.logical_id_translator.get(resource_name) or resource_name
+
             str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:function:{resource_name}"
+        else:
+            resource_name = logical_id
+            resource_name = self.logical_id_translator.get(resource_name) or resource_name
+
+            str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{resource_name}"
 
         return str_format.format(
             partition_name=partition_name,
@@ -267,6 +274,34 @@ class IntrinsicsSymbolTable:
             account_id=account_id,
             resource_name=resource_name,
         )
+
+    def _get_function_name(self, logical_id):
+        """
+        This function returns the function name associated with the logical ID.
+        If the template doesn't define a FunctionName, it will just return the
+        logical ID, which is the default function name.
+
+        Parameters
+        -----------
+        logical_id: str
+            This the reference to the function name used
+
+        Return
+        -------
+        The function name
+        """
+        if not self._resources:
+            return logical_id
+        resource_definition_dict = self._resources.get(logical_id)
+        if not resource_definition_dict:
+            return logical_id
+
+        resource_properties = resource_definition_dict.get(IntrinsicsSymbolTable.CFN_RESOURCE_PROPERTIES)
+        if not resource_properties:
+            return logical_id
+
+        resource_name = resource_properties.get(IntrinsicsSymbolTable.CFN_LAMBDA_FUNCTION_NAME)
+        return resource_name or logical_id
 
     def get_translation(self, logical_id, resource_attributes=IntrinsicResolver.REF):
         """

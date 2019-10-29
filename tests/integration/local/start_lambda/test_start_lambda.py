@@ -157,6 +157,15 @@ class TestLambdaService(StartLambdaIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_of_function_with_function_name_override(self):
+        response = self.lambda_client.invoke(FunctionName="echo-func-name-override")
+
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 200)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
     def test_lambda_function_raised_error(self):
         response = self.lambda_client.invoke(FunctionName="RaiseExceptionFunction", InvocationType="RequestResponse")
 

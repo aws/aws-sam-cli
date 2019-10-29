@@ -540,7 +540,7 @@ class TestSamFunctionProvider_get(TestCase):
             timeout=None,
             environment=None,
             rolearn=None,
-            layers=[]
+            layers=[],
         )
         provider.functions = {"func1": function}
 

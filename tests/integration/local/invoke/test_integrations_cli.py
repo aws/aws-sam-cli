@@ -74,6 +74,18 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_of_lambda_function_with_function_name_override(self):
+        command_list = self.get_command_list(
+            "func-name-override", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        process.wait()
+        process_stdout = b"".join(process.stdout.readlines()).strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand(
         [("TimeoutFunction"), ("TimeoutFunctionWithParameter"), ("TimeoutFunctionWithStringParameter")]
     )
