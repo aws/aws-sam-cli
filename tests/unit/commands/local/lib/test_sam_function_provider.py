@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch
 from parameterized import parameterized
 
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, InvalidSamTemplateException
 from samcli.commands.local.lib.provider import Function, LayerVersion
 from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
 from samcli.commands.local.lib.exceptions import InvalidLayerReference
@@ -244,7 +244,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             "CodeUri": "/usr/local",
             "Runtime": "myruntime",
             "MemorySize": "mymemorysize",
-            "Timeout": "mytimeout",
+            "Timeout": "30",
             "Handler": "myhandler",
             "Environment": "myenvironment",
             "Role": "myrole",
@@ -255,7 +255,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             name="myname",
             runtime="myruntime",
             memory="mymemorysize",
-            timeout="mytimeout",
+            timeout=30,
             handler="myhandler",
             codeuri="/usr/local",
             environment="myenvironment",
@@ -266,6 +266,23 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
 
         self.assertEqual(expected, result)
+
+    def test_must_fail_with_InvalidSamTemplateException(self):
+
+        name = "myname"
+        properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "timeout",
+            "Handler": "myhandler",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "Layers": ["Layer1", "Layer2"],
+        }
+
+        with self.assertRaises(InvalidSamTemplateException):
+            SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
 
     def test_must_skip_non_existent_properties(self):
 
@@ -326,7 +343,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             "Code": {"Bucket": "bucket"},
             "Runtime": "myruntime",
             "MemorySize": "mymemorysize",
-            "Timeout": "mytimeout",
+            "Timeout": "30",
             "Handler": "myhandler",
             "Environment": "myenvironment",
             "Role": "myrole",
@@ -337,7 +354,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             name="myname",
             runtime="myruntime",
             memory="mymemorysize",
-            timeout="mytimeout",
+            timeout="30",
             handler="myhandler",
             codeuri=".",
             environment="myenvironment",
