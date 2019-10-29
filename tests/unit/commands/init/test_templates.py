@@ -68,3 +68,14 @@ class TestTemplates(TestCase):
                 it = InitTemplates(True)
                 executable = it._git_executable()
                 self.assertEqual(executable, "git")
+
+    def test_shared_dir_check(self):
+        it = InitTemplates(True)
+        shared_dir_mock = MagicMock()
+        self.assertTrue(it._shared_dir_check(shared_dir_mock))
+
+    def test_shared_dir_failure(self):
+        it = InitTemplates(True)
+        shared_dir_mock = MagicMock()
+        shared_dir_mock.mkdir.side_effect = OSError("fail")
+        self.assertFalse(it._shared_dir_check(shared_dir_mock))
