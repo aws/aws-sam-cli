@@ -23,8 +23,9 @@ class TestCli(TestCase):
         self.no_input = False
         self.extra_context = {"project_name": "testing project", "runtime": "python3.6"}
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli(self, generate_project_patch):
+    def test_init_cli(self, generate_project_patch, sd_mock):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -52,7 +53,8 @@ class TestCli(TestCase):
             self.extra_context,
         )
 
-    def test_init_fails_invalid_template(self):
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    def test_init_fails_invalid_template(self, sd_mock):
         # WHEN an unknown app template is passed in
         # THEN an exception should be raised
         with self.assertRaises(UserException):
@@ -69,7 +71,8 @@ class TestCli(TestCase):
                 auto_clone=False,
             )
 
-    def test_init_fails_invalid_dep_mgr(self):
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    def test_init_fails_invalid_dep_mgr(self, sd_mock):
         # WHEN an unknown app template is passed in
         # THEN an exception should be raised
         with self.assertRaises(UserException):
@@ -86,8 +89,9 @@ class TestCli(TestCase):
                 auto_clone=False,
             )
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_interactive(self, generate_project_patch):
+    def test_init_cli_interactive(self, generate_project_patch, sd_mock):
         # WHEN the user follows interactive init prompts
 
         # 1: selecting managed templates
@@ -121,8 +125,9 @@ N
             {"project_name": "test-project", "runtime": "ruby2.5"},
         )
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_with_app_template(self, generate_project_patch):
+    def test_init_cli_int_with_app_template(self, generate_project_patch, sd_mock):
         # WHEN the user follows interactive init prompts
 
         # test-project: response to name
@@ -153,8 +158,9 @@ N
             {"project_name": "test-project", "runtime": "ruby2.5"},
         )
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_from_location(self, generate_project_patch):
+    def test_init_cli_int_from_location(self, generate_project_patch, sd_mock):
         # WHEN the user follows interactive init prompts
 
         # 2: selecting custom location
@@ -216,8 +222,9 @@ output/
                 auto_clone=False,
             )
 
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_generate_project_fails(self, generate_project_patch):
+    def test_init_cli_generate_project_fails(self, generate_project_patch, sd_mock):
 
         # GIVEN generate_project fails to create a project
         generate_project_patch.side_effect = GenerateProjectFailedError(

@@ -104,9 +104,18 @@ class InitTemplates:
         )
         raise UserException(msg)
 
+    def _shared_dir_check(self, shared_dir):
+        try:
+            shared_dir.mkdir(mode=0x700, parents=True, exist_ok=True)
+            return True
+        except OSError as ex:
+            LOG.warning("WARN: Unable to create shared directory.", exc_info=ex)
+            return False
+
     def _clone_repo(self):
         shared_dir = global_cfg.config_dir
-        shared_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if not self._shared_dir_check(shared_dir):
+            return
         expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
         if self._should_clone_repo(expected_path):
             try:

@@ -12,7 +12,8 @@ from samcli.commands.init.init_templates import InitTemplates
 class TestTemplates(TestCase):
     @patch("subprocess.check_output")
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
-    def test_location_from_app_template(self, subprocess_mock, git_exec_mock):
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    def test_location_from_app_template(self, subprocess_mock, git_exec_mock, sd_mock):
         it = InitTemplates(True)
 
         manifest = {
@@ -36,7 +37,8 @@ class TestTemplates(TestCase):
 
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("click.prompt")
-    def test_fallback_options(self, git_exec_mock, prompt_mock):
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    def test_fallback_options(self, git_exec_mock, prompt_mock, sd_mock):
         prompt_mock.return_value = "1"
         with patch("subprocess.check_output", new_callable=MagicMock) as mock_sub:
             with patch("samcli.cli.global_config.GlobalConfig.config_dir", new_callable=PropertyMock) as mock_cfg:
@@ -48,7 +50,8 @@ class TestTemplates(TestCase):
 
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("click.prompt")
-    def test_fallback_process_error(self, git_exec_mock, prompt_mock):
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    def test_fallback_process_error(self, git_exec_mock, prompt_mock, sd_mock):
         prompt_mock.return_value = "1"
         with patch("subprocess.check_output", new_callable=MagicMock) as mock_sub:
             with patch("samcli.cli.global_config.GlobalConfig.config_dir", new_callable=PropertyMock) as mock_cfg:
