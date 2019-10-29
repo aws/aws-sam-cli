@@ -106,6 +106,7 @@ class InitTemplates:
 
     def _clone_repo(self):
         shared_dir = global_cfg.config_dir
+        shared_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
         if self._should_clone_repo(expected_path):
             try:
