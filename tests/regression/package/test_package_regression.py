@@ -42,34 +42,10 @@ class TestPackageRegression(PackageRegressionBase):
         ]
     )
     def test_package_with_output_template_file(self, template_file):
-        output_sam = None
-        output_aws = None
-        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_sam:
-            template_path = self.test_data_path.joinpath(template_file)
-            sam_command_list = self.get_command_list(
-                s3_bucket=self.s3_bucket.name,
-                template_file=template_path,
-                output_template_file=output_template_file_sam.name,
-            )
-            process = Popen(sam_command_list, stdout=PIPE)
-            process.wait()
-            self.assertEqual(process.returncode, 0)
-            output_sam = output_template_file_sam.read()
 
-        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_aws:
-            template_path = self.test_data_path.joinpath(template_file)
-            aws_command_list = self.get_command_list(
-                base="aws",
-                s3_bucket=self.s3_bucket.name,
-                template_file=template_path,
-                output_template_file=output_template_file_aws.name,
-            )
-            process = Popen(aws_command_list, stdout=PIPE)
-            process.wait()
-            self.assertEqual(process.returncode, 0)
-            output_aws = output_template_file_aws.read()
+        arguments = {"s3_bucket": self.s3_bucket.name, "template_file": self.test_data_path.joinpath(template_file)}
 
-        self.assertEqual(output_sam, output_aws)
+        self.regression_check(arguments)
 
     @parameterized.expand(
         [
@@ -90,36 +66,14 @@ class TestPackageRegression(PackageRegressionBase):
         ]
     )
     def test_package_with_output_template_file_and_prefix(self, template_file):
-        output_sam = None
-        output_aws = None
-        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_sam:
-            template_path = self.test_data_path.joinpath(template_file)
-            sam_command_list = self.get_command_list(
-                s3_bucket=self.s3_bucket.name,
-                template_file=template_path,
-                output_template_file=output_template_file_sam.name,
-                s3_prefix="regression/tests",
-            )
-            process = Popen(sam_command_list, stdout=PIPE)
-            process.wait()
-            self.assertEqual(process.returncode, 0)
-            output_sam = output_template_file_sam.read()
 
-        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_aws:
-            template_path = self.test_data_path.joinpath(template_file)
-            aws_command_list = self.get_command_list(
-                base="aws",
-                s3_bucket=self.s3_bucket.name,
-                template_file=template_path,
-                output_template_file=output_template_file_aws.name,
-                s3_prefix="regression/tests",
-            )
-            process = Popen(aws_command_list, stdout=PIPE)
-            process.wait()
-            self.assertEqual(process.returncode, 0)
-            output_aws = output_template_file_aws.read()
+        arguments = {
+            "s3_bucket": self.s3_bucket.name,
+            "template_file": self.test_data_path.joinpath(template_file),
+            "s3_prefix": "regression/tests",
+        }
 
-        self.assertEqual(output_sam, output_aws)
+        self.regression_check(arguments)
 
     @parameterized.expand(
         [
@@ -140,35 +94,12 @@ class TestPackageRegression(PackageRegressionBase):
         ]
     )
     def test_package_with_output_template_file_json_and_prefix(self, template_file):
-        output_sam = None
-        output_aws = None
-        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_sam:
-            template_path = self.test_data_path.joinpath(template_file)
-            sam_command_list = self.get_command_list(
-                s3_bucket=self.s3_bucket.name,
-                template_file=template_path,
-                output_template_file=output_template_file_sam.name,
-                s3_prefix="regression/tests",
-                use_json=True,
-            )
-            process = Popen(sam_command_list, stdout=PIPE)
-            process.wait()
-            self.assertEqual(process.returncode, 0)
-            output_sam = output_template_file_sam.read()
 
-        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_aws:
-            template_path = self.test_data_path.joinpath(template_file)
-            aws_command_list = self.get_command_list(
-                base="aws",
-                s3_bucket=self.s3_bucket.name,
-                template_file=template_path,
-                output_template_file=output_template_file_aws.name,
-                s3_prefix="regression/tests",
-                use_json=True,
-            )
-            process = Popen(aws_command_list, stdout=PIPE)
-            process.wait()
-            self.assertEqual(process.returncode, 0)
-            output_aws = output_template_file_aws.read()
+        arguments = {
+            "s3_bucket": self.s3_bucket.name,
+            "template_file": self.test_data_path.joinpath(template_file),
+            "s3_prefix": "regression/tests",
+            "use_json": True,
+        }
 
-        self.assertEqual(output_sam, output_aws)
+        self.regression_check(arguments)

@@ -4,6 +4,7 @@ import json
 import tempfile
 import time
 from pathlib import Path
+from subprocess import Popen, PIPE
 from unittest import TestCase
 
 import boto3
@@ -75,3 +76,22 @@ class PackageRegressionBase(TestCase):
             command_list = command_list + ["--metadata", json.dumps(metadata)]
 
         return command_list
+
+    def regression_check(self, args):
+        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_sam:
+            sam_command_list = self.get_command_list(output_template_file=output_template_file_sam.name, **args)
+            process = Popen(sam_command_list, stdout=PIPE)
+            process.wait()
+            self.assertEqual(process.returncode, 0)
+            output_sam = output_template_file_sam.read()
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template_file_aws:
+            aws_command_list = self.get_command_list(
+                base="aws", output_template_file=output_template_file_aws.name, **args
+            )
+            process = Popen(aws_command_list, stdout=PIPE)
+            process.wait()
+            self.assertEqual(process.returncode, 0)
+            output_aws = output_template_file_aws.read()
+
+        self.assertEqual(output_sam, output_aws)

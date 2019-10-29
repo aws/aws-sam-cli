@@ -50,7 +50,7 @@ install:
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
     # Install AWS CLI Globally via pip3
-    - "pip3 install awscli"
+    - "pip install awscli"
 
     # Create new virtual environment with chosen python version and activate it
     - "python -m virtualenv venv"

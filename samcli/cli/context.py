@@ -8,7 +8,7 @@ import boto3
 import botocore
 import click
 
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import CredentialsError
 
 
 class Context:
@@ -145,4 +145,4 @@ class Context:
         try:
             boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)
         except botocore.exceptions.ProfileNotFound as ex:
-            raise UserException(str(ex))
+            raise CredentialsError(str(ex))

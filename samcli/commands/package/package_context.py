@@ -24,9 +24,9 @@ from botocore.config import Config
 import click
 
 from samcli.commands.package.exceptions import PackageFailedError
-from samcli.commands.package.artifact_exporter import Template
+from samcli.lib.package.artifact_exporter import Template
 from samcli.yamlhelper import yaml_dump
-from samcli.commands.package.s3_uploader import S3Uploader
+from samcli.lib.package.s3_uploader import S3Uploader
 
 LOG = logging.getLogger(__name__)
 

@@ -38,7 +38,7 @@ for:
       - "python -m pip install --upgrade setuptools wheel virtualenv"
 
       # Install AWS CLI Globally outside of a venv.
-      - "pip3 install awscli"
+      - "pip install awscli"
 
       # Create new virtual environment and activate it
       - "rm -rf venv"
@@ -59,7 +59,7 @@ for:
       - "pylint --rcfile .pylintrc samcli"
 
       # Runs only in Linux
-      - sh: "pytest -vv -n 4 tests/integration"
+      - sh: "pytest -vv tests/integration"
       - sh: "/tmp/black --check setup.py tests samcli scripts"
       - sh: "python scripts/check-isolated-needs-update.py"
 
@@ -105,7 +105,7 @@ for:
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"
-      - sh: "pytest -vv tests/regression"
+      - sh: "pytest -vv -n 4 tests/regression"
       - sh: "/tmp/black --check setup.py tests samcli scripts"
       - sh: "python scripts/check-isolated-needs-update.py"
 

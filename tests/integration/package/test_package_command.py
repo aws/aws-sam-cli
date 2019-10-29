@@ -64,7 +64,7 @@ class TestPackage(PackageIntegBase):
 
         process = Popen(command_list, stdout=PIPE)
         process.wait()
-        self.assertTrue(process.returncode, 1)
+        self.assertNotEqual(process.returncode, 0)
 
     @parameterized.expand(
         [
@@ -138,7 +138,8 @@ class TestPackage(PackageIntegBase):
                 bytes(
                     "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
                         output_template_file=str(output_template.name)
-                    ).encode("utf-8")
+                    ),
+                    encoding="utf-8",
                 ),
                 process_stdout,
             )
@@ -183,7 +184,8 @@ class TestPackage(PackageIntegBase):
                 bytes(
                     "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
                         output_template_file=str(output_template.name)
-                    ).encode("utf-8")
+                    ),
+                    encoding="utf-8",
                 ),
                 process_stdout,
             )
@@ -230,9 +232,8 @@ class TestPackage(PackageIntegBase):
                     bytes(
                         "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
                             output_template_file=str(output_template.name)
-                        ).encode(
-                            "utf-8"
-                        )
+                        ),
+                        encoding="utf-8",
                     ),
                     process_stdout,
                 )
@@ -277,7 +278,8 @@ class TestPackage(PackageIntegBase):
                 bytes(
                     "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
                         output_template_file=str(output_template.name)
-                    ).encode("utf-8")
+                    ),
+                    encoding="utf-8",
                 ),
                 process_stdout,
             )
@@ -322,7 +324,8 @@ class TestPackage(PackageIntegBase):
                 bytes(
                     "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
                         output_template_file=str(output_template.name)
-                    ).encode("utf-8")
+                    ),
+                    encoding="utf-8",
                 ),
                 process_stdout,
             )

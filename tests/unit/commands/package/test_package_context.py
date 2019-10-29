@@ -6,7 +6,7 @@ import tempfile
 
 from samcli.commands.package.package_context import PackageContext
 from samcli.commands.package.exceptions import PackageFailedError
-from samcli.commands.package.artifact_exporter import Template
+from samcli.lib.package.artifact_exporter import Template
 
 
 class TestPackageCommand(TestCase):
