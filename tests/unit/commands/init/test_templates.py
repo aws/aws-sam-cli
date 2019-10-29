@@ -69,6 +69,13 @@ class TestTemplates(TestCase):
                 executable = it._git_executable()
                 self.assertEqual(executable, "git")
 
+    def test_git_executable_fails(self):
+        with patch("subprocess.Popen", new_callable=MagicMock) as mock_popen:
+            mock_popen.side_effect = OSError("fail")
+            it = InitTemplates(True)
+            with self.assertRaises(OSError):
+                executable = it._git_executable()
+
     def test_shared_dir_check(self):
         it = InitTemplates(True)
         shared_dir_mock = MagicMock()
