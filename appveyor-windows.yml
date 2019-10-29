@@ -60,11 +60,15 @@ install:
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 
+    # Check for git executable
+    - "git --version"
+
     # Echo final Path
     - "echo %PATH%"
 
 test_script:
     # Reactivate virtualenv before running tests
+    - "git --version"
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
