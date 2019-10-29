@@ -2,21 +2,13 @@
 """
 Init command to scaffold a project app from a template
 """
-import itertools
-import json
 import logging
-import os
-import subprocess
 
 import click
 
 from samcli.cli.main import pass_context, common_options, global_cfg
-from samcli.commands.exceptions import UserException
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
 from samcli.lib.telemetry.metrics import track_command
-from samcli.commands.init.init_generator import do_generate
-from samcli.commands.init.init_templates import InitTemplates
-from samcli.commands.init.interactive_init_flow import do_interactive
 
 LOG = logging.getLogger(__name__)
 
@@ -61,6 +53,7 @@ def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, 
     )  # pragma: no cover
 
 
+# pylint: disable=too-many-locals
 def do_cli(
     ctx,
     no_interactive,
@@ -73,6 +66,11 @@ def do_cli(
     no_input,
     auto_clone=True,
 ):
+    from samcli.commands.exceptions import UserException
+    from samcli.commands.init.init_generator import do_generate
+    from samcli.commands.init.init_templates import InitTemplates
+    from samcli.commands.init.interactive_init_flow import do_interactive
+
     # check for mutually exclusive parameters
     if location and app_template:
         msg = """
