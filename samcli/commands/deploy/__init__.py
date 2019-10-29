@@ -5,7 +5,8 @@ CLI command for "deploy" command
 import click
 
 
-from samcli.commands._utils.options import parameter_override_option, capabilities_override_option
+from samcli.commands._utils.options import parameter_override_option, capabilities_override_option, \
+    tags_override_option, notification_arns_override_option
 from samcli.commands.deploy.deploy import DeployCommand
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
@@ -30,7 +31,12 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     help=HELP_TEXT,
 )
 @click.option(
-    "--template-file", required=True, type=click.Path(), help="The path where your AWS SAM template is located"
+    "--template-file",
+    "--template",
+    "-t",
+    required=True,
+    type=click.Path(),
+    help="The path where your AWS SAM template is located"
 )
 @click.option(
     "--stack-name",
@@ -84,13 +90,6 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     "executing the change set.",
 )
 @click.option(
-    "--notification-arns",
-    required=False,
-    help="Amazon  Simple  Notification  Service  topic"
-    "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
-    "the stack.",
-)
-@click.option(
     "--fail-on-empty-changeset",
     required=False,
     is_flag=True,
@@ -98,13 +97,8 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     "changes to be made to the stack. The default behavior is  to  return  a"
     "non-zero exit code.",
 )
-@click.option(
-    "--tags",
-    required=False,
-    help="A list of tags to associate with the stack that is cre-"
-    "ated or updated. AWS  CloudFormation  also  propagates  these  tags  to"
-    "resources   in   the   stack  if  the  resource  supports  it.",
-)
+@notification_arns_override_option
+@tags_override_option
 @parameter_override_option
 @capabilities_override_option
 @common_options
@@ -165,7 +159,6 @@ def do_cli(
     region,
     profile,
 ):
-
     DeployCommand().run_main(
         template_file,
         stack_name,

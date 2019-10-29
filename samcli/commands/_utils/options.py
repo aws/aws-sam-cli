@@ -7,7 +7,7 @@ import logging
 from functools import partial
 
 import click
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType
+from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, CfnCapabilitiesType
 from samcli.commands._utils.custom_options import OptionNargs
 
 
@@ -143,7 +143,8 @@ def capabilities_click_option():
     return click.option(
         "--capabilities",
         cls=OptionNargs,
-        type=click.STRING,
+        type=CfnCapabilitiesType(),
+        required=True,
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
         "plates might include resources that can affect permissions in your  AWS"
@@ -160,3 +161,34 @@ def capabilities_click_option():
 def capabilities_override_option(f):
     return capabilities_click_option()(f)
 
+
+def tags_click_option():
+    return click.option(
+        "--tags",
+        cls=OptionNargs,
+        type=CfnTags(),
+        required=False,
+        help="A list of tags to associate with the stack that is created or updated."
+             "AWS CloudFormation also propagates these tags to resources "
+             "in the stack if the resource supports it.",
+    )
+
+
+def tags_override_option(f):
+    return tags_click_option()(f)
+
+
+def notification_arns_click_option():
+    return click.option(
+        "--notification-arns",
+        cls=OptionNargs,
+        type=click.STRING,
+        required=False,
+        help="Amazon  Simple  Notification  Service  topic"
+             "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
+             "the stack.",
+    )
+
+
+def notification_arns_override_option(f):
+    return notification_arns_click_option()(f)

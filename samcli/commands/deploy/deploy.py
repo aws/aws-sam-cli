@@ -17,6 +17,7 @@ import logging
 import boto3
 
 from samcli.commands.package import exceptions
+from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.deploy.deployer import Deployer
 from samcli.commands.package.s3_uploader import S3Uploader
 from samcli.yamlhelper import yaml_parse
@@ -53,15 +54,12 @@ class DeployCommand(object):
         cloudformation_client = session.client("cloudformation", region_name=region)
 
         template_path = template_file
-        if not os.path.isfile(template_path):
-            raise exceptions.InvalidTemplatePathError(template_path=template_path)
 
         # Parse parameters
         with open(template_path, "r") as handle:
             template_str = handle.read()
 
-        tags_dict = self.parse_key_value_arg(tags, "tags")
-        tags = [{"Key": key, "Value": value} for key, value in tags_dict.items()]
+        tags = [{"Key": key, "Value": value} for key, value in tags.items()]
 
         template_dict = yaml_parse(template_str)
 
@@ -69,7 +67,7 @@ class DeployCommand(object):
 
         template_size = os.path.getsize(template_file)
         if template_size > 51200 and not s3_bucket:
-            raise exceptions.DeployBucketRequiredError()
+            raise deploy_exceptions.DeployBucketRequiredError()
 
         bucket = s3_bucket
         if bucket:
@@ -120,7 +118,7 @@ class DeployCommand(object):
                 tags=tags,
             )
 
-        except exceptions.ChangeEmptyError as ex:
+        except deploy_exceptions.ChangeEmptyError as ex:
             if fail_on_empty_changeset:
                 raise
             sys.stdout.write(str(ex))
@@ -164,27 +162,3 @@ class DeployCommand(object):
             parameter_values.append(obj)
 
         return parameter_values
-
-    def parse_key_value_arg(self, arg_value, argname):
-        """
-        Converts arguments that are passed as list of "Key=Value" strings
-        into a real dictionary.
-
-        :param arg_value list: Array of strings, where each string is of
-            form Key=Value
-        :param argname string: Name of the argument that contains the value
-        :return dict: Dictionary representing the key/value pairs
-        """
-        result = {}
-        if arg_value and argname:
-            for data in arg_value:
-
-                # Split at first '=' from left
-                key_value_pair = data.split("=", 1)
-
-                if len(key_value_pair) != 2:
-                    raise exceptions.InvalidKeyValuePairArgumentError(argname=argname, value=key_value_pair)
-
-                result[key_value_pair[0]] = key_value_pair[1]
-
-        return result

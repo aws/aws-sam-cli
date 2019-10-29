@@ -24,6 +24,9 @@ class CfnParameterOverridesType(click.ParamType):
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
+    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
+    name = ""
+
     def convert(self, value, param, ctx):
         result = {}
         if not value:
@@ -92,7 +95,7 @@ class CfnMetadataType(click.ParamType):
     _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
-    name = "CfnMetadata"
+    name = ""
 
     def convert(self, value, param, ctx):
         result = {}
@@ -125,3 +128,59 @@ class CfnMetadataType(click.ParamType):
             )
 
         return result
+
+
+class CfnTags(click.ParamType):
+    """
+    Custom Click options type to accept values for tag parameters.
+    tag parameters can be of the type KeyName1=string KeyName2=string
+    """
+
+    _EXAMPLE = 'KeyName1=string KeyName2=string'
+
+    _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
+
+    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
+    name = ""
+
+    def convert(self, value, param, ctx):
+        result = {}
+        fail = False
+        if not value:
+            return result
+
+        for val in value:
+
+            groups = re.findall(self._pattern, val)
+
+            if not groups:
+                fail = True
+            for group in groups:
+                key, valesh = group
+                # assign to result['KeyName1'] = string and so on.
+                result[key] = valesh
+
+            if fail:
+                return self.fail(
+                    "{} is not in valid format. It must look something like '{}'".format(value, self._EXAMPLE), param, ctx
+                )
+
+        return result
+
+
+class CfnCapabilitiesType(click.ParamType):
+    """
+    Custom click options type to make sure that capabilities are of the following types
+        CAPABILITY_AUTO_EXPAND, CAPABILITY_NAMED_IAM, CAPABILITY_IAM
+    """
+
+    name = ""
+
+    capabalities_enum = ["CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"]
+
+    def convert(self, value, param, ctx):
+        for val in value:
+            if val not in self.capabalities_enum:
+                self.fail("{} is not valid formt. It must look something like '{}'".format(value, self.capabalities_enum), param, ctx)
+        return value
+

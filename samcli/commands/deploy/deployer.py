@@ -19,6 +19,7 @@ import collections
 import click
 
 from samcli.commands.package import exceptions
+from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.package.artifact_exporter import mktempfile, parse_s3_url
 
 from datetime import datetime
@@ -190,7 +191,7 @@ class Deployer(object):
                 and "The submitted information didn't contain changes." in reason
                 or "No updates are to be performed" in reason
             ):
-                raise exceptions.ChangeEmptyError(stack_name=stack_name)
+                raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
             raise RuntimeError(
                 "Failed to create the changeset: {0} " "Status: {1}. Reason: {2}".format(ex, status, reason)
@@ -218,9 +219,6 @@ class Deployer(object):
         events = set()
         utc_now = pytz.utc.localize(datetime.utcnow())
         while stack_change_in_progress:
-            describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
-            if "IN_PROGRESS" not in describe_stacks_resp["Stacks"][0]["StackStatus"]:
-                stack_change_in_progress = False
             describe_stack_events_resp = self._client.describe_stack_events(StackName=stack_name)
             for event in describe_stack_events_resp["StackEvents"]:
                 if event["EventId"] not in events and event["Timestamp"] > utc_now:
@@ -259,7 +257,7 @@ class Deployer(object):
         except botocore.exceptions.WaiterError as ex:
             LOG.debug("Execute changeset waiter exception", exc_info=ex)
 
-            raise exceptions.DeployFailedError(stack_name=stack_name)
+            raise deploy_exceptions.DeployFailedError(stack_name=stack_name)
 
     def create_and_wait_for_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
