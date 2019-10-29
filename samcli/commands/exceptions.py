@@ -18,5 +18,3 @@ class CredentialsError(UserException):
     """
     Exception class when credentials that have been passed are invalid.
     """
-
-    pass
