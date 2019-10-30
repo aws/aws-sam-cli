@@ -11,19 +11,19 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import collections
+import logging
 import sys
 import time
-import logging
-import botocore
-import collections
-import click
+from datetime import datetime
 
-from samcli.commands.package import exceptions
+import botocore
+import click
+import pytz
+
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.package.artifact_exporter import mktempfile, parse_s3_url
-
-from datetime import datetime
-import pytz
+from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ class Deployer(object):
     def __init__(self, cloudformation_client, changeset_prefix="samcli-cloudformation-package-deploy-"):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
+        self.color = Colored()
 
     def has_stack(self, stack_name):
         """
@@ -207,38 +208,70 @@ class Deployer(object):
         """
         return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
 
-    def desribe_stack_events(self, stack_name):
+    def get_last_event_time(self, stack_name):
+        try:
+            return self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
+        except KeyError:
+            return pytz.utc.localize(datetime.utcnow())
+
+    def desribe_stack_events(self, stack_name, utc_now):
         """
         Calls CloudFormation to get current stack events
-
         :param stack_name: Name or ID of the stack
         :return:
         """
 
         stack_change_in_progress = True
         events = set()
-        utc_now = pytz.utc.localize(datetime.utcnow())
+
+        time.sleep(1)
+
+        width, _ = click.get_terminal_size()
+        width = width - (width % 3)
+        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
+        click.secho(
+            "{LogicalResourceId:<{lr_w}} {ResourceType:<{rt_w}} {ResourceStatus:<{rs_w}}".format(
+                LogicalResourceId="LogicalResourceId",
+                ResourceType="ResourceType",
+                ResourceStatus="ResourceStatus",
+                lr_w=int(width / 3),
+                rt_w=int(width / 3),
+                rs_w=int(width / 3) - 1,
+            )
+        )
+        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
         while stack_change_in_progress:
+            describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
+            if (
+                "COMPLETE" in describe_stacks_resp["Stacks"][0]["StackStatus"]
+                and "CLEANUP" not in describe_stacks_resp["Stacks"][0]["StackStatus"]
+            ):
+                stack_change_in_progress = False
             describe_stack_events_resp = self._client.describe_stack_events(StackName=stack_name)
+            time.sleep(0.1)
             for event in describe_stack_events_resp["StackEvents"]:
                 if event["EventId"] not in events and event["Timestamp"] > utc_now:
                     events.add(event["EventId"])
                     click.secho(
-                        message="\t"
-                        + event["LogicalResourceId"]
-                        + "\t"
-                        + event["ResourceType"]
-                        + "\t"
-                        + event["ResourceStatus"],
-                        fg="green",
+                        "{LogicalResourceId:<{lr_w}} {ResourceType:<{rt_w}} {ResourceStatus:<{rs_w}}".format(
+                            LogicalResourceId=event["LogicalResourceId"],
+                            ResourceType=event["ResourceType"],
+                            ResourceStatus=event["ResourceStatus"],
+                            lr_w=int(width / 3),
+                            rt_w=int(width / 3),
+                            rs_w=(int(width / 3) - 1),
+                        ),
+                        fg="yellow",
                     )
+
+        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
 
     def wait_for_execute(self, stack_name, changeset_type):
 
         sys.stdout.write("Waiting for stack create/update to complete\n")
         sys.stdout.flush()
 
-        self.desribe_stack_events(stack_name)
+        self.desribe_stack_events(stack_name, self.get_last_event_time(stack_name))
 
         # Pick the right waiter
         if changeset_type == "CREATE":
@@ -268,14 +301,34 @@ class Deployer(object):
         )
         self.wait_for_changeset(result["Id"], stack_name)
         changes = self.describe_changeset(result["Id"], stack_name)
+        width, _ = click.get_terminal_size()
+        width = width - (width % 3)
+        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
+        click.secho(
+            "{Operation:<{lr_w}} {LogicalResourceId:<{rt_w}} {ResourceType:<{rs_w}}".format(
+                Operation="Operation",
+                LogicalResourceId="LogicalResourceId",
+                ResourceType="ResourceType",
+                lr_w=int(width / 3),
+                rt_w=int(width / 3),
+                rs_w=int(width / 3) - 1,
+            )
+        )
+        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
         color = {"Add": "green", "Modify": "yellow", "Remove": "red"}
         for k, v in changes.items():
-            if len(v) > 0:
-                click.secho(message=k, fg=color[k])
-                click.secho(message="\n")
             for value in v:
-                click.secho(message=value["LogicalResourceId"] + "\t" + value["ResourceType"], fg=color[k])
-        # TODO(TheSriram): This prompt is for demonstration purposes only and will be replaced by a command line argument.
-        click.prompt("Are you sure you wanna continue?")
+                click.secho(
+                    "{Operation:<{lr_w}} {LogicalResourceId:<{rt_w}} {ResourceType:<{rs_w}}".format(
+                        Operation=k,
+                        LogicalResourceId=value["LogicalResourceId"],
+                        ResourceType=value["ResourceType"],
+                        lr_w=int(width / 3),
+                        rt_w=int(width / 3),
+                        rs_w=int(width / 3) - 1,
+                    ),
+                    fg=color[k],
+                )
 
+        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
         return result, changeset_type
