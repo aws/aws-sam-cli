@@ -6,13 +6,10 @@ import json
 import logging
 import uuid
 import os
+from pathlib import Path
 
 import click
 
-try:
-    from pathlib import Path
-except ImportError:  # pragma: no cover
-    from pathlib2 import Path  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 
@@ -21,7 +18,7 @@ INSTALLATION_ID_KEY = "installationId"
 TELEMETRY_ENABLED_KEY = "telemetryEnabled"
 
 
-class GlobalConfig(object):
+class GlobalConfig:
     """
     Contains helper methods for global configuration files and values. Handles
     configuration file creation, updates, and fetching in a platform-neutral way.

@@ -19,15 +19,13 @@ from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MAST
 # This is to restrict layers tests to run outside of Travis and when the branch is not master.
 SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     template = Path("template.yml")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_returncode_is_zero(self):
         command_list = self.get_command_list(
@@ -39,6 +37,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(return_code, 0)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_function_with_metadata(self):
         command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)
@@ -49,6 +48,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello World in a different dir"')
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_returns_execpted_results(self):
         command_list = self.get_command_list(
@@ -60,6 +60,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_of_lambda_function(self):
         command_list = self.get_command_list(
@@ -71,8 +72,11 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    @parameterized.expand([("TimeoutFunction"), ("TimeoutFunctionWithParameter")])
+    @parameterized.expand(
+        [("TimeoutFunction"), ("TimeoutFunctionWithParameter"), ("TimeoutFunctionWithStringParameter")]
+    )
     def test_invoke_with_timeout_set(self, function_name):
         command_list = self.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path
@@ -98,6 +102,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             msg="The return statement in the LambdaFunction " "should never return leading to an empty string",
         )
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_vars(self):
         command_list = self.get_command_list(
@@ -112,6 +117,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = b"".join(process.stdout.readlines()).strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list(
@@ -127,6 +133,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode("utf-8"))
         self.assertIn("wrote to stdout", process_stdout.decode("utf-8"))
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_when_function_writes_stderr(self):
         command_list = self.get_command_list(
@@ -140,6 +147,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode("utf-8"))
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_returns_expected_result_when_no_event_given(self):
         command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
@@ -151,6 +159,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(return_code, 0)
         self.assertEqual("{}", process_stdout.decode("utf-8"))
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_raises_exception_with_noargs_and_event(self):
         command_list = self.get_command_list(
@@ -164,6 +173,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         error_output = process_stderr.decode("utf-8")
         self.assertIn("no_event and event cannot be used together. Please provide only one.", error_output)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_using_parameters(self):
         command_list = self.get_command_list(
@@ -191,6 +201,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(environ["Timeout"], "100")
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "my-custom-region"
@@ -206,6 +217,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(environ["Region"], custom_region)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_with_aws_creds(self):
         custom_region = "my-custom-region"
@@ -235,6 +247,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], secret)
         self.assertEqual(environ["AWS_SESSION_TOKEN"], session)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_docker_network_of_host(self):
         command_list = self.get_command_list(
@@ -249,6 +262,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(return_code, 0)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     @skipIf(IS_WINDOWS, "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
@@ -265,6 +279,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertIn('Not Found ("network non-existing-network not found")', process_stderr.decode("utf-8"))
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_sam_template_file_env_var_set(self):
         command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
@@ -279,6 +294,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_skip_pull_image_in_env_var(self):
         docker.from_env().api.pull("lambci/lambda:python3.6")
@@ -305,6 +321,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
     def tearDown(self):
         shutil.rmtree(self.config_dir, ignore_errors=True)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_existing_env_variables_precedence_over_profiles(self):
         profile = "default"
@@ -340,6 +357,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], "priority_secret_key_id")
         self.assertEqual(environ["AWS_SESSION_TOKEN"], "priority_secret_token")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_default_profile_with_custom_configs(self):
         profile = "default"
@@ -372,6 +390,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
         self.assertEqual(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_custom_profile_with_custom_configs(self):
         custom_config = self._create_config_file("custom")
@@ -403,6 +422,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         self.assertEqual(environ["AWS_SECRET_ACCESS_KEY"], "shhhhhthisisasecret")
         self.assertEqual(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_custom_profile_through_envrionment_variables(self):
         # When using a custom profile in a custom location, you need both the config

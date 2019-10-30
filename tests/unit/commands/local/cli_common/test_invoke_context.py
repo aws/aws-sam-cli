@@ -8,7 +8,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvokeContextExcept
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
 from unittest import TestCase
-from mock import Mock, PropertyMock, patch, ANY, mock_open
+from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open
 
 
 class TestInvokeContext__enter__(TestCase):
@@ -30,7 +30,7 @@ class TestInvokeContext__enter__(TestCase):
             docker_network="network",
             log_file=log_file,
             skip_pull_image=True,
-            debug_port=1111,
+            debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
             parameter_overrides={},
@@ -73,7 +73,7 @@ class TestInvokeContext__enter__(TestCase):
         SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
         invoke_context._get_env_vars_value.assert_called_with(env_vars_file)
         invoke_context._setup_log_file.assert_called_with(log_file)
-        invoke_context._get_debug_context.assert_called_once_with(1111, "args", "path-to-debugger")
+        invoke_context._get_debug_context.assert_called_once_with([1111], "args", "path-to-debugger")
         invoke_context._get_container_manager.assert_called_once_with("network", True)
 
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
@@ -171,7 +171,7 @@ class TestInvokeContextAsContextManager(TestCase):
             docker_network="network",
             log_file="log_file",
             skip_pull_image=True,
-            debug_port=1111,
+            debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
             aws_profile="profile",
@@ -220,7 +220,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             log_file="log_file",
             skip_pull_image=True,
             force_image_build=True,
-            debug_port=1111,
+            debug_ports=[1111],
             debugger_path="path-to-debugger",
             debug_args="args",
             aws_profile="profile",
@@ -287,7 +287,7 @@ class TestInvokeContext_stdout_property(TestCase):
         self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock
     ):
 
-        context = InvokeContext(template_file="template", debug_port=6000)
+        context = InvokeContext(template_file="template", debug_ports=[6000])
 
         context._get_template_data = Mock()
         context._get_env_vars_value = Mock()
@@ -391,7 +391,7 @@ class TestInvokeContext_stderr_property(TestCase):
         self, SamFunctionProviderMock, StreamWriterMock, osutils_stderr_mock, ExitMock
     ):
 
-        context = InvokeContext(template_file="template", debug_port=6000)
+        context = InvokeContext(template_file="template", debug_ports=[6000])
 
         context._get_template_data = Mock()
         context._get_env_vars_value = Mock()
@@ -571,7 +571,7 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.side_effect = error
 
         with self.assertRaises(DebugContextException):
-            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path="somepath")
+            InvokeContext._get_debug_context(debug_ports=[1111], debug_args=None, debugger_path="somepath")
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_debugger_path_not_dir(self, pathlib_mock):
@@ -582,13 +582,13 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.return_value = pathlib_path_mock
 
         with self.assertRaises(DebugContextException):
-            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path="somepath")
+            InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path="somepath")
 
     def test_no_debug_port(self):
         debug_context = InvokeContext._get_debug_context(None, None, None)
 
         self.assertEqual(debug_context.debugger_path, None)
-        self.assertEqual(debug_context.debug_port, None)
+        self.assertEqual(debug_context.debug_ports, None)
         self.assertEqual(debug_context.debug_args, None)
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
@@ -596,17 +596,59 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.side_effect = OSError()
 
         with self.assertRaises(OSError):
-            InvokeContext._get_debug_context(debug_port=1111, debug_args=None, debugger_path="somepath")
+            InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path="somepath")
 
     @patch("samcli.commands.local.cli_common.invoke_context.DebugContext")
     def test_debug_port_given_without_debugger_path(self, debug_context_mock):
         debug_context_mock.return_value = "I am the DebugContext"
-
-        debug_context = InvokeContext._get_debug_context(1111, None, None)
+        debug_context = InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path=None)
 
         self.assertEqual(debug_context, "I am the DebugContext")
+        debug_context_mock.assert_called_once_with(debug_ports=1111, debug_args=None, debugger_path=None)
 
-        debug_context_mock.assert_called_once_with(debug_port=1111, debug_args=None, debugger_path=None)
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debug_port_not_specified(self, pathlib_mock):
+        pathlib_path_mock = Mock()
+        pathlib_mock.return_value = pathlib_path_mock
+
+        debug_context = InvokeContext._get_debug_context(debug_ports=None, debug_args=None, debugger_path="somepath")
+        self.assertEqual(None, debug_context.debug_ports)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debug_port_single_value_int(self, pathlib_mock):
+        pathlib_path_mock = Mock()
+        pathlib_mock.return_value = pathlib_path_mock
+
+        debug_context = InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path="somepath")
+        self.assertEqual(1111, debug_context.debug_ports)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debug_port_single_value_string(self, pathlib_mock):
+        pathlib_path_mock = Mock()
+        pathlib_mock.return_value = pathlib_path_mock
+
+        debug_context = InvokeContext._get_debug_context(debug_ports="1111", debug_args=None, debugger_path="somepath")
+        self.assertEqual("1111", debug_context.debug_ports)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debug_port_multiple_values_string(self, pathlib_mock):
+        pathlib_path_mock = Mock()
+        pathlib_mock.return_value = pathlib_path_mock
+
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=["1111", "1112"], debug_args=None, debugger_path="somepath"
+        )
+        self.assertEqual(["1111", "1112"], debug_context.debug_ports)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_debug_port_multiple_values_int(self, pathlib_mock):
+        pathlib_path_mock = Mock()
+        pathlib_mock.return_value = pathlib_path_mock
+
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=[1111, 1112], debug_args=None, debugger_path="somepath"
+        )
+        self.assertEqual([1111, 1112], debug_context.debug_ports)
 
     @patch("samcli.commands.local.cli_common.invoke_context.DebugContext")
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
@@ -625,7 +667,7 @@ class TestInvokeContext_get_debug_context(TestCase):
 
         self.assertEqual(debug_context, "I am the DebugContext")
 
-        debug_context_mock.assert_called_once_with(debug_port=1111, debug_args="args", debugger_path="full/path")
+        debug_context_mock.assert_called_once_with(debug_ports=1111, debug_args="args", debugger_path="full/path")
         resolve_path_mock.is_dir.assert_called_once()
         pathlib_path_mock.resolve.assert_called_once_with(strict=True)
         pathlib_mock.assert_called_once_with("./path")

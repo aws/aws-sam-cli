@@ -12,7 +12,7 @@ from six import string_types
 LOG = logging.getLogger(__name__)
 
 
-class LambdaUri(object):
+class LambdaUri:
     """
     Purely static class that helps you parse Lambda Function Integration URI ARN
     """
@@ -161,12 +161,13 @@ class LambdaUri(object):
             LOG.debug("Stage variables are not supported. Ignoring integration with function ARN %s", function_arn)
             return None
 
-        elif re.match(LambdaUri._REGEX_VALID_FUNCTION_NAME, maybe_function_name):
+        if re.match(LambdaUri._REGEX_VALID_FUNCTION_NAME, maybe_function_name):
             # Yes, this is a real function name
             return maybe_function_name
 
         # Some unknown format
         LOG.debug("Ignoring integration ARN. Unable to parse Function Name from function arn %s", function_arn)
+        return None
 
     @staticmethod
     def _resolve_fn_sub(uri_data):

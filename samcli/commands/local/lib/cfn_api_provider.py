@@ -211,3 +211,5 @@ class CfnApiProvider(CfnBaseApiProvider):
         if integration and isinstance(integration, dict):
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("Uri"))
+
+        return None

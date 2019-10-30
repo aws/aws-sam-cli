@@ -8,7 +8,7 @@ from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaI
 LOG = logging.getLogger(__name__)
 
 
-class LocalLambdaService(object):
+class LocalLambdaService:
     """
     Implementation of Local Lambda Invoke Service that is capable of serving the invoke path to your Lambda Functions
     that are defined in a SAM file.

@@ -18,7 +18,7 @@ from .path_converter import PathConverter
 LOG = logging.getLogger(__name__)
 
 
-class Route(object):
+class Route:
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
     def __init__(self, function_name, path, methods):
@@ -260,7 +260,7 @@ class LocalApigwService(BaseLocalService):
         json_output = json.loads(lambda_output)
 
         if not isinstance(json_output, dict):
-            raise TypeError("Lambda returned %{s} instead of dict", type(json_output))
+            raise TypeError("Lambda returned {} instead of dict".format(type(json_output)))
 
         status_code = json_output.get("statusCode") or 200
         headers = LocalApigwService._merge_response_headers(

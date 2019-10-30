@@ -1,24 +1,23 @@
 import json
 import tempfile
 import shutil
+import os
 
-from mock import mock_open, patch
+from unittest.mock import mock_open, patch
 from unittest import TestCase
-from json import JSONDecodeError
 from samcli.cli.global_config import GlobalConfig
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class TestGlobalConfig(TestCase):
     def setUp(self):
         self._cfg_dir = tempfile.mkdtemp()
+        self._previous_telemetry_environ = os.environ.get("SAM_CLI_TELEMETRY")
+        os.environ.pop("SAM_CLI_TELEMETRY")
 
     def tearDown(self):
         shutil.rmtree(self._cfg_dir)
+        os.environ["SAM_CLI_TELEMETRY"] = self._previous_telemetry_environ
 
     def test_installation_id_with_side_effect(self):
         gc = GlobalConfig(config_dir=self._cfg_dir)
@@ -91,7 +90,7 @@ class TestGlobalConfig(TestCase):
     def test_set_telemetry_flag_no_file(self):
         path = Path(self._cfg_dir, "metadata.json")
         gc = GlobalConfig(config_dir=self._cfg_dir)
-        self.assertIsNone(gc.telemetry_enabled)  # pre-state test
+        self.assertFalse(gc.telemetry_enabled)  # pre-state test
         gc.telemetry_enabled = True
         from_gc = gc.telemetry_enabled
         json_body = json.loads(path.read_text())
@@ -135,7 +134,7 @@ class TestGlobalConfig(TestCase):
         with open(str(path), "w") as f:
             f.write("NOT JSON, PROBABLY VALID YAML AM I RIGHT!?")
         gc = GlobalConfig(config_dir=self._cfg_dir)
-        with self.assertRaises(JSONDecodeError):
+        with self.assertRaises(ValueError):
             gc.telemetry_enabled = True
 
     def test_setter_cannot_open_file(self):

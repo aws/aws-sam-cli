@@ -2,7 +2,7 @@ import boto3
 import logging
 
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from samcli.cli.context import Context
 

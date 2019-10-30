@@ -849,6 +849,59 @@
       }
     }
   },
+  "sagemaker": {
+    "ground-truth-pre-human": {
+      "filename": "PreHumanTask",
+      "help": "Generates a SageMaker Ground Truth PreHumanTask request",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "source-ref": {
+          "default": "s3://sagemakerexample/object_to_annotate.jpg"
+        },
+	"labeling-job-name": {
+          "default": "example-job"
+	}
+      }
+    },
+    "ground-truth-annotation-consolidation": {
+      "filename": "AnnotationConsolidation",
+      "help": "Generates a SageMaker Ground Truth AnnotationConsolidation request",
+      "tags": {
+        "region": {
+          "default": "us-east-1"
+        },
+        "partition": {
+          "default": "aws"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+	"labeling-job-name": {
+          "default": "example-job"
+	},
+	"label-attribute-name": {
+          "default": "example-attribute"
+	},
+        "s3-output-path": {
+          "default": "s3://sagemakerexample/output"
+        },
+	"execution-role": {
+          "default": "sagemaker-role"
+	},
+	"iteration-object-timestamp": {
+          "default": "iteration-1/0/2019-09-06_18:35:03"
+	}
+      }
+    }
+  },
   "ses": {
     "email-receiving": {
       "filename": "SesEmailReceiving",

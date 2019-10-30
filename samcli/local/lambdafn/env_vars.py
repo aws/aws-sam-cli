@@ -5,7 +5,7 @@ Supplies the environment variables necessary to set up Local Lambda runtime
 import sys
 
 
-class EnvironmentVariables(object):
+class EnvironmentVariables:
     """
     Use this class to get the environment variables necessary to run the Lambda function. It returns the AWS specific
     variables (credentials, regions, etc) along with any environment variables configured on the function.

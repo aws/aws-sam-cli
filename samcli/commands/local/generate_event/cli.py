@@ -32,4 +32,3 @@ def cli(self):
     """
     Generate an event for one of the services listed below:
     """
-    pass  # pragma: no cover

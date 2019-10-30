@@ -8,7 +8,7 @@ from samcli.local.apigw.local_apigw_service import Route
 LOG = logging.getLogger(__name__)
 
 
-class SwaggerParser(object):
+class SwaggerParser:
     _INTEGRATION_KEY = "x-amazon-apigateway-integration"
     _ANY_METHOD_EXTENSION_KEY = "x-amazon-apigateway-any-method"
     _BINARY_MEDIA_TYPES_EXTENSION_KEY = "x-amazon-apigateway-binary-media-types"  # pylint: disable=C0103
@@ -114,3 +114,5 @@ class SwaggerParser(object):
         if integration and isinstance(integration, dict) and integration.get("type") == IntegrationType.aws_proxy.value:
             # Integration must be "aws_proxy" otherwise we don't care about it
             return LambdaUri.get_function_name(integration.get("uri"))
+
+        return None

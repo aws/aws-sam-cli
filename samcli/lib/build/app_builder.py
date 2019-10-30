@@ -6,19 +6,15 @@ import os
 import io
 import json
 import logging
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 import docker
-
-import samcli.lib.utils.osutils as osutils
-from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+
+import samcli.lib.utils.osutils as osutils
+from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, supports_build_in_container
 
 
@@ -41,7 +37,7 @@ class BuildError(Exception):
     pass
 
 
-class ApplicationBuilder(object):
+class ApplicationBuilder:
     """
     Class to build an entire application. Currently, this class builds Lambda functions only, but there is nothing that
     is stopping this class from supporting other resource types. Building in context of Lambda functions refer to
@@ -322,8 +318,7 @@ class ApplicationBuilder(object):
                 LOG.debug("Builder library does not support the supplied method")
                 raise UnsupportedBuilderLibraryVersionError(image_name, msg)
 
-            else:
-                LOG.debug("Builder crashed")
-                raise ValueError(msg)
+            LOG.debug("Builder crashed")
+            raise ValueError(msg)
 
         return response

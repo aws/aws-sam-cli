@@ -3,7 +3,7 @@ Discover & provide the log group name
 """
 
 
-class LogGroupProvider(object):
+class LogGroupProvider:
     """
     Resolve the name of log group given the name of the resource
     """

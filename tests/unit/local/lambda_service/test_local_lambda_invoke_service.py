@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, ANY, call
+from unittest.mock import Mock, patch, ANY, call
 
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
 from samcli.local.lambdafn.exceptions import FunctionNotFound

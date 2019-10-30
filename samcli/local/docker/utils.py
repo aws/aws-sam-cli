@@ -5,11 +5,7 @@ Helper methods that aid with changing the mount path to unix style.
 import os
 import re
 import posixpath
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 
 def to_posix_path(code_path):

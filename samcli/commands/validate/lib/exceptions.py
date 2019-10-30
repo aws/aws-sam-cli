@@ -7,5 +7,3 @@ class InvalidSamDocumentException(Exception):
     """
     Exception for Invalid Sam Documents
     """
-
-    pass

@@ -3,11 +3,7 @@ import os
 import subprocess
 import logging
 from unittest import skipIf
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 from parameterized import parameterized
 
 from .build_integ_base import BuildIntegBase

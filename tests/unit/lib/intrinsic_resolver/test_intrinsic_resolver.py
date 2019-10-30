@@ -1,14 +1,9 @@
 import json
 from collections import OrderedDict
 from copy import deepcopy
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 from unittest import TestCase
-
-from mock import patch
+from unittest.mock import patch
 
 from parameterized import parameterized
 

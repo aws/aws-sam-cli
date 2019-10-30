@@ -25,6 +25,7 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
         )
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_same_endpoint(self):
         """
@@ -64,6 +65,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
         )
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_non_json_data(self):
         expected_error_message = (
@@ -76,6 +78,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
 
         self.assertEqual(str(error.exception), expected_error_message)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_log_type_not_None(self):
         expected_error_message = (
@@ -88,6 +91,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
 
         self.assertEqual(str(error.exception), expected_error_message)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_invocation_type_not_RequestResponse(self):
         expected_error_message = (
@@ -115,6 +119,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
         )
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_data(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='"This is json data"')
@@ -123,6 +128,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_no_data(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction")
@@ -131,6 +137,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_log_type_None(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction", LogType="None")
@@ -139,6 +146,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_invocation_type_RequestResponse(self):
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="RequestResponse")
@@ -147,6 +155,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_lambda_function_raised_error(self):
         response = self.lambda_client.invoke(FunctionName="RaiseExceptionFunction", InvocationType="RequestResponse")
@@ -161,6 +170,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("FunctionError"), "Unhandled")
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_function_timeout(self):
         """

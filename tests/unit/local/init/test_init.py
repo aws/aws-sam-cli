@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch
+from unittest.mock import patch
 
 from cookiecutter.exceptions import CookiecutterException
 from samcli.local.init import generate_project
