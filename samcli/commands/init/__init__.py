@@ -12,9 +12,51 @@ from samcli.lib.telemetry.metrics import track_command
 
 LOG = logging.getLogger(__name__)
 
+HELP_TEXT = """ \b
+    Initialize a serverless application with a SAM template, folder
+    structure for your Lambda functions, connected to an event source such as APIs,
+    S3 Buckets or DynamoDB Tables. This application includes everything you need to
+    get started with serverless and eventually grow into a production scale application.
+    \b
+    This command can initialize a boilerplate serverless app. If you want to create your own
+    template as well as use a custom location please take a look at our official documentation.
+\b
+Common usage:
+    \b
+    Starts an interactive prompt process to initialize a new project:
+    \b
+    $ sam init
+    \b
+    Initializes a new SAM project using project templates without an interactive workflow:
+    \b
+    $ sam init --name sam-app --runtime nodejs10.x --dependency-manager npm --app-template hello-world
+    \b
+    Initializes a new SAM project using custom template in a Git/Mercurial repository
+    \b
+    # gh being expanded to github url
+    $ sam init --location gh:aws-samples/cookiecutter-aws-sam-python
+    \b
+    $ sam init --location git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git
+    \b
+    $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name
+    \b
+    Initializes a new SAM project using custom template in a Zipfile
+    \b
+    $ sam init --location /path/to/template.zip
+    \b
+    $ sam init --location https://example.com/path/to/template.zip
+    \b
+    Initializes a new SAM project using custom template in a local path
+    \b
+    $ sam init --location /path/to/template/folder
+"""
+
 
 @click.command(
-    "init", short_help="Init an AWS SAM application.", context_settings=dict(help_option_names=["-h", "--help"])
+    "init",
+    help=HELP_TEXT,
+    short_help="Init an AWS SAM application.",
+    context_settings=dict(help_option_names=["-h", "--help"]),
 )
 @click.option(
     "--no-interactive",
@@ -77,7 +119,7 @@ def do_cli(
 You must not provide both the --location and --app-template parameters.
 
 You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template
+    --name and --runtime and --app-template and --dependency-manager
     --location
         """
         raise UserException(msg)
