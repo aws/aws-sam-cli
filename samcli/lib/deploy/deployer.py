@@ -23,18 +23,16 @@ import pytz
 
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.commands.package.artifact_exporter import mktempfile, parse_s3_url
-from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
 ChangeSetResult = collections.namedtuple("ChangeSetResult", ["changeset_id", "changeset_type"])
 
 
-class Deployer(object):
+class Deployer:
     def __init__(self, cloudformation_client, changeset_prefix="samcli-cloudformation-package-deploy-"):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
-        self.color = Colored()
 
     def has_stack(self, stack_name):
         """

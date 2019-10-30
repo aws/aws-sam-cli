@@ -169,8 +169,8 @@ def tags_click_option():
         type=CfnTags(),
         required=False,
         help="A list of tags to associate with the stack that is created or updated."
-             "AWS CloudFormation also propagates these tags to resources "
-             "in the stack if the resource supports it.",
+        "AWS CloudFormation also propagates these tags to resources "
+        "in the stack if the resource supports it.",
     )
 
 
@@ -185,8 +185,8 @@ def notification_arns_click_option():
         type=click.STRING,
         required=False,
         help="Amazon  Simple  Notification  Service  topic"
-             "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
-             "the stack.",
+        "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
+        "the stack.",
     )
 
 

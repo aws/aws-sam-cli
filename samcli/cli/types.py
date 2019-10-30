@@ -118,9 +118,9 @@ class CfnMetadataType(click.ParamType):
             if not groups:
                 fail = True
             for group in groups:
-                key, value = group
+                key, v = group
                 # assign to result['KeyName1'] = string and so on.
-                result[key] = value
+                result[key] = v
 
         if fail:
             return self.fail(
@@ -136,7 +136,7 @@ class CfnTags(click.ParamType):
     tag parameters can be of the type KeyName1=string KeyName2=string
     """
 
-    _EXAMPLE = 'KeyName1=string KeyName2=string'
+    _EXAMPLE = "KeyName1=string KeyName2=string"
 
     _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
 
@@ -156,13 +156,15 @@ class CfnTags(click.ParamType):
             if not groups:
                 fail = True
             for group in groups:
-                key, valesh = group
+                key, v = group
                 # assign to result['KeyName1'] = string and so on.
-                result[key] = valesh
+                result[key] = v
 
             if fail:
                 return self.fail(
-                    "{} is not in valid format. It must look something like '{}'".format(value, self._EXAMPLE), param, ctx
+                    "{} is not in valid format. It must look something like '{}'".format(value, self._EXAMPLE),
+                    param,
+                    ctx,
                 )
 
         return result
@@ -181,6 +183,9 @@ class CfnCapabilitiesType(click.ParamType):
     def convert(self, value, param, ctx):
         for val in value:
             if val not in self.capabalities_enum:
-                self.fail("{} is not valid formt. It must look something like '{}'".format(value, self.capabalities_enum), param, ctx)
+                self.fail(
+                    "{} is not valid formt. It must look something like '{}'".format(value, self.capabalities_enum),
+                    param,
+                    ctx,
+                )
         return value
-
