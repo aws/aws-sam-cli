@@ -18,7 +18,7 @@ import click
 
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.deploy.deployer import Deployer
-from samcli.commands.package.s3_uploader import S3Uploader
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)

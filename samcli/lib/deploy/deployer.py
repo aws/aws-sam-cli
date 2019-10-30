@@ -22,7 +22,7 @@ import click
 import pytz
 
 from samcli.commands.deploy import exceptions as deploy_exceptions
-from samcli.commands.package.artifact_exporter import mktempfile, parse_s3_url
+from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
 
 LOG = logging.getLogger(__name__)
 
