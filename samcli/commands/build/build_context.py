@@ -5,11 +5,7 @@ Context object used by build command
 import logging
 import os
 import shutil
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
@@ -21,7 +17,7 @@ from samcli.commands.build.exceptions import InvalidBuildDirException
 LOG = logging.getLogger(__name__)
 
 
-class BuildContext(object):
+class BuildContext:
 
     # Build directories need not be world writable.
     # This is usually a optimal permission for directories
@@ -150,7 +146,7 @@ class BuildContext(object):
                 available_function_message = "{} not found. Possible options in your template: {}" \
                     .format(self._function_identifier, all_functions)
                 LOG.info(available_function_message)
-                raise FunctionNotFound("Unable to find a Function with name '%s'", self._function_identifier)
+                raise FunctionNotFound("Unable to find a Function with name '{}'".format(self._function_identifier))
 
             return [function]
 

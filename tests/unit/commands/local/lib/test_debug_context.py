@@ -9,20 +9,21 @@ class TestDebugContext(TestCase):
     def test_init(self):
         context = DebugContext("port", "debuggerpath", "debug_args")
 
-        self.assertEqual(context.debug_port, "port")
+        self.assertEqual(context.debug_ports, "port")
         self.assertEqual(context.debugger_path, "debuggerpath")
         self.assertEqual(context.debug_args, "debug_args")
 
     @parameterized.expand(
         [
             ("1000", "debuggerpath", "debug_args"),
-            ("1000", None, None),
-            ("1000", None, "debug_args"),
-            ("1000", "debuggerpath", None),
+            (["1000"], "debuggerpath", "debug_args"),
+            (["1000", "1001"], "debuggerpath", "debug_args"),
             (1000, "debuggerpath", "debug_args"),
-            (1000, None, None),
-            (1000, None, "debug_args"),
-            (1000, "debuggerpath", None),
+            ([1000], "debuggerpath", "debug_args"),
+            ([1000, 1001], "debuggerpath", "debug_args"),
+            ([1000], None, None),
+            ([1000], None, "debug_args"),
+            ([1000], "debuggerpath", None),
         ]
     )
     def test_bool_truthy(self, port, debug_path, debug_ars):
@@ -46,13 +47,14 @@ class TestDebugContext(TestCase):
     @parameterized.expand(
         [
             ("1000", "debuggerpath", "debug_args"),
-            ("1000", None, None),
-            ("1000", None, "debug_args"),
-            ("1000", "debuggerpath", None),
+            (["1000"], "debuggerpath", "debug_args"),
+            (["1000", "1001"], "debuggerpath", "debug_args"),
             (1000, "debuggerpath", "debug_args"),
-            (1000, None, None),
-            (1000, None, "debug_args"),
-            (1000, "debuggerpath", None),
+            ([1000], "debuggerpath", "debug_args"),
+            ([1000, 1001], "debuggerpath", "debug_args"),
+            ([1000], None, None),
+            ([1000], None, "debug_args"),
+            ([1000], "debuggerpath", None),
         ]
     )
     def test_nonzero_thruthy(self, port, debug_path, debug_ars):

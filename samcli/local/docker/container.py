@@ -14,7 +14,7 @@ from .utils import to_posix_path
 LOG = logging.getLogger(__name__)
 
 
-class Container(object):
+class Container:
     """
     Represents an instance of a Docker container with a specific configuration. The container is not actually created
     or executed until the appropriate methods are called. Each container instance is uniquely identified by an ID that

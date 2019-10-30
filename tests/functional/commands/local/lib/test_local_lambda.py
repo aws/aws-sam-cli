@@ -18,7 +18,7 @@ from samcli.local.docker.lambda_image import LambdaImage
 
 from tests.functional.function_code import nodejs_lambda, GET_ENV_VAR
 from unittest import TestCase
-from mock import Mock
+from unittest.mock import Mock
 
 logging.basicConfig(level=logging.INFO)
 

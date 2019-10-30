@@ -12,7 +12,7 @@ from samcli.commands.local.lib.api_provider import ApiProvider
 LOG = logging.getLogger(__name__)
 
 
-class LocalApiService(object):
+class LocalApiService:
     """
     Implementation of Local API service that is capable of serving API defined in a configuration file that invoke a
     Lambda function.
@@ -129,3 +129,5 @@ class LocalApiService(object):
         if os.path.exists(static_dir_path):
             LOG.info("Mounting static files from %s at /", static_dir_path)
             return static_dir_path
+
+        return None

@@ -4,11 +4,7 @@ from collections import namedtuple
 import boto3
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class LayerUtils(object):

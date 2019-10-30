@@ -12,7 +12,7 @@ from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSym
 LOG = logging.getLogger(__name__)
 
 
-class IntrinsicsSymbolTable(object):
+class IntrinsicsSymbolTable:
     AWS_ACCOUNT_ID = "AWS::AccountId"
     AWS_NOTIFICATION_ARN = "AWS::NotificationArn"
     AWS_PARTITION = "AWS::Partition"
@@ -286,7 +286,7 @@ class IntrinsicsSymbolTable(object):
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
         if any(isinstance(logical_id_item, object_type) for object_type in [string_types, list, bool, int]):
-            if resource_attributes != IntrinsicResolver.REF and resource_attributes != "":
+            if resource_attributes not in (IntrinsicResolver.REF, ""):
                 return None
             return logical_id_item
 

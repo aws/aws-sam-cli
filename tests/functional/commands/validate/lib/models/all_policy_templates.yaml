@@ -98,8 +98,7 @@ Resources:
 
         - CloudWatchDashboardPolicy: {}
 
-        - RekognitionFacesPolicy:
-            CollectionId: collection
+        - RekognitionFacesPolicy: {}
 
         - RekognitionLabelsPolicy: {}
 
@@ -146,3 +145,9 @@ Resources:
 
         - StepFunctionsExecutionPolicy:
             StateMachineName: name
+
+        - CodeCommitCrudPolicy:
+            RepositoryName: name
+
+        - CodeCommitReadPolicy:
+            RepositoryName: name

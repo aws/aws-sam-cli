@@ -8,7 +8,7 @@ import boto3
 import click
 
 
-class Context(object):
+class Context:
     """
     Top level context object for the CLI. Exposes common functionality required by a CLI, including logging,
     environment config parsing, debug logging etc.
@@ -98,6 +98,8 @@ class Context(object):
         if click_core_ctx:
             return click_core_ctx.command_path
 
+        return None
+
     @staticmethod
     def get_current_context():
         """
@@ -128,6 +130,8 @@ class Context(object):
         click_core_ctx = click.get_current_context()
         if click_core_ctx:
             return click_core_ctx.find_object(Context) or click_core_ctx.ensure_object(Context)
+
+        return None
 
     def _refresh_session(self):
         """

@@ -162,7 +162,7 @@ def supports_build_in_container(config):
     return True, None
 
 
-class BasicWorkflowSelector(object):
+class BasicWorkflowSelector:
     """
     Basic workflow selector that returns the first available configuration in the given list of configurations
     """

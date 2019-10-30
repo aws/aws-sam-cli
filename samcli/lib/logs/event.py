@@ -9,7 +9,7 @@ from samcli.lib.utils.time import timestamp_to_iso
 LOG = logging.getLogger(__name__)
 
 
-class LogEvent(object):
+class LogEvent:
     """
     Data object representing a CloudWatch Log Event
     """

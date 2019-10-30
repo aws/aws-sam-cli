@@ -5,6 +5,7 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 import errno
 import json
 import os
+from pathlib import Path
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -18,16 +19,8 @@ from samcli.local.layers.layer_downloader import LayerDownloader
 from .user_exceptions import InvokeContextException, DebugContextException
 from ..lib.sam_function_provider import SamFunctionProvider
 
-# This is an attempt to do a controlled import. pathlib is in the
-# Python standard library starting at 3.4. This will import pathlib2,
-# which is a backport of the Python Standard Library pathlib
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
 
-
-class InvokeContext(object):
+class InvokeContext:
     """
     Sets up a context to invoke Lambda functions locally by parsing all command line arguments necessary for the
     invoke.
@@ -52,7 +45,7 @@ class InvokeContext(object):
         docker_network=None,
         log_file=None,
         skip_pull_image=None,
-        debug_port=None,
+        debug_ports=None,
         debug_args=None,
         debugger_path=None,
         parameter_overrides=None,
@@ -83,8 +76,8 @@ class InvokeContext(object):
             Should we skip pulling the Docker container image?
         aws_profile str
             Name of the profile to fetch AWS credentials from
-        debug_port int
-            Port to bind the debugger to
+        debug_ports tuple(int)
+            Ports to bind the debugger to
         debug_args str
             Additional arguments passed to the debugger
         debugger_path str
@@ -105,7 +98,7 @@ class InvokeContext(object):
         self._docker_network = docker_network
         self._log_file = log_file
         self._skip_pull_image = skip_pull_image
-        self._debug_port = debug_port
+        self._debug_ports = debug_ports
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._parameter_overrides = parameter_overrides or {}
@@ -136,7 +129,7 @@ class InvokeContext(object):
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
 
-        self._debug_context = self._get_debug_context(self._debug_port, self._debug_args, self._debugger_path)
+        self._debug_context = self._get_debug_context(self._debug_ports, self._debug_args, self._debugger_path)
 
         self._container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
 
@@ -321,14 +314,14 @@ class InvokeContext(object):
         return open(log_file, "wb")
 
     @staticmethod
-    def _get_debug_context(debug_port, debug_args, debugger_path):
+    def _get_debug_context(debug_ports, debug_args, debugger_path):
         """
         Creates a DebugContext if the InvokeContext is in a debugging mode
 
         Parameters
         ----------
-        debug_port int
-             Port to bind the debugger to
+        debug_ports tuple(int)
+             Ports to bind the debugger to
         debug_args str
             Additional arguments passed to the debugger
         debugger_path str
@@ -344,21 +337,20 @@ class InvokeContext(object):
         samcli.commands.local.cli_common.user_exceptions.DebugContext
             When the debugger_path is not valid
         """
-        if debug_port and debugger_path:
+        if debug_ports and debugger_path:
             try:
                 debugger = Path(debugger_path).resolve(strict=True)
             except OSError as error:
                 if error.errno == errno.ENOENT:
                     raise DebugContextException("'{}' could not be found.".format(debugger_path))
-                else:
-                    raise error
 
-            # We turn off pylint here due to https://github.com/PyCQA/pylint/issues/1660
-            if not debugger.is_dir():  # pylint: disable=no-member
+                raise error
+
+            if not debugger.is_dir():
                 raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
             debugger_path = str(debugger)
 
-        return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
+        return DebugContext(debug_ports=debug_ports, debug_args=debug_args, debugger_path=debugger_path)
 
     @staticmethod
     def _get_container_manager(docker_network, skip_pull_image):

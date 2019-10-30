@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile, mkdtemp
 from unittest import TestCase
 from unittest import skipIf
 
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from nose_parameterized import parameterized, param
 
 from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissions

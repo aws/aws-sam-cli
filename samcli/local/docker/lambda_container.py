@@ -92,20 +92,25 @@ class LambdaContainer(Container):
     @staticmethod
     def _get_exposed_ports(debug_options):
         """
-        Return Docker container port binding information. If a debug port is given, then we will ask Docker to
-        bind to same port both inside and outside the container ie. Runtime process is started in debug mode with
+        Return Docker container port binding information. If a debug port tuple is given, then we will ask Docker to
+        bind every given port to same port both inside and outside the container ie. Runtime process is started in debug mode with
         at given port inside the container and exposed to the host machine at the same port
 
-        :param int debug_port: Optional, integer value of debug port
+        :param DebugContext debug_options: Debugging options for the function (includes debug port, args, and path)
         :return dict: Dictionary containing port binding information. None, if debug_port was not given
         """
         if not debug_options:
             return None
 
-        return {
-            # container port : host port
-            debug_options.debug_port: debug_options.debug_port
-        }
+        if not debug_options.debug_ports:
+            return None
+
+        # container port : host port
+        ports_map = {}
+        for port in debug_options.debug_ports:
+            ports_map[port] = port
+
+        return ports_map
 
     @staticmethod
     def _get_additional_options(runtime, debug_options):
@@ -169,9 +174,8 @@ class LambdaContainer(Container):
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes
         a few extra flags to start the runtime in debug mode.
 
-        :param string runtime: Lambda function runtime name
-        :param int debug_port: Optional, port for debugger
-        :param string debug_args: Optional additional arguments passed to the entry point.
+        :param string runtime: Lambda function runtime name.
+        :param DebugContext debug_options: Optional. Debug context for the function (includes port, args, and path).
         :return list: List containing the new entry points. Each element in the list is one portion of the command.
             ie. if command is ``node index.js arg1 arg2``, then this list will be ["node", "index.js", "arg1", "arg2"]
         """
@@ -179,7 +183,11 @@ class LambdaContainer(Container):
         if not debug_options:
             return None
 
-        debug_port = debug_options.debug_port
+        debug_ports = debug_options.debug_ports
+        if not debug_ports:
+            return None
+
+        debug_port = debug_ports[0]
         debug_args_list = []
 
         if debug_options.debug_args:

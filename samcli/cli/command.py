@@ -4,7 +4,6 @@ Base classes that implement the CLI framework
 
 import logging
 import importlib
-import sys
 from collections import OrderedDict
 
 import click
@@ -23,13 +22,6 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.logs",
     "samcli.commands.publish",
 ]
-
-DEPRECATION_NOTICE = (
-    "Deprecated : AWS SAM CLI no longer supports "
-    "installations on Python 2.7. "
-    "Install AWS SAM CLI via https://docs.aws.amazon.com/serverless-application-model/"
-    "latest/developerguide/serverless-sam-cli-install.html for continued support with new versions. \n"
-)
 
 
 class BaseCommand(click.MultiCommand):
@@ -53,7 +45,7 @@ class BaseCommand(click.MultiCommand):
     will produce a command name "baz".
     """
 
-    def __init__(self, cmd_packages=None, *args, **kwargs):
+    def __init__(self, *args, cmd_packages=None, **kwargs):
         """
         Initializes the class, optionally with a list of available commands
 
@@ -68,9 +60,6 @@ class BaseCommand(click.MultiCommand):
 
         self._commands = {}
         self._commands = BaseCommand._set_commands(cmd_packages)
-
-        if sys.version_info.major == 2:
-            click.secho(DEPRECATION_NOTICE, fg="red", err=True)
 
     @staticmethod
     def _set_commands(package_names):
@@ -109,7 +98,7 @@ class BaseCommand(click.MultiCommand):
         """
         if cmd_name not in self._commands:
             logger.error("Command %s not available", cmd_name)
-            return
+            return None
 
         pkg_name = self._commands[cmd_name]
 
@@ -117,10 +106,10 @@ class BaseCommand(click.MultiCommand):
             mod = importlib.import_module(pkg_name)
         except ImportError:
             logger.exception("Command '%s' is not configured correctly. Unable to import '%s'", cmd_name, pkg_name)
-            return
+            return None
 
         if not hasattr(mod, "cli"):
             logger.error("Command %s is not configured correctly. It must expose an function called 'cli'", cmd_name)
-            return
+            return None
 
         return mod.cli

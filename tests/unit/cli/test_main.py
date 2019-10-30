@@ -1,4 +1,4 @@
-import mock
+from unittest.mock import patch, Mock, PropertyMock
 
 from unittest import TestCase
 from click.testing import CliRunner
@@ -11,8 +11,8 @@ class TestCliBase(TestCase):
         Just invoke the CLI without any commands and assert that help text was printed
         :return:
         """
-        mock_cfg = mock.Mock()
-        with mock.patch("samcli.cli.main.global_cfg", mock_cfg):
+        mock_cfg = Mock()
+        with patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, [])
             self.assertEqual(result.exit_code, 0)
@@ -21,25 +21,23 @@ class TestCliBase(TestCase):
 
     def test_cli_some_command(self):
 
-        mock_cfg = mock.Mock()
-        with mock.patch("samcli.cli.main.global_cfg", mock_cfg):
+        mock_cfg = Mock()
+        with patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, ["local", "generate-event", "s3"])
             self.assertEqual(result.exit_code, 0)
 
     def test_cli_with_debug(self):
 
-        mock_cfg = mock.Mock()
-        with mock.patch("samcli.cli.main.global_cfg", mock_cfg):
+        mock_cfg = Mock()
+        with patch("samcli.cli.main.global_cfg", mock_cfg):
             runner = CliRunner()
             result = runner.invoke(cli, ["local", "generate-event", "s3", "put", "--debug"])
             self.assertEqual(result.exit_code, 0)
 
-    @mock.patch("samcli.cli.main.send_installed_metric")
+    @patch("samcli.cli.main.send_installed_metric")
     def test_cli_enable_telemetry_with_prompt(self, send_installed_metric_mock):
-        with mock.patch(
-            "samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=mock.PropertyMock
-        ) as mock_flag:
+        with patch("samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock) as mock_flag:
             mock_flag.return_value = None
             runner = CliRunner()
             runner.invoke(cli, ["local", "generate-event", "s3"])
@@ -48,11 +46,9 @@ class TestCliBase(TestCase):
             # If telemetry is enabled, this should be called
             send_installed_metric_mock.assert_called_once()
 
-    @mock.patch("samcli.cli.main.send_installed_metric")
+    @patch("samcli.cli.main.send_installed_metric")
     def test_prompt_skipped_when_value_set(self, send_installed_metric_mock):
-        with mock.patch(
-            "samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=mock.PropertyMock
-        ) as mock_flag:
+        with patch("samcli.cli.global_config.GlobalConfig.telemetry_enabled", new_callable=PropertyMock) as mock_flag:
             mock_flag.return_value = True
             runner = CliRunner()
             runner.invoke(cli, ["local", "generate-event", "s3"])

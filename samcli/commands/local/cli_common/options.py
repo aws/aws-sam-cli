@@ -1,14 +1,11 @@
 """
 Common CLI options for invoke command
 """
+from pathlib import Path
 
 import click
-from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from samcli.commands._utils.options import template_click_option, docker_click_options, parameter_override_click_option
 
 
 def get_application_dir():
@@ -95,6 +92,8 @@ def invoke_common_options(f):
                 help="When specified, Lambda function container will start in debug mode and will expose this "
                 "port on localhost.",
                 envvar="SAM_DEBUG_PORT",
+                type=click.INT,
+                multiple=True,
             ),
             click.option(
                 "--debugger-path", help="Host path to a debugger that will be mounted into the Lambda container."

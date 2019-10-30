@@ -4,7 +4,7 @@ Configures a logger
 import logging
 
 
-class SamCliLogger(object):
+class SamCliLogger:
     @staticmethod
     def configure_logger(logger, formatter, level):
         """

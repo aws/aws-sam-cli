@@ -10,7 +10,7 @@ from requests.utils import quote
 from chevron import renderer
 
 
-class Events(object):
+class Events:
 
     """
     Events library class that loads and customizes event json files

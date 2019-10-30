@@ -9,11 +9,7 @@ import json
 from unittest import TestCase
 
 import docker
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import IS_WINDOWS

@@ -6,7 +6,7 @@ from unittest import TestCase
 
 from samcli.lib.utils.stream_writer import StreamWriter
 
-from mock import Mock
+from unittest.mock import Mock
 
 
 class TestStreamWriter(TestCase):

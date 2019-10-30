@@ -1,7 +1,7 @@
 import platform
 import requests
 
-from mock import patch, Mock, ANY
+from unittest.mock import patch, Mock, ANY
 from unittest import TestCase
 
 from samcli.lib.telemetry.telemetry import Telemetry

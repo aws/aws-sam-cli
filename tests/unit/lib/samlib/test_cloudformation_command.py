@@ -6,7 +6,7 @@ import os
 from subprocess import CalledProcessError, PIPE
 
 from unittest import TestCase
-from mock import patch, call, ANY
+from unittest.mock import patch, call, ANY
 
 from samcli.lib.samlib.cloudformation_command import execute_command, find_executable
 

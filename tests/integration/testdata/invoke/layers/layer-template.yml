@@ -27,6 +27,7 @@ Resources:
       Handler: layer-main.one_layer_hanlder
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: LayerOneArn
 
@@ -37,6 +38,7 @@ Resources:
       Handler: layer-main.one_layer_hanlder
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: ChangedLayerArn
 
@@ -46,6 +48,7 @@ Resources:
       Handler: layer-main.custom_layer_handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: MyCustomServerlessLayer
 
@@ -55,6 +58,7 @@ Resources:
       Handler: layer-main.custom_layer_handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: MyCustomLambdaLayer
 
@@ -64,6 +68,7 @@ Resources:
       Handler: layer-main.one_layer_hanlder
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: LayerOneArn
         - Ref: LayerTwoArn
@@ -75,6 +80,7 @@ Resources:
       Handler: layer-main.one_layer_hanlder
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: LayerOneArn
 
@@ -84,6 +90,7 @@ Resources:
       Handler: layer-main.one_layer_hanlder
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: ChangedLayerArn
 #
@@ -93,6 +100,7 @@ Resources:
       Handler: layer-main.custom_layer_handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: MyCustomServerlessLayer
 
@@ -102,6 +110,7 @@ Resources:
       Handler: layer-main.custom_layer_handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: MyCustomLambdaLayer
 
@@ -111,6 +120,7 @@ Resources:
       Handler: layer-main.one_layer_hanlder
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: LayerOneArn
         - Ref: LayerTwoArn
@@ -121,6 +131,7 @@ Resources:
       Handler: layer-main.handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - Ref: NonExistentLayerArn
 
@@ -130,6 +141,7 @@ Resources:
       Handler: layer-main.handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 20
       Layers:
         - arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:1
 

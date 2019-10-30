@@ -1,7 +1,7 @@
 import threading
 import shutil
 import random
-from mock import Mock
+from unittest.mock import Mock
 import time
 from unittest import TestCase
 import os
