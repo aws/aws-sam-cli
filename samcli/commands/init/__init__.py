@@ -51,8 +51,12 @@ Common usage:
     $ sam init --location /path/to/template/folder
 """
 
+
 @click.command(
-    "init", help=HELP_TEXT, short_help="Init an AWS SAM application.", context_settings=dict(help_option_names=["-h", "--help"])
+    "init",
+    help=HELP_TEXT,
+    short_help="Init an AWS SAM application.",
+    context_settings=dict(help_option_names=["-h", "--help"]),
 )
 @click.option(
     "--no-interactive",
