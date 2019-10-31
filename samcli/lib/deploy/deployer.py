@@ -21,12 +21,27 @@ import botocore
 import click
 import pytz
 
+from samcli.commands._utils.table_print import pprint
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
 
 LOG = logging.getLogger(__name__)
 
 ChangeSetResult = collections.namedtuple("ChangeSetResult", ["changeset_id", "changeset_type"])
+
+DESCRIBE_STACK_EVENTS_FORMAT_STRING = "{LogicalResourceId:<{0}} {ResourceType:<{1}} {ResourceStatus:<{2}}"
+DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = {
+    "LogicalResourceId": "LogicalResourceId",
+    "ResourceType": "ResourceType",
+    "ResourceStatus": "ResourceStatus",
+}
+
+DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}}"
+DESCRIBE_CHANGESET_DEFAULT_ARGS = {
+    "Operation": "Operation",
+    "LogicalResourceId": "LogicalResourceId",
+    "ResourceType": "ResourceType",
+}
 
 
 class Deployer:
@@ -140,7 +155,8 @@ class Deployer:
             LOG.debug("Unable to create changeset", exc_info=ex)
             raise ex
 
-    def describe_changeset(self, change_set_id, stack_name):
+    @pprint(format_string=DESCRIBE_CHANGESET_FORMAT_STRING, format_kwargs=DESCRIBE_CHANGESET_DEFAULT_ARGS)
+    def describe_changeset(self, change_set_id, stack_name, **kwargs):
         """
         Call Cloudformation to describe a changeset
 
@@ -159,6 +175,22 @@ class Deployer:
                 logical_id = resource_props.get("LogicalResourceId")
                 resource_type = resource_props.get("ResourceType")
                 changes[action].append({"LogicalResourceId": logical_id, "ResourceType": resource_type})
+
+        color = {"Add": "green", "Modify": "yellow", "Remove": "red"}
+        for k, v in changes.items():
+            for value in v:
+                click.secho(
+                    DESCRIBE_CHANGESET_FORMAT_STRING.format(
+                        *kwargs["format_args"],
+                        **{
+                            "Operation": k,
+                            "LogicalResourceId": value["LogicalResourceId"],
+                            "ResourceType": value["ResourceType"],
+                        },
+                    ),
+                    fg=color[k],
+                )
+
         return changes
 
     def wait_for_changeset(self, changeset_id, stack_name):
@@ -212,7 +244,8 @@ class Deployer:
         except KeyError:
             return pytz.utc.localize(datetime.utcnow())
 
-    def desribe_stack_events(self, stack_name, utc_now):
+    @pprint(format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING, format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS)
+    def describe_stack_events(self, stack_name, utc_now, **kwargs):
         """
         Calls CloudFormation to get current stack events
         :param stack_name: Name or ID of the stack
@@ -224,20 +257,6 @@ class Deployer:
 
         time.sleep(1)
 
-        width, _ = click.get_terminal_size()
-        width = width - (width % 3)
-        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
-        click.secho(
-            "{LogicalResourceId:<{lr_w}} {ResourceType:<{rt_w}} {ResourceStatus:<{rs_w}}".format(
-                LogicalResourceId="LogicalResourceId",
-                ResourceType="ResourceType",
-                ResourceStatus="ResourceStatus",
-                lr_w=int(width / 3),
-                rt_w=int(width / 3),
-                rs_w=int(width / 3) - 1,
-            )
-        )
-        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
         while stack_change_in_progress:
             describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
             if (
@@ -251,25 +270,23 @@ class Deployer:
                 if event["EventId"] not in events and event["Timestamp"] > utc_now:
                     events.add(event["EventId"])
                     click.secho(
-                        "{LogicalResourceId:<{lr_w}} {ResourceType:<{rt_w}} {ResourceStatus:<{rs_w}}".format(
-                            LogicalResourceId=event["LogicalResourceId"],
-                            ResourceType=event["ResourceType"],
-                            ResourceStatus=event["ResourceStatus"],
-                            lr_w=int(width / 3),
-                            rt_w=int(width / 3),
-                            rs_w=(int(width / 3) - 1),
+                        DESCRIBE_STACK_EVENTS_FORMAT_STRING.format(
+                            *kwargs["format_args"],
+                            **{
+                                "LogicalResourceId": event["LogicalResourceId"],
+                                "ResourceType": event["ResourceType"],
+                                "ResourceStatus": event["ResourceStatus"],
+                            },
                         ),
                         fg="yellow",
                     )
-
-        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
 
     def wait_for_execute(self, stack_name, changeset_type):
 
         sys.stdout.write("Waiting for stack create/update to complete\n")
         sys.stdout.flush()
 
-        self.desribe_stack_events(stack_name, self.get_last_event_time(stack_name))
+        self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
 
         # Pick the right waiter
         if changeset_type == "CREATE":
@@ -298,35 +315,5 @@ class Deployer:
             stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
         )
         self.wait_for_changeset(result["Id"], stack_name)
-        changes = self.describe_changeset(result["Id"], stack_name)
-        width, _ = click.get_terminal_size()
-        width = width - (width % 3)
-        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
-        click.secho(
-            "{Operation:<{lr_w}} {LogicalResourceId:<{rt_w}} {ResourceType:<{rs_w}}".format(
-                Operation="Operation",
-                LogicalResourceId="LogicalResourceId",
-                ResourceType="ResourceType",
-                lr_w=int(width / 3),
-                rt_w=int(width / 3),
-                rs_w=int(width / 3) - 1,
-            )
-        )
-        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
-        color = {"Add": "green", "Modify": "yellow", "Remove": "red"}
-        for k, v in changes.items():
-            for value in v:
-                click.secho(
-                    "{Operation:<{lr_w}} {LogicalResourceId:<{rt_w}} {ResourceType:<{rs_w}}".format(
-                        Operation=k,
-                        LogicalResourceId=value["LogicalResourceId"],
-                        ResourceType=value["ResourceType"],
-                        lr_w=int(width / 3),
-                        rt_w=int(width / 3),
-                        rs_w=int(width / 3) - 1,
-                    ),
-                    fg=color[k],
-                )
-
-        click.secho("-" * (int(width / 3) + int(width / 3) + (int(width / 3) - 1)))
+        self.describe_changeset(result["Id"], stack_name)
         return result, changeset_type
