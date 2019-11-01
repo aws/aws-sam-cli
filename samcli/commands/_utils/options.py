@@ -8,7 +8,7 @@ from functools import partial
 
 import click
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, CfnCapabilitiesType
-from samcli.commands._utils.custom_options import OptionNargs
+from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"

@@ -48,3 +48,10 @@ class DeployBucketRequiredError(UserException):
         )
 
         super(DeployBucketRequiredError, self).__init__(message=message_fmt)
+
+
+class StackStatusError(UserException):
+    def __init__(self, ex):
+        self.ex = ex
+
+        super(StackStatusError, self).__init__(message=ex)

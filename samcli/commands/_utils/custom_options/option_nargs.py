@@ -1,14 +1,18 @@
+"""
+Custom Click options for multiple arguments
+"""
+
 import click
 
 
 class OptionNargs(click.Option):
     """
-    A custom option class that allows parsing for multiple arugments
+    A custom option class that allows parsing for multiple arguments
     for an option, when the number of arguments for an option are unknown.
     """
 
     def __init__(self, *args, **kwargs):
-        nargs = kwargs.pop("nargs", -1)
+        self.nargs = kwargs.pop("nargs", -1)
         super(OptionNargs, self).__init__(*args, **kwargs)
         self._previous_parser_process = None
         self._nargs_parser = None
@@ -36,7 +40,7 @@ class OptionNargs(click.Option):
         super(OptionNargs, self).add_to_parser(parser, ctx)
         for name in self.opts:
             # Get OptionParser object for current option
-            option_parser = parser._long_opt.get(name) or parser._short_opt.get(name)
+            option_parser = getattr(parser, "_long_opt").get(name) or getattr(parser, "_short_opt").get(name)
             if option_parser:
                 # Monkey patch `process` method for click.parser.Option class.
                 # This allows for setting multiple parsed values into current option arguments

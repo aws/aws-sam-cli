@@ -1,3 +1,7 @@
+"""
+Deploy a SAM stack
+"""
+
 # Copyright 2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You
@@ -24,7 +28,7 @@ from samcli.yamlhelper import yaml_parse
 LOG = logging.getLogger(__name__)
 
 
-class DeployContext(object):
+class DeployContext:
 
     MSG_NO_EXECUTE_CHANGESET = "Changeset created successfully. \n"
 
@@ -163,7 +167,7 @@ class DeployContext(object):
         if not isinstance(template_dict.get("Parameters", None), dict):
             return parameter_values
 
-        for key, value in template_dict["Parameters"].items():
+        for key, _ in template_dict["Parameters"].items():
 
             obj = {"ParameterKey": key}
 

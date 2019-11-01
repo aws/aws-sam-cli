@@ -29,14 +29,20 @@ class CfnParameterOverridesType(click.ParamType):
 
     def convert(self, value, param, ctx):
         result = {}
-        if not value:
+
+        # Empty tuple
+        if value == ("",):
             return result
 
         for val in value:
 
             try:
                 # NOTE(TheSriram): find the first regex that matched.
-                pattern = next(i for i in filter(lambda item: re.findall(item, val), self.ordered_pattern_match))
+                # Pylint is concerned that we are checking at the same `val` within the loop,
+                # but that is the point, so disabling it.
+                pattern = next(
+                    i for i in filter(lambda item: re.findall(item, val), self.ordered_pattern_match)
+                )  # pylint: disable=cell-var-from-loop
             except StopIteration:
                 return self.fail(
                     "{} is not in valid format. It must look something like '{}' or '{}'".format(
@@ -146,7 +152,8 @@ class CfnTags(click.ParamType):
     def convert(self, value, param, ctx):
         result = {}
         fail = False
-        if not value:
+        # Empty tuple
+        if value == ("",):
             return result
 
         for val in value:
@@ -184,7 +191,7 @@ class CfnCapabilitiesType(click.ParamType):
         for val in value:
             if val not in self.capabalities_enum:
                 self.fail(
-                    "{} is not valid formt. It must look something like '{}'".format(value, self.capabalities_enum),
+                    "{} is not valid format. It must look something like '{}'".format(value, self.capabalities_enum),
                     param,
                     ctx,
                 )

@@ -1,3 +1,7 @@
+"""
+Cloudformation deploy class which also streams events and changeset information
+"""
+
 # Copyright 2012-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You
@@ -11,6 +15,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import textwrap
 import collections
 import logging
 import sys
@@ -21,6 +26,7 @@ import botocore
 import click
 import pytz
 
+from samcli.commands.deploy.exceptions import StackStatusError
 from samcli.commands._utils.table_print import pprint
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
@@ -29,11 +35,14 @@ LOG = logging.getLogger(__name__)
 
 ChangeSetResult = collections.namedtuple("ChangeSetResult", ["changeset_id", "changeset_type"])
 
-DESCRIBE_STACK_EVENTS_FORMAT_STRING = "{LogicalResourceId:<{0}} {ResourceType:<{1}} {ResourceStatus:<{2}}"
+DESCRIBE_STACK_EVENTS_FORMAT_STRING = (
+    "{ResourceStatus:<{0}} {ResourceType:<{1}} {LogicalResourceId:<{2}} {ResourceStatusReason:<{3}}"
+)
 DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = {
     "LogicalResourceId": "LogicalResourceId",
     "ResourceType": "ResourceType",
     "ResourceStatus": "ResourceStatus",
+    "ResourceStatusReason": "ResourceStatusReason",
 }
 
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}}"
@@ -43,11 +52,14 @@ DESCRIBE_CHANGESET_DEFAULT_ARGS = {
     "ResourceType": "ResourceType",
 }
 
+CF_API_SLEEP = 0.5
+
 
 class Deployer:
     def __init__(self, cloudformation_client, changeset_prefix="samcli-cloudformation-package-deploy-"):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
+        self.color = {"Add": "green", "Modify": "yellow", "Remove": "red"}
 
     def has_stack(self, stack_name):
         """
@@ -74,15 +86,14 @@ class Deployer:
             # If a stack does not exist, describe_stacks will throw an
             # exception. Unfortunately we don't have a better way than parsing
             # the exception msg to understand the nature of this exception.
-            msg = str(e)
 
-            if "Stack with id {0} does not exist".format(stack_name) in msg:
-                LOG.debug("Stack with id {0} does not exist".format(stack_name))
+            if "Stack with id {0} does not exist".format(stack_name) in str(e):
+                LOG.debug("Stack with id %s does not exist", stack_name)
                 return False
-            else:
-                # We don't know anything about this exception. Don't handle
-                LOG.debug("Unable to get stack details.", exc_info=e)
-                raise e
+
+            # We don't know anything about this exception. Don't handle
+            LOG.debug("Unable to get stack details.", exc_info=e)
+            raise e
 
     def create_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
@@ -97,12 +108,6 @@ class Deployer:
         :param tags: Array of tags passed to CloudFormation
         :return:
         """
-
-        now = datetime.utcnow().isoformat()
-        description = "Created by SAM CLI at {0} UTC".format(now)
-
-        # Each changeset will get a unique name based on time
-        changeset_name = self.changeset_prefix + str(int(time.time()))
 
         if not self.has_stack(stack_name):
             changeset_type = "CREATE"
@@ -121,14 +126,16 @@ class Deployer:
                 if not (x.get("UsePreviousValue", False) and x["ParameterKey"] not in existing_parameters)
             ]
 
+        # Each changeset will get a unique name based on time.
+        # Description is also setup based on current date and that SAM CLI is used.
         kwargs = {
-            "ChangeSetName": changeset_name,
+            "ChangeSetName": self.changeset_prefix + str(int(time.time())),
             "StackName": stack_name,
             "TemplateBody": cfn_template,
             "ChangeSetType": changeset_type,
             "Parameters": parameter_values,
             "Capabilities": capabilities,
-            "Description": description,
+            "Description": "Created by SAM CLI at {0} UTC".format(datetime.utcnow().isoformat()),
             "Tags": tags,
         }
 
@@ -138,9 +145,11 @@ class Deployer:
             with mktempfile() as temporary_file:
                 temporary_file.write(kwargs.pop("TemplateBody"))
                 temporary_file.flush()
-                url = s3_uploader.upload_with_dedup(temporary_file.name, "template")
+
                 # TemplateUrl property requires S3 URL to be in path-style format
-                parts = parse_s3_url(url, version_property="Version")
+                parts = parse_s3_url(
+                    s3_uploader.upload_with_dedup(temporary_file.name, "template"), version_property="Version"
+                )
                 kwargs["TemplateURL"] = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
         # don't set these arguments if not specified to use existing values
@@ -172,11 +181,13 @@ class Deployer:
             for change in cf_changes:
                 resource_props = change.get("ResourceChange")
                 action = resource_props.get("Action")
-                logical_id = resource_props.get("LogicalResourceId")
-                resource_type = resource_props.get("ResourceType")
-                changes[action].append({"LogicalResourceId": logical_id, "ResourceType": resource_type})
+                changes[action].append(
+                    {
+                        "LogicalResourceId": resource_props.get("LogicalResourceId"),
+                        "ResourceType": resource_props.get("ResourceType"),
+                    }
+                )
 
-        color = {"Add": "green", "Modify": "yellow", "Remove": "red"}
         for k, v in changes.items():
             for value in v:
                 click.secho(
@@ -188,7 +199,7 @@ class Deployer:
                             "ResourceType": value["ResourceType"],
                         },
                     ),
-                    fg=color[k],
+                    fg=self.color[k],
                 )
 
         return changes
@@ -239,6 +250,11 @@ class Deployer:
         return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
 
     def get_last_event_time(self, stack_name):
+        """
+        Finds the last event time stamp thats present for the stack, if not get the current time
+        :param stack_name: Name or ID of the stack
+        :return: datetime object
+        """
         try:
             return self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
         except KeyError:
@@ -255,20 +271,22 @@ class Deployer:
         stack_change_in_progress = True
         events = set()
 
-        time.sleep(1)
-
         while stack_change_in_progress:
             describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
-            if (
-                "COMPLETE" in describe_stacks_resp["Stacks"][0]["StackStatus"]
-                and "CLEANUP" not in describe_stacks_resp["Stacks"][0]["StackStatus"]
-            ):
-                stack_change_in_progress = False
             describe_stack_events_resp = self._client.describe_stack_events(StackName=stack_name)
-            time.sleep(0.1)
+            time.sleep(CF_API_SLEEP)
             for event in describe_stack_events_resp["StackEvents"]:
                 if event["EventId"] not in events and event["Timestamp"] > utc_now:
                     events.add(event["EventId"])
+                    resource_status = event.get("ResourceStatusReason", "-")
+                    # Resource status can span multiple lines and formatting of string does not work well then,
+                    # so we construct wrapped text.
+                    # TODO: Move string formatting logic to own class
+                    multi_line_resource_status = [
+                        textwrap.indent(line, prefix="  " + " " * kwargs["last_width"])
+                        for line in textwrap.wrap(resource_status, width=kwargs["width"])
+                    ]
+
                     click.secho(
                         DESCRIBE_STACK_EVENTS_FORMAT_STRING.format(
                             *kwargs["format_args"],
@@ -276,10 +294,20 @@ class Deployer:
                                 "LogicalResourceId": event["LogicalResourceId"],
                                 "ResourceType": event["ResourceType"],
                                 "ResourceStatus": event["ResourceStatus"],
+                                "ResourceStatusReason": multi_line_resource_status[0].strip(),
                             },
                         ),
                         fg="yellow",
                     )
+                    # If resource status spans multiple lines, use click to echo the rest.
+                    for message in multi_line_resource_status[1:]:
+                        click.secho(message, fg="yellow")
+
+            if (
+                "COMPLETE" in describe_stacks_resp["Stacks"][0]["StackStatus"]
+                and "CLEANUP" not in describe_stacks_resp["Stacks"][0]["StackStatus"]
+            ):
+                stack_change_in_progress = False
 
     def wait_for_execute(self, stack_name, changeset_type):
 
@@ -310,10 +338,12 @@ class Deployer:
     def create_and_wait_for_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
     ):
-
-        result, changeset_type = self.create_changeset(
-            stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
-        )
-        self.wait_for_changeset(result["Id"], stack_name)
-        self.describe_changeset(result["Id"], stack_name)
-        return result, changeset_type
+        try:
+            result, changeset_type = self.create_changeset(
+                stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+            )
+            self.wait_for_changeset(result["Id"], stack_name)
+            self.describe_changeset(result["Id"], stack_name)
+            return result, changeset_type
+        except botocore.exceptions.ClientError as ex:
+            raise StackStatusError(ex)
