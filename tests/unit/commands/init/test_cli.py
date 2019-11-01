@@ -95,18 +95,14 @@ class TestCli(TestCase):
         # WHEN the user follows interactive init prompts
 
         # 1: selecting managed templates
+        # 3: ruby2.5 response to runtime
         # test-project: response to name
-        # ruby2.5: response to runtime
-        # bundler: response to dependency manager
         # N: Don't clone/update the source repo
-        # 1: First choice will always be the hello world example
         user_input = """
 1
+3
 test-project
-ruby2.5
-bundler
 N
-1
 .
         """
         runner = CliRunner()
@@ -130,15 +126,13 @@ N
     def test_init_cli_int_with_app_template(self, generate_project_patch, sd_mock):
         # WHEN the user follows interactive init prompts
 
+        # 3: ruby2.5 response to runtime
         # test-project: response to name
-        # ruby2.5: response to runtime
-        # bundler: response to dependency manager
         # N: Don't clone/update the source repo
         # .: output dir
         user_input = """
+3
 test-project
-ruby2.5
-bundler
 N
 .
         """

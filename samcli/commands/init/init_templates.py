@@ -32,24 +32,30 @@ class InitTemplates:
 
     def prompt_for_location(self, runtime, dependency_manager):
         options = self.init_options(runtime, dependency_manager)
-        choices = map(str, range(1, len(options) + 1))
-        choice_num = 1
-        for o in options:
-            if o.get("displayName") is not None:
-                msg = str(choice_num) + " - " + o.get("displayName")
-                click.echo(msg)
-            else:
-                msg = (
-                    str(choice_num)
-                    + " - Default Template for runtime "
-                    + runtime
-                    + " with dependency manager "
-                    + dependency_manager
-                )
-                click.echo(msg)
-            choice_num = choice_num + 1
-        choice = click.prompt("Template Selection", type=click.Choice(choices), show_choices=False)
-        template_md = options[int(choice) - 1]  # zero index
+        if len(options) is 1:
+            click.echo("Only supported template is " + options[0].get("displayName") + " - using that template.")
+            template_md = options[0]
+        else:
+            choices = list(map(str, range(1, len(options) + 1)))
+            choice_num = 1
+            click.echo("Which application template would you like to use?")
+            for o in options:
+                if o.get("displayName") is not None:
+                    msg = "\t" + str(choice_num) + " - " + o.get("displayName")
+                    click.echo(msg)
+                else:
+                    msg = (
+                        "\t"
+                        + str(choice_num)
+                        + " - Default Template for runtime "
+                        + runtime
+                        + " with dependency manager "
+                        + dependency_manager
+                    )
+                    click.echo(msg)
+                choice_num = choice_num + 1
+            choice = click.prompt("Template Selection", type=click.Choice(choices), show_choices=False)
+            template_md = options[int(choice) - 1]  # zero index
         if template_md.get("init_location") is not None:
             return template_md["init_location"]
         if template_md.get("directory") is not None:
@@ -150,7 +156,7 @@ class InitTemplates:
         path = Path(expected_path)
         if path.exists():
             if not self._no_interactive:
-                overwrite = click.confirm("Init templates exist on disk. Do you wish to update?")
+                overwrite = click.confirm("Init templates exist on disk. Do you wish to update?", default=True)
                 if overwrite:
                     shutil.rmtree(expected_path)  # fail hard if there is an issue
                     return True
@@ -160,6 +166,7 @@ class InitTemplates:
         if self._no_interactive:
             return self._auto_clone
         do_clone = click.confirm(
-            "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?"
+            "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?",
+            default=True,
         )
         return do_clone
