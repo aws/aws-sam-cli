@@ -33,12 +33,16 @@ class InitTemplates:
     def prompt_for_location(self, runtime, dependency_manager):
         options = self.init_options(runtime, dependency_manager)
         if len(options) is 1:
-            click.echo("Only supported template is " + options[0].get("displayName") + " - using that template.")
+            option = options[0]
+            if option.get("displayName") is not None:
+                click.echo("\nOnly supported template is " + option.get("displayName") + " - using that template.")
+            else:
+                click.echo("\nUsing default template for " + runtime + " " + dependency_manager)
             template_md = options[0]
         else:
             choices = list(map(str, range(1, len(options) + 1)))
             choice_num = 1
-            click.echo("Which application template would you like to use?")
+            click.echo("\nWhich application template would you like to use?")
             for o in options:
                 if o.get("displayName") is not None:
                     msg = "\t" + str(choice_num) + " - " + o.get("displayName")
@@ -166,7 +170,7 @@ class InitTemplates:
         if self._no_interactive:
             return self._auto_clone
         do_clone = click.confirm(
-            "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?",
+            "\nThis process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?",
             default=True,
         )
         return do_clone

@@ -12,6 +12,7 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
     if app_template:
         location_opt_choice = "1"
     else:
+        click.echo("You can use an AWS-managed application template, or provide your own custom source location. Which would you like to do?")
         click.echo("\t1 - Use an AWS-managed Application Template\n\t2 - Provide a Custom Template Location")
         location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), show_choices=False)
     if location_opt_choice == "2":
@@ -21,9 +22,7 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
 
 
 def _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
-    location = click.prompt("Template location (git, mercurial, http(s), zip, path)", type=str)
-    if not output_dir:
-        output_dir = click.prompt("Output Directory", type=click.Path(), default=".")
+    location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, None)
 
 
@@ -32,7 +31,7 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
     if not runtime:
         choices = list(map(str, range(1, len(INIT_RUNTIMES) + 1)))
         choice_num = 1
-        click.echo("Which runtime would you like to use?")
+        click.echo("\nWhich runtime would you like to use?")
         for r in INIT_RUNTIMES:
             msg = "\t" + str(choice_num) + " - " + r
             click.echo(msg)
@@ -45,17 +44,17 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
             dependency_manager = None
         elif len(valid_dep_managers) is 1:
             dependency_manager = valid_dep_managers[0]
-            click.echo("Only one valid dependency manager, using " + dependency_manager)
+            click.echo("\nOnly one valid dependency manager, using " + dependency_manager)
         else:
             choices = list(map(str, range(1, len(valid_dep_managers) + 1)))
             choice_num = 1
-            click.echo("Which dependency manager would you like to use?")
+            click.echo("\nWhich dependency manager would you like to use?")
             for dm in valid_dep_managers:
                 msg = "\t" + str(choice_num) + " - " + dm
                 click.echo(msg)
                 choice_num = choice_num + 1
             choice = click.prompt(
-                "Dependency Manager", type=click.Choice(choices), default="1", show_choices=False
+                "Dependency Manager", type=click.Choice(choices), show_choices=False
             )
             dependency_manager = valid_dep_managers[int(choice) - 1] # zero index
     if not name:
@@ -68,12 +67,4 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
         location = templates.prompt_for_location(runtime, dependency_manager)
         extra_context = {"project_name": name, "runtime": runtime}
     no_input = True
-    if not output_dir:
-        click.echo(
-            "The AWS SAM CLI defaults to creating your project in the current working directory, with the folder name matching your project name, for e.g. ./"
-            + name
-            + "\nChange the output_dir value to set a different root directory. For example, if the output dir is /tmp we will write the project to /tmp/"
-            + name
-        )
-        output_dir = click.prompt("Output Directory", type=click.Path(), default=".")
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)

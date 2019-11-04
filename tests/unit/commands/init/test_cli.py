@@ -103,7 +103,6 @@ class TestCli(TestCase):
 3
 test-project
 N
-.
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
@@ -138,7 +137,6 @@ N
 2
 test-project
 N
-.
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
@@ -164,12 +162,10 @@ N
         # 3: ruby2.5 response to runtime
         # test-project: response to name
         # N: Don't clone/update the source repo
-        # .: output dir
         user_input = """
 3
 test-project
 N
-.
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, ["--app-template", "hello-world"], input=user_input)
@@ -194,11 +190,9 @@ N
 
         # 2: selecting custom location
         # foo: the "location"
-        # output/: the "output dir"
         user_input = """
 2
 foo
-output/
         """
 
         runner = CliRunner()
@@ -211,7 +205,7 @@ output/
             "foo",
             None,
             None,
-            "output/",
+            ".",
             None,
             False,
             None,

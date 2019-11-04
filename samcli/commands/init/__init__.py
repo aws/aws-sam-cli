@@ -74,7 +74,7 @@ Common usage:
     help="Dependency manager of your Lambda runtime",
     required=False,
 )
-@click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into")
+@click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into", default=".")
 @click.option("-n", "--name", help="Name of your project to be generated as a folder")
 @click.option(
     "--app-template",
