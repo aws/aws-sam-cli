@@ -39,7 +39,6 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
             choice_num = choice_num + 1
         choice = click.prompt("Runtime", type=click.Choice(choices), show_choices=False)
         runtime = INIT_RUNTIMES[int(choice) - 1]  # zero index
-        click.echo("Selected: " + runtime)
     if not dependency_manager:
         valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
         if valid_dep_managers is None:
@@ -48,10 +47,17 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
             dependency_manager = valid_dep_managers[0]
             click.echo("Only one valid dependency manager, using " + dependency_manager)
         else:
-            dependency_manager = click.prompt(
-                "Dependency Manager", type=click.Choice(valid_dep_managers), default=valid_dep_managers[0]
+            choices = list(map(str, range(1, len(valid_dep_managers) + 1)))
+            choice_num = 1
+            click.echo("Which dependency manager would you like to use?")
+            for dm in valid_dep_managers:
+                msg = "\t" + str(choice_num) + " - " + dm
+                click.echo(msg)
+                choice_num = choice_num + 1
+            choice = click.prompt(
+                "Dependency Manager", type=click.Choice(choices), default="1", show_choices=False
             )
-            click.echo("Selected " + dependency_manager + " as dependency manager.")
+            dependency_manager = valid_dep_managers[int(choice) - 1] # zero index
     if not name:
         name = click.prompt("Project Name", type=str, default="sam-app")
     templates = InitTemplates()
