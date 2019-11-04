@@ -33,16 +33,11 @@ class InitTemplates:
     def prompt_for_location(self, runtime, dependency_manager):
         options = self.init_options(runtime, dependency_manager)
         if len(options) is 1:
-            option = options[0]
-            if option.get("displayName") is not None:
-                click.echo("\nOnly supported template is " + option.get("displayName") + " - using that template.")
-            else:
-                click.echo("\nUsing default template for " + runtime + " " + dependency_manager)
             template_md = options[0]
         else:
             choices = list(map(str, range(1, len(options) + 1)))
             choice_num = 1
-            click.echo("\nWhich application template would you like to use?")
+            click.echo("\nAWS quick start application templates:")
             for o in options:
                 if o.get("displayName") is not None:
                     msg = "\t" + str(choice_num) + " - " + o.get("displayName")
@@ -61,9 +56,9 @@ class InitTemplates:
             choice = click.prompt("Template Selection", type=click.Choice(choices), show_choices=False)
             template_md = options[int(choice) - 1]  # zero index
         if template_md.get("init_location") is not None:
-            return template_md["init_location"]
+            return (template_md["init_location"], "hello-world")
         if template_md.get("directory") is not None:
-            return os.path.join(self.repo_path, template_md["directory"])
+            return (os.path.join(self.repo_path, template_md["directory"]), template_md["appTemplate"])
         raise UserException("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, runtime, dependency_manager, app_template):

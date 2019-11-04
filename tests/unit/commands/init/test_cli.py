@@ -120,7 +120,6 @@ N
             {"project_name": "test-project", "runtime": "ruby2.5"},
         )
 
-
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_interactive_multiple_dep_mgrs(self, generate_project_patch, sd_mock):

@@ -12,8 +12,10 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
     if app_template:
         location_opt_choice = "1"
     else:
-        click.echo("You can use an AWS-managed application template, or provide your own custom source location. Which would you like to do?")
-        click.echo("\t1 - Use an AWS-managed Application Template\n\t2 - Provide a Custom Template Location")
+        click.echo(
+            "Which template source would you like to use?"
+        )
+        click.echo("\t1 - AWS Quick Start Templates\n\t2 - Custom Template Location")
         location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), show_choices=False)
     if location_opt_choice == "2":
         _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
@@ -23,6 +25,20 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
 
 def _generate_from_location(location, runtime, dependency_manager, output_dir, name, app_template, no_input):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
+    summary_msg = """
+-----------------------
+Generating application:
+-----------------------
+Location: {location}
+Output Directory: {output_dir}
+
+To do this without interactive prompts, you can run:
+
+    sam init --location {location} --output-dir {output_dir}
+    """.format(
+        location=location, output_dir=output_dir
+    )
+    click.echo(summary_msg)
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, None)
 
 
@@ -44,7 +60,6 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
             dependency_manager = None
         elif len(valid_dep_managers) is 1:
             dependency_manager = valid_dep_managers[0]
-            click.echo("\nOnly one valid dependency manager, using " + dependency_manager)
         else:
             choices = list(map(str, range(1, len(valid_dep_managers) + 1)))
             choice_num = 1
@@ -53,10 +68,8 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
                 msg = "\t" + str(choice_num) + " - " + dm
                 click.echo(msg)
                 choice_num = choice_num + 1
-            choice = click.prompt(
-                "Dependency Manager", type=click.Choice(choices), show_choices=False
-            )
-            dependency_manager = valid_dep_managers[int(choice) - 1] # zero index
+            choice = click.prompt("Dependency Manager", type=click.Choice(choices), show_choices=False)
+            dependency_manager = valid_dep_managers[int(choice) - 1]  # zero index
     if not name:
         name = click.prompt("\nProject Name", type=str, default="sam-app")
     templates = InitTemplates()
@@ -64,7 +77,28 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
         location = templates.location_from_app_template(runtime, dependency_manager, app_template)
         extra_context = {"project_name": name, "runtime": runtime}
     else:
-        location = templates.prompt_for_location(runtime, dependency_manager)
+        location, app_template = templates.prompt_for_location(runtime, dependency_manager)
         extra_context = {"project_name": name, "runtime": runtime}
     no_input = True
+    summary_msg = """
+-----------------------
+Generating application:
+-----------------------
+Name: {name}
+Runtime: {runtime}
+Dependency Manager: {dependency_manager}
+Application Template: {app_template}
+Output Directory: {output_dir}
+
+To generate this without interactive prompts, you can run:
+
+    sam init --name {name} --runtime {runtime} --dependency-manager {dependency_manager} --app-template {app_template} --output-dir {output_dir}
+    """.format(
+        name=name,
+        runtime=runtime,
+        dependency_manager=dependency_manager,
+        app_template=app_template,
+        output_dir=output_dir,
+    )
+    click.echo(summary_msg)
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
