@@ -160,7 +160,7 @@ class InitTemplates:
         path = Path(expected_path)
         if path.exists():
             if not self._no_interactive:
-                overwrite = click.confirm("Init templates exist on disk. Do you wish to update?", default=True)
+                overwrite = click.confirm("\nInit templates exist on disk. Do you wish to update?", default=True)
                 if overwrite:
                     shutil.rmtree(expected_path)  # fail hard if there is an issue
                     return True

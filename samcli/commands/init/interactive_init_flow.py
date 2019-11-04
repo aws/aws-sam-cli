@@ -58,7 +58,7 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
             )
             dependency_manager = valid_dep_managers[int(choice) - 1] # zero index
     if not name:
-        name = click.prompt("Project Name", type=str, default="sam-app")
+        name = click.prompt("\nProject Name", type=str, default="sam-app")
     templates = InitTemplates()
     if app_template is not None:
         location = templates.location_from_app_template(runtime, dependency_manager, app_template)
