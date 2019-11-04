@@ -21,7 +21,8 @@ class TestCli(TestCase):
         self.name = "testing project"
         self.app_template = "hello-world"
         self.no_input = False
-        self.extra_context = {"project_name": "testing project", "runtime": "python3.6"}
+        self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
+        self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
 
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -219,6 +220,7 @@ output/
                 name=self.name,
                 app_template="fails-anyways",
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -244,9 +246,91 @@ output/
                 name=self.name,
                 app_template=None,
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
             generate_project_patch.assert_called_with(
                 self.location, self.runtime, self.dependency_manager, self.output_dir, self.name, self.no_input
             )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_parameter_not_passed(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context=None,
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            ANY, self.runtime, self.dependency_manager, ".", self.name, True, self.extra_context_as_json
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_parameter_passed(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context='{"schema_name":"events", "schema_type":"aws"}',
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            self.runtime,
+            self.dependency_manager,
+            ".",
+            self.name,
+            True,
+            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_not_overriding_default_parameter(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type":"aws"}',
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            self.runtime,
+            self.dependency_manager,
+            ".",
+            self.name,
+            True,
+            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+        )

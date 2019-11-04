@@ -101,6 +101,32 @@ class TestBasicInitCommand(TestCase):
             self.assertEqual(return_code, 0)
             self.assertTrue(os.path.isdir(temp + "/sam-app-gradle"))
 
+    def test_init_command_with_extra_context_parameter(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    TestBasicInitCommand._get_command(),
+                    "init",
+                    "--runtime",
+                    "java8",
+                    "--dependency-manager",
+                    "maven",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app-maven",
+                    "--no-interactive",
+                    "--extra_context",
+                    '{"schema_name": "codedeploy", "schema_type": "aws"}',
+                    "-o",
+                    temp,
+                ]
+            )
+            return_code = process.wait()
+
+            self.assertEqual(return_code, 0)
+            self.assertTrue(os.path.isdir(temp + "/sam-app-maven"))
+
     @staticmethod
     def _get_command():
         command = "sam"

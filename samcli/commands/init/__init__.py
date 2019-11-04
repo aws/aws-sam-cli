@@ -3,7 +3,7 @@
 Init command to scaffold a project app from a template
 """
 import logging
-
+import json
 import click
 
 from samcli.cli.main import pass_context, common_options, global_cfg
@@ -86,12 +86,32 @@ Common usage:
     default=False,
     help="Disable Cookiecutter prompting and accept default values defined template config",
 )
+@click.option(
+    "--extra_context",
+    default=None,
+    help="Override any custom parameters in the template's cookiecutter.json configuration e.g. "
+    ""
+    '{"customParam1": "customValue1", "customParam2":"customValue2"}'
+    """ """,
+    required=False,
+)
 @common_options
 @pass_context
 @track_command
-def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input):
+def cli(
+    ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input, extra_context
+):
     do_cli(
-        ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input
+        ctx,
+        no_interactive,
+        location,
+        runtime,
+        dependency_manager,
+        output_dir,
+        name,
+        app_template,
+        no_input,
+        extra_context,
     )  # pragma: no cover
 
 
@@ -106,6 +126,7 @@ def do_cli(
     name,
     app_template,
     no_input,
+    extra_context,
     auto_clone=True,
 ):
     from samcli.commands.exceptions import UserException
@@ -131,7 +152,16 @@ You can run 'sam init' without any options for an interactive initialization flo
             templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
-            extra_context = {"project_name": name, "runtime": runtime}
+            default_context = {"project_name": name, "runtime": runtime}
+            if extra_context is None:
+                extra_context = default_context
+            else:
+                merged_context = default_context.copy()
+                extra_context_dict = json.loads(extra_context)
+                for key in extra_context_dict:
+                    if key not in ("project_name", "runtime"):
+                        merged_context.update({key: extra_context_dict[key]})
+                extra_context = merged_context
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
