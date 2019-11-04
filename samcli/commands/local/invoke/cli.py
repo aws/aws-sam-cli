@@ -8,6 +8,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 LOG = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ STDIN_FILE_NAME = "-"
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options
+@configuration_option(provider=TomlProvider(section="local_invoke"))
 @click.argument("function_identifier", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914

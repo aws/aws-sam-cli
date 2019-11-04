@@ -10,9 +10,11 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
+@configuration_option(provider=TomlProvider(section="validate"))
 @template_option_without_build
 @aws_creds_options
 @cli_framework_options

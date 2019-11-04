@@ -11,6 +11,7 @@ from samcli.cli.main import pass_context, common_options as cli_framework_option
 from samcli.commands._utils.options import template_common_option
 from samcli.commands._utils.template import get_template_data
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ SEMANTIC_VERSION = "SemanticVersion"
 
 
 @click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
+@configuration_option(provider=TomlProvider(section="publish"))
 @template_common_option
 @click.option("--semantic-version", help=SEMANTIC_VERSION_HELP)
 @aws_creds_options
