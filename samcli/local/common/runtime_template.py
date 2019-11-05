@@ -34,13 +34,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True,
-        },
-        {
-            "runtimes": ["nodejs6.10"],
-            "dependency_manager": "npm",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs6"),
-            "build": True,
-        },
+        }
     ],
     "dotnet": [
         {
@@ -81,7 +75,6 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "ruby2.5": ["bundler"],
     "nodejs10.x": ["npm"],
     "nodejs8.10": ["npm"],
-    "nodejs6.10": ["npm"],
     "dotnetcore2.1": ["cli-package"],
     "dotnetcore2.0": ["cli-package"],
     "dotnetcore1.0": ["cli-package"],
