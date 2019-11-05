@@ -337,3 +337,22 @@ output/
             True,
             {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
         )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_input_as_wrong_json_raises_exception(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                location=self.location,
+                runtime=self.runtime,
+                dependency_manager=self.dependency_manager,
+                output_dir=self.output_dir,
+                name=self.name,
+                app_template=self.app_template,
+                no_input=self.no_input,
+                extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
+                auto_clone=False,
+            )

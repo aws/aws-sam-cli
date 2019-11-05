@@ -4,6 +4,8 @@ Init command to scaffold a project app from a template
 """
 import logging
 import json
+from json import JSONDecodeError
+
 import click
 
 from samcli.cli.main import pass_context, common_options, global_cfg
@@ -156,7 +158,12 @@ You can run 'sam init' without any options for an interactive initialization flo
                 extra_context = default_context
             else:
                 merged_context = default_context.copy()
-                extra_context_dict = json.loads(extra_context)
+                try:
+                    extra_context_dict = json.loads(extra_context)
+                except JSONDecodeError:
+                    raise UserException(
+                        "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
+                    )
                 for key in extra_context_dict:
                     if key not in ("project_name", "runtime"):
                         merged_context.update({key: extra_context_dict[key]})
