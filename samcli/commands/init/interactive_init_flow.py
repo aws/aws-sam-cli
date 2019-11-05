@@ -12,9 +12,7 @@ def do_interactive(location, runtime, dependency_manager, output_dir, name, app_
     if app_template:
         location_opt_choice = "1"
     else:
-        click.echo(
-            "Which template source would you like to use?"
-        )
+        click.echo("Which template source would you like to use?")
         click.echo("\t1 - AWS Quick Start Templates\n\t2 - Custom Template Location")
         location_opt_choice = click.prompt("Choice", type=click.Choice(["1", "2"]), show_choices=False)
     if location_opt_choice == "2":
@@ -68,10 +66,10 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
                 msg = "\t" + str(choice_num) + " - " + dm
                 click.echo(msg)
                 choice_num = choice_num + 1
-            choice = click.prompt("Dependency Manager", type=click.Choice(choices), show_choices=False)
+            choice = click.prompt("Dependency manager", type=click.Choice(choices), show_choices=False)
             dependency_manager = valid_dep_managers[int(choice) - 1]  # zero index
     if not name:
-        name = click.prompt("\nProject Name", type=str, default="sam-app")
+        name = click.prompt("\nProject name", type=str, default="sam-app")
     templates = InitTemplates()
     if app_template is not None:
         location = templates.location_from_app_template(runtime, dependency_manager, app_template)
@@ -90,9 +88,11 @@ Dependency Manager: {dependency_manager}
 Application Template: {app_template}
 Output Directory: {output_dir}
 
-To generate this without interactive prompts, you can run:
+Non-interactive init command with parameters:
 
     sam init --name {name} --runtime {runtime} --dependency-manager {dependency_manager} --app-template {app_template} --output-dir {output_dir}
+
+Next steps can be found in the README file at {output_dir}/{name}/README.md
     """.format(
         name=name,
         runtime=runtime,

@@ -53,7 +53,7 @@ class InitTemplates:
                     )
                     click.echo(msg)
                 choice_num = choice_num + 1
-            choice = click.prompt("Template Selection", type=click.Choice(choices), show_choices=False)
+            choice = click.prompt("Template selection", type=click.Choice(choices), show_choices=False)
             template_md = options[int(choice) - 1]  # zero index
         if template_md.get("init_location") is not None:
             return (template_md["init_location"], "hello-world")
@@ -155,7 +155,9 @@ class InitTemplates:
         path = Path(expected_path)
         if path.exists():
             if not self._no_interactive:
-                overwrite = click.confirm("\nInit templates exist on disk. Do you wish to update?", default=True)
+                overwrite = click.confirm(
+                    "\nQuick start templates may have been updated. Do you want to re-download the latest", default=True
+                )
                 if overwrite:
                     shutil.rmtree(expected_path)  # fail hard if there is an issue
                     return True
@@ -165,7 +167,6 @@ class InitTemplates:
         if self._no_interactive:
             return self._auto_clone
         do_clone = click.confirm(
-            "\nThis process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?",
-            default=True,
+            "\nAllow SAM CLI to download AWS-provided quick start templates from Github", default=True
         )
         return do_clone
