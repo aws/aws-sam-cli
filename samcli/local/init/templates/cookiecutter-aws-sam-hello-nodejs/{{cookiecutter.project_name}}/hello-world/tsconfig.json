@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2017",
+    "checkJs": true,
+    "allowJs": true,
+    "noEmit": true
+  },
+  "exclude": ["**/node_modules", "tests/**"]
+}
