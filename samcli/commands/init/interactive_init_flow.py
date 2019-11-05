@@ -40,6 +40,7 @@ To do this without interactive prompts, you can run:
     do_generate(location, runtime, dependency_manager, output_dir, name, no_input, None)
 
 
+# pylint: disable=too-many-statements
 def _generate_from_app_template(location, runtime, dependency_manager, output_dir, name, app_template):
     extra_context = None
     if not runtime:
@@ -56,7 +57,7 @@ def _generate_from_app_template(location, runtime, dependency_manager, output_di
         valid_dep_managers = RUNTIME_TO_DEPENDENCY_MANAGERS.get(runtime)
         if valid_dep_managers is None:
             dependency_manager = None
-        elif len(valid_dep_managers) is 1:
+        elif len(valid_dep_managers) == 1:
             dependency_manager = valid_dep_managers[0]
         else:
             choices = list(map(str, range(1, len(valid_dep_managers) + 1)))

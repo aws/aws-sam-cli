@@ -32,7 +32,7 @@ class InitTemplates:
 
     def prompt_for_location(self, runtime, dependency_manager):
         options = self.init_options(runtime, dependency_manager)
-        if len(options) is 1:
+        if len(options) == 1:
             template_md = options[0]
         else:
             choices = list(map(str, range(1, len(options) + 1)))
