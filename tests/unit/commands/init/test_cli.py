@@ -1,7 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
-import click
 from click.testing import CliRunner
 
 from samcli.commands.init import cli as init_cmd
@@ -39,6 +38,7 @@ class TestCli(TestCase):
             name=self.name,
             app_template=self.app_template,
             no_input=self.no_input,
+            extra_context=None,
             auto_clone=False,
         )
 
@@ -51,7 +51,7 @@ class TestCli(TestCase):
             self.output_dir,
             self.name,
             True,
-            self.extra_context,
+            self.extra_context_as_json,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
@@ -69,6 +69,7 @@ class TestCli(TestCase):
                 name=self.name,
                 app_template="wrong-and-bad",
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -87,6 +88,7 @@ class TestCli(TestCase):
                 name=self.name,
                 app_template=self.app_template,
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -203,6 +205,7 @@ output/
                 name=None,
                 app_template=None,
                 no_input=True,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -320,7 +323,7 @@ output/
             name=self.name,
             app_template=self.app_template,
             no_input=self.no_input,
-            extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type":"aws"}',
+            extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
             auto_clone=False,
         )
 

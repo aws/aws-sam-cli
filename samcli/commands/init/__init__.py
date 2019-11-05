@@ -147,7 +147,6 @@ You can run 'sam init' without any options for an interactive initialization flo
     # check for required parameters
     if location or (name and runtime and dependency_manager and app_template):
         # need to turn app_template into a location before we generate
-        extra_context = None
         if app_template:
             templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
