@@ -8,8 +8,8 @@ from parameterized import parameterized, param
 
 from samcli.commands._utils.template import (
     get_template_data,
-    _METADATA_WITH_LOCAL_PATHS,
-    _RESOURCES_WITH_LOCAL_PATHS,
+    METADATA_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_LOCAL_PATHS,
     _update_relative_paths,
     move_template,
 )
@@ -77,7 +77,7 @@ class Test_update_relative_paths(TestCase):
 
         self.expected_result = os.path.join("..", "foo", "bar")
 
-    @parameterized.expand([(resource_type, props) for resource_type, props in _METADATA_WITH_LOCAL_PATHS.items()])
+    @parameterized.expand([(resource_type, props) for resource_type, props in METADATA_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_metadata_paths(self, resource_type, properties):
 
         for propname in properties:
@@ -96,7 +96,7 @@ class Test_update_relative_paths(TestCase):
                 self.maxDiff = None
                 self.assertEqual(result, expected_template_dict)
 
-    @parameterized.expand([(resource_type, props) for resource_type, props in _RESOURCES_WITH_LOCAL_PATHS.items()])
+    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
 
         for propname in properties:

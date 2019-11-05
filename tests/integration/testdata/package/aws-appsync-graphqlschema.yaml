@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple GraphQL Schema
+
+Resources:
+  Schema:
+    Type: AWS::AppSync::GraphQLSchema
+    Properties:
+      ApiId: "sam package integ test schema"
+      DefinitionS3Location: ./graphql.schema
