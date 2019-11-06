@@ -118,7 +118,7 @@ def cli(
     )  # pragma: no cover
 
 
-# pylint: disable=too-many-locals, too-many-statements
+# pylint: disable=too-many-locals
 def do_cli(
     ctx,
     no_interactive,
@@ -178,14 +178,10 @@ You can also re-run without the --no-interactive flag to be prompted for require
 
 
 def _merge_extra_context(default_context, extra_context):
-    merged_context = default_context.copy()
     try:
         extra_context_dict = json.loads(extra_context)
     except JSONDecodeError:
         raise UserException(
             "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
         )
-    for key in extra_context_dict:
-        if key not in ("project_name", "runtime"):
-            merged_context.update({key: extra_context_dict[key]})
-    return merged_context
+    return {**extra_context_dict, **default_context}
