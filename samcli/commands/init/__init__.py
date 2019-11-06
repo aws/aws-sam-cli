@@ -8,6 +8,7 @@ from json import JSONDecodeError
 
 import click
 
+from samcli.commands.exceptions import UserException
 from samcli.cli.main import pass_context, common_options, global_cfg
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
 from samcli.lib.telemetry.metrics import track_command
@@ -131,7 +132,6 @@ def do_cli(
     extra_context,
     auto_clone=True,
 ):
-    from samcli.commands.exceptions import UserException
     from samcli.commands.init.init_generator import do_generate
     from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
@@ -157,17 +157,7 @@ You can run 'sam init' without any options for an interactive initialization flo
             if extra_context is None:
                 extra_context = default_context
             else:
-                merged_context = default_context.copy()
-                try:
-                    extra_context_dict = json.loads(extra_context)
-                except JSONDecodeError:
-                    raise UserException(
-                        "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
-                    )
-                for key in extra_context_dict:
-                    if key not in ("project_name", "runtime"):
-                        merged_context.update({key: extra_context_dict[key]})
-                extra_context = merged_context
+                extra_context = _merge_extra_context(default_context, extra_context)
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
@@ -185,3 +175,17 @@ You can also re-run without the --no-interactive flag to be prompted for require
     else:
         # proceed to interactive state machine, which will call do_generate
         do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
+
+
+def _merge_extra_context(default_context, extra_context):
+    merged_context = default_context.copy()
+    try:
+        extra_context_dict = json.loads(extra_context)
+    except JSONDecodeError:
+        raise UserException(
+            "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
+        )
+    for key in extra_context_dict:
+        if key not in ("project_name", "runtime"):
+            merged_context.update({key: extra_context_dict[key]})
+    return merged_context
