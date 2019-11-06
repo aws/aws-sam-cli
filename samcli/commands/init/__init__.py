@@ -117,7 +117,7 @@ def cli(
     )  # pragma: no cover
 
 
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals, too-many-statements
 def do_cli(
     ctx,
     no_interactive,
