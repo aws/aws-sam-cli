@@ -26,6 +26,10 @@ environment:
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
+  
+  # To work around SSL issues when bundler installs a package
+  # https://www.appveyor.com/docs/lang/ruby/#openssl-verification
+  SSL_CERT_FILE: "C:\\tools\\ruby25\\ssl\\cert.pem"
 
   matrix:
     - optional_gate: true
