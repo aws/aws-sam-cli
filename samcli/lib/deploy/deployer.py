@@ -15,19 +15,18 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import textwrap
 import collections
+from collections import OrderedDict
 import logging
 import sys
 import time
 from datetime import datetime
 
 import botocore
-import click
 import pytz
 
 from samcli.commands.deploy.exceptions import StackStatusError
-from samcli.commands._utils.table_print import pprint
+from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
 
@@ -38,19 +37,19 @@ ChangeSetResult = collections.namedtuple("ChangeSetResult", ["changeset_id", "ch
 DESCRIBE_STACK_EVENTS_FORMAT_STRING = (
     "{ResourceStatus:<{0}} {ResourceType:<{1}} {LogicalResourceId:<{2}} {ResourceStatusReason:<{3}}"
 )
-DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = {
-    "LogicalResourceId": "LogicalResourceId",
-    "ResourceType": "ResourceType",
-    "ResourceStatus": "ResourceStatus",
-    "ResourceStatusReason": "ResourceStatusReason",
-}
+DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
+    {
+        "ResourceStatus": "ResourceStatus",
+        "ResourceType": "ResourceType",
+        "LogicalResourceId": "LogicalResourceId",
+        "ResourceStatusReason": "ResourceStatusReason",
+    }
+)
 
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}}"
-DESCRIBE_CHANGESET_DEFAULT_ARGS = {
-    "Operation": "Operation",
-    "LogicalResourceId": "LogicalResourceId",
-    "ResourceType": "ResourceType",
-}
+DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
+    {"Operation": "Operation", "LogicalResourceId": "LogicalResourceId", "ResourceType": "ResourceType"}
+)
 
 CF_API_SLEEP = 0.5
 
@@ -164,7 +163,7 @@ class Deployer:
             LOG.debug("Unable to create changeset", exc_info=ex)
             raise ex
 
-    @pprint(format_string=DESCRIBE_CHANGESET_FORMAT_STRING, format_kwargs=DESCRIBE_CHANGESET_DEFAULT_ARGS)
+    @pprint_column_names(format_string=DESCRIBE_CHANGESET_FORMAT_STRING, format_kwargs=DESCRIBE_CHANGESET_DEFAULT_ARGS)
     def describe_changeset(self, change_set_id, stack_name, **kwargs):
         """
         Call Cloudformation to describe a changeset
@@ -190,16 +189,13 @@ class Deployer:
 
         for k, v in changes.items():
             for value in v:
-                click.secho(
-                    DESCRIBE_CHANGESET_FORMAT_STRING.format(
-                        *kwargs["format_args"],
-                        **{
-                            "Operation": k,
-                            "LogicalResourceId": value["LogicalResourceId"],
-                            "ResourceType": value["ResourceType"],
-                        },
-                    ),
-                    fg=self.color[k],
+                pprint_columns(
+                    columns=[k, value["LogicalResourceId"], value["ResourceType"]],
+                    width=kwargs["width"],
+                    margin=kwargs["margin"],
+                    format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
+                    format_args=kwargs["format_args"],
+                    columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
                 )
 
         return changes
@@ -260,11 +256,14 @@ class Deployer:
         except KeyError:
             return pytz.utc.localize(datetime.utcnow())
 
-    @pprint(format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING, format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS)
+    @pprint_column_names(
+        format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING, format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS
+    )
     def describe_stack_events(self, stack_name, utc_now, **kwargs):
         """
         Calls CloudFormation to get current stack events
         :param stack_name: Name or ID of the stack
+        :param utc_now: last event time on the stack to start streaming events from.
         :return:
         """
 
@@ -278,30 +277,20 @@ class Deployer:
             for event in describe_stack_events_resp["StackEvents"]:
                 if event["EventId"] not in events and event["Timestamp"] > utc_now:
                     events.add(event["EventId"])
-                    resource_status = event.get("ResourceStatusReason", "-")
-                    # Resource status can span multiple lines and formatting of string does not work well then,
-                    # so we construct wrapped text.
-                    # TODO: Move string formatting logic to own class
-                    multi_line_resource_status = [
-                        textwrap.indent(line, prefix="  " + " " * kwargs["last_width"])
-                        for line in textwrap.wrap(resource_status, width=kwargs["width"])
-                    ]
 
-                    click.secho(
-                        DESCRIBE_STACK_EVENTS_FORMAT_STRING.format(
-                            *kwargs["format_args"],
-                            **{
-                                "LogicalResourceId": event["LogicalResourceId"],
-                                "ResourceType": event["ResourceType"],
-                                "ResourceStatus": event["ResourceStatus"],
-                                "ResourceStatusReason": multi_line_resource_status[0].strip(),
-                            },
-                        ),
-                        fg="yellow",
+                    pprint_columns(
+                        columns=[
+                            event["ResourceStatus"],
+                            event["ResourceType"],
+                            event["LogicalResourceId"],
+                            event.get("ResourceStatusReason", "-"),
+                        ],
+                        width=kwargs["width"],
+                        margin=kwargs["margin"],
+                        format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
+                        format_args=kwargs["format_args"],
+                        columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
                     )
-                    # If resource status spans multiple lines, use click to echo the rest.
-                    for message in multi_line_resource_status[1:]:
-                        click.secho(message, fg="yellow")
 
             if (
                 "COMPLETE" in describe_stacks_resp["Stacks"][0]["StackStatus"]

@@ -1,29 +1,36 @@
 """
 Utilities for table pretty printing using click
 """
-
+from itertools import count, zip_longest
+import textwrap
 from functools import wraps
 
 import click
 
 
-def pprint(format_string, format_kwargs):
+def pprint_column_names(format_string, format_kwargs, margin=None):
     """
 
     :param format_string: format string to be used that has the strings, minimum width to be replaced
     :param format_kwargs: dictionary that is supplied to the format_string to format the string
+    :param margin: margin that is to be reduced from column width for columnar text.
     :return: boilerplate table string
     """
+
+    MIN_WIDTH = 100
+    MIN_MARGIN = 2
 
     def pprint_wrap(func):
         # Calculate terminal width, number of columns in the table
         width, _ = click.get_terminal_size()
+        # For UX purposes, set a minimum width for the table to be usable.
+        width = max(width, MIN_WIDTH)
         total_args = len(format_kwargs)
-
-        # Get width to be a usable number so that we can equally divide the space for all the columns
-        # can be refactored, to allow for modularity in the shaping of the columns.
         width = width - (width % total_args)
         usable_width = int(width) - 1
+
+        # Get width to be a usable number so that we can equally divide the space for all the columns.
+        # Can be refactored, to allow for modularity in the shaping of the columns.
         width_per_column = int(width / total_args)
 
         # The final column should not roll over into the next line
@@ -46,7 +53,7 @@ def pprint(format_string, format_kwargs):
             # which this decorator wraps, so that the function has access to the correct format_args
             kwargs["format_args"] = format_args
             kwargs["width"] = width_per_column
-            kwargs["last_width"] = width - final_arg_width
+            kwargs["margin"] = margin if margin else MIN_MARGIN
             result = func(*args, **kwargs)
             # Complete the table
             click.secho("-" * usable_width)
@@ -55,3 +62,39 @@ def pprint(format_string, format_kwargs):
         return wrap
 
     return pprint_wrap
+
+
+def wrapped_text_generator(texts, width, margin):
+    """
+
+    Return a generator where the contents are wrapped text to a specified width.
+
+    :param texts: list of text that needs to be wrapped at specified width
+    :param width: width of the text to be wrapped
+    :param margin: margin to be reduced from width for cleaner UX
+    :return: generator of wrapped text
+    """
+    for text in texts:
+        yield textwrap.wrap(text, width=width - margin)
+
+
+def pprint_columns(columns, width, margin, format_string, format_args, columns_dict):
+    """
+
+    Print columns based on list of columnar text, associated formatting string and associated format arguments.
+
+    :param columns: list of columnnar text that go into columns as specified by the format_string
+    :param width: width of the text to be wrapped
+    :param margin: margin to be reduced from width for cleaner UX
+    :param format_string: A format string that has both width and text specifiers set.
+    :param format_args: list of offset specifiers
+    :param columns_dict: arguments dictionary that have dummy values per column
+    :return:
+    """
+    for columns_text in zip_longest(*wrapped_text_generator(columns, width, margin), fillvalue=""):
+        counter = count()
+        # Generate columnar data that correspond to the column names and update them.
+        for k, _ in columns_dict.items():
+            columns_dict[k] = columns_text[next(counter)]
+
+        click.secho(format_string.format(*format_args, **columns_dict))
