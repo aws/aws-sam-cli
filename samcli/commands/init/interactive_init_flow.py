@@ -29,10 +29,6 @@ Generating application:
 -----------------------
 Location: {location}
 Output Directory: {output_dir}
-
-To do this without interactive prompts, you can run:
-
-    sam init --location {location} --output-dir {output_dir}
     """.format(
         location=location, output_dir=output_dir
     )
@@ -88,10 +84,6 @@ Runtime: {runtime}
 Dependency Manager: {dependency_manager}
 Application Template: {app_template}
 Output Directory: {output_dir}
-
-Non-interactive init command with parameters:
-
-    sam init --name {name} --runtime {runtime} --dependency-manager {dependency_manager} --app-template {app_template} --output-dir {output_dir}
 
 Next steps can be found in the README file at {output_dir}/{name}/README.md
     """.format(
