@@ -3,6 +3,9 @@ Implementation of custom click parameter types
 """
 
 import re
+import json
+from json import JSONDecodeError
+
 import click
 
 
@@ -64,3 +67,49 @@ class CfnParameterOverridesType(click.ParamType):
             value = value.strip('"')
 
         return value.replace("\\ ", " ").replace('\\"', '"')
+
+
+class CfnMetadataType(click.ParamType):
+    """
+    Custom Click options type to accept values for metadata parameters.
+    metadata parameters can be of the type KeyName1=string,KeyName2=string or {"string":"string"}
+    """
+
+    _EXAMPLE = 'KeyName1=string,KeyName2=string or {"string":"string"}'
+
+    _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
+
+    # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
+    name = "CfnMetadata"
+
+    def convert(self, value, param, ctx):
+        result = {}
+        fail = False
+        if not value:
+            return result
+        try:
+            # Look to load the value into json if we can.
+            result = json.loads(value)
+            for val in result.values():
+                if isinstance(val, (dict, list)):
+                    # Need a non nested dictionary or a dictionary with non list values,
+                    # If either is found, fail the conversion.
+                    fail = True
+        except JSONDecodeError:
+            # if looking for a json format failed, look at if the specified value follows
+            # KeyName1=string,KeyName2=string format
+            groups = re.findall(self._pattern, value)
+
+            if not groups:
+                fail = True
+            for group in groups:
+                key, value = group
+                # assign to result['KeyName1'] = string and so on.
+                result[key] = value
+
+        if fail:
+            return self.fail(
+                "{} is not in valid format. It must look something like '{}'".format(value, self._EXAMPLE), param, ctx
+            )
+
+        return result

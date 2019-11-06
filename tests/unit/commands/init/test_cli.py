@@ -98,19 +98,14 @@ class TestCli(TestCase):
         # WHEN the user follows interactive init prompts
 
         # 1: selecting managed templates
+        # 3: ruby2.5 response to runtime
         # test-project: response to name
-        # ruby2.5: response to runtime
-        # bundler: response to dependency manager
         # N: Don't clone/update the source repo
-        # 1: First choice will always be the hello world example
         user_input = """
 1
+3
 test-project
-ruby2.5
-bundler
 N
-1
-.
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
@@ -130,20 +125,49 @@ N
 
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_interactive_multiple_dep_mgrs(self, generate_project_patch, sd_mock):
+        # WHEN the user follows interactive init prompts
+
+        # 1: selecting managed templates
+        # 5: java8 response to runtime
+        # 2: gradle as the dependency manager
+        # test-project: response to name
+        # N: Don't clone/update the source repo
+        user_input = """
+1
+5
+2
+test-project
+N
+        """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+
+        # THEN we should receive no errors
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            ANY,
+            "java8",
+            "gradle",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "java8"},
+        )
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_int_with_app_template(self, generate_project_patch, sd_mock):
         # WHEN the user follows interactive init prompts
 
+        # 3: ruby2.5 response to runtime
         # test-project: response to name
-        # ruby2.5: response to runtime
-        # bundler: response to dependency manager
         # N: Don't clone/update the source repo
-        # .: output dir
         user_input = """
+3
 test-project
-ruby2.5
-bundler
 N
-.
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, ["--app-template", "hello-world"], input=user_input)
@@ -168,11 +192,9 @@ N
 
         # 2: selecting custom location
         # foo: the "location"
-        # output/: the "output dir"
         user_input = """
 2
 foo
-output/
         """
 
         runner = CliRunner()
@@ -185,7 +207,7 @@ output/
             "foo",
             None,
             None,
-            "output/",
+            ".",
             None,
             False,
             None,

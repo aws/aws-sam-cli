@@ -12,3 +12,9 @@ class UserException(click.ClickException):
     """
 
     exit_code = 1
+
+
+class CredentialsError(UserException):
+    """
+    Exception class when credentials that have been passed are invalid.
+    """

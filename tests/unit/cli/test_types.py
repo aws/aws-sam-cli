@@ -3,6 +3,7 @@ from unittest.mock import Mock, ANY
 from nose_parameterized import parameterized
 
 from samcli.cli.types import CfnParameterOverridesType
+from samcli.cli.types import CfnMetadataType
 
 
 class TestCfnParameterOverridesType(TestCase):
@@ -68,6 +69,52 @@ class TestCfnParameterOverridesType(TestCase):
                 "",
                 {},
             ),
+        ]
+    )
+    def test_successful_parsing(self, input, expected):
+        result = self.param_type.convert(input, None, None)
+        self.assertEqual(result, expected, msg="Failed with Input = " + input)
+
+
+class TestCfnMetadataType(TestCase):
+    def setUp(self):
+        self.param_type = CfnMetadataType()
+
+    @parameterized.expand(
+        [
+            # Just a string
+            ("some string"),
+            # Unfinished dict with just a key
+            ("{'a'}"),
+            # Unfinished dict just a key and :
+            ("{'a'}:"),
+            # Dict with nested dict:
+            ("{'a':{'b':'c'}}"),
+            # Dict with list value:
+            ("{'a':['b':'c']}"),
+            # Just a list:
+            ("['b':'c']"),
+            # Non-string
+            ("{1:1}"),
+            # Wrong notation
+            ("a==b"),
+            # Wrong multi-key notation
+            ("a==b,c==d"),
+        ]
+    )
+    def test_must_fail_on_invalid_format(self, input):
+        self.param_type.fail = Mock()
+        self.param_type.convert(input, "param", "ctx")
+
+        self.param_type.fail.assert_called_with(ANY, "param", "ctx")
+
+    @parameterized.expand(
+        [
+            ("a=b", {"a": "b"}),
+            ("a=b,c=d", {"a": "b", "c": "d"}),
+            ('{"a":"b"}', {"a": "b"}),
+            ('{"a":"b", "c":"d"}', {"a": "b", "c": "d"}),
+            ("", {}),
         ]
     )
     def test_successful_parsing(self, input, expected):
