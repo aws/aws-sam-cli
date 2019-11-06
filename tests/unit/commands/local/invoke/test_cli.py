@@ -32,7 +32,7 @@ class TestCli(TestCase):
         self.docker_network = "network"
         self.log_file = "logfile"
         self.skip_pull_image = True
-        self.no_event = False
+        self.no_event = True
         self.parameter_overrides = {}
         self.layer_cache_basedir = "/some/layers/path"
         self.force_image_build = True
@@ -98,7 +98,7 @@ class TestCli(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
     def test_cli_must_invoke_with_no_event(self, get_event_mock, InvokeContextMock):
-        self.no_event = True
+        self.event = None
 
         ctx_mock = Mock()
         ctx_mock.region = self.region_name
@@ -111,7 +111,7 @@ class TestCli(TestCase):
             ctx=ctx_mock,
             function_identifier=self.function_id,
             template=self.template,
-            event=STDIN_FILE_NAME,
+            event=self.event,
             no_event=self.no_event,
             env_vars=self.env_vars,
             debug_port=self.debug_ports,
@@ -144,43 +144,10 @@ class TestCli(TestCase):
             aws_profile=self.profile,
         )
 
+        get_event_mock.assert_not_called()
         context_mock.local_lambda_runner.invoke.assert_called_with(
             context_mock.function_name, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
         )
-        get_event_mock.assert_not_called()
-
-    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
-    @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_must_raise_user_exception_on_no_event_and_event(self, get_event_mock, InvokeContextMock):
-        self.no_event = True
-
-        ctx_mock = Mock()
-        ctx_mock.region = self.region_name
-        ctx_mock.profile = self.profile
-
-        with self.assertRaises(UserException) as ex_ctx:
-
-            invoke_cli(
-                ctx=ctx_mock,
-                function_identifier=self.function_id,
-                template=self.template,
-                event=self.eventfile,
-                no_event=self.no_event,
-                env_vars=self.env_vars,
-                debug_port=self.debug_ports,
-                debug_args=self.debug_args,
-                debugger_path=self.debugger_path,
-                docker_volume_basedir=self.docker_volume_basedir,
-                docker_network=self.docker_network,
-                log_file=self.log_file,
-                skip_pull_image=self.skip_pull_image,
-                parameter_overrides=self.parameter_overrides,
-                layer_cache_basedir=self.layer_cache_basedir,
-                force_image_build=self.force_image_build,
-            )
-
-        msg = str(ex_ctx.exception)
-        self.assertEqual(msg, "no_event and event cannot be used together. Please provide only one.")
 
     @parameterized.expand(
         [

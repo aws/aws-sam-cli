@@ -99,4 +99,17 @@ RUNTIMES = set(
     itertools.chain(*[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))])
 )
 
-INIT_RUNTIMES = RUNTIMES.union(RUNTIME_DEP_TEMPLATE_MAPPING.keys())
+INIT_RUNTIMES = [
+    "nodejs10.x",
+    "python3.7",
+    "ruby2.5",
+    "go1.x",
+    "java8",
+    "dotnetcore2.1",
+    "nodejs8.10",
+    "nodejs6.10",
+    "python3.6",
+    "python2.7",
+    "dotnetcore2.0",
+    "dotnetcore1.0",
+]

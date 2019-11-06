@@ -7,7 +7,7 @@ import logging
 from functools import partial
 
 import click
-from samcli.cli.types import CfnParameterOverridesType
+from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 
@@ -122,3 +122,15 @@ def parameter_override_click_option():
 
 def parameter_override_option(f):
     return parameter_override_click_option()(f)
+
+
+def metadata_click_option():
+    return click.option(
+        "--metadata",
+        type=CfnMetadataType(),
+        help="Optional. A map of metadata to attach to ALL the artifacts that are referenced in your template.",
+    )
+
+
+def metadata_override_option(f):
+    return metadata_click_option()(f)

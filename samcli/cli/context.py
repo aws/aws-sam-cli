@@ -5,7 +5,10 @@ Context information passed to each CLI command
 import uuid
 import logging
 import boto3
+import botocore
 import click
+
+from samcli.commands.exceptions import CredentialsError
 
 
 class Context:
@@ -139,4 +142,7 @@ class Context:
         the Boto3's session object are read-only. Therefore when Click parses new AWS session related properties (like
         region & profile), it will call this method to create a new session with latest values for these properties.
         """
-        boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)
+        try:
+            boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)
+        except botocore.exceptions.ProfileNotFound as ex:
+            raise CredentialsError(str(ex))
