@@ -8,4 +8,4 @@ Resources:
     Properties:
       ApplicationName: "my app"
       Description: "my sample version"
-      SourceBundle: ./sample.zip
+      SourceBundle: ./sourcebundle.zip
