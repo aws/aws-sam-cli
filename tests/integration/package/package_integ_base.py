@@ -1,7 +1,6 @@
 import os
 import uuid
 import json
-import tempfile
 import time
 from pathlib import Path
 from unittest import TestCase
@@ -25,6 +24,12 @@ class PackageIntegBase(TestCase):
 
         # Given 3 seconds for all the bucket creation to complete
         time.sleep(3)
+
+    def setUp(self):
+        super(PackageIntegBase, self).setUp()
+
+    def tearDown(self):
+        super(PackageIntegBase, self).tearDown()
 
     @classmethod
     def tearDownClass(cls):

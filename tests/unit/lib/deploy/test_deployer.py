@@ -154,7 +154,7 @@ class TestDeployer(TestCase):
                 tags={"unit": "true"},
             )
 
-    def test_describe_changeset(self):
+    def test_describe_changeset_with_changes(self):
         response = [
             {
                 "Changes": [
@@ -187,6 +187,23 @@ class TestDeployer(TestCase):
             },
         )
 
+    def test_describe_changeset_with_no_changes(self):
+        response = [
+            {
+                "Changes": []
+            }
+        ]
+        self.deployer._client.get_paginator = MagicMock(return_value=MockPaginator(resp=response))
+        changes = self.deployer.describe_changeset("change_id", "test")
+        self.assertEqual(
+            changes,
+            {
+                "Add": [],
+                "Modify": [],
+                "Remove": [],
+            },
+        )
+
     def test_wait_for_changeset(self):
         self.deployer._client.get_waiter = MagicMock(return_value=MockChangesetWaiter())
         self.deployer.wait_for_changeset("test-id", "test-stack")
@@ -207,6 +224,13 @@ class TestDeployer(TestCase):
     def test_execute_changeset(self):
         self.deployer.execute_changeset("id", "test")
         self.deployer._client.execute_change_set.assert_called_with(ChangeSetName="id", StackName="test")
+
+    def test_execute_changeset_exception(self):
+        self.deployer._client.execute_change_set = MagicMock(
+            side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="execute_changeset")
+        )
+        with self.assertRaises(DeployFailedError):
+            self.deployer.execute_changeset("id", "test")
 
     def test_get_last_event_time(self):
         timestamp = pytz.utc.localize(datetime.utcnow())

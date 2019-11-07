@@ -170,9 +170,11 @@ class Deployer:
         paginator = self._client.get_paginator("describe_change_set")
         response_iterator = paginator.paginate(ChangeSetName=change_set_id, StackName=stack_name)
         changes = {"Add": [], "Modify": [], "Remove": []}
+        changeset = False
         for item in response_iterator:
             cf_changes = item.get("Changes")
             for change in cf_changes:
+                changeset = True
                 resource_props = change.get("ResourceChange")
                 action = resource_props.get("Action")
                 changes[action].append(
@@ -192,6 +194,18 @@ class Deployer:
                     format_args=kwargs["format_args"],
                     columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
                 )
+
+        if not changeset:
+            # There can be cases where there are no changes,
+            # but could be an an addition of a SNS notification topic.
+            pprint_columns(
+                columns=["-", "-", "-"],
+                width=kwargs["width"],
+                margin=kwargs["margin"],
+                format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
+                format_args=kwargs["format_args"],
+                columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
+            )
 
         return changes
 
@@ -237,7 +251,10 @@ class Deployer:
         :param stack_name: Name or ID of the stack
         :return: Response from execute-change-set call
         """
-        return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
+        try:
+            return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
+        except botocore.exceptions.ClientError as ex:
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex))
 
     def get_last_event_time(self, stack_name):
         """

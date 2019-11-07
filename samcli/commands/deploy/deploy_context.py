@@ -114,7 +114,7 @@ class DeployContext:
             self.role_arn,
             self.notification_arns,
             self.s3_uploader,
-            [{"Key": key, "Value": value} for key, value in self.tags.items()],
+            [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],
             self.fail_on_empty_changeset,
         )
 

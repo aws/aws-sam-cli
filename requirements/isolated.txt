@@ -25,7 +25,7 @@ MarkupSafe==1.1.1
 poyo==0.5.0
 pyrsistent==0.15.4
 python-dateutil==2.8.0
-pytz==2019.2
+pytz==2019.3
 PyYAML==5.1.2
 regex==2019.8.19
 requests==2.22.0
