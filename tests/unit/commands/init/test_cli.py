@@ -1,7 +1,6 @@
 from unittest import TestCase
 from unittest.mock import patch, ANY
 
-import click
 from click.testing import CliRunner
 
 from samcli.commands.init import cli as init_cmd
@@ -21,7 +20,8 @@ class TestCli(TestCase):
         self.name = "testing project"
         self.app_template = "hello-world"
         self.no_input = False
-        self.extra_context = {"project_name": "testing project", "runtime": "python3.6"}
+        self.extra_context = '{"project_name": "testing project", "runtime": "python3.6"}'
+        self.extra_context_as_json = {"project_name": "testing project", "runtime": "python3.6"}
 
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -38,6 +38,7 @@ class TestCli(TestCase):
             name=self.name,
             app_template=self.app_template,
             no_input=self.no_input,
+            extra_context=None,
             auto_clone=False,
         )
 
@@ -50,7 +51,7 @@ class TestCli(TestCase):
             self.output_dir,
             self.name,
             True,
-            self.extra_context,
+            self.extra_context_as_json,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
@@ -68,6 +69,7 @@ class TestCli(TestCase):
                 name=self.name,
                 app_template="wrong-and-bad",
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -86,6 +88,7 @@ class TestCli(TestCase):
                 name=self.name,
                 app_template=self.app_template,
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -224,6 +227,7 @@ foo
                 name=None,
                 app_template=None,
                 no_input=True,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -241,6 +245,7 @@ foo
                 name=self.name,
                 app_template="fails-anyways",
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
@@ -266,9 +271,110 @@ foo
                 name=self.name,
                 app_template=None,
                 no_input=self.no_input,
+                extra_context=None,
                 auto_clone=False,
             )
 
             generate_project_patch.assert_called_with(
                 self.location, self.runtime, self.dependency_manager, self.output_dir, self.name, self.no_input
+            )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_parameter_not_passed(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context=None,
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            ANY, self.runtime, self.dependency_manager, ".", self.name, True, self.extra_context_as_json
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_parameter_passed(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context='{"schema_name":"events", "schema_type":"aws"}',
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            self.runtime,
+            self.dependency_manager,
+            ".",
+            self.name,
+            True,
+            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_not_overriding_default_parameter(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context='{"project_name": "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            self.runtime,
+            self.dependency_manager,
+            ".",
+            self.name,
+            True,
+            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_input_as_wrong_json_raises_exception(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                location=self.location,
+                runtime=self.runtime,
+                dependency_manager=self.dependency_manager,
+                output_dir=self.output_dir,
+                name=self.name,
+                app_template=self.app_template,
+                no_input=self.no_input,
+                extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
+                auto_clone=False,
             )

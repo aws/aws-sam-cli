@@ -3,9 +3,12 @@
 Init command to scaffold a project app from a template
 """
 import logging
+import json
+from json import JSONDecodeError
 
 import click
 
+from samcli.commands.exceptions import UserException
 from samcli.cli.main import pass_context, common_options, global_cfg
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
 from samcli.lib.telemetry.metrics import track_command
@@ -86,12 +89,32 @@ Common usage:
     default=False,
     help="Disable Cookiecutter prompting and accept default values defined template config",
 )
+@click.option(
+    "--extra_context",
+    default=None,
+    help="Override any custom parameters in the template's cookiecutter.json configuration e.g. "
+    ""
+    '{"customParam1": "customValue1", "customParam2":"customValue2"}'
+    """ """,
+    required=False,
+)
 @common_options
 @pass_context
 @track_command
-def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input):
+def cli(
+    ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input, extra_context
+):
     do_cli(
-        ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input
+        ctx,
+        no_interactive,
+        location,
+        runtime,
+        dependency_manager,
+        output_dir,
+        name,
+        app_template,
+        no_input,
+        extra_context,
     )  # pragma: no cover
 
 
@@ -106,9 +129,9 @@ def do_cli(
     name,
     app_template,
     no_input,
+    extra_context,
     auto_clone=True,
 ):
-    from samcli.commands.exceptions import UserException
     from samcli.commands.init.init_generator import do_generate
     from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
@@ -126,12 +149,15 @@ You can run 'sam init' without any options for an interactive initialization flo
     # check for required parameters
     if location or (name and runtime and dependency_manager and app_template):
         # need to turn app_template into a location before we generate
-        extra_context = None
         if app_template:
             templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
-            extra_context = {"project_name": name, "runtime": runtime}
+            default_context = {"project_name": name, "runtime": runtime}
+            if extra_context is None:
+                extra_context = default_context
+            else:
+                extra_context = _merge_extra_context(default_context, extra_context)
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
@@ -149,3 +175,13 @@ You can also re-run without the --no-interactive flag to be prompted for require
     else:
         # proceed to interactive state machine, which will call do_generate
         do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
+
+
+def _merge_extra_context(default_context, extra_context):
+    try:
+        extra_context_dict = json.loads(extra_context)
+    except JSONDecodeError:
+        raise UserException(
+            "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
+        )
+    return {**extra_context_dict, **default_context}
