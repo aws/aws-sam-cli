@@ -188,21 +188,10 @@ class TestDeployer(TestCase):
         )
 
     def test_describe_changeset_with_no_changes(self):
-        response = [
-            {
-                "Changes": []
-            }
-        ]
+        response = [{"Changes": []}]
         self.deployer._client.get_paginator = MagicMock(return_value=MockPaginator(resp=response))
         changes = self.deployer.describe_changeset("change_id", "test")
-        self.assertEqual(
-            changes,
-            {
-                "Add": [],
-                "Modify": [],
-                "Remove": [],
-            },
-        )
+        self.assertEqual(changes, {"Add": [], "Modify": [], "Remove": []})
 
     def test_wait_for_changeset(self):
         self.deployer._client.get_waiter = MagicMock(return_value=MockChangesetWaiter())

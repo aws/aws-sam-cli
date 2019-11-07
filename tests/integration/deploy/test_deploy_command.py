@@ -1,11 +1,11 @@
-from subprocess import Popen, PIPE
+import os
 import tempfile
 import uuid
-import os
-
+from subprocess import Popen, PIPE
 from unittest import skipIf
-from parameterized import parameterized
+
 import boto3
+from parameterized import parameterized
 
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
