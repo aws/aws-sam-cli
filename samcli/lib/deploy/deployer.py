@@ -15,24 +15,21 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import collections
 from collections import OrderedDict
 import logging
-import sys
 import time
 from datetime import datetime
 
 import botocore
+import click
 import pytz
 
-from samcli.commands.deploy.exceptions import StackStatusError
+from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
 
 LOG = logging.getLogger(__name__)
-
-ChangeSetResult = collections.namedtuple("ChangeSetResult", ["changeset_id", "changeset_type"])
 
 DESCRIBE_STACK_EVENTS_FORMAT_STRING = (
     "{ResourceStatus:<{0}} {ResourceType:<{1}} {LogicalResourceId:<{2}} {ResourceStatusReason:<{3}}"
@@ -51,14 +48,12 @@ DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
     {"Operation": "Operation", "LogicalResourceId": "LogicalResourceId", "ResourceType": "ResourceType"}
 )
 
-CF_API_SLEEP = 0.5
-
 
 class Deployer:
     def __init__(self, cloudformation_client, changeset_prefix="samcli-cloudformation-package-deploy-"):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
-        self.color = {"Add": "green", "Modify": "yellow", "Remove": "red"}
+        self.client_sleep = 0.5
 
     def has_stack(self, stack_name):
         """
@@ -161,7 +156,7 @@ class Deployer:
             return resp, changeset_type
         except Exception as ex:
             LOG.debug("Unable to create changeset", exc_info=ex)
-            raise ex
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex))
 
     @pprint_column_names(format_string=DESCRIBE_CHANGESET_FORMAT_STRING, format_kwargs=DESCRIBE_CHANGESET_DEFAULT_ARGS)
     def describe_changeset(self, change_set_id, stack_name, **kwargs):
@@ -208,8 +203,7 @@ class Deployer:
         :param stack_name:   Stack name
         :return: Latest status of the create-change-set operation
         """
-        sys.stdout.write("\nWaiting for changeset to be created..\n")
-        sys.stdout.flush()
+        click.secho("\nWaiting for changeset to be created..\n")
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
@@ -231,8 +225,8 @@ class Deployer:
             ):
                 raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
-            raise RuntimeError(
-                "Failed to create the changeset: {0} " "Status: {1}. Reason: {2}".format(ex, status, reason)
+            raise ChangeSetError(
+                stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
             )
 
     def execute_changeset(self, changeset_id, stack_name):
@@ -259,11 +253,11 @@ class Deployer:
     @pprint_column_names(
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING, format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS
     )
-    def describe_stack_events(self, stack_name, utc_now, **kwargs):
+    def describe_stack_events(self, stack_name, time_stamp_marker, **kwargs):
         """
         Calls CloudFormation to get current stack events
         :param stack_name: Name or ID of the stack
-        :param utc_now: last event time on the stack to start streaming events from.
+        :param time_stamp_marker: last event time on the stack to start streaming events from.
         :return:
         """
 
@@ -273,9 +267,10 @@ class Deployer:
         while stack_change_in_progress:
             describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
             describe_stack_events_resp = self._client.describe_stack_events(StackName=stack_name)
-            time.sleep(CF_API_SLEEP)
+            stack_status = describe_stacks_resp["Stacks"][0]["StackStatus"]
+            time.sleep(self.client_sleep)
             for event in describe_stack_events_resp["StackEvents"]:
-                if event["EventId"] not in events and event["Timestamp"] > utc_now:
+                if event["EventId"] not in events and event["Timestamp"] > time_stamp_marker:
                     events.add(event["EventId"])
 
                     pprint_columns(
@@ -292,16 +287,15 @@ class Deployer:
                         columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
                     )
 
-            if (
-                "COMPLETE" in describe_stacks_resp["Stacks"][0]["StackStatus"]
-                and "CLEANUP" not in describe_stacks_resp["Stacks"][0]["StackStatus"]
-            ):
+            if self._check_stack_complete(stack_status):
                 stack_change_in_progress = False
+
+    def _check_stack_complete(self, status):
+        return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
 
-        sys.stdout.write("Waiting for stack create/update to complete\n")
-        sys.stdout.flush()
+        click.secho("Waiting for stack create/update to complete\n")
 
         self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
 
@@ -322,7 +316,7 @@ class Deployer:
         except botocore.exceptions.WaiterError as ex:
             LOG.debug("Execute changeset waiter exception", exc_info=ex)
 
-            raise deploy_exceptions.DeployFailedError(stack_name=stack_name)
+            raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
     def create_and_wait_for_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
@@ -335,4 +329,4 @@ class Deployer:
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
-            raise StackStatusError(ex)
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex))

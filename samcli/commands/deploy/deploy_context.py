@@ -68,6 +68,7 @@ class DeployContext:
         self.region = region
         self.profile = profile
         self.s3_uploader = None
+        self.deployer = None
 
     def __enter__(self):
         return self
@@ -77,14 +78,16 @@ class DeployContext:
 
     def run(self):
 
-        session = boto3.Session(profile_name=self.profile if self.profile else None)
-        cloudformation_client = session.client("cloudformation", region_name=self.region if self.region else None)
-
         # Parse parameters
         with open(self.template_file, "r") as handle:
             template_str = handle.read()
 
         template_dict = yaml_parse(template_str)
+
+        if not isinstance(template_dict, dict):
+            raise deploy_exceptions.DeployFailedError(
+                stack_name=self.stack_name, msg="{} not in required format".format(self.template_file)
+            )
 
         parameters = self.merge_parameters(template_dict, self.parameter_overrides)
 
@@ -92,15 +95,17 @@ class DeployContext:
         if template_size > 51200 and not self.s3_bucket:
             raise deploy_exceptions.DeployBucketRequiredError()
 
+        session = boto3.Session(profile_name=self.profile if self.profile else None)
+        cloudformation_client = session.client("cloudformation", region_name=self.region if self.region else None)
+
         if self.s3_bucket:
             s3_client = session.client("s3", region_name=self.region if self.region else None)
 
             self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
 
-        deployer = Deployer(cloudformation_client)
+        self.deployer = Deployer(cloudformation_client)
 
         return self.deploy(
-            deployer,
             self.stack_name,
             template_str,
             parameters,
@@ -115,7 +120,6 @@ class DeployContext:
 
     def deploy(
         self,
-        deployer,
         stack_name,
         template_str,
         parameters,
@@ -128,7 +132,7 @@ class DeployContext:
         fail_on_empty_changeset=True,
     ):
         try:
-            result, changeset_type = deployer.create_and_wait_for_changeset(
+            result, changeset_type = self.deployer.create_and_wait_for_changeset(
                 stack_name=stack_name,
                 cfn_template=template_str,
                 parameter_values=parameters,
@@ -140,8 +144,8 @@ class DeployContext:
             )
 
             if not no_execute_changeset:
-                deployer.execute_changeset(result["Id"], stack_name)
-                deployer.wait_for_execute(stack_name, changeset_type)
+                self.deployer.execute_changeset(result["Id"], stack_name)
+                self.deployer.wait_for_execute(stack_name, changeset_type)
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name))
             else:
                 click.echo(self.MSG_NO_EXECUTE_CHANGESET.format(changeset_id=result["Id"]))

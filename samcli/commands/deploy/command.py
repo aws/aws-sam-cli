@@ -104,10 +104,10 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 @tags_override_option
 @parameter_override_option
 @capabilities_override_option
+@aws_creds_options
 @common_options
 @pass_context
 @track_command
-@aws_creds_options
 def cli(
     ctx,
     template_file,

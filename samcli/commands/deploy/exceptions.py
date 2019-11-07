@@ -11,30 +11,22 @@ class ChangeEmptyError(UserException):
         super(ChangeEmptyError, self).__init__(message=message_fmt.format(stack_name=self.stack_name))
 
 
-class InvalidKeyValuePairArgumentError(UserException):
-    def __init__(self, value, argname):
-        self.value = value
-        self.argname = argname
-
-        message_fmt = "{value} value passed to --{argname} must be of format " "Key=Value"
-        super(InvalidKeyValuePairArgumentError, self).__init__(
-            message=message_fmt.format(value=self.value, argname=self.argname)
-        )
+class ChangeSetError(UserException):
+    def __init__(self, stack_name, msg):
+        self.stack_name = stack_name
+        self.msg = msg
+        message_fmt = "Failed to create changeset for the stack: {stack_name}, {msg}"
+        super(ChangeSetError, self).__init__(message=message_fmt.format(stack_name=self.stack_name, msg=self.msg))
 
 
 class DeployFailedError(UserException):
-    def __init__(self, stack_name):
+    def __init__(self, stack_name, msg):
         self.stack_name = stack_name
+        self.msg = msg
 
-        message_fmt = (
-            "Failed to create/update the stack. Run the following command"
-            "\n"
-            "to fetch the list of events leading up to the failure"
-            "\n"
-            "aws cloudformation describe-stack-events --stack-name {stack_name}"
-        )
+        message_fmt = "Failed to create/update the stack: {stack_name}, {msg}"
 
-        super(DeployFailedError, self).__init__(message=message_fmt.format(stack_name=self.stack_name))
+        super(DeployFailedError, self).__init__(message=message_fmt.format(stack_name=self.stack_name, msg=msg))
 
 
 class DeployBucketRequiredError(UserException):
@@ -48,10 +40,3 @@ class DeployBucketRequiredError(UserException):
         )
 
         super(DeployBucketRequiredError, self).__init__(message=message_fmt)
-
-
-class StackStatusError(UserException):
-    def __init__(self, ex):
-        self.ex = ex
-
-        super(StackStatusError, self).__init__(message=ex)

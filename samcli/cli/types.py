@@ -38,11 +38,14 @@ class CfnParameterOverridesType(click.ParamType):
 
             try:
                 # NOTE(TheSriram): find the first regex that matched.
-                # Pylint is concerned that we are checking at the same `val` within the loop,
+                # pylint is concerned that we are checking at the same `val` within the loop,
                 # but that is the point, so disabling it.
                 pattern = next(
-                    i for i in filter(lambda item: re.findall(item, val), self.ordered_pattern_match)
-                )  # pylint: disable=cell-var-from-loop
+                    i
+                    for i in filter(
+                        lambda item: re.findall(item, val), self.ordered_pattern_match
+                    )  # pylint: disable=cell-var-from-loop
+                )
             except StopIteration:
                 return self.fail(
                     "{} is not in valid format. It must look something like '{}' or '{}'".format(

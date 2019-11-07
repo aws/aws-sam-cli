@@ -17,14 +17,14 @@ def pprint_column_names(format_string, format_kwargs, margin=None):
     :return: boilerplate table string
     """
 
-    MIN_WIDTH = 100
-    MIN_MARGIN = 2
+    min_widrh = 100
+    min_margin = 2
 
     def pprint_wrap(func):
         # Calculate terminal width, number of columns in the table
         width, _ = click.get_terminal_size()
         # For UX purposes, set a minimum width for the table to be usable.
-        width = max(width, MIN_WIDTH)
+        width = max(width, min_widrh)
         total_args = len(format_kwargs)
         width = width - (width % total_args)
         usable_width = int(width) - 1
@@ -53,7 +53,7 @@ def pprint_column_names(format_string, format_kwargs, margin=None):
             # which this decorator wraps, so that the function has access to the correct format_args
             kwargs["format_args"] = format_args
             kwargs["width"] = width_per_column
-            kwargs["margin"] = margin if margin else MIN_MARGIN
+            kwargs["margin"] = margin if margin else min_margin
             result = func(*args, **kwargs)
             # Complete the table
             click.secho("-" * usable_width)
