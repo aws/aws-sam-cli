@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock, ANY
 import pytz
 from botocore.exceptions import ClientError, WaiterError
 
-from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError
+from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError, DeployStackOutPutFailedError
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
 
@@ -382,3 +382,34 @@ class TestDeployer(TestCase):
                 s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
                 tags={"unit": "true"},
             )
+
+    def test_get_stack_outputs(self):
+        self.deployer._client.describe_stacks = MagicMock(
+            return_value={
+                "Stacks": [
+                    {
+                        "Outputs": [
+                            {"OutputKey": "Key1", "OutputValue": "Value1", "Description": "output for s3"},
+                            {"OutputKey": "Key2", "OutputValue": "Value2", "Description": "output for kms"},
+                        ]
+                    }
+                ]
+            }
+        )
+
+        self.deployer.get_stack_outputs(stack_name="test")
+        self.deployer._client.describe_stacks.assert_called_with(StackName="test")
+
+    def test_get_stack_outputs_no_outputs_no_exception(self):
+        self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": [{"SomeOtherKey": "Value"}]})
+
+        self.deployer.get_stack_outputs(stack_name="test")
+        self.deployer._client.describe_stacks.assert_called_with(StackName="test")
+
+    def test_get_stack_outputs_exception(self):
+        self.deployer._client.describe_stacks = MagicMock(
+            side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="describe_stacks")
+        )
+
+        with self.assertRaises(DeployStackOutPutFailedError):
+            self.deployer.get_stack_outputs(stack_name="test")

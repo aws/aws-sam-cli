@@ -24,7 +24,7 @@ import botocore
 import click
 import pytz
 
-from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError
+from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError, DeployStackOutPutFailedError
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
@@ -46,6 +46,11 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
     {"Operation": "Operation", "LogicalResourceId": "LogicalResourceId", "ResourceType": "ResourceType"}
+)
+
+OUTPUTS_FORMAT_STRING = "{OutputKey:<{0}} {OutputValue:<{1}} {Description:<{2}}"
+OUTPUTS_DEFAULTS_ARGS = OrderedDict(
+    {"OutputKey": "OutputKey", "OutputValue": "OutputValue", "Description": "Description"}
 )
 
 
@@ -312,7 +317,7 @@ class Deployer:
 
     def wait_for_execute(self, stack_name, changeset_type):
 
-        click.secho("Waiting for stack create/update to complete\n")
+        click.secho("\nWaiting for stack create/update to complete\n")
 
         self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
 
@@ -335,6 +340,8 @@ class Deployer:
 
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
+        self.get_stack_outputs(stack_name=stack_name)
+
     def create_and_wait_for_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
     ):
@@ -347,3 +354,28 @@ class Deployer:
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex))
+
+    def get_stack_outputs(self, stack_name):
+        @pprint_column_names(format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS)
+        def _stack_outputs(stack_outputs, **kwargs):
+            for output in stack_outputs:
+                pprint_columns(
+                    columns=[output["OutputKey"], output["OutputValue"], output.get("Description", "-")],
+                    width=kwargs["width"],
+                    margin=kwargs["margin"],
+                    format_string=OUTPUTS_FORMAT_STRING,
+                    format_args=kwargs["format_args"],
+                    columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
+                )
+
+        try:
+            stacks_description = self._client.describe_stacks(StackName=stack_name)
+            try:
+                outputs = stacks_description["Stacks"][0]["Outputs"]
+                click.secho("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
+                _stack_outputs(stack_outputs=outputs)
+            except KeyError:
+                return
+
+        except botocore.exceptions.ClientError as ex:
+            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex))

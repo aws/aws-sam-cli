@@ -106,6 +106,7 @@ class TestPackageCommand(TestCase):
             self.assertEqual(self.deploy_command_context.deployer.create_and_wait_for_changeset.call_count, 1)
             self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 1)
             self.assertEqual(self.deploy_command_context.deployer.wait_for_execute.call_count, 1)
+            self.assertEqual(self.deploy_command_context.deployer.get_stack_outputs.call_count, 1)
 
     @patch("boto3.Session")
     @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))

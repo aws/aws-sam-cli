@@ -30,9 +30,9 @@ LOG = logging.getLogger(__name__)
 
 class DeployContext:
 
-    MSG_NO_EXECUTE_CHANGESET = "Changeset created successfully. \n"
+    MSG_NO_EXECUTE_CHANGESET = "\nChangeset created successfully. \n"
 
-    MSG_EXECUTE_SUCCESS = "Successfully created/updated stack - {stack_name}\n"
+    MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name}\n"
 
     def __init__(
         self,
