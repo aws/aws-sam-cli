@@ -12,6 +12,7 @@ from samcli.commands._utils.options import (
     notification_arns_override_option,
     template_click_option,
 )
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
 
@@ -100,6 +101,7 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 @tags_override_option
 @parameter_override_option
 @capabilities_override_option
+@configuration_option(provider=TomlProvider(section="deploy"))
 @aws_creds_options
 @common_options
 @pass_context
@@ -158,7 +160,21 @@ def do_cli(
     region,
     profile,
 ):
+    from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
+
+    import ipdb
+    ipdb.set_trace()
+
+    with PackageContext(
+        template_file=template_file,
+        s3_bucket=s3_bucket,
+        s3_prefix=s3_prefix,
+        output_template_file='sam-cli-packaged-'+template_file,
+        region=region,
+        profile=profile
+    ) as package_context:
+        package_context.run()
 
     with DeployContext(
         template_file=template_file,

@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 class PackageContext:
 
     MSG_PACKAGED_TEMPLATE_WRITTEN = (
-        "Successfully packaged artifacts and wrote output template "
+        "\nSuccessfully packaged artifacts and wrote output template "
         "to file {output_file_name}."
         "\n"
         "Execute the following command to deploy the packaged template"
