@@ -77,6 +77,15 @@ region="us-east-1"
 profile="srirammv"
 ```
 
+The configuration file can then be potentially intialized
+
+* all sam init projects come with a sample .sam-app-config file
+
+Open Questions
+-------------------------------
+
+* Potentially every sam command could have functionality to have a series of command line parameters exported into a configuraion file.
+
 Tenets
 -------------------------------
 
