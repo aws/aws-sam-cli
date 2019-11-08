@@ -37,49 +37,113 @@ The suite of commands supported by SAM CLI would be aided by looking for a confi
 
 `.sam-app-config`
 
-This configuration would solely be used for specifiying the parameters that each of SAM CLI commands use and would be in TOML format.
+This configuration would be used for specifiying the parameters that each of SAM CLI commands use and would be in TOML format.
 
-Running a SAM CLI command now automatically looks for `.sam-app-config` file and if its finds it goes ahead with parameter passthroughs to the CLI.
+Running a SAM CLI command now automatically looks for `.sam-config` file and if its finds it goes ahead with parameter passthroughs to the CLI.
 
 ```
 sam build
-Default Config file location: .sam-app-config
+Default Config file location: .sam-config
 ..
 ..
 ..
 ```
 
 
-A configuration file can also optionally be specified by each of the commands themselves as well.
+The default location of a .sam-config can be replaced by overriding an environment variable called `SAM_CONFIG`
 
-`sam build --config .sam-app-dev-config`
+`
+export SAM_CONFIG=~/Users/username/mysamconfig
+`
 
-Sample configuration file
+Users can pass an identifier for the section that will be scanned within the configuration file to pass parameters through.
+
+Be default the `default` section of the configuration is chosen.
 
 ```
-[build]
+[default]
+
+[default.build]
+[default.build.paramaters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
 use_container=true
 
-[package]
+[default.package]
+[default.package.parameters]
 profile="srirammv"
 region="us-east-1"
 s3_bucket="sam-bucket"
 output_template_file="packaged.yaml"
 
-[deploy]
-template_file="packaged.yaml"
+[default.deploy]
+[default.deploy.parameters]
+stack_name="using_config_file"
+capabilities="CAPABILITY_IAM"
+region="us-east-1"
+profile="srirammv"
+
+```
+
+If a custom identifer is specified, the identifier is looked up `.sam-config` file instead.
+
+`sam build --identifier dev`
+
+Sample configuration file
+
+```
+[default]
+
+[default.build]
+[default.build.paramaters]
+profile="srirammv"
+debug=true
+skip_pull_image=true
+use_container=true
+
+[default.package]
+[default.package.parameters]
+profile="srirammv"
+region="us-east-1"
+s3_bucket="sam-bucket"
+output_template_file="packaged.yaml"
+
+[default.deploy]
+[default.deploy.parameters]
+stack_name="using_config_file"
+capabilities="CAPABILITY_IAM"
+region="us-east-1"
+profile="srirammv"
+
+[dev]
+
+[dev.build]
+[dev.build.paramaters]
+profile="srirammv"
+debug=true
+skip_pull_image=true
+use_container=true
+
+[dev.package]
+[dev.package.parameters]
+profile="srirammv"
+region="us-east-1"
+s3_bucket="sam-bucket"
+output_template_file="packaged.yaml"
+
+[dev.deploy]
+[dev.deploy.parameters]
 stack_name="using_config_file"
 capabilities="CAPABILITY_IAM"
 region="us-east-1"
 profile="srirammv"
 ```
 
+
 The configuration file can then be potentially intialized
 
-* all sam init projects come with a sample .sam-app-config file
+* all sam init projects could come with a sample .sam-config file
 
 Open Questions
 -------------------------------
@@ -112,7 +176,7 @@ Implementation
 CLI Changes
 -----------
 
-New command line argument is added per command called `--config` to be able to specify non default locations of config files.
+New command line argument is added per command called `--identifier` to be able to specify non default identifier section within a config file.
 
 
 ### Breaking Change
@@ -164,7 +228,7 @@ N/A
 **Are you reading/writing to a temporary folder? If so, what is this
 used for and when do you clean up?**
 
-N/A. But we do read from a confiuration file thats either at a default location or specified by the user
+N/A. But we do read from a confiuration file thats either at a default location or specified by the user via an environment variable.
 
 **How do you validate new .samrc configuration?**
 
@@ -176,7 +240,7 @@ What is your Testing Plan (QA)?
 Goal
 ----
 
-App level Configuration files are tested alongside SAM CLI and are expected to work seamlessly with meaningful error messages to steer users towards using app level configuration files to manage their app workflows.
+Configuration files are tested alongside SAM CLI and are expected to work seamlessly with meaningful error messages to steer users towards using configuration file to manage their app workflows.
 
 Pre-requesites
 --------------
@@ -186,7 +250,7 @@ N/A
 Test Scenarios/Cases
 --------------------
 
-* Integration tests for every command with app level configuration file overrides, and command line overrides on existing app level configuration files.
+* Integration tests for every command with identifer based overrides, and command line overrides on existing sam configuration file and custom configuration file through environment variables.
 * Tested to work on all platforms
 
 Expected Results
@@ -198,7 +262,7 @@ Expected Results
 Documentation Changes
 =====================
 
-* Addition of a new `--config` file parameter per command
+* Addition of a new `--identifer` parameter per command
 
 Related Open Issues
 ============
