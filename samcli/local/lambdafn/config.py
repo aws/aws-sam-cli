@@ -1,7 +1,9 @@
 """
 Lambda Function configuration data required by the runtime
 """
+import ast
 
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from .env_vars import EnvironmentVariables
 
 
@@ -44,7 +46,14 @@ class FunctionConfig:
         self.code_abs_path = code_abs_path
         self.layers = layers
         self.memory = memory or self._DEFAULT_MEMORY
+
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
+
+        if not isinstance(self.timeout, int):
+            try:
+                self.timeout = int(ast.literal_eval(self.timeout))
+            except (ValueError, SyntaxError, TypeError):
+                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout))
 
         if not env_vars:
             env_vars = EnvironmentVariables(self.memory, self.timeout, self.handler)
