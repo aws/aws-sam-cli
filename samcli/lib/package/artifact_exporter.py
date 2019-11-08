@@ -130,6 +130,9 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
     :raise:                 ValueError if path is not a S3 URL or a local path
     """
 
+    # import ipdb
+    # ipdb.set_trace()
+
     local_path = jmespath.search(property_name, resource_dict)
 
     if local_path is None:
@@ -159,6 +162,8 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
 def zip_and_upload(local_path, uploader):
     with zip_folder(local_path) as zip_file:
+        # import ipdb
+        # ipdb.set_trace()
         return uploader.upload_with_dedup(zip_file)
 
 
@@ -171,7 +176,8 @@ def zip_folder(folder_path):
     :param folder_path:
     :return: Name of the zipfile
     """
-
+    # import ipdb
+    # ipdb.set_trace()
     filename = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
 
     zipfile_name = make_zip(filename, folder_path)
@@ -269,6 +275,8 @@ class Resource:
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
         """
+        # import ipdb
+        # ipdb.set_trace()
         uploaded_url = upload_local_artifacts(resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader)
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
@@ -539,7 +547,8 @@ class Template:
         """
         Reads the template and makes it ready for export
         """
-
+        # import ipdb
+        # ipdb.set_trace()
         if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
             raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
 

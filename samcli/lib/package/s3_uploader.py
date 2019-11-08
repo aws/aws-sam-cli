@@ -70,6 +70,8 @@ class S3Uploader:
         self._artifact_metadata = None
 
     def upload(self, file_name, remote_path):
+        # import ipdb
+        # ipdb.set_trace()
         """
         Uploads given file to S3
         :param file_name: Path to the file that will be uploaded
@@ -125,7 +127,8 @@ class S3Uploader:
         # uploads of same object. Uploader will check if the file exists in S3
         # and re-upload only if necessary. So the template points to same file
         # in multiple places, this will upload only once
-
+        # import ipdb
+        # ipdb.set_trace()
         filemd5 = self.file_checksum(file_name)
         remote_path = filemd5
         if extension:
@@ -142,6 +145,8 @@ class S3Uploader:
         """
 
         try:
+            # import ipdb
+            # ipdb.set_trace()
             # Find the object that matches this ETag
             self.s3.head_object(Bucket=self.bucket_name, Key=remote_path)
             return True

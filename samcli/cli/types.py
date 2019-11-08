@@ -194,4 +194,3 @@ class CfnTags(click.ParamType):
                 )
 
         return result
-

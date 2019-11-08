@@ -2,9 +2,10 @@
 CLI command for "deploy" command
 """
 
+import tempfile
+
 import click
 
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.options import (
     parameter_override_option,
     capabilities_override_option,
@@ -12,6 +13,7 @@ from samcli.commands._utils.options import (
     notification_arns_override_option,
     template_click_option,
 )
+
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
@@ -163,34 +165,37 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    import ipdb
-    ipdb.set_trace()
+    with tempfile.NamedTemporaryFile() as output_template_file:
 
-    with PackageContext(
-        template_file=template_file,
-        s3_bucket=s3_bucket,
-        s3_prefix=s3_prefix,
-        output_template_file='sam-cli-packaged-'+template_file,
-        region=region,
-        profile=profile
-    ) as package_context:
-        package_context.run()
+        with PackageContext(
+            template_file=template_file,
+            s3_bucket=s3_bucket,
+            s3_prefix=s3_prefix,
+            output_template_file=output_template_file.name,
+            kms_key_id=None,
+            use_json=None,
+            force_upload=force_upload,
+            metadata=None,
+            region=region,
+            profile=profile
+        ) as package_context:
+            package_context.run()
 
-    with DeployContext(
-        template_file=template_file,
-        stack_name=stack_name,
-        s3_bucket=s3_bucket,
-        force_upload=force_upload,
-        s3_prefix=s3_prefix,
-        kms_key_id=kms_key_id,
-        parameter_overrides=parameter_overrides,
-        capabilities=capabilities,
-        no_execute_changeset=no_execute_changeset,
-        role_arn=role_arn,
-        notification_arns=notification_arns,
-        fail_on_empty_changeset=fail_on_empty_changeset,
-        tags=tags,
-        region=region,
-        profile=profile,
-    ) as deploy_context:
-        deploy_context.run()
+        with DeployContext(
+            template_file=output_template_file.name,
+            stack_name=stack_name,
+            s3_bucket=s3_bucket,
+            force_upload=force_upload,
+            s3_prefix=s3_prefix,
+            kms_key_id=kms_key_id,
+            parameter_overrides=parameter_overrides,
+            capabilities=capabilities,
+            no_execute_changeset=no_execute_changeset,
+            role_arn=role_arn,
+            notification_arns=notification_arns,
+            fail_on_empty_changeset=fail_on_empty_changeset,
+            tags=tags,
+            region=region,
+            profile=profile,
+        ) as deploy_context:
+            deploy_context.run()
