@@ -20,7 +20,7 @@ Have a look at the following series of workflows
 
 * `sam package --s3-bucket ... --template-file ... --output-template-file ... --s3-prefix ... --kms-key-id ...`
 
-* `sam deploy deploy --template-file ... --stack-name ... --capabilities ... --tags ... --parameter-overrides ... --kms-key-id ...`
+* `sam deploy --template-file ... --stack-name ... --capabilities ... --tags ... --parameter-overrides ... --kms-key-id ...`
 
 If this could be condensed into a series of workflows that look like
 
@@ -33,15 +33,26 @@ That would be a huge user experience win.
 What will be changed?
 ---------------------
 
-The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located to the template.yaml by default. 
+The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located at the project root where template.yaml is located by default. 
 
-`.aws-sam/sam-app-config`
+`.sam-app-config`
 
 This configuration would solely be used for specifiying the parameters that each of SAM CLI commands use and would be in TOML format.
 
+Running a SAM CLI command now automatically looks for `.sam-app-config` file and if its finds it goes ahead with parameter passthroughs to the CLI.
+
+```
+sam build
+Default Config file location: .sam-app-config
+..
+..
+..
+```
+
+
 A configuration file can also optionally be specified by each of the commands themselves as well.
 
-`sam build --config .aws-sam/sam-app-dev-config`
+`sam build --config .sam-app-dev-config`
 
 Sample configuration file
 
@@ -66,7 +77,7 @@ region="us-east-1"
 profile="srirammv"
 ```
 
-Success criteria for the change
+Tenets
 -------------------------------
 
 * Resolution of command line parameters should always favor explicit versus implicit. A native command line parameter specified directly on the command line should override a parameter specified in the configuration file.
@@ -92,11 +103,8 @@ Implementation
 CLI Changes
 -----------
 
-New command line argument is added per command called `--config` to be able to specify non default locations of config files
+New command line argument is added per command called `--config` to be able to specify non default locations of config files.
 
-For example:
-
-`sam build --config /tmp/sam-api-app-config`
 
 ### Breaking Change
 
