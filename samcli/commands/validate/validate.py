@@ -14,7 +14,7 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
-@configuration_option(provider=TomlProvider(section="validate"))
+@configuration_option(provider=TomlProvider(cmd="validate", section="parameters"))
 @template_option_without_build
 @aws_creds_options
 @cli_framework_options

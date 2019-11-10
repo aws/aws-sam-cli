@@ -31,6 +31,7 @@ STDIN_FILE_NAME = "-"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
+@configuration_option(provider=TomlProvider(cmd="local_invoke", section="parameters"))
 @click.option(
     "--event",
     "-e",
@@ -42,7 +43,6 @@ STDIN_FILE_NAME = "-"
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options
-@configuration_option(provider=TomlProvider(section="local_invoke"))
 @click.argument("function_identifier", required=False)
 @pass_context
 @track_command  # pylint: disable=R0914

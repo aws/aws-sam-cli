@@ -32,6 +32,7 @@ and point SAM to the directory or file containing build artifacts.
     short_help="Sets up a local endpoint you can use to test your API. Supports hot-reloading "
     "so you don't need to restart this service when you make changes to your function.",
 )
+@configuration_option(provider=TomlProvider(cmd="local_start_api", section="parameters"))
 @service_common_options(3000)
 @click.option(
     "--static-dir",
@@ -42,7 +43,6 @@ and point SAM to the directory or file containing build artifacts.
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
-@configuration_option(provider=TomlProvider(section="local_start_api"))
 @pass_context
 @track_command
 def cli(

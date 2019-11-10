@@ -5,6 +5,7 @@ from functools import partial
 
 import click
 
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import (
     metadata_override_option,
@@ -40,6 +41,7 @@ The following resources and their property locations are supported.
 
 
 @click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
+@configuration_option(provider=TomlProvider(cmd="package", section="parameters"))
 # TODO(TheSriram): Move to template_common_option across aws-sam-cli
 @click.option(
     "--template",

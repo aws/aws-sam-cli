@@ -54,7 +54,6 @@ $ sam build && sam package --s3-bucket <bucketname>
 """
 
 
-@configuration_option(provider=TomlProvider(section="build"))
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @click.option('--build-dir', '-b',
               default=DEFAULT_BUILD_DIR,
@@ -79,6 +78,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 @docker_common_options
 @cli_framework_options
 @aws_creds_options
+@configuration_option(provider=TomlProvider(cmd="build", section="parameters"))
 @click.argument('function_identifier', required=False)
 @pass_context
 @track_command

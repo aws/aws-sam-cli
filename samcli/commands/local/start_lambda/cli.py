@@ -50,11 +50,11 @@ Here is a Python example:
     help=HELP_TEXT,
     short_help="Starts a local endpoint you can use to invoke your local Lambda functions.",
 )
+@configuration_option(provider=TomlProvider(cmd="local_start_lambda", section="parameters"))
 @service_common_options(3001)
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options
-@configuration_option(provider=TomlProvider(section="local_start_lambda"))
 @pass_context
 @track_command
 def cli(

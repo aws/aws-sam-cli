@@ -33,6 +33,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 
 
 @click.command("logs", help=HELP_TEXT, short_help="Fetch logs for a function")
+@configuration_option(provider=TomlProvider(cmd="logs", section="parameters"))
 @click.option(
     "--name",
     "-n",
@@ -71,7 +72,6 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
     "become available.",
 )
 @cli_framework_options
-@configuration_option(provider=TomlProvider(section="logs"))
 @aws_creds_options
 @pass_context
 @track_command
