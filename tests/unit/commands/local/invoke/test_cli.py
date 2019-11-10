@@ -28,7 +28,7 @@ class TestCli(TestCase):
         self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
-        self.additional_volumes = [Path.home()]
+        self.additional_volumes = [Path.home(), Path.cwd()]
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"

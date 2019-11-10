@@ -3,7 +3,9 @@ Represents Lambda runtime containers.
 """
 import logging
 import os
+import posixpath
 
+from samcli.commands.exceptions import UserException
 from samcli.local.docker.lambda_debug_entrypoint import LambdaDebugEntryPoint
 from .container import Container
 from .lambda_image import Runtime
@@ -32,8 +34,8 @@ class LambdaContainer(Container):
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
     _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
 
-    # Additional volumes Mount path for files in docker
-    _VOLUME_MOUNT_PATH = "/tmp/lambci_volumes"
+    # Additional volumes Mount path defined by user
+    _VOLUME_MOUNT_PATH = "/tmp/user_added_volumes"
 
     def __init__(  # pylint: disable-msg=too-many-locals
         self,  # pylint: disable=R0914
@@ -232,13 +234,23 @@ class LambdaContainer(Container):
             return None
 
         volume_map = {}
+        existing_base_names = {}
         for host_volume in host_volumes:
-            host_base_names = os.path.basename(host_volume)
+            host_base_name = os.path.basename(host_volume)
 
-            if not host_base_names:
+            if host_base_name in existing_base_names:
+                raise UserException(
+                    "Basename '{}' already exists in volumes map: {}".format(
+                        host_base_name, str(list(volume_map.keys()))
+                    )
+                )
+
+            existing_base_names[host_base_name] = True
+
+            if not host_base_name:
                 continue
 
-            remote_volume_path = os.path.join(LambdaContainer._VOLUME_MOUNT_PATH, host_base_names)
+            remote_volume_path = posixpath.join(LambdaContainer._VOLUME_MOUNT_PATH, host_base_name)
 
             volume_map[host_volume] = {"bind": remote_volume_path, "mode": ""}
 

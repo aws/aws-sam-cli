@@ -9,6 +9,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
+from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
@@ -297,3 +298,30 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
             host_cwd_path: {"bind": expected_cwd_remote_path, "mode": ""},
         }
         self.assertEqual(expected_volumes, actual_volumes)
+
+    def test_additional_volumes_fail_on_same_volumes_added_twice(self):
+        host_home_path = Path.home()
+        host_volumes = [host_home_path, host_home_path]
+
+        with self.assertRaises(UserException) as context:
+            LambdaContainer._get_additional_volumes(host_volumes=host_volumes)
+
+        self.assertEqual(
+            str(context.exception),
+            "Basename '{}' already exists in volumes map: {}".format(
+                os.path.basename(str(host_home_path)), str([Path.home()])
+            ),
+        )
+
+    def test_additional_volumes_fail_on_volumes_with_same_basename(self):
+        host_one_common = Path("/tmp/one/common")
+        host_two_common = Path("/users/two/common")
+        host_volumes = [host_one_common, host_two_common]
+
+        with self.assertRaises(UserException) as context:
+            LambdaContainer._get_additional_volumes(host_volumes=host_volumes)
+
+        self.assertEqual(
+            str(context.exception),
+            "Basename '{}' already exists in volumes map: {}".format("common", str([host_one_common])),
+        )
