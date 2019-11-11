@@ -9,7 +9,7 @@ Today while using `sam deploy` the specified `--template-file` is expected to ha
 
 This is driven by the following workflow.
 
-`sam build` -> `sam package --s3-bucket ... --s3-prefix ... --output-tempalte-file packaged.yaml`.
+`sam build` -> `sam package --s3-bucket ... --s3-prefix ... --output-template-file packaged.yaml`.
 
 This workflow builds the requisite code and packages those built artifacts into an s3 bucket, optionally under a given s3 prefix.
 
@@ -157,7 +157,7 @@ Expected Results
 Documentation Changes
 =====================
 * Required nature of `--template-file` parameter has a series of defaults that are looked at during `sam deploy` similair to `sam package`. 
-* If `--template-file` points to a non-packaged tempalte-file, `--s3-bucket` becomes required to be able to effectively package and deploy in one command using `sam deploy`.
+* If `--template-file` points to a non-packaged template-file, `--s3-bucket` becomes required to be able to effectively package and deploy in one command using `sam deploy`.
 
 Open Issues
 ============
