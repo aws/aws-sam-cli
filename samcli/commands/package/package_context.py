@@ -56,6 +56,7 @@ class PackageContext:
         metadata,
         region,
         profile,
+        on_deploy=False,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -67,6 +68,7 @@ class PackageContext:
         self.metadata = metadata
         self.region = region
         self.profile = profile
+        self.on_deploy = on_deploy
         self.s3_uploader = None
 
     def __enter__(self):
@@ -91,7 +93,7 @@ class PackageContext:
 
             self.write_output(self.output_template_file, exported_str)
 
-            if self.output_template_file:
+            if self.output_template_file and not self.on_deploy:
                 msg = self.MSG_PACKAGED_TEMPLATE_WRITTEN.format(
                     output_file_name=self.output_template_file,
                     output_file_path=os.path.abspath(self.output_template_file),

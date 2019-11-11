@@ -12,8 +12,7 @@ from samcli.commands._utils.options import (
     tags_override_option,
     notification_arns_override_option,
     template_click_option,
-)
-
+    metadata_override_option)
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
@@ -99,11 +98,18 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     "changes to be made to the stack. The default behavior is  to  return  a"
     "non-zero exit code.",
 )
+@click.option(
+    "--use-json",
+    required=False,
+    is_flag=True,
+    help="Indicates whether to use JSON as the format for "
+    "the output AWS CloudFormation template. YAML is used by default.",
+)
+@metadata_override_option
 @notification_arns_override_option
 @tags_override_option
 @parameter_override_option
 @capabilities_override_option
-@configuration_option(provider=TomlProvider(section="deploy"))
 @aws_creds_options
 @common_options
 @pass_context
@@ -122,7 +128,9 @@ def cli(
     role_arn,
     notification_arns,
     fail_on_empty_changeset,
+    use_json,
     tags,
+    metadata,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -139,7 +147,9 @@ def cli(
         role_arn,
         notification_arns,
         fail_on_empty_changeset,
+        use_json,
         tags,
+        metadata,
         ctx.region,
         ctx.profile,
     )  # pragma: no cover
@@ -158,7 +168,9 @@ def do_cli(
     role_arn,
     notification_arns,
     fail_on_empty_changeset,
+    use_json,
     tags,
+    metadata,
     region,
     profile,
 ):
@@ -172,10 +184,11 @@ def do_cli(
             s3_bucket=s3_bucket,
             s3_prefix=s3_prefix,
             output_template_file=output_template_file.name,
-            kms_key_id=None,
-            use_json=None,
+            kms_key_id=kms_key_id,
+            use_json=use_json,
             force_upload=force_upload,
-            metadata=None,
+            metadata=metadata,
+            on_deploy=True,
             region=region,
             profile=profile
         ) as package_context:
