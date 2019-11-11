@@ -22,6 +22,12 @@ environment:
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
 
+    - PYTHON_HOME: "C:\\Python38-x64"
+        PYTHON_VERSION: '3.8.0'
+        PYTHON_ARCH: '64'
+        RUN_SMOKE: 1
+        NOSE_PARAMETERIZED_NO_WARN: 1
+
 for:
   - 
     matrix:
