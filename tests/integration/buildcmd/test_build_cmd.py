@@ -37,9 +37,11 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ("python2.7", False),
             ("python3.6", False),
             ("python3.7", False),
+            ("python3.8", False),
             ("python2.7", "use_container"),
             ("python3.6", "use_container"),
             ("python3.7", "use_container"),
+            ("python3.8", "use_container"),
         ]
     )
     def test_with_default_requirements(self, runtime, use_container):
@@ -136,9 +138,11 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
             ("nodejs6.10", False),
             ("nodejs8.10", False),
             ("nodejs10.x", False),
+            ("nodejs12.x", False),
             ("nodejs6.10", "use_container"),
             ("nodejs8.10", "use_container"),
             ("nodejs10.x", "use_container"),
+            ("nodejs12.x", "use_container"),
         ]
     )
     def test_with_default_package_json(self, runtime, use_container):
@@ -296,6 +300,11 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
             ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
             ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
     def test_building_java_in_container(self, runtime, code_path, expected_files):
