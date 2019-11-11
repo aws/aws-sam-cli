@@ -51,7 +51,12 @@ class FunctionConfig:
 
         if not isinstance(self.timeout, int):
             try:
-                self.timeout = int(ast.literal_eval(self.timeout))
+                self.timeout = ast.literal_eval(self.timeout)
+
+                # Guard against float values like "3.2"
+                if not isinstance(self.timeout, int):
+                    raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout))
+
             except (ValueError, SyntaxError, TypeError):
                 raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout))
 

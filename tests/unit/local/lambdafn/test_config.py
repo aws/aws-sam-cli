@@ -100,7 +100,14 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
         self.layers = ["layer1"]
 
     @parameterized.expand(
-        [("none int string",), ({"dictionary": "is not a string either"},), ("/local/lambda/timeout",)]
+        [
+            ("none int string",),
+            ({"dictionary": "is not a string either"},),
+            ("/local/lambda/timeout",),
+            ("3.2",),
+            ("4.2",),
+            ("0.123",),
+        ]
     )
     def test_init_with_invalid_timeout_values(self, timeout):
         with self.assertRaises(InvalidSamTemplateException):
