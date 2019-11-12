@@ -69,7 +69,7 @@ class Deployer:
         """
         try:
             resp = self._client.describe_stacks(StackName=stack_name)
-            if len(resp["Stacks"]) == 0:
+            if not resp["Stacks"]:
                 return False
 
             # When you run CreateChangeSet on a a stack that does not exist,
@@ -355,7 +355,7 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex))
 
-    def get_stack_outputs(self, stack_name):
+    def get_stack_outputs(self, stack_name, echo=True):
         @pprint_column_names(format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS)
         def _stack_outputs(stack_outputs, **kwargs):
             for output in stack_outputs:
@@ -372,10 +372,12 @@ class Deployer:
             stacks_description = self._client.describe_stacks(StackName=stack_name)
             try:
                 outputs = stacks_description["Stacks"][0]["Outputs"]
-                click.secho("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
-                _stack_outputs(stack_outputs=outputs)
+                if echo:
+                    click.secho("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
+                    _stack_outputs(stack_outputs=outputs)
+                return outputs
             except KeyError:
-                return
+                return None
 
         except botocore.exceptions.ClientError as ex:
             raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex))
