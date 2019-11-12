@@ -38,34 +38,38 @@ Tenets
 What will be changed?
 ---------------------
 
-The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located under the .aws-sam/ at the project root where template.yaml is located by default.
+The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located under the `.aws-sam/` at the project root where template.yaml is located by default.
 
-`.aws-sam/samconfig`
+`.aws-sam/samconfig.toml`
 
 
 This configuration would be used for specifiying the parameters that each of SAM CLI commands use and would be in TOML format.
 
-Running a SAM CLI command now automatically looks for `.aws-sam/samconfig` file and if its finds it goes ahead with parameter passthroughs to the CLI.
+Running a SAM CLI command now automatically looks for `.aws-sam/samconfig.toml` file and if its finds it goes ahead with parameter passthroughs to the CLI.
 
 ```
 sam build
-Default Config file location: .aws-sam/samconfig
+Default Config file location: .aws-sam/samconfig.toml
 ..
 ..
 ..
 ```
 
-Why samconfig under .aws-sam
+Why samconfig under `.aws-sam`
 ---------------------------------
 
-the .aws-sam directory within the project directory is created with normal 755 permissions as default without any special permisions. `sam build` only creates a build directory
-within .aws-sam as .aws-sam/build. This directory is erased and re-built on every build. but top level directory is left unaffected.
+The `.aws-sam` directory within the project directory is created with normal 755 permissions as default without any special permisions. `sam build` only creates a build directory within `.aws-sam` as `.aws-sam/build`. This directory is erased and re-built on every build. but top level directory is left unaffected.
 
+The `.gitignore` specified in the init apps also only have `.aws-sam/build` ignored and not anything else.
+
+
+Overrides
+----------
 
 The default location of a .aws-sam/samconfig can be replaced by overriding an environment variable called `SAM_CLI_CONFIG`
 
 `
-export SAM_CLI_CONFIG=~/Users/username/mysamconfig
+export SAM_CLI_CONFIG=~/Users/username/mysamconfig.toml
 `
 
 Users can pass an environment `--env` for the section that will be scanned within the configuration file to pass parameters through.
@@ -98,7 +102,7 @@ profile="srirammv"
 
 ```
 
-If a custom environment is specified, the environment is looked up in `.samconfig` file instead.
+If a custom environment is specified, the environment is looked up in `samconfig.toml` file instead.
 
 `sam build --env dev`
 
@@ -148,11 +152,73 @@ The configuration file can then be potentially intialized
 
 * all sam init projects could come with a sample samconfig file
 
+
+Config file in Git Repos
+------------------------
+
+`samconfig.toml` file can be checked into a git repo, so that its ready to use on cloning the repo. if the configuration file does not present all the necesssary parameters, the command fails just as if one had specified the same arguments on the command line directly.
+
+Optionally, if multiple configuration files are checked in. One can change the `SAM_CLI_CONFIG` environment variable to point a different configuration file.
+
+`--env` can also be passed in to deal with custom environments defined in the configuration file.
+
+Error Messages
+---------------
+
+When a custom env is passed in, and such an environment is not found. The error message can highlight all the environments that were found in the given configuration file.
+
+`
+sam build --env devo
+Error: Environment 'devo' was not found in .aws-sam/samconfig.toml , Possible environments are : ['dev', 'prod']
+`
+
+Future
+----------
+
+In the future, based on the file names of the configuration files, the environment could also be inferred.
+
+```
+.aws-sam/samconfig-dev.toml
+.aws-sam/samconfig-beta.toml
+.aws-sam/samconfig-prod.toml
+```
+
+`--env` dev will refer to `.aws-sam/samconfig-dev.toml` and so on.
+
+If multiple default file locations are added in the look up order for `samconfig.toml`, this means that multiple config files can be merged together.
+
+For example, if the hierachy of lookup for configuration files are: $SAM_CLI_CONFIG -> `.aws-sam/samconfig.toml` -> `~/.aws-sam/samconfig.toml`
+
+The resulting configuration would be a merge of all the sections that are relevant for the command that was run.
+
+This way, configuration that might be global can be placed in `~/.aws-sam/samconfig.toml`.
+
+```
+[default.build.parameters]
+use_container = True
+skip_pull_image = True
+```
+
+Project specific configuration placed in `~/.aws-sam/samconfig.toml`
+
+```
+[default.build.parameters]
+parameter_overrides="ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
+```
+
+Eventual merged configuration read during `sam build` in-memory.
+
+```
+[default.build.parameters]
+use_container = True
+skip_pull_image = True
+parameter_overrides="ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
+```
+
 Open Questions
 -------------------------------
 
 * Potentially every sam command could have functionality to have a series of command line parameters exported into a configuraion file.
-
 
 
 Out-of-Scope
@@ -194,6 +260,18 @@ A custom decorator to `click.option` is developed which reads from a configurati
 The configuration file parser is a custom provider that can be made to understand any configuration file format in a pluggable manner.
 
 This decorator benefits from the same type checking that some SAM CLI parameters already use.
+
+A custom callback function (`configuration_callback`) (for the click option) that takes in a custom configuration parser (`provider`) will have rules in place, on how the corresponding configuration can be retrieved and what are the parts that the configuration parser has access to read from.
+
+```
+provider = attrs.pop("provider", TomlProvider(rules=DefaultRules(), command="build", section="parameters"))
+attrs["type"] = click.STRING
+saved_callback = attrs.pop("callback", None)
+partial_callback = functools.partial(onfiguration_callback, cmd_name, option_name, env_name, saved_callback, provider)
+attrs["callback"] = partial_callback
+click.option(*param_decls, **attrs)(f)
+
+```
 
 `.samrc` Changes
 ----------------
