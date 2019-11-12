@@ -1,4 +1,4 @@
-SAM CLI App Level Config
+SAM Config
 ====================================
 
 
@@ -30,41 +30,53 @@ If this could be condensed into a series of workflows that look like
 
 That would be a huge user experience win.
 
+Tenets
+-------------------------------
+
+* Resolution of command line parameters should always favor explicit versus implicit. A native command line parameter specified directly on the command line should override a parameter specified in the configuration file.
+
 What will be changed?
 ---------------------
 
-The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located at the project root where template.yaml is located by default. 
+The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located under the .aws-sam/ at the project root where template.yaml is located by default.
 
-`.sam-app-config`
+`.aws-sam/samconfig`
+
 
 This configuration would be used for specifiying the parameters that each of SAM CLI commands use and would be in TOML format.
 
-Running a SAM CLI command now automatically looks for `.sam-config` file and if its finds it goes ahead with parameter passthroughs to the CLI.
+Running a SAM CLI command now automatically looks for `.aws-sam/samconfig` file and if its finds it goes ahead with parameter passthroughs to the CLI.
 
 ```
 sam build
-Default Config file location: .sam-config
+Default Config file location: .aws-sam/samconfig
 ..
 ..
 ..
 ```
 
+Why samconfig under .aws-sam
+---------------------------------
 
-The default location of a .sam-config can be replaced by overriding an environment variable called `SAM_CONFIG`
+the .aws-sam directory within the project directory is created with normal 755 permissions as default without any special permisions. `sam build` only creates a build directory
+within .aws-sam as .aws-sam/build. This directory is erased and re-built on every build. but top level directory is left unaffected.
+
+
+The default location of a .aws-sam/samconfig can be replaced by overriding an environment variable called `SAM_CLI_CONFIG`
 
 `
-export SAM_CONFIG=~/Users/username/mysamconfig
+export SAM_CLI_CONFIG=~/Users/username/mysamconfig
 `
 
-Users can pass an identifier for the section that will be scanned within the configuration file to pass parameters through.
+Users can pass an environment `--env` for the section that will be scanned within the configuration file to pass parameters through.
 
-Be default the `default` section of the configuration is chosen.
+By default the `default` section of the configuration is chosen.
 
 ```
 [default]
 
 [default.build]
-[default.build.paramaters]
+[default.build.parameters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
@@ -86,53 +98,44 @@ profile="srirammv"
 
 ```
 
-If a custom identifer is specified, the identifier is looked up `.sam-config` file instead.
+If a custom environment is specified, the environment is looked up in `.samconfig` file instead.
 
-`sam build --identifier dev`
+`sam build --env dev`
 
 Sample configuration file
 
 ```
-[default]
-
-[default.build]
 [default.build.paramaters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
 use_container=true
 
-[default.package]
 [default.package.parameters]
 profile="srirammv"
 region="us-east-1"
 s3_bucket="sam-bucket"
 output_template_file="packaged.yaml"
 
-[default.deploy]
 [default.deploy.parameters]
 stack_name="using_config_file"
 capabilities="CAPABILITY_IAM"
 region="us-east-1"
 profile="srirammv"
 
-[dev]
 
-[dev.build]
 [dev.build.paramaters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
 use_container=true
 
-[dev.package]
 [dev.package.parameters]
 profile="srirammv"
 region="us-east-1"
 s3_bucket="sam-bucket"
 output_template_file="packaged.yaml"
 
-[dev.deploy]
 [dev.deploy.parameters]
 stack_name="using_config_file"
 capabilities="CAPABILITY_IAM"
@@ -143,17 +146,13 @@ profile="srirammv"
 
 The configuration file can then be potentially intialized
 
-* all sam init projects could come with a sample .sam-config file
+* all sam init projects could come with a sample samconfig file
 
 Open Questions
 -------------------------------
 
 * Potentially every sam command could have functionality to have a series of command line parameters exported into a configuraion file.
 
-Tenets
--------------------------------
-
-* Resolution of command line parameters should always favor explicit versus implicit. A native command line parameter specified directly on the command line should override a parameter specified in the configuration file.
 
 
 Out-of-Scope
@@ -176,7 +175,7 @@ Implementation
 CLI Changes
 -----------
 
-New command line argument is added per command called `--identifier` to be able to specify non default identifier section within a config file.
+New command line argument is added per command called `--env` to be able to specify non default environment section within a config file.
 
 
 ### Breaking Change
