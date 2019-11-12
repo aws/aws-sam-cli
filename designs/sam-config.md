@@ -273,6 +273,16 @@ click.option(*param_decls, **attrs)(f)
 
 ```
 
+Phases
+------
+
+The design can be built in phases.
+
+* No option to specify configuration file or env name
+* Specify configuration file with an environment variable
+* Read `--env` to make sure we can select an appropriate portion in configuration file.
+
+
 `.samrc` Changes
 ----------------
 
@@ -339,7 +349,7 @@ Expected Results
 Documentation Changes
 =====================
 
-* Addition of a new `--identifer` parameter per command
+* Addition of a new `--env` parameter per command
 
 Related Open Issues
 ============
