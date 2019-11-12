@@ -17,21 +17,24 @@ def pprint_column_names(format_string, format_kwargs, margin=None):
     :return: boilerplate table string
     """
 
-    min_widrh = 100
+    min_width = 100
     min_margin = 2
 
     def pprint_wrap(func):
         # Calculate terminal width, number of columns in the table
         width, _ = click.get_terminal_size()
-        # For UX purposes, set a minimum width for the table to be usable.
-        width = max(width, min_widrh)
-        total_args = len(format_kwargs)
-        width = width - (width % total_args)
-        usable_width = int(width) - 1
+        # For UX purposes, set a minimum width for the table to be usable
+        # and usable_width keeps margins in mind.
+        width = max(width, min_width)
 
+        total_args = len(format_kwargs)
         # Get width to be a usable number so that we can equally divide the space for all the columns.
         # Can be refactored, to allow for modularity in the shaping of the columns.
-        width_per_column = int(width / total_args)
+        width = width - (width % total_args)
+        usable_width_no_margin = int(width) - 1
+        usable_width = int((usable_width_no_margin - (margin if margin else min_margin)))
+
+        width_per_column = int(usable_width / total_args)
 
         # The final column should not roll over into the next line
         final_arg_width = width_per_column - 1

@@ -385,17 +385,16 @@ class TestDeployer(TestCase):
 
     def test_get_stack_outputs(self):
         outputs = {
-                "Stacks": [
-                    {
-                        "Outputs": [
-                            {"OutputKey": "Key1", "OutputValue": "Value1", "Description": "output for s3"},
-                            {"OutputKey": "Key2", "OutputValue": "Value2", "Description": "output for kms"},
-                        ]
-                    }
-                ]
-            }
-        self.deployer._client.describe_stacks = MagicMock(
-            return_value=outputs)
+            "Stacks": [
+                {
+                    "Outputs": [
+                        {"OutputKey": "Key1", "OutputValue": "Value1", "Description": "output for s3"},
+                        {"OutputKey": "Key2", "OutputValue": "Value2", "Description": "output for kms"},
+                    ]
+                }
+            ]
+        }
+        self.deployer._client.describe_stacks = MagicMock(return_value=outputs)
 
         self.assertEqual(outputs["Stacks"][0]["Outputs"], self.deployer.get_stack_outputs(stack_name="test"))
         self.deployer._client.describe_stacks.assert_called_with(StackName="test")
@@ -403,19 +402,20 @@ class TestDeployer(TestCase):
     @patch("samcli.lib.deploy.deployer.pprint_columns")
     def test_get_stack_outputs_no_echo(self, mock_pprint_columns):
         outputs = {
-                "Stacks": [
-                    {
-                        "Outputs": [
-                            {"OutputKey": "Key1", "OutputValue": "Value1", "Description": "output for s3"},
-                            {"OutputKey": "Key2", "OutputValue": "Value2", "Description": "output for kms"},
-                        ]
-                    }
-                ]
-            }
-        self.deployer._client.describe_stacks = MagicMock(
-            return_value=outputs)
+            "Stacks": [
+                {
+                    "Outputs": [
+                        {"OutputKey": "Key1", "OutputValue": "Value1", "Description": "output for s3"},
+                        {"OutputKey": "Key2", "OutputValue": "Value2", "Description": "output for kms"},
+                    ]
+                }
+            ]
+        }
+        self.deployer._client.describe_stacks = MagicMock(return_value=outputs)
 
-        self.assertEqual(outputs["Stacks"][0]["Outputs"], self.deployer.get_stack_outputs(stack_name="test", echo=False))
+        self.assertEqual(
+            outputs["Stacks"][0]["Outputs"], self.deployer.get_stack_outputs(stack_name="test", echo=False)
+        )
         self.deployer._client.describe_stacks.assert_called_with(StackName="test")
         self.assertEqual(mock_pprint_columns.call_count, 0)
 
@@ -423,7 +423,7 @@ class TestDeployer(TestCase):
         outputs = {"Stacks": [{"SomeOtherKey": "Value"}]}
         self.deployer._client.describe_stacks = MagicMock(return_value=outputs)
 
-        self.assertEqual(outputs,self.deployer.get_stack_outputs(stack_name="test"))
+        self.assertEqual(None, self.deployer.get_stack_outputs(stack_name="test"))
         self.deployer._client.describe_stacks.assert_called_with(StackName="test")
 
     def test_get_stack_outputs_exception(self):
