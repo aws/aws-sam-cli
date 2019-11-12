@@ -21,6 +21,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.deploy",
     "samcli.commands.logs",
     "samcli.commands.publish",
+    "samcli.commands.setup",
 ]
 
 
