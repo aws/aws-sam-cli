@@ -82,8 +82,9 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     help="Indicates  whether  to  execute  the"
     "change  set.  Specify  this flag if you want to view your stack changes"
     "before executing the change set. The command creates an AWS CloudForma-"
-    "tion  change set and then exits without executing the change set. After"
-    "you view the change set, execute it to implement your changes.",
+    "tion  change set and then exits without executing the change set. if "
+    "the changeset looks satisfactory, the stack changes can be made by "
+    "running the same command without specifying `--no-execute-changeset`",
 )
 @click.option(
     "--role-arn",

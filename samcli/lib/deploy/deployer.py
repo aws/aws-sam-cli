@@ -69,7 +69,7 @@ class Deployer:
         """
         try:
             resp = self._client.describe_stacks(StackName=stack_name)
-            if len(resp["Stacks"]) != 1:
+            if len(resp["Stacks"]) == 0:
                 return False
 
             # When you run CreateChangeSet on a a stack that does not exist,
