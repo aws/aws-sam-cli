@@ -63,6 +63,18 @@ The `.aws-sam` directory within the project directory is created with normal 755
 The `.gitignore` specified in the init apps also only have `.aws-sam/build` ignored and not anything else.
 
 
+Config file versioning
+-----------------------
+
+The configuration file: `samconfig.toml` will come with a top level version key that specifies the version of the configuration file. This version can then be used to determine if a given configuration file works with a version of SAM CLI.
+
+It also paves the forward when major changes need to be made to the configuration file and add a version bump to the config file version
+
+```
+version = 0.1
+```
+
+
 Overrides
 ----------
 
@@ -77,6 +89,8 @@ Users can pass an environment `--env` for the section that will be scanned withi
 By default the `default` section of the configuration is chosen.
 
 ```
+version = 0.1
+
 [default]
 
 [default.build]
@@ -109,6 +123,8 @@ If a custom environment is specified, the environment is looked up in `samconfig
 Sample configuration file
 
 ```
+version = 0.1
+
 [default.build.paramaters]
 profile="srirammv"
 debug=true
@@ -152,6 +168,11 @@ The configuration file can then be potentially intialized
 
 * all sam init projects could come with a sample samconfig file
 
+Showcase configuration values
+-----------------------------
+
+On running SAM CLI commands with `--debug`, SAM CLI can output the values read from the configuration file. This way the user is always informed of the total set of parameters are being used by SAM CLI, when the customers need to debug what parameters are actually being passed to the `sam` commands.
+
 
 Config file in Git Repos
 ------------------------
@@ -194,6 +215,7 @@ The resulting configuration would be a merge of all the sections that are releva
 This way, configuration that might be global can be placed in `~/.aws-sam/samconfig.toml`.
 
 ```
+version = 0.1
 [default.build.parameters]
 use_container = True
 skip_pull_image = True
@@ -202,6 +224,7 @@ skip_pull_image = True
 Project specific configuration placed in `~/.aws-sam/samconfig.toml`
 
 ```
+version = 0.1
 [default.build.parameters]
 parameter_overrides="ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
 ```
@@ -209,6 +232,7 @@ parameter_overrides="ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=
 Eventual merged configuration read during `sam build` in-memory.
 
 ```
+version = 0.1
 [default.build.parameters]
 use_container = True
 skip_pull_image = True
@@ -337,7 +361,7 @@ N/A
 Test Scenarios/Cases
 --------------------
 
-* Integration tests for every command with identifer based overrides, and command line overrides on existing sam configuration file and custom configuration file through environment variables.
+* Integration tests for every command with `env` based overrides, and command line overrides on existing sam configuration file and custom configuration file through environment variables.
 * Tested to work on all platforms
 
 Expected Results
