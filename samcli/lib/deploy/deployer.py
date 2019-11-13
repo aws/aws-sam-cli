@@ -44,10 +44,14 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
     }
 )
 
+DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "**CloudFormation events from changeset**"
+
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
     {"Operation": "Operation", "LogicalResourceId": "LogicalResourceId", "ResourceType": "ResourceType"}
 )
+
+DESCRIBE_CHANGESET_TABLE_HEADER_NAME = "**CloudFormation stack changeset**"
 
 OUTPUTS_FORMAT_STRING = "{OutputKey:<{0}} {OutputValue:<{1}} {Description:<{2}}"
 OUTPUTS_DEFAULTS_ARGS = OrderedDict(
@@ -169,7 +173,11 @@ class Deployer:
             LOG.debug("Unable to create changeset", exc_info=ex)
             raise ChangeSetError(stack_name=stack_name, msg=str(ex))
 
-    @pprint_column_names(format_string=DESCRIBE_CHANGESET_FORMAT_STRING, format_kwargs=DESCRIBE_CHANGESET_DEFAULT_ARGS)
+    @pprint_column_names(
+        format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
+        format_kwargs=DESCRIBE_CHANGESET_DEFAULT_ARGS,
+        table_header=DESCRIBE_CHANGESET_TABLE_HEADER_NAME,
+    )
     def describe_changeset(self, change_set_id, stack_name, **kwargs):
         """
         Call Cloudformation to describe a changeset
@@ -181,6 +189,7 @@ class Deployer:
         paginator = self._client.get_paginator("describe_change_set")
         response_iterator = paginator.paginate(ChangeSetName=change_set_id, StackName=stack_name)
         changes = {"Add": [], "Modify": [], "Remove": []}
+        changes_showcase = {"Add": "+ Add", "Modify": "* Modify", "Remove": "- Delete"}
         changeset = False
         for item in response_iterator:
             cf_changes = item.get("Changes")
@@ -198,7 +207,7 @@ class Deployer:
         for k, v in changes.items():
             for value in v:
                 pprint_columns(
-                    columns=[k, value["LogicalResourceId"], value["ResourceType"]],
+                    columns=[changes_showcase.get(k, k), value["LogicalResourceId"], value["ResourceType"]],
                     width=kwargs["width"],
                     margin=kwargs["margin"],
                     format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
@@ -229,6 +238,7 @@ class Deployer:
         :return: Latest status of the create-change-set operation
         """
         sys.stdout.write("\nWaiting for changeset to be created..\n")
+        sys.stdout.flush()
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
@@ -281,7 +291,9 @@ class Deployer:
             return time.time()
 
     @pprint_column_names(
-        format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING, format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS
+        format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
+        format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS,
+        table_header=DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME,
     )
     def describe_stack_events(self, stack_name, time_stamp_marker, **kwargs):
         """
@@ -339,6 +351,7 @@ class Deployer:
     def wait_for_execute(self, stack_name, changeset_type):
 
         sys.stdout.write("\nWaiting for stack create/update to complete\n")
+        sys.stdout.flush()
 
         self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
 
@@ -395,6 +408,7 @@ class Deployer:
                 outputs = stacks_description["Stacks"][0]["Outputs"]
                 if echo:
                     sys.stdout.write("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
+                    sys.stdout.flush()
                     self._stack_outputs(stack_outputs=outputs)
                 return outputs
             except KeyError:

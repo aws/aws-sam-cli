@@ -8,12 +8,13 @@ from functools import wraps
 import click
 
 
-def pprint_column_names(format_string, format_kwargs, margin=None):
+def pprint_column_names(format_string, format_kwargs, margin=None, table_header=None):
     """
 
     :param format_string: format string to be used that has the strings, minimum width to be replaced
     :param format_kwargs: dictionary that is supplied to the format_string to format the string
     :param margin: margin that is to be reduced from column width for columnar text.
+    :param table_header: Supplied table header
     :return: boilerplate table string
     """
 
@@ -53,6 +54,8 @@ def pprint_column_names(format_string, format_kwargs, margin=None):
         @wraps(func)
         def wrap(*args, **kwargs):
             # The table is setup with the column names, format_string contains the column names.
+            if table_header:
+                click.secho("\n" + table_header)
             click.secho("-" * usable_width)
             click.secho(format_string.format(*format_args, **format_kwargs))
             click.secho("-" * usable_width)
