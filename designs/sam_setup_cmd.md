@@ -1,6 +1,6 @@
 # `sam setup` command
 
-As a part of packaging Lambda functions for deployment to AWS, users of the AWS SAM CLI currently need to provide an S3 bucket to store their code artifacts in. This creates a number of usability problems today, from users needing to go and set up an S3 bucket, to needing to track which bucket is appropriate for a given region (S3 bucket region must match CloudFormation deployment region). This project aims to simplify this experience.
+As a part of packaging Lambda functions for deployment to AWS, users of the AWS SAM CLI currently need to provide an S3 bucket to store their code artifacts in. This creates a number of extra setup steps today, from users needing to go and set up an S3 bucket, to needing to track which bucket is appropriate for a given region (S3 bucket region must match CloudFormation deployment region). This project aims to simplify this experience.
 
 ## Goals
 
