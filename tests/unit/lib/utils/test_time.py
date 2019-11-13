@@ -1,8 +1,10 @@
+import time
 import datetime
 
 from unittest import TestCase
 
-from samcli.lib.utils.time import to_timestamp, timestamp_to_iso, parse_date, to_utc
+from samcli.lib.utils.time import to_timestamp, timestamp_to_iso, parse_date, to_utc, utc_to_timestamp
+from dateutil.tz import tzutc
 
 
 class TestTimestampToIso(TestCase):
@@ -25,6 +27,12 @@ class TestToTimestamp(TestCase):
         expected = 1530882594123
 
         self.assertEqual(expected, to_timestamp(date))
+
+    def test_convert_utc_to_timestamp(self):
+        timestamp = time.time()
+        utc = datetime.datetime.utcfromtimestamp(timestamp)
+        # compare in milliseconds
+        self.assertEqual(int(timestamp * 1000), utc_to_timestamp(utc))
 
 
 class TestToUtc(TestCase):
