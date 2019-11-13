@@ -178,24 +178,3 @@ class CfnTags(click.ParamType):
                 )
 
         return result
-
-
-class CfnCapabilitiesType(click.ParamType):
-    """
-    Custom click options type to make sure that capabilities are of the following types
-        CAPABILITY_AUTO_EXPAND, CAPABILITY_NAMED_IAM, CAPABILITY_IAM
-    """
-
-    name = ""
-
-    capabalities_enum = ["CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"]
-
-    def convert(self, value, param, ctx):
-        for val in value:
-            if val not in self.capabalities_enum:
-                self.fail(
-                    "{} is not valid format. It must look something like '{}'".format(value, self.capabalities_enum),
-                    param,
-                    ctx,
-                )
-        return value

@@ -1,21 +1,22 @@
 import uuid
+import time
 from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY
 
-import pytz
 from botocore.exceptions import ClientError, WaiterError
 
 from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError, DeployStackOutPutFailedError
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.time import utc_to_timestamp, to_datetime
 
 
 class MockPaginator:
     def __init__(self, resp):
         self.resp = resp
 
-    def paginate(self, ChangeSetName, StackName):
+    def paginate(self, ChangeSetName=None, StackName=None):
         return self.resp
 
 
@@ -48,7 +49,7 @@ class TestDeployer(TestCase):
 
     def test_deployer_init(self):
         self.assertEqual(self.deployer._client, self.cloudformation_client)
-        self.assertEqual(self.deployer.changeset_prefix, "samcli-cloudformation-package-deploy-")
+        self.assertEqual(self.deployer.changeset_prefix, "samcli-deploy")
 
     def test_deployer_has_no_stack(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": []})
@@ -222,16 +223,17 @@ class TestDeployer(TestCase):
             self.deployer.execute_changeset("id", "test")
 
     def test_get_last_event_time(self):
-        timestamp = pytz.utc.localize(datetime.utcnow())
+        timestamp = datetime.utcnow()
         self.deployer._client.describe_stack_events = MagicMock(
             return_value={"StackEvents": [{"Timestamp": timestamp}]}
         )
-        self.assertEqual(self.deployer.get_last_event_time("test"), timestamp)
+        self.assertEqual(self.deployer.get_last_event_time("test"), utc_to_timestamp(timestamp))
 
     def test_get_last_event_time_unknown_last_time(self):
-        current_timestamp = pytz.utc.localize(datetime.utcnow())
+        current_timestamp = datetime.utcnow()
         self.deployer._client.describe_stack_events = MagicMock(side_effect=KeyError)
-        last_stack_event_timestamp = self.deployer.get_last_event_time("test")
+        # Convert to milliseconds from seconds
+        last_stack_event_timestamp = to_datetime(self.deployer.get_last_event_time("test") * 1000)
         self.assertEqual(last_stack_event_timestamp.year, current_timestamp.year)
         self.assertEqual(last_stack_event_timestamp.month, current_timestamp.month)
         self.assertEqual(last_stack_event_timestamp.day, current_timestamp.day)
@@ -241,7 +243,7 @@ class TestDeployer(TestCase):
 
     @patch("time.sleep")
     def test_describe_stack_events(self, patched_time):
-        current_timestamp = pytz.utc.localize(datetime.utcnow())
+        current_timestamp = datetime.utcnow()
 
         self.deployer._client.describe_stacks = MagicMock(
             side_effect=[
@@ -251,57 +253,155 @@ class TestDeployer(TestCase):
                 {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
             ]
         )
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "kms",
+                                "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_COMPLETE",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_COMPLETE",
+                                "ResourceType": "kms",
+                                "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                ]
+            )
+        )
 
-        self.deployer._client.describe_stack_events = MagicMock(
+        self.deployer.describe_stack_events("test", time.time() - 1)
+
+    @patch("time.sleep")
+    def test_describe_stack_events_exceptions(self, patched_time):
+
+        self.deployer._client.describe_stacks = MagicMock(
             side_effect=[
-                {
-                    "StackEvents": [
-                        {
-                            "EventId": str(uuid.uuid4()),
-                            "Timestamp": current_timestamp,
-                            "ResourceStatus": "CREATE_IN_PROGRESS",
-                            "ResourceType": "s3",
-                            "LogicalResourceId": "mybucket",
-                        }
-                    ]
-                },
-                {
-                    "StackEvents": [
-                        {
-                            "EventId": str(uuid.uuid4()),
-                            "Timestamp": current_timestamp,
-                            "ResourceStatus": "CREATE_IN_PROGRESS",
-                            "ResourceType": "kms",
-                            "LogicalResourceId": "mykms",
-                        }
-                    ]
-                },
-                {
-                    "StackEvents": [
-                        {
-                            "EventId": str(uuid.uuid4()),
-                            "Timestamp": current_timestamp,
-                            "ResourceStatus": "CREATE_COMPLETE",
-                            "ResourceType": "s3",
-                            "LogicalResourceId": "mybucket",
-                        }
-                    ]
-                },
-                {
-                    "StackEvents": [
-                        {
-                            "EventId": str(uuid.uuid4()),
-                            "Timestamp": current_timestamp,
-                            "ResourceStatus": "CREATE_COMPLETE",
-                            "ResourceType": "kms",
-                            "LogicalResourceId": "mykms",
-                        }
-                    ]
-                },
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+            ]
+        )
+        with self.assertRaises(ClientError):
+            self.deployer.describe_stack_events("test", time.time())
+
+    @patch("time.sleep")
+    def test_describe_stack_events_resume_after_exceptions(self, patched_time):
+        current_timestamp = datetime.utcnow()
+
+        self.deployer._client.describe_stacks = MagicMock(
+            side_effect=[
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                ClientError(
+                    error_response={"Error": {"Message": "Rate Exceeded"}}, operation_name="describe_stack_events"
+                ),
+                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
+                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
+                {"Stacks": [{"StackStatus": "CREATE_COMPLETE_CLEANUP_IN_PROGRESS"}]},
+                {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
             ]
         )
 
-        self.deployer.describe_stack_events("test", current_timestamp - timedelta(seconds=1))
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "kms",
+                                "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_COMPLETE",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": current_timestamp,
+                                "ResourceStatus": "CREATE_COMPLETE",
+                                "ResourceType": "kms",
+                                "LogicalResourceId": "mykms",
+                            }
+                        ]
+                    },
+                ]
+            )
+        )
+
+        self.deployer.describe_stack_events("test", time.time())
 
     def test_check_stack_status(self):
         self.assertEqual(self.deployer._check_stack_complete("CREATE_COMPLETE"), True)

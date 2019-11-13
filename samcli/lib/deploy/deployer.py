@@ -15,19 +15,20 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import sys
+import math
 from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
 
 import botocore
-import click
-import pytz
 
 from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError, DeployStackOutPutFailedError
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
+from samcli.lib.utils.time import utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
 
@@ -55,10 +56,15 @@ OUTPUTS_DEFAULTS_ARGS = OrderedDict(
 
 
 class Deployer:
-    def __init__(self, cloudformation_client, changeset_prefix="samcli-cloudformation-package-deploy-"):
+    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy"):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
+        # 500ms of sleep time between stack checks and describe stack events.
         self.client_sleep = 0.5
+        # 2000ms of backoff time which is exponentially used, when there are exceptions during describe stack events
+        self.backoff = 2
+        # Maximum number of attempts before raising exception back up the chain.
+        self.max_attempts = 3
 
     def has_stack(self, stack_name):
         """
@@ -222,7 +228,7 @@ class Deployer:
         :param stack_name:   Stack name
         :return: Latest status of the create-change-set operation
         """
-        click.secho("\nWaiting for changeset to be created..\n")
+        sys.stdout.write("\nWaiting for changeset to be created..\n")
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
@@ -265,12 +271,14 @@ class Deployer:
         """
         Finds the last event time stamp thats present for the stack, if not get the current time
         :param stack_name: Name or ID of the stack
-        :return: datetime object
+        :return: unix epoch
         """
         try:
-            return self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
+            return utc_to_timestamp(
+                self._client.describe_stack_events(StackName=stack_name)["StackEvents"][0]["Timestamp"]
+            )
         except KeyError:
-            return pytz.utc.localize(datetime.utcnow())
+            return time.time()
 
     @pprint_column_names(
         format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING, format_kwargs=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS
@@ -285,39 +293,52 @@ class Deployer:
 
         stack_change_in_progress = True
         events = set()
+        retry_attempts = 0
 
-        while stack_change_in_progress:
-            describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
-            describe_stack_events_resp = self._client.describe_stack_events(StackName=stack_name)
-            stack_status = describe_stacks_resp["Stacks"][0]["StackStatus"]
-            time.sleep(self.client_sleep)
-            for event in describe_stack_events_resp["StackEvents"]:
-                if event["EventId"] not in events and event["Timestamp"] > time_stamp_marker:
-                    events.add(event["EventId"])
+        while stack_change_in_progress and retry_attempts <= self.max_attempts:
+            try:
 
-                    pprint_columns(
-                        columns=[
-                            event["ResourceStatus"],
-                            event["ResourceType"],
-                            event["LogicalResourceId"],
-                            event.get("ResourceStatusReason", "-"),
-                        ],
-                        width=kwargs["width"],
-                        margin=kwargs["margin"],
-                        format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
-                        format_args=kwargs["format_args"],
-                        columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
-                    )
+                # Only sleep if there have been no retry_attempts
+                time.sleep(self.client_sleep if retry_attempts == 0 else 0)
+                describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
+                paginator = self._client.get_paginator("describe_stack_events")
+                response_iterator = paginator.paginate(StackName=stack_name)
+                stack_status = describe_stacks_resp["Stacks"][0]["StackStatus"]
+                for event_items in response_iterator:
+                    for event in event_items["StackEvents"]:
+                        if event["EventId"] not in events and utc_to_timestamp(event["Timestamp"]) > time_stamp_marker:
+                            events.add(event["EventId"])
 
-            if self._check_stack_complete(stack_status):
-                stack_change_in_progress = False
+                            pprint_columns(
+                                columns=[
+                                    event["ResourceStatus"],
+                                    event["ResourceType"],
+                                    event["LogicalResourceId"],
+                                    event.get("ResourceStatusReason", "-"),
+                                ],
+                                width=kwargs["width"],
+                                margin=kwargs["margin"],
+                                format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
+                                format_args=kwargs["format_args"],
+                                columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
+                            )
+
+                if self._check_stack_complete(stack_status):
+                    stack_change_in_progress = False
+                    break
+            except botocore.exceptions.ClientError:
+                retry_attempts = retry_attempts + 1
+                if retry_attempts > self.max_attempts:
+                    raise
+                # Sleep in exponential backoff mode
+                time.sleep(math.pow(self.backoff, retry_attempts))
 
     def _check_stack_complete(self, status):
         return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
 
-        click.secho("\nWaiting for stack create/update to complete\n")
+        sys.stdout.write("\nWaiting for stack create/update to complete\n")
 
         self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
 
@@ -355,26 +376,26 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex))
 
-    def get_stack_outputs(self, stack_name, echo=True):
-        @pprint_column_names(format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS)
-        def _stack_outputs(stack_outputs, **kwargs):
-            for output in stack_outputs:
-                pprint_columns(
-                    columns=[output["OutputKey"], output["OutputValue"], output.get("Description", "-")],
-                    width=kwargs["width"],
-                    margin=kwargs["margin"],
-                    format_string=OUTPUTS_FORMAT_STRING,
-                    format_args=kwargs["format_args"],
-                    columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
-                )
+    @pprint_column_names(format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS)
+    def _stack_outputs(self, stack_outputs, **kwargs):
+        for output in stack_outputs:
+            pprint_columns(
+                columns=[output["OutputKey"], output["OutputValue"], output.get("Description", "-")],
+                width=kwargs["width"],
+                margin=kwargs["margin"],
+                format_string=OUTPUTS_FORMAT_STRING,
+                format_args=kwargs["format_args"],
+                columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
+            )
 
+    def get_stack_outputs(self, stack_name, echo=True):
         try:
             stacks_description = self._client.describe_stacks(StackName=stack_name)
             try:
                 outputs = stacks_description["Stacks"][0]["Outputs"]
                 if echo:
-                    click.secho("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
-                    _stack_outputs(stack_outputs=outputs)
+                    sys.stdout.write("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
+                    self._stack_outputs(stack_outputs=outputs)
                 return outputs
             except KeyError:
                 return None

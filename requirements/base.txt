@@ -9,7 +9,6 @@ aws-sam-translator==1.15.1
 docker~=4.0
 dateparser~=0.7
 python-dateutil~=2.6, <2.8.1
-pytz~=2019.3
 requests==2.22.0
 serverlessrepo==0.1.9
 aws_lambda_builders==0.5.0

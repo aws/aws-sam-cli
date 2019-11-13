@@ -32,38 +32,123 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
             self.cf_client.delete_stack(StackName=stack_name)
         super(TestDeployRegression, self).tearDown()
 
+    def prepare_package(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        output_template_file = tempfile.NamedTemporaryFile(delete=False)
+        package_command_list = self.get_command_list(
+            s3_bucket=self.s3_bucket.name, template_file=template_path, output_template_file=output_template_file.name
+        )
+
+        package_process = Popen(package_command_list, stdout=PIPE)
+        package_process.wait()
+        self.assertEqual(package_process.returncode, 0)
+        return output_template_file.name
+
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_with_all_args(self, template_file):
-        template_path = self.test_data_path.joinpath(template_file)
-        with tempfile.NamedTemporaryFile(delete=False) as output_template_file:
-            # Package necessary artifacts.
-            package_command_list = self.get_command_list(
-                s3_bucket=self.s3_bucket.name,
-                template_file=template_path,
-                output_template_file=output_template_file.name,
-            )
 
-            package_process = Popen(package_command_list, stdout=PIPE)
-            package_process.wait()
-            self.assertEqual(package_process.returncode, 0)
+        output_template_file = self.prepare_package(template_file=template_file)
 
-            sam_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
-            self.stack_names.append(sam_stack_name)
+        sam_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(sam_stack_name)
 
-            aws_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
-            self.stack_names.append(aws_stack_name)
+        aws_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(aws_stack_name)
 
-            arguments = {
-                "template_file": output_template_file.name,
-                "aws_stack_name": aws_stack_name,
-                "sam_stack_name": sam_stack_name,
-                "capabilities": "CAPABILITY_IAM",
-                "s3_prefix": "regress_deploy",
-                "force_upload": True,
-                "notification_arns": self.sns_arn,
-                "parameter_overrides": "Parameter=Clarity",
-                "kms_key_id": self.kms_key,
-                "tags": "integ=true clarity=yes",
-            }
+        arguments = {
+            "template_file": output_template_file,
+            "aws_stack_name": aws_stack_name,
+            "sam_stack_name": sam_stack_name,
+            "capabilities": "CAPABILITY_IAM",
+            "s3_prefix": "regress_deploy",
+            "force_upload": True,
+            "notification_arns": self.sns_arn,
+            "parameter_overrides": "Parameter=Clarity",
+            "kms_key_id": self.kms_key,
+            "tags": "integ=true clarity=yes",
+        }
 
-            self.deploy_regression_check(arguments)
+        self.deploy_regression_check(arguments)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_with_no_stack_name(self, template_file):
+        output_template_file = self.prepare_package(template_file=template_file)
+
+        arguments = {
+            "template_file": output_template_file,
+            "capabilities": "CAPABILITY_IAM",
+            "s3_prefix": "regress_deploy",
+            "force_upload": True,
+            "notification_arns": self.sns_arn,
+            "parameter_overrides": "Parameter=Clarity",
+            "kms_key_id": self.kms_key,
+            "tags": "integ=true clarity=yes",
+        }
+
+        self.deploy_regression_check(arguments, sam_return_code=2, aws_return_code=2)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_with_no_capabilities(self, template_file):
+        output_template_file = self.prepare_package(template_file=template_file)
+
+        sam_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(sam_stack_name)
+
+        aws_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(aws_stack_name)
+
+        arguments = {
+            "template_file": output_template_file,
+            "aws_stack_name": aws_stack_name,
+            "sam_stack_name": sam_stack_name,
+            "s3_prefix": "regress_deploy",
+            "force_upload": True,
+            "notification_arns": self.sns_arn,
+            "parameter_overrides": "Parameter=Clarity",
+            "kms_key_id": self.kms_key,
+            "tags": "integ=true clarity=yes",
+        }
+
+        self.deploy_regression_check(arguments, sam_return_code=2, aws_return_code=255)
+
+    def test_deploy_with_no_template_file(self):
+        sam_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(sam_stack_name)
+
+        aws_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(aws_stack_name)
+
+        arguments = {
+            "aws_stack_name": aws_stack_name,
+            "sam_stack_name": sam_stack_name,
+            "s3_prefix": "regress_deploy",
+            "force_upload": True,
+            "notification_arns": self.sns_arn,
+            "parameter_overrides": "Parameter=Clarity",
+            "kms_key_id": self.kms_key,
+            "tags": "integ=true clarity=yes",
+        }
+
+        self.deploy_regression_check(arguments, sam_return_code=2, aws_return_code=2)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_with_no_changes(self, template_file):
+        output_template_file = self.prepare_package(template_file=template_file)
+
+        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(stack_name)
+
+        arguments = {
+            "template_file": output_template_file,
+            "capabilities": "CAPABILITY_IAM",
+            "sam_stack_name": stack_name,
+            "aws_stack_name": stack_name,
+            "s3_prefix": "regress_deploy",
+            "force_upload": True,
+            "notification_arns": self.sns_arn,
+            "parameter_overrides": "Parameter=Clarity",
+            "kms_key_id": self.kms_key,
+            "tags": "integ=true clarity=yes",
+        }
+
+        self.deploy_regression_check(arguments, sam_return_code=0, aws_return_code=0)

@@ -7,7 +7,7 @@ import logging
 from functools import partial
 
 import click
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, CfnCapabilitiesType
+from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
 
@@ -143,7 +143,7 @@ def capabilities_click_option():
     return click.option(
         "--capabilities",
         cls=OptionNargs,
-        type=CfnCapabilitiesType(),
+        type=click.STRING,
         required=True,
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"

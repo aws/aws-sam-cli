@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock, ANY
 from nose_parameterized import parameterized
 
-from samcli.cli.types import CfnParameterOverridesType, CfnTags, CfnCapabilitiesType
+from samcli.cli.types import CfnParameterOverridesType, CfnTags
 from samcli.cli.types import CfnMetadataType
 
 
@@ -148,36 +148,36 @@ class TestCfnTags(TestCase):
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
 
 
-class TestCfnCapabilitiesType(TestCase):
-    def setUp(self):
-        self.param_type = CfnCapabilitiesType()
-
-    @parameterized.expand(
-        [
-            # Just a string
-            ("some string"),
-            # tuple of string
-            ("some string",),
-            # non-tuple valid string
-            "CAPABILITY_NAMED_IAM",
-        ]
-    )
-    def test_must_fail_on_invalid_format(self, input):
-        self.param_type.fail = Mock()
-        self.param_type.convert(input, "param", "ctx")
-
-        self.param_type.fail.assert_called_with(ANY, "param", "ctx")
-
-    @parameterized.expand(
-        [
-            (("CAPABILITY_AUTO_EXPAND",), ("CAPABILITY_AUTO_EXPAND",)),
-            (("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM"), ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM")),
-            (
-                ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"),
-                ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"),
-            ),
-        ]
-    )
-    def test_successful_parsing(self, input, expected):
-        result = self.param_type.convert(input, None, None)
-        self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+# class TestCfnCapabilitiesType(TestCase):
+#     def setUp(self):
+#         self.param_type = CfnCapabilitiesType()
+#
+#     @parameterized.expand(
+#         [
+#             # Just a string
+#             ("some string"),
+#             # tuple of string
+#             ("some string",),
+#             # non-tuple valid string
+#             "CAPABILITY_NAMED_IAM",
+#         ]
+#     )
+#     def test_must_fail_on_invalid_format(self, input):
+#         self.param_type.fail = Mock()
+#         self.param_type.convert(input, "param", "ctx")
+#
+#         self.param_type.fail.assert_called_with(ANY, "param", "ctx")
+#
+#     @parameterized.expand(
+#         [
+#             (("CAPABILITY_AUTO_EXPAND",), ("CAPABILITY_AUTO_EXPAND",)),
+#             (("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM"), ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM")),
+#             (
+#                 ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"),
+#                 ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"),
+#             ),
+#         ]
+#     )
+#     def test_successful_parsing(self, input, expected):
+#         result = self.param_type.convert(input, None, None)
+#         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
