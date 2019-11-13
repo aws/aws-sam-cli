@@ -52,3 +52,32 @@ class TestTablePrint(TestCase):
             "------------------------------------------------------------------------------------------------\n"
         )
         self.assertEqual(output, self.redirect_out.getvalue())
+
+    def test_pprint_exceptions_with_no_column_names(self):
+        with self.assertRaises(ValueError):
+
+            @pprint_column_names(TABLE_FORMAT_STRING, {})
+            def to_be_decorated(*args, **kwargs):
+                pprint_columns(
+                    columns=["A", "B", "C"],
+                    width=kwargs["width"],
+                    margin=kwargs["margin"],
+                    format_args=kwargs["format_args"],
+                    format_string=TABLE_FORMAT_STRING,
+                    columns_dict=TABLE_FORMAT_ARGS.copy(),
+                )
+
+    def test_pprint_exceptions_with_too_many_column_names(self):
+        massive_dictionary = {str(i): str(i) for i in range(100)}
+        with self.assertRaises(ValueError):
+
+            @pprint_column_names(TABLE_FORMAT_STRING, massive_dictionary)
+            def to_be_decorated(*args, **kwargs):
+                pprint_columns(
+                    columns=["A", "B", "C"],
+                    width=kwargs["width"],
+                    margin=kwargs["margin"],
+                    format_args=kwargs["format_args"],
+                    format_string=TABLE_FORMAT_STRING,
+                    columns_dict=TABLE_FORMAT_ARGS.copy(),
+                )
