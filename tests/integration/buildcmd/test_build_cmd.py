@@ -5,6 +5,7 @@ import logging
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized
+import pytest
 
 from .build_integ_base import BuildIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
@@ -201,8 +202,17 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand([("ruby2.5", False), ("ruby2.5", "use_container")])
-    def test_with_default_gemfile(self, runtime, use_container):
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    @parameterized.expand([("ruby2.5")])
+    def test_building_ruby_in_container(self, runtime):
+        self._test_with_default_gemfile(runtime, "use_container")
+
+    @parameterized.expand([("ruby2.5")])
+    def test_building_ruby_in_process(self, runtime):
+        self._test_with_default_gemfile(runtime, False)
+
+    def _test_with_default_gemfile(self, runtime, use_container):
         overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
@@ -277,21 +287,36 @@ class TestBuildCommand_Java(BuildIntegBase):
     WINDOWS_LINE_ENDING = b"\r\n"
     UNIX_LINE_ENDING = b"\n"
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand(
         [
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, False),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, False),
-            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
-            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
-            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE, "use_container"),
-            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN, "use_container"),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
-    def test_with_building_java(self, runtime, code_path, expected_files, use_container):
+    def test_building_java_in_container(self, runtime, code_path, expected_files):
+        self._test_with_building_java(runtime, code_path, expected_files, "use_container")
+
+    @parameterized.expand(
+        [
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
+            ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+        ]
+    )
+    def test_building_java_in_process(self, runtime, code_path, expected_files):
+        self._test_with_building_java(runtime, code_path, expected_files, False)
+
+    def _test_with_building_java(self, runtime, code_path, expected_files, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
             self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
@@ -313,12 +338,14 @@ class TestBuildCommand_Java(BuildIntegBase):
             ),
         )
 
-        expected = "Hello World"
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        # If we are testing in the container, invoke the function as well. Otherwise we cannot guarantee docker is on appveyor
+        if use_container:
+            expected = "Hello World"
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
 
-        self.verify_docker_container_cleanedup(runtime)
+            self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
 

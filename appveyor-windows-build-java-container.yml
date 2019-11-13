@@ -27,19 +27,11 @@ environment:
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
 
-  matrix:
-    - optional_gate: true
-
-matrix:
-  allow_failures:
-    - optional_gate: true
-
 init:
   # Uncomment this for RDP
-  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
-
 
 install:
 
@@ -83,7 +75,8 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_Java"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java_in_container"
+
 
 # Uncomment for RDP
 # on_finish:
