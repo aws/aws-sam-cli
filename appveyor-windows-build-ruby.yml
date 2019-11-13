@@ -27,13 +27,6 @@ environment:
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
 
-  matrix:
-    - optional_gate: true
-
-matrix:
-  allow_failures:
-    - optional_gate: true
-
 init:
   # Uncomment this for RDP
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
