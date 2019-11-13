@@ -94,4 +94,8 @@ class PackageRegressionBase(TestCase):
             self.assertEqual(process.returncode, 0)
             output_aws = output_template_file_aws.read()
 
+        if "use_json" in args and args.get("use_json"):
+            output_sam = json.loads(output_sam)
+            output_aws = json.loads(output_aws)
+
         self.assertEqual(output_sam, output_aws)
