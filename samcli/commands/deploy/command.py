@@ -27,6 +27,24 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 """
 
 
+def prompt_callback(msg, default):
+
+    def callback(ctx, param, value):
+        # Value is already provided for parameter. Nothing to prompt.
+        if value:
+            return value
+
+        interactive = ctx.params.get('interactive')
+        if interactive:
+            param.prompt = msg
+            param.default = default
+            return param.prompt_for_value(ctx)
+        else:
+            raise click.exceptions.MissingParameter(param=param, ctx=ctx)
+
+    return callback
+
+
 @click.command(
     "deploy",
     short_help=SHORT_HELP,
@@ -37,13 +55,15 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     "--template-file",
     "--template",
     "-t",
-    required=True,
+    required=False,
     type=click.Path(),
+    callback=prompt_callback("Path to the SAM template to deploy", default="template.yaml"),
     help="The path where your AWS SAM template is located",
 )
 @click.option(
     "--stack-name",
-    required=True,
+    required=False,
+    callback=prompt_callback(msg="Stack Name", default="sam-app"),
     help="The name of the AWS CloudFormation stack you're deploying to. "
     "If you specify an existing stack, the command updates the stack. "
     "If you specify a new stack, the command creates it.",
@@ -100,6 +120,15 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     help="Specify  if  the CLI should return a non-zero exit code if there are no"
     "changes to be made to the stack. The default behavior is  to  return  a"
     "non-zero exit code.",
+)
+@click.option(
+    "--interactive",
+    "-i",
+    required=False,
+    is_flag=True,
+    expose_value=False,
+    is_eager=True,
+    help="Specify this flag to allow SAM CLI to guide you through the deployment using interactive prompts.",
 )
 @notification_arns_override_option
 @tags_override_option

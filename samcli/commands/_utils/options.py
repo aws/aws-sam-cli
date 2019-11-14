@@ -144,7 +144,8 @@ def capabilities_click_option():
         "--capabilities",
         cls=OptionNargs,
         type=click.STRING,
-        required=True,
+        default=("CAPABILITY_IAM",),
+        required=False,
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
         "plates might include resources that can affect permissions in your  AWS"
