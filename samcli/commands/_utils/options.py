@@ -7,6 +7,7 @@ import logging
 from functools import partial
 
 import click
+from click.types import FuncParamType
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
@@ -143,7 +144,7 @@ def capabilities_click_option():
     return click.option(
         "--capabilities",
         cls=OptionNargs,
-        type=click.STRING,
+        type=FuncParamType(lambda value: value.split(" ")),
         required=True,
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
@@ -182,7 +183,7 @@ def notification_arns_click_option():
     return click.option(
         "--notification-arns",
         cls=OptionNargs,
-        type=click.STRING,
+        type=FuncParamType(lambda value: value.split(" ")),
         required=False,
         help="Amazon  Simple  Notification  Service  topic"
         "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
