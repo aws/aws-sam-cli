@@ -1,0 +1,58 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+build: off
+
+environment:
+  AWS_DEFAULT_REGION: us-east-1
+  SAM_CLI_DEV: 1
+  APPVEYOR_CI_OVERRIDE: 1
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
+
+  # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python36-x64"
+  PYTHON_SCRIPTS: "C:\\Python36-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python36-x64\\python.exe"
+  PYTHON_VERSION: '3.6.8'
+  PYTHON_ARCH: '64'
+
+install:
+
+    - "SET PATH=%PYTHON_HOME%;%PATH%"
+    - "echo %PYTHON_HOME%"
+    - "echo %PATH%"
+    - "python --version"
+
+    # Upgrade setuptools, wheel and virtualenv
+    - "python -m pip install --upgrade setuptools wheel virtualenv"
+
+    # Create new virtual environment with chosen python version and activate it
+    - "python -m virtualenv venv"
+    - "venv\\Scripts\\activate"
+    - "python --version"
+
+    # Actually install SAM CLI's dependencies
+    - "pip install -e \".[dev]\""
+
+    # setup Java, Maven and Gradle
+    - "refreshenv"
+    - "choco install maven -y --force"
+    - "refreshenv"
+    - "choco install gradle -y --force"
+    - "refreshenv"
+    - "java -version"
+    - "gradle -v"
+    - "mvn --version"
+
+    # setup Ruby dependencies
+    - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
+    - "gem --version"
+    - "gem install bundler -v 1.17.3"
+    - "bundler --version"
+
+    # Echo final Path
+    - "echo %PATH%"
+
+test_script:
+    # Reactivate virtualenv before running tests
+    - "venv\\Scripts\\activate"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java_in_process"
