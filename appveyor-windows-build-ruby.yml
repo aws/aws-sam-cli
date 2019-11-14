@@ -27,6 +27,20 @@ environment:
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
 
+<<<<<<< Updated upstream
+=======
+  # To work around SSL issues when bundler installs a package
+  # https://www.appveyor.com/docs/lang/ruby/#openssl-verification
+  SSL_CERT_FILE: "C:\\tools\\ruby25\\ssl\\cert.pem"
+
+  matrix:
+    - optional_gate: true
+
+matrix:
+  allow_failures:
+    - optional_gate: true
+
+>>>>>>> Stashed changes
 init:
   # Uncomment this for RDP
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -56,12 +70,16 @@ install:
 
     # setup Ruby
     - "choco install ruby --version 2.5.3.1 --force -y"
+   # - "SET PATH=C:\\Ruby25-x64\\bin;%PATH%"
     - "refreshenv"
+    - "echo %PATH%"
     - "ruby --version"
+    - "gem update --system"
     - "gem --version"
-    - "gem install bundler -v 2.0.2"
+    - "gem install bundler -v 2.0.2 -f"
     - "refreshenv"
     - "bundler --version"
+    - "ruby -ropen-uri -e 'eval open(\"https://git.io/vQhWq\").read'"
     - "echo %PATH%"
 
     # Switch to Docker Linux containers
@@ -69,6 +87,10 @@ install:
 
     # Echo final Path
     - "echo %PATH%"
+
+    - "echo %SSL_CERT_FILE%"
+    - "dir C:\\tools\\ruby25\\ssl"
+    - "ruby -ropen-uri -e 'eval open(\"https://git.io/vQhWq\").read'"
 
 test_script:
     # Reactivate virtualenv before running tests

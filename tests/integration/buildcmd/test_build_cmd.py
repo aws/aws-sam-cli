@@ -5,10 +5,18 @@ import logging
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized
+<<<<<<< Updated upstream
 import pytest
+=======
+from click.testing import CliRunner
+from samcli.cli.main import cli
+
+>>>>>>> Stashed changes
 
 from .build_integ_base import BuildIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
+
+import aws_lambda_builders.workflows.ruby_bundler.bundler as ruby_bundler_monkey
 
 
 LOG = logging.getLogger(__name__)
@@ -190,6 +198,64 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         self.assertEqual(actual_files, expected_modules)
 
 
+class BundlerExecutionError(Exception):
+    """
+    Exception raised when Bundler fails.
+    Will encapsulate error output from the command.
+    """
+
+    MESSAGE = "Bundler Failed: {message}"
+
+    def __init__(self, **kwargs):
+        Exception.__init__(self, self.MESSAGE.format(**kwargs))
+
+
+class SubprocessBundler2(object):
+    """
+    Wrapper around the Bundler command line utility, encapsulating
+    execution results.
+    """
+
+    def __init__(self, osutils, bundler_exe=None):
+        self.osutils = osutils
+        if bundler_exe is None:
+            if osutils.is_windows():
+                bundler_exe = 'bundler.bat'
+            else:
+                bundler_exe = 'bundle'
+
+        self.bundler_exe = bundler_exe
+
+    def run(self, args, cwd=None):
+        if not isinstance(args, list):
+            raise ValueError('args must be a list')
+
+        if not args:
+            raise ValueError('requires at least one arg')
+
+        invoke_bundler = [self.bundler_exe] + args
+
+        LOG.info("executing Bundler: %s", invoke_bundler)
+        print(f"executing Bundler: {invoke_bundler}")
+
+        p = self.osutils.popen(invoke_bundler,
+                               stdout=self.osutils.pipe,
+                               stderr=self.osutils.pipe,
+                               cwd=cwd)
+
+        out, err = p.communicate()
+
+        LOG.info(f"STDOUT: {out.decode('utf8')}")
+        LOG.info(f"STDERR: {err.decode('utf8')}")
+
+        print(f"STDOUT: {out.decode('utf8')}")
+        print(f"STDERR: {err.decode('utf8')}")
+
+        if p.returncode != 0:
+            raise BundlerExecutionError(message=err.decode('utf8').strip())
+
+        return out.decode('utf8').strip()
+
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
@@ -202,6 +268,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
+<<<<<<< Updated upstream
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand([("ruby2.5")])
@@ -213,30 +280,42 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         self._test_with_default_gemfile(runtime, False)
 
     def _test_with_default_gemfile(self, runtime, use_container):
+=======
+    @parameterized.expand([("ruby2.5", False)])
+    def test_with_default_gemfile(self, runtime, use_container):
+        ruby_bundler_monkey.SubprocessBundler.run = SubprocessBundler2.run
+>>>>>>> Stashed changes
         overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
-        process = subprocess.Popen(cmdlist, cwd=self.working_dir)
-        process.wait()
+        runner = CliRunner()
+        result = runner.invoke(cli, cmdlist[1:])
 
-        self._verify_built_artifact(
-            self.default_build_dir,
-            self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST,
-            self.EXPECTED_RUBY_GEM,
-        )
+        LOG.info(result.output)
 
-        self._verify_resource_property(
-            str(self.built_template),
-            "OtherRelativePathResource",
-            "BodyS3Location",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-        self.verify_docker_container_cleanedup(runtime)
+        self.assertEquals(result.exit_code, 0)
+
+        # LOG.info("Running Command: {}".format(cmdlist))
+        # process = subprocess.Popen(cmdlist, cwd=self.working_dir)
+        # process.wait()
+        #
+        # self._verify_built_artifact(
+        #     self.default_build_dir,
+        #     self.FUNCTION_LOGICAL_ID,
+        #     self.EXPECTED_FILES_PROJECT_MANIFEST,
+        #     self.EXPECTED_RUBY_GEM,
+        # )
+        #
+        # self._verify_resource_property(
+        #     str(self.built_template),
+        #     "OtherRelativePathResource",
+        #     "BodyS3Location",
+        #     os.path.relpath(
+        #         os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+        #         str(self.default_build_dir),
+        #     ),
+        # )
+        # self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
 
