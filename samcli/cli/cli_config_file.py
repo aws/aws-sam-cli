@@ -31,6 +31,10 @@ class TomlProvider:
 
     def __call__(self, file_path, config_env, cmd_name):
         """
+        Get resolved config based on the `file_path` for the configuration file,
+        `config_env` targeted inside the config file and corresponding `cmd_name`
+        as denoted by `click`.
+
         :param file_path: The path to the configuration file
         :param config_env: The name of the sectional config_env within configuration file.
         :param cmd_name: sam command name as defined by click
