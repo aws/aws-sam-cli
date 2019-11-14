@@ -31,7 +31,7 @@ STDIN_FILE_NAME = "-"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
-@configuration_option(provider=TomlProvider(cmd="local_invoke", section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--event",
     "-e",

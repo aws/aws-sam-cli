@@ -4,7 +4,7 @@ CLI command for "deploy" command
 
 import click
 
-
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.options import (
     parameter_override_option,
     capabilities_override_option,
@@ -27,6 +27,7 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 """
 
 
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.command(
     "deploy",
     short_help=SHORT_HELP,

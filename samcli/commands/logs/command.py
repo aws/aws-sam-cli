@@ -33,7 +33,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 
 
 @click.command("logs", help=HELP_TEXT, short_help="Fetch logs for a function")
-@configuration_option(provider=TomlProvider(cmd="logs", section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--name",
     "-n",

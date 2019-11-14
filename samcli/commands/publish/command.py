@@ -41,7 +41,7 @@ SEMANTIC_VERSION = "SemanticVersion"
 
 
 @click.command("publish", help=HELP_TEXT, short_help=SHORT_HELP)
-@configuration_option(provider=TomlProvider(cmd="publish", section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))
 @template_common_option
 @click.option("--semantic-version", help=SEMANTIC_VERSION_HELP)
 @aws_creds_options

@@ -41,7 +41,7 @@ The following resources and their property locations are supported.
 
 
 @click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
-@configuration_option(provider=TomlProvider(cmd="package", section="parameters"))
+@configuration_option(provider=TomlProvider(section="parameters"))
 # TODO(TheSriram): Move to template_common_option across aws-sam-cli
 @click.option(
     "--template",
