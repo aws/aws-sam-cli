@@ -149,6 +149,21 @@ class Context:
 
 
 def get_cmd_names(cmd_name, ctx):
+    """
+    Given the click core context, return a list representing all the subcommands passed to the CLI
+
+    Parameters
+    ----------
+    cmd_name : name of current command
+
+    ctx : click.Context
+
+    Returns
+    -------
+    list(str)
+        List containing subcommand names. Ex: ["local", "start-api"]
+
+    """
     # Find parent of current context
     _parent = ctx.parent
     _cmd_names = []
@@ -162,4 +177,6 @@ def get_cmd_names(cmd_name, ctx):
         _cmd_names.append(info_name)
         _parent = _parent.parent
 
+    # Make sure the output reads natural. Ex: ["local", "start-api"]
+    _cmd_names.reverse()
     return _cmd_names

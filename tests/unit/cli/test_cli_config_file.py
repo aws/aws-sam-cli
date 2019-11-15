@@ -1,17 +1,12 @@
-import os
 import tempfile
 
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
 
-from samcli.cli.cli_config_file import (
-    TomlProvider,
-    configuration_option,
-    configuration_callback,
-    get_ctx_defaults,
-    DEFAULT_CONFIG_FILE_NAME,
-)
+from samcli.cli.cli_config_file import TomlProvider, configuration_option, configuration_callback, get_ctx_defaults
+from samcli.lib.config.samconfig import SamConfig
 
 
 class MockContext:
@@ -28,19 +23,19 @@ class TestTomlProvider(TestCase):
         self.cmd_name = "topic"
 
     def test_toml_valid_with_section(self):
-        with tempfile.NamedTemporaryFile(delete=False) as toml_file:
-            toml_file.write(b"[config_env.topic.parameters]\nword='clarity'\n")
-            toml_file.flush()
-            self.assertEqual(
-                TomlProvider(section=self.parameters)(toml_file.name, self.config_env, self.cmd_name),
-                {"word": "clarity"},
-            )
+        config_dir = tempfile.gettempdir()
+        configpath = Path(config_dir, "samconfig.toml")
+        configpath.write_text("[config_env.topic.parameters]\nword='clarity'\n")
+        self.assertEqual(
+            TomlProvider(section=self.parameters)(config_dir, self.config_env, [self.cmd_name]), {"word": "clarity"}
+        )
 
     def test_toml_invalid_empty_dict(self):
-        with tempfile.NamedTemporaryFile(delete=False) as toml_file:
-            toml_file.write(b"[topic]\nword=clarity\n")
-            toml_file.flush()
-            self.assertEqual(self.toml_provider(toml_file.name, self.config_env, self.cmd_name), {})
+        config_dir = tempfile.gettempdir()
+        configpath = Path(config_dir, "samconfig.toml")
+        configpath.write_text("[topic]\nword=clarity\n")
+
+        self.assertEqual(self.toml_provider(config_dir, self.config_env, [self.cmd_name]), {})
 
 
 class TestCliConfiguration(TestCase):
@@ -57,10 +52,7 @@ class TestCliConfiguration(TestCase):
     class Dummy:
         pass
 
-    @patch("samcli.cli.cli_config_file.os.path.isfile", return_value=True)
-    @patch("samcli.cli.cli_config_file.os.path.join", return_value=MagicMock())
-    @patch("samcli.cli.cli_config_file.os.path.abspath", return_value=MagicMock())
-    def test_callback_with_valid_config_env(self, mock_os_path_is_file, mock_os_path_join, mock_os_path_abspath):
+    def test_callback_with_valid_config_env(self):
         mock_context1 = MockContext(info_name="sam", parent=None)
         mock_context2 = MockContext(info_name="local", parent=mock_context1)
         mock_context3 = MockContext(info_name="start-api", parent=mock_context2)
@@ -80,26 +72,6 @@ class TestCliConfiguration(TestCase):
         for arg in [self.ctx, self.param, self.value]:
             self.assertIn(arg, self.saved_callback.call_args[0])
 
-    @patch("samcli.cli.cli_config_file.os.path.isfile", return_value=False)
-    @patch("samcli.cli.cli_config_file.os.path.join", return_value=MagicMock())
-    def test_callback_with_config_file_not_file(self, mock_os_isfile, mock_os_path_join):
-        configuration_callback(
-            cmd_name=self.cmd_name,
-            option_name=self.option_name,
-            config_env_name=self.config_env,
-            saved_callback=self.saved_callback,
-            provider=self.provider,
-            ctx=self.ctx,
-            param=self.param,
-            value=self.value,
-        )
-        self.assertEqual(self.provider.call_count, 0)
-        self.assertEqual(self.saved_callback.call_count, 1)
-        for arg in [self.ctx, self.param, self.value]:
-            self.assertIn(arg, self.saved_callback.call_args[0])
-        self.assertEqual(mock_os_isfile.call_count, 1)
-        self.assertEqual(mock_os_path_join.call_count, 1)
-
     def test_configuration_option(self):
         toml_provider = TomlProvider()
         click_option = configuration_option(provider=toml_provider)
@@ -110,20 +82,18 @@ class TestCliConfiguration(TestCase):
         self.assertEqual(clc.__click_params__[0].expose_value, False)
         self.assertEqual(clc.__click_params__[0].callback.args, (None, "--config-env", "default", None, toml_provider))
 
-    @patch("samcli.cli.cli_config_file.os.path.isfile", return_value=True)
-    def test_get_ctx_defaults_non_nested(self, mock_os_file):
+    def test_get_ctx_defaults_non_nested(self):
         provider = MagicMock()
 
         mock_context1 = MockContext(info_name="sam", parent=None)
         mock_context2 = MockContext(info_name="local", parent=mock_context1)
         mock_context3 = MockContext(info_name="start-api", parent=mock_context2)
 
-        get_ctx_defaults("start-api", provider, mock_context3)
+        get_ctx_defaults("start-api", provider, mock_context3, "default")
 
-        provider.assert_called_with(os.path.join(os.getcwd(), DEFAULT_CONFIG_FILE_NAME), "default", "local_start_api")
+        provider.assert_called_with(SamConfig.config_dir(), "default", ["local", "start-api"])
 
-    @patch("samcli.cli.cli_config_file.os.path.isfile", return_value=True)
-    def test_get_ctx_defaults_nested(self, mock_os_file):
+    def test_get_ctx_defaults_nested(self):
         provider = MagicMock()
 
         mock_context1 = MockContext(info_name="sam", parent=None)
@@ -131,10 +101,8 @@ class TestCliConfiguration(TestCase):
         mock_context3 = MockContext(info_name="generate-event", parent=mock_context2)
         mock_context4 = MockContext(info_name="alexa-skills-kit", parent=mock_context3)
 
-        get_ctx_defaults("intent-answer", provider, mock_context4)
+        get_ctx_defaults("intent-answer", provider, mock_context4, "default")
 
         provider.assert_called_with(
-            os.path.join(os.getcwd(), DEFAULT_CONFIG_FILE_NAME),
-            "default",
-            "local_generate_event_alexa_skills_kit_intent_answer",
+            SamConfig.config_dir(), "default", ["local", "generate-event", "alexa-skills-kit", "intent-answer"]
         )

@@ -54,14 +54,12 @@ class TomlProvider:
             LOG.debug(
                 "Error reading configuration file at %s with config_env=%s, command=%s, section=%s",
                 samconfig.path(),
-                config_dir,
                 config_env,
                 cmd_names,
                 self.section,
             )
         except Exception as ex:
             LOG.error("Error reading configuration file: %s %s", samconfig.path(), str(ex))
-            raise ex
 
         return resolved_config
 

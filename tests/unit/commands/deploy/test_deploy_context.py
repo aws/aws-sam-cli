@@ -26,6 +26,7 @@ class TestPackageCommand(TestCase):
             tags={"a": "b"},
             region=None,
             profile=None,
+            confirm_changeset=True,
         )
 
     def test_template_improper(self):
