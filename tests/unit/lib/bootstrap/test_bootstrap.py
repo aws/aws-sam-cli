@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 from botocore.stub import Stubber
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.bootstrap.bootstrap import _create_or_get_stack, MANAGED_STACK_DEFINITION, SAM_CLI_STACK_NAME
+from samcli.lib.bootstrap.bootstrap import _create_or_get_stack, _get_stack_template, SAM_CLI_STACK_NAME
 
 
 class TestBootstrapManagedStack(TestCase):
@@ -22,7 +22,7 @@ class TestBootstrapManagedStack(TestCase):
         # creating change set
         ccs_params = {
             "StackName": SAM_CLI_STACK_NAME,
-            "TemplateBody": MANAGED_STACK_DEFINITION,
+            "TemplateBody": _get_stack_template(),
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
@@ -147,7 +147,7 @@ class TestBootstrapManagedStack(TestCase):
         # creating change set - fails
         ccs_params = {
             "StackName": SAM_CLI_STACK_NAME,
-            "TemplateBody": MANAGED_STACK_DEFINITION,
+            "TemplateBody": _get_stack_template(),
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
@@ -167,7 +167,7 @@ class TestBootstrapManagedStack(TestCase):
         # creating change set
         ccs_params = {
             "StackName": SAM_CLI_STACK_NAME,
-            "TemplateBody": MANAGED_STACK_DEFINITION,
+            "TemplateBody": _get_stack_template(),
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",

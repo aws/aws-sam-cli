@@ -2,35 +2,20 @@
 Bootstrap's user's development environment by creating cloud resources required by SAM CLI
 """
 
+import json
 import logging
 import boto3
 
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
+from samcli import __version__
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException
 
 
 LOG = logging.getLogger(__name__)
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-stack"
-
-MANAGED_STACK_DEFINITION = """
-AWSTemplateFormatVersion : '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
-Description: Managed Stack for AWS SAM CLI
-
-Resources:
-  SamCliSourceBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      Tags:
-        - Key: ManagedStackSource
-          Value: AwsSamCli
-
-Outputs:
-  SourceBucket:
-    Value: !Ref SamCliSourceBucket
-"""
 
 
 def manage_stack(profile, region):
@@ -87,7 +72,7 @@ def _create_stack(cloudformation_client):
     change_set_name = "InitialCreation"
     change_set_resp = cloudformation_client.create_change_set(
         StackName=SAM_CLI_STACK_NAME,
-        TemplateBody=MANAGED_STACK_DEFINITION,
+        TemplateBody=_get_stack_template(),
         Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
         ChangeSetType="CREATE",
         ChangeSetName=change_set_name,  # this must be unique for the stack, but we only create so that's fine
@@ -106,3 +91,31 @@ def _create_stack(cloudformation_client):
     ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
     stacks = ds_resp["Stacks"]
     return stacks[0]
+
+
+def _get_stack_template():
+    gc = GlobalConfig()
+    info = {"version": __version__, "installationId": gc.installation_id}
+
+    template = """
+    AWSTemplateFormatVersion : '2010-09-09'
+    Transform: AWS::Serverless-2016-10-31
+    Description: Managed Stack for AWS SAM CLI
+
+    Metadata:
+        SamCliInfo: {info}
+
+    Resources:
+      SamCliSourceBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+          Tags:
+            - Key: ManagedStackSource
+              Value: AwsSamCli
+
+    Outputs:
+      SourceBucket:
+        Value: !Ref SamCliSourceBucket
+    """
+
+    return template.format(info=json.dumps(info))
