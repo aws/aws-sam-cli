@@ -24,6 +24,7 @@ from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.yamlhelper import yaml_parse
+from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
@@ -33,6 +34,8 @@ class DeployContext:
     MSG_NO_EXECUTE_CHANGESET = "\nChangeset created successfully. \n"
 
     MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name}\n"
+
+    MSG_CONFIRM_CHANGESET = "Do you want to deploy this changeset?"
 
     def __init__(
         self,
@@ -51,6 +54,7 @@ class DeployContext:
         tags,
         region,
         profile,
+        confirm_changeset,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -69,6 +73,7 @@ class DeployContext:
         self.profile = profile
         self.s3_uploader = None
         self.deployer = None
+        self.confirm_changeset = confirm_changeset
 
     def __enter__(self):
         return self
@@ -116,6 +121,7 @@ class DeployContext:
             self.s3_uploader,
             [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],
             self.fail_on_empty_changeset,
+            self.confirm_changeset,
         )
 
     def deploy(
@@ -130,6 +136,7 @@ class DeployContext:
         s3_uploader,
         tags,
         fail_on_empty_changeset=True,
+        confirm_changeset=False,
     ):
         try:
             result, changeset_type = self.deployer.create_and_wait_for_changeset(
@@ -143,12 +150,19 @@ class DeployContext:
                 tags=tags,
             )
 
-            if not no_execute_changeset:
-                self.deployer.execute_changeset(result["Id"], stack_name)
-                self.deployer.wait_for_execute(stack_name, changeset_type)
-                click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name))
-            else:
+            if no_execute_changeset:
                 click.echo(self.MSG_NO_EXECUTE_CHANGESET.format(changeset_id=result["Id"]))
+                return
+
+            if confirm_changeset:
+                color = Colored()
+                tick = color.yellow("✓")
+                if not click.confirm(f"{tick} {self.MSG_CONFIRM_CHANGESET}", default=False):
+                    return
+
+            self.deployer.execute_changeset(result["Id"], stack_name)
+            self.deployer.wait_for_execute(stack_name, changeset_type)
+            click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name))
 
         except deploy_exceptions.ChangeEmptyError as ex:
             if fail_on_empty_changeset:

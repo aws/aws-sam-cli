@@ -149,6 +149,8 @@ def capabilities_click_option():
     return click.option(
         "--capabilities",
         cls=OptionNargs,
+        default=("CAPABILITY_IAM",),
+        required=False,
         type=FuncParamType(lambda value: value.split(" ") if not isinstance(value, tuple) else value),
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"

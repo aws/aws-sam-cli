@@ -7,7 +7,7 @@ from samcli.commands.exceptions import UserException
 class ChangeEmptyError(UserException):
     def __init__(self, stack_name):
         self.stack_name = stack_name
-        message_fmt = "No changes to deploy.Stack {stack_name} is up to date"
+        message_fmt = "No changes to deploy. Stack {stack_name} is up to date"
         super(ChangeEmptyError, self).__init__(message=message_fmt.format(stack_name=self.stack_name))
 
 
