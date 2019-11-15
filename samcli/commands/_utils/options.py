@@ -47,7 +47,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     result = os.path.abspath(provided_value)
 
     if ctx:
-        setattr(ctx, "config_path", result)
+        setattr(ctx, "config_path", os.path.dirname(result))
     LOG.debug("Using SAM Template at %s", result)
     return result
 
