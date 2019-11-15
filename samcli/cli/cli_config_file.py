@@ -113,7 +113,9 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name=DEFAULT_IDENTIFER)
     :param config_env_name: config-env within configuration file
     :return: dictionary of defaults for parameters
     """
-    config_file = os.path.join(os.getcwd(), DEFAULT_CONFIG_FILE_NAME)
+
+    cwd = getattr(ctx, "config_path", None)
+    config_file = os.path.join(cwd if cwd else os.getcwd(), DEFAULT_CONFIG_FILE_NAME)
     config = {}
     if os.path.isfile(config_file):
         LOG.debug("Config file location: %s", os.path.abspath(config_file))
@@ -169,7 +171,8 @@ def configuration_option(*param_decls, **attrs):
         attrs.setdefault("expose_value", False)
         # --config-env is hidden and can potentially be opened up in the future.
         attrs.setdefault("hidden", True)
-        config_env_name = attrs.pop("config_env_name", DEFAULT_IDENTIFER)
+        # explicitly ignore values passed to --config-env, can be opened up in the future.
+        config_env_name = DEFAULT_IDENTIFER
         provider = attrs.pop("provider")
         attrs["type"] = click.STRING
         saved_callback = attrs.pop("callback", None)

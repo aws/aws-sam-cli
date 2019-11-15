@@ -57,7 +57,15 @@ class TestCliConfiguration(TestCase):
     class Dummy:
         pass
 
-    def test_callback_with_valid_config_env(self):
+    @patch("samcli.cli.cli_config_file.os.path.isfile", return_value=True)
+    @patch("samcli.cli.cli_config_file.os.path.join", return_value=MagicMock())
+    @patch("samcli.cli.cli_config_file.os.path.abspath", return_value=MagicMock())
+    def test_callback_with_valid_config_env(self, mock_os_path_is_file, mock_os_path_join, mock_os_path_abspath):
+        mock_context1 = MockContext(info_name="sam", parent=None)
+        mock_context2 = MockContext(info_name="local", parent=mock_context1)
+        mock_context3 = MockContext(info_name="start-api", parent=mock_context2)
+        self.ctx.parent = mock_context3
+        self.ctx.info_name = "test_info"
         configuration_callback(
             cmd_name=self.cmd_name,
             option_name=self.option_name,
@@ -71,22 +79,10 @@ class TestCliConfiguration(TestCase):
         self.assertEqual(self.saved_callback.call_count, 1)
         for arg in [self.ctx, self.param, self.value]:
             self.assertIn(arg, self.saved_callback.call_args[0])
-
-    def test_callback_with_invalid_config_env(self):
-        configuration_callback(
-            cmd_name=self.cmd_name,
-            option_name=self.option_name,
-            config_env_name=self.config_env,
-            saved_callback=self.saved_callback,
-            provider=self.provider,
-            ctx=self.ctx,
-            param=self.param,
-            value="invalid",
-        )
-        self.assertEqual(self.provider.call_count, 0)
 
     @patch("samcli.cli.cli_config_file.os.path.isfile", return_value=False)
-    def test_callback_with_config_file_not_file(self, mock_os_isfile):
+    @patch("samcli.cli.cli_config_file.os.path.join", return_value=MagicMock())
+    def test_callback_with_config_file_not_file(self, mock_os_isfile, mock_os_path_join):
         configuration_callback(
             cmd_name=self.cmd_name,
             option_name=self.option_name,
@@ -101,6 +97,8 @@ class TestCliConfiguration(TestCase):
         self.assertEqual(self.saved_callback.call_count, 1)
         for arg in [self.ctx, self.param, self.value]:
             self.assertIn(arg, self.saved_callback.call_args[0])
+        self.assertEqual(mock_os_isfile.call_count, 1)
+        self.assertEqual(mock_os_path_join.call_count, 1)
 
     def test_configuration_option(self):
         toml_provider = TomlProvider()

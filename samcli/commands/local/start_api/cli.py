@@ -52,7 +52,7 @@ def cli(
     port,
     static_dir,
     # Common Options for Lambda Invoke
-    template,
+    template_file,
     env_vars,
     debug_port,
     debug_args,
@@ -72,7 +72,7 @@ def cli(
         host,
         port,
         static_dir,
-        template,
+        template_file,
         env_vars,
         debug_port,
         debug_args,

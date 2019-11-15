@@ -44,8 +44,10 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
             if os.path.exists(option):
                 provided_value = option
                 break
-
     result = os.path.abspath(provided_value)
+
+    if ctx:
+        setattr(ctx, "config_path", os.path.dirname(provided_value))
     LOG.debug("Using SAM Template at %s", result)
     return result
 
@@ -75,6 +77,7 @@ def template_click_option(include_build=True):
     Click Option for template option
     """
     return click.option(
+        "--template-file",
         "--template",
         "-t",
         default=_TEMPLATE_OPTION_DEFAULT_VALUE,
@@ -82,6 +85,7 @@ def template_click_option(include_build=True):
         envvar="SAM_TEMPLATE_FILE",
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
+        is_eager=True,
         help="AWS SAM template file",
     )
 

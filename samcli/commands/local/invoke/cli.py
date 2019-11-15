@@ -49,7 +49,7 @@ STDIN_FILE_NAME = "-"
 def cli(
     ctx,
     function_identifier,
-    template,
+    template_file,
     event,
     no_event,
     env_vars,
@@ -70,7 +70,7 @@ def cli(
     do_cli(
         ctx,
         function_identifier,
-        template,
+        template_file,
         event,
         no_event,
         env_vars,

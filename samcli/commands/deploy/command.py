@@ -10,6 +10,7 @@ from samcli.commands._utils.options import (
     capabilities_override_option,
     tags_override_option,
     notification_arns_override_option,
+    template_click_option,
 )
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
@@ -34,14 +35,7 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@click.option(
-    "--template-file",
-    "--template",
-    "-t",
-    required=True,
-    type=click.Path(),
-    help="The path where your AWS SAM template is located",
-)
+@template_click_option(include_build=False)
 @click.option(
     "--stack-name",
     required=True,

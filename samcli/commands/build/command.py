@@ -84,7 +84,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 @track_command
 def cli(ctx,
         function_identifier,
-        template,
+        template_file,
         base_dir,
         build_dir,
         use_container,
@@ -97,7 +97,7 @@ def cli(ctx,
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
-    do_cli(function_identifier, template, base_dir, build_dir, True, use_container, manifest, docker_network,
+    do_cli(function_identifier, template_file, base_dir, build_dir, True, use_container, manifest, docker_network,
            skip_pull_image, parameter_overrides, mode)  # pragma: no cover
 
 
