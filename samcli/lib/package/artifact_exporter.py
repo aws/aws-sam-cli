@@ -171,7 +171,6 @@ def zip_folder(folder_path):
     :param folder_path:
     :return: Name of the zipfile
     """
-
     filename = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
 
     zipfile_name = make_zip(filename, folder_path)
@@ -539,7 +538,6 @@ class Template:
         """
         Reads the template and makes it ready for export
         """
-
         if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
             raise ValueError("parent_dir parameter must be " "an absolute path to a folder {0}".format(parent_dir))
 

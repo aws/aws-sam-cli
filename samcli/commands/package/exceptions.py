@@ -72,3 +72,12 @@ class PackageFailedError(UserException):
         super(PackageFailedError, self).__init__(
             message=message_fmt.format(template_file=self.template_file, ex=self.ex)
         )
+
+
+class NoSuchBucketError(UserException):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+        message_fmt = "\n S3 Bucket does not exist."
+
+        super(NoSuchBucketError, self).__init__(message=message_fmt.format(**self.kwargs))

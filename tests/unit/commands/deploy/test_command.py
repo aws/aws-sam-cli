@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, ANY
 
 from samcli.commands.deploy.command import do_cli
 
@@ -23,13 +23,17 @@ class TestDeployliCommand(TestCase):
         self.metadata = {"abc": "def"}
         self.region = None
         self.profile = None
+        self.use_json = True
+        self.metadata = {}
 
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    def test_all_args(self, deploy_command_context, click_mock):
+    def test_all_args(self, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click):
 
         context_mock = Mock()
-        deploy_command_context.return_value.__enter__.return_value = context_mock
+        mock_deploy_context.return_value.__enter__.return_value = context_mock
 
         do_cli(
             template_file=self.template_file,
@@ -47,10 +51,12 @@ class TestDeployliCommand(TestCase):
             tags=self.tags,
             region=self.region,
             profile=self.profile,
+            use_json=self.use_json,
+            metadata=self.metadata,
         )
 
-        deploy_command_context.assert_called_with(
-            template_file=self.template_file,
+        mock_deploy_context.assert_called_with(
+            template_file=ANY,
             stack_name=self.stack_name,
             s3_bucket=self.s3_bucket,
             force_upload=self.force_upload,

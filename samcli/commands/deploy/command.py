@@ -2,16 +2,19 @@
 CLI command for "deploy" command
 """
 
+import tempfile
+
 import click
 
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands._utils.options import (
     parameter_override_option,
     capabilities_override_option,
     tags_override_option,
     notification_arns_override_option,
     template_click_option,
+    metadata_override_option,
 )
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
 
@@ -28,14 +31,14 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 """
 
 
-@configuration_option(provider=TomlProvider(section="parameters"))
 @click.command(
     "deploy",
     short_help=SHORT_HELP,
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@template_click_option(include_build=False)
+@configuration_option(provider=TomlProvider(section="parameters"))
+@template_click_option(include_build=True)
 @click.option(
     "--stack-name",
     required=True,
@@ -96,6 +99,14 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     "changes to be made to the stack. The default behavior is  to  return  a"
     "non-zero exit code.",
 )
+@click.option(
+    "--use-json",
+    required=False,
+    is_flag=True,
+    help="Indicates whether to use JSON as the format for "
+    "the output AWS CloudFormation template. YAML is used by default.",
+)
+@metadata_override_option
 @notification_arns_override_option
 @tags_override_option
 @parameter_override_option
@@ -118,7 +129,9 @@ def cli(
     role_arn,
     notification_arns,
     fail_on_empty_changeset,
+    use_json,
     tags,
+    metadata,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -135,7 +148,9 @@ def cli(
         role_arn,
         notification_arns,
         fail_on_empty_changeset,
+        use_json,
         tags,
+        metadata,
         ctx.region,
         ctx.profile,
     )  # pragma: no cover
@@ -154,27 +169,47 @@ def do_cli(
     role_arn,
     notification_arns,
     fail_on_empty_changeset,
+    use_json,
     tags,
+    metadata,
     region,
     profile,
 ):
+    from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    with DeployContext(
-        template_file=template_file,
-        stack_name=stack_name,
-        s3_bucket=s3_bucket,
-        force_upload=force_upload,
-        s3_prefix=s3_prefix,
-        kms_key_id=kms_key_id,
-        parameter_overrides=parameter_overrides,
-        capabilities=capabilities,
-        no_execute_changeset=no_execute_changeset,
-        role_arn=role_arn,
-        notification_arns=notification_arns,
-        fail_on_empty_changeset=fail_on_empty_changeset,
-        tags=tags,
-        region=region,
-        profile=profile,
-    ) as deploy_context:
-        deploy_context.run()
+    with tempfile.NamedTemporaryFile() as output_template_file:
+
+        with PackageContext(
+            template_file=template_file,
+            s3_bucket=s3_bucket,
+            s3_prefix=s3_prefix,
+            output_template_file=output_template_file.name,
+            kms_key_id=kms_key_id,
+            use_json=use_json,
+            force_upload=force_upload,
+            metadata=metadata,
+            on_deploy=True,
+            region=region,
+            profile=profile,
+        ) as package_context:
+            package_context.run()
+
+        with DeployContext(
+            template_file=output_template_file.name,
+            stack_name=stack_name,
+            s3_bucket=s3_bucket,
+            force_upload=force_upload,
+            s3_prefix=s3_prefix,
+            kms_key_id=kms_key_id,
+            parameter_overrides=parameter_overrides,
+            capabilities=capabilities,
+            no_execute_changeset=no_execute_changeset,
+            role_arn=role_arn,
+            notification_arns=notification_arns,
+            fail_on_empty_changeset=fail_on_empty_changeset,
+            tags=tags,
+            region=region,
+            profile=profile,
+        ) as deploy_context:
+            deploy_context.run()
