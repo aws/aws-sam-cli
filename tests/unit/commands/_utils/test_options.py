@@ -9,6 +9,10 @@ from unittest.mock import patch
 from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
 
 
+class Mock:
+    pass
+
+
 class TestGetOrDefaultTemplateFileName(TestCase):
     def test_must_return_abspath_of_user_provided_value(self):
         filename = "foo.txt"
@@ -49,4 +53,21 @@ class TestGetOrDefaultTemplateFileName(TestCase):
 
         result = get_or_default_template_file_name(None, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
         self.assertEqual(result, "absPath")
+        os_mock.path.abspath.assert_called_with(expected)
+
+    @patch("samcli.commands._utils.options.os")
+    def test_verify_ctx(self, os_mock):
+
+        ctx = Mock()
+
+        expected = os.path.join(".aws-sam", "build", "template.yaml")
+
+        os_mock.path.exists.return_value = True
+        os_mock.path.join = os.path.join  # Use the real method
+        os_mock.path.abspath.return_value = "a/b/c/absPath"
+        os_mock.path.dirname.return_value = "a/b/c"
+
+        result = get_or_default_template_file_name(ctx, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
+        self.assertEqual(result, "a/b/c/absPath")
+        self.assertEqual(ctx.config_path, "a/b/c")
         os_mock.path.abspath.assert_called_with(expected)

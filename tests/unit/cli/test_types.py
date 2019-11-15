@@ -12,19 +12,12 @@ class TestCfnParameterOverridesType(TestCase):
 
     @parameterized.expand(
         [
-            (("some string"),),
-            # Key must not contain spaces
-            (('ParameterKey="Ke y",ParameterValue=Value'),),
-            # No value
-            (("ParameterKey=Key,ParameterValue="),),
-            # No key
-            (("ParameterKey=,ParameterValue=Value"),),
-            # Case sensitive
-            (("parameterkey=Key,ParameterValue=Value"),),
-            # No space after comma
-            (("ParameterKey=Key, ParameterValue=Value"),),
+            # Random string
+            ("some string",),
+            # Only commas
+            (",,",),
             # Bad separator
-            (("ParameterKey:Key,ParameterValue:Value"),),
+            ("ParameterKey:Key,ParameterValue:Value",),
         ]
     )
     def test_must_fail_on_invalid_format(self, input):
@@ -39,6 +32,10 @@ class TestCfnParameterOverridesType(TestCase):
                 ("ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro",),
                 {"KeyPairName": "MyKey", "InstanceType": "t1.micro"},
             ),
+            (("KeyPairName=MyKey InstanceType=t1.micro",), {"KeyPairName": "MyKey", "InstanceType": "t1.micro"}),
+            (("KeyPairName=MyKey, InstanceType=t1.micro,",), {"KeyPairName": "MyKey,", "InstanceType": "t1.micro,"}),
+            (('ParameterKey="Ke y",ParameterValue=Value',), {"ParameterKey": "Ke y"}),
+            ((("ParameterKey=Key,ParameterValue="),), {"ParameterKey": "Key,ParameterValue="}),
             (('ParameterKey="Key",ParameterValue=Val\\ ue',), {"Key": "Val ue"}),
             (('ParameterKey="Key",ParameterValue="Val\\"ue"',), {"Key": 'Val"ue'}),
             (("ParameterKey=Key,ParameterValue=Value",), {"Key": "Value"}),
@@ -146,38 +143,3 @@ class TestCfnTags(TestCase):
     def test_successful_parsing(self, input, expected):
         result = self.param_type.convert(input, None, None)
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
-
-
-# class TestCfnCapabilitiesType(TestCase):
-#     def setUp(self):
-#         self.param_type = CfnCapabilitiesType()
-#
-#     @parameterized.expand(
-#         [
-#             # Just a string
-#             ("some string"),
-#             # tuple of string
-#             ("some string",),
-#             # non-tuple valid string
-#             "CAPABILITY_NAMED_IAM",
-#         ]
-#     )
-#     def test_must_fail_on_invalid_format(self, input):
-#         self.param_type.fail = Mock()
-#         self.param_type.convert(input, "param", "ctx")
-#
-#         self.param_type.fail.assert_called_with(ANY, "param", "ctx")
-#
-#     @parameterized.expand(
-#         [
-#             (("CAPABILITY_AUTO_EXPAND",), ("CAPABILITY_AUTO_EXPAND",)),
-#             (("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM"), ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM")),
-#             (
-#                 ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"),
-#                 ("CAPABILITY_AUTO_EXPAND", "CAPABILITY_NAMED_IAM", "CAPABILITY_IAM"),
-#             ),
-#         ]
-#     )
-#     def test_successful_parsing(self, input, expected):
-#         result = self.param_type.convert(input, None, None)
-#         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))

@@ -10,6 +10,7 @@ from samcli.commands._utils.options import template_option_without_build, docker
     parameter_override_option
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 LOG = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 """
 
 
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.command("build", help=HELP_TEXT, short_help="Build your Lambda function code")
 @click.option('--build-dir', '-b',
               default=DEFAULT_BUILD_DIR,
@@ -82,7 +84,7 @@ $ sam build && sam package --s3-bucket <bucketname>
 @track_command
 def cli(ctx,
         function_identifier,
-        template,
+        template_file,
         base_dir,
         build_dir,
         use_container,
@@ -95,7 +97,7 @@ def cli(ctx,
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
-    do_cli(function_identifier, template, base_dir, build_dir, True, use_container, manifest, docker_network,
+    do_cli(function_identifier, template_file, base_dir, build_dir, True, use_container, manifest, docker_network,
            skip_pull_image, parameter_overrides, mode)  # pragma: no cover
 
 
