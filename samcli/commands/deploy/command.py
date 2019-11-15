@@ -193,12 +193,12 @@ def do_cli(
             region=region,
             profile=profile,
         ) as package_context:
-            packaged = package_context.is_pre_packaged(template_path=template_file)
-            if not packaged:
+            pre_packaged = package_context.is_pre_packaged(template_path=template_file)
+            if not pre_packaged:
                 package_context.run()
 
         with DeployContext(
-            template_file=template_file if packaged else output_template_file.name,
+            template_file=template_file if pre_packaged else output_template_file.name,
             stack_name=stack_name,
             s3_bucket=s3_bucket,
             force_upload=force_upload,

@@ -1050,9 +1050,7 @@ class TestArtifactExporter(unittest.TestCase):
             template_exporter = Template(template_path, parent_dir, self.s3_uploader_mock, resources_to_export)
 
             pre_exported_artifacts = []
-            template_exporter._pre_exported_global_artifacts(
-                template_exporter.template_dict, pre_exported_artifacts
-            )
+            template_exporter._pre_exported_global_artifacts(template_exporter.template_dict, pre_exported_artifacts)
             self.assertEqual([True, False, True, True], pre_exported_artifacts)
             self.assertEqual(True, any(pre_exported_artifacts))
 
