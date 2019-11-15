@@ -10,6 +10,7 @@ import click
 from click.types import FuncParamType
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
+from samcli.lib.config.samconfig import SamConfig
 
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
@@ -47,7 +48,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     result = os.path.abspath(provided_value)
 
     if ctx:
-        setattr(ctx, "config_path", os.path.dirname(result))
+        setattr(ctx, "samconfig_dir", SamConfig.config_dir(result))
     LOG.debug("Using SAM Template at %s", result)
     return result
 
