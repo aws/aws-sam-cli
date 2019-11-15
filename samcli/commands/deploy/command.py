@@ -33,24 +33,6 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 """
 
 
-def prompt_callback(msg, default):
-    def callback(ctx, param, value):
-        interactive = ctx.params.get("interactive")
-
-        if interactive:
-            param.prompt = msg
-            param.default = value or default
-            return param.prompt_for_value(ctx)
-        elif value:
-            # Value provided + No Interactive. Return the value
-            return value
-        else:
-            # Value not provided + No Interactive
-            raise click.exceptions.MissingParameter(param=param, ctx=ctx)
-
-    return callback
-
-
 @click.command(
     "deploy",
     short_help=SHORT_HELP,
@@ -272,7 +254,7 @@ def guided_deploy(stack_name, s3_bucket, region, profile):
     region = click.prompt(f"{tick} AWS Region", default=default_region, type=click.STRING)
     profile = click.prompt(f"{tick} AWS Profile", default=default_profile, type=click.STRING)
 
-    save_to_samconfig = click.confirm(f"{tick} Save values to samconfig.toml", default=True)
+    _ = click.confirm(f"{tick} Save values to samconfig.toml", default=True)
 
     if not s3_bucket:
         click.echo(color.yellow("\nConfiguring Deployment S3 Bucket\n================================"))
