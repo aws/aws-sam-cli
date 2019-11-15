@@ -8,6 +8,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 LOG = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ and point SAM to the directory or file containing build artifacts.
     short_help="Sets up a local endpoint you can use to test your API. Supports hot-reloading "
     "so you don't need to restart this service when you make changes to your function.",
 )
+@configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3000)
 @click.option(
     "--static-dir",
@@ -50,7 +52,7 @@ def cli(
     port,
     static_dir,
     # Common Options for Lambda Invoke
-    template,
+    template_file,
     env_vars,
     debug_port,
     debug_args,
@@ -70,7 +72,7 @@ def cli(
         host,
         port,
         static_dir,
-        template,
+        template_file,
         env_vars,
         debug_port,
         debug_args,

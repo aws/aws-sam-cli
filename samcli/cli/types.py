@@ -18,9 +18,17 @@ class CfnParameterOverridesType(click.ParamType):
     __EXAMPLE_1 = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
     __EXAMPLE_2 = "KeyPairName=MyKey InstanceType=t1.micro"
 
-    # Regex that parses CloudFormation parameter key-value pairs: https://regex101.com/r/xqfSjW/2
-    _pattern_1 = r"(?:ParameterKey=([A-Za-z0-9\"]+),ParameterValue=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
-    _pattern_2 = r"(?:([A-Za-z0-9\"]+)=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
+    # Regex that parses CloudFormation parameter key-value pairs:
+    # https://regex101.com/r/xqfSjW/2
+    # https://regex101.com/r/xqfSjW/5
+
+    # If Both ParameterKey pattern and KeyPairName=MyKey, should not be fixed. if they are it can
+    # result in unpredicatable behavior.
+    KEY_REGEX = '([A-Za-z0-9\\"]+)'
+    VALUE_REGEX = '(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^ \\"\\\\]+)+))'
+
+    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
+    _pattern_2 = r"(?:(?: ){key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
@@ -34,7 +42,11 @@ class CfnParameterOverridesType(click.ParamType):
         if value == ("",):
             return result
 
+        value = (value,) if isinstance(value, str) else value
         for val in value:
+            val.strip()
+            # Add empty string to start of the string to help match `_pattern2`
+            val = " " + val
 
             try:
                 # NOTE(TheSriram): find the first regex that matched.
@@ -158,6 +170,9 @@ class CfnTags(click.ParamType):
         # Empty tuple
         if value == ("",):
             return result
+
+        # if value comes in a via configuration file, we should still convert it.
+        # value = (value, ) if not isinstance(value, tuple) else value
 
         for val in value:
 

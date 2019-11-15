@@ -8,6 +8,7 @@ from json import JSONDecodeError
 
 import click
 
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands.exceptions import UserException
 from samcli.cli.main import pass_context, common_options, global_cfg
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
@@ -55,6 +56,7 @@ Common usage:
 """
 
 
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.command(
     "init",
     help=HELP_TEXT,

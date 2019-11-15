@@ -7,6 +7,7 @@ import logging
 from functools import partial
 
 import click
+from click.types import FuncParamType
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
@@ -43,8 +44,10 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
             if os.path.exists(option):
                 provided_value = option
                 break
-
     result = os.path.abspath(provided_value)
+
+    if ctx:
+        setattr(ctx, "config_path", os.path.dirname(result))
     LOG.debug("Using SAM Template at %s", result)
     return result
 
@@ -74,6 +77,7 @@ def template_click_option(include_build=True):
     Click Option for template option
     """
     return click.option(
+        "--template-file",
         "--template",
         "-t",
         default=_TEMPLATE_OPTION_DEFAULT_VALUE,
@@ -81,6 +85,7 @@ def template_click_option(include_build=True):
         envvar="SAM_TEMPLATE_FILE",
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
+        is_eager=True,
         help="AWS SAM template file",
     )
 
@@ -143,7 +148,7 @@ def capabilities_click_option():
     return click.option(
         "--capabilities",
         cls=OptionNargs,
-        type=click.STRING,
+        type=FuncParamType(lambda value: value.split(" ")),
         required=True,
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
@@ -182,7 +187,7 @@ def notification_arns_click_option():
     return click.option(
         "--notification-arns",
         cls=OptionNargs,
-        type=click.STRING,
+        type=FuncParamType(lambda value: value.split(" ")),
         required=False,
         help="Amazon  Simple  Notification  Service  topic"
         "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
