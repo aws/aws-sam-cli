@@ -25,6 +25,7 @@ class TestDeployliCommand(TestCase):
         self.profile = None
         self.use_json = True
         self.metadata = {}
+        self.interactive = True
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -53,6 +54,7 @@ class TestDeployliCommand(TestCase):
             profile=self.profile,
             use_json=self.use_json,
             metadata=self.metadata,
+            interactive=self.interactive,
         )
 
         mock_deploy_context.assert_called_with(

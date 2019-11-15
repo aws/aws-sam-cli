@@ -1,8 +1,13 @@
+"""
+Class representing the samconfig.toml
+"""
+
 import os
 import logging
-import tomlkit
 
 from pathlib import Path
+
+import tomlkit
 
 LOG = logging.getLogger(__name__)
 
@@ -56,6 +61,9 @@ class SamConfig:
         ------
         KeyError
             If the config file does *not* have the specific section
+
+        tomlkit.exceptions.TOMLKitError
+            If the configuration file is invalid
         """
 
         env = env or DEFAULT_ENV
@@ -85,12 +93,26 @@ class SamConfig:
 
         env : str
             Optional, Name of the environment
+
+        Raises
+        ------
+        tomlkit.exceptions.TOMLKitError
+            If the data is invalid
         """
 
         self._read()
         self.document[env][self._to_key(cmd_names)][section][key] = value
 
     def flush(self):
+        """
+        Write the data back to file
+
+        Raises
+        ------
+        tomlkit.exceptions.TOMLKitError
+            If the data is invalid
+
+        """
         self._write()
 
     def exists(self):
@@ -107,8 +129,8 @@ class SamConfig:
         """
         if template_file_path:
             return os.path.dirname(template_file_path)
-        else:
-            return os.getcwd()
+
+        return os.getcwd()
 
     def _read(self):
         if self.document:
@@ -116,6 +138,8 @@ class SamConfig:
 
         txt = self.filepath.read_text()
         self.document = tomlkit.loads(txt)
+
+        return self.document
 
     def _write(self):
         if not self.document:
@@ -126,4 +150,4 @@ class SamConfig:
     @staticmethod
     def _to_key(cmd_names):
         # construct a parsed name that is of the format: a_b_c_d
-        return "_".join(reversed([cmd.replace("-", "_").replace(" ", "_") for cmd in cmd_names]))
+        return "_".join([cmd.replace("-", "_").replace(" ", "_") for cmd in cmd_names])

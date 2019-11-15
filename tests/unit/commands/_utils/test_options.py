@@ -69,5 +69,5 @@ class TestGetOrDefaultTemplateFileName(TestCase):
 
         result = get_or_default_template_file_name(ctx, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
         self.assertEqual(result, "a/b/c/absPath")
-        self.assertEqual(ctx.config_path, "a/b/c")
+        self.assertEqual(ctx.samconfig_dir, "a/b/c")
         os_mock.path.abspath.assert_called_with(expected)
