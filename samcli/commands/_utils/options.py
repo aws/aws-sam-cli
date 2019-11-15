@@ -122,6 +122,7 @@ def parameter_override_click_option():
         "--parameter-overrides",
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
+        default={},
         help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
         "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
         "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'",
@@ -148,8 +149,7 @@ def capabilities_click_option():
     return click.option(
         "--capabilities",
         cls=OptionNargs,
-        type=FuncParamType(lambda value: value.split(" ")),
-        required=True,
+        type=FuncParamType(lambda value: value.split(" ") if not isinstance(value, tuple) else value),
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
         "plates might include resources that can affect permissions in your  AWS"
@@ -187,7 +187,7 @@ def notification_arns_click_option():
     return click.option(
         "--notification-arns",
         cls=OptionNargs,
-        type=FuncParamType(lambda value: value.split(" ")),
+        type=FuncParamType(lambda value: value.split(" ") if not isinstance(value, tuple) else value),
         required=False,
         help="Amazon  Simple  Notification  Service  topic"
         "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
