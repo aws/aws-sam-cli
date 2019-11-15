@@ -12,7 +12,8 @@ from samcli.commands._utils.options import (
     tags_override_option,
     notification_arns_override_option,
     template_click_option,
-    metadata_override_option)
+    metadata_override_option,
+)
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
@@ -30,14 +31,14 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 """
 
 
-@configuration_option(provider=TomlProvider(section="parameters"))
 @click.command(
     "deploy",
     short_help=SHORT_HELP,
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@template_click_option(include_build=False)
+@configuration_option(provider=TomlProvider(section="parameters"))
+@template_click_option(include_build=True)
 @click.option(
     "--stack-name",
     required=True,
@@ -190,7 +191,7 @@ def do_cli(
             metadata=metadata,
             on_deploy=True,
             region=region,
-            profile=profile
+            profile=profile,
         ) as package_context:
             package_context.run()
 
