@@ -5,11 +5,13 @@ from functools import partial
 
 import click
 
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import (
     metadata_override_option,
     _TEMPLATE_OPTION_DEFAULT_VALUE,
     get_or_default_template_file_name,
+    template_click_option,
 )
 from samcli.commands._utils.resources import resources_generator
 from samcli.lib.telemetry.metrics import track_command
@@ -40,18 +42,8 @@ The following resources and their property locations are supported.
 
 
 @click.command("package", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
-# TODO(TheSriram): Move to template_common_option across aws-sam-cli
-@click.option(
-    "--template",
-    "--template-file",
-    "-t",
-    default=_TEMPLATE_OPTION_DEFAULT_VALUE,
-    type=click.Path(),
-    envvar="SAM_TEMPLATE_FILE",
-    callback=partial(get_or_default_template_file_name, include_build=True),
-    show_default=True,
-    help="AWS SAM template file",
-)
+@configuration_option(provider=TomlProvider(section="parameters"))
+@template_click_option(include_build=True)
 @click.option(
     "--s3-bucket",
     required=True,
@@ -97,12 +89,12 @@ The following resources and their property locations are supported.
 @aws_creds_options
 @pass_context
 @track_command
-def cli(ctx, template, s3_bucket, s3_prefix, kms_key_id, output_template_file, use_json, force_upload, metadata):
+def cli(ctx, template_file, s3_bucket, s3_prefix, kms_key_id, output_template_file, use_json, force_upload, metadata):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(
-        template,
+        template_file,
         s3_bucket,
         s3_prefix,
         kms_key_id,
