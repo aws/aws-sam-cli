@@ -1,3 +1,6 @@
+"""
+Bootstrap's user's development environment by creating cloud resources required by SAM CLI
+"""
 
 import logging
 import boto3
@@ -34,7 +37,7 @@ def manage_stack(profile, region):
     session = boto3.Session(profile_name=profile if profile else None)
     cloudformation_client = session.client("cloudformation", config=Config(region_name=region if region else None))
 
-    _create_or_get_stack(cloudformation_client)
+    return _create_or_get_stack(cloudformation_client)
 
 
 def _create_or_get_stack(cloudformation_client):
@@ -58,15 +61,13 @@ def _create_or_get_stack(cloudformation_client):
                 + " ManagedStackSource tag shows "
                 + sam_cli_tag["Value"]
                 + " which does not match the AWS SAM CLI generated tag value of AwsSamCli. "
-                  "Failing as the stack was likely not created by the AWS SAM CLI."
+                "Failing as the stack was likely not created by the AWS SAM CLI."
             )
             raise UserException(msg)
     except StopIteration:
         msg = (
-            "Stack  "
-            + SAM_CLI_STACK_NAME
-            + " exists, but the ManagedStackSource tag is missing. "
-              "Failing as the stack was likely not created by the AWS SAM CLI."
+            "Stack  " + SAM_CLI_STACK_NAME + " exists, but the ManagedStackSource tag is missing. "
+            "Failing as the stack was likely not created by the AWS SAM CLI."
         )
         raise UserException(msg)
     outputs = stack["Outputs"]
@@ -74,10 +75,8 @@ def _create_or_get_stack(cloudformation_client):
         bucket_name = next(o for o in outputs if o["OutputKey"] == "SourceBucket")["OutputValue"]
     except StopIteration:
         msg = (
-            "Stack "
-            + SAM_CLI_STACK_NAME
-            + " exists, but is missing the managed source bucket key. "
-              "Failing as this stack was likely not created by the AWS SAM CLI."
+            "Stack " + SAM_CLI_STACK_NAME + " exists, but is missing the managed source bucket key. "
+            "Failing as this stack was likely not created by the AWS SAM CLI."
         )
         raise UserException(msg)
     # This bucket name is what we would write to a config file
