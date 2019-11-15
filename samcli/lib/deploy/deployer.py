@@ -216,7 +216,7 @@ class Deployer:
                     format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
                     format_args=kwargs["format_args"],
                     columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
-                    color=row_color
+                    color=row_color,
                 )
 
         if not changeset:
@@ -337,7 +337,7 @@ class Deployer:
                                 format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
                                 format_args=kwargs["format_args"],
                                 columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
-                                color=row_color
+                                color=row_color,
                             )
 
                 if self._check_stack_complete(stack_status):

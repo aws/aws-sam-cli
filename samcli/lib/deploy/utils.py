@@ -1,14 +1,14 @@
+"""
+Utilities for Deploy
+"""
+
 from samcli.lib.utils.colors import Colored
 
 
 class DeployColor:
     def __init__(self):
         self._color = Colored()
-        self.changeset_color_map = {
-            "Add": "green",
-            "Modify": "yellow",
-            "Remove": "red"
-        }
+        self.changeset_color_map = {"Add": "green", "Modify": "yellow", "Remove": "red"}
         self.status_color_map = {
             "CREATE_COMPLETE": "green",
             "CREATE_FAILED": "red",
@@ -24,7 +24,7 @@ class DeployColor:
             "UPDATE_IN_PROGRESS": "yellow",
             "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS": "red",
             "UPDATE_ROLLBACK_FAILED": "red",
-            "UPDATE_ROLLBACK_IN_PROGRESS": "red"
+            "UPDATE_ROLLBACK_IN_PROGRESS": "red",
         }
 
     def get_stack_events_status_color(self, status):
