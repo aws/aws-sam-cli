@@ -1,5 +1,4 @@
 from unittest import TestCase
-from unittest.mock import Mock, patch
 
 import botocore.session
 
@@ -7,10 +6,10 @@ from botocore.exceptions import ClientError
 from botocore.stub import Stubber
 
 from samcli.commands.exceptions import UserException
-from samcli.commands.setup.command import do_cli, create_or_get_stack, MANAGED_STACK_DEFINITION, SAM_CLI_STACK_NAME
+from samcli.lib.bootstrap.bootstrap import _create_or_get_stack, MANAGED_STACK_DEFINITION, SAM_CLI_STACK_NAME
 
 
-class TestSetupCli(TestCase):
+class TestBootstrapManagedStack(TestCase):
     def _stubbed_cf_client(self):
         cf = botocore.session.get_session().create_client("cloudformation")
         return [cf, Stubber(cf)]
@@ -53,7 +52,7 @@ class TestSetupCli(TestCase):
         stubber.add_response("describe_stacks", post_create_ds_resp, ds_params)
         stubber.add_response("describe_stacks", post_create_ds_resp, ds_params)
         stubber.activate()
-        create_or_get_stack(stub_cf)
+        _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
@@ -73,7 +72,7 @@ class TestSetupCli(TestCase):
         ds_params = {"StackName": SAM_CLI_STACK_NAME}
         stubber.add_response("describe_stacks", ds_resp, ds_params)
         stubber.activate()
-        create_or_get_stack(stub_cf)
+        _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
@@ -94,7 +93,7 @@ class TestSetupCli(TestCase):
         stubber.add_response("describe_stacks", ds_resp, ds_params)
         stubber.activate()
         with self.assertRaises(UserException):
-            create_or_get_stack(stub_cf)
+            _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
@@ -115,7 +114,7 @@ class TestSetupCli(TestCase):
         stubber.add_response("describe_stacks", ds_resp, ds_params)
         stubber.activate()
         with self.assertRaises(UserException):
-            create_or_get_stack(stub_cf)
+            _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
@@ -136,7 +135,7 @@ class TestSetupCli(TestCase):
         stubber.add_response("describe_stacks", ds_resp, ds_params)
         stubber.activate()
         with self.assertRaises(UserException):
-            create_or_get_stack(stub_cf)
+            _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
@@ -156,7 +155,7 @@ class TestSetupCli(TestCase):
         stubber.add_client_error("create_change_set", service_error_code="ClientError", expected_params=ccs_params)
         stubber.activate()
         with self.assertRaises(ClientError):
-            create_or_get_stack(stub_cf)
+            _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 
@@ -186,6 +185,6 @@ class TestSetupCli(TestCase):
         )
         stubber.activate()
         with self.assertRaises(ClientError):
-            create_or_get_stack(stub_cf)
+            _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()

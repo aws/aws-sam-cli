@@ -21,7 +21,9 @@ _SAM_CLI_COMMAND_PACKAGES = [
     "samcli.commands.deploy",
     "samcli.commands.logs",
     "samcli.commands.publish",
-    "samcli.commands.setup",
+
+    # We intentionally do not expose the `bootstrap` command for now. We might open it up later
+    # "samcli.commands.bootstrap",
 ]
 
 
