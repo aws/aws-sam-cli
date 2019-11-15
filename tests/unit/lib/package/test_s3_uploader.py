@@ -7,7 +7,8 @@ import tempfile
 from pathlib import Path
 from botocore.exceptions import ClientError
 
-from samcli.lib.package.s3_uploader import S3Uploader, NoSuchBucketError
+from samcli.commands.package.exceptions import NoSuchBucketError
+from samcli.lib.package.s3_uploader import S3Uploader
 
 
 class TestS3Uploader(TestCase):

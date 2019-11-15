@@ -22,8 +22,9 @@ class CfnParameterOverridesType(click.ParamType):
     # https://regex101.com/r/xqfSjW/2
     # https://regex101.com/r/xqfSjW/5
 
-    # If Both ParameterKey pattern and KeyPairName=MyKey, should not be fixed. if they are it can
-    # result in unpredicatable behavior.
+    # If Both ParameterKey pattern and KeyPairName=MyKey should not be present
+    # while adding parameter overrides, if they are, it
+    # can result in unpredicatable behavior.
     KEY_REGEX = '([A-Za-z0-9\\"]+)'
     VALUE_REGEX = '(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^ \\"\\\\]+)+))'
 
