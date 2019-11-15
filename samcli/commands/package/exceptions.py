@@ -78,6 +78,15 @@ class NoSuchBucketError(UserException):
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
-        message_fmt = "\n S3 Bucket does not exist."
+        message_fmt = "\nS3 Bucket does not exist."
 
         super(NoSuchBucketError, self).__init__(message=message_fmt.format(**self.kwargs))
+
+
+class BucketNotSpecifiedError(UserException):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+        message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name"
+
+        super(BucketNotSpecifiedError, self).__init__(message=message_fmt.format(**self.kwargs))

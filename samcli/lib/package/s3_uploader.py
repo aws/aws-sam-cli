@@ -27,7 +27,7 @@ import botocore.exceptions
 
 from boto3.s3 import transfer
 
-from samcli.commands.package.exceptions import NoSuchBucketError
+from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
 
 LOG = logging.getLogger(__name__)
 
@@ -134,6 +134,8 @@ class S3Uploader:
 
         try:
             # Find the object that matches this ETag
+            if not self.bucket_name:
+                raise BucketNotSpecifiedError()
             self.s3.head_object(Bucket=self.bucket_name, Key=remote_path)
             return True
         except botocore.exceptions.ClientError:

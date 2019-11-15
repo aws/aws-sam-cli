@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from botocore.exceptions import ClientError
 
-from samcli.commands.package.exceptions import NoSuchBucketError
+from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
 from samcli.lib.package.s3_uploader import S3Uploader
 
 
@@ -143,6 +143,20 @@ class TestS3Uploader(TestCase):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             s3_url = s3_uploader.upload(f.name, remote_path)
             self.assertEqual(s3_url, "s3://{0}/{1}/{2}".format(self.bucket_name, self.prefix, remote_path))
+
+    def test_s3_upload_no_bucket(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=None,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+        )
+        s3_uploader.artifact_metadata = {"a": "b"}
+        remote_path = Path.joinpath(Path(os.getcwd()), Path("tmp"))
+        with self.assertRaises(BucketNotSpecifiedError):
+            with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+                s3_uploader.upload(f.name, remote_path)
 
     def test_s3_upload_with_dedup(self):
         s3_uploader = S3Uploader(
