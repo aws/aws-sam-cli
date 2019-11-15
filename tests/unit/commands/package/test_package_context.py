@@ -84,3 +84,20 @@ class TestPackageCommand(TestCase):
                 profile=None,
             )
             package_command_context.run()
+
+    @patch.object(Template, "contains_packaged_artifacts", MagicMock(return_value=True))
+    def test_template_is_pre_packaged(self):
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
+            package_command_context = PackageContext(
+                template_file=temp_template_file.name,
+                s3_bucket="s3-bucket",
+                s3_prefix="s3-prefix",
+                kms_key_id="kms-key-id",
+                output_template_file=None,
+                use_json=False,
+                force_upload=True,
+                metadata={},
+                region=None,
+                profile=None,
+            )
+            self.assertEqual(True, package_command_context.is_pre_packaged(template_path=temp_template_file.name))

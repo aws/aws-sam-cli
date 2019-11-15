@@ -42,6 +42,7 @@ from samcli.lib.package.artifact_exporter import (
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
+    GLOBAL_PRE_EXPORT_CHECK_DICT,
 )
 
 
@@ -818,6 +819,43 @@ class TestArtifactExporter(unittest.TestCase):
             metadata_type2_instance.export.assert_called_once_with("metadata_type2", mock.ANY, template_dir)
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_check_pre_export_metadata(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        metadata_type1_class = Mock()
+        metadata_type1_class.RESOURCE_TYPE = "metadata_type1"
+        metadata_type1_class.PROPERTY_NAME = "property_1"
+        metadata_type1_instance = Mock()
+        metadata_type1_class.return_value = metadata_type1_instance
+        metadata_type1_instance.is_pre_exported = lambda template_dict: is_s3_url(url=list(template_dict.values())[0])
+
+        metadata_type2_class = Mock()
+        metadata_type2_class.RESOURCE_TYPE = "metadata_type2"
+        metadata_type2_class.PROPERTY_NAME = "property_2"
+        metadata_type2_instance = Mock()
+        metadata_type2_class.return_value = metadata_type2_instance
+        metadata_type2_instance.is_pre_exported = lambda template_dict: is_s3_url(url=list(template_dict.values())[0])
+
+        metadata_to_export = [metadata_type1_class, metadata_type2_class]
+
+        template_dict = {
+            "Metadata": {"metadata_type1": {"property_1": "s3://abc/def"}, "metadata_type2": {"property_2": "def"}}
+        }
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        # Patch the file open method to return template string
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+
+            template_exporter = Template(
+                template_path, parent_dir, self.s3_uploader_mock, metadata_to_export=metadata_to_export
+            )
+            self.assertEqual(True, template_exporter.check_pre_exported_metadata(template_dict))
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_template_export(self, yaml_parse_mock):
         parent_dir = os.path.sep
         template_dir = os.path.join(parent_dir, "foo", "bar")
@@ -862,6 +900,48 @@ class TestArtifactExporter(unittest.TestCase):
             resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
             resource_type2_class.assert_called_once_with(self.s3_uploader_mock)
             resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_check_pre_export_resources(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_instance = Mock()
+        resource_type1_instance.is_pre_exported = lambda template_dict: lambda template_dict: is_s3_url(
+            url=list(template_dict.values())[0]
+        )
+        resource_type1_class.return_value = resource_type1_instance
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_instance = Mock()
+        resource_type2_instance.is_pre_exported = lambda template_dict: lambda template_dict: is_s3_url(
+            url=list(template_dict.values())[0]
+        )
+        resource_type2_class.return_value = resource_type2_instance
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+
+        properties_s3 = {"foo_1": "s3://foo/bar"}
+        properties = {"foo_2": "bar"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties_s3},
+                "Resource2": {"Type": "resource_type2", "Properties": properties},
+            }
+        }
+
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        # Patch the file open method to return template string
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+
+            template_exporter = Template(template_path, parent_dir, self.s3_uploader_mock, resources_to_export)
+            self.assertEqual(True, template_exporter.check_pre_exported_resources())
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_template_global_export(self, yaml_parse_mock):
@@ -922,6 +1002,99 @@ class TestArtifactExporter(unittest.TestCase):
                     exported_template["List"][1]["Fn::Transform"],
                     {"Name": "AWS::Include", "Parameters": {"Location": "s3://foo"}},
                 )
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_check_global_export(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+        resource_type2_class = Mock()
+        resource_type2_instance = Mock()
+        resource_type2_class.return_value = resource_type2_instance
+        resource_type3_class = Mock()
+        resource_type3_instance = Mock()
+        resource_type3_class.return_value = resource_type3_instance
+
+        resources_to_export = {
+            "resource_type1": resource_type1_class,
+            "resource_type2": resource_type2_class,
+            "resource_type3": resource_type3_class,
+        }
+        properties1 = {
+            "foo": "baz",
+            "Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": "s3://foo/baz"}},
+        }
+        properties2 = {"foo": "bal", "Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": "file.yaml"}}}
+        properties3 = {
+            "foo": "bar",
+            "Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": "s3://foo/baz"}},
+        }
+        properties_in_list = {"Fn::Transform": {"Name": "AWS::Include", "Parameters": {"Location": "s3://foo/bar"}}}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties1},
+                "Resource2": {"Type": "resource_type2", "Properties": properties2},
+                "Resource3": {"Type": "resource_type3", "Properties": properties3},
+            },
+            "List": ["foo", properties_in_list],
+        }
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+            template_exporter = Template(template_path, parent_dir, self.s3_uploader_mock, resources_to_export)
+
+            pre_exported_artifacts = []
+            template_exporter._pre_exported_global_artifacts(
+                template_exporter.template_dict, pre_exported_artifacts
+            )
+            self.assertEqual([True, False, True, True], pre_exported_artifacts)
+            self.assertEqual(True, any(pre_exported_artifacts))
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_contains_packaged(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_instance = Mock()
+        resource_type1_instance.is_pre_exported = lambda template_dict: lambda template_dict: is_s3_url(
+            url=list(template_dict.values())[0]
+        )
+        resource_type1_class.return_value = resource_type1_instance
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_instance = Mock()
+        resource_type2_instance.is_pre_exported = lambda template_dict: lambda template_dict: is_s3_url(
+            url=list(template_dict.values())[0]
+        )
+        resource_type2_class.return_value = resource_type2_instance
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+
+        properties_s3 = {"foo_1": "s3://foo/bar"}
+        properties = {"foo_2": "bar"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties_s3},
+                "Resource2": {"Type": "resource_type2", "Properties": properties},
+            }
+        }
+
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+            template_exporter = Template(template_path, parent_dir, self.s3_uploader_mock, resources_to_export)
+            self.assertEqual(template_exporter.contains_packaged_artifacts(), True)
 
     @patch("samcli.lib.package.artifact_exporter.is_local_file")
     def test_include_transform_export_handler_with_relative_file_path(self, is_local_file_mock):

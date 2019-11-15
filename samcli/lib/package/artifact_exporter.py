@@ -235,7 +235,7 @@ class Resource:
         if resource_dict is None:
             return
 
-        property_value = jmespath.search(self.PROPERTY_NAME, resource_dict)
+        property_value = self.get_property(resource_dict)
 
         if not property_value and not self.PACKAGE_NULL_PROPERTY:
             return
@@ -262,6 +262,17 @@ class Resource:
         finally:
             if temp_dir:
                 shutil.rmtree(temp_dir)
+
+    def get_property(self, resource_dict):
+        return jmespath.search(self.PROPERTY_NAME, resource_dict)
+
+    def is_pre_exported(self, template_dict):
+        property_value = self.get_property(template_dict if template_dict else {})
+
+        if not property_value and not self.PACKAGE_NULL_PROPERTY:
+            return False
+
+        return is_s3_url(property_value)
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
@@ -519,12 +530,20 @@ def include_transform_export_handler(template_dict, uploader, parent_dir):
     return template_dict
 
 
+def check_pre_exported_transform_export_handler(template_dict):
+    if template_dict.get("Name", None) != "AWS::Include":
+        return False
+
+    return is_s3_url(template_dict.get("Parameters", {}).get("Location", ""))
+
+
 GLOBAL_EXPORT_DICT = {"Fn::Transform": include_transform_export_handler}
+GLOBAL_PRE_EXPORT_CHECK_DICT = {"Fn::Transform": check_pre_exported_transform_export_handler}
 
 
 class Template:
     """
-    Class to export a CloudFormation template
+    Class to export and check if CloudFormation template has packaged artifacts
     """
 
     def __init__(
@@ -621,3 +640,90 @@ class Template:
                 exporter.export(resource_id, resource_dict, self.template_dir)
 
         return self.template_dict
+
+    def _pre_exported_global_artifacts(self, template_dict, artifacts):
+        """
+        Checks Template params such as AWS::Include transforms that could have
+        pre-exported artifacts. We look up params that are defined in
+        GLOBAL_PRE_EXPORT_CHECK_DICT.
+
+        :param template_dict: Dictionary representation of template
+        :param artifacts: list that maintains results of pre-export checks.
+        :returns list of results of pre-export checks.
+        """
+
+        for key, val in template_dict.items():
+            if key in GLOBAL_PRE_EXPORT_CHECK_DICT:
+                artifacts.append(GLOBAL_PRE_EXPORT_CHECK_DICT[key](val))
+            elif isinstance(val, dict):
+                self._pre_exported_global_artifacts(val, artifacts)
+            elif isinstance(val, list):
+                for item in val:
+                    if isinstance(item, dict):
+                        self._pre_exported_global_artifacts(item, artifacts)
+        return artifacts
+
+    def check_pre_exported_metadata(self, template_dict):
+        """
+        Checks all metadata section in the template to see if they have pre-exported artifacts.
+
+        :param template_dict: Dictionary representation of template
+        :return: boolean on if there any pre-exported metadata
+        """
+        pre_exported_metadata = []
+
+        if "Metadata" not in template_dict:
+            return pre_exported_metadata
+
+        for metadata_type, metadata_dict in template_dict["Metadata"].items():
+            for exporter_class in self.metadata_to_export:
+                if exporter_class.RESOURCE_TYPE != metadata_type:
+                    continue
+
+                # Check for pre-exported metadata resources.
+                exporter = exporter_class(self.uploader)
+                pre_exported_metadata.append(exporter.is_pre_exported(template_dict=metadata_dict))
+
+        return any(pre_exported_metadata)
+
+    def check_pre_exported_resources(self):
+        """
+        Exports the local artifacts referenced by the given template to an
+        s3 bucket.
+
+        :return: The template with references to artifacts that have been
+        exported to s3.
+        """
+
+        pre_exported_resources = []
+
+        if "Resources" not in self.template_dict:
+            return pre_exported_resources
+
+        for _, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", None)
+
+            for exporter_class in self.resources_to_export:
+                if exporter_class.RESOURCE_TYPE != resource_type:
+                    continue
+
+                # Check for pre-exported code resources
+                exporter = exporter_class(self.uploader)
+                pre_exported_resources.append(exporter.is_pre_exported(template_dict=resource_dict))
+
+        return any(pre_exported_resources)
+
+    def contains_packaged_artifacts(self):
+        """
+        Checks if the supplied template already has packaged artifacts that are non-local
+        :return: boolean on if the supplied template file has packaged artifacts.
+        """
+        return any(
+            [
+                self.check_pre_exported_resources(),
+                self.check_pre_exported_metadata(self.template_dict),
+                any(self._pre_exported_global_artifacts(self.template_dict, artifacts=[])),
+            ]
+        )

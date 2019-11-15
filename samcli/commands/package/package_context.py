@@ -113,6 +113,10 @@ class PackageContext:
 
         return exported_str
 
+    def is_pre_packaged(self, template_path):
+        template = Template(template_path, os.getcwd(), self.s3_uploader)
+        return template.contains_packaged_artifacts()
+
     def write_output(self, output_file_name, data):
         if output_file_name is None:
             click.echo(data)
