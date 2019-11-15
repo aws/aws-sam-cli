@@ -146,3 +146,20 @@ class Context:
             boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)
         except botocore.exceptions.ProfileNotFound as ex:
             raise CredentialsError(str(ex))
+
+
+def get_cmd_names(cmd_name, ctx):
+    # Find parent of current context
+    _parent = ctx.parent
+    _cmd_names = []
+    # Need to find the total set of commands that current command is part of.
+    if cmd_name != ctx.info_name:
+        _cmd_names = [cmd_name]
+    _cmd_names.append(ctx.info_name)
+    # Go through all parents till a parent of a context exists.
+    while _parent.parent:
+        info_name = _parent.info_name
+        _cmd_names.append(info_name)
+        _parent = _parent.parent
+
+    return _cmd_names

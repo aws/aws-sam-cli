@@ -19,6 +19,8 @@ from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
 from samcli.lib.utils.colors import Colored
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.config.samconfig import SamConfig
+from samcli.cli.context import get_cmd_names
 
 
 SHORT_HELP = "Deploy an AWS SAM application."
@@ -32,6 +34,8 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 \b
 """
 
+CONFIG_SECTION = "parameters"
+
 
 @click.command(
     "deploy",
@@ -39,7 +43,7 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@configuration_option(provider=TomlProvider(section="parameters"))
+@configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
 @template_click_option(include_build=True)
 @click.option(
     "--stack-name",
@@ -194,9 +198,19 @@ def do_cli(
 
     confirm_changeset = False
     if interactive:
-        stack_name, s3_bucket, region, profile, confirm_changeset = guided_deploy(
+        stack_name, s3_bucket, region, profile, confirm_changeset, save_to_config = guided_deploy(
             stack_name, s3_bucket, region, profile
         )
+
+        if save_to_config:
+            save_config(
+                template_file,
+                stack_name=stack_name,
+                s3_bucket=s3_bucket,
+                region=region,
+                profile=profile,
+                confirm_changeset=confirm_changeset,
+            )
 
         # We print deploy args only on interactive.
         # Should we print this always?
@@ -254,7 +268,7 @@ def guided_deploy(stack_name, s3_bucket, region, profile):
     region = click.prompt(f"{tick} AWS Region", default=default_region, type=click.STRING)
     profile = click.prompt(f"{tick} AWS Profile", default=default_profile, type=click.STRING)
 
-    _ = click.confirm(f"{tick} Save values to samconfig.toml", default=True)
+    save_to_config = click.confirm(f"{tick} Save values to samconfig.toml", default=True)
 
     if not s3_bucket:
         click.echo(color.yellow("\nConfiguring Deployment S3 Bucket\n================================"))
@@ -262,7 +276,7 @@ def guided_deploy(stack_name, s3_bucket, region, profile):
         click.echo(f"{tick} Using Deployment Bucket: {s3_bucket}")
         click.echo("You may specify a different default deployment bucket in samconfig.toml")
 
-    return stack_name, s3_bucket, region, profile, confirm_changeset
+    return stack_name, s3_bucket, region, profile, confirm_changeset, save_to_config
 
 
 def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, parameter_overrides, confirm_changeset):
@@ -280,3 +294,23 @@ def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, para
     click.echo(f"Confirm Changeset          : {confirm_changeset}")
 
     click.secho("\nInitiating Deployment\n=====================", fg="yellow")
+
+
+def save_config(template_file, **kwargs):
+    color = Colored()
+    tick = color.yellow("✓")
+
+    click.echo(f"\n{tick} Saving arguments to config file")
+
+    section = CONFIG_SECTION
+    config_dir = SamConfig.config_dir(template_file)
+
+    ctx = click.get_current_context()
+    cmd_names = get_cmd_names(ctx.info_name, ctx)
+
+    samconfig = SamConfig(config_dir)
+
+    for key, value in kwargs.items():
+        samconfig.put(cmd_names, section, key, value)
+
+    samconfig.flush()
