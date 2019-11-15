@@ -8,13 +8,14 @@ from functools import wraps
 import click
 
 
-def pprint_column_names(format_string, format_kwargs, margin=None, table_header=None):
+def pprint_column_names(format_string, format_kwargs, margin=None, table_header=None, color="yellow"):
     """
 
     :param format_string: format string to be used that has the strings, minimum width to be replaced
     :param format_kwargs: dictionary that is supplied to the format_string to format the string
     :param margin: margin that is to be reduced from column width for columnar text.
     :param table_header: Supplied table header
+    :param color: color supplied for table headers and column names.
     :return: boilerplate table string
     """
 
@@ -55,10 +56,10 @@ def pprint_column_names(format_string, format_kwargs, margin=None, table_header=
         def wrap(*args, **kwargs):
             # The table is setup with the column names, format_string contains the column names.
             if table_header:
-                click.secho("\n" + table_header)
-            click.secho("-" * usable_width)
-            click.secho(format_string.format(*format_args, **format_kwargs))
-            click.secho("-" * usable_width)
+                click.secho("\n" + table_header, fg=color)
+            click.secho("-" * usable_width, fg=color)
+            click.secho(format_string.format(*format_args, **format_kwargs), fg=color)
+            click.secho("-" * usable_width, fg=color)
             # format_args which have the minimumwidth set per {} in the format_string is passed to the function
             # which this decorator wraps, so that the function has access to the correct format_args
             kwargs["format_args"] = format_args
@@ -66,7 +67,7 @@ def pprint_column_names(format_string, format_kwargs, margin=None, table_header=
             kwargs["margin"] = margin if margin else min_margin
             result = func(*args, **kwargs)
             # Complete the table
-            click.secho("-" * usable_width)
+            click.secho("-" * usable_width, fg=color)
             return result
 
         return wrap
@@ -88,7 +89,7 @@ def wrapped_text_generator(texts, width, margin):
         yield textwrap.wrap(text, width=width - margin)
 
 
-def pprint_columns(columns, width, margin, format_string, format_args, columns_dict):
+def pprint_columns(columns, width, margin, format_string, format_args, columns_dict, color="yellow"):
     """
 
     Print columns based on list of columnar text, associated formatting string and associated format arguments.
@@ -99,6 +100,7 @@ def pprint_columns(columns, width, margin, format_string, format_args, columns_d
     :param format_string: A format string that has both width and text specifiers set.
     :param format_args: list of offset specifiers
     :param columns_dict: arguments dictionary that have dummy values per column
+    :param color: color supplied for rows within the table.
     :return:
     """
     for columns_text in zip_longest(*wrapped_text_generator(columns, width, margin), fillvalue=""):
@@ -107,4 +109,4 @@ def pprint_columns(columns, width, margin, format_string, format_args, columns_d
         for k, _ in columns_dict.items():
             columns_dict[k] = columns_text[next(counter)]
 
-        click.secho(format_string.format(*format_args, **columns_dict))
+        click.secho(format_string.format(*format_args, **columns_dict), fg=color)

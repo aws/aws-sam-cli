@@ -24,6 +24,7 @@ from datetime import datetime
 
 import botocore
 
+from samcli.lib.deploy.utils import DeployColor
 from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError, DeployStackOutPutFailedError
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
 from samcli.commands.deploy import exceptions as deploy_exceptions
@@ -69,6 +70,7 @@ class Deployer:
         self.backoff = 2
         # Maximum number of attempts before raising exception back up the chain.
         self.max_attempts = 3
+        self.deploy_color = DeployColor()
 
     def has_stack(self, stack_name):
         """
@@ -206,6 +208,7 @@ class Deployer:
 
         for k, v in changes.items():
             for value in v:
+                row_color = self.deploy_color.get_changeset_action_color(action=k)
                 pprint_columns(
                     columns=[changes_showcase.get(k, k), value["LogicalResourceId"], value["ResourceType"]],
                     width=kwargs["width"],
@@ -213,6 +216,7 @@ class Deployer:
                     format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
                     format_args=kwargs["format_args"],
                     columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
+                    color=row_color
                 )
 
         if not changeset:
@@ -320,7 +324,7 @@ class Deployer:
                     for event in event_items["StackEvents"]:
                         if event["EventId"] not in events and utc_to_timestamp(event["Timestamp"]) > time_stamp_marker:
                             events.add(event["EventId"])
-
+                            row_color = self.deploy_color.get_stack_events_status_color(status=event["ResourceStatus"])
                             pprint_columns(
                                 columns=[
                                     event["ResourceStatus"],
@@ -333,6 +337,7 @@ class Deployer:
                                 format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
                                 format_args=kwargs["format_args"],
                                 columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
+                                color=row_color
                             )
 
                 if self._check_stack_complete(stack_status):
