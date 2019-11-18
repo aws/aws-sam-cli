@@ -58,6 +58,8 @@ Default Config file location: .aws-sam/samconfig.toml
 Why samconfig under `.aws-sam`
 ---------------------------------
 
+> The below two don't answer the above question. Instead, they give technical implementation answers to questions not asked like "How is the .aws-sam directory made?" and "Are any files in .aws-sam git ignored?". The ideas surfaced in the previous PR's discussion were lost. For example, in the PR threads it was for a short time in the root of the project but then put back into .aws-sam. I recommend clearly stating here an answer to the above question in terms of goals, not technical implementations.
+
 The `.aws-sam` directory within the project directory is created with normal 755 permissions as default without any special permisions. `sam build` only creates a build directory within `.aws-sam` as `.aws-sam/build`. This directory is erased and re-built on every build. but top level directory is left unaffected.
 
 The `.gitignore` specified in the init apps also only have `.aws-sam/build` ignored and not anything else.
@@ -66,7 +68,9 @@ The `.gitignore` specified in the init apps also only have `.aws-sam/build` igno
 Config file versioning
 -----------------------
 
-The configuration file: `samconfig.toml` will come with a top level version key that specifies the version of the configuration file. This version can then be used to determine if a given configuration file works with a version of SAM CLI.
+The configuration file: `samconfig.toml` will come with a top level version key that specifies the grammar version of the configuration file. This version can then be used to determine if a given configuration file works with a version of SAM CLI. A given version of SAM CLI may support one or more configuration file grammar versions.
+
+> The above clarifies that the version is not the version of the file itself (like an ever increasing commit version), instead it is the version of the grammar/DTD/spec of the file.
 
 It also paves the forward when major changes need to be made to the configuration file and add a version bump to the config file version
 
@@ -74,6 +78,10 @@ It also paves the forward when major changes need to be made to the configuratio
 version = 0.1
 ```
 
+> What is behavior of SAM CLI for different scenarios, e.g.:
+> 1. SAM CLI given file with version number that this SAM CLI doesn't support
+> 2. SAM CLI parses file but discovers that file doesn't comply with spec of that version
+> 3. SAM CLI tries to merge multiple configuration files together of differing spec versions
 
 Overrides
 ----------
@@ -85,6 +93,8 @@ export SAM_CLI_CONFIG=~/Users/username/mysamconfig.toml
 `
 
 Users can pass an environment `--env` for the section that will be scanned within the configuration file to pass parameters through.
+
+> I hesitate in using `--env` as the param that controls what prefix of TOML tables/sections is parsed/loaded. Using `--env` strongly associates a specific usage scenario (environment choice) to a feature that is much broader in potential usage. Also, `--env` doesn't to me clarify what it controls/changes. At first read, I think it controls environment variables. Perhaps an alternative like `--config-prefix` which is no longer limited to a specific usage scenario while more clearly describing what it controls.
 
 By default the `default` section of the configuration is chosen.
 
@@ -116,6 +126,9 @@ profile="srirammv"
 
 ```
 
+> I am not in favor of having empty TOML tables/sections like `[default.package]`.
+> Also not in favor of trailing ...`.parameters]`. Neither are adding value and instead extra boilerplate/bytes.
+
 If a custom environment is specified, the environment is looked up in `samconfig.toml` file instead.
 
 `sam build --env dev`
@@ -125,7 +138,7 @@ Sample configuration file
 ```
 version = 0.1
 
-[default.build.paramaters]
+[default.build.parameters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
@@ -144,7 +157,7 @@ region="us-east-1"
 profile="srirammv"
 
 
-[dev.build.paramaters]
+[dev.build.parameters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
@@ -193,6 +206,8 @@ sam build --env devo
 Error: Environment 'devo' was not found in .aws-sam/samconfig.toml , Possible environments are : ['dev', 'prod']
 `
 
+> I'm not in favor the 2nd part of the above error message; not in favor of reporting what TOML table/section prefixes (aka environments) are in the config file. That behavior that is very odd and unfamiliar to me. It also adds additional code + test cases for a feature I don't see value in. The first part of that error message is great. Just tell me that the prefix I specified was not found. Done.
+
 Future
 ----------
 
@@ -205,6 +220,9 @@ In the future, based on the file names of the configuration files, the environme
 ```
 
 `--env` dev will refer to `.aws-sam/samconfig-dev.toml` and so on.
+
+> I'm not in favor of parsing file names in lieu of TOML table/section prefixes. What are the TOML tables in the first file? Does it contain `[dev.build.parameters]` or just `[build.parameters]` or `[default.build.parameters]`. First is redundant, second is out-of-spec, third is potentially confusing since there could be defaults elsewhere.
+> Instead, I support loading of multiple config files in order they are specified. Similar to how `docker-compose` can have multiple `-f filename` parameters. However, then comes the discussion of merge rules: overwrite/append keys, extend arrays, and application of these merge rules across files across defaults, merge rules for config files of different spec versions, etc.?
 
 If multiple default file locations are added in the look up order for `samconfig.toml`, this means that multiple config files can be merged together.
 
@@ -221,7 +239,7 @@ use_container = True
 skip_pull_image = True
 ```
 
-Project specific configuration placed in `~/.aws-sam/samconfig.toml`
+Project specific configuration placed in `.aws-sam/samconfig.toml`
 
 ```
 version = 0.1
@@ -249,6 +267,8 @@ Out-of-Scope
 ------------
 
 * Not focusing on a global configuration. SAM CLI already has a notion of a global config at `~/.aws-sam/metadata.json`
+
+> This is confusing/conflicting with a few paragraphs above is written, "This way, configuration that might be global can be placed...". While technically such could be possible, I recommend not writing of a technically possible scenario that conflicts with what is stated as out-of-scope.
 
 User Experience Walkthrough
 ---------------------------
