@@ -378,3 +378,32 @@ foo
                 extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
                 auto_clone=False,
             )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_must_not_set_default_context_when_location_is_provided(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location="custom location",
+            runtime=None,
+            dependency_manager=None,
+            output_dir=self.output_dir,
+            name=None,
+            app_template=None,
+            no_input=None,
+            extra_context='{"schema_name":"events", "schema_type": "aws"}',
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            "custom location",
+            None,
+            None,
+            ".",
+            None,
+            None,
+            {"schema_name": "events", "schema_type": "aws"},
+        )

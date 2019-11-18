@@ -90,7 +90,7 @@ Common usage:
     help="Disable Cookiecutter prompting and accept default values defined template config",
 )
 @click.option(
-    "--extra_context",
+    "--extra-context",
     default=None,
     help="Override any custom parameters in the template's cookiecutter.json configuration e.g. "
     ""
@@ -149,15 +149,13 @@ You can run 'sam init' without any options for an interactive initialization flo
     # check for required parameters
     if location or (name and runtime and dependency_manager and app_template):
         # need to turn app_template into a location before we generate
+        default_context = None
         if app_template:
             templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
             default_context = {"project_name": name, "runtime": runtime}
-            if extra_context is None:
-                extra_context = default_context
-            else:
-                extra_context = _merge_extra_context(default_context, extra_context)
+        extra_context = _merge_extra_context(default_context, extra_context)
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
@@ -178,10 +176,14 @@ You can also re-run without the --no-interactive flag to be prompted for require
 
 
 def _merge_extra_context(default_context, extra_context):
-    try:
-        extra_context_dict = json.loads(extra_context)
-    except JSONDecodeError:
-        raise UserException(
-            "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
-        )
-    return {**extra_context_dict, **default_context}
+    if extra_context is not None:
+        try:
+            extra_context_dict = json.loads(extra_context)
+        except JSONDecodeError:
+            raise UserException(
+                "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
+            )
+        if default_context is not None:
+            return {**extra_context_dict, **default_context}
+        return extra_context_dict
+    return default_context
