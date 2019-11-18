@@ -36,6 +36,8 @@ class SamConfig:
             could automatically support auto-resolving multiple config files within same directory.
         """
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
+        if not self.filepath.exists():
+            open(self.filepath, "a+").close()
 
     def get_all(self, cmd_names, section, env=DEFAULT_ENV):
         """
@@ -101,7 +103,7 @@ class SamConfig:
         """
 
         self._read()
-        self.document[env][self._to_key(cmd_names)][section][key] = value
+        self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
 
     def flush(self):
         """

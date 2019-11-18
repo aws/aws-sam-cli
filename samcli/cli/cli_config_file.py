@@ -5,6 +5,7 @@ CLI configuration decorator to use TOML configuration files for click commands.
 ## This section contains code copied and modified from [click_config_file][https://github.com/phha/click_config_file/blob/master/click_config_file.py]
 ## SPDX-License-Identifier: MIT
 
+import os
 import functools
 import logging
 
@@ -110,7 +111,7 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name):
     """
 
     # `config_dir` will be a directory relative to SAM template, if it is available. If not it's relative to cwd
-    config_dir = getattr(ctx, "samconfig_dir", None) or SamConfig.config_dir()
+    config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
     return provider(config_dir, config_env_name, get_cmd_names(cmd_name, ctx))
 
 

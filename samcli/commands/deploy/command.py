@@ -1,7 +1,7 @@
 """
 CLI command for "deploy" command
 """
-
+import os
 import tempfile
 import json
 import click
@@ -78,7 +78,7 @@ CONFIG_SECTION = "parameters"
 @click.option(
     "--kms-key-id",
     required=False,
-    help="The ID of an AWS KMS key that the command uses" " to encrypt artifacts that are at rest in the S3 bucket.",
+    help="The ID of an AWS KMS key that the command uses to encrypt artifacts that are at rest in the S3 bucket.",
 )
 @click.option(
     "--no-execute-changeset",
@@ -105,6 +105,12 @@ CONFIG_SECTION = "parameters"
     help="Specify  if  the CLI should return a non-zero exit code if there are no"
     "changes to be made to the stack. The default behavior is  to  return  a"
     "non-zero exit code.",
+)
+@click.option(
+    "--confirm-changeset",
+    required=False,
+    is_flag=True,
+    help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
 )
 @click.option(
     "--use-json",
@@ -148,6 +154,7 @@ def cli(
     tags,
     metadata,
     interactive,
+    confirm_changeset,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -168,6 +175,7 @@ def cli(
         tags,
         metadata,
         interactive,
+        confirm_changeset,
         ctx.region,
         ctx.profile,
     )  # pragma: no cover
@@ -190,16 +198,16 @@ def do_cli(
     tags,
     metadata,
     interactive,
+    confirm_changeset,
     region,
     profile,
 ):
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    confirm_changeset = False
     if interactive:
         stack_name, s3_bucket, region, profile, confirm_changeset, save_to_config = guided_deploy(
-            stack_name, s3_bucket, region, profile
+            stack_name, s3_bucket, region, profile, confirm_changeset
         )
 
         if save_to_config:
@@ -254,7 +262,7 @@ def do_cli(
             deploy_context.run()
 
 
-def guided_deploy(stack_name, s3_bucket, region, profile):
+def guided_deploy(stack_name, s3_bucket, region, profile, confirm_changeset):
     default_region = region or "us-east-1"
     default_profile = profile or "default"
 
@@ -272,7 +280,7 @@ def guided_deploy(stack_name, s3_bucket, region, profile):
 
     if not s3_bucket:
         click.echo(color.yellow("\nConfiguring Deployment S3 Bucket\n================================"))
-        s3_bucket = manage_stack(profile, region)
+        s3_bucket = manage_stack(profile=profile, region=region)
         click.echo(f"{tick} Using Deployment Bucket: {s3_bucket}")
         click.echo("You may specify a different default deployment bucket in samconfig.toml")
 
@@ -303,12 +311,14 @@ def save_config(template_file, **kwargs):
     click.echo(f"\n{tick} Saving arguments to config file")
 
     section = CONFIG_SECTION
-    config_dir = SamConfig.config_dir(template_file)
-
     ctx = click.get_current_context()
-    cmd_names = get_cmd_names(ctx.info_name, ctx)
 
-    samconfig = SamConfig(config_dir)
+    samconfig_dir = getattr(ctx, "samconfig_dir", None)
+    samconfig = SamConfig(
+        config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=template_file)
+    )
+
+    cmd_names = get_cmd_names(ctx.info_name, ctx)
 
     for key, value in kwargs.items():
         samconfig.put(cmd_names, section, key, value)

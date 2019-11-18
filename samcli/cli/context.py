@@ -164,6 +164,11 @@ def get_cmd_names(cmd_name, ctx):
         List containing subcommand names. Ex: ["local", "start-api"]
 
     """
+    if not ctx:
+        return []
+
+    if ctx and not getattr(ctx, "parent", None):
+        return [ctx.info_name]
     # Find parent of current context
     _parent = ctx.parent
     _cmd_names = []
