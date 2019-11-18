@@ -31,6 +31,8 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     :return: Actual value to be used in the CLI
     """
 
+    original_template_path = os.path.abspath(provided_value)
+
     search_paths = ["template.yaml", "template.yml"]
 
     if include_build:
@@ -48,7 +50,9 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     result = os.path.abspath(provided_value)
 
     if ctx:
-        setattr(ctx, "samconfig_dir", SamConfig.config_dir(result))
+        # sam configuration file should always be relative to the supplied original template and should not to be set
+        # to be .aws-sam/build/
+        setattr(ctx, "samconfig_dir", os.path.dirname(original_template_path))
     LOG.debug("Using SAM Template at %s", result)
     return result
 
