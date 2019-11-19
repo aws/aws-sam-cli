@@ -139,6 +139,7 @@ N
 2
 test-project
 N
+1
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
