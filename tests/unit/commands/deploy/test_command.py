@@ -15,7 +15,7 @@ class TestDeployliCommand(TestCase):
         self.no_execute_changeset = False
         self.notification_arns = []
         self.parameter_overrides = {"a": "b"}
-        self.capabilities = "CAPABILITY_IAM"
+        self.capabilities = ("CAPABILITY_IAM",)
         self.tags = {"c": "d"}
         self.fail_on_empty_changset = True
         self.role_arn = "role_arn"
@@ -100,7 +100,7 @@ class TestDeployliCommand(TestCase):
         context_mock = Mock()
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_deploy_click.prompt = MagicMock(side_effect=["sam-app", "us-east-1", "default"])
-        mock_deploy_click.confirm = MagicMock(side_effect=[True, True])
+        mock_deploy_click.confirm = MagicMock(side_effect=[True, True, True])
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_save_config.return_value = True
@@ -149,6 +149,7 @@ class TestDeployliCommand(TestCase):
         context_mock.run.assert_called_with()
         mock_save_config.assert_called_with(
             "input-template-file",
+            capabilities=("CAPABILITY_IAM",),
             confirm_changeset=True,
             profile="default",
             region="us-east-1",
