@@ -319,7 +319,19 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
-    def test_building_java_in_process(self, runtime, code_path, expected_files):
+    def test_building_java8_in_process(self, runtime, code_path, expected_files):
+        self._test_with_building_java(runtime, code_path, expected_files, False)
+
+    @parameterized.expand(
+        [
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java11", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
+            ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+        ]
+    )
+    def test_building_java11_in_process(self, runtime, code_path, expected_files):
         self._test_with_building_java(runtime, code_path, expected_files, False)
 
     def _test_with_building_java(self, runtime, code_path, expected_files, use_container):
