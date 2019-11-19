@@ -15,6 +15,7 @@ from samcli.commands._utils.options import (
     metadata_override_option,
     _space_separated_list_func_type,
 )
+from samcli.commands._utils.template import get_template_parameters
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
@@ -209,10 +210,14 @@ def do_cli(
     # set capabilities and changeset decision to None, before interactive gets input from the user
     changeset_decision = None
     _capabilities = None
+    _parameter_overrides = None
 
     if interactive:
-        stack_name, s3_bucket, region, profile, changeset_decision, _capabilities, save_to_config = guided_deploy(
-            stack_name, s3_bucket, region, profile, confirm_changeset
+
+        _parameter_override_keys = get_template_parameters(template_file=template_file)
+
+        stack_name, s3_bucket, region, profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
+            stack_name, s3_bucket, region, profile, confirm_changeset, _parameter_override_keys, parameter_overrides
         )
 
         if save_to_config:
@@ -224,6 +229,7 @@ def do_cli(
                 profile=profile,
                 confirm_changeset=confirm_changeset,
                 capabilities=_capabilities,
+                parameter_overrides=_parameter_overrides,
             )
 
         # We print deploy args only on interactive.
@@ -234,7 +240,7 @@ def do_cli(
             region=region,
             profile=profile,
             capabilities=_capabilities,
-            parameter_overrides=parameter_overrides,
+            parameter_overrides=_parameter_overrides,
             confirm_changeset=changeset_decision,
         )
 
@@ -262,7 +268,7 @@ def do_cli(
             force_upload=force_upload,
             s3_prefix=s3_prefix,
             kms_key_id=kms_key_id,
-            parameter_overrides=parameter_overrides,
+            parameter_overrides=_parameter_overrides if interactive else parameter_overrides,
             capabilities=_capabilities if interactive else capabilities,
             no_execute_changeset=no_execute_changeset,
             role_arn=role_arn,
@@ -276,10 +282,13 @@ def do_cli(
             deploy_context.run()
 
 
-def guided_deploy(stack_name, s3_bucket, region, profile, confirm_changeset):
+def guided_deploy(
+    stack_name, s3_bucket, region, profile, confirm_changeset, parameter_override_keys, parameter_overrides
+):
     default_region = region or "us-east-1"
     default_capabilities = ("CAPABILITY_IAM",)
     input_capabilities = None
+    input_parameter_overrides = {}
 
     color = Colored()
     tick = color.yellow("✓")
@@ -290,6 +299,14 @@ def guided_deploy(stack_name, s3_bucket, region, profile, confirm_changeset):
 
     stack_name = click.prompt(f"\t{tick} Stack Name", default=stack_name, type=click.STRING)
     region = click.prompt(f"\t{tick} AWS Region", default=default_region, type=click.STRING)
+    if parameter_override_keys:
+        for parameter_key in parameter_override_keys.keys():
+            input_parameter_overrides[parameter_key] = click.prompt(
+                f"\t\tParameter {parameter_key}",
+                default=parameter_overrides.get(parameter_key, "default"),
+                type=click.STRING,
+            )
+
     click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
     confirm_changeset = click.confirm(f"\t{tick} Confirm changes before deploy", default=confirm_changeset)
     click.secho("\t#SAM needs permission to be able to create roles to connect to the resources in your template")
@@ -317,13 +334,14 @@ def guided_deploy(stack_name, s3_bucket, region, profile, confirm_changeset):
         profile,
         confirm_changeset,
         input_capabilities if input_capabilities else default_capabilities,
+        input_parameter_overrides if input_parameter_overrides else parameter_overrides,
         save_to_config,
     )
 
 
 def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, parameter_overrides, confirm_changeset):
 
-    param_overrides_string = json.dumps(parameter_overrides, indent=2)
+    param_overrides_string = parameter_overrides
     capabilities_string = json.dumps(capabilities)
 
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
@@ -338,7 +356,7 @@ def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, para
     click.secho("\n\tInitiating Deployment\n\t=====================", fg="yellow")
 
 
-def save_config(template_file, **kwargs):
+def save_config(template_file, parameter_overrides, **kwargs):
     color = Colored()
     tick = color.yellow("✓")
 
@@ -356,6 +374,10 @@ def save_config(template_file, **kwargs):
         if isinstance(value, (list, tuple)):
             value = " ".join(val for val in value)
         samconfig.put(cmd_names, section, key, value)
+
+    if parameter_overrides:
+        parameter_overrides_value = " ".join([f"{key}={value}" for key, value in parameter_overrides.items()])
+        samconfig.put(cmd_names, section, "parameter_overrides", parameter_overrides_value)
 
     samconfig.flush()
 
