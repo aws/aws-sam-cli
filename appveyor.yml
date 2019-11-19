@@ -13,6 +13,7 @@ environment:
       PYTHON_VERSION: '3.6.8'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
+      INSTALL_PY_37: 1
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
@@ -114,9 +115,7 @@ for:
 
       - sh: "sudo apt-get -y install python3-distutils"
       - sh: "python3.8 get-pip.py --user"
-      - sh: "python3.7 get-pip.py --user"
-
-      - sh: "python3.8 -m pip freeze"
+      - ps: "If ($env:INSTALL_PY_37) {python3.7 get-pip.py --user}"
 
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
