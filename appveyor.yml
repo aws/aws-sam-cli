@@ -99,6 +99,11 @@ for:
       - sh: "./aws_cli/bin/python -m pip install awscli"
       - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
+      - sh: "apt-get install python3.6"
+      - sh: "apt-get install python2.7"
+      - sh: "apt-get install python3.7"
+      - sh: "apt-get install python3.8"
+
       - sh: "which python3.8"
       - sh: "which python3.6"
       - sh: "which python3.7"
