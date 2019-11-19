@@ -46,11 +46,11 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
     def test_with_default_requirements(self, runtime, use_container):
 
         # Don't run test on wrong Python versions
-        py_version = self._get_python_version()
-        if py_version != runtime and not IS_WINDOWS:
-            self.skipTest(
-                "Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version, runtime)
-            )
+        # py_version = self._get_python_version()
+        # if py_version != runtime and not IS_WINDOWS:
+        #     self.skipTest(
+        #         "Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version, runtime)
+        #     )
 
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
@@ -537,10 +537,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     def test_build_single_function(self, runtime, use_container, function_identifier):
         # Don't run test on wrong Python versions
         py_version = self._get_python_version()
-        if py_version != runtime:
-            self.skipTest(
-                "Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version, runtime)
-            )
+        # if py_version != runtime:
+        #     self.skipTest(
+        #         "Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version, runtime)
+        #     )
 
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(
