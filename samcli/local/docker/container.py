@@ -239,10 +239,10 @@ class Container:
 
         # Iterator returns a tuple of (stdout, stderr)
         for stdout_data, stderr_data in output_itr:
-            if stdout_data:
+            if stdout_data and stdout:
                 stdout.write(stdout_data)
 
-            if stderr_data:
+            if stderr_data and stderr:
                 stderr.write(stderr_data)
 
     @property
