@@ -62,7 +62,6 @@ install:
     # Install python3.8
     - "choco install python3 --version 3.8.0"
     - "SET PATH=%PATH%;C:\\Python38"
-    - "python38 --version"
 
 test_script:
     # Reactivate virtualenv before running tests
