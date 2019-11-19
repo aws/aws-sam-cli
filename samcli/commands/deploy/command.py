@@ -1,7 +1,6 @@
 """
 CLI command for "deploy" command
 """
-import os
 import tempfile
 import json
 import click
@@ -207,8 +206,9 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    changeset_decision = False
-    _capabilities = ("CAPABILITY_IAM",)
+    # set capabilities and changeset decision to None, before interactive gets input from the user
+    changeset_decision = None
+    _capabilities = None
 
     if interactive:
         stack_name, s3_bucket, region, profile, changeset_decision, _capabilities, save_to_config = guided_deploy(
@@ -271,15 +271,15 @@ def do_cli(
             tags=tags,
             region=region,
             profile=profile,
-            confirm_changeset=changeset_decision,
+            confirm_changeset=changeset_decision if interactive else confirm_changeset,
         ) as deploy_context:
             deploy_context.run()
 
 
 def guided_deploy(stack_name, s3_bucket, region, profile, confirm_changeset):
     default_region = region or "us-east-1"
-    default_profile = profile or "default"
-    capabilities = ("CAPABILITY_IAM",)
+    default_capabilities = ("CAPABILITY_IAM",)
+    input_capabilities = None
 
     color = Colored()
     tick = color.yellow("✓")
@@ -290,15 +290,16 @@ def guided_deploy(stack_name, s3_bucket, region, profile, confirm_changeset):
 
     stack_name = click.prompt(f"\t{tick} Stack Name", default=stack_name, type=click.STRING)
     region = click.prompt(f"\t{tick} AWS Region", default=default_region, type=click.STRING)
-    profile = click.prompt(f"\t{tick} AWS Profile", default=default_profile, type=click.STRING)
     click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
     confirm_changeset = click.confirm(f"\t{tick} Confirm changes before deploy", default=confirm_changeset)
     click.secho("\t#SAM needs permission to be able to create roles to connect to the resources in your template")
     capabilities_confirm = click.confirm(f"\t{tick} Allow SAM CLI IAM role creation", default=True)
 
     if not capabilities_confirm:
-        capabilities = click.prompt(
-            f"\t{tick} Capabilities", default=capabilities, type=FuncParamType(func=_space_separated_list_func_type)
+        input_capabilities = click.prompt(
+            f"\t{tick} Capabilities",
+            default=default_capabilities,
+            type=FuncParamType(func=_space_separated_list_func_type),
         )
 
     save_to_config = click.confirm(f"\t{tick} Save arguments to samconfig.toml", default=True)
@@ -309,7 +310,15 @@ def guided_deploy(stack_name, s3_bucket, region, profile, confirm_changeset):
         click.echo(f"\t{tick} Using Deployment Bucket: {s3_bucket}")
         click.echo("\tYou may specify a different default deployment bucket in samconfig.toml")
 
-    return stack_name, s3_bucket, region, profile, confirm_changeset, capabilities, save_to_config
+    return (
+        stack_name,
+        s3_bucket,
+        region,
+        profile,
+        confirm_changeset,
+        input_capabilities if input_capabilities else default_capabilities,
+        save_to_config,
+    )
 
 
 def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, parameter_overrides, confirm_changeset):
@@ -325,6 +334,8 @@ def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, para
     click.echo(f"\tParameter Overrides        : {param_overrides_string}")
     click.echo(f"\tCapabilities               : {capabilities_string}")
     click.echo(f"\tConfirm Changeset          : {confirm_changeset}")
+
+    click.secho("\n\tInitiating Deployment\n\t=====================", fg="yellow")
 
 
 def save_config(template_file, **kwargs):

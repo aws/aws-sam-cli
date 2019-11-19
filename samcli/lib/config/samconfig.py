@@ -103,7 +103,11 @@ class SamConfig:
         """
 
         self._read()
-        self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
+        if not self.document:
+            # Empty document prepare the initial structure.
+            self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
+        # Only update appropriate key value pairs within a section
+        self.document[env][self._to_key(cmd_names)][section].update({key: value})
 
     def flush(self):
         """
