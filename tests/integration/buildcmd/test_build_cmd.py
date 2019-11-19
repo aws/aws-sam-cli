@@ -73,7 +73,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ),
         )
 
-        expected = {"pi": "3.14", "jinja": "Hello World"}
+        expected = {"pi": "3.14"}
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
         )
