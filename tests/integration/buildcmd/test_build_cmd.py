@@ -48,7 +48,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
         # Don't run test on wrong Python versions
         py_version = self._get_python_version()
-        if py_version != runtime:
+        if py_version != runtime and not IS_WINDOWS:
             self.skipTest(
                 "Current Python version '{}' does not match Lambda runtime version '{}'".format(py_version, runtime)
             )
