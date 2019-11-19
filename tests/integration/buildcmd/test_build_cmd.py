@@ -553,7 +553,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
 
-        expected = {"pi": "3.14", "jinja": "Hello World"}
+        expected = {"pi": "3.14"}
         self._verify_invoke_built_function(
             self.built_template, function_identifier, self._make_parameter_override_arg(overrides), expected
         )
