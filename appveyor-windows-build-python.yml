@@ -38,7 +38,7 @@ install:
 
     # Make sure the temp directory exists for Python to use.
     - ps: "mkdir -Force D:\\tmp"
-    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python37-x64;C:\\Python38-x64;C:\\Python27-x64"
+    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python37-x64;C:\\Python27-x64"
     - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
@@ -61,7 +61,8 @@ install:
 
     # Install python3.8
     - "choco install python3 --version 3.8.0"
-    - "refreshenv"
+    - "SET PATH=%PATH%;C:\\Python38"
+    - "python38 --version"
 
 test_script:
     # Reactivate virtualenv before running tests
