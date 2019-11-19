@@ -112,6 +112,7 @@ for:
       - sh: "PATH=$PATH:/usr/bin/python3.8:/usr/bin/python3.7"
       - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
 
+      - sh: "sudo apt-get install python3-distutils"
       - sh: "python3.8 get-pip.py"
       - sh: "python3.7 get-pip.py"
 
