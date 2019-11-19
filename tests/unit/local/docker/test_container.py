@@ -435,8 +435,7 @@ class TestContainer_wait_for_logs(TestCase):
 
         self.container.is_created = Mock()
 
-    @patch("samcli.local.docker.container.attach")
-    def test_must_fetch_stdout_and_stderr_data(self, attach_mock):
+    def test_must_fetch_stdout_and_stderr_data(self):
 
         self.container.is_created.return_value = True
 
@@ -444,7 +443,7 @@ class TestContainer_wait_for_logs(TestCase):
         self.mock_docker_client.containers.get.return_value = real_container_mock
 
         output_itr = Mock()
-        attach_mock.return_value = output_itr
+        real_container_mock.attach.return_value = output_itr
         self.container._write_container_output = Mock()
 
         stdout_mock = Mock()
@@ -452,9 +451,7 @@ class TestContainer_wait_for_logs(TestCase):
 
         self.container.wait_for_logs(stdout=stdout_mock, stderr=stderr_mock)
 
-        attach_mock.assert_called_with(
-            self.mock_docker_client, container=real_container_mock, stdout=True, stderr=True, logs=True
-        )
+        real_container_mock.attach.assert_called_with(stream=True, logs=False, demux=True)
         self.container._write_container_output.assert_called_with(output_itr, stdout=stdout_mock, stderr=stderr_mock)
 
     def test_must_skip_if_no_stdout_and_stderr(self):
@@ -472,17 +469,7 @@ class TestContainer_wait_for_logs(TestCase):
 
 class TestContainer_write_container_output(TestCase):
     def setUp(self):
-        self.output_itr = [
-            (Container._STDOUT_FRAME_TYPE, b"stdout1"),
-            (Container._STDERR_FRAME_TYPE, b"stderr1"),
-            (30, b"invalid1"),
-            (Container._STDOUT_FRAME_TYPE, b"stdout2"),
-            (Container._STDERR_FRAME_TYPE, b"stderr2"),
-            (30, b"invalid2"),
-            (Container._STDOUT_FRAME_TYPE, b"stdout3"),
-            (Container._STDERR_FRAME_TYPE, b"stderr3"),
-            (30, b"invalid3"),
-        ]
+        self.output_itr = [(b"stdout1", None), (None, b"stderr1"), (b"stdout2", b"stderr2"), (None, None)]
 
         self.stdout_mock = Mock()
         self.stderr_mock = Mock()
@@ -492,15 +479,15 @@ class TestContainer_write_container_output(TestCase):
 
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=self.stderr_mock)
 
-        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2"), call(b"stdout3")])
+        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
 
-        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2"), call(b"stderr3")])
+        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
 
     def test_must_write_only_stdout(self):
 
         Container._write_container_output(self.output_itr, stdout=self.stdout_mock, stderr=None)
 
-        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2"), call(b"stdout3")])
+        self.stdout_mock.write.assert_has_calls([call(b"stdout1"), call(b"stdout2")])
 
         self.stderr_mock.write.assert_not_called()  # stderr must never be called
 
@@ -511,7 +498,7 @@ class TestContainer_write_container_output(TestCase):
 
         self.stdout_mock.write.assert_not_called()
 
-        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2"), call(b"stderr3")])
+        self.stderr_mock.write.assert_has_calls([call(b"stderr1"), call(b"stderr2")])
 
 
 class TestContainer_image(TestCase):
