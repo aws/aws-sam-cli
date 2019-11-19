@@ -59,6 +59,10 @@ install:
     # Echo final Path
     - "echo %PATH%"
 
+    # Install python3.8
+    - "choco install python3 --version 3.8.0"
+    - "refreshenv"
+
 test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
