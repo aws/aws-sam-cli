@@ -156,7 +156,7 @@ def capabilities_click_option():
         cls=OptionNargs,
         default=("CAPABILITY_IAM",),
         required=False,
-        type=FuncParamType(lambda value: value.split(" ") if not isinstance(value, tuple) else value),
+        type=FuncParamType(func=_space_separated_list_func_type),
         help="A list of  capabilities  that  you  must  specify"
         "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
         "plates might include resources that can affect permissions in your  AWS"
@@ -194,7 +194,7 @@ def notification_arns_click_option():
     return click.option(
         "--notification-arns",
         cls=OptionNargs,
-        type=FuncParamType(lambda value: value.split(" ") if not isinstance(value, tuple) else value),
+        type=FuncParamType(func=_space_separated_list_func_type),
         required=False,
         help="Amazon  Simple  Notification  Service  topic"
         "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
@@ -204,3 +204,10 @@ def notification_arns_click_option():
 
 def notification_arns_override_option(f):
     return notification_arns_click_option()(f)
+
+
+def _space_separated_list_func_type(value):
+    return value.split(" ") if not isinstance(value, tuple) else value
+
+
+_space_separated_list_func_type.__name__ = "LIST"
