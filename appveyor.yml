@@ -13,6 +13,7 @@ environment:
       PYTHON_VERSION: '3.6.8'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
+      OTHER_PYTHON_PATHS:
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
@@ -97,6 +98,11 @@ for:
       - sh: "virtualenv aws_cli"
       - sh: "./aws_cli/bin/python -m pip install awscli"
       - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
+
+      - sh: "which python3.8"
+      - sh: "which python3.6"
+      - sh: "which python3.7"
+      - sh: "which python2.7"
 
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
