@@ -26,7 +26,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         "main.py",
         "numpy",
         # 'cryptography',
-        "jinja2",
         "requirements.txt",
     }
 
