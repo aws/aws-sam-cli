@@ -102,6 +102,7 @@ for:
       - sh: "sudo apt-get -y install python3.6"
       - sh: "sudo apt-get -y install python2.7"
       - sh: "sudo apt-get -y install python3.7"
+      - sh: "sudo apt-get update"
       - sh: "sudo apt-get -y install python3.8"
 
       - sh: "which python3.8"
