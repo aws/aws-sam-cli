@@ -10,7 +10,6 @@ import click
 from click.types import FuncParamType
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
-from samcli.lib.config.samconfig import SamConfig
 
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
@@ -154,7 +153,6 @@ def capabilities_click_option():
     return click.option(
         "--capabilities",
         cls=OptionNargs,
-        default=("CAPABILITY_IAM",),
         required=False,
         type=FuncParamType(func=_space_separated_list_func_type),
         help="A list of  capabilities  that  you  must  specify"

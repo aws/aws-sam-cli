@@ -50,7 +50,11 @@ class TomlProvider:
 
         try:
             LOG.debug("Getting configuration value for %s %s %s", cmd_names, self.section, config_env)
-            resolved_config = samconfig.get_all(cmd_names, self.section, env=config_env)
+
+            # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
+            # so that click defaults work out of the box.
+            resolved_config = {k: v for k, v in samconfig.get_all(cmd_names, self.section, env=config_env).items()}
+
         except KeyError:
             LOG.debug(
                 "Error reading configuration file at %s with config_env=%s, command=%s, section=%s",

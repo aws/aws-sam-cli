@@ -99,7 +99,7 @@ class TestDeployliCommand(TestCase):
 
         context_mock = Mock()
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_deploy_click.prompt = MagicMock(side_effect=["sam-app", "us-east-1", "default"])
+        mock_deploy_click.prompt = MagicMock(side_effect=["sam-app", "us-east-1"])
         mock_deploy_click.confirm = MagicMock(side_effect=[True, True, True])
 
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -142,7 +142,7 @@ class TestDeployliCommand(TestCase):
             fail_on_empty_changeset=self.fail_on_empty_changset,
             tags=self.tags,
             region="us-east-1",
-            profile="default",
+            profile=self.profile,
             confirm_changeset=True,
         )
 
@@ -151,10 +151,10 @@ class TestDeployliCommand(TestCase):
             "input-template-file",
             capabilities=("CAPABILITY_IAM",),
             confirm_changeset=True,
-            profile="default",
+            profile=self.profile,
             region="us-east-1",
             s3_bucket="managed-s3-bucket",
             stack_name="sam-app",
         )
-        mock_managed_stack.assert_called_with(profile="default", region="us-east-1")
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
