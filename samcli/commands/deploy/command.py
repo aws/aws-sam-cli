@@ -227,7 +227,7 @@ def do_cli(
                 s3_bucket=s3_bucket,
                 region=region,
                 profile=profile,
-                confirm_changeset=confirm_changeset,
+                confirm_changeset=changeset_decision,
                 capabilities=_capabilities,
                 parameter_overrides=_parameter_overrides,
             )
@@ -238,7 +238,6 @@ def do_cli(
             stack_name=stack_name,
             s3_bucket=s3_bucket,
             region=region,
-            profile=profile,
             capabilities=_capabilities,
             parameter_overrides=_parameter_overrides,
             confirm_changeset=changeset_decision,
@@ -300,10 +299,12 @@ def guided_deploy(
     stack_name = click.prompt(f"\t{tick} Stack Name", default=stack_name, type=click.STRING)
     region = click.prompt(f"\t{tick} AWS Region", default=default_region, type=click.STRING)
     if parameter_override_keys:
-        for parameter_key in parameter_override_keys.keys():
+        for parameter_key, parameter_properties in parameter_override_keys.items():
             input_parameter_overrides[parameter_key] = click.prompt(
-                f"\t\tParameter {parameter_key}",
-                default=parameter_overrides.get(parameter_key, "default"),
+                f"\t{tick} Parameter {parameter_key}",
+                default=parameter_overrides.get(
+                    parameter_key, parameter_properties.get("Default", "No default specified")
+                ),
                 type=click.STRING,
             )
 
@@ -339,7 +340,7 @@ def guided_deploy(
     )
 
 
-def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, parameter_overrides, confirm_changeset):
+def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_overrides, confirm_changeset):
 
     param_overrides_string = parameter_overrides
     capabilities_string = json.dumps(capabilities)
@@ -347,7 +348,6 @@ def print_deploy_args(stack_name, s3_bucket, region, profile, capabilities, para
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
     click.echo(f"\tStack Name                 : {stack_name}")
     click.echo(f"\tRegion                     : {region}")
-    click.echo(f"\tProfile                    : {profile}")
     click.echo(f"\tDeployment S3 Bucket       : {s3_bucket}")
     click.echo(f"\tParameter Overrides        : {param_overrides_string}")
     click.echo(f"\tCapabilities               : {capabilities_string}")
@@ -373,7 +373,8 @@ def save_config(template_file, parameter_overrides, **kwargs):
     for key, value in kwargs.items():
         if isinstance(value, (list, tuple)):
             value = " ".join(val for val in value)
-        samconfig.put(cmd_names, section, key, value)
+        if value:
+            samconfig.put(cmd_names, section, key, value)
 
     if parameter_overrides:
         parameter_overrides_value = " ".join([f"{key}={value}" for key, value in parameter_overrides.items()])
