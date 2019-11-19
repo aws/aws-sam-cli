@@ -111,6 +111,8 @@ for:
 
       - sh: "PATH=$PATH:/usr/bin/python3.8:/usr/bin/python3.7"
 
+      - sh: "python3.8 -m pip freeze"
+
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
       - "pip install -e \".[dev]\""
