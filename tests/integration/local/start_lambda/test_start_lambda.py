@@ -166,10 +166,13 @@ class TestLambdaService(StartLambdaIntegBaseClass):
 
         self.assertEqual(
             response_data,
-            {"errorMessage": "Lambda is raising an exception",
-             "errorType": "Exception",
-             "stackTrace": ['  File "/var/task/main.py", line 48, in raise_exception\n    raise Exception("Lambda is raising an exception")\n']
-            }
+            {
+                "errorMessage": "Lambda is raising an exception",
+                "errorType": "Exception",
+                "stackTrace": [
+                    '  File "/var/task/main.py", line 48, in raise_exception\n    raise Exception("Lambda is raising an exception")\n'
+                ],
+            },
         )
         self.assertEqual(response.get("FunctionError"), "Unhandled")
         self.assertEqual(response.get("StatusCode"), 200)
