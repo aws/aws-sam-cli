@@ -1,18 +1,35 @@
 from unittest import TestCase
+from unittest.mock import patch, Mock
 
 import botocore.session
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError
 from botocore.stub import Stubber
 
-from samcli.commands.exceptions import UserException
-from samcli.lib.bootstrap.bootstrap import _create_or_get_stack, _get_stack_template, SAM_CLI_STACK_NAME
+from samcli.commands.exceptions import UserException, CredentialsError, RegionError
+from samcli.lib.bootstrap.bootstrap import manage_stack, _create_or_get_stack, _get_stack_template, SAM_CLI_STACK_NAME
 
 
 class TestBootstrapManagedStack(TestCase):
     def _stubbed_cf_client(self):
         cf = botocore.session.get_session().create_client("cloudformation")
         return [cf, Stubber(cf)]
+
+    @patch("boto3.Session")
+    def test_client_missing_credentials(self, boto_mock):
+        session_mock = Mock()
+        session_mock.client.side_effect = NoCredentialsError()
+        boto_mock.return_value = session_mock
+        with self.assertRaises(CredentialsError):
+            manage_stack("testprofile", "fake-region")
+
+    @patch("boto3.Session")
+    def test_client_missing_region(self, boto_mock):
+        session_mock = Mock()
+        session_mock.client.side_effect = NoRegionError()
+        boto_mock.return_value = session_mock
+        with self.assertRaises(RegionError):
+            manage_stack("testprofile", "fake-region")
 
     def test_new_stack(self):
         stub_cf, stubber = self._stubbed_cf_client()
