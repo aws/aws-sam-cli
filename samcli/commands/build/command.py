@@ -192,9 +192,9 @@ def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):
     if not is_default_build_dir:
         invoke_cmd += " -t {}".format(output_template_path)
 
-    package_cmd = "sam package --s3-bucket <yourbucket>"
+    deploy_cmd = "sam deploy --guided"
     if not is_default_build_dir:
-        package_cmd += " --template-file {}".format(output_template_path)
+        deploy_cmd += " --template-file {}".format(output_template_path)
 
     msg = """\nBuilt Artifacts  : {artifacts_dir}
 Built Template   : {template}
@@ -202,9 +202,9 @@ Built Template   : {template}
 Commands you can use next
 =========================
 [*] Invoke Function: {invokecmd}
-[*] Package: {packagecmd}
+[*] Deploy: {deploycmd}
     """.format(invokecmd=invoke_cmd,
-               packagecmd=package_cmd,
+               deploycmd=deploy_cmd,
                artifacts_dir=artifacts_dir,
                template=output_template_path)
 

@@ -35,7 +35,8 @@ class DeployContext:
 
     MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name} in {region}\n"
 
-    MSG_CONFIRM_CHANGESET = "Do you want to deploy this changeset?"
+    MSG_CONFIRM_CHANGESET = "Confirm deploying?"
+    MSG_CONFIRM_CHANGESET_HEADER = "\nPreviewing CloudFormation changeset before deployment"
 
     def __init__(
         self,
@@ -159,9 +160,9 @@ class DeployContext:
                 return
 
             if confirm_changeset:
-                color = Colored()
-                tick = color.yellow("✓")
-                if not click.confirm(f"{tick} {self.MSG_CONFIRM_CHANGESET}", default=False):
+                click.secho(self.MSG_CONFIRM_CHANGESET_HEADER, fg="yellow")
+                click.secho("=" * len(self.MSG_CONFIRM_CHANGESET_HEADER), fg="yellow")
+                if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
                     return
 
             self.deployer.execute_changeset(result["Id"], stack_name)

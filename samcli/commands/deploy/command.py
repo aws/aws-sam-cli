@@ -1,11 +1,15 @@
 """
 CLI command for "deploy" command
 """
-import tempfile
 import json
+import tempfile
+
 import click
 from click.types import FuncParamType
 
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.cli.context import get_cmd_names
+from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import (
     parameter_override_option,
     capabilities_override_option,
@@ -16,14 +20,11 @@ from samcli.commands._utils.options import (
     _space_separated_list_func_type,
 )
 from samcli.commands._utils.template import get_template_parameters
-from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.cli.main import pass_context, common_options, aws_creds_options
-from samcli.lib.telemetry.metrics import track_command
-from samcli.lib.utils.colors import Colored
+from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.config.samconfig import SamConfig
-from samcli.cli.context import get_cmd_names
-
+from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.utils.colors import Colored
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -122,12 +123,12 @@ CONFIG_SECTION = "parameters"
     "the output AWS CloudFormation template. YAML is used by default.",
 )
 @click.option(
-    "--interactive",
-    "-i",
+    "--guided",
+    "-g",
     required=False,
     is_flag=True,
     is_eager=True,
-    help="Specify this flag to allow SAM CLI to guide you through the deployment using interactive prompts.",
+    help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
 )
 @metadata_override_option
 @notification_arns_override_option
@@ -155,7 +156,7 @@ def cli(
     use_json,
     tags,
     metadata,
-    interactive,
+    guided,
     confirm_changeset,
 ):
 
@@ -176,7 +177,7 @@ def cli(
         use_json,
         tags,
         metadata,
-        interactive,
+        guided,
         confirm_changeset,
         ctx.region,
         ctx.profile,
@@ -199,7 +200,7 @@ def do_cli(
     use_json,
     tags,
     metadata,
-    interactive,
+    guided,
     confirm_changeset,
     region,
     profile,
@@ -207,12 +208,14 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
 
-    # set capabilities and changeset decision to None, before interactive gets input from the user
+    # set capabilities and changeset decision to None, before guided gets input from the user
     changeset_decision = None
     _capabilities = None
     _parameter_overrides = None
 
-    if interactive:
+    if guided:
+
+        read_config_showcase(template_file=template_file)
 
         _parameter_override_keys = get_template_parameters(template_file=template_file)
 
@@ -232,7 +235,7 @@ def do_cli(
                 parameter_overrides=_parameter_overrides,
             )
 
-        # We print deploy args only on interactive.
+        # We print deploy args only on guided.
         # Should we print this always?
         print_deploy_args(
             stack_name=stack_name,
@@ -267,8 +270,8 @@ def do_cli(
             force_upload=force_upload,
             s3_prefix=s3_prefix,
             kms_key_id=kms_key_id,
-            parameter_overrides=_parameter_overrides if interactive else parameter_overrides,
-            capabilities=_capabilities if interactive else capabilities,
+            parameter_overrides=_parameter_overrides if guided else parameter_overrides,
+            capabilities=_capabilities if guided else capabilities,
             no_execute_changeset=no_execute_changeset,
             role_arn=role_arn,
             notification_arns=notification_arns,
@@ -276,7 +279,7 @@ def do_cli(
             tags=tags,
             region=region,
             profile=profile,
-            confirm_changeset=changeset_decision if interactive else confirm_changeset,
+            confirm_changeset=changeset_decision if guided else confirm_changeset,
         ) as deploy_context:
             deploy_context.run()
 
@@ -346,27 +349,38 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
     capabilities_string = json.dumps(capabilities)
 
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
-    click.echo(f"\tStack Name                 : {stack_name}")
+    click.echo(f"\tStack name                 : {stack_name}")
     click.echo(f"\tRegion                     : {region}")
-    click.echo(f"\tDeployment S3 Bucket       : {s3_bucket}")
-    click.echo(f"\tParameter Overrides        : {param_overrides_string}")
+    click.echo(f"\tConfirm changeset          : {confirm_changeset}")
+    click.echo(f"\tDeployment s3 bucket       : {s3_bucket}")
     click.echo(f"\tCapabilities               : {capabilities_string}")
-    click.echo(f"\tConfirm Changeset          : {confirm_changeset}")
+    click.echo(f"\tParameter overrides        : {param_overrides_string}")
 
-    click.secho("\n\tInitiating Deployment\n\t=====================", fg="yellow")
+    click.secho("\nInitiating deployment\n=====================", fg="yellow")
+
+
+def read_config_showcase(template_file):
+    _, samconfig = get_config_ctx(template_file)
+
+    status = "Found" if samconfig.exists() else "Not found"
+    msg = (
+        "Syntax invalid in samconfig.toml; save values "
+        "through sam deploy --guided to overwrite file with a valid set of values."
+    )
+    config_sanity = samconfig.sanity_check()
+    click.secho("\nConfiguring SAM deploy\n======================", fg="yellow")
+    click.echo(f"\n\tLooking for samconfig.toml :  {status}")
+    if samconfig.exists():
+        click.echo("\tReading default arguments  :  {}".format("Success" if config_sanity else "Failure"))
+
+    if not config_sanity and samconfig.exists():
+        raise GuidedDeployFailedError(msg)
 
 
 def save_config(template_file, parameter_overrides, **kwargs):
-    color = Colored()
-    tick = color.yellow("✓")
 
     section = CONFIG_SECTION
-    ctx = click.get_current_context()
-
-    samconfig_dir = getattr(ctx, "samconfig_dir", None)
-    samconfig = SamConfig(
-        config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=template_file)
-    )
+    ctx, samconfig = get_config_ctx(template_file)
 
     cmd_names = get_cmd_names(ctx.info_name, ctx)
 
@@ -386,3 +400,13 @@ def save_config(template_file, parameter_overrides, **kwargs):
     click.echo("\tRunning 'sam deploy' for future deployments will use the parameters saved above.")
     click.echo("\tThe above parameters can be changed by modifying samconfig.toml")
     click.echo("\tLearn more about samconfig.toml syntax http://url")
+
+
+def get_config_ctx(template_file):
+    ctx = click.get_current_context()
+
+    samconfig_dir = getattr(ctx, "samconfig_dir", None)
+    samconfig = SamConfig(
+        config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=template_file)
+    )
+    return ctx, samconfig
