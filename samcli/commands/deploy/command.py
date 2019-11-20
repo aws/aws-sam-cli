@@ -212,6 +212,9 @@ def do_cli(
     changeset_decision = None
     _capabilities = None
     _parameter_overrides = None
+    guided_stack_name = None
+    guided_s3_bucket = None
+    guided_region = None
 
     if guided:
 
@@ -219,32 +222,30 @@ def do_cli(
 
         _parameter_override_keys = get_template_parameters(template_file=template_file)
 
-        stack_name, s3_bucket, region, profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
+        guided_stack_name, guided_s3_bucket, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
             stack_name, s3_bucket, region, profile, confirm_changeset, _parameter_override_keys, parameter_overrides
         )
 
         if save_to_config:
             save_config(
                 template_file,
-                stack_name=stack_name,
-                s3_bucket=s3_bucket,
-                region=region,
-                profile=profile,
+                stack_name=guided_stack_name,
+                s3_bucket=guided_s3_bucket,
+                region=guided_region,
+                profile=guided_profile,
                 confirm_changeset=changeset_decision,
                 capabilities=_capabilities,
                 parameter_overrides=_parameter_overrides,
             )
 
-        # We print deploy args only on guided.
-        # Should we print this always?
-        print_deploy_args(
-            stack_name=stack_name,
-            s3_bucket=s3_bucket,
-            region=region,
-            capabilities=_capabilities,
-            parameter_overrides=_parameter_overrides,
-            confirm_changeset=changeset_decision,
-        )
+    print_deploy_args(
+        stack_name=guided_stack_name if guided else stack_name,
+        s3_bucket=guided_s3_bucket if guided else s3_bucket,
+        region=guided_region if guided else region,
+        capabilities=_capabilities if guided else capabilities,
+        parameter_overrides=_parameter_overrides if guided else parameter_overrides,
+        confirm_changeset=changeset_decision if guided else confirm_changeset,
+    )
 
     with tempfile.NamedTemporaryFile() as output_template_file:
 
@@ -265,8 +266,8 @@ def do_cli(
 
         with DeployContext(
             template_file=output_template_file.name,
-            stack_name=stack_name,
-            s3_bucket=s3_bucket,
+            stack_name=guided_stack_name if guided else stack_name,
+            s3_bucket=guided_s3_bucket if guided else s3_bucket,
             force_upload=force_upload,
             s3_prefix=s3_prefix,
             kms_key_id=kms_key_id,
@@ -277,7 +278,7 @@ def do_cli(
             notification_arns=notification_arns,
             fail_on_empty_changeset=fail_on_empty_changeset,
             tags=tags,
-            region=region,
+            region=guided_region if guided else region,
             profile=profile,
             confirm_changeset=changeset_decision if guided else confirm_changeset,
         ) as deploy_context:
