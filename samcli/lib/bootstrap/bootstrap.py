@@ -7,7 +7,7 @@ import logging
 import boto3
 
 from botocore.config import Config
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
 
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
