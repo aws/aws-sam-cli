@@ -64,7 +64,7 @@ class TomlProvider:
                 self.section,
             )
         except Exception as ex:
-            LOG.error("Error reading configuration file: %s %s", samconfig.path(), str(ex))
+            LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))
 
         return resolved_config
 

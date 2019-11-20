@@ -29,6 +29,12 @@ class DeployFailedError(UserException):
         super(DeployFailedError, self).__init__(message=message_fmt.format(stack_name=self.stack_name, msg=msg))
 
 
+class GuidedDeployFailedError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+        super(GuidedDeployFailedError, self).__init__(message=msg)
+
+
 class DeployStackOutPutFailedError(UserException):
     def __init__(self, stack_name, msg):
         self.stack_name = stack_name

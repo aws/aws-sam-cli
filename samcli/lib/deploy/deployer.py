@@ -45,14 +45,14 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
     }
 )
 
-DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "**CloudFormation events from changeset**"
+DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from changeset"
 
 DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
     {"Operation": "Operation", "LogicalResourceId": "LogicalResourceId", "ResourceType": "ResourceType"}
 )
 
-DESCRIBE_CHANGESET_TABLE_HEADER_NAME = "**CloudFormation stack changeset**"
+DESCRIBE_CHANGESET_TABLE_HEADER_NAME = "CloudFormation stack changeset"
 
 OUTPUTS_FORMAT_STRING = "{OutputKey:<{0}} {OutputValue:<{1}} {Description:<{2}}"
 OUTPUTS_DEFAULTS_ARGS = OrderedDict(
@@ -360,8 +360,10 @@ class Deployer:
         return "COMPLETE" in status and "CLEANUP" not in status
 
     def wait_for_execute(self, stack_name, changeset_type):
-
-        sys.stdout.write("\nWaiting for stack create/update to complete\n")
+        sys.stdout.write(
+            "\n{} - Waiting for stack create/update "
+            "to complete\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
         sys.stdout.flush()
 
         self.describe_stack_events(stack_name, self.get_last_event_time(stack_name))
