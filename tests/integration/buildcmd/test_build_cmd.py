@@ -504,7 +504,6 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         "main.py",
         "numpy",
         # 'cryptography',
-        "jinja2",
         "requirements.txt",
     }
 
