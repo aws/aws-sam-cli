@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
 
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
 
 LOG = logging.getLogger(__name__)
@@ -23,12 +23,12 @@ def manage_stack(profile, region):
         session = boto3.Session(profile_name=profile if profile else None)
         cloudformation_client = session.client("cloudformation", config=Config(region_name=region if region else None))
     except NoCredentialsError:
-        raise UserException(
-            "Unable to resolve credentials for the AWS SDK for Python client. Please see their documentation for options to pass in credentials: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
+        raise CredentialsError(
+            "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. Please see their documentation for options to pass in credentials: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
         )
     except NoRegionError:
-        raise UserException(
-            "Unable to resolve a region. Please provide a region via the --region parameter or by the AWS_REGION environment variable."
+        raise RegionError(
+            "Error Setting Up Managed Stack Client: Unable to resolve a region. Please provide a region via the --region parameter or by the AWS_REGION environment variable."
         )
     return _create_or_get_stack(cloudformation_client)
 

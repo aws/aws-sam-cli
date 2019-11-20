@@ -18,3 +18,8 @@ class CredentialsError(UserException):
     """
     Exception class when credentials that have been passed are invalid.
     """
+
+class RegionError(UserException):
+    """
+    Exception class when no valid region is passed to a client.
+    """
