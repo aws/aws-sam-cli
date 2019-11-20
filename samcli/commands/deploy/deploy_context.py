@@ -33,7 +33,7 @@ class DeployContext:
 
     MSG_NO_EXECUTE_CHANGESET = "\nChangeset created successfully. \n"
 
-    MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name}\n"
+    MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name} in {region}\n"
 
     MSG_CONFIRM_CHANGESET = "Do you want to deploy this changeset?"
 
@@ -110,6 +110,8 @@ class DeployContext:
 
         self.deployer = Deployer(cloudformation_client)
 
+        region = s3_client._client_config.region_name
+
         return self.deploy(
             self.stack_name,
             template_str,
@@ -120,6 +122,7 @@ class DeployContext:
             self.notification_arns,
             self.s3_uploader,
             [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],
+            region,
             self.fail_on_empty_changeset,
             self.confirm_changeset,
         )
@@ -135,6 +138,7 @@ class DeployContext:
         notification_arns,
         s3_uploader,
         tags,
+        region,
         fail_on_empty_changeset=True,
         confirm_changeset=False,
     ):
@@ -162,7 +166,7 @@ class DeployContext:
 
             self.deployer.execute_changeset(result["Id"], stack_name)
             self.deployer.wait_for_execute(stack_name, changeset_type)
-            click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name))
+            click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
         except deploy_exceptions.ChangeEmptyError as ex:
             if fail_on_empty_changeset:
