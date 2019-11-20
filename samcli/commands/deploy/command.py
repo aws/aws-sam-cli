@@ -251,7 +251,7 @@ def do_cli(
 
         with PackageContext(
             template_file=template_file,
-            s3_bucket=s3_bucket,
+            s3_bucket=guided_s3_bucket if guided else s3_bucket,
             s3_prefix=s3_prefix,
             output_template_file=output_template_file.name,
             kms_key_id=kms_key_id,
@@ -259,7 +259,7 @@ def do_cli(
             force_upload=force_upload,
             metadata=metadata,
             on_deploy=True,
-            region=region,
+            region=guided_region if guided else region,
             profile=profile,
         ) as package_context:
             package_context.run()
