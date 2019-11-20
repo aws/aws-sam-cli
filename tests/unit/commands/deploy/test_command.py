@@ -26,7 +26,7 @@ class TestDeployliCommand(TestCase):
         self.profile = None
         self.use_json = True
         self.metadata = {}
-        self.interactive = False
+        self.guided = False
         self.confirm_changeset = False
 
     @patch("samcli.commands.package.command.click")
@@ -56,7 +56,7 @@ class TestDeployliCommand(TestCase):
             profile=self.profile,
             use_json=self.use_json,
             metadata=self.metadata,
-            interactive=self.interactive,
+            guided=self.guided,
             confirm_changeset=self.confirm_changeset,
         )
 
@@ -89,8 +89,10 @@ class TestDeployliCommand(TestCase):
     @patch("samcli.commands.deploy.command.save_config")
     @patch("samcli.commands.deploy.command.manage_stack")
     @patch("samcli.commands.deploy.command.get_template_parameters")
-    def test_all_args_interactive(
+    @patch("samcli.commands.deploy.command.get_config_ctx")
+    def test_all_args_guided(
         self,
+        mock_get_config_ctx,
         mock_get_template_parameters,
         mock_managed_stack,
         mock_save_config,
@@ -101,10 +103,13 @@ class TestDeployliCommand(TestCase):
     ):
 
         context_mock = Mock()
+        mock_sam_config = MagicMock()
+        mock_sam_config.exists = MagicMock(return_value=True)
+        mock_get_config_ctx.return_value = (None, mock_sam_config)
         mock_get_template_parameters.return_value = {"Myparameter": {"Type": "String"}}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_deploy_click.prompt = MagicMock(
-            side_effect=["sam-app", "us-east-1", "InteractiveParameter", ("CAPABILITY_IAM",)]
+            side_effect=["sam-app", "us-east-1", "guidedParameter", ("CAPABILITY_IAM",)]
         )
         mock_deploy_click.confirm = MagicMock(side_effect=[True, False, True])
 
@@ -129,7 +134,7 @@ class TestDeployliCommand(TestCase):
             profile=self.profile,
             use_json=self.use_json,
             metadata=self.metadata,
-            interactive=True,
+            guided=True,
             confirm_changeset=True,
         )
 
@@ -140,7 +145,7 @@ class TestDeployliCommand(TestCase):
             force_upload=self.force_upload,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
-            parameter_overrides={"Myparameter": "InteractiveParameter"},
+            parameter_overrides={"Myparameter": "guidedParameter"},
             capabilities=self.capabilities,
             no_execute_changeset=self.no_execute_changeset,
             role_arn=self.role_arn,
@@ -161,7 +166,7 @@ class TestDeployliCommand(TestCase):
             region="us-east-1",
             s3_bucket="managed-s3-bucket",
             stack_name="sam-app",
-            parameter_overrides={"Myparameter": "InteractiveParameter"},
+            parameter_overrides={"Myparameter": "guidedParameter"},
         )
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
@@ -174,7 +179,7 @@ class TestDeployliCommand(TestCase):
     @patch("samcli.commands.deploy.command.get_template_parameters")
     @patch("samcli.commands.deploy.command.SamConfig")
     @patch("samcli.commands.deploy.command.get_cmd_names")
-    def test_all_args_interactive_no_params_save_config(
+    def test_all_args_guided_no_params_save_config(
         self,
         mock_get_cmd_names,
         mock_sam_config,
@@ -213,7 +218,7 @@ class TestDeployliCommand(TestCase):
             profile=self.profile,
             use_json=self.use_json,
             metadata=self.metadata,
-            interactive=True,
+            guided=True,
             confirm_changeset=True,
         )
 
@@ -247,8 +252,10 @@ class TestDeployliCommand(TestCase):
     @patch("samcli.commands.deploy.command.save_config")
     @patch("samcli.commands.deploy.command.manage_stack")
     @patch("samcli.commands.deploy.command.get_template_parameters")
-    def test_all_args_interactive_no_params_no_save_config(
+    @patch("samcli.commands.deploy.command.get_config_ctx")
+    def test_all_args_guided_no_params_no_save_config(
         self,
+        mock_get_config_ctx,
         mock_get_template_parameters,
         mock_managed_stack,
         mock_save_config,
@@ -259,6 +266,9 @@ class TestDeployliCommand(TestCase):
     ):
 
         context_mock = Mock()
+        mock_sam_config = MagicMock()
+        mock_sam_config.exists = MagicMock(return_value=True)
+        mock_get_config_ctx.return_value = (None, mock_sam_config)
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_deploy_click.prompt = MagicMock(side_effect=["sam-app", "us-east-1", ("CAPABILITY_IAM",)])
@@ -284,7 +294,7 @@ class TestDeployliCommand(TestCase):
             profile=self.profile,
             use_json=self.use_json,
             metadata=self.metadata,
-            interactive=True,
+            guided=True,
             confirm_changeset=True,
         )
 

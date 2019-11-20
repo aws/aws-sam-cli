@@ -56,7 +56,7 @@ def pprint_column_names(format_string, format_kwargs, margin=None, table_header=
         def wrap(*args, **kwargs):
             # The table is setup with the column names, format_string contains the column names.
             if table_header:
-                click.secho("\n" + table_header, fg=color)
+                click.secho("\n" + table_header)
             click.secho("-" * usable_width, fg=color)
             click.secho(format_string.format(*format_args, **format_kwargs), fg=color)
             click.secho("-" * usable_width, fg=color)
