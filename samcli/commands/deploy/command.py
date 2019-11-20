@@ -271,7 +271,7 @@ def do_cli(
             force_upload=force_upload,
             s3_prefix=s3_prefix,
             kms_key_id=kms_key_id,
-            parameter_overrides=_parameter_overrides if guided else parameter_overrides,
+            parameter_overrides=sanitize_parameter_overrides(_parameter_overrides) if guided else parameter_overrides,
             capabilities=_capabilities if guided else capabilities,
             no_execute_changeset=no_execute_changeset,
             role_arn=role_arn,
@@ -305,13 +305,21 @@ def guided_deploy(
     region = click.prompt(f"\t{start_bold}AWS Region{end_bold}", default=default_region, type=click.STRING)
     if parameter_override_keys:
         for parameter_key, parameter_properties in parameter_override_keys.items():
-            input_parameter_overrides[parameter_key] = click.prompt(
-                f"\t{start_bold}Parameter {parameter_key}{end_bold}",
-                default=parameter_overrides.get(
-                    parameter_key, parameter_properties.get("Default", "No default specified")
-                ),
-                type=click.STRING,
-            )
+            no_echo = parameter_properties.get("NoEcho", False)
+            if no_echo:
+                parameter = click.prompt(
+                    f"\t{start_bold}Parameter {parameter_key}{end_bold}", type=click.STRING, hide_input=True
+                )
+                input_parameter_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
+            else:
+                parameter = click.prompt(
+                    f"\t{start_bold}Parameter {parameter_key}{end_bold}",
+                    default=parameter_overrides.get(
+                        parameter_key, parameter_properties.get("Default", "No default specified")
+                    ),
+                    type=click.STRING,
+                )
+                input_parameter_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
 
     click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
     confirm_changeset = click.confirm(
@@ -332,7 +340,7 @@ def guided_deploy(
     click.echo(color.yellow("\n\tS3 bucket for deployments\n\t========================="))
     s3_bucket = manage_stack(profile=profile, region=region)
     click.echo(f"\tS3 bucket: {s3_bucket}")
-    click.echo("\tA different default S3 bucket can be set in /.samconfig.toml")
+    click.echo("\tA different default S3 bucket can be set in samconfig.toml")
 
     return (
         stack_name,
@@ -348,7 +356,11 @@ def guided_deploy(
 
 def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_overrides, confirm_changeset):
 
-    param_overrides_string = parameter_overrides
+    _parameters = parameter_overrides.copy()
+    for key, value in _parameters.items():
+        if isinstance(value, dict):
+            _parameters[key] = value.get("Value", value) if not value.get("Hidden") else "*" * len(value.get("Value"))
+
     capabilities_string = json.dumps(capabilities)
 
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
@@ -357,7 +369,7 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
     click.echo(f"\tConfirm changeset          : {confirm_changeset}")
     click.echo(f"\tDeployment s3 bucket       : {s3_bucket}")
     click.echo(f"\tCapabilities               : {capabilities_string}")
-    click.echo(f"\tParameter overrides        : {param_overrides_string}")
+    click.echo(f"\tParameter overrides        : {_parameters}")
 
     click.secho("\nInitiating deployment\n=====================", fg="yellow")
 
@@ -394,8 +406,15 @@ def save_config(template_file, parameter_overrides, **kwargs):
             samconfig.put(cmd_names, section, key, value)
 
     if parameter_overrides:
-        parameter_overrides_value = " ".join([f"{key}={value}" for key, value in parameter_overrides.items()])
-        samconfig.put(cmd_names, section, "parameter_overrides", parameter_overrides_value)
+        _params = []
+        for key, value in parameter_overrides.items():
+            if isinstance(value, dict):
+                if not value.get("Hidden"):
+                    _params.append(f"{key}={value.get('Value')}")
+            else:
+                _params.append(f"{key}={value}")
+        if _params:
+            samconfig.put(cmd_names, section, "parameter_overrides", " ".join(_params))
 
     samconfig.flush()
 
@@ -413,3 +432,7 @@ def get_config_ctx(template_file):
         config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=template_file)
     )
     return ctx, samconfig
+
+
+def sanitize_parameter_overrides(parameter_overrides):
+    return {key: value.get("Value") if isinstance(value, dict) else value for key, value in parameter_overrides.items()}

@@ -1,7 +1,8 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock, ANY, MagicMock
+from unittest.mock import patch, Mock, ANY, MagicMock, call
 
 from samcli.commands.deploy.command import do_cli
+from tests.unit.cli.test_cli_config_file import MockContext
 
 
 class TestDeployliCommand(TestCase):
@@ -105,10 +106,13 @@ class TestDeployliCommand(TestCase):
         mock_sam_config = MagicMock()
         mock_sam_config.exists = MagicMock(return_value=True)
         mock_get_config_ctx.return_value = (None, mock_sam_config)
-        mock_get_template_parameters.return_value = {"Myparameter": {"Type": "String"}}
+        mock_get_template_parameters.return_value = {
+            "Myparameter": {"Type": "String"},
+            "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
+        }
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_deploy_click.prompt = MagicMock(
-            side_effect=["sam-app", "us-east-1", "guidedParameter", ("CAPABILITY_IAM",)]
+            side_effect=["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
         )
         mock_deploy_click.confirm = MagicMock(side_effect=[True, False, True])
 
@@ -144,7 +148,7 @@ class TestDeployliCommand(TestCase):
             force_upload=self.force_upload,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
-            parameter_overrides={"Myparameter": "guidedParameter"},
+            parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
             capabilities=self.capabilities,
             no_execute_changeset=self.no_execute_changeset,
             role_arn=self.role_arn,
@@ -165,10 +169,105 @@ class TestDeployliCommand(TestCase):
             region="us-east-1",
             s3_bucket="managed-s3-bucket",
             stack_name="sam-app",
-            parameter_overrides={"Myparameter": "guidedParameter"},
+            parameter_overrides={
+                "Myparameter": {"Value": "guidedParameter", "Hidden": False},
+                "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
+            },
         )
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.click")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.manage_stack")
+    @patch("samcli.commands.deploy.command.get_template_parameters")
+    @patch("samcli.commands.deploy.command.get_config_ctx")
+    def test_all_args_guided_no_save_echo_param_to_config(
+        self,
+        mock_get_config_ctx,
+        mock_get_template_parameters,
+        mock_managed_stack,
+        mock_deploy_context,
+        mock_deploy_click,
+        mock_package_context,
+        mock_package_click,
+    ):
+
+        context_mock = Mock()
+        mock_sam_config = MagicMock()
+        mock_sam_config.exists = MagicMock(return_value=True)
+        mock_get_config_ctx.return_value = (MockContext(info_name="deploy", parent=None), mock_sam_config)
+        mock_get_template_parameters.return_value = {
+            "Myparameter": {"Type": "String"},
+            "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
+        }
+        mock_deploy_context.return_value.__enter__.return_value = context_mock
+        mock_deploy_click.prompt = MagicMock(
+            side_effect=["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        )
+        mock_deploy_click.confirm = MagicMock(side_effect=[True, False, True])
+
+        mock_managed_stack.return_value = "managed-s3-bucket"
+
+        do_cli(
+            template_file=self.template_file,
+            stack_name=self.stack_name,
+            s3_bucket=None,
+            force_upload=self.force_upload,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            use_json=self.use_json,
+            metadata=self.metadata,
+            guided=True,
+            confirm_changeset=True,
+        )
+
+        mock_deploy_context.assert_called_with(
+            template_file=ANY,
+            stack_name="sam-app",
+            s3_bucket="managed-s3-bucket",
+            force_upload=self.force_upload,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region="us-east-1",
+            profile=self.profile,
+            confirm_changeset=True,
+        )
+
+        context_mock.run.assert_called_with()
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+        self.assertEqual(context_mock.run.call_count, 1)
+
+        self.assertEqual(mock_sam_config.put.call_count, 6)
+        self.assertEqual(
+            mock_sam_config.put.call_args_list,
+            [
+                call(["deploy"], "parameters", "stack_name", "sam-app"),
+                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
+                call(["deploy"], "parameters", "region", "us-east-1"),
+                call(["deploy"], "parameters", "confirm_changeset", True),
+                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
+                call(["deploy"], "parameters", "parameter_overrides", "Myparameter=guidedParameter"),
+            ],
+        )
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
