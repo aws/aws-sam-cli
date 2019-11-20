@@ -121,6 +121,17 @@ class SamConfig:
         """
         self._write()
 
+    def sanity_check(self):
+        """
+        Sanity check the contents of samconfig
+        """
+        try:
+            self._read()
+        except tomlkit.exceptions.TOMLKitError:
+            return False
+        else:
+            return True
+
     def exists(self):
         return self.filepath.exists()
 

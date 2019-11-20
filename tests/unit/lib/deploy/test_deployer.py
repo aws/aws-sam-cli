@@ -71,15 +71,12 @@ class TestDeployer(TestCase):
         self.assertEqual(self.deployer.has_stack("test"), False)
 
     def test_deployer_has_stack_exception(self):
-        self.deployer._client.describe_stacks = MagicMock(
-            side_effect=Exception()
-        )
+        self.deployer._client.describe_stacks = MagicMock(side_effect=Exception())
         with self.assertRaises(Exception):
             self.deployer.has_stack("test")
 
     def test_deployer_has_stack_exception_botocore(self):
-        self.deployer._client.describe_stacks = MagicMock(
-            side_effect=BotoCoreError())
+        self.deployer._client.describe_stacks = MagicMock(side_effect=BotoCoreError())
         with self.assertRaises(DeployFailedError):
             self.deployer.has_stack("test")
 
