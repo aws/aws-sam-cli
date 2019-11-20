@@ -96,7 +96,7 @@ def _create_stack(cloudformation_client):
 
 def _get_stack_template():
     gc = GlobalConfig()
-    info = {"version": __version__, "installationId": gc.installation_id}
+    info = {"version": __version__, "installationId": gc.installation_id if gc.installation_id else "unknown"}
 
     template = """
     AWSTemplateFormatVersion : '2010-09-09'

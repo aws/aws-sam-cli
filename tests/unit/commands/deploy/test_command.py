@@ -105,10 +105,13 @@ class TestDeployliCommand(TestCase):
         mock_sam_config = MagicMock()
         mock_sam_config.exists = MagicMock(return_value=True)
         mock_get_config_ctx.return_value = (None, mock_sam_config)
-        mock_get_template_parameters.return_value = {"Myparameter": {"Type": "String"}}
+        mock_get_template_parameters.return_value = {
+            "Myparameter": {"Type": "String"},
+            "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
+        }
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_deploy_click.prompt = MagicMock(
-            side_effect=["sam-app", "us-east-1", "guidedParameter", ("CAPABILITY_IAM",)]
+            side_effect=["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
         )
         mock_deploy_click.confirm = MagicMock(side_effect=[True, False, True])
 
@@ -144,7 +147,7 @@ class TestDeployliCommand(TestCase):
             force_upload=self.force_upload,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
-            parameter_overrides={"Myparameter": "guidedParameter"},
+            parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
             capabilities=self.capabilities,
             no_execute_changeset=self.no_execute_changeset,
             role_arn=self.role_arn,
@@ -165,7 +168,10 @@ class TestDeployliCommand(TestCase):
             region="us-east-1",
             s3_bucket="managed-s3-bucket",
             stack_name="sam-app",
-            parameter_overrides={"Myparameter": "guidedParameter"},
+            parameter_overrides={
+                "Myparameter": {"Value": "guidedParameter", "Hidden": False},
+                "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
+            },
         )
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
