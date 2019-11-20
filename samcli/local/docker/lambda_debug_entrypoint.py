@@ -101,6 +101,23 @@ class LambdaDebugEntryPoint:
                     ]
                 ),
             ],
+            Runtime.nodejs12x.value: [
+                "/var/rapid/init",
+                "--bootstrap",
+                "/var/lang/bin/node",
+                "--bootstrap-args",
+                json.dumps(
+                    debug_args_list
+                    + [
+                        "--inspect-brk=0.0.0.0:" + str(debug_port),
+                        "--nolazy",
+                        "--expose-gc",
+                        "--max-http-header-size",
+                        "81920",
+                        "/var/runtime/index.js",
+                    ]
+                ),
+            ],
             Runtime.python27.value: ["/usr/bin/python2.7"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"],
             Runtime.python36.value: ["/var/lang/bin/python3.6"]
             + debug_args_list
@@ -109,6 +126,13 @@ class LambdaDebugEntryPoint:
                 "/var/rapid/init",
                 "--bootstrap",
                 "/var/lang/bin/python3.7",
+                "--bootstrap-args",
+                json.dumps(debug_args_list + ["/var/runtime/bootstrap"]),
+            ],
+            Runtime.python38.value: [
+                "/var/rapid/init",
+                "--bootstrap",
+                "/var/lang/bin/python3.8",
                 "--bootstrap-args",
                 json.dumps(debug_args_list + ["/var/runtime/bootstrap"]),
             ],
