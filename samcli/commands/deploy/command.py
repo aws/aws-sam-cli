@@ -310,7 +310,9 @@ def guided_deploy(
             )
 
     click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
-    confirm_changeset = click.confirm(f"\t{start_bold}Confirm changes before deploy{end_bold}", default=confirm_changeset)
+    confirm_changeset = click.confirm(
+        f"\t{start_bold}Confirm changes before deploy{end_bold}", default=confirm_changeset
+    )
     click.secho("\t#SAM needs permission to be able to create roles to connect to the resources in your template")
     capabilities_confirm = click.confirm(f"\t{start_bold}Allow SAM CLI IAM role creation{end_bold}", default=True)
 
