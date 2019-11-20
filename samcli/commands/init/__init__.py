@@ -178,6 +178,7 @@ You can also re-run without the --no-interactive flag to be prompted for require
 def _merge_extra_context(default_context, extra_context):
     if extra_context is not None:
         try:
+            extra_context = extra_context.encode().decode('unicode_escape')
             extra_context_dict = json.loads(extra_context)
         except JSONDecodeError:
             raise UserException(
