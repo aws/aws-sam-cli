@@ -133,6 +133,7 @@ N
         # 2: gradle as the dependency manager
         # test-project: response to name
         # N: Don't clone/update the source repo
+        # 1: hello-word template
         user_input = """
 1
 5
@@ -381,7 +382,36 @@ foo
             )
 
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_must_not_set_default_context_when_location_is_provided(self, generate_project_patch):
+    def test_init_cli_must_set_default_context_when_location_is_provided(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location="custom location",
+            runtime="java8",
+            dependency_manager=None,
+            output_dir=self.output_dir,
+            name="test-project",
+            app_template=None,
+            no_input=None,
+            extra_context='{"schema_name":"events", "schema_type": "aws"}',
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            "custom location",
+            "java8",
+            None,
+            ".",
+            "test-project",
+            None,
+            {"schema_name": "events", "schema_type": "aws",  "runtime": "java8", "project_name": "test-project"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_must_only_set_passed_project_name_when_location_is_provided(self, generate_project_patch):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
         init_cli(
@@ -391,7 +421,7 @@ foo
             runtime=None,
             dependency_manager=None,
             output_dir=self.output_dir,
-            name=None,
+            name="test-project",
             app_template=None,
             no_input=None,
             extra_context='{"schema_name":"events", "schema_type": "aws"}',
@@ -404,7 +434,36 @@ foo
             None,
             None,
             ".",
+            "test-project",
+            None,
+            {"schema_name": "events", "schema_type": "aws", "project_name": "test-project"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_must_only_set_passed_runtime_when_location_is_provided(self, generate_project_patch):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location="custom location",
+            runtime="java8",
+            dependency_manager=None,
+            output_dir=self.output_dir,
+            name=None,
+            app_template=None,
+            no_input=None,
+            extra_context='{"schema_name":"events", "schema_type": "aws"}',
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            "custom location",
+            "java8",
+            None,
+            ".",
             None,
             None,
-            {"schema_name": "events", "schema_type": "aws"},
+            {"schema_name": "events", "schema_type": "aws", "runtime": "java8"},
         )

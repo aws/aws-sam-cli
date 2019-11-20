@@ -149,13 +149,11 @@ You can run 'sam init' without any options for an interactive initialization flo
     # check for required parameters
     if location or (name and runtime and dependency_manager and app_template):
         # need to turn app_template into a location before we generate
-        default_context = None
         if app_template:
             templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
-            default_context = {"project_name": name, "runtime": runtime}
-        extra_context = _merge_extra_context(default_context, extra_context)
+        extra_context = _get_cookiecutter_template_context(name, runtime, extra_context)
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
@@ -175,14 +173,22 @@ You can also re-run without the --no-interactive flag to be prompted for require
         do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
 
 
-def _merge_extra_context(default_context, extra_context):
+def _get_cookiecutter_template_context(name, runtime, extra_context):
+    default_context = None
+    if runtime is not None:
+        default_context = {"runtime": runtime}
+    if name is not None:
+        if default_context is not None:
+            default_context = {**default_context, **{"project_name": name}}
+        else:
+            default_context = {"project_name": name}
     if extra_context is not None:
         try:
             extra_context = extra_context.encode().decode('unicode_escape')
             extra_context_dict = json.loads(extra_context)
         except JSONDecodeError:
             raise UserException(
-                "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
+                "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
             )
         if default_context is not None:
             return {**extra_context_dict, **default_context}
