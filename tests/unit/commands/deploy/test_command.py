@@ -2,7 +2,6 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, ANY, MagicMock
 
 from samcli.commands.deploy.command import do_cli
-from samcli.lib.config.samconfig import SamConfig
 
 
 class TestDeployliCommand(TestCase):
