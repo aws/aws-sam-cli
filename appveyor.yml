@@ -135,7 +135,7 @@ for:
       - sh: "pytest -vv -n 4 tests/regression"
       - sh: "/tmp/black --check setup.py tests samcli scripts"
 
-      # Set JAVEHOME to java11
+      # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
       - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
 
