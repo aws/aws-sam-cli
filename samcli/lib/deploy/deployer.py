@@ -54,10 +54,8 @@ DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
 
 DESCRIBE_CHANGESET_TABLE_HEADER_NAME = "CloudFormation stack changeset"
 
-OUTPUTS_FORMAT_STRING = "{OutputKey:<{0}} {OutputValue:<{1}} {Description:<{2}}"
-OUTPUTS_DEFAULTS_ARGS = OrderedDict(
-    {"OutputKey": "OutputKey", "OutputValue": "OutputValue", "Description": "Description"}
-)
+OUTPUTS_FORMAT_STRING = "{OutputKey-Description:<{0}} {OutputValue:<{1}}"
+OUTPUTS_DEFAULTS_ARGS = OrderedDict({"OutputKey-Description": "OutputKey-Description", "OutputValue": "OutputValue"})
 
 
 class Deployer:
@@ -406,7 +404,7 @@ class Deployer:
     def _stack_outputs(self, stack_outputs, **kwargs):
         for output in stack_outputs:
             pprint_columns(
-                columns=[output["OutputKey"], output["OutputValue"], output.get("Description", "-")],
+                columns=[" - ".join([output["OutputKey"], output.get("Description", "")]), output["OutputValue"]],
                 width=kwargs["width"],
                 margin=kwargs["margin"],
                 format_string=OUTPUTS_FORMAT_STRING,
