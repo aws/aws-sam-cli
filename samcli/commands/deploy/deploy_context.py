@@ -35,7 +35,7 @@ class DeployContext:
 
     MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name} in {region}\n"
 
-    MSG_CONFIRM_CHANGESET = "Confirm deploying?"
+    MSG_CONFIRM_CHANGESET = "Deploy this changeset?"
     MSG_CONFIRM_CHANGESET_HEADER = "\nPreviewing CloudFormation changeset before deployment"
 
     def __init__(
