@@ -154,9 +154,10 @@ class TestS3Uploader(TestCase):
         )
         s3_uploader.artifact_metadata = {"a": "b"}
         remote_path = Path.joinpath(Path(os.getcwd()), Path("tmp"))
-        with self.assertRaises(BucketNotSpecifiedError):
+        with self.assertRaises(BucketNotSpecifiedError) as ex:
             with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
                 s3_uploader.upload(f.name, remote_path)
+            self.assertEqual(BucketNotSpecifiedError().message, str(ex))
 
     def test_s3_upload_with_dedup(self):
         s3_uploader = S3Uploader(
