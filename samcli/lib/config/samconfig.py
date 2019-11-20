@@ -36,8 +36,6 @@ class SamConfig:
             could automatically support auto-resolving multiple config files within same directory.
         """
         self.filepath = Path(config_dir, filename or DEFAULT_CONFIG_FILE_NAME)
-        if not self.filepath.exists():
-            open(self.filepath, "a+").close()
 
     def get_all(self, cmd_names, section, env=DEFAULT_ENV):
         """
@@ -153,15 +151,19 @@ class SamConfig:
         if self.document:
             return self.document
 
-        txt = self.filepath.read_text()
-        self.document = tomlkit.loads(txt)
+        try:
+            txt = self.filepath.read_text()
+            self.document = tomlkit.loads(txt)
+        except OSError:
+            self.document = tomlkit.document()
 
         return self.document
 
     def _write(self):
         if not self.document:
             return
-
+        if not self.exists():
+            open(self.filepath, "a+").close()
         self.filepath.write_text(tomlkit.dumps(self.document))
 
     @staticmethod

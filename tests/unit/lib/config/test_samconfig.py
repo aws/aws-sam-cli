@@ -10,7 +10,6 @@ class TestSamConfig(TestCase):
     def setUp(self):
         self.config_dir = os.getcwd()
         self.samconfig = SamConfig(self.config_dir)
-        open(self.samconfig.path(), "w").close()
 
     def tearDown(self):
         if self.samconfig.exists():
@@ -19,6 +18,8 @@ class TestSamConfig(TestCase):
     def _setup_config(self):
         self.samconfig.put(cmd_names=["local", "start", "api"], section="parameters", key="port", value=5401)
         self.samconfig.flush()
+        self.assertTrue(self.samconfig.exists())
+        self.assertTrue(self.samconfig.sanity_check())
 
     def test_init(self):
         self.assertEqual(self.samconfig.filepath, Path(self.config_dir, DEFAULT_CONFIG_FILE_NAME))
@@ -32,3 +33,6 @@ class TestSamConfig(TestCase):
     def test_check_config_exists(self):
         self._setup_config()
         self.assertTrue(self.samconfig.exists())
+
+    def test_check_sanity(self):
+        self.assertTrue(self.samconfig.sanity_check())
