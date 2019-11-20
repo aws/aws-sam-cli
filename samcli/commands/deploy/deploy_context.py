@@ -111,7 +111,7 @@ class DeployContext:
 
         self.deployer = Deployer(cloudformation_client)
 
-        region = s3_client._client_config.region_name
+        region = s3_client._client_config.region_name  # pylint: disable=W0212
 
         return self.deploy(
             self.stack_name,
