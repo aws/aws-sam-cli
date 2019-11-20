@@ -31,9 +31,9 @@ def _create_or_get_stack(cloudformation_client):
         ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
         stacks = ds_resp["Stacks"]
         stack = stacks[0]
-        LOG.info("\tFound managed SAM CLI stack.")
+        LOG.info("\tLooking for SAM CLI managed stack: Found!")
     except ClientError:
-        LOG.info("\tManaged SAM CLI stack not found, creating.")
+        LOG.info("\tLooking for SAM CLI managed stack: Not found.")
         stack = _create_stack(cloudformation_client)  # exceptions are not captured from subcommands
     # Sanity check for non-none stack? Sanity check for tag?
     tags = stack["Tags"]
@@ -69,6 +69,7 @@ def _create_or_get_stack(cloudformation_client):
 
 
 def _create_stack(cloudformation_client):
+    LOG.info("\tCreating SAM CLI managed stack...")
     change_set_name = "InitialCreation"
     change_set_resp = cloudformation_client.create_change_set(
         StackName=SAM_CLI_STACK_NAME,
@@ -78,7 +79,7 @@ def _create_stack(cloudformation_client):
         ChangeSetName=change_set_name,  # this must be unique for the stack, but we only create so that's fine
     )
     stack_id = change_set_resp["StackId"]
-    LOG.info("\tWaiting for managed stack change set to create.")
+    LOG.info("\tWaiting for managed stack change set to be created.")
     change_waiter = cloudformation_client.get_waiter("change_set_create_complete")
     change_waiter.wait(
         ChangeSetName=change_set_name, StackName=SAM_CLI_STACK_NAME, WaiterConfig={"Delay": 15, "MaxAttempts": 60}
@@ -87,9 +88,9 @@ def _create_stack(cloudformation_client):
     LOG.info("\tWaiting for managed stack to be created.")
     stack_waiter = cloudformation_client.get_waiter("stack_create_complete")
     stack_waiter.wait(StackName=stack_id, WaiterConfig={"Delay": 15, "MaxAttempts": 60})
-    LOG.info("\tManaged SAM CLI stack creation complete.")
     ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
     stacks = ds_resp["Stacks"]
+    LOG.info("\tSuccessfully created SAM CLI managed stack!")
     return stacks[0]
 
 
