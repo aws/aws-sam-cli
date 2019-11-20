@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY
 
-from botocore.exceptions import ClientError, WaiterError
+from botocore.exceptions import ClientError, WaiterError, BotoCoreError
 
 from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError, DeployStackOutPutFailedError
 from samcli.lib.deploy.deployer import Deployer
@@ -72,9 +72,15 @@ class TestDeployer(TestCase):
 
     def test_deployer_has_stack_exception(self):
         self.deployer._client.describe_stacks = MagicMock(
-            side_effect=ClientError(error_response={"Error": {"Message": "Error"}}, operation_name="stack_status")
+            side_effect=Exception()
         )
-        with self.assertRaises(ClientError):
+        with self.assertRaises(Exception):
+            self.deployer.has_stack("test")
+
+    def test_deployer_has_stack_exception_botocore(self):
+        self.deployer._client.describe_stacks = MagicMock(
+            side_effect=BotoCoreError())
+        with self.assertRaises(DeployFailedError):
             self.deployer.has_stack("test")
 
     def test_create_changeset(self):
