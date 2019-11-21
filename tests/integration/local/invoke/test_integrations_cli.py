@@ -6,7 +6,7 @@ import tempfile
 from unittest import skipIf
 
 from nose_parameterized import parameterized
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
 import pytest
 import docker
@@ -21,59 +21,75 @@ SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
 
 from pathlib import Path
 
+TIMEOUT = 300
+
 
 class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     template = Path("template.yml")
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_returncode_is_zero(self):
         command_list = self.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
         process = Popen(command_list, stdout=PIPE)
-        return_code = process.wait()
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        self.assertEqual(return_code, 0)
+        self.assertEqual(process.returncode, 0)
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_function_with_metadata(self):
         command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
 
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello World in a different dir"')
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_returns_execpted_results(self):
         command_list = self.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_of_lambda_function(self):
         command_list = self.get_command_list(
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand(
         [("TimeoutFunction"), ("TimeoutFunctionWithParameter"), ("TimeoutFunctionWithStringParameter")]
     )
@@ -84,18 +100,23 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         start = timer()
         process = Popen(command_list, stdout=PIPE)
-        return_code = process.wait()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
         end = timer()
 
         wall_clock_cli_duration = end - start
 
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        process_stdout = stdout.strip()
 
         # validate the time of the cli (timeout is set to 5s)
         self.assertGreater(wall_clock_cli_duration, 5)
         self.assertLess(wall_clock_cli_duration, 20)
 
-        self.assertEqual(return_code, 0)
+        self.assertEqual(process.returncode, 0)
         self.assertEqual(
             process_stdout.decode("utf-8"),
             "",
@@ -103,7 +124,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         )
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_vars(self):
         command_list = self.get_command_list(
             "EchoCustomEnvVarFunction",
@@ -113,53 +133,66 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list(
             "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
         )
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
-        process.wait()
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stdout = b"".join(process.stdout.readlines()).strip()
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+        process_stdout = stdout.strip()
+        process_stderr = stderr.strip()
 
         self.assertIn("Docker Lambda is writing to stdout", process_stderr.decode("utf-8"))
         self.assertIn("wrote to stdout", process_stdout.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_when_function_writes_stderr(self):
         command_list = self.get_command_list(
             "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
         )
 
         process = Popen(command_list, stderr=PIPE)
-        process.wait()
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+        process_stderr = stderr.strip()
 
         self.assertIn("Docker Lambda is writing to stderr", process_stderr.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_returns_expected_result_when_no_event_given(self):
         command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
         process = Popen(command_list, stdout=PIPE)
-        return_code = process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        self.assertEqual(return_code, 0)
+        process_stdout = stdout.strip()
+
+        self.assertEqual(process.returncode, 0)
         self.assertEqual("{}", process_stdout.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_using_parameters(self):
         command_list = self.get_command_list(
             "EchoEnvWithParameters",
@@ -169,8 +202,13 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["Region"], "us-east-1")
@@ -187,7 +225,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "my-custom-region"
 
@@ -196,14 +233,18 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["Region"], custom_region)
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_env_with_aws_creds(self):
         custom_region = "my-custom-region"
         key = "key"
@@ -222,8 +263,13 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         env["AWS_SESSION_TOKEN"] = session
 
         process = Popen(command_list, stdout=PIPE, env=env)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["AWS_DEFAULT_REGION"], custom_region)
@@ -233,7 +279,6 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(environ["AWS_SESSION_TOKEN"], session)
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_docker_network_of_host(self):
         command_list = self.get_command_list(
             "HelloWorldServerlessFunction",
@@ -243,12 +288,15 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        return_code = process.wait()
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        self.assertEqual(return_code, 0)
+        self.assertEqual(process.returncode, 0)
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     @skipIf(IS_WINDOWS, "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
         command_list = self.get_command_list(
@@ -259,13 +307,17 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         env["SAM_DOCKER_NETWORK"] = "non-existing-network"
 
         process = Popen(command_list, stderr=PIPE, env=env)
-        process.wait()
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
 
         self.assertIn('Not Found ("network non-existing-network not found")', process_stderr.decode("utf-8"))
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_sam_template_file_env_var_set(self):
         command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
 
@@ -274,13 +326,18 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         env["SAM_TEMPLATE_FILE"] = str(self.test_data_path.joinpath("invoke", "sam-template.yaml"))
 
         process = Popen(command_list, stdout=PIPE, env=env)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
 
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
+    @pytest.mark.timeout(timeout=TIMEOUT, method="thread")
     def test_skip_pull_image_in_env_var(self):
         docker.from_env().api.pull("lambci/lambda:python3.6")
 
@@ -293,7 +350,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         process = Popen(command_list, stderr=PIPE, env=env)
         process.wait()
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+
+        process_stderr = b''.join(process.stderr.readlines()).strip()
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
 
@@ -307,7 +365,6 @@ class TestUsingConfigFiles(InvokeIntegBase):
         shutil.rmtree(self.config_dir, ignore_errors=True)
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_existing_env_variables_precedence_over_profiles(self):
         profile = "default"
         custom_config = self._create_config_file(profile)
@@ -331,8 +388,13 @@ class TestUsingConfigFiles(InvokeIntegBase):
         env["AWS_SHARED_CREDENTIALS_FILE"] = custom_cred
 
         process = Popen(command_list, stdout=PIPE, env=env)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
         # Environment variables we explicitly set take priority over profiles.
@@ -343,7 +405,6 @@ class TestUsingConfigFiles(InvokeIntegBase):
         self.assertEqual(environ["AWS_SESSION_TOKEN"], "priority_secret_token")
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_default_profile_with_custom_configs(self):
         profile = "default"
         custom_config = self._create_config_file(profile)
@@ -365,8 +426,13 @@ class TestUsingConfigFiles(InvokeIntegBase):
         env["AWS_SHARED_CREDENTIALS_FILE"] = custom_cred
 
         process = Popen(command_list, stdout=PIPE, env=env)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["AWS_DEFAULT_REGION"], "us-west-1")
@@ -376,7 +442,6 @@ class TestUsingConfigFiles(InvokeIntegBase):
         self.assertEqual(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_custom_profile_with_custom_configs(self):
         custom_config = self._create_config_file("custom")
         custom_cred = self._create_cred_file("custom")
@@ -397,8 +462,13 @@ class TestUsingConfigFiles(InvokeIntegBase):
         env["AWS_SHARED_CREDENTIALS_FILE"] = custom_cred
 
         process = Popen(command_list, stdout=PIPE, env=env)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["AWS_DEFAULT_REGION"], "us-west-1")
@@ -408,7 +478,6 @@ class TestUsingConfigFiles(InvokeIntegBase):
         self.assertEqual(environ["AWS_SESSION_TOKEN"], "sessiontoken")
 
     @pytest.mark.flaky(reruns=3)
-    @pytest.mark.timeout(timeout=300, method="thread")
     def test_custom_profile_through_envrionment_variables(self):
         # When using a custom profile in a custom location, you need both the config
         # and credential file otherwise we fail to find a region or the profile (depending
@@ -434,8 +503,12 @@ class TestUsingConfigFiles(InvokeIntegBase):
         env["AWS_PROFILE"] = "custom"
 
         process = Popen(command_list, stdout=PIPE, env=env)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
         self.assertEqual(environ["AWS_DEFAULT_REGION"], "us-west-1")
@@ -523,9 +596,13 @@ class TestLayerVersion(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        process_stdout = stdout.strip()
 
         expected_output = '"This is a Layer Ping from simple_python"'
 
@@ -543,9 +620,13 @@ class TestLayerVersion(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
+        process_stdout = stdout.split('\n')[-1:].strip()
         expected_output = '"Layer1"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
@@ -565,9 +646,13 @@ class TestLayerVersion(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
+        process_stdout = stdout.split('\n').strip()
         expected_output = '"Layer1"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
@@ -586,9 +671,13 @@ class TestLayerVersion(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
+        try:
+            stdout, _ = process.communicate()
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stdout = b"".join(process.stdout.readlines()[-1:]).strip()
+        process_stdout = stdout.split('\n').strip()
         expected_output = '"Changed_Layer_1"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
@@ -606,11 +695,15 @@ class TestLayerVersion(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        stdout = process.stdout.readlines()
+        stdout = stdout
 
-        process_stdout = b"".join(stdout[-1:]).strip()
+        process_stdout = stdout.split('\n').strip()
         expected_output = '"Layer2"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
@@ -627,7 +720,11 @@ class TestLayerVersion(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
         self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
 
@@ -645,7 +742,11 @@ class TestLayerVersion(InvokeIntegBase):
         env["SAM_LAYER_CACHE_BASEDIR"] = str(self.layer_cache)
 
         process = Popen(command_list, stdout=PIPE, env=env)
-        process.wait()
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
         self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
 
@@ -680,9 +781,13 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         )
 
         process = Popen(command_list, stderr=PIPE)
-        process.wait()
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+        process_stderr = stderr.strip()
         error_output = process_stderr.decode("utf-8")
 
         expected_error_output = "{} was not found.".format(non_existent_layer_arn)
@@ -699,9 +804,13 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         )
 
         process = Popen(command_list, stderr=PIPE)
-        process.wait()
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+        process_stderr = stderr.strip()
         error_output = process_stderr.decode("utf-8")
 
         expected_error_output = (
