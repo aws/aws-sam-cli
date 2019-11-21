@@ -10,9 +10,11 @@ from samcli.lib.config.samconfig import SamConfig
 
 
 class MockContext:
-    def __init__(self, info_name, parent):
+    def __init__(self, info_name, parent, params=None, command=None):
         self.info_name = info_name
         self.parent = parent
+        self.params = params
+        self.command = command
 
 
 class TestTomlProvider(TestCase):

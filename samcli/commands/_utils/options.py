@@ -56,6 +56,24 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
     return result
 
 
+def guided_deploy_stack_name(ctx, param, provided_value):
+    """
+    Provide a default value for stack name if invoked with a guided deploy.
+    :param ctx:
+    :param param:
+    :param provided_value:
+    :return:
+    """
+
+    default_stack_name = "sam-app"
+    guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
+
+    if not guided and not provided_value:
+        raise click.MissingParameter(param=param, ctx=ctx)
+
+    return provided_value if provided_value else default_stack_name
+
+
 def template_common_option(f):
     """
     Common ClI option for template
