@@ -50,8 +50,7 @@ CONFIG_SECTION = "parameters"
 @template_click_option(include_build=True)
 @click.option(
     "--stack-name",
-    required=False,
-    default="sam-app",
+    required=True,
     help="The name of the AWS CloudFormation stack you're deploying to. "
     "If you specify an existing stack, the command updates the stack. "
     "If you specify a new stack, the command creates it.",
@@ -288,10 +287,10 @@ def do_cli(
 def guided_deploy(
     stack_name, s3_bucket, region, profile, confirm_changeset, parameter_override_keys, parameter_overrides
 ):
+    default_stack_name = stack_name or "sam-app"
     default_region = region or "us-east-1"
     default_capabilities = ("CAPABILITY_IAM",)
     input_capabilities = None
-    input_parameter_overrides = {}
 
     color = Colored()
     start_bold = "\033[1m"
@@ -301,25 +300,9 @@ def guided_deploy(
         color.yellow("\n\tSetting default arguments for 'sam deploy'\n\t=========================================")
     )
 
-    stack_name = click.prompt(f"\t{start_bold}Stack Name{end_bold}", default=stack_name, type=click.STRING)
+    stack_name = click.prompt(f"\t{start_bold}Stack Name{end_bold}", default=default_stack_name, type=click.STRING)
     region = click.prompt(f"\t{start_bold}AWS Region{end_bold}", default=default_region, type=click.STRING)
-    if parameter_override_keys:
-        for parameter_key, parameter_properties in parameter_override_keys.items():
-            no_echo = parameter_properties.get("NoEcho", False)
-            if no_echo:
-                parameter = click.prompt(
-                    f"\t{start_bold}Parameter {parameter_key}{end_bold}", type=click.STRING, hide_input=True
-                )
-                input_parameter_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
-            else:
-                parameter = click.prompt(
-                    f"\t{start_bold}Parameter {parameter_key}{end_bold}",
-                    default=parameter_overrides.get(
-                        parameter_key, parameter_properties.get("Default", "No default specified")
-                    ),
-                    type=click.STRING,
-                )
-                input_parameter_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
+    input_parameter_overrides = prompt_parameters(parameter_override_keys, start_bold, end_bold)
 
     click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
     confirm_changeset = click.confirm(
@@ -331,7 +314,7 @@ def guided_deploy(
     if not capabilities_confirm:
         input_capabilities = click.prompt(
             f"\t{start_bold}Capabilities{end_bold}",
-            default=default_capabilities,
+            default=default_capabilities[0],
             type=FuncParamType(func=_space_separated_list_func_type),
         )
 
@@ -352,6 +335,28 @@ def guided_deploy(
         input_parameter_overrides if input_parameter_overrides else parameter_overrides,
         save_to_config,
     )
+
+
+def prompt_parameters(parameter_override_keys, start_bold, end_bold):
+    _prompted_param_overrides = {}
+    if parameter_override_keys:
+        for parameter_key, parameter_properties in parameter_override_keys.items():
+            no_echo = parameter_properties.get("NoEcho", False)
+            if no_echo:
+                parameter = click.prompt(
+                    f"\t{start_bold}Parameter {parameter_key}{end_bold}", type=click.STRING, hide_input=True
+                )
+                _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
+            else:
+                parameter = click.prompt(
+                    f"\t{start_bold}Parameter {parameter_key}{end_bold}",
+                    default=_prompted_param_overrides.get(
+                        parameter_key, parameter_properties.get("Default", "No default specified")
+                    ),
+                    type=click.STRING,
+                )
+                _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
+    return _prompted_param_overrides
 
 
 def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_overrides, confirm_changeset):
