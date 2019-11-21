@@ -120,6 +120,27 @@ def _get_stack_template():
             - Key: ManagedStackSource
               Value: AwsSamCli
 
+      SamCliSourceBucketBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+          Bucket: !Ref SamCliSourceBucket
+          PolicyDocument:
+            Statement:
+              -
+                Action:
+                  - "s3:GetObject"
+                Effect: "Allow"
+                Resource:
+                  Fn::Join:
+                    - ""
+                    -
+                      - "arn:aws:s3:::"
+                      -
+                        !Ref SamCliSourceBucket
+                      - "/*"
+                Principal:
+                  Service: serverlessrepo.amazonaws.com
+
     Outputs:
       SourceBucket:
         Value: !Ref SamCliSourceBucket
