@@ -2,9 +2,10 @@
 Bootstrap's user's development environment by creating cloud resources required by SAM CLI
 """
 
-import click
 import json
 import boto3
+
+import click
 
 from botocore.config import Config
 from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
