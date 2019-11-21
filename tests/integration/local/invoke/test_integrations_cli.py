@@ -349,9 +349,13 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         env["SAM_SKIP_PULL_IMAGE"] = "True"
 
         process = Popen(command_list, stderr=PIPE, env=env)
-        process.wait()
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+        process_stderr = stderr.strip()
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
 

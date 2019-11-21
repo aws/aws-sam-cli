@@ -120,7 +120,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
             process.kill()
             raise
 
-        process_stdout = process.stdout.strip().decode("utf-8")
+        process_stdout = stdout.strip().decode("utf-8")
         self.assertEqual(1, process.returncode)
 
         self.assertIn("Build Failed", process_stdout)
