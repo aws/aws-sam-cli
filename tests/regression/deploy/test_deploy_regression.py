@@ -109,7 +109,7 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
             "tags": "integ=true clarity=yes",
         }
 
-        self.deploy_regression_check(arguments, sam_return_code=2, aws_return_code=255)
+        self.deploy_regression_check(arguments, sam_return_code=1, aws_return_code=255)
 
     def test_deploy_with_no_template_file(self):
         sam_stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
@@ -128,8 +128,8 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
             "kms_key_id": self.kms_key,
             "tags": "integ=true clarity=yes",
         }
-
-        self.deploy_regression_check(arguments, sam_return_code=2, aws_return_code=2)
+        # if no template file is specified, sam cli looks for a template.yaml in the current working directory.
+        self.deploy_regression_check(arguments, sam_return_code=1, aws_return_code=2)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_with_no_changes(self, template_file):
