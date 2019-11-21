@@ -48,6 +48,14 @@ CONFIG_SECTION = "parameters"
     help=HELP_TEXT,
 )
 @configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
+@click.option(
+    "--guided",
+    "-g",
+    required=False,
+    is_flag=True,
+    is_eager=True,
+    help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
+)
 @template_click_option(include_build=True)
 @click.option(
     "--stack-name",
@@ -122,14 +130,6 @@ CONFIG_SECTION = "parameters"
     is_flag=True,
     help="Indicates whether to use JSON as the format for "
     "the output AWS CloudFormation template. YAML is used by default.",
-)
-@click.option(
-    "--guided",
-    "-g",
-    required=False,
-    is_flag=True,
-    is_eager=True,
-    help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
 )
 @metadata_override_option
 @notification_arns_override_option

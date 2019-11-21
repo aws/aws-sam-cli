@@ -13,6 +13,7 @@ from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
+DEFAULT_STACK_NAME = "sam-app"
 
 
 LOG = logging.getLogger(__name__)
@@ -65,13 +66,12 @@ def guided_deploy_stack_name(ctx, param, provided_value):
     :return:
     """
 
-    default_stack_name = "sam-app"
     guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
 
     if not guided and not provided_value:
         raise click.MissingParameter(param=param, ctx=ctx)
 
-    return provided_value if provided_value else default_stack_name
+    return provided_value if provided_value else DEFAULT_STACK_NAME
 
 
 def template_common_option(f):
