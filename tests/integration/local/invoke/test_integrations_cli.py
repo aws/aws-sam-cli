@@ -626,7 +626,7 @@ class TestLayerVersion(InvokeIntegBase):
             process.kill()
             raise
 
-        process_stdout = stdout.split('\n')[-1:].strip()
+        process_stdout = stdout.split(os.linesep)[-1:].strip()
         expected_output = '"Layer1"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
@@ -652,7 +652,7 @@ class TestLayerVersion(InvokeIntegBase):
             process.kill()
             raise
 
-        process_stdout = stdout.split('\n').strip()
+        process_stdout = stdout.split(os.linesep).strip()
         expected_output = '"Layer1"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
@@ -677,7 +677,7 @@ class TestLayerVersion(InvokeIntegBase):
             process.kill()
             raise
 
-        process_stdout = stdout.split('\n').strip()
+        process_stdout = stdout.split(os.linesep).strip()
         expected_output = '"Changed_Layer_1"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
@@ -703,7 +703,7 @@ class TestLayerVersion(InvokeIntegBase):
 
         stdout = stdout
 
-        process_stdout = stdout.split('\n').strip()
+        process_stdout = stdout.split(os.linesep).strip()
         expected_output = '"Layer2"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
