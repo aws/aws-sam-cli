@@ -451,7 +451,7 @@ class TestContainer_wait_for_logs(TestCase):
 
         self.container.wait_for_logs(stdout=stdout_mock, stderr=stderr_mock)
 
-        real_container_mock.attach.assert_called_with(stream=True, logs=False, demux=True)
+        real_container_mock.attach.assert_called_with(stream=True, logs=True, demux=True)
         self.container._write_container_output.assert_called_with(output_itr, stdout=stdout_mock, stderr=stderr_mock)
 
     def test_must_skip_if_no_stdout_and_stderr(self):
