@@ -47,6 +47,15 @@ class DeployStackOutPutFailedError(UserException):
         )
 
 
+class DeployBucketInDifferentRegionError(UserException):
+    def __init__(self, msg):
+        self.msg = msg
+
+        message_fmt = "{msg} : deployment s3 bucket is in a different region, try sam deploy --guided"
+
+        super(DeployBucketInDifferentRegionError, self).__init__(message=message_fmt.format(msg=self.msg))
+
+
 class DeployBucketRequiredError(UserException):
     def __init__(self):
 

@@ -6,7 +6,12 @@ from unittest.mock import patch, MagicMock, ANY
 
 from botocore.exceptions import ClientError, WaiterError, BotoCoreError
 
-from samcli.commands.deploy.exceptions import DeployFailedError, ChangeSetError, DeployStackOutPutFailedError
+from samcli.commands.deploy.exceptions import (
+    DeployFailedError,
+    ChangeSetError,
+    DeployStackOutPutFailedError,
+    DeployBucketInDifferentRegionError,
+)
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp, to_datetime
@@ -144,6 +149,36 @@ class TestDeployer(TestCase):
         self.deployer.has_stack = MagicMock(return_value=False)
         self.deployer._client.create_change_set = MagicMock(side_effect=Exception)
         with self.assertRaises(ChangeSetError):
+            self.deployer.create_changeset(
+                stack_name="test",
+                cfn_template=" ",
+                parameter_values=[
+                    {"ParameterKey": "a", "ParameterValue": "b"},
+                    {"ParameterKey": "c", "UsePreviousValue": True},
+                ],
+                capabilities=["CAPABILITY_IAM"],
+                role_arn="role-arn",
+                notification_arns=[],
+                s3_uploader=S3Uploader(s3_client=self.s3_client, bucket_name="test_bucket"),
+                tags={"unit": "true"},
+            )
+
+    def test_create_changeset_ClientErrorException(self):
+        error_message = (
+            "An error occurred (ValidationError) when calling the CreateChangeSet "
+            "operation: S3 error: The bucket you are attempting to access must be "
+            "addressed using the specified endpoint. "
+            "Please send all future requests to this "
+            "endpoint.\nFor more information "
+            "check http://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html"
+        )
+        self.deployer.has_stack = MagicMock(return_value=False)
+        self.deployer._client.create_change_set = MagicMock(
+            side_effect=ClientError(
+                error_response={"Error": {"Message": error_message}}, operation_name="create_changeset"
+            )
+        )
+        with self.assertRaises(DeployBucketInDifferentRegionError):
             self.deployer.create_changeset(
                 stack_name="test",
                 cfn_template=" ",
