@@ -39,9 +39,9 @@ def _create_or_get_stack(cloudformation_client):
         ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
         stacks = ds_resp["Stacks"]
         stack = stacks[0]
-        LOG.info("\tLooking for resources needed for deployment: Found!")
+        LOG.info("\n\tLooking for resources needed for deployment: Found!")
     except ClientError:
-        LOG.info("\tLooking for resources needed for deployment: Not found.")
+        LOG.info("\n\tLooking for resources needed for deployment: Not found.")
         stack = _create_stack(cloudformation_client)  # exceptions are not captured from subcommands
     # Sanity check for non-none stack? Sanity check for tag?
     tags = stack["Tags"]

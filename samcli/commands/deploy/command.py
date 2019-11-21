@@ -338,8 +338,8 @@ def guided_deploy(
     save_to_config = click.confirm(f"\t{start_bold}Save arguments to samconfig.toml{end_bold}", default=True)
 
     s3_bucket = manage_stack(profile=profile, region=region)
-    click.echo(f"\tManaged S3 bucket: {s3_bucket}")
-    click.echo("\tA different default S3 bucket can be set in samconfig.toml")
+    click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+    click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
 
     return (
         stack_name,
