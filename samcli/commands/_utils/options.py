@@ -145,9 +145,9 @@ def parameter_override_click_option():
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
         default={},
-        help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
-        "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
-        "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'",
+        help="Optional. A string that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+        "For example, 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
+        "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
     )
 
 
