@@ -406,7 +406,7 @@ foo
             ".",
             "test-project",
             None,
-            {"schema_name": "events", "schema_type": "aws",  "runtime": "java8", "project_name": "test-project"},
+            {"schema_name": "events", "schema_type": "aws", "runtime": "java8", "project_name": "test-project"},
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")

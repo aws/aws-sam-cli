@@ -32,7 +32,9 @@ class TestInit(TestCase):
         )
 
         # THEN we should receive no errors
-        cookiecutter_patch.assert_called_once_with(no_input=self.no_input, output_dir=self.output_dir, template=self.template)
+        cookiecutter_patch.assert_called_once_with(
+            no_input=self.no_input, output_dir=self.output_dir, template=self.template
+        )
 
     @patch("samcli.local.init.cookiecutter")
     def test_init_successful_with_no_dep_manager(self, cookiecutter_patch):
@@ -46,7 +48,9 @@ class TestInit(TestCase):
         )
 
         # THEN we should receive no errors
-        cookiecutter_patch.assert_called_once_with(no_input=self.no_input, output_dir=self.output_dir, template=self.template)
+        cookiecutter_patch.assert_called_once_with(
+            no_input=self.no_input, output_dir=self.output_dir, template=self.template
+        )
 
     def test_init_error_with_non_compatible_dependency_manager(self):
         with self.assertRaises(GenerateProjectFailedError) as ctx:
@@ -97,12 +101,26 @@ class TestInit(TestCase):
         )
 
         # THEN we should receive no errors
-        cookiecutter_patch.assert_called_once_with(extra_context=cookiecutter_context, template=custom_location, no_input=False, output_dir=self.output_dir)
+        cookiecutter_patch.assert_called_once_with(
+            extra_context=cookiecutter_context, template=custom_location, no_input=False, output_dir=self.output_dir
+        )
 
     @patch("samcli.local.init.cookiecutter")
     def test_must_set_cookiecutter_context_when_app_template_is_provided(self, cookiecutter_patch):
         cookiecutter_context = {"key1": "value1", "key2": "value2"}
-        generate_project(runtime=self.runtime, dependency_manager=self.dependency_manager, output_dir=self.output_dir, name=self.name, no_input=self.no_input, extra_context=cookiecutter_context)
+        generate_project(
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            no_input=self.no_input,
+            extra_context=cookiecutter_context,
+        )
 
         # THEN we should receive no errors
-        cookiecutter_patch.assert_called_once_with(extra_context=cookiecutter_context, no_input=self.no_input, output_dir=self.output_dir, template=self.template)
+        cookiecutter_patch.assert_called_once_with(
+            extra_context=cookiecutter_context,
+            no_input=self.no_input,
+            output_dir=self.output_dir,
+            template=self.template,
+        )

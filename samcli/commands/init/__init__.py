@@ -184,7 +184,7 @@ def _get_cookiecutter_template_context(name, runtime, extra_context):
             default_context = {"project_name": name}
     if extra_context is not None:
         try:
-            extra_context = extra_context.encode().decode('unicode_escape')
+            extra_context = extra_context.encode().decode("unicode_escape")
             extra_context_dict = json.loads(extra_context)
         except JSONDecodeError:
             raise UserException(
