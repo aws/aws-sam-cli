@@ -148,12 +148,12 @@ N
         generate_project_patch.assert_called_once_with(
             # need to change the location validation check
             ANY,
-            "java8",
+            "java11",
             "gradle",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "java8"},
+            {"project_name": "test-project", "runtime": "java11"},
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")

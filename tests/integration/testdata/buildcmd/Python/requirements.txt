@@ -4,4 +4,3 @@ numpy~=1.15
 # `cryptography` has a dependency on `pycparser` which, for some reason doesn't build inside a Docker container.
 # Turning this off until we resolve this issue: https://github.com/awslabs/aws-lambda-builders/issues/29
 # cryptography~=2.4
-Jinja2~=2.10

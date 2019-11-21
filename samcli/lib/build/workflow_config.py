@@ -95,10 +95,12 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "python2.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs4.3": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs6.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs8.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs10.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnetcore2.0": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
@@ -106,6 +108,12 @@ def get_workflow_config(runtime, code_dir, project_dir):
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
         "java8": ManifestWorkflowSelector([
+            # Gradle builder needs custom executable paths to find `gradlew` binary
+            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_MAVEN_CONFIG
+        ]),
+        "java11": ManifestWorkflowSelector([
             # Gradle builder needs custom executable paths to find `gradlew` binary
             JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
             JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
