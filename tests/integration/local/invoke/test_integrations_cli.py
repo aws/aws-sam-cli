@@ -351,7 +351,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process = Popen(command_list, stderr=PIPE, env=env)
         process.wait()
 
-        process_stderr = b''.join(process.stderr.readlines()).strip()
+        process_stderr = b"".join(process.stderr.readlines()).strip()
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
 
