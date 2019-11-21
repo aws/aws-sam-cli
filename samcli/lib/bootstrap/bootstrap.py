@@ -2,8 +2,8 @@
 Bootstrap's user's development environment by creating cloud resources required by SAM CLI
 """
 
+import click
 import json
-import logging
 import boto3
 
 from botocore.config import Config
@@ -14,7 +14,6 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
 
-LOG = logging.getLogger(__name__)
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-stack"
 
 
@@ -39,9 +38,9 @@ def _create_or_get_stack(cloudformation_client):
         ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
         stacks = ds_resp["Stacks"]
         stack = stacks[0]
-        LOG.info("\n\tLooking for resources needed for deployment: Found!")
+        click.echo("\n\tLooking for resources needed for deployment: Found!")
     except ClientError:
-        LOG.info("\n\tLooking for resources needed for deployment: Not found.")
+        click.echo("\n\tLooking for resources needed for deployment: Not found.")
         stack = _create_stack(cloudformation_client)  # exceptions are not captured from subcommands
     # Sanity check for non-none stack? Sanity check for tag?
     tags = stack["Tags"]
@@ -77,7 +76,7 @@ def _create_or_get_stack(cloudformation_client):
 
 
 def _create_stack(cloudformation_client):
-    LOG.info("\tCreating the required resources...")
+    click.echo("\tCreating the required resources...")
     change_set_name = "InitialCreation"
     change_set_resp = cloudformation_client.create_change_set(
         StackName=SAM_CLI_STACK_NAME,
@@ -96,7 +95,7 @@ def _create_stack(cloudformation_client):
     stack_waiter.wait(StackName=stack_id, WaiterConfig={"Delay": 15, "MaxAttempts": 60})
     ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
     stacks = ds_resp["Stacks"]
-    LOG.info("\tSuccessfully created!")
+    click.echo("\tSuccessfully created!")
     return stacks[0]
 
 
