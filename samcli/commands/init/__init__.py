@@ -174,12 +174,12 @@ You can also re-run without the --no-interactive flag to be prompted for require
 
 
 def _get_cookiecutter_template_context(name, runtime, extra_context):
-    default_context = None
+    default_context = {}
     if runtime is not None:
-        default_context = {"runtime": runtime}
+        default_context["runtime"] = runtime
     if name is not None:
         if default_context is not None:
-            default_context = {**default_context, **{"project_name": name}}
+            default_context["project_name"] = name
         else:
             default_context = {"project_name": name}
     if extra_context is not None:
@@ -190,7 +190,5 @@ def _get_cookiecutter_template_context(name, runtime, extra_context):
             raise UserException(
                 "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
             )
-        if default_context is not None:
-            return {**extra_context_dict, **default_context}
-        return extra_context_dict
+        return {**extra_context_dict, **default_context}
     return default_context
