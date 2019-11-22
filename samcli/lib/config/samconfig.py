@@ -21,6 +21,7 @@ class SamConfig:
     """
 
     document = None
+    VERSION = "0.1"
 
     def __init__(self, config_dir, filename=None):
         """
@@ -164,6 +165,7 @@ class SamConfig:
             return
         if not self.exists():
             open(self.filepath, "a+").close()
+
         self.filepath.write_text(tomlkit.dumps(self.document))
 
     @staticmethod

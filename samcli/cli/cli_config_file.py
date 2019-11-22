@@ -54,14 +54,16 @@ class TomlProvider:
             # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
             # so that click defaults work out of the box.
             resolved_config = {k: v for k, v in samconfig.get_all(cmd_names, self.section, env=config_env).items()}
+            LOG.debug("Configuration values read from the file: %s", resolved_config)
 
-        except KeyError:
+        except KeyError as ex:
             LOG.debug(
-                "Error reading configuration file at %s with config_env=%s, command=%s, section=%s",
+                "Error reading configuration file at %s with config_env=%s, command=%s, section=%s %s",
                 samconfig.path(),
                 config_env,
                 cmd_names,
                 self.section,
+                str(ex),
             )
         except Exception as ex:
             LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))
@@ -122,6 +124,16 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name):
 def configuration_option(*param_decls, **attrs):
     """
     Adds configuration file support to a click application.
+
+    NOTE: This decorator should be added to the top of parameter chain, right below click.command, before
+          any options are declared.
+
+    Example:
+        >>> @click.command("hello")
+            @configuration_option(provider=TomlProvider(section="parameters"))
+            @click.option('--name', type=click.String)
+            def hello(name):
+                print("Hello " + name)
 
     This will create an option of type `STRING` expecting the config_env in the
     configuration file, by default this config_env is `default`. When specified,
