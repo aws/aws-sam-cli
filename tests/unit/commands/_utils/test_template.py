@@ -100,7 +100,7 @@ class Test_update_relative_paths(TestCase):
     def test_must_update_relative_resource_paths(self, resource_type, properties):
         for propname in properties:
             relative_path_prop = {}
-            propname_seg = propname.split('.')
+            propname_seg = propname.split(".")
             propname_seg_len = len(propname_seg) - 1
 
             for i, propname_seg_val in enumerate(reversed(propname_seg)):
@@ -108,7 +108,7 @@ class Test_update_relative_paths(TestCase):
                     relative_path_prop = {propname_seg_val: self.curpath}
                 else:
                     relative_path_prop = {propname_seg_val: relative_path_prop}
-               
+
             template_dict = {
                 "Resources": {
                     "MyResourceWithRelativePath": {"Type": resource_type, "Properties": relative_path_prop},
