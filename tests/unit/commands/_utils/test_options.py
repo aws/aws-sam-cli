@@ -115,7 +115,7 @@ class TestGuidedDeployStackName(TestCase):
         stack_name = None
         mock_params = MagicMock()
         mock_params.get = MagicMock(return_value=False)
-        with self.assertRaises(click.MissingParameter):
+        with self.assertRaises(click.BadOptionUsage):
             guided_deploy_stack_name(
                 ctx=MockContext(info_name="test", parent=None, params=mock_params),
                 param=MagicMock(),

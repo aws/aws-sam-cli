@@ -15,7 +15,7 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
 
-SAM_CLI_STACK_NAME = "aws-sam-cli-managed-stack"
+SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
 
 
 def manage_stack(profile, region):
