@@ -10,6 +10,9 @@ import functools
 import logging
 
 import click
+
+from samcli.commands.exceptions import ConfigException
+from samcli.lib.config.exceptions import SamConfigVersionException
 from samcli.cli.context import get_cmd_names
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
@@ -53,6 +56,7 @@ class TomlProvider:
 
             # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
             # so that click defaults work out of the box.
+            samconfig.sanity_check()
             resolved_config = {k: v for k, v in samconfig.get_all(cmd_names, self.section, env=config_env).items()}
             LOG.debug("Configuration values read from the file: %s", resolved_config)
 
@@ -65,6 +69,11 @@ class TomlProvider:
                 self.section,
                 str(ex),
             )
+
+        except SamConfigVersionException as ex:
+            LOG.debug("%s %s", samconfig.path(), str(ex))
+            raise ConfigException(f"Syntax invalid in samconfig.toml: {str(ex)}")
+
         except Exception as ex:
             LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))
 

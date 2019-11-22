@@ -9,6 +9,9 @@ from pathlib import Path
 
 import tomlkit
 
+from samcli.lib.config.version import SAM_CONFIG_VERSION, VERSION_KEY
+from samcli.lib.config.exceptions import SamConfigVersionException
+
 LOG = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_FILE_NAME = "samconfig.toml"
@@ -21,7 +24,6 @@ class SamConfig:
     """
 
     document = None
-    VERSION = "0.1"
 
     def __init__(self, config_dir, filename=None):
         """
@@ -149,15 +151,16 @@ class SamConfig:
         return os.getcwd()
 
     def _read(self):
-        if self.document:
-            return self.document
+        if not self.document:
+            try:
+                txt = self.filepath.read_text()
+                self.document = tomlkit.loads(txt)
+                self._version_sanity_check(self._version())
+            except OSError:
+                self.document = tomlkit.document()
 
-        try:
-            txt = self.filepath.read_text()
-            self.document = tomlkit.loads(txt)
-        except OSError:
-            self.document = tomlkit.document()
-
+        if self.document.body:
+            self._version_sanity_check(self._version())
         return self.document
 
     def _write(self):
@@ -166,7 +169,20 @@ class SamConfig:
         if not self.exists():
             open(self.filepath, "a+").close()
 
+        current_version = self._version() if self._version() else SAM_CONFIG_VERSION
+        try:
+            self.document.add(VERSION_KEY, current_version)
+        except tomlkit.exceptions.KeyAlreadyPresent:
+            # NOTE(TheSriram): Do not attempt to re-write an existing version
+            pass
         self.filepath.write_text(tomlkit.dumps(self.document))
+
+    def _version(self):
+        return self.document.get(VERSION_KEY, None)
+
+    def _version_sanity_check(self, version):
+        if not isinstance(version, float):
+            raise SamConfigVersionException(f"'{VERSION_KEY}' key is not present or is in unrecognized format. ")
 
     @staticmethod
     def _to_key(cmd_names):
