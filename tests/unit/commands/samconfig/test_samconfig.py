@@ -13,7 +13,7 @@ from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 from click.testing import CliRunner
 
 from unittest import TestCase
-from mock import patch, ANY
+from unittest.mock import patch, ANY
 import logging
 
 LOG = logging.getLogger()
