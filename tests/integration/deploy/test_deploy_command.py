@@ -193,7 +193,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
         deploy_process_execute.wait()
         # Error no stack name present
-        self.assertEqual(deploy_process_execute.returncode, 1)
+        self.assertEqual(deploy_process_execute.returncode, 2)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_without_capabilities(self, template_file):
