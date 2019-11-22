@@ -128,8 +128,8 @@ def cli(
     )  # pragma: no cover
 
 
-def do_cli(
-    function_identifier,  # pylint: disable=too-many-locals, too-many-statements
+def do_cli(  # pylint: disable=too-many-locals, too-many-statements
+    function_identifier,
     template,
     base_dir,
     build_dir,
