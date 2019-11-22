@@ -106,7 +106,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_ErrorCases(BuildIntegBase):
-
     @pytest.mark.flaky(reruns=3)
     def test_unsupported_runtime(self):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
@@ -550,8 +549,8 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(parameter_overrides=overrides, function_identifier="FunctionNotInTemplate")
 
-        process = Popen(cmdlist, cwd=self.working_dir, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate(timeout=TIMEOUT)
+        process = Popen(cmdlist, cwd=self.working_dir, stderr=PIPE)
+        _, stderr = process.communicate(timeout=TIMEOUT)
 
         self.assertEqual(process.returncode, 1)
         self.assertIn("FunctionNotInTemplate not found", str(stderr.decode("utf8")))
