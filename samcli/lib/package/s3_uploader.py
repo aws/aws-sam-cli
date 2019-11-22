@@ -91,6 +91,8 @@ class S3Uploader:
                 additional_args["Metadata"] = self.artifact_metadata
 
             print_progress_callback = ProgressPercentage(file_name, remote_path)
+            if not self.bucket_name:
+                raise BucketNotSpecifiedError()
             future = self.transfer_manager.upload(
                 file_name, self.bucket_name, remote_path, additional_args, [print_progress_callback]
             )
@@ -144,6 +146,8 @@ class S3Uploader:
             return False
 
     def make_url(self, obj_path):
+        if not self.bucket_name:
+            raise BucketNotSpecifiedError()
         return "s3://{0}/{1}".format(self.bucket_name, obj_path)
 
     def file_checksum(self, file_name):
@@ -201,3 +205,5 @@ class ProgressPercentage:
                 "\rUploading to %s  %s / %s  (%.2f%%)" % (self._remote_path, self._seen_so_far, self._size, percentage)
             )
             sys.stderr.flush()
+            if int(percentage) == 100:
+                sys.stderr.write("\n")

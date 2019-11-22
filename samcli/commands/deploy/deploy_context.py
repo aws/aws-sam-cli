@@ -104,6 +104,7 @@ class DeployContext:
         session = boto3.Session(profile_name=self.profile if self.profile else None)
         cloudformation_client = session.client("cloudformation", region_name=self.region if self.region else None)
 
+        s3_client = None
         if self.s3_bucket:
             s3_client = session.client("s3", region_name=self.region if self.region else None)
 
@@ -111,7 +112,7 @@ class DeployContext:
 
         self.deployer = Deployer(cloudformation_client)
 
-        region = s3_client._client_config.region_name  # pylint: disable=W0212
+        region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
 
         return self.deploy(
             self.stack_name,

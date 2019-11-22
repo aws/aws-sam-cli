@@ -37,6 +37,7 @@ class DeployIntegBase(TestCase):
         force_upload=False,
         notification_arns=None,
         fail_on_empty_changeset=False,
+        confirm_changeset=False,
         no_execute_changeset=False,
         parameter_overrides=None,
         role_arn=None,
@@ -44,9 +45,12 @@ class DeployIntegBase(TestCase):
         tags=None,
         profile=None,
         region=None,
+        guided=False,
     ):
         command_list = [self.base_command(), "deploy"]
 
+        if guided:
+            command_list = command_list + ["--guided"]
         if s3_bucket:
             command_list = command_list + ["--s3-bucket", str(s3_bucket)]
         if capabilities:
@@ -73,6 +77,8 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--force-upload"]
         if fail_on_empty_changeset:
             command_list = command_list + ["--fail-on-empty-changeset"]
+        if confirm_changeset:
+            command_list = command_list + ["--confirm-changeset"]
         if tags:
             command_list = command_list + ["--tags", str(tags)]
         if region:

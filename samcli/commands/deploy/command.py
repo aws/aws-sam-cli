@@ -3,7 +3,6 @@ CLI command for "deploy" command
 """
 import json
 import tempfile
-import logging
 
 import click
 from click.types import FuncParamType
@@ -19,6 +18,7 @@ from samcli.commands._utils.options import (
     template_click_option,
     metadata_override_option,
     _space_separated_list_func_type,
+    guided_deploy_stack_name,
 )
 from samcli.commands._utils.template import get_template_parameters
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
@@ -26,10 +26,6 @@ from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.telemetry.metrics import track_command
 from samcli.lib.utils.colors import Colored
-
-
-LOG = logging.getLogger(__name__)
-
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -52,11 +48,19 @@ CONFIG_SECTION = "parameters"
     help=HELP_TEXT,
 )
 @configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
+@click.option(
+    "--guided",
+    "-g",
+    required=False,
+    is_flag=True,
+    is_eager=True,
+    help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
+)
 @template_click_option(include_build=True)
 @click.option(
     "--stack-name",
     required=False,
-    default="sam-app",
+    callback=guided_deploy_stack_name,
     help="The name of the AWS CloudFormation stack you're deploying to. "
     "If you specify an existing stack, the command updates the stack. "
     "If you specify a new stack, the command creates it.",
@@ -126,14 +130,6 @@ CONFIG_SECTION = "parameters"
     is_flag=True,
     help="Indicates whether to use JSON as the format for "
     "the output AWS CloudFormation template. YAML is used by default.",
-)
-@click.option(
-    "--guided",
-    "-g",
-    required=False,
-    is_flag=True,
-    is_eager=True,
-    help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
 )
 @metadata_override_option
 @notification_arns_override_option
@@ -219,18 +215,16 @@ def do_cli(
     _parameter_overrides = None
     guided_stack_name = None
     guided_s3_bucket = None
+    guided_s3_prefix = None
     guided_region = None
 
     if guided:
 
-        try:
-            _parameter_override_keys = get_template_parameters(template_file=template_file)
-        except ValueError as ex:
-            LOG.debug("Failed to parse SAM Template", exc_info=ex)
-            raise GuidedDeployFailedError(str(ex))
-
         read_config_showcase(template_file=template_file)
-        guided_stack_name, guided_s3_bucket, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
+
+        _parameter_override_keys = get_template_parameters(template_file=template_file)
+
+        guided_stack_name, guided_s3_bucket, guided_s3_prefix, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
             stack_name, s3_bucket, region, profile, confirm_changeset, _parameter_override_keys, parameter_overrides
         )
 
@@ -239,6 +233,7 @@ def do_cli(
                 template_file,
                 stack_name=guided_stack_name,
                 s3_bucket=guided_s3_bucket,
+                s3_prefix=guided_s3_prefix,
                 region=guided_region,
                 profile=guided_profile,
                 confirm_changeset=changeset_decision,
@@ -260,7 +255,7 @@ def do_cli(
         with PackageContext(
             template_file=template_file,
             s3_bucket=guided_s3_bucket if guided else s3_bucket,
-            s3_prefix=s3_prefix,
+            s3_prefix=guided_s3_prefix if guided else s3_prefix,
             output_template_file=output_template_file.name,
             kms_key_id=kms_key_id,
             use_json=use_json,
@@ -277,7 +272,7 @@ def do_cli(
             stack_name=guided_stack_name if guided else stack_name,
             s3_bucket=guided_s3_bucket if guided else s3_bucket,
             force_upload=force_upload,
-            s3_prefix=s3_prefix,
+            s3_prefix=guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
             parameter_overrides=sanitize_parameter_overrides(_parameter_overrides) if guided else parameter_overrides,
             capabilities=_capabilities if guided else capabilities,
@@ -296,10 +291,10 @@ def do_cli(
 def guided_deploy(
     stack_name, s3_bucket, region, profile, confirm_changeset, parameter_override_keys, parameter_overrides
 ):
+    default_stack_name = stack_name or "sam-app"
     default_region = region or "us-east-1"
     default_capabilities = ("CAPABILITY_IAM",)
     input_capabilities = None
-    input_parameter_overrides = {}
 
     color = Colored()
     start_bold = "\033[1m"
@@ -309,25 +304,10 @@ def guided_deploy(
         color.yellow("\n\tSetting default arguments for 'sam deploy'\n\t=========================================")
     )
 
-    stack_name = click.prompt(f"\t{start_bold}Stack Name{end_bold}", default=stack_name, type=click.STRING)
+    stack_name = click.prompt(f"\t{start_bold}Stack Name{end_bold}", default=default_stack_name, type=click.STRING)
+    s3_prefix = stack_name
     region = click.prompt(f"\t{start_bold}AWS Region{end_bold}", default=default_region, type=click.STRING)
-    if parameter_override_keys:
-        for parameter_key, parameter_properties in parameter_override_keys.items():
-            no_echo = parameter_properties.get("NoEcho", False)
-            if no_echo:
-                parameter = click.prompt(
-                    f"\t{start_bold}Parameter {parameter_key}{end_bold}", type=click.STRING, hide_input=True
-                )
-                input_parameter_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
-            else:
-                parameter = click.prompt(
-                    f"\t{start_bold}Parameter {parameter_key}{end_bold}",
-                    default=parameter_overrides.get(
-                        parameter_key, parameter_properties.get("Default", "No default specified")
-                    ),
-                    type=click.STRING,
-                )
-                input_parameter_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
+    input_parameter_overrides = prompt_parameters(parameter_override_keys, start_bold, end_bold)
 
     click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
     confirm_changeset = click.confirm(
@@ -339,20 +319,20 @@ def guided_deploy(
     if not capabilities_confirm:
         input_capabilities = click.prompt(
             f"\t{start_bold}Capabilities{end_bold}",
-            default=default_capabilities,
+            default=default_capabilities[0],
             type=FuncParamType(func=_space_separated_list_func_type),
         )
 
     save_to_config = click.confirm(f"\t{start_bold}Save arguments to samconfig.toml{end_bold}", default=True)
 
-    click.echo(color.yellow("\n\tS3 bucket for deployments\n\t========================="))
     s3_bucket = manage_stack(profile=profile, region=region)
-    click.echo(f"\tS3 bucket: {s3_bucket}")
-    click.echo("\tA different default S3 bucket can be set in samconfig.toml")
+    click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+    click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
 
     return (
         stack_name,
         s3_bucket,
+        s3_prefix,
         region,
         profile,
         confirm_changeset,
@@ -360,6 +340,27 @@ def guided_deploy(
         input_parameter_overrides if input_parameter_overrides else parameter_overrides,
         save_to_config,
     )
+
+
+def prompt_parameters(parameter_override_keys, start_bold, end_bold):
+    _prompted_param_overrides = {}
+    if parameter_override_keys:
+        for parameter_key, parameter_properties in parameter_override_keys.items():
+            no_echo = parameter_properties.get("NoEcho", False)
+            if no_echo:
+                parameter = click.prompt(
+                    f"\t{start_bold}Parameter {parameter_key}{end_bold}", type=click.STRING, hide_input=True
+                )
+                _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
+            else:
+                # Make sure the default is casted to a string.
+                parameter = click.prompt(
+                    f"\t{start_bold}Parameter {parameter_key}{end_bold}",
+                    default=_prompted_param_overrides.get(parameter_key, str(parameter_properties.get("Default", ""))),
+                    type=click.STRING,
+                )
+                _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
+    return _prompted_param_overrides
 
 
 def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_overrides, confirm_changeset):

@@ -5,8 +5,16 @@ Test the common CLI options
 import os
 
 from unittest import TestCase
-from unittest.mock import patch
-from samcli.commands._utils.options import get_or_default_template_file_name, _TEMPLATE_OPTION_DEFAULT_VALUE
+from unittest.mock import patch, MagicMock
+
+import click
+
+from samcli.commands._utils.options import (
+    get_or_default_template_file_name,
+    _TEMPLATE_OPTION_DEFAULT_VALUE,
+    guided_deploy_stack_name,
+)
+from tests.unit.cli.test_cli_config_file import MockContext
 
 
 class Mock:
@@ -71,3 +79,45 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         self.assertEqual(result, "a/b/c/absPath")
         self.assertEqual(ctx.samconfig_dir, "a/b/c")
         os_mock.path.abspath.assert_called_with(expected)
+
+
+class TestGuidedDeployStackName(TestCase):
+    def test_must_return_provided_value_guided(self):
+        stack_name = "provided-stack"
+        mock_params = MagicMock()
+        mock_params.get = MagicMock(return_value=True)
+        result = guided_deploy_stack_name(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=stack_name,
+        )
+        self.assertEqual(result, stack_name)
+
+    def test_must_return_default_value_guided(self):
+        stack_name = None
+        mock_params = MagicMock()
+        mock_params.get = MagicMock(return_value=True)
+        result = guided_deploy_stack_name(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=stack_name,
+        )
+        self.assertEqual(result, "sam-app")
+
+    def test_must_return_provided_value_non_guided(self):
+        stack_name = "provided-stack"
+        mock_params = MagicMock()
+        mock_params.get = MagicMock(return_value=False)
+        result = guided_deploy_stack_name(ctx=MagicMock(), param=MagicMock(), provided_value=stack_name)
+        self.assertEqual(result, "provided-stack")
+
+    def test_exception_missing_parameter_no_value_non_guided(self):
+        stack_name = None
+        mock_params = MagicMock()
+        mock_params.get = MagicMock(return_value=False)
+        with self.assertRaises(click.BadOptionUsage):
+            guided_deploy_stack_name(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=stack_name,
+            )
