@@ -33,14 +33,107 @@ class TestSamConfigForAllCommands(TestCase):
         shutil.rmtree(self.scratch_dir)
         self.scratch_dir = None
 
-    def test_init(self):
-        pass
+    @patch("samcli.commands.init.do_cli")
+    def test_init(self, do_cli_mock):
+        config_values = {
+            "no_interactive": True,
+            "location": "github.com",
+            "runtime": "nodejs10.x",
+            "dependency_manager": "maven",
+            "output_dir": "myoutput",
+            "name": "myname",
+            "app_template": "apptemplate",
+            "no_input": True,
+            "extra_context": '{"key": "value", "key2": "value2"}',
+        }
 
-    def test_validate(self):
-        pass
+        with samconfig_parameters(["init"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.init import cli
 
-    def test_build(self):
-        pass
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                True,
+                "github.com",
+                "nodejs10.x",
+                "maven",
+                "myoutput",
+                "myname",
+                "apptemplate",
+                True,
+                '{"key": "value", "key2": "value2"}',
+            )
+
+    @patch("samcli.commands.validate.validate.do_cli")
+    def test_validate(self, do_cli_mock):
+        config_values = {"template_file": "mytemplate.yaml"}
+
+        with samconfig_parameters(["validate"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.validate.validate import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
+
+    @patch("samcli.commands.build.command.do_cli")
+    def test_build(self, do_cli_mock):
+        config_values = {
+            "function_identifier": "foo",
+            "template_file": "mytemplate.yaml",
+            "base_dir": "basedir",
+            "build_dir": "builddir",
+            "use_container": True,
+            "manifest": "requirements.txt",
+            "docker_network": "mynetwork",
+            "skip_pull_image": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+        }
+
+        with samconfig_parameters(["build"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.build.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                "foo",
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "basedir",
+                "builddir",
+                True,
+                True,
+                "requirements.txt",
+                "mynetwork",
+                True,
+                {"Key": "Value", "Key2": "Value2"},
+                None,
+            )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
     def test_local_invoke(self, do_cli_mock):
@@ -67,6 +160,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             from samcli.commands.local.invoke.cli import cli
 
+            LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -121,6 +215,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             from samcli.commands.local.start_api.cli import cli
 
+            LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -174,6 +269,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             from samcli.commands.local.start_lambda.cli import cli
 
+            LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -220,6 +316,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             from samcli.commands.package.command import cli
 
+            LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -270,6 +367,7 @@ class TestSamConfigForAllCommands(TestCase):
 
             from samcli.commands.deploy.command import cli
 
+            LOG.debug(Path(config_path).read_text())
             runner = CliRunner()
             result = runner.invoke(cli, [])
 
@@ -301,11 +399,50 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
             )
 
-    def test_logs(self):
-        pass
+    @patch("samcli.commands.logs.command.do_cli")
+    def test_logs(self, do_cli_mock):
+        config_values = {
+            "name": "myfunction",
+            "stack_name": "mystack",
+            "filter": "myfilter",
+            "tail": True,
+            "start_time": "starttime",
+            "end_time": "endtime",
+        }
 
-    def test_publish(self):
-        pass
+        with samconfig_parameters(["logs"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.logs.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with("myfunction", "mystack", "myfilter", True, "starttime", "endtime")
+
+    @patch("samcli.commands.publish.command.do_cli")
+    def test_publish(self, do_cli_mock):
+        config_values = {"template_file": "mytemplate.yaml", "semantic_version": "0.1.1"}
+
+        with samconfig_parameters(["publish"], self.scratch_dir, **config_values) as config_path:
+            from samcli.commands.publish.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), "0.1.1")
 
 
 @contextmanager

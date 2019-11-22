@@ -56,13 +56,13 @@ Common usage:
 """
 
 
-@configuration_option(provider=TomlProvider(section="parameters"))
 @click.command(
     "init",
     help=HELP_TEXT,
     short_help="Init an AWS SAM application.",
     context_settings=dict(help_option_names=["-h", "--help"]),
 )
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--no-interactive",
     is_flag=True,
