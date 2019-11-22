@@ -103,8 +103,8 @@ class SamConfig:
             If the data is invalid
         """
 
-        self._read()
         if not self.document:
+            self._read()
             # Empty document prepare the initial structure.
             self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
         # Only update appropriate key value pairs within a section
