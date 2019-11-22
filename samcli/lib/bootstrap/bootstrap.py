@@ -116,6 +116,8 @@ def _get_stack_template():
       SamCliSourceBucket:
         Type: AWS::S3::Bucket
         Properties:
+          VersioningConfiguration:
+            Status: Enabled
           Tags:
             - Key: ManagedStackSource
               Value: AwsSamCli
