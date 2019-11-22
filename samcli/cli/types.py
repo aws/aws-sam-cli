@@ -9,8 +9,15 @@ from json import JSONDecodeError
 import click
 
 
+def _value_regex(delim):
+    return f'(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^{delim}\\"\\\\]+)+)'
+
+
 KEY_REGEX = '([A-Za-z0-9\\"]+)'
-VALUE_REGEX = '(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^ \\"\\\\]+)+)'
+# Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
+VALUE_REGEX_SPACE_DELIM = _value_regex(" ")
+# Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
+VALUE_REGEX_COMMA_DELIM = _value_regex(",")
 
 
 class CfnParameterOverridesType(click.ParamType):
@@ -29,8 +36,8 @@ class CfnParameterOverridesType(click.ParamType):
     # If Both ParameterKey pattern and KeyPairName=MyKey should not be present
     # while adding parameter overrides, if they are, it
     # can result in unpredicatable behavior.
-    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(key=KEY_REGEX, value=VALUE_REGEX)
-    _pattern_2 = r"(?:(?: ){key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX)
+    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
+    _pattern_2 = r"(?:(?: ){key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
@@ -115,7 +122,7 @@ class CfnMetadataType(click.ParamType):
 
     _EXAMPLE = 'KeyName1=string,KeyName2=string or {"string":"string"}'
 
-    _pattern = r"{key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
+    _pattern = r"(?:{key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -161,7 +168,7 @@ class CfnTags(click.ParamType):
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
 
-    _pattern = r"{key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
+    _pattern = r"{key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -177,7 +184,6 @@ class CfnTags(click.ParamType):
         value = (value,) if not isinstance(value, tuple) else value
 
         for val in value:
-
             groups = re.findall(self._pattern, val)
 
             if not groups:
