@@ -336,6 +336,7 @@ class TestBuildCommand_Java(BuildIntegBase):
     def test_building_java8_in_process(self, runtime, code_path, expected_files):
         self._test_with_building_java(runtime, code_path, expected_files, False)
 
+    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
