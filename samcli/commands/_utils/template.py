@@ -135,15 +135,19 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
             # Handle dot notations. Example: Command.ScriptLocation
             path_prop_name_seg = path_prop_name.split('.')
+            path_prop_name_seg_len = len(path_prop_name_seg) - 1
 
             for i, path_prop_name_seg_val in enumerate(path_prop_name_seg):
                 if i == 0:
                     node_value = properties.get(path_prop_name_seg_val, {})
-                    node = node_value
+                    if i == path_prop_name_seg_len:
+                        node = properties
+                    else:
+                        node = node_value
                 else:
                     node_value = node.get(path_prop_name_seg_val, {})
 
-                if i == len(path_prop_name_seg) - 1:
+                if i == path_prop_name_seg_len:
                     updated_path = _resolve_relative_to(node_value, original_root, new_root)
                     if not updated_path:
                         # This path does not need to get updated
