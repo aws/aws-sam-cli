@@ -9,6 +9,10 @@ from json import JSONDecodeError
 import click
 
 
+KEY_REGEX = '([A-Za-z0-9\\"]+)'
+VALUE_REGEX = '(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^ \\"\\\\]+)+)'
+
+
 class CfnParameterOverridesType(click.ParamType):
     """
     Custom Click options type to accept values for CloudFormation template parameters. You can pass values for
@@ -25,11 +29,8 @@ class CfnParameterOverridesType(click.ParamType):
     # If Both ParameterKey pattern and KeyPairName=MyKey should not be present
     # while adding parameter overrides, if they are, it
     # can result in unpredicatable behavior.
-    KEY_REGEX = '([A-Za-z0-9\\"]+)'
-    VALUE_REGEX = '(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^ \\"\\\\]+)+))'
-
-    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
-    _pattern_2 = r"(?:(?: ){key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
+    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(key=KEY_REGEX, value=VALUE_REGEX)
+    _pattern_2 = r"(?:(?: ){key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX)
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
@@ -114,7 +115,7 @@ class CfnMetadataType(click.ParamType):
 
     _EXAMPLE = 'KeyName1=string,KeyName2=string or {"string":"string"}'
 
-    _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
+    _pattern = r"{key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -160,7 +161,7 @@ class CfnTags(click.ParamType):
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
 
-    _pattern = r"([A-Za-z0-9\"]+)=([A-Za-z0-9\"]+)"
+    _pattern = r"{key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -172,8 +173,8 @@ class CfnTags(click.ParamType):
         if value == ("",):
             return result
 
-        # if value comes in a via configuration file, we should still convert it.
-        # value = (value, ) if not isinstance(value, tuple) else value
+        # if value comes in a via configuration file, it will be a string. So we should still convert it.
+        value = (value,) if not isinstance(value, tuple) else value
 
         for val in value:
 
