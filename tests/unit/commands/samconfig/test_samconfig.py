@@ -2,6 +2,7 @@
 Tests whether SAM Config is being read by all CLI commands
 """
 
+import json
 import os
 import shutil
 import tempfile
@@ -443,6 +444,209 @@ class TestSamConfigForAllCommands(TestCase):
             self.assertIsNone(result.exception)
 
             do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")), "0.1.1")
+
+    def test_info_must_not_read_from_config(self):
+        config_values = {"a": "b"}
+
+        with samconfig_parameters([], self.scratch_dir, **config_values) as config_path:
+            from samcli.cli.main import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, ["--info"])
+
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            info_result = json.loads(result.output)
+            self.assertTrue("version" in info_result)
+
+
+class TestSamConfigWithOverrides(TestCase):
+    def setUp(self):
+        self._old_cwd = os.getcwd()
+
+        self.scratch_dir = tempfile.mkdtemp()
+        Path(self.scratch_dir, "otherenvvar.json").write_text("{}")
+
+        os.chdir(self.scratch_dir)
+
+    def tearDown(self):
+        os.chdir(self._old_cwd)
+        shutil.rmtree(self.scratch_dir)
+        self.scratch_dir = None
+
+    @patch("samcli.commands.local.start_lambda.cli.do_cli")
+    def test_override_with_cli_params(self, do_cli_mock):
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "host": "127.0.0.1",
+            "port": 12345,
+            "env_vars": "envvar.json",
+            "debug_port": [1, 2, 3],
+            "debug_args": "args",
+            "debugger_path": "mypath",
+            "docker_volume_basedir": "basedir",
+            "docker_network": "mynetwork",
+            "log_file": "logfile",
+            "layer_cache_basedir": "basedir",
+            "skip_pull_image": True,
+            "force_image_build": True,
+            "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
+        }
+
+        # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
+        with samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.local.start_lambda.cli import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                [
+                    "--template-file",
+                    "othertemplate.yaml",
+                    "--host",
+                    "otherhost",
+                    "--port",
+                    9999,
+                    "--env-vars",
+                    "otherenvvar.json",
+                    "--debug-port",
+                    9,
+                    "--debug-port",
+                    8,
+                    "--debug-port",
+                    7,
+                    "--debug-args",
+                    "otherargs",
+                    "--debugger-path",
+                    "otherpath",
+                    "--docker-volume-basedir",
+                    "otherbasedir",
+                    "--docker-network",
+                    "othernetwork",
+                    "--log-file",
+                    "otherlogfile",
+                    "--layer-cache-basedir",
+                    "otherbasedir",
+                    "--skip-pull-image",
+                    "--force-image-build",
+                    "--parameter-overrides",
+                    "A=123 C=D E=F12! G=H",
+                ],
+            )
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                "otherhost",
+                9999,
+                str(Path(os.getcwd(), "othertemplate.yaml")),
+                "otherenvvar.json",
+                (9, 8, 7),
+                "otherargs",
+                "otherpath",
+                "otherbasedir",
+                "othernetwork",
+                "otherlogfile",
+                "otherbasedir",
+                True,
+                True,
+                {"A": "123", "C": "D", "E": "F12!", "G": "H"},
+            )
+
+    @patch("samcli.commands.local.start_lambda.cli.do_cli")
+    def test_override_with_cli_params_and_envvars(self, do_cli_mock):
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "host": "127.0.0.1",
+            "port": 12345,
+            "env_vars": "envvar.json",
+            "debug_port": [1, 2, 3],
+            "debug_args": "args",
+            "debugger_path": "mypath",
+            "docker_volume_basedir": "basedir",
+            "docker_network": "mynetwork",
+            "log_file": "logfile",
+            "layer_cache_basedir": "basedir",
+            "skip_pull_image": True,
+            "force_image_build": False,
+        }
+
+        # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
+        with samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.local.start_lambda.cli import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(
+                cli,
+                env={
+                    "SAM_TEMPLATE_FILE": "envtemplate.yaml",
+                    "SAM_SKIP_PULL_IMAGE": "False",
+                    "SAM_FORCE_IMAGE_BUILD": "False",
+                    "SAM_DOCKER_NETWORK": "envnetwork",
+                    # Debug port is exclusively provided through envvars and not thru CLI args
+                    "SAM_DEBUG_PORT": "13579",
+                    "DEBUGGER_ARGS": "envargs",
+                    "SAM_DOCKER_VOLUME_BASEDIR": "envbasedir",
+                    "SAM_LAYER_CACHE_BASEDIR": "envlayercache",
+                },
+                args=[
+                    "--host",
+                    "otherhost",
+                    "--port",
+                    9999,
+                    "--env-vars",
+                    "otherenvvar.json",
+                    "--debugger-path",
+                    "otherpath",
+                    "--log-file",
+                    "otherlogfile",
+                    # this is a case where cli args takes precedence over both
+                    # config file and envvar
+                    "--force-image-build",
+                    # Parameter overrides is exclusively provided through CLI args and not config
+                    "--parameter-overrides",
+                    "A=123 C=D E=F12! G=H",
+                ],
+            )
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                ANY,
+                "otherhost",
+                9999,
+                str(Path(os.getcwd(), "envtemplate.yaml")),
+                "otherenvvar.json",
+                (13579,),
+                "envargs",
+                "otherpath",
+                "envbasedir",
+                "envnetwork",
+                "otherlogfile",
+                "envlayercache",
+                False,
+                True,
+                {"A": "123", "C": "D", "E": "F12!", "G": "H"},
+            )
 
 
 @contextmanager

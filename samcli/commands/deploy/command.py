@@ -3,6 +3,7 @@ CLI command for "deploy" command
 """
 import json
 import tempfile
+import logging
 
 import click
 from click.types import FuncParamType
@@ -25,6 +26,10 @@ from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.telemetry.metrics import track_command
 from samcli.lib.utils.colors import Colored
+
+
+LOG = logging.getLogger(__name__)
+
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -218,10 +223,13 @@ def do_cli(
 
     if guided:
 
+        try:
+            _parameter_override_keys = get_template_parameters(template_file=template_file)
+        except ValueError as ex:
+            LOG.debug("Failed to parse SAM Template", exc_info=ex)
+            raise GuidedDeployFailedError(str(ex))
+
         read_config_showcase(template_file=template_file)
-
-        _parameter_override_keys = get_template_parameters(template_file=template_file)
-
         guided_stack_name, guided_s3_bucket, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
             stack_name, s3_bucket, region, profile, confirm_changeset, _parameter_override_keys, parameter_overrides
         )

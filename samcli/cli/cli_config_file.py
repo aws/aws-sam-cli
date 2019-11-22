@@ -125,6 +125,16 @@ def configuration_option(*param_decls, **attrs):
     """
     Adds configuration file support to a click application.
 
+    NOTE: This decorator should be added to the top of parameter chain, right below click.command, before
+          any options are declared.
+
+    Example:
+        >>> @click.command("hello")
+            @configuration_option(provider=TomlProvider(section="parameters"))
+            @click.option('--name', type=click.String)
+            def hello(name):
+                print("Hello " + name)
+
     This will create an option of type `STRING` expecting the config_env in the
     configuration file, by default this config_env is `default`. When specified,
     the requisite portion of the configuration file is considered as the
