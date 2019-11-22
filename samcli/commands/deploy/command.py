@@ -353,9 +353,10 @@ def prompt_parameters(parameter_override_keys, start_bold, end_bold):
                 )
                 _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
             else:
+                # Make sure the default is casted to a string.
                 parameter = click.prompt(
                     f"\t{start_bold}Parameter {parameter_key}{end_bold}",
-                    default=_prompted_param_overrides.get(parameter_key, parameter_properties.get("Default", "")),
+                    default=_prompted_param_overrides.get(parameter_key, str(parameter_properties.get("Default", ""))),
                     type=click.STRING,
                 )
                 _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
