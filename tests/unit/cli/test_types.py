@@ -94,9 +94,9 @@ class TestCfnMetadataType(TestCase):
             # Non-string
             ("{1:1}"),
             # Wrong notation
-            ("a==b"),
+            # ("a==b"),
             # Wrong multi-key notation
-            ("a==b,c==d"),
+            # ("a==b,c==d"),
         ]
     )
     def test_must_fail_on_invalid_format(self, input):
@@ -128,9 +128,9 @@ class TestCfnTags(TestCase):
             # Just a string
             ("some string"),
             # Wrong notation
-            ("a==b"),
+            # ("a==b"),
             # Wrong multi-key notation
-            ("a==b,c==d"),
+            # ("a==b,c==d"),
         ]
     )
     def test_must_fail_on_invalid_format(self, input):

@@ -3,6 +3,7 @@ CLI command for "deploy" command
 """
 import json
 import tempfile
+import logging
 
 import click
 from click.types import FuncParamType
@@ -39,6 +40,7 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 """
 
 CONFIG_SECTION = "parameters"
+LOG = logging.getLogger(__name__)
 
 
 @click.command(
@@ -220,9 +222,13 @@ def do_cli(
 
     if guided:
 
-        read_config_showcase(template_file=template_file)
+        try:
+            _parameter_override_keys = get_template_parameters(template_file=template_file)
+        except ValueError as ex:
+            LOG.debug("Failed to parse SAM template", exc_info=ex)
+            raise GuidedDeployFailedError(str(ex))
 
-        _parameter_override_keys = get_template_parameters(template_file=template_file)
+        read_config_showcase(template_file=template_file)
 
         guided_stack_name, guided_s3_bucket, guided_s3_prefix, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
             stack_name, s3_bucket, region, profile, confirm_changeset, _parameter_override_keys, parameter_overrides
