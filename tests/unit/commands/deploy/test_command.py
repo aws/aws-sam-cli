@@ -146,7 +146,7 @@ class TestDeployliCommand(TestCase):
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
-            s3_prefix=self.s3_prefix,
+            s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
             parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
             capabilities=self.capabilities,
@@ -169,6 +169,7 @@ class TestDeployliCommand(TestCase):
             region="us-east-1",
             s3_bucket="managed-s3-bucket",
             stack_name="sam-app",
+            s3_prefix="sam-app",
             parameter_overrides={
                 "Myparameter": {"Value": "guidedParameter", "Hidden": False},
                 "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
@@ -238,7 +239,7 @@ class TestDeployliCommand(TestCase):
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
-            s3_prefix=self.s3_prefix,
+            s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
             parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
             capabilities=self.capabilities,
@@ -256,12 +257,13 @@ class TestDeployliCommand(TestCase):
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
 
-        self.assertEqual(mock_sam_config.put.call_count, 6)
+        self.assertEqual(mock_sam_config.put.call_count, 7)
         self.assertEqual(
             mock_sam_config.put.call_args_list,
             [
                 call(["deploy"], "parameters", "stack_name", "sam-app"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
+                call(["deploy"], "parameters", "s3_prefix", "sam-app"),
                 call(["deploy"], "parameters", "region", "us-east-1"),
                 call(["deploy"], "parameters", "confirm_changeset", True),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
@@ -325,7 +327,7 @@ class TestDeployliCommand(TestCase):
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
-            s3_prefix=self.s3_prefix,
+            s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
             parameter_overrides=self.parameter_overrides,
             capabilities=self.capabilities,
@@ -401,7 +403,7 @@ class TestDeployliCommand(TestCase):
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
-            s3_prefix=self.s3_prefix,
+            s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
             parameter_overrides=self.parameter_overrides,
             capabilities=self.capabilities,

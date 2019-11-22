@@ -205,3 +205,5 @@ class ProgressPercentage:
                 "\rUploading to %s  %s / %s  (%.2f%%)" % (self._remote_path, self._seen_so_far, self._size, percentage)
             )
             sys.stderr.flush()
+            if int(percentage) == 100:
+                sys.stderr.write("\n")

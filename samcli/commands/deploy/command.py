@@ -18,6 +18,7 @@ from samcli.commands._utils.options import (
     template_click_option,
     metadata_override_option,
     _space_separated_list_func_type,
+    guided_deploy_stack_name,
 )
 from samcli.commands._utils.template import get_template_parameters
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
@@ -47,10 +48,19 @@ CONFIG_SECTION = "parameters"
     help=HELP_TEXT,
 )
 @configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
+@click.option(
+    "--guided",
+    "-g",
+    required=False,
+    is_flag=True,
+    is_eager=True,
+    help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
+)
 @template_click_option(include_build=True)
 @click.option(
     "--stack-name",
-    required=True,
+    required=False,
+    callback=guided_deploy_stack_name,
     help="The name of the AWS CloudFormation stack you're deploying to. "
     "If you specify an existing stack, the command updates the stack. "
     "If you specify a new stack, the command creates it.",
@@ -120,14 +130,6 @@ CONFIG_SECTION = "parameters"
     is_flag=True,
     help="Indicates whether to use JSON as the format for "
     "the output AWS CloudFormation template. YAML is used by default.",
-)
-@click.option(
-    "--guided",
-    "-g",
-    required=False,
-    is_flag=True,
-    is_eager=True,
-    help="Specify this flag to allow SAM CLI to guide you through the deployment using guided prompts.",
 )
 @metadata_override_option
 @notification_arns_override_option
@@ -213,6 +215,7 @@ def do_cli(
     _parameter_overrides = None
     guided_stack_name = None
     guided_s3_bucket = None
+    guided_s3_prefix = None
     guided_region = None
 
     if guided:
@@ -221,7 +224,7 @@ def do_cli(
 
         _parameter_override_keys = get_template_parameters(template_file=template_file)
 
-        guided_stack_name, guided_s3_bucket, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
+        guided_stack_name, guided_s3_bucket, guided_s3_prefix, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
             stack_name, s3_bucket, region, profile, confirm_changeset, _parameter_override_keys, parameter_overrides
         )
 
@@ -230,6 +233,7 @@ def do_cli(
                 template_file,
                 stack_name=guided_stack_name,
                 s3_bucket=guided_s3_bucket,
+                s3_prefix=guided_s3_prefix,
                 region=guided_region,
                 profile=guided_profile,
                 confirm_changeset=changeset_decision,
@@ -251,7 +255,7 @@ def do_cli(
         with PackageContext(
             template_file=template_file,
             s3_bucket=guided_s3_bucket if guided else s3_bucket,
-            s3_prefix=s3_prefix,
+            s3_prefix=guided_s3_prefix if guided else s3_prefix,
             output_template_file=output_template_file.name,
             kms_key_id=kms_key_id,
             use_json=use_json,
@@ -268,7 +272,7 @@ def do_cli(
             stack_name=guided_stack_name if guided else stack_name,
             s3_bucket=guided_s3_bucket if guided else s3_bucket,
             force_upload=force_upload,
-            s3_prefix=s3_prefix,
+            s3_prefix=guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
             parameter_overrides=sanitize_parameter_overrides(_parameter_overrides) if guided else parameter_overrides,
             capabilities=_capabilities if guided else capabilities,
@@ -301,6 +305,7 @@ def guided_deploy(
     )
 
     stack_name = click.prompt(f"\t{start_bold}Stack Name{end_bold}", default=default_stack_name, type=click.STRING)
+    s3_prefix = stack_name
     region = click.prompt(f"\t{start_bold}AWS Region{end_bold}", default=default_region, type=click.STRING)
     input_parameter_overrides = prompt_parameters(parameter_override_keys, start_bold, end_bold)
 
@@ -327,6 +332,7 @@ def guided_deploy(
     return (
         stack_name,
         s3_bucket,
+        s3_prefix,
         region,
         profile,
         confirm_changeset,
@@ -347,11 +353,10 @@ def prompt_parameters(parameter_override_keys, start_bold, end_bold):
                 )
                 _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
             else:
+                # Make sure the default is casted to a string.
                 parameter = click.prompt(
                     f"\t{start_bold}Parameter {parameter_key}{end_bold}",
-                    default=_prompted_param_overrides.get(
-                        parameter_key, parameter_properties.get("Default", "No default specified")
-                    ),
+                    default=_prompted_param_overrides.get(parameter_key, str(parameter_properties.get("Default", ""))),
                     type=click.STRING,
                 )
                 _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}

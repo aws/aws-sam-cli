@@ -129,7 +129,6 @@ class Deployer:
         :param tags: Array of tags passed to CloudFormation
         :return:
         """
-
         if not self.has_stack(stack_name):
             changeset_type = "CREATE"
             # When creating a new stack, UsePreviousValue=True is invalid.
@@ -178,12 +177,16 @@ class Deployer:
             kwargs["RoleARN"] = role_arn
         if notification_arns is not None:
             kwargs["NotificationARNs"] = notification_arns
+        return self._create_change_set(stack_name=stack_name, changeset_type=changeset_type, **kwargs)
+
+    def _create_change_set(self, stack_name, changeset_type, **kwargs):
         try:
             resp = self._client.create_change_set(**kwargs)
             return resp, changeset_type
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
                 raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}")
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex))
 
         except Exception as ex:
             LOG.debug("Unable to create changeset", exc_info=ex)

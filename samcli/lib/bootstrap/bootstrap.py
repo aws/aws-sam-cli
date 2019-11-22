@@ -15,7 +15,7 @@ from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
 
-SAM_CLI_STACK_NAME = "aws-sam-cli-managed-stack"
+SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
 
 
 def manage_stack(profile, region):
@@ -119,6 +119,27 @@ def _get_stack_template():
           Tags:
             - Key: ManagedStackSource
               Value: AwsSamCli
+
+      SamCliSourceBucketBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+          Bucket: !Ref SamCliSourceBucket
+          PolicyDocument:
+            Statement:
+              -
+                Action:
+                  - "s3:GetObject"
+                Effect: "Allow"
+                Resource:
+                  Fn::Join:
+                    - ""
+                    -
+                      - "arn:aws:s3:::"
+                      -
+                        !Ref SamCliSourceBucket
+                      - "/*"
+                Principal:
+                  Service: serverlessrepo.amazonaws.com
 
     Outputs:
       SourceBucket:

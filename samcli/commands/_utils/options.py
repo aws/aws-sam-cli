@@ -13,6 +13,7 @@ from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
+DEFAULT_STACK_NAME = "sam-app"
 
 
 LOG = logging.getLogger(__name__)
@@ -54,6 +55,28 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         setattr(ctx, "samconfig_dir", os.path.dirname(original_template_path))
     LOG.debug("Using SAM Template at %s", result)
     return result
+
+
+def guided_deploy_stack_name(ctx, param, provided_value):
+    """
+    Provide a default value for stack name if invoked with a guided deploy.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, it would be the value provided by the user.
+    :return: Actual value to be used in the CLI
+    """
+
+    guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
+
+    if not guided and not provided_value:
+        raise click.BadOptionUsage(
+            option_name=param.name,
+            ctx=ctx,
+            message="Missing option '--stack-name', 'sam deploy –guided' can "
+            "be used to provide and save needed parameters for future deploys.",
+        )
+
+    return provided_value if provided_value else DEFAULT_STACK_NAME
 
 
 def template_common_option(f):
@@ -127,9 +150,9 @@ def parameter_override_click_option():
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
         default={},
-        help="Optional. A string that contains CloudFormation parameter overrides encoded as key=value "
-        "pairs. Use the same format as the AWS CLI, e.g. 'ParameterKey=KeyPairName,"
-        "ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro'",
+        help="Optional. A string that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
+        "For example, 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
+        "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
     )
 
 

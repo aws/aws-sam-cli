@@ -44,7 +44,7 @@ class TestBootstrapManagedStack(TestCase):
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
         }
-        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-stack"}
+        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
         stubber.add_response("create_change_set", ccs_resp, ccs_params)
         # describe change set creation status for waiter
         dcs_params = {"ChangeSetName": "InitialCreation", "StackName": SAM_CLI_STACK_NAME}
@@ -189,7 +189,7 @@ class TestBootstrapManagedStack(TestCase):
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
         }
-        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-stack"}
+        ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
         stubber.add_response("create_change_set", ccs_resp, ccs_params)
         # describe change set creation status for waiter
         dcs_params = {"ChangeSetName": "InitialCreation", "StackName": SAM_CLI_STACK_NAME}
