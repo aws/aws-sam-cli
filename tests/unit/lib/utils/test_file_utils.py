@@ -2,7 +2,7 @@ import os
 import tempfile
 from unittest import TestCase
 
-from samcli.lib.utils.file import remove, tempfile_platform_independent
+from samcli.lib.utils.temp_file_utils import remove, tempfile_platform_independent
 
 
 class TestFile(TestCase):
