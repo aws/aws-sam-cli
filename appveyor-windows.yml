@@ -75,7 +75,7 @@ test_script:
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
-    - "pytest -n 4 -vv tests/regression"
+    - "pytest -vv tests/regression"
 
 # Uncomment for RDP
 # on_finish:

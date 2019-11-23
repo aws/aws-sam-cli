@@ -122,7 +122,7 @@ for:
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"
-      - sh: "pytest -n 4 -vv tests/regression"
+      - sh: "pytest -vv tests/regression"
       - sh: "/tmp/black --check setup.py tests samcli scripts"
 
       # Set JAVA_HOME to java11
