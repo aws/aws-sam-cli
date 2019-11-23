@@ -630,10 +630,10 @@ class TestLayerVersion(InvokeIntegBase):
             process.kill()
             raise
 
-        process_stdout = stdout.split(os.linesep)[-1:].strip()
+        process_stdout = stdout.decode("utf-8").split(os.linesep)[-1].strip()
         expected_output = '"Layer1"'
 
-        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout, expected_output)
 
     @parameterized.expand([("ChangedLayerVersionServerlessFunction"), ("ChangedLayerVersionLambdaFunction")])
     def test_publish_changed_download_layer(self, function_logical_id):
@@ -656,10 +656,10 @@ class TestLayerVersion(InvokeIntegBase):
             process.kill()
             raise
 
-        process_stdout = stdout.split(os.linesep).strip()
+        process_stdout = stdout.decode("utf-8").split(os.linesep)[-1].strip()
         expected_output = '"Layer1"'
 
-        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout, expected_output)
 
         self.layer_utils.upsert_layer(
             layer_name=layer_name, ref_layer_name="ChangedLayerArn", layer_zip="changedlayer1.zip"
@@ -681,10 +681,10 @@ class TestLayerVersion(InvokeIntegBase):
             process.kill()
             raise
 
-        process_stdout = stdout.split(os.linesep).strip()
+        process_stdout = stdout.decode("utf-8").split(os.linesep)[-1].strip()
         expected_output = '"Changed_Layer_1"'
 
-        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout, expected_output)
 
     @parameterized.expand([("TwoLayerVersionServerlessFunction"), ("TwoLayerVersionLambdaFunction")])
     def test_download_two_layers(self, function_logical_id):
@@ -707,10 +707,10 @@ class TestLayerVersion(InvokeIntegBase):
 
         stdout = stdout
 
-        process_stdout = stdout.split(os.linesep).strip()
+        process_stdout = stdout.decode("utf-8").split(os.linesep)[-1].strip()
         expected_output = '"Layer2"'
 
-        self.assertEqual(process_stdout.decode("utf-8"), expected_output)
+        self.assertEqual(process_stdout, expected_output)
 
     def test_caching_two_layers(self):
 
