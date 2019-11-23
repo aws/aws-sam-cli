@@ -1,6 +1,8 @@
 import os
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 from unittest import TestCase
+
+TIMEOUT = 300
 
 
 class DeployRegressionBase(TestCase):
@@ -90,10 +92,18 @@ class DeployRegressionBase(TestCase):
 
         aws_command_list = self.get_deploy_command_list(base="aws", stack_name=aws_stack_name, **args)
         process = Popen(aws_command_list, stdout=PIPE)
-        process.wait()
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
         self.assertEqual(process.returncode, aws_return_code)
 
         sam_command_list = self.get_deploy_command_list(stack_name=sam_stack_name, **args)
         process = Popen(sam_command_list, stdout=PIPE)
-        process.wait()
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
         self.assertEqual(process.returncode, sam_return_code)

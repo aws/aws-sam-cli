@@ -2,7 +2,7 @@ import os
 import tempfile
 import uuid
 import time
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 from unittest import skipIf
 
 import boto3
@@ -16,6 +16,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # This is to restrict package tests to run outside of CI/CD and when the branch is not master.
 SKIP_DEPLOY_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
 CFN_SLEEP = 3
+TIMEOUT = 300
 # Only testing return codes to be equivalent
 
 
@@ -42,7 +43,11 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
         )
 
         package_process = Popen(package_command_list, stdout=PIPE)
-        package_process.wait()
+        try:
+            stdout, _ = package_process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            package_process.kill()
+            raise
         self.assertEqual(package_process.returncode, 0)
         return output_template_file.name
 
