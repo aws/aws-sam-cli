@@ -1,6 +1,7 @@
 import os
 import tempfile
 import uuid
+import time
 from subprocess import Popen, PIPE
 from unittest import skipIf
 
@@ -16,6 +17,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD and when the branch is not master.
 SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+CFN_SLEEP = 3
 
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
@@ -24,6 +26,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stack_names = []
+        time.sleep(CFN_SLEEP)
         super(TestDeploy, self).setUp()
 
     def tearDown(self):
