@@ -1,13 +1,6 @@
 import os
-import uuid
-import json
-import tempfile
-import time
-from pathlib import Path
 from subprocess import Popen, PIPE
 from unittest import TestCase
-
-import boto3
 
 
 class DeployRegressionBase(TestCase):
