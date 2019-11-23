@@ -8,6 +8,7 @@ from samcli.lib.utils.temp_file_utils import remove, tempfile_platform_independe
 class TestFile(TestCase):
     def test_file_remove(self):
         _file = tempfile.NamedTemporaryFile(delete=False)
+        _file.close()
         remove(_file.name)
         self.assertFalse(os.path.exists(_file.name))
         # No Exception thrown
