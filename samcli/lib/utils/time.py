@@ -65,6 +65,16 @@ def to_timestamp(some_time):
     return int((some_time - datetime.datetime(1970, 1, 1)).total_seconds() * 1000.0)
 
 
+def utc_to_timestamp(utc):
+    """
+    Converts utc timestamp with tz_info set to utc to Unix timestamp
+    :param utc: datetime.datetime
+    :return: UNIX timestamp
+    """
+
+    return to_timestamp(utc.replace(tzinfo=None))
+
+
 def to_utc(some_time):
     """
     Convert the given date to UTC, if the date contains a timezone.

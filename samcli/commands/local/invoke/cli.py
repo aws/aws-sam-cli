@@ -8,6 +8,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 LOG = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ STDIN_FILE_NAME = "-"
 
 
 @click.command("invoke", help=HELP_TEXT, short_help="Invokes a local Lambda function once.")
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--event",
     "-e",
@@ -47,7 +49,7 @@ STDIN_FILE_NAME = "-"
 def cli(
     ctx,
     function_identifier,
-    template,
+    template_file,
     event,
     no_event,
     env_vars,
@@ -68,7 +70,7 @@ def cli(
     do_cli(
         ctx,
         function_identifier,
-        template,
+        template_file,
         event,
         no_event,
         env_vars,
