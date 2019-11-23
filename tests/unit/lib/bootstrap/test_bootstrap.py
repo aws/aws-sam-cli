@@ -6,6 +6,7 @@ import botocore.session
 from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError
 from botocore.stub import Stubber
 
+from samcli.commands.bootstrap.exceptions import ManagedStackError
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 from samcli.lib.bootstrap.bootstrap import manage_stack, _create_or_get_stack, _get_stack_template, SAM_CLI_STACK_NAME
 
@@ -171,7 +172,7 @@ class TestBootstrapManagedStack(TestCase):
         }
         stubber.add_client_error("create_change_set", service_error_code="ClientError", expected_params=ccs_params)
         stubber.activate()
-        with self.assertRaises(ClientError):
+        with self.assertRaises(ManagedStackError):
             _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
@@ -201,7 +202,7 @@ class TestBootstrapManagedStack(TestCase):
             "execute_change_set", service_error_code="InsufficientCapabilities", expected_params=ecs_params
         )
         stubber.activate()
-        with self.assertRaises(ClientError):
+        with self.assertRaises(ManagedStackError):
             _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()
