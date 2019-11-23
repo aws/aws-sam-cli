@@ -3,7 +3,6 @@ import json
 import uuid
 import shutil
 import tempfile
-import time
 from unittest import TestCase
 
 import boto3
@@ -14,25 +13,17 @@ class PublishAppIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.bucket_name = str(uuid.uuid4())
+        cls.bucket_name = os.environ.get("AWS_S3")
         cls.bucket_name_placeholder = "<bucket-name>"
         cls.application_name_placeholder = "<application-name>"
         cls.temp_dir = Path(tempfile.mkdtemp())
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "publish")
         cls.sar_client = boto3.client("serverlessrepo", region_name=cls.region_name)
 
-        # Create S3 bucket
+        # Intialize S3 client
         s3 = boto3.resource("s3")
+        # Use a pre-created S3 Bucket
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
-        cls.s3_bucket.create()
-
-        # Given 3 seconds for all the bucket creation to complete
-        time.sleep(3)
-
-        # Grant serverlessrepo read access to the bucket
-        bucket_policy_template = cls.test_data_path.joinpath("s3_bucket_policy.json").read_text(encoding="utf-8")
-        bucket_policy = bucket_policy_template.replace(cls.bucket_name_placeholder, cls.bucket_name)
-        cls.s3_bucket.Policy().put(Policy=bucket_policy)
 
         # Upload test files to S3
         root_path = Path(__file__).resolve().parents[3]
@@ -53,7 +44,6 @@ class PublishAppIntegBase(TestCase):
                 "Objects": [{"Key": "LICENSE"}, {"Key": "README.md"}, {"Key": "README_UPDATE.md"}, {"Key": "main.py"}]
             }
         )
-        cls.s3_bucket.delete()
 
     @classmethod
     def replace_template_placeholder(cls, placeholder, replace_text):

@@ -1,7 +1,5 @@
 import os
-import uuid
 import json
-import time
 from pathlib import Path
 from unittest import TestCase
 
@@ -12,18 +10,15 @@ class PackageIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.bucket_name = str(uuid.uuid4())
+        cls.bucket_name = os.environ.get("AWS_S3")
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "package")
 
-        # Create S3 bucket
+        # Intialize S3 client
         s3 = boto3.resource("s3")
         # Use a pre-created KMS Key
         cls.kms_key = os.environ.get("AWS_KMS_KEY")
+        # Use a pre-created S3 Bucket
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
-        cls.s3_bucket.create()
-
-        # Given 3 seconds for all the bucket creation to complete
-        time.sleep(3)
 
     def setUp(self):
         super(PackageIntegBase, self).setUp()
@@ -34,7 +29,6 @@ class PackageIntegBase(TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.s3_bucket.objects.all().delete()
-        cls.s3_bucket.delete()
 
     def base_command(self):
         command = "sam"

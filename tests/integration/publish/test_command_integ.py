@@ -87,6 +87,8 @@ class TestPublishNewApp(PublishAppIntegBase):
     def setUp(self):
         super(TestPublishNewApp, self).setUp()
         self.application_id = None
+        # Sleep for a little bit to make server happy
+        time.sleep(2)
 
     def tearDown(self):
         super(TestPublishNewApp, self).tearDown()
