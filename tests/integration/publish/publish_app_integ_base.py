@@ -26,6 +26,9 @@ class PublishAppIntegBase(TestCase):
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
         cls.s3_bucket.create()
 
+        # Given 3 seconds for all the bucket creation to complete
+        time.sleep(3)
+
         # Grant serverlessrepo read access to the bucket
         bucket_policy_template = cls.test_data_path.joinpath("s3_bucket_policy.json").read_text(encoding="utf-8")
         bucket_policy = bucket_policy_template.replace(cls.bucket_name_placeholder, cls.bucket_name)
@@ -42,9 +45,6 @@ class PublishAppIntegBase(TestCase):
 
         code_body = cls.test_data_path.joinpath("main.py").read_text(encoding="utf-8")
         cls.s3_bucket.put_object(Key="main.py", Body=code_body)
-
-        # Given 3 seconds for all the bucket creation to complete
-        time.sleep(3)
 
     @classmethod
     def tearDownClass(cls):
