@@ -199,7 +199,7 @@ class Container:
         real_container = self.docker_client.containers.get(self.id)
 
         # Fetch both stdout and stderr streams from Docker as a single iterator.
-        logs_itr = real_container.attach(stream=True, logs=False, demux=True)
+        logs_itr = real_container.attach(stream=True, logs=True, demux=True)
 
         self._write_container_output(logs_itr, stdout=stdout, stderr=stderr)
 

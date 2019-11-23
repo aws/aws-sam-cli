@@ -55,4 +55,6 @@ install:
 test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java_in_process"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java8_in_process"
+    - "SET JAVA_HOME=C:\\Program Files\\Java\\jdk11"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"

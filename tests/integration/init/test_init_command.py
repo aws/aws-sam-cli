@@ -116,7 +116,7 @@ class TestBasicInitCommand(TestCase):
                     "--name",
                     "sam-app-maven",
                     "--no-interactive",
-                    "--extra_context",
+                    "--extra-context",
                     '{"schema_name": "codedeploy", "schema_type": "aws"}',
                     "-o",
                     temp,

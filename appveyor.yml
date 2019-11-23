@@ -13,12 +13,14 @@ environment:
       PYTHON_VERSION: '3.6.8'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
+      INSTALL_PY_37_PIP: 1
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
+      INSTALL_PY_36_PIP: 1
 
 for:
   - 
@@ -98,6 +100,25 @@ for:
       - sh: "./aws_cli/bin/python -m pip install awscli"
       - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
 
+      - sh: "sudo apt-get -y install python3.6"
+      - sh: "sudo apt-get -y install python2.7"
+      - sh: "sudo apt-get -y install python3.7"
+      - sh: "sudo apt-get update"
+      - sh: "sudo apt-get -y install python3.8"
+
+      - sh: "which python3.8"
+      - sh: "which python3.6"
+      - sh: "which python3.7"
+      - sh: "which python2.7"
+
+      - sh: "PATH=$PATH:/usr/bin/python3.8:/usr/bin/python3.7"
+      - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
+
+      - sh: "sudo apt-get -y install python3-distutils"
+      - sh: "python3.8 get-pip.py --user"
+      - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
+      - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
+
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
       - "pip install -e \".[dev]\""
@@ -113,7 +134,10 @@ for:
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv -n 4 tests/regression"
       - sh: "/tmp/black --check setup.py tests samcli scripts"
-      - sh: "python scripts/check-isolated-needs-update.py"
+
+      # Set JAVA_HOME to java11
+      - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests

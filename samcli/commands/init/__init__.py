@@ -92,7 +92,7 @@ Common usage:
     help="Disable Cookiecutter prompting and accept default values defined template config",
 )
 @click.option(
-    "--extra_context",
+    "--extra-context",
     default=None,
     help="Override any custom parameters in the template's cookiecutter.json configuration e.g. "
     ""
