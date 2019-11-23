@@ -2,18 +2,22 @@ import os
 import json
 import uuid
 import shutil
+import time
 import tempfile
 from unittest import TestCase
 
 import boto3
 from pathlib import Path
 
+S3_SLEEP = 3
+
 
 class PublishAppIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.bucket_name = os.environ.get("AWS_S3")
+        cls.pre_created_bucket = os.environ.get("AWS_S3", False)
+        cls.bucket_name = cls.pre_created_bucket if cls.pre_created_bucket else str(uuid.uuid4())
         cls.bucket_name_placeholder = "<bucket-name>"
         cls.application_name_placeholder = "<application-name>"
         cls.temp_dir = Path(tempfile.mkdtemp())
@@ -22,8 +26,18 @@ class PublishAppIntegBase(TestCase):
 
         # Intialize S3 client
         s3 = boto3.resource("s3")
-        # Use a pre-created S3 Bucket
+        # Use a pre-created S3 Bucket if present else create a new one
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
+        if not cls.pre_created_bucket:
+            cls.s3_bucket.create()
+            # Wait for bucket to be created.
+            time.sleep(S3_SLEEP)
+            # Grant serverlessrepo read access to the bucket
+            bucket_policy_template = cls.test_data_path.joinpath("s3_bucket_policy.json").read_text(encoding="utf-8")
+            bucket_policy = bucket_policy_template.replace(cls.bucket_name_placeholder, cls.bucket_name)
+            cls.s3_bucket.Policy().put(Policy=bucket_policy)
+            # Wait for bucket policy to be applied.
+            time.sleep(S3_SLEEP)
 
         # Upload test files to S3
         root_path = Path(__file__).resolve().parents[3]
@@ -44,6 +58,8 @@ class PublishAppIntegBase(TestCase):
                 "Objects": [{"Key": "LICENSE"}, {"Key": "README.md"}, {"Key": "README_UPDATE.md"}, {"Key": "main.py"}]
             }
         )
+        if not cls.pre_created_bucket:
+            cls.s3_bucket.delete()
 
     @classmethod
     def replace_template_placeholder(cls, placeholder, replace_text):

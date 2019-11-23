@@ -1,28 +1,38 @@
 import os
 import json
+import time
 import tempfile
+import uuid
 from pathlib import Path
 from subprocess import Popen, PIPE
 from unittest import TestCase
 
 import boto3
 
+S3_SLEEP = 3
+
 
 class PackageRegressionBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.bucket_name = os.environ.get("AWS_S3")
+        cls.pre_created_bucket = os.environ.get("AWS_S3", False)
+        cls.bucket_name = cls.pre_created_bucket if cls.pre_created_bucket else str(uuid.uuid4())
         cls.test_data_path = Path(__file__).resolve().parents[2].joinpath("integration", "testdata", "package")
 
         # Intialize S3 client
         s3 = boto3.resource("s3")
-        # Use a pre-created S3 Bucket
+        # Use a pre-created S3 Bucket if present else create a new one
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
+        if not cls.pre_created_bucket:
+            cls.s3_bucket.create()
+            time.sleep(S3_SLEEP)
 
     @classmethod
     def tearDownClass(cls):
         cls.s3_bucket.objects.all().delete()
+        if not cls.pre_created_bucket:
+            cls.s3_bucket.delete()
 
     def base_command(self, base):
         command = [base]
