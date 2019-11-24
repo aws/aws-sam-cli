@@ -1,7 +1,9 @@
 from unittest import TestCase
-from subprocess import Popen
+from subprocess import Popen, TimeoutExpired
 import os
 import tempfile
+
+TIMEOUT = 300
 
 
 class TestBasicInitCommand(TestCase):
@@ -24,9 +26,13 @@ class TestBasicInitCommand(TestCase):
                     temp,
                 ]
             )
-            return_code = process.wait()
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
 
-            self.assertEqual(return_code, 0)
+            self.assertEqual(process.returncode, 0)
             self.assertTrue(os.path.isdir(temp + "/sam-app"))
 
     def test_init_new_app_template(self):
@@ -48,9 +54,13 @@ class TestBasicInitCommand(TestCase):
                     temp,
                 ]
             )
-            return_code = process.wait()
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
 
-            self.assertEqual(return_code, 0)
+            self.assertEqual(process.returncode, 0)
             self.assertTrue(os.path.isdir(temp + "/qs-scratch"))
 
     def test_init_command_java_maven(self):
@@ -72,9 +82,13 @@ class TestBasicInitCommand(TestCase):
                     temp,
                 ]
             )
-            return_code = process.wait()
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
 
-            self.assertEqual(return_code, 0)
+            self.assertEqual(process.returncode, 0)
             self.assertTrue(os.path.isdir(temp + "/sam-app-maven"))
 
     def test_init_command_java_gradle(self):
@@ -96,9 +110,13 @@ class TestBasicInitCommand(TestCase):
                     temp,
                 ]
             )
-            return_code = process.wait()
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
 
-            self.assertEqual(return_code, 0)
+            self.assertEqual(process.returncode, 0)
             self.assertTrue(os.path.isdir(temp + "/sam-app-gradle"))
 
     def test_init_command_with_extra_context_parameter(self):
@@ -122,9 +140,13 @@ class TestBasicInitCommand(TestCase):
                     temp,
                 ]
             )
-            return_code = process.wait()
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
 
-            self.assertEqual(return_code, 0)
+            self.assertEqual(process.returncode, 0)
             self.assertTrue(os.path.isdir(temp + "/sam-app-maven"))
 
     @staticmethod

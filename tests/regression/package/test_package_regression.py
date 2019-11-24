@@ -1,6 +1,3 @@
-from subprocess import Popen, PIPE
-import tempfile
-
 from unittest import skipIf
 from parameterized import parameterized
 

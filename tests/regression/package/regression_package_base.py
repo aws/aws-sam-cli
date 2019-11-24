@@ -4,12 +4,13 @@ import time
 import tempfile
 import uuid
 from pathlib import Path
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 from unittest import TestCase
 
 import boto3
 
 S3_SLEEP = 3
+TIMEOUT = 300
 
 
 class PackageRegressionBase(TestCase):
@@ -85,7 +86,11 @@ class PackageRegressionBase(TestCase):
         with tempfile.NamedTemporaryFile(delete=False) as output_template_file_sam:
             sam_command_list = self.get_command_list(output_template_file=output_template_file_sam.name, **args)
             process = Popen(sam_command_list, stdout=PIPE)
-            process.wait()
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
             self.assertEqual(process.returncode, 0)
             output_sam = output_template_file_sam.read()
 
@@ -94,7 +99,11 @@ class PackageRegressionBase(TestCase):
                 base="aws", output_template_file=output_template_file_aws.name, **args
             )
             process = Popen(aws_command_list, stdout=PIPE)
-            process.wait()
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
             self.assertEqual(process.returncode, 0)
             output_aws = output_template_file_aws.read()
 
