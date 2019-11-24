@@ -61,18 +61,8 @@ for:
       - "pylint --rcfile .pylintrc samcli"
       # There are some functional tests that are currently broken due to not being updated with changed code or still running with node4.3 runtimes
       # We need to update those but this allows us to at least runs the ones we currently have working
-      - "pytest tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py"
+      - "pytest -n 4 tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py"
 
-      # Runs only in Linux
-      - sh: "pytest -vv tests/integration"
-      - sh: "/tmp/black --check setup.py tests samcli scripts"
-      - sh: "python scripts/check-isolated-needs-update.py"
-
-      # Smoke tests run in parallel - it runs on both Linux & Windows
-      # Presence of the RUN_SMOKE envvar will run the smoke tests
-      # Note: temporarily removing as with current dependencies we require syslog on windows
-      # which is not present on stdlib.
-      # - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
   - 
     matrix:
       only:
@@ -128,11 +118,11 @@ for:
       - "pylint --rcfile .pylintrc samcli"
       # There are some functional tests that are currently broken due to not being updated with changed code or still running with node4.3 runtimes
       # We need to update those but this allows us to at least runs the ones we currently have working
-      - "pytest tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py"
+      - "pytest -n 4 tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py"
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"
-      - sh: "pytest -vv -n 4 tests/regression"
+      - sh: "pytest -vv tests/regression"
       - sh: "/tmp/black --check setup.py tests samcli scripts"
 
       # Set JAVA_HOME to java11
@@ -142,13 +132,3 @@ for:
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
       - ps: "If ($env:RUN_SMOKE) {pytest -n 4 -vv tests/smoke}"
-  
-  - 
-    matrix:
-      only:
-        - ONLY_SMOKE: 1
-
-    test_script:
-      # Smoke tests run in parallel
-      - sh: "venv/Scripts/activate"
-      - sh: "pytest -n 4 -vv tests/smoke"

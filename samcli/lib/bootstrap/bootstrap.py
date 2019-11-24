@@ -3,19 +3,23 @@ Bootstrap's user's development environment by creating cloud resources required 
 """
 
 import json
+import logging
+
 import boto3
 
 import click
 
 from botocore.config import Config
-from botocore.exceptions import ClientError, NoRegionError, NoCredentialsError
+from botocore.exceptions import ClientError, BotoCoreError, NoRegionError, NoCredentialsError
 
+from samcli.commands.bootstrap.exceptions import ManagedStackError
 from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
 
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
+LOG = logging.getLogger(__name__)
 
 
 def manage_stack(profile, region):
@@ -34,46 +38,50 @@ def manage_stack(profile, region):
 
 
 def _create_or_get_stack(cloudformation_client):
-    stack = None
     try:
-        ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
-        stacks = ds_resp["Stacks"]
-        stack = stacks[0]
-        click.echo("\n\tLooking for resources needed for deployment: Found!")
-    except ClientError:
-        click.echo("\n\tLooking for resources needed for deployment: Not found.")
-        stack = _create_stack(cloudformation_client)  # exceptions are not captured from subcommands
-    # Sanity check for non-none stack? Sanity check for tag?
-    tags = stack["Tags"]
-    try:
-        sam_cli_tag = next(t for t in tags if t["Key"] == "ManagedStackSource")
-        if not sam_cli_tag["Value"] == "AwsSamCli":
+        stack = None
+        try:
+            ds_resp = cloudformation_client.describe_stacks(StackName=SAM_CLI_STACK_NAME)
+            stacks = ds_resp["Stacks"]
+            stack = stacks[0]
+            click.echo("\n\tLooking for resources needed for deployment: Found!")
+        except ClientError:
+            click.echo("\n\tLooking for resources needed for deployment: Not found.")
+            stack = _create_stack(cloudformation_client)  # exceptions are not captured from subcommands
+        # Sanity check for non-none stack? Sanity check for tag?
+        tags = stack["Tags"]
+        try:
+            sam_cli_tag = next(t for t in tags if t["Key"] == "ManagedStackSource")
+            if not sam_cli_tag["Value"] == "AwsSamCli":
+                msg = (
+                    "Stack "
+                    + SAM_CLI_STACK_NAME
+                    + " ManagedStackSource tag shows "
+                    + sam_cli_tag["Value"]
+                    + " which does not match the AWS SAM CLI generated tag value of AwsSamCli. "
+                    "Failing as the stack was likely not created by the AWS SAM CLI."
+                )
+                raise UserException(msg)
+        except StopIteration:
             msg = (
-                "Stack "
-                + SAM_CLI_STACK_NAME
-                + " ManagedStackSource tag shows "
-                + sam_cli_tag["Value"]
-                + " which does not match the AWS SAM CLI generated tag value of AwsSamCli. "
+                "Stack  " + SAM_CLI_STACK_NAME + " exists, but the ManagedStackSource tag is missing. "
                 "Failing as the stack was likely not created by the AWS SAM CLI."
             )
             raise UserException(msg)
-    except StopIteration:
-        msg = (
-            "Stack  " + SAM_CLI_STACK_NAME + " exists, but the ManagedStackSource tag is missing. "
-            "Failing as the stack was likely not created by the AWS SAM CLI."
-        )
-        raise UserException(msg)
-    outputs = stack["Outputs"]
-    try:
-        bucket_name = next(o for o in outputs if o["OutputKey"] == "SourceBucket")["OutputValue"]
-    except StopIteration:
-        msg = (
-            "Stack " + SAM_CLI_STACK_NAME + " exists, but is missing the managed source bucket key. "
-            "Failing as this stack was likely not created by the AWS SAM CLI."
-        )
-        raise UserException(msg)
-    # This bucket name is what we would write to a config file
-    return bucket_name
+        outputs = stack["Outputs"]
+        try:
+            bucket_name = next(o for o in outputs if o["OutputKey"] == "SourceBucket")["OutputValue"]
+        except StopIteration:
+            msg = (
+                "Stack " + SAM_CLI_STACK_NAME + " exists, but is missing the managed source bucket key. "
+                "Failing as this stack was likely not created by the AWS SAM CLI."
+            )
+            raise UserException(msg)
+        # This bucket name is what we would write to a config file
+        return bucket_name
+    except (ClientError, BotoCoreError) as ex:
+        LOG.debug("Failed to create managed resources", exc_info=ex)
+        raise ManagedStackError(str(ex))
 
 
 def _create_stack(cloudformation_client):

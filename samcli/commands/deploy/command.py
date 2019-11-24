@@ -2,12 +2,12 @@
 CLI command for "deploy" command
 """
 import json
-import tempfile
 import logging
 
 import click
 from click.types import FuncParamType
 
+from samcli.lib.utils import temp_file_utils
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.context import get_cmd_names
 from samcli.cli.main import pass_context, common_options, aws_creds_options
@@ -256,7 +256,7 @@ def do_cli(
         confirm_changeset=changeset_decision if guided else confirm_changeset,
     )
 
-    with tempfile.NamedTemporaryFile() as output_template_file:
+    with temp_file_utils.tempfile_platform_independent() as output_template_file:
 
         with PackageContext(
             template_file=template_file,
@@ -436,7 +436,11 @@ def save_config(template_file, parameter_overrides, **kwargs):
     click.echo(f"\n\tSaved arguments to config file")
     click.echo("\tRunning 'sam deploy' for future deployments will use the parameters saved above.")
     click.echo("\tThe above parameters can be changed by modifying samconfig.toml")
-    click.echo("\tLearn more about samconfig.toml syntax http://url")
+    click.echo(
+        "\tLearn more about samconfig.toml syntax at "
+        "\n\thttps://docs.aws.amazon.com/serverless-application-model/latest/"
+        "developerguide/serverless-sam-cli-config.html"
+    )
 
 
 def get_config_ctx(template_file):

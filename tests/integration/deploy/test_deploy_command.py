@@ -1,7 +1,8 @@
 import os
 import tempfile
 import uuid
-from subprocess import Popen, PIPE
+import time
+from subprocess import Popen, PIPE, TimeoutExpired
 from unittest import skipIf
 
 import boto3
@@ -16,6 +17,8 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD and when the branch is not master.
 SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+CFN_SLEEP = 3
+TIMEOUT = 300
 
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
@@ -24,6 +27,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stack_names = []
+        time.sleep(CFN_SLEEP)
         super(TestDeploy, self).setUp()
 
     def tearDown(self):
@@ -41,7 +45,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             )
 
             package_process = Popen(package_command_list, stdout=PIPE)
-            package_process.wait()
+            try:
+                package_process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                package_process.kill()
+                raise
 
             self.assertEqual(package_process.returncode, 0)
 
@@ -64,7 +72,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             )
 
             deploy_process_no_execute = Popen(deploy_command_list_no_execute, stdout=PIPE)
-            deploy_process_no_execute.wait()
+            try:
+                deploy_process_no_execute.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                deploy_process_no_execute.kill()
+                raise
             self.assertEqual(deploy_process_no_execute.returncode, 0)
 
             # Deploy the given stack with the changeset.
@@ -81,7 +93,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             )
 
             deploy_process = Popen(deploy_command_list_execute, stdout=PIPE)
-            deploy_process.wait()
+            try:
+                deploy_process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                deploy_process.kill()
+                raise
             self.assertEqual(deploy_process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -108,7 +124,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE)
-        deploy_process_execute.wait()
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
         self.assertEqual(deploy_process_execute.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -135,7 +155,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
-        deploy_process_execute.communicate("Y".encode())
+        deploy_process_execute.communicate("Y".encode(), timeout=TIMEOUT)
         self.assertEqual(deploy_process_execute.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -160,10 +180,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
-        deploy_process_execute.wait()
+        try:
+            _, stderr = deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
         # Error asking for s3 bucket
         self.assertEqual(deploy_process_execute.returncode, 1)
-        stderr = b"".join(deploy_process_execute.stderr.readlines()).strip()
+        stderr = stderr.strip()
         self.assertIn(
             bytes(
                 f"S3 Bucket not specified, use --s3-bucket to specify a bucket name or run sam deploy --guided",
@@ -191,7 +215,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
-        deploy_process_execute.wait()
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
         # Error no stack name present
         self.assertEqual(deploy_process_execute.returncode, 2)
 
@@ -216,7 +244,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
-        deploy_process_execute.wait()
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
         # Error capabilities not specified
         self.assertEqual(deploy_process_execute.returncode, 1)
 
@@ -238,7 +270,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
-        deploy_process_execute.wait()
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
         # Error template file not specified
         self.assertEqual(deploy_process_execute.returncode, 1)
 
@@ -265,7 +301,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE)
-        deploy_process_execute.wait()
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.returncode, 0)
 
@@ -287,10 +327,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
-        deploy_process_execute.wait()
+        try:
+            _, stderr = deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
         # Deploy should fail, asking for s3 bucket
         self.assertEqual(deploy_process_execute.returncode, 1)
-        stderr = b"".join(deploy_process_execute.stderr.readlines()).strip()
+        stderr = stderr.strip()
         self.assertIn(
             bytes(
                 f"Error: Failed to create/update stack {stack_name} : "

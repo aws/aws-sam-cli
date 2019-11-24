@@ -1,7 +1,8 @@
 import os
 import tempfile
 import uuid
-from subprocess import Popen, PIPE
+import time
+from subprocess import Popen, PIPE, TimeoutExpired
 from unittest import skipIf
 
 import boto3
@@ -14,7 +15,8 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # Package Regression tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD and when the branch is not master.
 SKIP_DEPLOY_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
-
+CFN_SLEEP = 3
+TIMEOUT = 300
 # Only testing return codes to be equivalent
 
 
@@ -25,6 +27,7 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
         self.kms_key = os.environ.get("AWS_KMS_KEY")
         self.stack_names = []
         self.cf_client = boto3.client("cloudformation")
+        time.sleep(CFN_SLEEP)
         super(TestDeployRegression, self).setUp()
 
     def tearDown(self):
@@ -40,7 +43,11 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
         )
 
         package_process = Popen(package_command_list, stdout=PIPE)
-        package_process.wait()
+        try:
+            stdout, _ = package_process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            package_process.kill()
+            raise
         self.assertEqual(package_process.returncode, 0)
         return output_template_file.name
 
