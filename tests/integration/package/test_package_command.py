@@ -1,4 +1,4 @@
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 import tempfile
 
 from unittest import skipIf
@@ -10,6 +10,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD and when the branch is not master.
 SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+TIMEOUT = 300
 
 
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
@@ -26,8 +27,12 @@ class TestPackage(PackageIntegBase):
         command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template=template_path)
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
 
@@ -54,8 +59,12 @@ class TestPackage(PackageIntegBase):
         command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template_file=template_path)
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
 
@@ -63,7 +72,11 @@ class TestPackage(PackageIntegBase):
         command_list = self.get_command_list()
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
         self.assertNotEqual(process.returncode, 0)
 
     @parameterized.expand(
@@ -92,8 +105,12 @@ class TestPackage(PackageIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))
 
@@ -131,8 +148,12 @@ class TestPackage(PackageIntegBase):
             )
 
             process = Popen(command_list, stdout=PIPE)
-            process.wait()
-            process_stdout = b"".join(process.stdout.readlines()).strip()
+            try:
+                stdout, _ = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stdout = stdout.strip()
 
             self.assertIn(
                 bytes(
@@ -177,8 +198,12 @@ class TestPackage(PackageIntegBase):
             )
 
             process = Popen(command_list, stdout=PIPE)
-            process.wait()
-            process_stdout = b"".join(process.stdout.readlines()).strip()
+            try:
+                stdout, _ = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stdout = stdout.strip()
 
             self.assertIn(
                 bytes(
@@ -225,8 +250,12 @@ class TestPackage(PackageIntegBase):
                 )
 
                 process = Popen(command_list, stdout=PIPE)
-                process.wait()
-                process_stdout = b"".join(process.stdout.readlines()).strip()
+                try:
+                    stdout, _ = process.communicate(timeout=TIMEOUT)
+                except TimeoutExpired:
+                    process.kill()
+                    raise
+                process_stdout = stdout.strip()
 
                 self.assertIn(
                     bytes(
@@ -271,8 +300,12 @@ class TestPackage(PackageIntegBase):
             )
 
             process = Popen(command_list, stdout=PIPE)
-            process.wait()
-            process_stdout = b"".join(process.stdout.readlines()).strip()
+            try:
+                stdout, _ = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stdout = stdout.strip()
 
             self.assertIn(
                 bytes(
@@ -317,8 +350,12 @@ class TestPackage(PackageIntegBase):
             )
 
             process = Popen(command_list, stdout=PIPE)
-            process.wait()
-            process_stdout = b"".join(process.stdout.readlines()).strip()
+            try:
+                stdout, _ = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stdout = stdout.strip()
 
             self.assertIn(
                 bytes(

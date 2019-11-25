@@ -146,3 +146,42 @@ class Context:
             boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)
         except botocore.exceptions.ProfileNotFound as ex:
             raise CredentialsError(str(ex))
+
+
+def get_cmd_names(cmd_name, ctx):
+    """
+    Given the click core context, return a list representing all the subcommands passed to the CLI
+
+    Parameters
+    ----------
+    cmd_name : name of current command
+
+    ctx : click.Context
+
+    Returns
+    -------
+    list(str)
+        List containing subcommand names. Ex: ["local", "start-api"]
+
+    """
+    if not ctx:
+        return []
+
+    if ctx and not getattr(ctx, "parent", None):
+        return [ctx.info_name]
+    # Find parent of current context
+    _parent = ctx.parent
+    _cmd_names = []
+    # Need to find the total set of commands that current command is part of.
+    if cmd_name != ctx.info_name:
+        _cmd_names = [cmd_name]
+    _cmd_names.append(ctx.info_name)
+    # Go through all parents till a parent of a context exists.
+    while _parent.parent:
+        info_name = _parent.info_name
+        _cmd_names.append(info_name)
+        _parent = _parent.parent
+
+    # Make sure the output reads natural. Ex: ["local", "start-api"]
+    _cmd_names.reverse()
+    return _cmd_names

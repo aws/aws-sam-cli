@@ -133,12 +133,14 @@ N
         # 2: gradle as the dependency manager
         # test-project: response to name
         # N: Don't clone/update the source repo
+        # 1: first app template
         user_input = """
 1
 5
 2
 test-project
 N
+1
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)

@@ -1,35 +1,44 @@
 import os
 import uuid
 import json
-import tempfile
 import time
 from pathlib import Path
 from unittest import TestCase
 
 import boto3
 
+S3_SLEEP = 3
+
 
 class PackageIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.bucket_name = str(uuid.uuid4())
+        cls.pre_created_bucket = os.environ.get("AWS_S3", False)
+        cls.bucket_name = cls.pre_created_bucket if cls.pre_created_bucket else str(uuid.uuid4())
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "package")
 
-        # Create S3 bucket
+        # Intialize S3 client
         s3 = boto3.resource("s3")
         # Use a pre-created KMS Key
         cls.kms_key = os.environ.get("AWS_KMS_KEY")
+        # Use a pre-created S3 Bucket if present else create a new one
         cls.s3_bucket = s3.Bucket(cls.bucket_name)
-        cls.s3_bucket.create()
+        if not cls.pre_created_bucket:
+            cls.s3_bucket.create()
+            time.sleep(S3_SLEEP)
 
-        # Given 3 seconds for all the bucket creation to complete
-        time.sleep(3)
+    def setUp(self):
+        super(PackageIntegBase, self).setUp()
+
+    def tearDown(self):
+        super(PackageIntegBase, self).tearDown()
 
     @classmethod
     def tearDownClass(cls):
         cls.s3_bucket.objects.all().delete()
-        cls.s3_bucket.delete()
+        if not cls.pre_created_bucket:
+            cls.s3_bucket.delete()
 
     def base_command(self):
         command = "sam"

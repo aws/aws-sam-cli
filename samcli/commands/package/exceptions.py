@@ -72,3 +72,21 @@ class PackageFailedError(UserException):
         super(PackageFailedError, self).__init__(
             message=message_fmt.format(template_file=self.template_file, ex=self.ex)
         )
+
+
+class NoSuchBucketError(UserException):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+        message_fmt = "\nS3 Bucket does not exist."
+
+        super(NoSuchBucketError, self).__init__(message=message_fmt.format(**self.kwargs))
+
+
+class BucketNotSpecifiedError(UserException):
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+        message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name or run sam deploy --guided"
+
+        super(BucketNotSpecifiedError, self).__init__(message=message_fmt.format(**self.kwargs))

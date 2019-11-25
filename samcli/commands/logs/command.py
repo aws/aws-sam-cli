@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 
 
 @click.command("logs", help=HELP_TEXT, short_help="Fetch logs for a function")
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--name",
     "-n",
