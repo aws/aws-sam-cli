@@ -18,7 +18,7 @@ class LocalApiService:
     Lambda function.
     """
 
-    def __init__(self, lambda_invoke_context, port, host, static_dir):
+    def __init__(self, lambda_invoke_context, port, host, static_dir, base_dir):
         """
         Initialize the local API service.
 
@@ -32,8 +32,9 @@ class LocalApiService:
         self.port = port
         self.host = host
         self.static_dir = static_dir
+        self.base_dir = base_dir
 
-        self.cwd = lambda_invoke_context.get_cwd()
+        self.cwd = self.base_dir or lambda_invoke_context.get_cwd()
         self.api_provider = ApiProvider(
             lambda_invoke_context.template, parameter_overrides=lambda_invoke_context.parameter_overrides, cwd=self.cwd
         )
