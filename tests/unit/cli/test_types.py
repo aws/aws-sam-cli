@@ -61,6 +61,34 @@ class TestCfnParameterOverridesType(TestCase):
                 {"Key": "=-_)(*&^%$#@!`~:;,.", "Key2": "Value2"},
             ),
             (('ParameterKey=Key1230,ParameterValue="{\\"a\\":\\"b\\"}"',), {"Key1230": '{"a":"b"}'}),
+            (('Key=Key1230 Value="{\\"a\\":\\"b\\"}"',), {"Key": "Key1230", "Value": '{"a":"b"}'}),
+            (
+                (
+                    'Key=Key1230 Value="{\\"a\\":\\"b\\"}" '
+                    'Key1=Key1230 Value1="{\\"a\\":\\"b\\"}" '
+                    'Key2=Key1230 Value2="{\\"a\\":\\"b\\"}"',
+                ),
+                {
+                    "Key": "Key1230",
+                    "Value": '{"a":"b"}',
+                    "Key1": "Key1230",
+                    "Value1": '{"a":"b"}',
+                    "Key2": "Key1230",
+                    "Value2": '{"a":"b"}',
+                },
+            ),
+            (
+                (
+                    'DeployStackName=new-stack '
+                    'DeployParameterOverrides="{\\"bucketName\\":\\"production\\",\\"bucketRegion\\":\\"eu-west-1\\"}" '
+                    'DeployParameterBucketOverrides="{\\"bucketName\\":\\"myownbucket\\"}"'
+                ),
+                {
+                    "DeployStackName": "new-stack",
+                    "DeployParameterOverrides": '{"bucketName":"production","bucketRegion":"eu-west-1"}',
+                    "DeployParameterBucketOverrides": '{"bucketName":"myownbucket"}',
+                },
+            ),
             (
                 # Must ignore empty inputs
                 ("",),
