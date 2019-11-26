@@ -191,7 +191,7 @@ class TestInitWithArbitraryProject(TestCase):
 
     def test_zip_not_exists(self):
         with tempfile.TemporaryDirectory() as temp:
-            args = [_get_command(), "init", "--location", Path("invalid", "zip", "path"), "-o", temp]
+            args = [_get_command(), "init", "--location", str(Path("invalid", "zip", "path")), "-o", temp]
 
             process = Popen(args)
             try:
