@@ -72,7 +72,7 @@ def guided_deploy_stack_name(ctx, param, provided_value):
         raise click.BadOptionUsage(
             option_name=param.name,
             ctx=ctx,
-            message="Missing option '--stack-name', 'sam deploy –guided' can "
+            message="Missing option '--stack-name', 'sam deploy --guided' can "
             "be used to provide and save needed parameters for future deploys.",
         )
 
