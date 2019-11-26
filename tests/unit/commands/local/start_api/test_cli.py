@@ -39,6 +39,7 @@ class TestCli(TestCase):
         self.host = "host"
         self.port = 123
         self.static_dir = "staticdir"
+        self.base_dir = "/foo/bar"
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
@@ -68,10 +69,11 @@ class TestCli(TestCase):
             force_image_build=self.force_image_build,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            base_dir=self.base_dir,
         )
 
         local_api_service_mock.assert_called_with(
-            lambda_invoke_context=context_mock, port=self.port, host=self.host, static_dir=self.static_dir
+            lambda_invoke_context=context_mock, port=self.port, host=self.host, static_dir=self.static_dir, base_dir=self.base_dir
         )
 
         service_mock.start.assert_called_with()
@@ -148,4 +150,5 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            base_dir=self.base_dir,
         )
