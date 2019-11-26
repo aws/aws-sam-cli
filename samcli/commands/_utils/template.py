@@ -135,21 +135,24 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
             # Handle dot notations. Example: Command.ScriptLocation
             path_prop_name_seg = path_prop_name.split(".")
-            path_prop_name_seg_len = len(path_prop_name_seg) - 1
+            path_prop_name_seg_len = len(path_prop_name_seg)
 
-            for i, path_prop_name_seg_val in enumerate(path_prop_name_seg):
-                if i == 0:
-                    node_value = properties.get(path_prop_name_seg_val, {})
-                    node = properties if i == path_prop_name_seg_len else node_value
-                else:
+            if path_prop_name_seg_len > 1:
+                node = properties.get(path_prop_name_seg[0], {})
+                for path_prop_name_seg_val in path_prop_name_seg[1:]:
                     node_value = node.get(path_prop_name_seg_val, {})
 
-                if i == path_prop_name_seg_len:
-                    updated_path = _resolve_relative_to(node_value, original_root, new_root)
-                    if not updated_path:
-                        # This path does not need to get updated
-                        continue
-                    node[path_prop_name_seg_val] = updated_path
+                    if path_prop_name_seg_val != path_prop_name_seg[-1]:
+                        node = node_value
+            else:
+                node = properties
+                node_value = node.get(path_prop_name_seg[0], {})
+
+            updated_path = _resolve_relative_to(node_value, original_root, new_root)
+            if not updated_path:
+                # This path does not need to get updated
+                continue
+            node[path_prop_name_seg[-1]] = updated_path
 
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there
