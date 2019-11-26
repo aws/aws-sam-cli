@@ -154,6 +154,7 @@ class TestSamConfigForAllCommands(TestCase):
             "skip_pull_image": True,
             "force_image_build": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "base_dir": "basedir",
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -188,6 +189,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value", "Key2": "Value2"},
+                "basedir",
             )
 
     @patch("samcli.commands.local.start_api.cli.do_cli")
@@ -209,6 +211,7 @@ class TestSamConfigForAllCommands(TestCase):
             "skip_pull_image": True,
             "force_image_build": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "base_dir": "basedir",
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -243,6 +246,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value", "Key2": "Value2"},
+                "basedir",
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -263,6 +267,7 @@ class TestSamConfigForAllCommands(TestCase):
             "skip_pull_image": True,
             "force_image_build": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value",
+            "base_dir": "basedir",
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command

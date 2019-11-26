@@ -73,11 +73,7 @@ class TestCli(TestCase):
         )
 
         local_api_service_mock.assert_called_with(
-            lambda_invoke_context=context_mock,
-            port=self.port,
-            host=self.host,
-            static_dir=self.static_dir,
-            base_dir=self.base_dir,
+            lambda_invoke_context=context_mock, port=self.port, host=self.host, static_dir=self.static_dir,
         )
 
         service_mock.start.assert_called_with()

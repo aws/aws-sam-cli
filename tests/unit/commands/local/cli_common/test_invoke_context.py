@@ -13,7 +13,7 @@ from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open
 
 class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_read_from_necessary_files(self, pathlib_mock, SamFunctionProviderMock):
+    def test_must_read_from_necessary_files(self, SamFunctionProviderMock):
         function_provider = Mock()
 
         SamFunctionProviderMock.return_value = function_provider
@@ -21,7 +21,6 @@ class TestInvokeContext__enter__(TestCase):
         template_file = "template_file"
         env_vars_file = "env_vars_file"
         log_file = "log_file"
-        base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
 
         invoke_context = InvokeContext(
             template_file=template_file,
@@ -70,7 +69,6 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._log_file_handle, log_file_handle)
         self.assertEqual(invoke_context._debug_context, debug_context_mock)
         self.assertEqual(invoke_context._container_manager, container_manager_mock)
-        self.assertEqual(invoke_context._base_dir, base_dir)
 
         invoke_context._get_template_data.assert_called_with(template_file)
         SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
@@ -228,6 +226,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             debug_args="args",
             aws_profile="profile",
             aws_region="region",
+            base_dir="basedir",
         )
 
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
@@ -252,6 +251,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         lambda_image_patch.return_value = image_mock
 
         cwd = "cwd"
+        base_dir = "basedir"
         self.context.get_cwd = Mock()
         self.context.get_cwd.return_value = cwd
 
@@ -273,7 +273,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
                 function_provider=ANY,
-                cwd=cwd,
+                cwd=base_dir or cwd,
                 debug_context=None,
                 env_vars_values=ANY,
                 aws_profile="profile",

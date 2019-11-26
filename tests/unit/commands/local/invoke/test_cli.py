@@ -38,6 +38,7 @@ class TestCli(TestCase):
         self.force_image_build = True
         self.region_name = "region"
         self.profile = "profile"
+        self.base_bir = "basedir"
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -70,6 +71,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            base_dir=self.base_bir,
         )
 
         InvokeContextMock.assert_called_with(
@@ -88,6 +90,7 @@ class TestCli(TestCase):
             force_image_build=self.force_image_build,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            base_dir=self.base_bir,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
@@ -124,6 +127,7 @@ class TestCli(TestCase):
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
+            base_dir=self.base_bir,
         )
 
         InvokeContextMock.assert_called_with(
@@ -142,6 +146,7 @@ class TestCli(TestCase):
             force_image_build=self.force_image_build,
             aws_region=self.region_name,
             aws_profile=self.profile,
+            base_dir=self.base_bir,
         )
 
         get_event_mock.assert_not_called()
@@ -192,6 +197,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                base_dir=self.base_bir,
             )
 
         msg = str(ex_ctx.exception)
@@ -240,6 +246,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                base_dir=self.base_bir,
             )
 
         msg = str(ex_ctx.exception)
@@ -276,6 +283,7 @@ class TestCli(TestCase):
                 parameter_overrides=self.parameter_overrides,
                 layer_cache_basedir=self.layer_cache_basedir,
                 force_image_build=self.force_image_build,
+                base_dir=self.base_bir,
             )
 
         msg = str(ex_ctx.exception)
