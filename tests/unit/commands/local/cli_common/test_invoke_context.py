@@ -13,7 +13,7 @@ from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open
 
 class TestInvokeContext__enter__(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_read_from_necessary_files(self, SamFunctionProviderMock):
+    def test_must_read_from_necessary_files(self, pathlib_mock, SamFunctionProviderMock):
         function_provider = Mock()
 
         SamFunctionProviderMock.return_value = function_provider
@@ -21,6 +21,7 @@ class TestInvokeContext__enter__(TestCase):
         template_file = "template_file"
         env_vars_file = "env_vars_file"
         log_file = "log_file"
+        base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
 
         invoke_context = InvokeContext(
             template_file=template_file,
@@ -36,6 +37,7 @@ class TestInvokeContext__enter__(TestCase):
             parameter_overrides={},
             aws_region="region",
             aws_profile="profile",
+            base_dir=None,  # No base dir is provided
         )
 
         template_dict = "template_dict"
@@ -68,6 +70,7 @@ class TestInvokeContext__enter__(TestCase):
         self.assertEqual(invoke_context._log_file_handle, log_file_handle)
         self.assertEqual(invoke_context._debug_context, debug_context_mock)
         self.assertEqual(invoke_context._container_manager, container_manager_mock)
+        self.assertEqual(invoke_context._base_dir, base_dir)
 
         invoke_context._get_template_data.assert_called_with(template_file)
         SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
