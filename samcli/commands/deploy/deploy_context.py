@@ -31,7 +31,7 @@ LOG = logging.getLogger(__name__)
 
 class DeployContext:
 
-    MSG_NO_EXECUTE_CHANGESET = "\nChangeset created successfully. \n"
+    MSG_SHOWCASE_CHANGESET = "\nChangeset created successfully. {changeset_id}\n"
 
     MSG_EXECUTE_SUCCESS = "\nSuccessfully created/updated stack - {stack_name} in {region}\n"
 
@@ -155,9 +155,9 @@ class DeployContext:
                 s3_uploader=s3_uploader,
                 tags=tags,
             )
+            click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 
             if no_execute_changeset:
-                click.echo(self.MSG_NO_EXECUTE_CHANGESET.format(changeset_id=result["Id"]))
                 return
 
             if confirm_changeset:

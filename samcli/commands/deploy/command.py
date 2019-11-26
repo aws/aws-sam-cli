@@ -7,7 +7,7 @@ import logging
 import click
 from click.types import FuncParamType
 
-from samcli.lib.utils import temp_file_utils
+from samcli.lib.utils import osutils
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.context import get_cmd_names
 from samcli.cli.main import pass_context, common_options, aws_creds_options
@@ -266,7 +266,7 @@ def do_cli(
         confirm_changeset=changeset_decision if guided else confirm_changeset,
     )
 
-    with temp_file_utils.tempfile_platform_independent() as output_template_file:
+    with osutils.tempfile_platform_independent() as output_template_file:
 
         with PackageContext(
             template_file=template_file,
