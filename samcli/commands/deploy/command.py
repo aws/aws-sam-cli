@@ -113,7 +113,8 @@ LOG = logging.getLogger(__name__)
     "executing the change set.",
 )
 @click.option(
-    "--fail-on-empty-changeset",
+    "--fail-on-empty-changeset/--no-fail-on-empty-changeset",
+    default=True,
     required=False,
     is_flag=True,
     help="Specify  if  the CLI should return a non-zero exit code if there are no"
