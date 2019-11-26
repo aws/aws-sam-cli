@@ -8,6 +8,7 @@ from parameterized import parameterized
 
 from pathlib import Path
 
+from cookiecutter.exceptions import RepositoryNotFound
 from samcli.local.init.arbitrary_project import generate_non_cookiecutter_project, repository
 from samcli.local.init.exceptions import ArbitraryProjectDownloadFailed
 
@@ -51,3 +52,12 @@ class TestGenerateNonCookieCutterProject(TestCase):
 
         with self.assertRaises(ArbitraryProjectDownloadFailed):
             generate_non_cookiecutter_project(location, self.output_dir)
+
+    def test_must_fail_when_repo_not_found(self):
+        location = str(Path("my", "folder"))
+
+        with patch.object(repository, "unzip") as unzip_mock:
+            unzip_mock.side_effect = RepositoryNotFound("repo")
+
+            with self.assertRaises(ArbitraryProjectDownloadFailed):
+                generate_non_cookiecutter_project(location, self.output_dir)
