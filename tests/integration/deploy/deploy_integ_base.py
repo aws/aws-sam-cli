@@ -36,7 +36,7 @@ class DeployIntegBase(TestCase):
         capabilities=None,
         force_upload=False,
         notification_arns=None,
-        fail_on_empty_changeset=False,
+        fail_on_empty_changeset=None,
         confirm_changeset=False,
         no_execute_changeset=False,
         parameter_overrides=None,
@@ -75,8 +75,12 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--no-execute-changeset"]
         if force_upload:
             command_list = command_list + ["--force-upload"]
-        if fail_on_empty_changeset:
+        if fail_on_empty_changeset is None:
+            pass
+        elif fail_on_empty_changeset:
             command_list = command_list + ["--fail-on-empty-changeset"]
+        else:
+            command_list = command_list + ["--no-fail-on-empty-changeset"]
         if confirm_changeset:
             command_list = command_list + ["--confirm-changeset"]
         if tags:

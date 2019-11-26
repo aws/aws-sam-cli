@@ -345,6 +345,110 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         )
 
     @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_twice_with_no_fail_on_empty_changeset(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.bucket_name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = Popen(deploy_command_list, stdout=PIPE)
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
+        # Deploy should succeed
+        self.assertEqual(deploy_process_execute.returncode, 0)
+
+        # Try to deploy to another region.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.bucket_name,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes",
+            confirm_changeset=False,
+            fail_on_empty_changeset=False,
+        )
+
+        deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            stdout, _ = deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
+        # Deploy should not fail
+        self.assertEqual(deploy_process_execute.returncode, 0)
+        stdout = stdout.strip()
+        self.assertIn(bytes(f"No changes to deploy. Stack {stack_name} is up to date", encoding="utf-8"), stdout)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_twice_with_fail_on_empty_changeset(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+
+        # Package and Deploy in one go without confirming change set.
+        kwargs = {
+            "template_file": template_path,
+            "stack_name": stack_name,
+            "capabilities": "CAPABILITY_IAM",
+            "s3_prefix": "integ_deploy",
+            "s3_bucket": self.bucket_name,
+            "force_upload": True,
+            "notification_arns": self.sns_arn,
+            "parameter_overrides": "Parameter=Clarity",
+            "kms_key_id": self.kms_key,
+            "no_execute_changeset": False,
+            "tags": "integ=true clarity=yes",
+            "confirm_changeset": False,
+        }
+        deploy_command_list = self.get_deploy_command_list(**kwargs)
+
+        deploy_process_execute = Popen(deploy_command_list, stdout=PIPE)
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
+        # Deploy should succeed
+        self.assertEqual(deploy_process_execute.returncode, 0)
+
+        # Try to deploy to another region.
+        deploy_command_list = self.get_deploy_command_list(fail_on_empty_changeset=True, **kwargs)
+
+        deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
+        # Deploy should not fail
+        self.assertNotEqual(deploy_process_execute.returncode, 0)
+        stderr = stderr.strip()
+        self.assertIn(bytes(f"Error: No changes to deploy. Stack {stack_name} is up to date", encoding="utf-8"), stderr)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_guided(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
