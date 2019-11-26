@@ -28,6 +28,27 @@ class TestCfnParameterOverridesType(TestCase):
 
     @parameterized.expand(
         [
+            # No enclosing quotes and non escaped quotes in values.
+            (
+                (
+                    "DeployStackName=new-stack "
+                    'DeployParameterOverrides="{"bucketName":"production","bucketRegion":"eu-west-1"}" '
+                    'DeployParameterBucketOverrides="{"bucketName":"myownbucket"}"'
+                ),
+                {
+                    "DeployStackName": "new-stack",
+                    "DeployParameterOverrides": "{",
+                    "DeployParameterBucketOverrides": "{",
+                },
+            )
+        ]
+    )
+    def test_unsupported_formats(self, input, expected):
+        result = self.param_type.convert(input, None, None)
+        self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+
+    @parameterized.expand(
+        [
             (
                 ("ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro",),
                 {"KeyPairName": "MyKey", "InstanceType": "t1.micro"},
@@ -79,7 +100,7 @@ class TestCfnParameterOverridesType(TestCase):
             ),
             (
                 (
-                    'DeployStackName=new-stack '
+                    "DeployStackName=new-stack "
                     'DeployParameterOverrides="{\\"bucketName\\":\\"production\\",\\"bucketRegion\\":\\"eu-west-1\\"}" '
                     'DeployParameterBucketOverrides="{\\"bucketName\\":\\"myownbucket\\"}"'
                 ),
