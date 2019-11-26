@@ -3,8 +3,10 @@ Initialize an arbitrary project
 """
 
 import functools
+import shutil
 import logging
 
+from pathlib import Path
 from cookiecutter import repository
 from cookiecutter import config
 
@@ -89,6 +91,6 @@ def _download_and_copy(download_fn, output_dir):
 
     with osutils.mkdir_temp() as tempdir:
         downloaded_dir = download_fn(clone_to_dir=tempdir)
-        osutils.copytree(downloaded_dir, output_dir)
+        osutils.copytree(downloaded_dir, output_dir, ignore=shutil.ignore_patterns("*.git"))
 
     return output_dir

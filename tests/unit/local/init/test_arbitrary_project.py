@@ -30,7 +30,7 @@ class TestGenerateNonCookieCutterProject(TestCase):
 
             unzip_mock.assert_called_with(zip_uri=location, is_url=is_url, no_input=True, clone_to_dir=ANY)
 
-            osutils_mock.copytree.assert_called_with("unzipped_dir", self.output_dir)
+            osutils_mock.copytree.assert_called_with("unzipped_dir", self.output_dir, ignore=ANY)
 
     @patch("samcli.local.init.arbitrary_project.osutils")
     def test_support_source_control_repos(self, osutils_mock):
@@ -44,7 +44,7 @@ class TestGenerateNonCookieCutterProject(TestCase):
 
             clone_mock.assert_called_with(repo_url=location, no_input=True, clone_to_dir=ANY)
 
-            osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir)
+            osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir, ignore=ANY)
 
     def test_must_fail_on_local_folders(self):
         location = str(Path("my", "folder"))
