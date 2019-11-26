@@ -154,9 +154,7 @@ def do_cli(  # pylint: disable=R0914
             base_dir=base_dir,
         ) as invoke_context:
 
-            service = LocalApiService(
-                lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir, base_dir=base_dir
-            )
+            service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
 
     except NoApisDefined:
