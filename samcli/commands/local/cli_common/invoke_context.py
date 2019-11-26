@@ -53,6 +53,7 @@ class InvokeContext:
         force_image_build=None,
         aws_region=None,
         aws_profile=None,
+        base_dir=None,
     ):
         """
         Initialize the context
@@ -90,6 +91,8 @@ class InvokeContext:
             Whether or not to force build the image
         aws_region str
             AWS region to use
+        base_dir : str
+            Path to a folder. Use this folder as the root to resolve relative source code paths against
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -106,6 +109,7 @@ class InvokeContext:
         self._force_image_build = force_image_build
         self._aws_region = aws_region
         self._aws_profile = aws_profile
+        self._base_dir = base_dir or self.get_cwd()
 
         self._template_dict = None
         self._function_provider = None
@@ -184,14 +188,14 @@ class InvokeContext:
             locally
         """
 
-        layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
+        layer_downloader = LayerDownloader(self._layer_cache_basedir, self._base_dir)
         image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
 
         lambda_runtime = LambdaRuntime(self._container_manager, image_builder)
         return LocalLambdaRunner(
             local_runtime=lambda_runtime,
             function_provider=self._function_provider,
-            cwd=self.get_cwd(),
+            cwd=self._base_dir,
             aws_profile=self._aws_profile,
             aws_region=self._aws_region,
             env_vars_values=self._env_vars_value,

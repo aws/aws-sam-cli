@@ -40,6 +40,15 @@ STDIN_FILE_NAME = "-"
     "is not specified, no event is assumed. Pass in the value '-' to input JSON via stdin",
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
+@click.option(
+    "--base-dir",
+    "-s",
+    default=None,
+    type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
+    help="Resolve relative paths to function's source code with respect to this folder. Use this if "
+    "SAM template and your source code are not in same enclosing folder. By default, relative paths "
+    "are resolved with respect to the SAM template's location",
+)
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options
@@ -63,6 +72,7 @@ def cli(
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    base_dir,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -84,6 +94,7 @@ def cli(
         skip_pull_image,
         force_image_build,
         parameter_overrides,
+        base_dir,
     )  # pragma: no cover
 
 
@@ -104,6 +115,7 @@ def do_cli(  # pylint: disable=R0914
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    base_dir,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -144,6 +156,7 @@ def do_cli(  # pylint: disable=R0914
             force_image_build=force_image_build,
             aws_region=ctx.region,
             aws_profile=ctx.profile,
+            base_dir=base_dir,
         ) as context:
 
             # Invoke the function
