@@ -350,21 +350,22 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
 
+        kwargs = {
+            "template_file": template_path,
+            "stack_name": stack_name,
+            "capabilities": "CAPABILITY_IAM",
+            "s3_prefix": "integ_deploy",
+            "s3_bucket": self.bucket_name,
+            "force_upload": True,
+            "notification_arns": self.sns_arn,
+            "parameter_overrides": "Parameter=Clarity",
+            "kms_key_id": self.kms_key,
+            "no_execute_changeset": False,
+            "tags": "integ=true clarity=yes",
+            "confirm_changeset": False,
+        }
         # Package and Deploy in one go without confirming change set.
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path,
-            stack_name=stack_name,
-            capabilities="CAPABILITY_IAM",
-            s3_prefix="integ_deploy",
-            s3_bucket=self.bucket_name,
-            force_upload=True,
-            notification_arns=self.sns_arn,
-            parameter_overrides="Parameter=Clarity",
-            kms_key_id=self.kms_key,
-            no_execute_changeset=False,
-            tags="integ=true clarity=yes",
-            confirm_changeset=False,
-        )
+        deploy_command_list = self.get_deploy_command_list(**kwargs)
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE)
         try:
@@ -375,21 +376,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.returncode, 0)
 
-        # Try to deploy to another region.
-        deploy_command_list = self.get_deploy_command_list(
-            template_file=template_path,
-            stack_name=stack_name,
-            capabilities="CAPABILITY_IAM",
-            s3_prefix="integ_deploy",
-            s3_bucket=self.bucket_name,
-            notification_arns=self.sns_arn,
-            parameter_overrides="Parameter=Clarity",
-            kms_key_id=self.kms_key,
-            no_execute_changeset=False,
-            tags="integ=true clarity=yes",
-            confirm_changeset=False,
-            fail_on_empty_changeset=False,
-        )
+        # Deploy with `--no-fail-on-empty-changeset` after deploying the same template first
+        deploy_command_list = self.get_deploy_command_list(fail_on_empty_changeset=False, **kwargs)
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
         try:
@@ -434,7 +422,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.returncode, 0)
 
-        # Try to deploy to another region.
+        # Deploy with `--fail-on-empty-changeset` after deploying the same template first
         deploy_command_list = self.get_deploy_command_list(fail_on_empty_changeset=True, **kwargs)
 
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE)
