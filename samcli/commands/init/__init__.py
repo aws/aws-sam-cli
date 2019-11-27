@@ -156,6 +156,7 @@ You can run 'sam init' without any options for an interactive initialization flo
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
         extra_context = _get_cookiecutter_template_context(name, runtime, extra_context)
+
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
@@ -177,13 +178,14 @@ You can also re-run without the --no-interactive flag to be prompted for require
 
 def _get_cookiecutter_template_context(name, runtime, extra_context):
     default_context = {}
+    extra_context_dict = {}
+
     if runtime is not None:
         default_context["runtime"] = runtime
+
     if name is not None:
-        if default_context is not None:
-            default_context["project_name"] = name
-        else:
-            default_context = {"project_name": name}
+        default_context["project_name"] = name
+
     if extra_context is not None:
         try:
             extra_context = extra_context.encode().decode("unicode_escape")
@@ -192,5 +194,5 @@ def _get_cookiecutter_template_context(name, runtime, extra_context):
             raise UserException(
                 "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
             )
-        return {**extra_context_dict, **default_context}
-    return default_context
+
+    return {**extra_context_dict, **default_context}
