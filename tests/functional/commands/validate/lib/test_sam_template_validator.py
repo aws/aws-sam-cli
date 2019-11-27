@@ -90,7 +90,6 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/function_with_alias.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_alias_and_event_sources.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_alias_intrinsics.yaml"),
-        ("tests/functional/commands/validate/lib/models/function_with_batch_window.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_condition.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy.yaml"),
         (
@@ -113,6 +112,7 @@ class TestValidate(TestCase):
         ),
         ("tests/functional/commands/validate/lib/models/function_with_disabled_deployment_preference.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_dlq.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_event_source_mapping.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_global_layers.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_kmskeyarn.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_layers.yaml"),

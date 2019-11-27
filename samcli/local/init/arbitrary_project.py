@@ -3,9 +3,12 @@ Initialize an arbitrary project
 """
 
 import functools
+import shutil
 import logging
 
+from pathlib import Path
 from cookiecutter import repository
+from cookiecutter import exceptions
 from cookiecutter import config
 
 from samcli.lib.utils import osutils
@@ -13,6 +16,16 @@ from .exceptions import ArbitraryProjectDownloadFailed
 
 
 LOG = logging.getLogger(__name__)
+
+
+BAD_LOCATION_ERROR_MSG = (
+    "Please verify your location. The following types of location are supported:"
+    "\n\n* Github: gh:user/repo (or) https://github.com/user/repo (or) git@github.com:user/repo.git"
+    "\n          For Git repositories, you must use location of the root of the repository."
+    "\n\n* Mercurial: hg+ssh://hg@bitbucket.org/repo"
+    "\n\n* Http(s): https://example.com/code.zip"
+    "\n\n* Local Path: /path/to/code.zip"
+)
 
 
 def generate_non_cookiecutter_project(location, output_dir):
@@ -63,9 +76,13 @@ def generate_non_cookiecutter_project(location, output_dir):
         download_fn = functools.partial(repository.clone, repo_url=location, no_input=no_input)
 
     else:
-        raise ArbitraryProjectDownloadFailed(msg="Unsupported location {location}".format(location=location))
+        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG)
 
-    return _download_and_copy(download_fn, output_dir)
+    try:
+        return _download_and_copy(download_fn, output_dir)
+    except exceptions.RepositoryNotFound:
+        # Download failed because the zip or the repository was not found
+        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG)
 
 
 def _download_and_copy(download_fn, output_dir):
@@ -89,6 +106,6 @@ def _download_and_copy(download_fn, output_dir):
 
     with osutils.mkdir_temp() as tempdir:
         downloaded_dir = download_fn(clone_to_dir=tempdir)
-        osutils.copytree(downloaded_dir, output_dir)
+        osutils.copytree(downloaded_dir, output_dir, ignore=shutil.ignore_patterns("*.git"))
 
     return output_dir

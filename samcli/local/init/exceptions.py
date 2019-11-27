@@ -17,4 +17,4 @@ class GenerateProjectFailedError(InitErrorException):
 
 
 class ArbitraryProjectDownloadFailed(InitErrorException):
-    fmt = "An error occurred when downloading this project: {msg}"
+    fmt = "{msg}"
