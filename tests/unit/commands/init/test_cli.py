@@ -466,3 +466,34 @@ foo
             None,
             {"schema_name": "events", "schema_type": "aws", "runtime": "java8"},
         )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_parameter_passed_as_escaped(self, generate_project_patch):
+        # GIVEN extra_context and default_parameter(name, runtime)
+        # WHEN sam init
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            # fmt: off
+            extra_context='{\"schema_name\":\"events\", \"schema_type\":\"aws\"}',
+            # fmt: on
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors and right extra_context should be passed
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            self.runtime,
+            self.dependency_manager,
+            ".",
+            self.name,
+            True,
+            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+        )
