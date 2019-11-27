@@ -204,3 +204,20 @@ def _resolve_relative_to(path, original_root, new_root):
     return os.path.relpath(
         os.path.normpath(os.path.join(original_root, path)), new_root  # Absolute original path w.r.t ``original_root``
     )  # Resolve the original path with respect to ``new_root``
+
+
+def get_template_parameters(template_file):
+    """
+    Get Parameters from a template file.
+
+    Parameters
+    ----------
+    template_file : string
+        Path to the template to read
+
+    Returns
+    -------
+    Template Parameters as a dictionary
+    """
+    template_dict = get_template_data(template_file=template_file)
+    return template_dict.get("Parameters", dict())

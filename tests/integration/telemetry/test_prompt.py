@@ -10,7 +10,7 @@ class TestTelemetryPrompt(IntegBase):
         self.unset_config()
 
         process = self.run_cmd()
-        (stdoutdata, stderrdata) = process.communicate()
+        _, stderrdata = process.communicate()
 
         # Telemetry prompt should be printed to the terminal
         self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
@@ -25,7 +25,7 @@ class TestTelemetryPrompt(IntegBase):
         self.set_config(telemetry_enabled=telemetry_enabled)
 
         process = self.run_cmd()
-        (stdoutdata, stderrdata) = process.communicate()
+        stdoutdata, stderrdata = process.communicate()
 
         self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
         self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
@@ -38,11 +38,11 @@ class TestTelemetryPrompt(IntegBase):
 
         # First Run
         process = self.run_cmd()
-        (stdoutdata, stderrdata) = process.communicate()
+        _, stderrdata = process.communicate()
         self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
         # Second Run
         process = self.run_cmd()
-        (stdoutdata, stderrdata) = process.communicate()
+        stdoutdata, stderrdata = process.communicate()
         self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
         self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())

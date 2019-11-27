@@ -12,6 +12,7 @@ from samcli.commands._utils.template import (
     RESOURCES_WITH_LOCAL_PATHS,
     _update_relative_paths,
     move_template,
+    get_template_parameters,
 )
 
 
@@ -41,6 +42,26 @@ class Test_get_template_data(TestCase):
             result = get_template_data(filename)
 
             self.assertEqual(result, parse_result)
+
+        m.assert_called_with(filename, "r")
+        yaml_parse_mock.assert_called_with(file_data)
+
+    @patch("samcli.commands._utils.template.yaml_parse")
+    @patch("samcli.commands._utils.template.pathlib")
+    def test_must_read_file_and_get_parameters(self, pathlib_mock, yaml_parse_mock):
+        filename = "filename"
+        file_data = "contents of the file"
+        parse_result = {"Parameters": {"Myparameter": "String"}}
+
+        pathlib_mock.Path.return_value.exists.return_value = True  # Fake that the file exists
+
+        m = mock_open(read_data=file_data)
+        yaml_parse_mock.return_value = parse_result
+
+        with patch("samcli.commands._utils.template.open", m):
+            result = get_template_parameters(filename)
+
+            self.assertEqual(result, {"Myparameter": "String"})
 
         m.assert_called_with(filename, "r")
         yaml_parse_mock.assert_called_with(file_data)

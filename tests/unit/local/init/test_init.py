@@ -1,7 +1,9 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from cookiecutter.exceptions import CookiecutterException
+from pathlib import Path
+from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
+
 from samcli.local.init import generate_project
 from samcli.local.init import GenerateProjectFailedError
 from samcli.local.init import RUNTIME_DEP_TEMPLATE_MAPPING
@@ -12,7 +14,7 @@ class TestInit(TestCase):
         self.location = None
         self.runtime = "python3.6"
         self.dependency_manager = "pip"
-        self.output_dir = "."
+        self.output_dir = "mydir"
         self.name = "testing project"
         self.no_input = True
         self.extra_context = {"project_name": "testing project", "runtime": self.runtime}
@@ -63,7 +65,7 @@ class TestInit(TestCase):
                 no_input=self.no_input,
             )
         self.assertEqual(
-            "An error occurred while generating this "
+            "An error occurred while generating this project "
             "testing project: Lambda Runtime python3.6 "
             "does not support dependency manager: gradle",
             str(ctx.exception),
@@ -119,8 +121,30 @@ class TestInit(TestCase):
 
         # THEN we should receive no errors
         cookiecutter_patch.assert_called_once_with(
-            extra_context=cookiecutter_context,
-            no_input=self.no_input,
-            output_dir=self.output_dir,
-            template=self.template,
+            extra_context=cookiecutter_context, no_input=self.no_input, output_dir=self.output_dir, template=self.template
+        )
+
+    @patch("samcli.local.init.cookiecutter")
+    @patch("samcli.local.init.generate_non_cookiecutter_project")
+    def test_init_arbitrary_project_with_location_is_not_cookiecutter(
+        self, generate_non_cookiecutter_project_mock, cookiecutter_mock
+    ):
+
+        cookiecutter_mock.side_effect = RepositoryNotFound("msg")
+
+        generate_project(location=self.location, output_dir=self.output_dir)
+
+        generate_non_cookiecutter_project_mock.assert_called_with(location=self.location, output_dir=self.output_dir)
+
+    @patch("samcli.local.init.cookiecutter")
+    @patch("samcli.local.init.generate_non_cookiecutter_project")
+    def test_init_arbitrary_project_with_named_folder(self, generate_non_cookiecutter_project_mock, cookiecutter_mock):
+
+        cookiecutter_mock.side_effect = RepositoryNotFound("msg")
+
+        generate_project(location=self.location, output_dir=self.output_dir, name=self.name)
+
+        expected_output_dir = str(Path(self.output_dir, self.name))
+        generate_non_cookiecutter_project_mock.assert_called_with(
+            location=self.location, output_dir=expected_output_dir
         )

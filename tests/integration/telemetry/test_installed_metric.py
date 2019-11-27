@@ -16,10 +16,9 @@ class TestSendInstalledMetric(IntegBase):
             # Start the CLI
             process = self.run_cmd()
 
-            (_, stderrdata) = process.communicate()
+            _, stderrdata = process.communicate()
 
-            retcode = process.poll()
-            self.assertEqual(retcode, 0, "Command should successfully complete")
+            self.assertEqual(process.returncode, 0, "Command should successfully complete")
 
             # Make sure the prompt was printed. Otherwise this test is not valid
             self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
@@ -66,10 +65,9 @@ class TestSendInstalledMetric(IntegBase):
             # Start the CLI
             process = self.run_cmd()
 
-            (stdoutdata, stderrdata) = process.communicate()
+            stdoutdata, stderrdata = process.communicate()
 
-            retcode = process.poll()
-            self.assertEqual(retcode, 0, "Command should successfully complete")
+            self.assertEqual(process.returncode, 0, "Command should successfully complete")
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
 
@@ -88,9 +86,8 @@ class TestSendInstalledMetric(IntegBase):
 
             # First Run
             process1 = self.run_cmd()
-            (_, stderrdata) = process1.communicate()
-            retcode = process1.poll()
-            self.assertEqual(retcode, 0, "Command should successfully complete")
+            _, stderrdata = process1.communicate()
+            self.assertEqual(process1.returncode, 0, "Command should successfully complete")
             self.assertIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
             self.assertEqual(
                 1, len(filter_installed_metric_requests(server.get_all_requests())), "'installed' metric should be sent"
@@ -98,9 +95,8 @@ class TestSendInstalledMetric(IntegBase):
 
             # Second Run
             process2 = self.run_cmd()
-            (stdoutdata, stderrdata) = process2.communicate()
-            retcode = process2.poll()
-            self.assertEqual(retcode, 0)
+            stdoutdata, stderrdata = process2.communicate()
+            self.assertEqual(process2.returncode, 0)
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stdoutdata.decode())
             self.assertNotIn(EXPECTED_TELEMETRY_PROMPT, stderrdata.decode())
             self.assertEqual(

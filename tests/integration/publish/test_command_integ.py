@@ -1,7 +1,7 @@
 import re
 import time
 import json
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 
 from unittest import skipIf
 
@@ -12,6 +12,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 # Publish tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict publish tests to run outside of CI/CD and when the branch is not master.
 SKIP_PUBLISH_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+TIMEOUT = 300
 
 
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
@@ -38,8 +39,12 @@ class TestPublishExistingApp(PublishAppIntegBase):
         command_list = self.get_command_list(template_path=template_path, region=self.region_name)
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
         self.assertIn(expected_msg, process_stdout.decode("utf-8"))
@@ -53,8 +58,12 @@ class TestPublishExistingApp(PublishAppIntegBase):
         command_list = self.get_command_list(template_path=template_path, region=self.region_name)
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
         self.assertIn(expected_msg, process_stdout.decode("utf-8"))
@@ -70,8 +79,12 @@ class TestPublishExistingApp(PublishAppIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
         self.assertIn(expected_msg, process_stdout.decode("utf-8"))
@@ -87,6 +100,8 @@ class TestPublishNewApp(PublishAppIntegBase):
     def setUp(self):
         super(TestPublishNewApp, self).setUp()
         self.application_id = None
+        # Sleep for a little bit to make server happy
+        time.sleep(2)
 
     def tearDown(self):
         super(TestPublishNewApp, self).tearDown()
@@ -99,8 +114,12 @@ class TestPublishNewApp(PublishAppIntegBase):
         command_list = self.get_command_list(template_path=template_path, region=self.region_name)
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         expected_msg = "Created new application with the following metadata:"
         self.assertIn(expected_msg, process_stdout.decode("utf-8"))
@@ -119,8 +138,12 @@ class TestPublishNewApp(PublishAppIntegBase):
         command_list = self.get_command_list(template_path=template_path, region=self.region_name)
 
         process = Popen(command_list, stderr=PIPE)
-        process.wait()
-        process_stderr = b"".join(process.stderr.readlines()).strip()
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip()
 
         expected_msg = "Please make sure that you have uploaded application artifacts to S3"
         self.assertIn(expected_msg, process_stderr.decode("utf-8"))
@@ -130,8 +153,12 @@ class TestPublishNewApp(PublishAppIntegBase):
         command_list = self.get_command_list(template_path=template_path)
 
         process = Popen(command_list, stdout=PIPE)
-        process.wait()
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
 
         expected_msg = "Created new application with the following metadata:"
         self.assertIn(expected_msg, process_stdout.decode("utf-8"))
