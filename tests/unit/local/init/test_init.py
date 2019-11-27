@@ -121,7 +121,10 @@ class TestInit(TestCase):
 
         # THEN we should receive no errors
         cookiecutter_patch.assert_called_once_with(
-            extra_context=cookiecutter_context, no_input=self.no_input, output_dir=self.output_dir, template=self.template
+            extra_context=cookiecutter_context,
+            no_input=self.no_input,
+            output_dir=self.output_dir,
+            template=self.template,
         )
 
     @patch("samcli.local.init.cookiecutter")
