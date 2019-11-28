@@ -283,8 +283,8 @@ foo
 
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_with_extra_context_parameter_not_passed(self, generate_project_patch):
-        # GIVEN generate_project successfully created a project
-        # WHEN a project name has been passed
+        # GIVEN no extra_context parameter passed
+        # WHEN sam init
         init_cli(
             ctx=self.ctx,
             no_interactive=self.no_interactive,
@@ -306,8 +306,8 @@ foo
 
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_with_extra_context_parameter_passed(self, generate_project_patch):
-        # GIVEN generate_project successfully created a project
-        # WHEN a project name has been passed
+        # GIVEN extra_context and default_parameter(name, runtime)
+        # WHEN sam init
         init_cli(
             ctx=self.ctx,
             no_interactive=self.no_interactive,
@@ -322,7 +322,7 @@ foo
             auto_clone=False,
         )
 
-        # THEN we should receive no errors
+        # THEN we should receive no errors and right extra_context should be passed
         generate_project_patch.assert_called_once_with(
             ANY,
             self.runtime,
@@ -335,8 +335,8 @@ foo
 
     @patch("samcli.commands.init.init_generator.generate_project")
     def test_init_cli_with_extra_context_not_overriding_default_parameter(self, generate_project_patch):
-        # GIVEN generate_project successfully created a project
-        # WHEN a project name has been passed
+        # GIVEN default_parameters(name, runtime) and extra_context trying to override default parameter
+        # WHEN sam init
         init_cli(
             ctx=self.ctx,
             no_interactive=self.no_interactive,
@@ -351,7 +351,7 @@ foo
             auto_clone=False,
         )
 
-        # THEN we should receive no errors
+        # THEN extra_context should have not overridden default_parameters(name, runtime)
         generate_project_patch.assert_called_once_with(
             ANY,
             self.runtime,
@@ -362,10 +362,9 @@ foo
             {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
         )
 
-    @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_with_extra_context_input_as_wrong_json_raises_exception(self, generate_project_patch):
-        # GIVEN generate_project successfully created a project
-        # WHEN a project name has been passed
+    def test_init_cli_with_extra_context_input_as_wrong_json_raises_exception(self):
+        # GIVEN extra_context as wrong json
+        # WHEN a sam init is called
         with self.assertRaises(UserException):
             init_cli(
                 ctx=self.ctx,
@@ -380,3 +379,121 @@ foo
                 extra_context='{"project_name", "my_project", "runtime": "java8", "schema_name":"events", "schema_type": "aws"}',
                 auto_clone=False,
             )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_must_set_default_context_when_location_is_provided(self, generate_project_patch):
+        # GIVEN default_parameter(name, runtime) with location
+        # WHEN sam init
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location="custom location",
+            runtime="java8",
+            dependency_manager=None,
+            output_dir=self.output_dir,
+            name="test-project",
+            app_template=None,
+            no_input=None,
+            extra_context='{"schema_name":"events", "schema_type": "aws"}',
+            auto_clone=False,
+        )
+
+        # THEN should set default parameter(name, runtime) as extra_context
+        generate_project_patch.assert_called_once_with(
+            "custom location",
+            "java8",
+            None,
+            ".",
+            "test-project",
+            None,
+            {"schema_name": "events", "schema_type": "aws", "runtime": "java8", "project_name": "test-project"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_must_only_set_passed_project_name_when_location_is_provided(self, generate_project_patch):
+        # GIVEN only name and extra_context
+        # WHEN sam init
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location="custom location",
+            runtime=None,
+            dependency_manager=None,
+            output_dir=self.output_dir,
+            name="test-project",
+            app_template=None,
+            no_input=None,
+            extra_context='{"schema_name":"events", "schema_type": "aws"}',
+            auto_clone=False,
+        )
+
+        # THEN extra_context should be without runtime
+        generate_project_patch.assert_called_once_with(
+            "custom location",
+            None,
+            None,
+            ".",
+            "test-project",
+            None,
+            {"schema_name": "events", "schema_type": "aws", "project_name": "test-project"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_must_only_set_passed_runtime_when_location_is_provided(self, generate_project_patch):
+        # GIVEN only runtime and extra_context
+        # WHEN sam init
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location="custom location",
+            runtime="java8",
+            dependency_manager=None,
+            output_dir=self.output_dir,
+            name=None,
+            app_template=None,
+            no_input=None,
+            extra_context='{"schema_name":"events", "schema_type": "aws"}',
+            auto_clone=False,
+        )
+
+        # THEN extra_context should be without name
+        generate_project_patch.assert_called_once_with(
+            "custom location",
+            "java8",
+            None,
+            ".",
+            None,
+            None,
+            {"schema_name": "events", "schema_type": "aws", "runtime": "java8"},
+        )
+
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_with_extra_context_parameter_passed_as_escaped(self, generate_project_patch):
+        # GIVEN extra_context and default_parameter(name, runtime)
+        # WHEN sam init
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            # fmt: off
+            extra_context='{\"schema_name\":\"events\", \"schema_type\":\"aws\"}',
+            # fmt: on
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors and right extra_context should be passed
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            self.runtime,
+            self.dependency_manager,
+            ".",
+            self.name,
+            True,
+            {"project_name": "testing project", "runtime": "python3.6", "schema_name": "events", "schema_type": "aws"},
+        )
