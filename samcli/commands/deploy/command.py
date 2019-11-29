@@ -231,17 +231,7 @@ def do_cli(
 
         read_config_showcase(template_file=template_file)
 
-        (
-            guided_stack_name,
-            guided_s3_bucket,
-            guided_s3_prefix,
-            guided_region,
-            guided_profile,
-            changeset_decision,
-            _capabilities,
-            _parameter_overrides,
-            save_to_config,
-        ) = guided_deploy(
+        guided_stack_name, guided_s3_bucket, guided_s3_prefix, guided_region, guided_profile, changeset_decision, _capabilities, _parameter_overrides, save_to_config = guided_deploy(
             stack_name, s3_bucket, region, profile, confirm_changeset, _parameter_override_keys, parameter_overrides
         )
 
