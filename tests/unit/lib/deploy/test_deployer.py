@@ -2,7 +2,7 @@ import uuid
 import time
 from datetime import datetime, timedelta
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, ANY
+from unittest.mock import patch, MagicMock, ANY, call
 
 from botocore.exceptions import ClientError, WaiterError, BotoCoreError
 
@@ -364,8 +364,9 @@ class TestDeployer(TestCase):
 
         self.deployer.describe_stack_events("test", time.time() - 1)
 
+    @patch("samcli.lib.deploy.deployer.math")
     @patch("time.sleep")
-    def test_describe_stack_events_exceptions(self, patched_time):
+    def test_describe_stack_events_exceptions(self, patched_time, patched_math):
 
         self.deployer._client.describe_stacks = MagicMock(
             side_effect=[
@@ -383,11 +384,15 @@ class TestDeployer(TestCase):
                 ),
             ]
         )
-        with self.assertRaises(ClientError):
-            self.deployer.describe_stack_events("test", time.time())
+        # No exception raised, we return with a log message, this is because,
+        # the changeset is still getting executed, but displaying them is getting throttled.
+        self.deployer.describe_stack_events("test", time.time())
+        self.assertEqual(patched_math.pow.call_count, 3)
+        self.assertEqual(patched_math.pow.call_args_list, [call(2, 1), call(2, 2), call(2, 3)])
 
+    @patch("samcli.lib.deploy.deployer.math")
     @patch("time.sleep")
-    def test_describe_stack_events_resume_after_exceptions(self, patched_time):
+    def test_describe_stack_events_resume_after_exceptions(self, patched_time, patched_math):
         current_timestamp = datetime.utcnow()
 
         self.deployer._client.describe_stacks = MagicMock(
@@ -460,6 +465,8 @@ class TestDeployer(TestCase):
         )
 
         self.deployer.describe_stack_events("test", time.time())
+        self.assertEqual(patched_math.pow.call_count, 3)
+        self.assertEqual(patched_math.pow.call_args_list, [call(2, 1), call(2, 2), call(2, 3)])
 
     def test_check_stack_status(self):
         self.assertEqual(self.deployer._check_stack_complete("CREATE_COMPLETE"), True)

@@ -359,10 +359,11 @@ class Deployer:
                 if self._check_stack_complete(stack_status):
                     stack_change_in_progress = False
                     break
-            except botocore.exceptions.ClientError:
+            except botocore.exceptions.ClientError as ex:
                 retry_attempts = retry_attempts + 1
                 if retry_attempts > self.max_attempts:
-                    raise
+                    LOG.error("Describing stack events for %s failed: %s", stack_name, str(ex))
+                    return
                 # Sleep in exponential backoff mode
                 time.sleep(math.pow(self.backoff, retry_attempts))
 

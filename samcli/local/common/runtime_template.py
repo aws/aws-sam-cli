@@ -102,6 +102,7 @@ RUNTIMES = set(
     itertools.chain(*[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))])
 )
 
+# When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
 # Order here should be a the group of the latest versions of runtimes followed by runtime groups
 INIT_RUNTIMES = [
     # latest of each runtime version
@@ -126,3 +127,12 @@ INIT_RUNTIMES = [
     "dotnetcore2.0",
     "dotnetcore1.0",
 ]
+
+# Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
+SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
+    "java8": "Java8",
+    "java11": "Java8",
+    "python3.7": "Python36",
+    "python3.6": "Python36",
+    "python3.8": "Python36",
+}

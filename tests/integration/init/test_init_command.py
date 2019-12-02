@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 from parameterized import parameterized
 from subprocess import Popen, TimeoutExpired
 import os
@@ -207,5 +208,4 @@ def _get_command():
     command = "sam"
     if os.getenv("SAM_CLI_DEV"):
         command = "samdev"
-
     return command
