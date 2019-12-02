@@ -135,8 +135,8 @@ def do_cli(
     auto_clone=True,
 ):
     from samcli.commands.init.init_generator import do_generate
-    from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
+    from samcli.commands.init.init_templates import InitTemplates
 
     # check for mutually exclusive parameters
     if location and app_template:
