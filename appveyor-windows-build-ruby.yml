@@ -1,21 +1,11 @@
 version: 1.0.{build}
-image: Windows Server 2019
+image: Visual Studio 2017
 build: off
-
-# Change the clone folder to somewhere in "D:\" because this is shared by default with Docker. We need this to mount folders.
-clone_folder: D:\source
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   APPVEYOR_CI_OVERRIDE: 1
-
-  # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker. 
-  # Therefore change TEMPDIR it to D: for invoke tests to work. Python uses $TMPDIR envvar
-  # to find root of tempdir
-  TMPDIR: D:\tmp
-  TEMP: D:\tmp
-  TMP: D:\tmp
 
   # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
   PYTHON_HOME: "C:\\Python36-x64"
@@ -23,12 +13,7 @@ environment:
   PYTHON_EXE: "C:\\Python36-x64\\python.exe"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
-  HOME: 'C:\Users\appveyor'
-  HOMEDRIVE: 'C:'
-  HOMEPATH: 'C:\Users\appveyor'
 
-<<<<<<< Updated upstream
-=======
   # To work around SSL issues when bundler installs a package
   # https://www.appveyor.com/docs/lang/ruby/#openssl-verification
   SSL_CERT_FILE: "C:\\tools\\ruby25\\ssl\\cert.pem"
@@ -40,50 +25,15 @@ matrix:
   allow_failures:
     - optional_gate: true
 
->>>>>>> Stashed changes
-init:
-  # Uncomment this for RDP
-  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-  - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
-  - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
-
-
 install:
-
-    # Make sure the temp directory exists for Python to use.
-    - ps: "mkdir -Force D:\\tmp"
-    - "SET PATH=%PYTHON_HOME%;%PATH%"
-    - "echo %PYTHON_HOME%"
-    - "echo %PATH%"
-    - "python --version"
-
-    # Upgrade setuptools, wheel and virtualenv
-    - "python -m pip install --upgrade setuptools wheel virtualenv"
-
-    # Create new virtual environment with chosen python version and activate it
-    - "python -m virtualenv venv"
-    - "venv\\Scripts\\activate"
-    - "python --version"
-
-    # Actually install SAM CLI's dependencies
-    - "pip install -e \".[dev]\""
-
-    # setup Ruby
-    - "choco install ruby --version 2.5.3.1 --force -y"
-   # - "SET PATH=C:\\Ruby25-x64\\bin;%PATH%"
-    - "refreshenv"
-    - "echo %PATH%"
-    - "ruby --version"
-    - "gem update --system"
+    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+    - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
+    - "%PYTHON%\\python.exe -m pip install -e ."
+    - "set PATH=C:\\Ruby25-x64\\bin;%PATH%"
     - "gem --version"
-    - "gem install bundler -v 2.0.2 -f"
-    - "refreshenv"
+    - "gem install bundler -v 1.17.3"
     - "bundler --version"
-    - "ruby -ropen-uri -e 'eval open(\"https://git.io/vQhWq\").read'"
     - "echo %PATH%"
-
-    # Switch to Docker Linux containers
-    - ps: Switch-DockerLinux
 
     # Echo final Path
     - "echo %PATH%"
@@ -95,9 +45,4 @@ install:
 test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
-    - "docker system prune -a -f"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_ruby_in_container"
-
-# Uncomment for RDP
-# on_finish:
-#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_ruby_in_process"

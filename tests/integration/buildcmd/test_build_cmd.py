@@ -5,13 +5,9 @@ import logging
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized
-<<<<<<< Updated upstream
 import pytest
-=======
 from click.testing import CliRunner
 from samcli.cli.main import cli
-
->>>>>>> Stashed changes
 
 from .build_integ_base import BuildIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
@@ -268,7 +264,6 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-<<<<<<< Updated upstream
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     @parameterized.expand([("ruby2.5")])
@@ -280,11 +275,8 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         self._test_with_default_gemfile(runtime, False)
 
     def _test_with_default_gemfile(self, runtime, use_container):
-=======
-    @parameterized.expand([("ruby2.5", False)])
-    def test_with_default_gemfile(self, runtime, use_container):
         ruby_bundler_monkey.SubprocessBundler.run = SubprocessBundler2.run
->>>>>>> Stashed changes
+
         overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
