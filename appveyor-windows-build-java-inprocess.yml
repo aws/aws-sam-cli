@@ -17,14 +17,6 @@ environment:
 
 install:
 
-    - "set PATH=%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PYTHON_HOME%\\bin;%PATH%"
-    - "echo %PYTHON_HOME%"
-    - "echo %PATH%"
-    - "python --version"
-
-    # Actually install SAM CLI's dependencies
-    - "pip install -e \".[dev]\""
-
     # setup Java, Maven and Gradle
     - "refreshenv"
     - "choco install maven -y --force"
@@ -46,6 +38,14 @@ install:
 
     # validate ssl works with ruby
     - "ruby -ropen-uri -e 'eval open(\"https://git.io/vQhWq\").read'"
+
+    - "set PATH=%PYTHON_HOME%;%PYTHON_HOME%\\Scripts;%PYTHON_HOME%\\bin;%PATH%"
+    - "echo %PYTHON_HOME%"
+    - "echo %PATH%"
+    - "python --version"
+
+    # Actually install SAM CLI's dependencies
+    - "pip install -e \".[dev]\""
 
 test_script:
     # Reactivate virtualenv before running tests
