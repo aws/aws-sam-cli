@@ -17,13 +17,15 @@ environment:
 
 install:
 
-    - "SET PATH=%PYTHON_HOME%;%PATH%"
+    - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\bin;%PATH%"
+    - "%PYTHON%\\python.exe -m pip install -r requirements/dev.txt"
+    - "%PYTHON%\\python.exe -m pip install -e ."
     - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
 
     # Actually install SAM CLI's dependencies
-    - "pip install -e \".[dev]\""
+#    - "pip install -e \".[dev]\""
 
     # setup Java, Maven and Gradle
     - "refreshenv"
