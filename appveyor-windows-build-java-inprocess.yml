@@ -52,9 +52,15 @@ install:
     # Echo final Path
     - "echo %PATH%"
 
+    # validate ssl works with ruby
+    - "ruby -ropen-uri -e 'eval open(\"https://git.io/vQhWq\").read'"
+
 test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java8_in_process"
     - "SET JAVA_HOME=C:\\Program Files\\Java\\jdk11"
     - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+
+    # Run Ruby in-process builds
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_ruby_in_process"
