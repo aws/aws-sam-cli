@@ -3,11 +3,14 @@ Generates the services and commands for selection in SAM CLI generate-event
 """
 
 import functools
+
 import click
 
-from samcli.cli.options import debug_option
 import samcli.commands.local.lib.generated_sample_events.events as events
+from samcli.cli.cli_config_file import TomlProvider, get_ctx_defaults
+from samcli.cli.options import debug_option
 from samcli.lib.telemetry.metrics import track_command
+import samcli.lib.config.samconfig as samconfig
 
 
 class ServiceCommand(click.MultiCommand):
@@ -150,9 +153,18 @@ class EventTypeSubCommand(click.MultiCommand):
         command_callback = functools.partial(
             self.cmd_implementation, self.events_lib, self.top_level_cmd_name, cmd_name
         )
+
+        config = get_ctx_defaults(
+            cmd_name=cmd_name,
+            provider=TomlProvider(section="parameters"),
+            ctx=ctx,
+            config_env_name=samconfig.DEFAULT_ENV,
+        )
+
         cmd = click.Command(
             name=cmd_name,
             short_help=self.subcmd_definition[cmd_name]["help"],
+            context_settings={"default_map": config},
             params=parameters,
             callback=command_callback,
         )

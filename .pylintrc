@@ -59,7 +59,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=R0201,W0613,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,C0301
+disable=R0201,W0613,W0640,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,R0914,C0301
 
 
 [REPORTS]
@@ -221,7 +221,7 @@ notes=FIXME,XXX
 [SIMILARITIES]
 
 # Minimum lines number of a similarity.
-min-similarity-lines=6
+min-similarity-lines=12
 
 # Ignore comments when computing similarities.
 ignore-comments=yes

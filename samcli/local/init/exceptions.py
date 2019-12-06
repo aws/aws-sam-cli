@@ -13,4 +13,8 @@ class InitErrorException(Exception):
 
 
 class GenerateProjectFailedError(InitErrorException):
-    fmt = "An error occurred while generating this {project}: {provider_error}"
+    fmt = "An error occurred while generating this project {project}: {provider_error}"
+
+
+class ArbitraryProjectDownloadFailed(InitErrorException):
+    fmt = "{msg}"

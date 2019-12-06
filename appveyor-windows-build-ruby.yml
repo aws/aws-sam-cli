@@ -27,13 +27,6 @@ environment:
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
 
-  matrix:
-    - optional_gate: true
-
-matrix:
-  allow_failures:
-    - optional_gate: true
-
 init:
   # Uncomment this for RDP
   - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -81,7 +74,7 @@ test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
-    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k TestBuildCommand_RubyFunctions"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_ruby_in_container"
 
 # Uncomment for RDP
 # on_finish:

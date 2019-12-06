@@ -45,8 +45,9 @@ class TestTemplates(TestCase):
                 mock_sub.side_effect = OSError("Fail")
                 mock_cfg.return_value = "/tmp/test-sam"
                 it = InitTemplates(True)
-                location = it.prompt_for_location("ruby2.5", "bundler")
+                location, app_template = it.prompt_for_location("ruby2.5", "bundler")
                 self.assertTrue(search("cookiecutter-aws-sam-hello-ruby", location))
+                self.assertEqual("hello-world", app_template)
 
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("click.prompt")
@@ -58,8 +59,9 @@ class TestTemplates(TestCase):
                 mock_sub.side_effect = subprocess.CalledProcessError("fail", "fail", "not found".encode("utf-8"))
                 mock_cfg.return_value = "/tmp/test-sam"
                 it = InitTemplates(True)
-                location = it.prompt_for_location("ruby2.5", "bundler")
+                location, app_template = it.prompt_for_location("ruby2.5", "bundler")
                 self.assertTrue(search("cookiecutter-aws-sam-hello-ruby", location))
+                self.assertEqual("hello-world", app_template)
 
     def test_git_executable_windows(self):
         with patch("platform.system", new_callable=MagicMock) as mock_platform:

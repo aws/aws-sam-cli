@@ -20,6 +20,10 @@ func-test:
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
 	pytest --cov samcli.local --cov samcli.commands.local --cov-report term-missing tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py
 
+regres-test:
+	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
+	SAM_CLI_DEV=1 pytest tests/regression
+
 smoke-test:
 	# Smoke tests run in parallel
 	SAM_CLI_DEV=1 pytest -n 4 tests/smoke

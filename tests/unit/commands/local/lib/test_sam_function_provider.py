@@ -255,7 +255,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             name="myname",
             runtime="myruntime",
             memory="mymemorysize",
-            timeout=30,
+            timeout="30",
             handler="myhandler",
             codeuri="/usr/local",
             environment="myenvironment",
@@ -266,23 +266,6 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
 
         self.assertEqual(expected, result)
-
-    def test_must_fail_with_InvalidSamTemplateException(self):
-
-        name = "myname"
-        properties = {
-            "CodeUri": "/usr/local",
-            "Runtime": "myruntime",
-            "MemorySize": "mymemorysize",
-            "Timeout": "timeout",
-            "Handler": "myhandler",
-            "Environment": "myenvironment",
-            "Role": "myrole",
-            "Layers": ["Layer1", "Layer2"],
-        }
-
-        with self.assertRaises(InvalidSamTemplateException):
-            SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
 
     def test_must_skip_non_existent_properties(self):
 
