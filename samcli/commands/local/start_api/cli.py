@@ -127,7 +127,7 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.local.lib.local_api_service import LocalApiService
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-    from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
+    from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     LOG.debug("local start-api command is called")
 

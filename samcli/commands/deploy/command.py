@@ -79,7 +79,7 @@ LOG = logging.getLogger(__name__)
     required=False,
     is_flag=True,
     help="Indicates whether to override existing files in the S3 bucket. "
-    "Specify this flag to upload artifacts even if they"
+    "Specify this flag to upload artifacts even if they "
     "match existing artifacts in the S3 bucket.",
 )
 @click.option(
@@ -99,17 +99,17 @@ LOG = logging.getLogger(__name__)
     required=False,
     is_flag=True,
     help="Indicates  whether  to  execute  the"
-    "change  set.  Specify  this flag if you want to view your stack changes"
-    "before executing the change set. The command creates an AWS CloudForma-"
-    "tion  change set and then exits without executing the change set. if "
+    "change  set.  Specify  this flag if you want to view your stack changes "
+    "before executing the change set. The command creates an AWS CloudFormation "
+    "change set and then exits without executing the change set. if "
     "the changeset looks satisfactory, the stack changes can be made by "
     "running the same command without specifying `--no-execute-changeset`",
 )
 @click.option(
     "--role-arn",
     required=False,
-    help="The Amazon Resource Name (ARN) of an  AWS  Identity"
-    "and  Access  Management (IAM) role that AWS CloudFormation assumes when"
+    help="The Amazon Resource Name (ARN) of an  AWS  Identity "
+    "and  Access  Management (IAM) role that AWS CloudFormation assumes when "
     "executing the change set.",
 )
 @click.option(
@@ -117,8 +117,8 @@ LOG = logging.getLogger(__name__)
     default=True,
     required=False,
     is_flag=True,
-    help="Specify  if  the CLI should return a non-zero exit code if there are no"
-    "changes to be made to the stack. The default behavior is  to  return  a"
+    help="Specify  if  the CLI should return a non-zero exit code if there are no "
+    "changes to be made to the stack. The default behavior is to return a "
     "non-zero exit code.",
 )
 @click.option(
