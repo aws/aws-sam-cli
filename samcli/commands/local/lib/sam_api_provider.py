@@ -111,10 +111,15 @@ class SamApiProvider(CfnBaseApiProvider):
 
             allow_origin = self._get_cors_prop(cors_prop, "AllowOrigin")
             allow_headers = self._get_cors_prop(cors_prop, "AllowHeaders")
+            allow_credentials = self._get_cors_prop(cors_prop, "AllowCredentials", is_string=False)
             max_age = self._get_cors_prop(cors_prop, "MaxAge")
 
             cors = Cors(
-                allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
+                allow_origin=allow_origin,
+                allow_methods=allow_methods,
+                allow_headers=allow_headers,
+                allow_credentials=allow_credentials,
+                max_age=max_age
             )
         elif cors_prop and isinstance(cors_prop, string_types):
             allow_origin = cors_prop
@@ -128,12 +133,13 @@ class SamApiProvider(CfnBaseApiProvider):
                 allow_origin=allow_origin,
                 allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
+                allow_credentials=None
                 max_age=None,
             )
         return cors
 
     @staticmethod
-    def _get_cors_prop(cors_dict, prop_name):
+    def _get_cors_prop(cors_dict, prop_name, is_string=True):
         """
         Extract cors properties from dictionary and remove extra quotes.
 
@@ -147,7 +153,7 @@ class SamApiProvider(CfnBaseApiProvider):
         A string with the extra quotes removed
         """
         prop = cors_dict.get(prop_name)
-        if prop:
+        if prop and is_string:
             if (not isinstance(prop, string_types)) or (not (prop.startswith("'") and prop.endswith("'"))):
                 raise InvalidSamDocumentException(
                     "{} must be a quoted string " '(i.e. "\'value\'" is correct, but "value" is not).'.format(prop_name)
