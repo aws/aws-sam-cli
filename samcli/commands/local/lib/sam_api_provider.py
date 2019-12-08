@@ -119,7 +119,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 allow_methods=allow_methods,
                 allow_headers=allow_headers,
                 allow_credentials=allow_credentials,
-                max_age=max_age
+                max_age=max_age,
             )
         elif cors_prop and isinstance(cors_prop, string_types):
             allow_origin = cors_prop
@@ -133,7 +133,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 allow_origin=allow_origin,
                 allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
-                allow_credentials=None
+                allow_credentials=None,
                 max_age=None,
             )
         return cors
