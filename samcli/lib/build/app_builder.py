@@ -83,6 +83,7 @@ class ApplicationBuilder:
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
+        self._package_cache = {}
 
     def build(self):
         """
@@ -169,15 +170,19 @@ class ApplicationBuilder:
         str
             Path to the location where built artifacts are available
         """
+        # TODO: implement if code_dir already exists then reuse rather than rebuilding
 
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
+        if code_dir in self._package_cache:
+            return self._package_cache[code_dir]
+
         config = get_workflow_config(runtime, code_dir, self._base_dir)
 
         # artifacts directory will be created by the builder
-        artifacts_dir = str(pathlib.Path(self._build_dir, function_name))
+        artifacts_dir = str(pathlib.Path(self._build_dir, pathlib.Path(code_dir).name))
 
         with osutils.mkdir_temp() as scratch_dir:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
@@ -187,12 +192,16 @@ class ApplicationBuilder:
             if self._container_manager:
                 build_method = self._build_function_on_container
 
-            return build_method(config,
+            artifacts = build_method(config,
                                 code_dir,
                                 artifacts_dir,
                                 scratch_dir,
                                 manifest_path,
                                 runtime)
+
+            self._package_cache[code_dir] = artifacts
+
+        return artifacts
 
     def _build_function_in_process(self,
                                    config,

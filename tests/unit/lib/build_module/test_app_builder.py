@@ -103,7 +103,7 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function_in_process = Mock()
 
         code_dir = str(Path("/base/dir/path/to/source").resolve())
-        artifacts_dir = str(Path("/build/dir/function_name"))
+        artifacts_dir = str(Path("/build/dir/source"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         self.builder._build_function(function_name, codeuri, runtime)
@@ -128,16 +128,51 @@ class TestApplicationBuilder_build_function(TestCase):
         self.builder._build_function_on_container = Mock()
 
         code_dir = str(Path("/base/dir/path/to/source").resolve())
-        artifacts_dir = str(Path("/build/dir/function_name"))
+        artifacts_dir = str(Path("/build/dir/source"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
-        # Settting the container manager will make us use the container
+        # Setting the container manager will make us use the container
         self.builder._container_manager = Mock()
         self.builder._build_function(function_name, codeuri, runtime)
 
         self.builder._build_function_on_container.assert_called_with(
             config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime
         )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_multiple_with_same_code_dir(self, osutils_mock, get_workflow_config_mock):
+        function1_name = "function1_name"
+        function2_name = "function2_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        scratch_dir = "scratch"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_in_process = Mock(side_effect=["artifact1", "artifact2"])
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir1 = str(Path("/build/dir/source"))
+        artifacts_dir2 = str(Path("/build/dir/source"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        artifact1 = self.builder._build_function(function1_name, codeuri, runtime)
+
+        self.builder._build_function_in_process.assert_called_with(
+            config_mock, code_dir, artifacts_dir1, scratch_dir, manifest_path, runtime
+        )
+
+        self.builder._build_function_in_process.reset_mock()
+
+        artifact2 = self.builder._build_function(function2_name, codeuri, runtime)
+
+        assert artifact1 == artifact2
+
+        self.builder._build_function_in_process.assert_not_called()
 
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
