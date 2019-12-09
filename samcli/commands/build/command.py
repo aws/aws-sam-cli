@@ -83,6 +83,12 @@ $ sam build && sam package --s3-bucket <bucketname>
     "to build your function inside an AWS Lambda-like Docker container",
 )
 @click.option(
+    "--docker-image", "-i",
+    default=None,
+    type=click.STRING,
+    help="In addition to --use-container, allow you to specify the name of the Docker image",
+)
+@click.option(
     "--manifest",
     "-m",
     default=None,
@@ -104,6 +110,7 @@ def cli(
     base_dir,
     build_dir,
     use_container,
+    docker_image,
     manifest,
     docker_network,
     skip_pull_image,
@@ -120,6 +127,7 @@ def cli(
         build_dir,
         True,
         use_container,
+        docker_image,
         manifest,
         docker_network,
         skip_pull_image,
@@ -135,6 +143,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     build_dir,
     clean,
     use_container,
+    docker_image,
     manifest_path,
     docker_network,
     skip_pull_image,
@@ -171,6 +180,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         clean=clean,
         manifest_path=manifest_path,
         use_container=use_container,
+        docker_image=docker_image,
         parameter_overrides=parameter_overrides,
         docker_network=docker_network,
         skip_pull_image=skip_pull_image,

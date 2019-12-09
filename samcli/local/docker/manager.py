@@ -20,18 +20,20 @@ class ContainerManager:
     serve requests faster. It is also thread-safe.
     """
 
-    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False):
+    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False, docker_image=None):
         """
         Instantiate the container manager
 
         :param docker_network_id: Optional Docker network to run this container in.
         :param docker_client: Optional docker client object
         :param bool skip_pull_image: Should we pull new Docker container image?
+        :param docker_image: Optional docker image name
         """
 
-        self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
         self.docker_client = docker_client or docker.from_env()
+        self.skip_pull_image = skip_pull_image
+        self.docker_image = docker_image
 
     @property
     def is_docker_reachable(self):
@@ -67,7 +69,7 @@ class ContainerManager:
         if warm:
             raise ValueError("The facility to invoke warm container does not exist")
 
-        image_name = container.image
+        image_name = self.docker_image or container.image
 
         is_image_local = self.has_image(image_name)
 

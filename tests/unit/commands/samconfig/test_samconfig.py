@@ -129,6 +129,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "builddir",
                 True,
                 True,
+                None,
                 "requirements.txt",
                 "mynetwork",
                 True,

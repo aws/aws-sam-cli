@@ -34,7 +34,8 @@ class BuildContext:
                  use_container=False,
                  parameter_overrides=None,
                  docker_network=None,
-                 skip_pull_image=False):
+                 skip_pull_image=False,
+                 docker_image=False):
 
         self._function_identifier = function_identifier
         self._template_file = template_file
@@ -46,6 +47,7 @@ class BuildContext:
         self._parameter_overrides = parameter_overrides
         self._docker_network = docker_network
         self._skip_pull_image = skip_pull_image
+        self._docker_image = docker_image
         self._mode = mode
 
         self._function_provider = None
@@ -69,7 +71,8 @@ class BuildContext:
 
         if self._use_container:
             self._container_manager = ContainerManager(docker_network_id=self._docker_network,
-                                                       skip_pull_image=self._skip_pull_image)
+                                                       skip_pull_image=self._skip_pull_image,
+                                                       docker_image=self._docker_image)
 
         return self
 

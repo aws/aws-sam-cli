@@ -38,6 +38,7 @@ class TestDoCli(TestCase):
             "skip_pull",
             "parameter_overrides",
             "mode",
+            "docker_image",
         )
 
         ApplicationBuilderMock.assert_called_once_with(
@@ -87,6 +88,7 @@ class TestDoCli(TestCase):
                 "skip_pull",
                 "parameteroverrides",
                 "mode",
+                "docker_image",
             )
 
         self.assertEqual(str(ctx.exception), str(exception))
@@ -112,6 +114,7 @@ class TestDoCli(TestCase):
                 "skip_pull",
                 "parameteroverrides",
                 "mode",
+                "docker_image",
             )
 
         self.assertEqual(str(ctx.exception), "Function Not Found")

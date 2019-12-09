@@ -58,7 +58,9 @@ class TestBuildContext__enter__(TestCase):
         SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
-        ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
+        ContainerManagerMock.assert_called_once_with(
+            docker_network_id="network", skip_pull_image=True, docker_image=False
+        )
         func_provider_mock.get.assert_called_once_with("function_identifier")
 
     @patch("samcli.commands.build.build_context.get_template_data")

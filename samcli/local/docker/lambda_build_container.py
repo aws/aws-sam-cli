@@ -35,6 +35,7 @@ class LambdaBuildContainer(Container):
         executable_search_paths=None,
         log_level=None,
         mode=None,
+        docker_image=None,
     ):
 
         abs_manifest_path = pathlib.Path(manifest_path).resolve()
@@ -72,7 +73,7 @@ class LambdaBuildContainer(Container):
             mode,
         )
 
-        image = LambdaBuildContainer._get_image(runtime)
+        image = docker_image or LambdaBuildContainer._get_image(runtime)
         entry = LambdaBuildContainer._get_entrypoint(request_json)
         cmd = []
 

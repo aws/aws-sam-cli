@@ -181,18 +181,15 @@ class ApplicationBuilder:
 
         with osutils.mkdir_temp() as scratch_dir:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
+            build_args = [config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime]
 
             # By default prefer to build in-process for speed
             build_method = self._build_function_in_process
             if self._container_manager:
                 build_method = self._build_function_on_container
+                build_args.append(self._container_manager.docker_image)
 
-            return build_method(config,
-                                code_dir,
-                                artifacts_dir,
-                                scratch_dir,
-                                manifest_path,
-                                runtime)
+            return build_method(*build_args)
 
     def _build_function_in_process(self,
                                    config,
@@ -225,7 +222,8 @@ class ApplicationBuilder:
                                      artifacts_dir,
                                      scratch_dir,
                                      manifest_path,
-                                     runtime):
+                                     runtime,
+                                     docker_image=None):
 
         if not self._container_manager.is_docker_reachable:
             raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
@@ -248,7 +246,8 @@ class ApplicationBuilder:
                                          optimizations=None,
                                          options=None,
                                          executable_search_paths=config.executable_search_paths,
-                                         mode=self._mode)
+                                         mode=self._mode,
+                                         docker_image=docker_image)
 
         try:
             try:
