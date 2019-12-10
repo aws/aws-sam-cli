@@ -157,7 +157,9 @@ class LambdaDebugSettings:
                         ]
                     ),
                 ],
-                debug_env_vars={},
+                debug_env_vars={
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node10/node_modules:/var/runtime/node_modules"
+                },
             ),
             Runtime.nodejs12x.value: DebugSettings(
                 [
@@ -177,7 +179,9 @@ class LambdaDebugSettings:
                         ]
                     ),
                 ],
-                debug_env_vars={},
+                debug_env_vars={
+                    "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node12/node_modules:/var/runtime/node_modules"
+                },
             ),
             Runtime.python27.value: DebugSettings(
                 ["/usr/bin/python2.7"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"], debug_env_vars={}
