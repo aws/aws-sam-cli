@@ -220,13 +220,14 @@ class Api:
         return list(self.binary_media_types_set)
 
 
-_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
+_CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])
 
 
 _CorsTuple.__new__.__defaults__ = (
     None,  # Allow Origin defaults to None
     None,  # Allow Methods is optional and defaults to empty
     None,  # Allow Headers is optional and defaults to empty
+    None,  # Allow Credentials is optional and defaults to empty
     None,  # MaxAge is optional and defaults to empty
 )
 
@@ -250,6 +251,7 @@ class Cors(_CorsTuple):
             "Access-Control-Allow-Origin": cors.allow_origin,
             "Access-Control-Allow-Methods": cors.allow_methods,
             "Access-Control-Allow-Headers": cors.allow_headers,
+            "Access-Control-Allow-Credentials": cors.allow_credentials,
             "Access-Control-Max-Age": cors.max_age,
         }
         # Filters out items in the headers dictionary that isn't empty.
