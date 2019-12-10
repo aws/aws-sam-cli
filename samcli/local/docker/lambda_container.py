@@ -3,7 +3,7 @@ Represents Lambda runtime containers.
 """
 import logging
 
-from samcli.local.docker.lambda_debug_entrypoint import LambdaDebugEntryPoint
+from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from .container import Container
 from .lambda_image import Runtime
 
@@ -71,10 +71,15 @@ class LambdaContainer(Container):
 
         image = LambdaContainer._get_image(image_builder, runtime, layers)
         ports = LambdaContainer._get_exposed_ports(debug_options)
-        entry = LambdaContainer._get_entry_point(runtime, debug_options)
+        entry, debug_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
         additional_volumes = LambdaContainer._get_additional_volumes(debug_options)
         cmd = [handler]
+
+        if not env_vars:
+            env_vars = {}
+
+        env_vars = {**env_vars, **debug_env_vars}
 
         super(LambdaContainer, self).__init__(
             image,
@@ -168,7 +173,7 @@ class LambdaContainer(Container):
         return image_builder.build(runtime, layers)
 
     @staticmethod
-    def _get_entry_point(runtime, debug_options=None):  # pylint: disable=too-many-branches
+    def _get_debug_settings(runtime, debug_options=None):  # pylint: disable=too-many-branches
         """
         Returns the entry point for the container. The default value for the entry point is already configured in the
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes
@@ -181,11 +186,11 @@ class LambdaContainer(Container):
         """
 
         if not debug_options:
-            return None
+            return None, {}
 
         debug_ports = debug_options.debug_ports
         if not debug_ports:
-            return None
+            return None, {}
 
         debug_port = debug_ports[0]
         debug_args_list = []
@@ -195,7 +200,7 @@ class LambdaContainer(Container):
 
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
-        return LambdaDebugEntryPoint.get_entry_point(
+        return LambdaDebugSettings.get_debug_settings(
             debug_port=debug_port,
             debug_args_list=debug_args_list,
             runtime=runtime,

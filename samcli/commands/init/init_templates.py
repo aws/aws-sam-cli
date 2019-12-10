@@ -170,3 +170,18 @@ class InitTemplates:
             "\nAllow SAM CLI to download AWS-provided quick start templates from Github", default=True
         )
         return do_clone
+
+    def is_dynamic_schemas_template(self, app_template, runtime, dependency_manager):
+        """
+        Check if provided template is dynamic template e.g: AWS Schemas template.
+        Currently dynamic templates require different handling e.g: for schema download and merge schema code in sam-app.
+        :param app_template:
+        :param runtime:
+        :param dependency_manager:
+        :return:
+        """
+        options = self.init_options(runtime, dependency_manager)
+        for option in options:
+            if option.get("appTemplate") == app_template:
+                return option.get("isDynamicTemplate", False)
+        return False

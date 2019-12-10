@@ -8,6 +8,7 @@ from parameterized import parameterized
 
 from pathlib import Path
 
+from cookiecutter.exceptions import RepositoryNotFound
 from samcli.local.init.arbitrary_project import generate_non_cookiecutter_project, repository
 from samcli.local.init.exceptions import ArbitraryProjectDownloadFailed
 
@@ -30,7 +31,7 @@ class TestGenerateNonCookieCutterProject(TestCase):
 
             unzip_mock.assert_called_with(zip_uri=location, is_url=is_url, no_input=True, clone_to_dir=ANY)
 
-            osutils_mock.copytree.assert_called_with("unzipped_dir", self.output_dir)
+            osutils_mock.copytree.assert_called_with("unzipped_dir", self.output_dir, ignore=ANY)
 
     @patch("samcli.local.init.arbitrary_project.osutils")
     def test_support_source_control_repos(self, osutils_mock):
@@ -44,10 +45,19 @@ class TestGenerateNonCookieCutterProject(TestCase):
 
             clone_mock.assert_called_with(repo_url=location, no_input=True, clone_to_dir=ANY)
 
-            osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir)
+            osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir, ignore=ANY)
 
     def test_must_fail_on_local_folders(self):
         location = str(Path("my", "folder"))
 
         with self.assertRaises(ArbitraryProjectDownloadFailed):
             generate_non_cookiecutter_project(location, self.output_dir)
+
+    def test_must_fail_when_repo_not_found(self):
+        location = str(Path("my", "folder"))
+
+        with patch.object(repository, "unzip") as unzip_mock:
+            unzip_mock.side_effect = RepositoryNotFound("repo")
+
+            with self.assertRaises(ArbitraryProjectDownloadFailed):
+                generate_non_cookiecutter_project(location, self.output_dir)

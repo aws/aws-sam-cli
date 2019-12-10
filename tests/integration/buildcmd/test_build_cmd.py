@@ -14,7 +14,7 @@ from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
 
 LOG = logging.getLogger(__name__)
 
-TIMEOUT = 300
+TIMEOUT = 420  # 7 mins
 
 
 @skipIf(

@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 from parameterized import parameterized
 from subprocess import Popen, TimeoutExpired
 import os
@@ -189,10 +190,22 @@ class TestInitWithArbitraryProject(TestCase):
             self.assertEqual(os.listdir(str(expected_output_folder)), ["test.txt"])
             self.assertEqual(Path(expected_output_folder, "test.txt").read_text(), "hello world")
 
+    def test_zip_not_exists(self):
+        with tempfile.TemporaryDirectory() as temp:
+            args = [_get_command(), "init", "--location", str(Path("invalid", "zip", "path")), "-o", temp]
+
+            process = Popen(args)
+            try:
+                process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 1)
+
 
 def _get_command():
     command = "sam"
     if os.getenv("SAM_CLI_DEV"):
         command = "samdev"
-
     return command

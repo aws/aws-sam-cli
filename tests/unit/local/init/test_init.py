@@ -35,7 +35,7 @@ class TestInit(TestCase):
 
         # THEN we should receive no errors
         cookiecutter_patch.assert_called_once_with(
-            extra_context=self.extra_context, no_input=self.no_input, output_dir=self.output_dir, template=self.template
+            no_input=self.no_input, output_dir=self.output_dir, template=self.template
         )
 
     @patch("samcli.local.init.cookiecutter")
@@ -51,7 +51,7 @@ class TestInit(TestCase):
 
         # THEN we should receive no errors
         cookiecutter_patch.assert_called_once_with(
-            extra_context=self.extra_context, no_input=self.no_input, output_dir=self.output_dir, template=self.template
+            no_input=self.no_input, output_dir=self.output_dir, template=self.template
         )
 
     def test_init_error_with_non_compatible_dependency_manager(self):
@@ -95,24 +95,37 @@ class TestInit(TestCase):
         self.assertEqual(expected_msg, str(ctx.exception))
 
     @patch("samcli.local.init.cookiecutter")
-    def test_must_not_set_name_when_location_is_given(self, cookiecutter_patch):
-        generate_project(runtime=self.runtime, output_dir=self.output_dir, name=self.name, no_input=False)
+    def test_must_set_cookiecutter_context_when_location_and_extra_context_is_provided(self, cookiecutter_patch):
+        cookiecutter_context = {"key1": "value1", "key2": "value2"}
+        custom_location = "mylocation"
+        generate_project(
+            location=custom_location, output_dir=self.output_dir, no_input=False, extra_context=cookiecutter_context
+        )
 
-        expected_extra_content = {"project_name": self.name, "runtime": self.runtime}
         # THEN we should receive no errors
         cookiecutter_patch.assert_called_once_with(
-            template=self.template, extra_context=expected_extra_content, no_input=True, output_dir=self.output_dir
+            extra_context=cookiecutter_context, template=custom_location, no_input=False, output_dir=self.output_dir
         )
 
     @patch("samcli.local.init.cookiecutter")
-    def test_must_not_set_extra_content(self, cookiecutter_patch):
-        custom_location = "mylocation"
+    def test_must_set_cookiecutter_context_when_app_template_is_provided(self, cookiecutter_patch):
+        cookiecutter_context = {"key1": "value1", "key2": "value2"}
         generate_project(
-            location=custom_location, runtime=self.runtime, output_dir=self.output_dir, name=self.name, no_input=False
+            runtime=self.runtime,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            no_input=self.no_input,
+            extra_context=cookiecutter_context,
         )
 
         # THEN we should receive no errors
-        cookiecutter_patch.assert_called_once_with(template=custom_location, no_input=False, output_dir=self.output_dir)
+        cookiecutter_patch.assert_called_once_with(
+            extra_context=cookiecutter_context,
+            no_input=self.no_input,
+            output_dir=self.output_dir,
+            template=self.template,
+        )
 
     @patch("samcli.local.init.cookiecutter")
     @patch("samcli.local.init.generate_non_cookiecutter_project")

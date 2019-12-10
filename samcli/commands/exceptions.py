@@ -26,6 +26,12 @@ class CredentialsError(UserException):
     """
 
 
+class SchemasApiException(UserException):
+    """
+    Exception class to wrap all Schemas APIs exceptions.
+    """
+
+
 class RegionError(UserException):
     """
     Exception class when no valid region is passed to a client.
