@@ -53,6 +53,8 @@ class LocalLambdaRunner:
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
+        self._boto3_session_creds = None
+        self._boto3_region = None
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
         """
@@ -205,6 +207,22 @@ class LocalLambdaRunner:
             aws_creds=aws_creds,
         )
 
+    def _get_session_creds(self):
+        if self._boto3_session_creds is None:
+            # to pass command line arguments for region & profile to setup boto3 default session
+            LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
+            session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
+
+            # check for region_name in session and cache
+            if hasattr(session, "region_name") and session.region_name:
+                self._boto3_region = session.region_name
+
+            # don't set cached session creds if there is not a session
+            if session:
+                self._boto3_session_creds = session.get_credentials()
+
+        return self._boto3_session_creds
+
     def get_aws_creds(self):
         """
         Returns AWS credentials obtained from the shell environment or given profile
@@ -215,25 +233,16 @@ class LocalLambdaRunner:
         """
         result = {}
 
-        # to pass command line arguments for region & profile to setup boto3 default session
-        LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
-        # boto3.session.Session is not thread safe. To ensure we do not run into a race condition with start-lambda
-        # or start-api, we create the session object here on every invoke.
-        session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
-
-        if not session:
-            return result
-
         # Load the credentials from profile/environment
-        creds = session.get_credentials()
-
-        if not creds:
-            # If we were unable to load credentials, then just return empty. We will use the default
-            return result
+        creds = self._get_session_creds()
 
         # After loading credentials, region name might be available here.
-        if hasattr(session, "region_name") and session.region_name:
-            result["region"] = session.region_name
+        if self._boto3_region:
+            result["region"] = self._boto3_region
+
+        if not creds:
+            # If we were unable to load credentials, then just return result. We will use the default
+            return result
 
         # Only add the key, if its value is present
         if hasattr(creds, "access_key") and creds.access_key:

@@ -10,19 +10,21 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_option_without_build
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 @click.command("validate", short_help="Validate an AWS SAM template.")
+@configuration_option(provider=TomlProvider(section="parameters"))
 @template_option_without_build
 @aws_creds_options
 @cli_framework_options
 @pass_context
 @track_command
-def cli(ctx, template):
+def cli(ctx, template_file):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template)  # pragma: no cover
+    do_cli(ctx, template_file)  # pragma: no cover
 
 
 def do_cli(ctx, template):

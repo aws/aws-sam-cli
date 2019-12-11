@@ -8,6 +8,7 @@ import click
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
 from samcli.lib.telemetry.metrics import track_command
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 
 LOG = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ Here is a Python example:
     help=HELP_TEXT,
     short_help="Starts a local endpoint you can use to invoke your local Lambda functions.",
 )
+@configuration_option(provider=TomlProvider(section="parameters"))
 @service_common_options(3001)
 @invoke_common_options
 @cli_framework_options
@@ -61,7 +63,7 @@ def cli(
     host,
     port,
     # Common Options for Lambda Invoke
-    template,
+    template_file,
     env_vars,
     debug_port,
     debug_args,
@@ -80,7 +82,7 @@ def cli(
         ctx,
         host,
         port,
-        template,
+        template_file,
         env_vars,
         debug_port,
         debug_args,
@@ -122,7 +124,7 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-    from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
+    from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
     LOG.debug("local start_lambda command is called")
 

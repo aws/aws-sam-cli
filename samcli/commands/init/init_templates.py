@@ -32,28 +32,33 @@ class InitTemplates:
 
     def prompt_for_location(self, runtime, dependency_manager):
         options = self.init_options(runtime, dependency_manager)
-        choices = map(str, range(1, len(options) + 1))
-        choice_num = 1
-        for o in options:
-            if o.get("displayName") is not None:
-                msg = str(choice_num) + " - " + o.get("displayName")
-                click.echo(msg)
-            else:
-                msg = (
-                    str(choice_num)
-                    + " - Default Template for runtime "
-                    + runtime
-                    + " with dependency manager "
-                    + dependency_manager
-                )
-                click.echo(msg)
-            choice_num = choice_num + 1
-        choice = click.prompt("Template Selection", type=click.Choice(choices), show_choices=False)
-        template_md = options[int(choice) - 1]  # zero index
+        if len(options) == 1:
+            template_md = options[0]
+        else:
+            choices = list(map(str, range(1, len(options) + 1)))
+            choice_num = 1
+            click.echo("\nAWS quick start application templates:")
+            for o in options:
+                if o.get("displayName") is not None:
+                    msg = "\t" + str(choice_num) + " - " + o.get("displayName")
+                    click.echo(msg)
+                else:
+                    msg = (
+                        "\t"
+                        + str(choice_num)
+                        + " - Default Template for runtime "
+                        + runtime
+                        + " with dependency manager "
+                        + dependency_manager
+                    )
+                    click.echo(msg)
+                choice_num = choice_num + 1
+            choice = click.prompt("Template selection", type=click.Choice(choices), show_choices=False)
+            template_md = options[int(choice) - 1]  # zero index
         if template_md.get("init_location") is not None:
-            return template_md["init_location"]
+            return (template_md["init_location"], "hello-world")
         if template_md.get("directory") is not None:
-            return os.path.join(self.repo_path, template_md["directory"])
+            return (os.path.join(self.repo_path, template_md["directory"]), template_md["appTemplate"])
         raise UserException("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, runtime, dependency_manager, app_template):
@@ -150,7 +155,9 @@ class InitTemplates:
         path = Path(expected_path)
         if path.exists():
             if not self._no_interactive:
-                overwrite = click.confirm("Init templates exist on disk. Do you wish to update?")
+                overwrite = click.confirm(
+                    "\nQuick start templates may have been updated. Do you want to re-download the latest", default=True
+                )
                 if overwrite:
                     shutil.rmtree(expected_path)  # fail hard if there is an issue
                     return True
@@ -160,6 +167,21 @@ class InitTemplates:
         if self._no_interactive:
             return self._auto_clone
         do_clone = click.confirm(
-            "This process will clone app templates from https://github.com/awslabs/aws-sam-cli-app-templates - is this ok?"
+            "\nAllow SAM CLI to download AWS-provided quick start templates from Github", default=True
         )
         return do_clone
+
+    def is_dynamic_schemas_template(self, app_template, runtime, dependency_manager):
+        """
+        Check if provided template is dynamic template e.g: AWS Schemas template.
+        Currently dynamic templates require different handling e.g: for schema download and merge schema code in sam-app.
+        :param app_template:
+        :param runtime:
+        :param dependency_manager:
+        :return:
+        """
+        options = self.init_options(runtime, dependency_manager)
+        for option in options:
+            if option.get("appTemplate") == app_template:
+                return option.get("isDynamicTemplate", False)
+        return False

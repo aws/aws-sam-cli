@@ -7,24 +7,7 @@ import pathlib
 import yaml
 
 from samcli.yamlhelper import yaml_parse, yaml_dump
-
-
-_METADATA_WITH_LOCAL_PATHS = {"AWS::ServerlessRepo::Application": ["LicenseUrl", "ReadmeUrl"]}
-
-_RESOURCES_WITH_LOCAL_PATHS = {
-    "AWS::Serverless::Function": ["CodeUri"],
-    "AWS::Serverless::Api": ["DefinitionUri"],
-    "AWS::AppSync::GraphQLSchema": ["DefinitionS3Location"],
-    "AWS::AppSync::Resolver": ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    "AWS::AppSync::FunctionConfiguration": ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],
-    "AWS::Lambda::Function": ["Code"],
-    "AWS::ApiGateway::RestApi": ["BodyS3Location"],
-    "AWS::ElasticBeanstalk::ApplicationVersion": ["SourceBundle"],
-    "AWS::CloudFormation::Stack": ["TemplateURL"],
-    "AWS::Serverless::Application": ["Location"],
-    "AWS::Lambda::LayerVersion": ["Content"],
-    "AWS::Serverless::LayerVersion": ["ContentUri"],
-}
+from samcli.commands._utils.resources import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 
 
 def get_template_data(template_file):
@@ -126,11 +109,11 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
     for resource_type, properties in template_dict.get("Metadata", {}).items():
 
-        if resource_type not in _METADATA_WITH_LOCAL_PATHS:
+        if resource_type not in METADATA_WITH_LOCAL_PATHS:
             # Unknown resource. Skipping
             continue
 
-        for path_prop_name in _METADATA_WITH_LOCAL_PATHS[resource_type]:
+        for path_prop_name in METADATA_WITH_LOCAL_PATHS[resource_type]:
             path = properties.get(path_prop_name)
 
             updated_path = _resolve_relative_to(path, original_root, new_root)
@@ -143,11 +126,11 @@ def _update_relative_paths(template_dict, original_root, new_root):
     for _, resource in template_dict.get("Resources", {}).items():
         resource_type = resource.get("Type")
 
-        if resource_type not in _RESOURCES_WITH_LOCAL_PATHS:
+        if resource_type not in RESOURCES_WITH_LOCAL_PATHS:
             # Unknown resource. Skipping
             continue
 
-        for path_prop_name in _RESOURCES_WITH_LOCAL_PATHS[resource_type]:
+        for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
             properties = resource.get("Properties", {})
             path = properties.get(path_prop_name)
 
@@ -221,3 +204,20 @@ def _resolve_relative_to(path, original_root, new_root):
     return os.path.relpath(
         os.path.normpath(os.path.join(original_root, path)), new_root  # Absolute original path w.r.t ``original_root``
     )  # Resolve the original path with respect to ``new_root``
+
+
+def get_template_parameters(template_file):
+    """
+    Get Parameters from a template file.
+
+    Parameters
+    ----------
+    template_file : string
+        Path to the template to read
+
+    Returns
+    -------
+    Template Parameters as a dictionary
+    """
+    template_dict = get_template_data(template_file=template_file)
+    return template_dict.get("Parameters", dict())

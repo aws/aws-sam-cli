@@ -3,12 +3,14 @@
 import os
 import tempfile
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 from nose_parameterized import parameterized, param
 import pytest
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from pathlib import Path
+
+TIMEOUT = 300
 
 
 class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
@@ -35,10 +37,14 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
         )
 
         process = Popen(command_list, stdout=PIPE)
-        return_code = process.wait()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        self.assertEqual(return_code, 0)
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        self.assertEqual(process.returncode, 0)
+        process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello World"')
 
     @pytest.mark.timeout(timeout=300, method="thread")
@@ -50,8 +56,12 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
         command_list = command_list + ["--skip-pull-image"]
 
         process = Popen(command_list, stdout=PIPE)
-        return_code = process.wait()
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
 
-        self.assertEqual(return_code, 0)
-        process_stdout = b"".join(process.stdout.readlines()).strip()
+        self.assertEqual(process.returncode, 0)
+        process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '{"body":"hello 曰有冥 world 🐿","statusCode":200,"headers":{}}')

@@ -3,19 +3,66 @@
 Init command to scaffold a project app from a template
 """
 import logging
+import json
+from json import JSONDecodeError
 
 import click
 
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
+from samcli.commands.exceptions import UserException
 from samcli.cli.main import pass_context, common_options, global_cfg
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
 from samcli.lib.telemetry.metrics import track_command
 
 LOG = logging.getLogger(__name__)
 
+HELP_TEXT = """ \b
+    Initialize a serverless application with a SAM template, folder
+    structure for your Lambda functions, connected to an event source such as APIs,
+    S3 Buckets or DynamoDB Tables. This application includes everything you need to
+    get started with serverless and eventually grow into a production scale application.
+    \b
+    This command can initialize a boilerplate serverless app. If you want to create your own
+    template as well as use a custom location please take a look at our official documentation.
+\b
+Common usage:
+    \b
+    Starts an interactive prompt process to initialize a new project:
+    \b
+    $ sam init
+    \b
+    Initializes a new SAM project using project templates without an interactive workflow:
+    \b
+    $ sam init --name sam-app --runtime nodejs10.x --dependency-manager npm --app-template hello-world
+    \b
+    Initializes a new SAM project using custom template in a Git/Mercurial repository
+    \b
+    # gh being expanded to github url
+    $ sam init --location gh:aws-samples/cookiecutter-aws-sam-python
+    \b
+    $ sam init --location git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git
+    \b
+    $ sam init --location hg+ssh://hg@bitbucket.org/repo/template-name
+    \b
+    Initializes a new SAM project using custom template in a Zipfile
+    \b
+    $ sam init --location /path/to/template.zip
+    \b
+    $ sam init --location https://example.com/path/to/template.zip
+    \b
+    Initializes a new SAM project using custom template in a local path
+    \b
+    $ sam init --location /path/to/template/folder
+"""
+
 
 @click.command(
-    "init", short_help="Init an AWS SAM application.", context_settings=dict(help_option_names=["-h", "--help"])
+    "init",
+    help=HELP_TEXT,
+    short_help="Init an AWS SAM application.",
+    context_settings=dict(help_option_names=["-h", "--help"]),
 )
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--no-interactive",
     is_flag=True,
@@ -32,7 +79,7 @@ LOG = logging.getLogger(__name__)
     help="Dependency manager of your Lambda runtime",
     required=False,
 )
-@click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into")
+@click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into", default=".")
 @click.option("-n", "--name", help="Name of your project to be generated as a folder")
 @click.option(
     "--app-template",
@@ -44,12 +91,32 @@ LOG = logging.getLogger(__name__)
     default=False,
     help="Disable Cookiecutter prompting and accept default values defined template config",
 )
+@click.option(
+    "--extra-context",
+    default=None,
+    help="Override any custom parameters in the template's cookiecutter.json configuration e.g. "
+    ""
+    '{"customParam1": "customValue1", "customParam2":"customValue2"}'
+    """ """,
+    required=False,
+)
 @common_options
 @pass_context
 @track_command
-def cli(ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input):
+def cli(
+    ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input, extra_context
+):
     do_cli(
-        ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input
+        ctx,
+        no_interactive,
+        location,
+        runtime,
+        dependency_manager,
+        output_dir,
+        name,
+        app_template,
+        no_input,
+        extra_context,
     )  # pragma: no cover
 
 
@@ -64,12 +131,12 @@ def do_cli(
     name,
     app_template,
     no_input,
+    extra_context,
     auto_clone=True,
 ):
-    from samcli.commands.exceptions import UserException
     from samcli.commands.init.init_generator import do_generate
-    from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
+    from samcli.commands.init.init_templates import InitTemplates
 
     # check for mutually exclusive parameters
     if location and app_template:
@@ -77,19 +144,19 @@ def do_cli(
 You must not provide both the --location and --app-template parameters.
 
 You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template
+    --name and --runtime and --app-template and --dependency-manager
     --location
         """
         raise UserException(msg)
     # check for required parameters
     if location or (name and runtime and dependency_manager and app_template):
         # need to turn app_template into a location before we generate
-        extra_context = None
         if app_template:
             templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
-            extra_context = {"project_name": name, "runtime": runtime}
+        extra_context = _get_cookiecutter_template_context(name, runtime, extra_context)
+
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
@@ -107,3 +174,24 @@ You can also re-run without the --no-interactive flag to be prompted for require
     else:
         # proceed to interactive state machine, which will call do_generate
         do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
+
+
+def _get_cookiecutter_template_context(name, runtime, extra_context):
+    default_context = {}
+    extra_context_dict = {}
+
+    if runtime is not None:
+        default_context["runtime"] = runtime
+
+    if name is not None:
+        default_context["project_name"] = name
+
+    if extra_context is not None:
+        try:
+            extra_context_dict = json.loads(extra_context)
+        except JSONDecodeError:
+            raise UserException(
+                "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
+            )
+
+    return {**extra_context_dict, **default_context}

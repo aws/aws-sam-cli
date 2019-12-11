@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
+import json
 
 import pytest
 
@@ -168,13 +169,19 @@ class TestLambdaService(StartLambdaIntegBaseClass):
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_lambda_function_raised_error(self):
         response = self.lambda_client.invoke(FunctionName="RaiseExceptionFunction", InvocationType="RequestResponse")
+        response_data = json.loads(response.get("Payload").read().decode("utf-8"))
+
+        print(response_data)
 
         self.assertEqual(
-            response.get("Payload").read().decode("utf-8"),
-            '{"errorMessage": "Lambda is raising an exception", '
-            '"errorType": "Exception", '
-            '"stackTrace": [["/var/task/main.py", 48, "raise_exception", '
-            '"raise Exception(\\"Lambda is raising an exception\\")"]]}',
+            response_data,
+            {
+                "errorMessage": "Lambda is raising an exception",
+                "errorType": "Exception",
+                "stackTrace": [
+                    '  File "/var/task/main.py", line 48, in raise_exception\n    raise Exception("Lambda is raising an exception")\n'
+                ],
+            },
         )
         self.assertEqual(response.get("FunctionError"), "Unhandled")
         self.assertEqual(response.get("StatusCode"), 200)

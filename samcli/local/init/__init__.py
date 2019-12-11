@@ -4,11 +4,14 @@ Init module to scaffold a project app from a template
 import itertools
 import logging
 
-from cookiecutter.exceptions import CookiecutterException
+from pathlib import Path
+
+from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 from samcli.local.init.exceptions import GenerateProjectFailedError
+from .arbitrary_project import generate_non_cookiecutter_project
 
 LOG = logging.getLogger(__name__)
 
@@ -68,7 +71,6 @@ def generate_project(
     LOG.debug("%s", params)
 
     if not location and name is not None:
-        params["extra_context"] = {"project_name": name, "runtime": runtime}
         params["no_input"] = True
         LOG.debug("Parameters dict updated with project name as extra_context")
         LOG.debug("%s", params)
@@ -76,5 +78,15 @@ def generate_project(
     try:
         LOG.debug("Baking a new template with cookiecutter with all parameters")
         cookiecutter(**params)
+    except RepositoryNotFound as e:
+        # cookiecutter.json is not found in the template. Let's just clone it directly without using cookiecutter
+        # and call it done.
+        LOG.debug(
+            "Unable to find cookiecutter.json in the project. Downloading it directly without treating "
+            "it as a cookiecutter template"
+        )
+        project_output_dir = str(Path(output_dir, name)) if name else output_dir
+        generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
+
     except CookiecutterException as e:
         raise GenerateProjectFailedError(project=name, provider_error=e)
