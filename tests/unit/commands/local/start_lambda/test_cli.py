@@ -8,7 +8,7 @@ from samcli.commands.local.lib.exceptions import InvalidLayerReference
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
-from samcli.local.docker.lambda_debug_entrypoint import DebuggingNotSupported
+from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
 
 class TestCli(TestCase):
