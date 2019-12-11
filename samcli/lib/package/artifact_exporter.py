@@ -132,8 +132,6 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
     local_path = jmespath.search(property_name, resource_dict)
 
-    # Probably should be a general "if we don't want to upload this"
-    # Also writes CodeUri as null which is not ideal.
     if resource_not_packageable(resource_dict):
         return
 
