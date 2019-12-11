@@ -108,7 +108,6 @@ INIT_RUNTIMES = [
     # older nodejs runtimes
     "nodejs10.x",
     "nodejs8.10",
-    "nodejs6.10",
     # older python runtimes
     "python3.7",
     "python3.6",
