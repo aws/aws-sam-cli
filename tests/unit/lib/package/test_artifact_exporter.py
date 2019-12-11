@@ -84,6 +84,10 @@ class TestArtifactExporter(unittest.TestCase):
                     test["class"], uploaded_s3_url, upload_local_artifacts_mock, test["expected_result"]
                 )
 
+    def test_invalid_export_resource(self):
+        result = upload_local_artifacts("fake", {"InlineCode": "code"}, "path", ".", None)
+        self.assertIsNone(result)
+
     def _helper_verify_export_resources(
         self, test_class, uploaded_s3_url, upload_local_artifacts_mock, expected_result
     ):
