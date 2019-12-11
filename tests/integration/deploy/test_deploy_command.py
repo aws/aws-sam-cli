@@ -283,6 +283,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -349,6 +350,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(stack_name)
 
         kwargs = {
             "template_file": template_path,
@@ -395,6 +397,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
         kwargs = {
@@ -435,6 +438,23 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertNotEqual(deploy_process_execute.returncode, 0)
         stderr = stderr.strip()
         self.assertIn(bytes(f"Error: No changes to deploy. Stack {stack_name} is up to date", encoding="utf-8"), stderr)
+
+    @parameterized.expand(["aws-serverless-inline.yaml"])
+    def test_deploy_inline_no_package(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(stack_name)
+
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM")
+        deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+        try:
+            _, stderr = deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
+        stderr = stderr.strip()
+        print(stderr)
+        self.assertEqual(deploy_process_execute.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_guided(self, template_file):
