@@ -445,7 +445,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
         self.stack_names.append(stack_name)
 
-        deploy_command_list = self.get_deploy_command_list(template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM")
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM"
+        )
         deploy_process_execute = Popen(deploy_command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
         try:
             _, stderr = deploy_process_execute.communicate(timeout=TIMEOUT)

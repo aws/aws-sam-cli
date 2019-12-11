@@ -159,11 +159,13 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
     raise exceptions.InvalidLocalPathError(resource_id=resource_id, property_name=property_name, local_path=local_path)
 
+
 def resource_not_packageable(resource_dict):
     inline_code = jmespath.search("InlineCode", resource_dict)
     if inline_code is not None:
         return True
     return False
+
 
 def zip_and_upload(local_path, uploader):
     with zip_folder(local_path) as zip_file:
