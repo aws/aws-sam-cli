@@ -13,7 +13,7 @@ from samcli.lib.bootstrap.bootstrap import manage_stack, _create_or_get_stack, _
 
 class TestBootstrapManagedStack(TestCase):
     def _stubbed_cf_client(self):
-        cf = botocore.session.get_session().create_client("cloudformation")
+        cf = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
         return [cf, Stubber(cf)]
 
     @patch("boto3.Session")
