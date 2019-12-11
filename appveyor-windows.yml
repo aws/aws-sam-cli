@@ -49,6 +49,9 @@ install:
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
 
+    # Install AWS CLI Globally via pip3
+    - "pip install awscli"
+
     # Create new virtual environment with chosen python version and activate it
     - "python -m virtualenv venv"
     - "venv\\Scripts\\activate"
@@ -72,6 +75,7 @@ test_script:
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
+    - "pytest -vv tests/regression"
 
 # Uncomment for RDP
 # on_finish:

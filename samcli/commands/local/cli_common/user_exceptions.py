@@ -57,3 +57,9 @@ class UnsupportedIntrinsic(UserException):
     """
     Value from a template has an Intrinsic that is unsupported
     """
+
+
+class NotAvailableInRegion(UserException):
+    """
+    Calling service not available (launched) in specified region
+    """

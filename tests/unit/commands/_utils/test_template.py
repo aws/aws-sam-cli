@@ -8,10 +8,11 @@ from parameterized import parameterized, param
 
 from samcli.commands._utils.template import (
     get_template_data,
-    _METADATA_WITH_LOCAL_PATHS,
-    _RESOURCES_WITH_LOCAL_PATHS,
+    METADATA_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_LOCAL_PATHS,
     _update_relative_paths,
     move_template,
+    get_template_parameters,
 )
 
 
@@ -41,6 +42,26 @@ class Test_get_template_data(TestCase):
             result = get_template_data(filename)
 
             self.assertEqual(result, parse_result)
+
+        m.assert_called_with(filename, "r")
+        yaml_parse_mock.assert_called_with(file_data)
+
+    @patch("samcli.commands._utils.template.yaml_parse")
+    @patch("samcli.commands._utils.template.pathlib")
+    def test_must_read_file_and_get_parameters(self, pathlib_mock, yaml_parse_mock):
+        filename = "filename"
+        file_data = "contents of the file"
+        parse_result = {"Parameters": {"Myparameter": "String"}}
+
+        pathlib_mock.Path.return_value.exists.return_value = True  # Fake that the file exists
+
+        m = mock_open(read_data=file_data)
+        yaml_parse_mock.return_value = parse_result
+
+        with patch("samcli.commands._utils.template.open", m):
+            result = get_template_parameters(filename)
+
+            self.assertEqual(result, {"Myparameter": "String"})
 
         m.assert_called_with(filename, "r")
         yaml_parse_mock.assert_called_with(file_data)
@@ -77,7 +98,7 @@ class Test_update_relative_paths(TestCase):
 
         self.expected_result = os.path.join("..", "foo", "bar")
 
-    @parameterized.expand([(resource_type, props) for resource_type, props in _METADATA_WITH_LOCAL_PATHS.items()])
+    @parameterized.expand([(resource_type, props) for resource_type, props in METADATA_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_metadata_paths(self, resource_type, properties):
 
         for propname in properties:
@@ -96,7 +117,7 @@ class Test_update_relative_paths(TestCase):
                 self.maxDiff = None
                 self.assertEqual(result, expected_template_dict)
 
-    @parameterized.expand([(resource_type, props) for resource_type, props in _RESOURCES_WITH_LOCAL_PATHS.items()])
+    @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
 
         for propname in properties:

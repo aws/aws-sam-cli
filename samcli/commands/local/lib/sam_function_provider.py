@@ -1,11 +1,9 @@
 """
 Class that provides functions from a given SAM template
 """
-
-import ast
 import logging
 
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, InvalidSamTemplateException
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from .exceptions import InvalidLayerReference
 from .provider import FunctionProvider, Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
@@ -123,18 +121,11 @@ class SamFunctionProvider(FunctionProvider):
 
         LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
 
-        timeout = resource_properties.get("Timeout")
-        if isinstance(timeout, str):
-            try:
-                timeout = ast.literal_eval(timeout)
-            except ValueError:
-                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(timeout))
-
         return Function(
             name=name,
             runtime=resource_properties.get("Runtime"),
             memory=resource_properties.get("MemorySize"),
-            timeout=timeout,
+            timeout=resource_properties.get("Timeout"),
             handler=resource_properties.get("Handler"),
             codeuri=codeuri,
             environment=resource_properties.get("Environment"),

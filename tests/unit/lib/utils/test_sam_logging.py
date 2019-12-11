@@ -22,3 +22,13 @@ class TestSamCliLogger(TestCase):
         logger_mock.addHandler.assert_called_once_with(stream_handler_mock)
         stream_handler_mock.setLevel.assert_called_once_with(2)
         stream_handler_mock.setFormatter.assert_called_once_with(formatter_mock)
+
+    @patch("samcli.lib.utils.sam_logging.logging")
+    def test_configure_samcli_logger(self, logging_patch):
+        logger_mock = Mock()
+
+        SamCliLogger.configure_null_logger(logger_mock)
+
+        self.assertFalse(logger_mock.propagate)
+
+        logger_mock.addHandler.assert_called_once_with(logging_patch.NullHandler())

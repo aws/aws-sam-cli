@@ -1,0 +1,25 @@
+#set($inputRoot = $input.path('$'))
+{
+  "photos": {
+    "page": $inputRoot.photos.page,
+    "pages": "$inputRoot.photos.pages",
+    "perpage": $inputRoot.photos.perpage,
+    "total": "$inputRoot.photos.total",
+    "photo": [
+#foreach($elem in $inputRoot.photos.photo)
+      {
+        "id": "$elem.id",
+        "owner": "$elem.owner",
+        "secret": "$elem.secret",
+        "server": "$elem.server",
+        "farm": $elem.farm,
+        "title": "$elem.title",
+        "ispublic": $elem.ispublic,
+        "isfriend": $elem.isfriend,
+        "isfamily": $elem.isfamily
+      }#if($foreach.hasNext),#end
+
+#end
+    ]
+  }
+}

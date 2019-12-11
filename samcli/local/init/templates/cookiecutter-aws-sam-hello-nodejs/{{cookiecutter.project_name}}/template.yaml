@@ -16,11 +16,7 @@ Resources:
     Properties:
       CodeUri: hello-world/
       Handler: app.lambdaHandler
-      {%- if cookiecutter.runtime == 'nodejs8.10' %}
       Runtime: {{ cookiecutter.runtime }}
-      {%- else %}
-      Runtime: nodejs10.x
-      {%- endif %}
       Events:
         HelloWorld:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
