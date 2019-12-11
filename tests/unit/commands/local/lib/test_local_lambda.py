@@ -144,7 +144,7 @@ class TestLocalLambda_get_aws_creds(TestCase):
         boto3_mock.session.Session.return_value = mock_session
         mock_session.get_credentials.return_value = None
 
-        expected = {}
+        expected = {"region": mock_session.region_name}
         actual = self.local_lambda.get_aws_creds()
         self.assertEqual(expected, actual)
 
