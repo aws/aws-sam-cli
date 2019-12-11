@@ -27,17 +27,9 @@ import botocore.exceptions
 
 from boto3.s3 import transfer
 
+from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
 
 LOG = logging.getLogger(__name__)
-
-
-class NoSuchBucketError(Exception):
-    def __init__(self, **kwargs):
-        msg = self.fmt.format(**kwargs)
-        Exception.__init__(self, msg)
-        self.kwargs = kwargs
-
-    fmt = "S3 Bucket does not exist. " "Execute the command to create a new bucket" "\n" "aws s3 mb s3://{bucket_name}"
 
 
 class S3Uploader:
@@ -99,6 +91,8 @@ class S3Uploader:
                 additional_args["Metadata"] = self.artifact_metadata
 
             print_progress_callback = ProgressPercentage(file_name, remote_path)
+            if not self.bucket_name:
+                raise BucketNotSpecifiedError()
             future = self.transfer_manager.upload(
                 file_name, self.bucket_name, remote_path, additional_args, [print_progress_callback]
             )
@@ -125,7 +119,6 @@ class S3Uploader:
         # uploads of same object. Uploader will check if the file exists in S3
         # and re-upload only if necessary. So the template points to same file
         # in multiple places, this will upload only once
-
         filemd5 = self.file_checksum(file_name)
         remote_path = filemd5
         if extension:
@@ -143,6 +136,8 @@ class S3Uploader:
 
         try:
             # Find the object that matches this ETag
+            if not self.bucket_name:
+                raise BucketNotSpecifiedError()
             self.s3.head_object(Bucket=self.bucket_name, Key=remote_path)
             return True
         except botocore.exceptions.ClientError:
@@ -151,6 +146,8 @@ class S3Uploader:
             return False
 
     def make_url(self, obj_path):
+        if not self.bucket_name:
+            raise BucketNotSpecifiedError()
         return "s3://{0}/{1}".format(self.bucket_name, obj_path)
 
     def file_checksum(self, file_name):
@@ -208,3 +205,5 @@ class ProgressPercentage:
                 "\rUploading to %s  %s / %s  (%.2f%%)" % (self._remote_path, self._seen_so_far, self._size, percentage)
             )
             sys.stderr.flush()
+            if int(percentage) == 100:
+                sys.stderr.write("\n")

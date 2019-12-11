@@ -14,7 +14,7 @@ _templates = os.path.join(_init_path, "init", "templates")
 RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
-            "runtimes": ["python3.7", "python3.6", "python2.7"],
+            "runtimes": ["python3.8", "python3.7", "python3.6", "python2.7"],
             "dependency_manager": "pip",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
             "build": True,
@@ -30,7 +30,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs10.x", "nodejs8.10"],
+            "runtimes": ["nodejs12.x", "nodejs10.x", "nodejs8.10"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True,
@@ -54,13 +54,13 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "java": [
         {
-            "runtimes": ["java8"],
+            "runtimes": ["java11", "java8"],
             "dependency_manager": "maven",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
             "build": True,
         },
         {
-            "runtimes": ["java8"],
+            "runtimes": ["java11", "java8"],
             "dependency_manager": "gradle",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-gradle"),
             "build": True,
@@ -69,10 +69,12 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
 }
 
 RUNTIME_TO_DEPENDENCY_MANAGERS = {
+    "python3.8": ["pip"],
     "python3.7": ["pip"],
     "python3.6": ["pip"],
     "python2.7": ["pip"],
     "ruby2.5": ["bundler"],
+    "nodejs12.x": ["npm"],
     "nodejs10.x": ["npm"],
     "nodejs8.10": ["npm"],
     "dotnetcore2.1": ["cli-package"],
@@ -80,6 +82,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "dotnetcore1.0": ["cli-package"],
     "go1.x": ["mod"],
     "java8": ["maven", "gradle"],
+    "java11": ["maven", "gradle"],
 }
 
 SUPPORTED_DEP_MANAGERS = {
@@ -92,17 +95,37 @@ RUNTIMES = set(
     itertools.chain(*[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))])
 )
 
+# When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
+# Order here should be a the group of the latest versions of runtimes followed by runtime groups
 INIT_RUNTIMES = [
-    "nodejs10.x",
-    "python3.7",
+    # latest of each runtime version
+    "nodejs12.x",
+    "python3.8",
     "ruby2.5",
     "go1.x",
-    "java8",
+    "java11",
     "dotnetcore2.1",
+    # older nodejs runtimes
+    "nodejs10.x",
     "nodejs8.10",
     "nodejs6.10",
+    # older python runtimes
+    "python3.7",
     "python3.6",
     "python2.7",
+    # older ruby runtimes
+    # older java runtimes
+    "java8",
+    # older dotnetcore runtimes
     "dotnetcore2.0",
     "dotnetcore1.0",
 ]
+
+# Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
+SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
+    "java8": "Java8",
+    "java11": "Java8",
+    "python3.7": "Python36",
+    "python3.6": "Python36",
+    "python3.8": "Python36",
+}

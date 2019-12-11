@@ -8,6 +8,7 @@ from json import JSONDecodeError
 
 import click
 
+from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.commands.exceptions import UserException
 from samcli.cli.main import pass_context, common_options, global_cfg
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
@@ -61,6 +62,7 @@ Common usage:
     short_help="Init an AWS SAM application.",
     context_settings=dict(help_option_names=["-h", "--help"]),
 )
+@configuration_option(provider=TomlProvider(section="parameters"))
 @click.option(
     "--no-interactive",
     is_flag=True,
@@ -90,7 +92,7 @@ Common usage:
     help="Disable Cookiecutter prompting and accept default values defined template config",
 )
 @click.option(
-    "--extra_context",
+    "--extra-context",
     default=None,
     help="Override any custom parameters in the template's cookiecutter.json configuration e.g. "
     ""
@@ -133,8 +135,8 @@ def do_cli(
     auto_clone=True,
 ):
     from samcli.commands.init.init_generator import do_generate
-    from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
+    from samcli.commands.init.init_templates import InitTemplates
 
     # check for mutually exclusive parameters
     if location and app_template:
@@ -153,11 +155,8 @@ You can run 'sam init' without any options for an interactive initialization flo
             templates = InitTemplates(no_interactive, auto_clone)
             location = templates.location_from_app_template(runtime, dependency_manager, app_template)
             no_input = True
-            default_context = {"project_name": name, "runtime": runtime}
-            if extra_context is None:
-                extra_context = default_context
-            else:
-                extra_context = _merge_extra_context(default_context, extra_context)
+        extra_context = _get_cookiecutter_template_context(name, runtime, extra_context)
+
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
@@ -177,11 +176,22 @@ You can also re-run without the --no-interactive flag to be prompted for require
         do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
 
 
-def _merge_extra_context(default_context, extra_context):
-    try:
-        extra_context_dict = json.loads(extra_context)
-    except JSONDecodeError:
-        raise UserException(
-            "Parse error reading the --extra-content parameter. The value of this parameter must be valid JSON."
-        )
+def _get_cookiecutter_template_context(name, runtime, extra_context):
+    default_context = {}
+    extra_context_dict = {}
+
+    if runtime is not None:
+        default_context["runtime"] = runtime
+
+    if name is not None:
+        default_context["project_name"] = name
+
+    if extra_context is not None:
+        try:
+            extra_context_dict = json.loads(extra_context)
+        except JSONDecodeError:
+            raise UserException(
+                "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
+            )
+
     return {**extra_context_dict, **default_context}
