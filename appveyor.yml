@@ -112,7 +112,7 @@ for:
       - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
 
       - sh: "sudo apt-get -y install python3-distutils"
-      - sh: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
+      - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
 
