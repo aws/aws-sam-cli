@@ -94,7 +94,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         command_list = self.get_command_list(
             "func-name-override", template_path=self.template_path, event_path=self.event_path
         )
-        
+
         process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
