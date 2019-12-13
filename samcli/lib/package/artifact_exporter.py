@@ -175,7 +175,7 @@ def folder_checksum(folder_path):
             checksum = file_checksum(os.path.join(root, file_name))
             checksums.append(checksum)
 
-    folder_hash = hashlib.md5(json.dumps(checksums).encode('utf-8')).hexdigest()
+    folder_hash = hashlib.md5(json.dumps(checksums).encode("utf-8")).hexdigest()
 
     return folder_hash
 
