@@ -132,9 +132,6 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
     local_path = jmespath.search(property_name, resource_dict)
 
-    if resource_not_packageable(resource_dict):
-        return None
-
     if local_path is None:
         # Build the root directory and upload to S3
         local_path = parent_dir
@@ -243,6 +240,9 @@ class Resource:
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
+            return
+
+        if resource_not_packageable(resource_dict):
             return
 
         property_value = jmespath.search(self.PROPERTY_NAME, resource_dict)

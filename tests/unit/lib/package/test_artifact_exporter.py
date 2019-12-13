@@ -85,8 +85,15 @@ class TestArtifactExporter(unittest.TestCase):
                 )
 
     def test_invalid_export_resource(self):
-        result = upload_local_artifacts("fake", {"InlineCode": "code"}, "path", ".", None)
-        self.assertIsNone(result)
+        with patch("samcli.lib.package.artifact_exporter.upload_local_artifacts") as upload_local_artifacts_mock:
+            s3_uploader_mock = Mock()
+            upload_local_artifacts_mock.reset_mock()
+            resource_obj = ServerlessFunctionResource(uploader=s3_uploader_mock)
+            resource_id = "id"
+            resource_dict = {"InlineCode": "code"}
+            parent_dir = "dir"
+            resource_obj.export(resource_id, resource_dict, parent_dir)
+            upload_local_artifacts_mock.assert_not_called()
 
     def _helper_verify_export_resources(
         self, test_class, uploaded_s3_url, upload_local_artifacts_mock, expected_result
