@@ -25,6 +25,8 @@ from contextlib import contextmanager
 import uuid
 from urllib.parse import urlparse, parse_qs
 import shutil
+import hashlib
+import json
 from botocore.utils import set_value_from_jmespath
 import jmespath
 
@@ -48,6 +50,7 @@ from samcli.commands._utils.resources import (
 from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands.package import exceptions
 from samcli.yamlhelper import yaml_dump, yaml_parse
+from samcli.lib.package.s3_uploader import file_checksum
 
 
 LOG = logging.getLogger(__name__)
@@ -164,6 +167,19 @@ def resource_not_packageable(resource_dict):
     return False
 
 
+def folder_checksum(folder_path):
+
+    checksums = []
+    for root, _, files in os.walk(folder_path):
+        for file_name in files:
+            checksum = file_checksum(os.path.join(root, file_name))
+            checksums.append(checksum)
+
+    folder_hash = hashlib.md5(json.dumps(checksums).encode('utf-8')).hexdigest()
+
+    return folder_hash
+
+
 def zip_and_upload(local_path, uploader):
     with zip_folder(local_path) as zip_file:
         return uploader.upload_with_dedup(zip_file)
@@ -178,7 +194,9 @@ def zip_folder(folder_path):
     :param folder_path:
     :return: Name of the zipfile
     """
-    filename = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
+
+    checksum = folder_checksum(folder_path)
+    filename = os.path.join(tempfile.gettempdir(), "data-" + checksum)
 
     zipfile_name = make_zip(filename, folder_path)
     try:

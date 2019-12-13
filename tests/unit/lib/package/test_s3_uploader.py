@@ -8,7 +8,7 @@ from pathlib import Path
 from botocore.exceptions import ClientError
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
-from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.package.s3_uploader import S3Uploader, file_checksum
 
 
 class TestS3Uploader(TestCase):
@@ -104,17 +104,10 @@ class TestS3Uploader(TestCase):
                 s3_uploader.upload(f.name, remote_path)
 
     def test_file_checksum(self):
-        s3_uploader = S3Uploader(
-            s3_client=self.s3,
-            bucket_name=self.bucket_name,
-            prefix=self.prefix,
-            kms_key_id=self.kms_key_id,
-            force_upload=self.force_upload,
-        )
         with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.write(b"Hello World!")
             f.seek(0)
-            self.assertEqual("ed076287532e86365e841e92bfc50d8c", s3_uploader.file_checksum(f.name))
+            self.assertEqual("ed076287532e86365e841e92bfc50d8c", file_checksum(f.name))
 
     def test_path_style_s3_url(self):
         s3_uploader = S3Uploader(
@@ -171,5 +164,5 @@ class TestS3Uploader(TestCase):
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             s3_url = s3_uploader.upload_with_dedup(f.name, "zip")
             self.assertEqual(
-                s3_url, "s3://{0}/{1}/{2}.zip".format(self.bucket_name, self.prefix, s3_uploader.file_checksum(f.name))
+                s3_url, "s3://{0}/{1}/{2}.zip".format(self.bucket_name, self.prefix, file_checksum(f.name))
             )

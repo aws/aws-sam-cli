@@ -4,6 +4,7 @@ import string
 import random
 import zipfile
 import unittest
+import shutil
 
 from contextlib import contextmanager, closing
 from unittest import mock
@@ -16,6 +17,7 @@ from samcli.lib.package.artifact_exporter import (
     is_local_file,
     is_local_folder,
     upload_local_artifacts,
+    folder_checksum,
     zip_folder,
     make_abs_path,
     make_zip,
@@ -334,6 +336,14 @@ class TestArtifactExporter(unittest.TestCase):
 
         zip_and_upload_mock.assert_not_called()
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
+
+    def test_folder_checksum(self):
+
+        with self.make_temp_dir() as dirname:
+            with tempfile.NamedTemporaryFile(mode="wb", delete=False, dir=dirname) as f:
+                f.write(b"Hello World!")
+                f.seek(0)
+                self.assertEqual("039113daf7964d4d8df16b47829f6d0d", folder_checksum(dirname))
 
     @patch("samcli.lib.package.artifact_exporter.make_zip")
     def test_zip_folder(self, make_zip_mock):
@@ -1090,7 +1100,7 @@ class TestArtifactExporter(unittest.TestCase):
             yield filename
         finally:
             if filename:
-                os.rmdir(filename)
+                shutil.rmtree(filename)
 
     def example_yaml_template(self):
         return """
