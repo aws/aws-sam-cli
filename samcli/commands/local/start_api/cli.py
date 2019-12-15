@@ -42,7 +42,7 @@ and point SAM to the directory or file containing build artifacts.
 )
 @click.option(
     "--base-dir",
-    "-s",
+    "-b",
     default=None,
     type=click.Path(dir_okay=True, file_okay=False),  # Must be a directory
     help="Resolve relative paths to function's source code with respect to this folder. Use this if "
