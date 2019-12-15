@@ -128,6 +128,9 @@ class TestService(StartApiIntegBaseClass):
     def test_static_directory(self):
         pass
 
+    def test_base_directory(self):
+        pass
+
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_calling_proxy_endpoint(self):

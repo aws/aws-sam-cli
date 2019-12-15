@@ -30,7 +30,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returncode_is_zero(self):
         command_list = self.get_command_list(
-            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -44,7 +44,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_function_with_metadata(self):
-        command_list = self.get_command_list("FunctionWithMetadata", template_path=self.template_path, no_event=True)
+        command_list = self.get_command_list(
+            "FunctionWithMetadata", template_path=self.template_path, no_event=True, base_dir="base_dir"
+        )
 
         process = Popen(command_list, stdout=PIPE)
         try:
@@ -60,7 +62,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_execpted_results(self):
         command_list = self.get_command_list(
-            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -76,7 +78,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_of_lambda_function(self):
         command_list = self.get_command_list(
-            "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
+            "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -95,7 +97,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     )
     def test_invoke_with_timeout_set(self, function_name):
         command_list = self.get_command_list(
-            function_name, template_path=self.template_path, event_path=self.event_path
+            function_name, template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         start = timer()
@@ -129,6 +131,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "EchoCustomEnvVarFunction",
             template_path=self.template_path,
             event_path=self.event_path,
+            base_dir="base_dir",
             env_var_path=self.env_var_path,
         )
 
@@ -144,7 +147,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stdout(self):
         command_list = self.get_command_list(
-            "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path
+            "WriteToStdoutFunction", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
@@ -163,7 +166,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @pytest.mark.flaky(reruns=3)
     def test_invoke_when_function_writes_stderr(self):
         command_list = self.get_command_list(
-            "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path
+            "WriteToStderrFunction", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         process = Popen(command_list, stderr=PIPE)
@@ -179,7 +182,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_result_when_no_event_given(self):
-        command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path)
+        command_list = self.get_command_list("EchoEventFunction", template_path=self.template_path, base_dir="base_dir")
         process = Popen(command_list, stdout=PIPE)
         try:
             stdout, _ = process.communicate(timeout=TIMEOUT)
@@ -198,6 +201,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "EchoEnvWithParameters",
             template_path=self.template_path,
             event_path=self.event_path,
+            base_dir="base_dir",
             parameter_overrides={"MyRuntimeVersion": "v0", "DefaultTimeout": "100"},
         )
 
@@ -229,7 +233,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         custom_region = "my-custom-region"
 
         command_list = self.get_command_list(
-            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, region=custom_region, base_dir="base_dir"
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -252,7 +256,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         session = "session"
 
         command_list = self.get_command_list(
-            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         env = copy.deepcopy(dict(os.environ))
@@ -284,6 +288,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             "HelloWorldServerlessFunction",
             template_path=self.template_path,
             event_path=self.event_path,
+            base_dir="base_dir",
             docker_network="host",
         )
 
@@ -300,7 +305,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
     @skipIf(IS_WINDOWS, "The test hangs on Windows due to trying to attach to a non-existing network")
     def test_invoke_with_docker_network_of_host_in_env_var(self):
         command_list = self.get_command_list(
-            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         env = os.environ.copy()
@@ -319,7 +324,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     def test_sam_template_file_env_var_set(self):
-        command_list = self.get_command_list("HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path)
+        command_list = self.get_command_list(
+            "HelloWorldFunctionInNonDefaultTemplate", event_path=self.event_path, base_dir="base_dir"
+        )
 
         self.test_data_path.joinpath("invoke", "sam-template.yaml")
         env = os.environ.copy()
@@ -342,7 +349,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         docker.from_env().api.pull("lambci/lambda:python3.6")
 
         command_list = self.get_command_list(
-            "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
+            "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         env = os.environ.copy()
@@ -375,7 +382,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_cred = self._create_cred_file(profile)
 
         command_list = self.get_command_list(
-            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         env = os.environ.copy()
@@ -415,7 +422,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_cred = self._create_cred_file(profile)
 
         command_list = self.get_command_list(
-            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         env = os.environ.copy()
@@ -451,7 +458,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_cred = self._create_cred_file("custom")
 
         command_list = self.get_command_list(
-            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, profile="custom"
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, profile="custom", base_dir="base_dir"
         )
 
         env = os.environ.copy()
@@ -491,7 +498,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         custom_cred = self._create_cred_file("custom")
 
         command_list = self.get_command_list(
-            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path
+            "EchoEnvWithParameters", template_path=self.template_path, event_path=self.event_path, base_dir="base_dir"
         )
 
         env = os.environ.copy()
@@ -597,6 +604,7 @@ class TestLayerVersion(InvokeIntegBase):
             region=self.region,
             layer_cache=str(self.layer_cache),
             parameter_overrides=self.layer_utils.parameters_overrides,
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -621,6 +629,7 @@ class TestLayerVersion(InvokeIntegBase):
             region=self.region,
             layer_cache=str(self.layer_cache),
             parameter_overrides=self.layer_utils.parameters_overrides,
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -647,6 +656,7 @@ class TestLayerVersion(InvokeIntegBase):
             region=self.region,
             layer_cache=str(self.layer_cache),
             parameter_overrides=self.layer_utils.parameters_overrides,
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -672,6 +682,7 @@ class TestLayerVersion(InvokeIntegBase):
             region=self.region,
             layer_cache=str(self.layer_cache),
             parameter_overrides=self.layer_utils.parameters_overrides,
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -696,6 +707,7 @@ class TestLayerVersion(InvokeIntegBase):
             region=self.region,
             layer_cache=str(self.layer_cache),
             parameter_overrides=self.layer_utils.parameters_overrides,
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -721,6 +733,7 @@ class TestLayerVersion(InvokeIntegBase):
             region=self.region,
             layer_cache=str(self.layer_cache),
             parameter_overrides=self.layer_utils.parameters_overrides,
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -740,6 +753,7 @@ class TestLayerVersion(InvokeIntegBase):
             no_event=True,
             region=self.region,
             parameter_overrides=self.layer_utils.parameters_overrides,
+            base_dir="base_dir",
         )
 
         env = os.environ.copy()
@@ -782,6 +796,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
             no_event=True,
             region=self.region,
             parameter_overrides={"NonExistentLayerArn": non_existent_layer_arn},
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stderr=PIPE)
@@ -805,6 +820,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
             template_path=self.template_path,
             no_event=True,
             region=self.region,
+            base_dir="base_dir",
         )
 
         process = Popen(command_list, stderr=PIPE)

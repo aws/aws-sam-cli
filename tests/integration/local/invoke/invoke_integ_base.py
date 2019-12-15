@@ -13,6 +13,7 @@ class InvokeIntegBase(TestCase):
         cls.template_path = str(cls.test_data_path.joinpath("invoke", cls.template))
         cls.event_path = str(cls.test_data_path.joinpath("invoke", "event.json"))
         cls.env_var_path = str(cls.test_data_path.joinpath("invoke", "vars.json"))
+        cls.base_dir = "base_dir"
 
     @staticmethod
     def get_integ_dir():
@@ -38,6 +39,7 @@ class InvokeIntegBase(TestCase):
         profile=None,
         layer_cache=None,
         docker_network=None,
+        base_dir=None,
     ):
         command_list = [self.cmd, "local", "invoke", function_to_invoke]
 
@@ -70,5 +72,8 @@ class InvokeIntegBase(TestCase):
 
         if region:
             command_list = command_list + ["--region", region]
+
+        if base_dir:
+            command_list = command_list + ["--base-dir", base_dir]
 
         return command_list
