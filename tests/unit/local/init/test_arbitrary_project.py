@@ -21,7 +21,7 @@ class TestGenerateNonCookieCutterProject(TestCase):
         pass
 
     @parameterized.expand([("https://example.com/file.zip", True), ("/path/to/file.zip", False)])
-    @patch("samcli.local.init.arbitrary_project.osutils")
+    @patch("samcli.lib.init.arbitrary_project.osutils")
     def test_support_zip_files(self, location, is_url, osutils_mock):
 
         with patch.object(repository, "unzip") as unzip_mock:
@@ -33,7 +33,7 @@ class TestGenerateNonCookieCutterProject(TestCase):
 
             osutils_mock.copytree.assert_called_with("unzipped_dir", self.output_dir, ignore=ANY)
 
-    @patch("samcli.local.init.arbitrary_project.osutils")
+    @patch("samcli.lib.init.arbitrary_project.osutils")
     def test_support_source_control_repos(self, osutils_mock):
         abbreviated_location = "gh:awslabs/aws-sam-cli"
         location = "https://github.com/awslabs/aws-sam-cli.git"
