@@ -4,9 +4,9 @@ from unittest.mock import patch
 from pathlib import Path
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 
-from lib.init import generate_project
-from lib.init import GenerateProjectFailedError
-from lib.init import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.lib.init import generate_project
+from samcli.lib.init import GenerateProjectFailedError
+from samcli.lib.init import RUNTIME_DEP_TEMPLATE_MAPPING
 
 
 class TestInit(TestCase):
