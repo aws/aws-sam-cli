@@ -10,7 +10,7 @@ from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 from cookiecutter.main import cookiecutter
 
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
-from samcli.local.init.exceptions import GenerateProjectFailedError
+from lib.init import GenerateProjectFailedError
 from .arbitrary_project import generate_non_cookiecutter_project
 
 LOG = logging.getLogger(__name__)

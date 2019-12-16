@@ -3,14 +3,14 @@ Test arbitrary project init
 """
 
 from unittest import TestCase
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import patch, ANY
 from parameterized import parameterized
 
 from pathlib import Path
 
 from cookiecutter.exceptions import RepositoryNotFound
-from samcli.local.init.arbitrary_project import generate_non_cookiecutter_project, repository
-from samcli.local.init.exceptions import ArbitraryProjectDownloadFailed
+from lib.init import generate_non_cookiecutter_project, repository
+from lib.init import ArbitraryProjectDownloadFailed
 
 
 class TestGenerateNonCookieCutterProject(TestCase):
