@@ -18,7 +18,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java runtime
+        # 12: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # N: clone/update the source repo
@@ -29,7 +29,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 
         user_input = """
 1
-13
+12
 1
 eb-app-maven
 N
@@ -54,7 +54,7 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java Runtime
+        # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # N: clone/update the source repo
@@ -65,7 +65,7 @@ Y
 
         user_input = """
 1
-13
+12
 1
 eb-app-maven
 N
@@ -101,7 +101,7 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java Runtime
+        # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # N: clone/update the source repo
@@ -114,7 +114,7 @@ Y
 
         user_input = """
 1
-13
+12
 1
 eb-app-maven
 N
@@ -141,7 +141,7 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java Runtime
+        # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # N: lone/update the source repo
@@ -152,7 +152,7 @@ P
 
         user_input = """
 1
-13
+12
 1
 eb-app-maven
 N
@@ -188,7 +188,7 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 10: Python 3.7
+        # 9: Python 3.7
         # eb-app-maven: response to name
         # N: clone/update the source repo
         # 3: select event-bridge app from scratch
@@ -198,7 +198,7 @@ Y
 
         user_input = """
 1
-10
+9
 eb-app-python37
 N
 3
@@ -220,7 +220,7 @@ Y
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 10: Python 3.7
+        # 9: Python 3.7
         # eb-app-maven: response to name
         # N: clone/update the source repo
         # 3: select event-bridge app from scratch
@@ -232,7 +232,7 @@ Y
 
         user_input = """
 1
-10
+9
 eb-app-python37
 N
 3
@@ -258,7 +258,7 @@ N
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 10: Python 3.7
+        # 9: Python 3.7
         # eb-app-maven: response to name
         # N: clone/update the source repo
         # 3: select event-bridge app from scratch
@@ -268,7 +268,7 @@ N
 
         user_input = """
 1
-10
+9
 eb-app-python37
 N
 3
