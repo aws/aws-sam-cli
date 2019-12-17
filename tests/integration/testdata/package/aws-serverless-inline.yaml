@@ -12,9 +12,3 @@ Resources:
           return {'body': 'Hello World 2!', 'statusCode': 200}
       Handler: index.handler
       Runtime: python3.7
-      Events:
-        Api:
-          Type: Api
-          Properties:
-            Path: /
-            Method: get
