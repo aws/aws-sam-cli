@@ -166,9 +166,7 @@ class InitTemplates:
         try:
             LOG.info("\nCloning app templates from %s", self._repo_url)
             subprocess.check_output(
-                [self._git_executable(), "clone", self._repo_url],
-                cwd=shared_dir,
-                stderr=subprocess.STDOUT,
+                [self._git_executable(), "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT
             )
             self.repo_path = expected_path
         except OSError as ex:
