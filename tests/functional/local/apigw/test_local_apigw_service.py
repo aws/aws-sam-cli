@@ -17,7 +17,7 @@ from tests.functional.function_code import (
     API_GATEWAY_ECHO_BASE64_EVENT,
     API_GATEWAY_CONTENT_TYPE_LOWER,
 )
-from samcli.commands.local.lib import provider
+from lib.providers import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager

@@ -10,7 +10,7 @@ import requests
 
 from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaInvokeService
 from tests.functional.function_code import nodejs_lambda, HELLO_FROM_LAMBDA, ECHO_CODE, THROW_ERROR_LAMBDA
-from samcli.commands.local.lib import provider
+from lib.providers import provider
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.docker.manager import ContainerManager

@@ -10,9 +10,9 @@ import requests
 import time
 import logging
 
-from samcli.commands.local.lib.provider import Api
+from samcli.lib.providers.provider import Api
 from samcli.local.apigw.local_apigw_service import Route
-from samcli.commands.local.lib import provider
+from lib.providers import provider
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.manager import ContainerManager
@@ -88,7 +88,7 @@ class TestFunctionalLocalLambda(TestCase):
     def tearDown(self):
         shutil.rmtree(self.code_abs_path)
 
-    @patch("samcli.commands.local.lib.sam_api_provider.SamApiProvider")
+    @patch("samcli.lib.providers.sam_api_provider.SamApiProvider")
     def test_must_start_service_and_serve_endpoints(self, sam_api_provider_mock):
         sam_api_provider_mock.return_value = self.api_provider_mock
 
@@ -107,7 +107,7 @@ class TestFunctionalLocalLambda(TestCase):
         response = requests.get(self.url + "/post")
         self.assertEqual(response.status_code, 403)  # "HTTP GET /post" must not exist
 
-    @patch("samcli.commands.local.lib.sam_api_provider.SamApiProvider")
+    @patch("samcli.lib.providers.sam_api_provider.SamApiProvider")
     def test_must_serve_static_files(self, sam_api_provider_mock):
         sam_api_provider_mock.return_value = self.api_provider_mock
 

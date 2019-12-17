@@ -4,8 +4,8 @@ import logging
 
 from six import string_types
 
-from samcli.commands.local.lib.provider import Cors
-from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.lib.providers.provider import Cors
+from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.local.apigw.local_apigw_service import Route
 

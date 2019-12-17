@@ -120,7 +120,7 @@ def do_cli(  # pylint: disable=R0914
 
     from samcli.commands.local.cli_common.invoke_context import InvokeContext
     from samcli.commands.local.cli_common.user_exceptions import UserException
-    from samcli.commands.local.lib.exceptions import InvalidLayerReference
+    from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.commands.local.lib.local_lambda_service import LocalLambdaService
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError

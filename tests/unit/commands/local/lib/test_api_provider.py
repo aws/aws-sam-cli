@@ -3,15 +3,15 @@ from unittest import TestCase
 
 from unittest.mock import patch
 
-from samcli.commands.local.lib.provider import Api
-from samcli.commands.local.lib.api_provider import ApiProvider
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
-from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
+from samcli.lib.providers.provider import Api
+from samcli.lib.providers.api_provider import ApiProvider
+from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 
 
 class TestApiProvider_init(TestCase):
     @patch.object(ApiProvider, "_extract_api")
-    @patch("samcli.commands.local.lib.api_provider.SamBaseProvider")
+    @patch("samcli.lib.providers.api_provider.SamBaseProvider")
     def test_provider_with_valid_template(self, SamBaseProviderMock, extract_api_mock):
         extract_api_mock.return_value = Api(routes={"set", "of", "values"})
         template = {"Resources": {"a": "b"}}

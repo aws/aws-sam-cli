@@ -9,7 +9,7 @@ import shutil
 import logging
 
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.commands.local.lib import provider
+from lib.providers import provider
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.manager import ContainerManager
