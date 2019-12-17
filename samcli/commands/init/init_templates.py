@@ -154,13 +154,14 @@ class InitTemplates:
     def _should_clone_repo(self, expected_path):
         path = Path(expected_path)
         if path.exists():
+            overwrite = True
             if not self._no_interactive:
                 overwrite = click.confirm(
                     "\nQuick start templates may have been updated. Do you want to re-download the latest", default=True
                 )
-                if overwrite:
-                    shutil.rmtree(expected_path)  # fail hard if there is an issue
-                    return True
+            if overwrite:
+                shutil.rmtree(expected_path)  # fail hard if there is an issue
+                return True
             self.repo_path = expected_path
             return False
 
