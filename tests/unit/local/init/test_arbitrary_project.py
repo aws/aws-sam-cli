@@ -9,8 +9,8 @@ from parameterized import parameterized
 from pathlib import Path
 
 from cookiecutter.exceptions import RepositoryNotFound
-from samcli.lib.init import generate_non_cookiecutter_project, repository
-from samcli.lib.init import ArbitraryProjectDownloadFailed
+from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project, repository
+from samcli.lib.init.exceptions import ArbitraryProjectDownloadFailed
 
 
 class TestGenerateNonCookieCutterProject(TestCase):

@@ -7,7 +7,7 @@ from click.testing import CliRunner
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from lib.init import GenerateProjectFailedError
+from samcli.lib.init import GenerateProjectFailedError
 from samcli.commands.exceptions import UserException
 
 
