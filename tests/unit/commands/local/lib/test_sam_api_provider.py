@@ -875,7 +875,6 @@ class TestSamCors(TestCase):
                             "AllowMethods": "'POST, GET'",
                             "AllowOrigin": "'*'",
                             "AllowHeaders": "'Upgrade-Insecure-Requests'",
-                            "AllowCredentials": True,
                             "MaxAge": "'600'",
                         },
                         "DefinitionBody": {
@@ -918,7 +917,6 @@ class TestSamCors(TestCase):
             allow_origin="*",
             allow_methods=",".join(sorted(["POST", "GET", "OPTIONS"])),
             allow_headers="Upgrade-Insecure-Requests",
-            allow_credentials=True,
             max_age="600",
         )
         route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
