@@ -90,12 +90,3 @@ class TestTemplates(TestCase):
         shared_dir_mock = MagicMock()
         shared_dir_mock.mkdir.side_effect = OSError("fail")
         self.assertFalse(it._shared_dir_check(shared_dir_mock))
-
-    @patch("shutil.rmtree")
-    def test_default_overwrite_when_no_interactive(self, mock_rmtree):
-        it = InitTemplates(True)
-        path = Path("/tmp/test")
-        with patch.object(Path, "exists") as mock_exists:
-            mock_exists.return_value = True
-            result = it._should_clone_repo("/tmp/test")
-            self.assertTrue(result)
