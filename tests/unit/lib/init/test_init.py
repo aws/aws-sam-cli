@@ -4,9 +4,9 @@ from unittest.mock import patch
 from pathlib import Path
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 
-from samcli.local.init import generate_project
-from samcli.local.init import GenerateProjectFailedError
-from samcli.local.init import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.lib.init import generate_project
+from samcli.lib.init import GenerateProjectFailedError
+from samcli.lib.init import RUNTIME_DEP_TEMPLATE_MAPPING
 
 
 class TestInit(TestCase):
@@ -20,7 +20,7 @@ class TestInit(TestCase):
         self.extra_context = {"project_name": "testing project", "runtime": self.runtime}
         self.template = RUNTIME_DEP_TEMPLATE_MAPPING["python"][0]["init_location"]
 
-    @patch("samcli.local.init.cookiecutter")
+    @patch("samcli.lib.init.cookiecutter")
     def test_init_successful(self, cookiecutter_patch):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
@@ -38,7 +38,7 @@ class TestInit(TestCase):
             no_input=self.no_input, output_dir=self.output_dir, template=self.template
         )
 
-    @patch("samcli.local.init.cookiecutter")
+    @patch("samcli.lib.init.cookiecutter")
     def test_init_successful_with_no_dep_manager(self, cookiecutter_patch):
         generate_project(
             location=self.location,
@@ -71,7 +71,7 @@ class TestInit(TestCase):
             str(ctx.exception),
         )
 
-    @patch("samcli.local.init.cookiecutter")
+    @patch("samcli.lib.init.cookiecutter")
     def test_when_generate_project_returns_error(self, cookiecutter_patch):
 
         # GIVEN generate_project fails to create a project
@@ -94,7 +94,7 @@ class TestInit(TestCase):
 
         self.assertEqual(expected_msg, str(ctx.exception))
 
-    @patch("samcli.local.init.cookiecutter")
+    @patch("samcli.lib.init.cookiecutter")
     def test_must_set_cookiecutter_context_when_location_and_extra_context_is_provided(self, cookiecutter_patch):
         cookiecutter_context = {"key1": "value1", "key2": "value2"}
         custom_location = "mylocation"
@@ -107,7 +107,7 @@ class TestInit(TestCase):
             extra_context=cookiecutter_context, template=custom_location, no_input=False, output_dir=self.output_dir
         )
 
-    @patch("samcli.local.init.cookiecutter")
+    @patch("samcli.lib.init.cookiecutter")
     def test_must_set_cookiecutter_context_when_app_template_is_provided(self, cookiecutter_patch):
         cookiecutter_context = {"key1": "value1", "key2": "value2"}
         generate_project(
@@ -127,8 +127,8 @@ class TestInit(TestCase):
             template=self.template,
         )
 
-    @patch("samcli.local.init.cookiecutter")
-    @patch("samcli.local.init.generate_non_cookiecutter_project")
+    @patch("samcli.lib.init.cookiecutter")
+    @patch("samcli.lib.init.generate_non_cookiecutter_project")
     def test_init_arbitrary_project_with_location_is_not_cookiecutter(
         self, generate_non_cookiecutter_project_mock, cookiecutter_mock
     ):
@@ -139,8 +139,8 @@ class TestInit(TestCase):
 
         generate_non_cookiecutter_project_mock.assert_called_with(location=self.location, output_dir=self.output_dir)
 
-    @patch("samcli.local.init.cookiecutter")
-    @patch("samcli.local.init.generate_non_cookiecutter_project")
+    @patch("samcli.lib.init.cookiecutter")
+    @patch("samcli.lib.init.generate_non_cookiecutter_project")
     def test_init_arbitrary_project_with_named_folder(self, generate_non_cookiecutter_project_mock, cookiecutter_mock):
 
         cookiecutter_mock.side_effect = RepositoryNotFound("msg")

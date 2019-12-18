@@ -6,9 +6,9 @@ from unittest import TestCase
 
 from unittest.mock import Mock, patch
 
-from samcli.commands.local.lib.provider import Api
-from samcli.commands.local.lib.api_collector import ApiCollector
-from samcli.commands.local.lib.api_provider import ApiProvider
+from samcli.lib.providers.provider import Api
+from samcli.lib.providers.api_collector import ApiCollector
+from samcli.lib.providers.api_provider import ApiProvider
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.commands.local.lib.local_api_service import LocalApiService
 from samcli.local.apigw.local_apigw_service import Route

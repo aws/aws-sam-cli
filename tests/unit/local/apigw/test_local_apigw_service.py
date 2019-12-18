@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch, ANY, MagicMock
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
-from samcli.commands.local.lib.provider import Api
-from samcli.commands.local.lib.provider import Cors
+from samcli.lib.providers.provider import Api
+from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 

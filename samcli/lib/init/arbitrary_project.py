@@ -6,7 +6,6 @@ import functools
 import shutil
 import logging
 
-from pathlib import Path
 from cookiecutter import repository
 from cookiecutter import exceptions
 from cookiecutter import config
