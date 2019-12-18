@@ -7,8 +7,8 @@ from unittest.mock import patch
 from nose_parameterized import parameterized
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.lib.api_provider import ApiProvider
-from samcli.commands.local.lib.provider import Cors
+from samcli.lib.providers.api_provider import ApiProvider
+from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.local_apigw_service import Route
 
 
@@ -308,7 +308,7 @@ class TestSamApiProviderWithExplicitApis(TestCase):
             provider = ApiProvider(template)
             self.assertCountEqual(self.input_routes, provider.routes)
 
-    @patch("samcli.commands.local.lib.cfn_base_api_provider.SwaggerReader")
+    @patch("samcli.lib.providers.cfn_base_api_provider.SwaggerReader")
     def test_with_swagger_as_both_body_and_uri_called(self, SwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"

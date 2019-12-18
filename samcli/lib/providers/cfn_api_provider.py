@@ -6,7 +6,7 @@ from six import string_types
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
-from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 
 LOG = logging.getLogger(__name__)
 
