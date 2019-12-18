@@ -15,7 +15,8 @@ class TestTemplates(TestCase):
     @patch("subprocess.check_output")
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    def test_location_from_app_template(self, subprocess_mock, git_exec_mock, sd_mock):
+    @patch("shutil.copytree")
+    def test_location_from_app_template(self, subprocess_mock, git_exec_mock, sd_mock, copy_mock):
         it = InitTemplates(True)
 
         manifest = {

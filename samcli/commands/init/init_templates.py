@@ -16,6 +16,7 @@ import click
 
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
+from samcli.lib.utils import osutils
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 
 LOG = logging.getLogger(__name__)
@@ -137,46 +138,48 @@ class InitTemplates:
     def _overwrite_existing_templates(self, shared_dir, expected_path):
         self.repo_path = expected_path
         # workflow to clone a copy to a new directory and overwrite
-        expected_temp_path = os.path.normpath(
-            os.path.join(shared_dir, self._temp_repo_name)
-        )  # Safety check that this doesn't exist?
-        try:
-            LOG.info("\nCloning app templates from %s", self._repo_url)
-            subprocess.check_output(
-                [self._git_executable(), "clone", self._repo_url, self._temp_repo_name],
-                cwd=shared_dir,
-                stderr=subprocess.STDOUT,
-            )
-            # Now we need to delete the old repo and move this one.
+        with osutils.mkdir_temp() as tempdir:
             try:
-                shutil.rmtree(expected_path)  # try/catch - unstable state on failure
-                shutil.move(expected_temp_path, expected_path)  # try/catch - unstable state on failure
-            except (OSError, shutil.Error) as ex:
-                # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
-                raise AppTemplateUpdateException(
-                    "Unstable state when updating app templates. Check that you have permissions to create/delete files in the AWS SAM shared directory or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
+                expected_temp_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
+                LOG.info("\nCloning app templates from %s", self._repo_url)
+                subprocess.check_output(
+                    [self._git_executable(), "clone", self._repo_url, self._repo_name],
+                    cwd=tempdir,
+                    stderr=subprocess.STDOUT,
                 )
-            self.repo_path = expected_path
-        except OSError as ex:
-            LOG.warning("WARN: Could not clone app template repo.", exc_info=ex)
-        except subprocess.CalledProcessError as clone_error:
-            output = clone_error.output.decode("utf-8")
-            if "not found" in output.lower():
-                click.echo("WARN: Could not clone app template repo.")
+                # Now we need to delete the old repo and move this one.
+                try:
+                    shutil.rmtree(expected_path)
+                    shutil.copytree(expected_temp_path, expected_path, ignore=shutil.ignore_patterns("*.git"))
+                except (OSError, shutil.Error) as ex:
+                    # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
+                    raise AppTemplateUpdateException(
+                        "Unstable state when updating app templates. Check that you have permissions to create/delete files in the AWS SAM shared directory or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
+                    )
+                self.repo_path = expected_path
+            except OSError as ex:
+                LOG.warning("WARN: Could not clone app template repo.", exc_info=ex)
+            except subprocess.CalledProcessError as clone_error:
+                output = clone_error.output.decode("utf-8")
+                if "not found" in output.lower():
+                    click.echo("WARN: Could not clone app template repo.")
 
     def _clone_new_app_templates(self, shared_dir, expected_path):
-        try:
-            LOG.info("\nCloning app templates from %s", self._repo_url)
-            subprocess.check_output(
-                [self._git_executable(), "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT
-            )
-            self.repo_path = expected_path
-        except OSError as ex:
-            LOG.warning("WARN: Can't clone app repo, git executable not found", exc_info=ex)
-        except subprocess.CalledProcessError as clone_error:
-            output = clone_error.output.decode("utf-8")
-            if "not found" in output.lower():
-                click.echo("WARN: Could not clone app template repo.")
+        with osutils.mkdir_temp() as tempdir:
+            expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
+            try:
+                LOG.info("\nCloning app templates from %s", self._repo_url)
+                subprocess.check_output(
+                    [self._git_executable(), "clone", self._repo_url], cwd=tempdir, stderr=subprocess.STDOUT
+                )
+                shutil.copytree(expected_temp_path, expected_path, ignore=shutil.ignore_patterns("*.git"))
+                self.repo_path = expected_path
+            except OSError as ex:
+                LOG.warning("WARN: Can't clone app repo, git executable not found", exc_info=ex)
+            except subprocess.CalledProcessError as clone_error:
+                output = clone_error.output.decode("utf-8")
+                if "not found" in output.lower():
+                    click.echo("WARN: Could not clone app template repo.")
 
     def _template_directory_exists(self, expected_path):
         path = Path(expected_path)
