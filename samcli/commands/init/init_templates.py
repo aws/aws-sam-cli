@@ -119,6 +119,8 @@ class InitTemplates:
             return False
 
     def _clone_repo(self):
+        if not self._auto_clone:
+            return  # Unit test escape hatch
         # check if we have templates stored already
         shared_dir = global_cfg.config_dir
         if not self._shared_dir_check(shared_dir):
