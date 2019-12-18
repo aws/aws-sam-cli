@@ -2,12 +2,12 @@
 
 import logging
 
-from samcli.commands.local.lib.api_collector import ApiCollector
-from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
-from samcli.commands.local.lib.cfn_base_api_provider import CfnBaseApiProvider
-from samcli.commands.local.lib.provider import AbstractApiProvider
-from samcli.commands.local.lib.sam_api_provider import SamApiProvider
-from samcli.commands.local.lib.sam_base_provider import SamBaseProvider
+from samcli.lib.providers.api_collector import ApiCollector
+from samcli.lib.providers.cfn_api_provider import CfnApiProvider
+from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
+from samcli.lib.providers.provider import AbstractApiProvider
+from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
 
 LOG = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ from collections import defaultdict
 from six import string_types
 
 from samcli.local.apigw.local_apigw_service import Route
-from samcli.commands.local.lib.provider import Api
+from samcli.lib.providers.provider import Api
 
 LOG = logging.getLogger(__name__)
 

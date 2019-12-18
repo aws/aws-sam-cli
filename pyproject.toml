@@ -16,7 +16,7 @@ exclude = '''
     | build
     | dist
     | pip-wheel-metadata
-    | samcli/local/init/templates
+    | samcli/lib/init/templates
     | tests/integration/testdata
   )/
 )

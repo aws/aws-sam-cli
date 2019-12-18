@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock
 from parameterized import parameterized
 
 from samcli.commands.local.start_lambda.cli import do_cli as start_lambda_cli
-from samcli.commands.local.lib.exceptions import InvalidLayerReference
+from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
