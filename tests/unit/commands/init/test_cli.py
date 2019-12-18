@@ -823,12 +823,10 @@ Y
         # 1: selecting managed templates
         # 3: ruby2.5 response to runtime
         # test-project: response to name
-        # N: Don't clone/update the source repo
         user_input = """
 1
 3
 test-project
-N
         """
         runner = CliRunner()
         result = runner.invoke(init_cmd, input=user_input)
