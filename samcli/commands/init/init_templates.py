@@ -128,13 +128,13 @@ class InitTemplates:
             return
         expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
         if self._template_directory_exists(expected_path):
-            self._overwrite_existing_app_templates(shared_dir, expected_path)
+            self._overwrite_existing_templates(shared_dir, expected_path)
         else:
             # simply create the app templates repo
             self._clone_new_app_templates(shared_dir, expected_path)
         self.clone_attempted = True
 
-    def _overwrite_existing_app_templates(self, shared_dir, expected_path):
+    def _overwrite_existing_templates(self, shared_dir, expected_path):
         self.repo_path = expected_path
         # workflow to clone a copy to a new directory and overwrite
         expected_temp_path = os.path.normpath(
