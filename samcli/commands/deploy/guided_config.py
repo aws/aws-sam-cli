@@ -57,9 +57,9 @@ class GuidedConfig:
             for key, value in parameter_overrides.items():
                 if isinstance(value, dict):
                     if not value.get("Hidden"):
-                        _params.append(f"{key}={value.get('Value')}")
+                        _params.append(f"{key}={self.quote_parameter_values(value.get('Value'))}")
                 else:
-                    _params.append(f"{key}={value}")
+                    _params.append(f"{key}={self.quote_parameter_values(value)}")
             if _params:
                 samconfig.put(cmd_names, self.section, "parameter_overrides", " ".join(_params))
 
@@ -73,3 +73,6 @@ class GuidedConfig:
             "\n\thttps://docs.aws.amazon.com/serverless-application-model/latest/"
             "developerguide/serverless-sam-cli-config.html"
         )
+
+    def quote_parameter_values(self, parameter_value):
+        return '"{}"'.format(parameter_value)

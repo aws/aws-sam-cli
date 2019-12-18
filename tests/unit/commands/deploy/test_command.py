@@ -217,10 +217,18 @@ class TestDeployCliCommand(TestCase):
         context_mock = Mock()
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
+            "MyParameterSpaces": {"Type": "String"},
             "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
         }
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "guided parameter with spaces",
+            "secure",
+            ("CAPABILITY_IAM",),
+        ]
         mock_confirm.side_effect = [True, False, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -254,7 +262,11 @@ class TestDeployCliCommand(TestCase):
             force_upload=self.force_upload,
             s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
-            parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
+            parameter_overrides={
+                "Myparameter": "guidedParameter",
+                "MyParameterSpaces": "guided parameter with spaces",
+                "MyNoEchoParameter": "secure",
+            },
             capabilities=self.capabilities,
             no_execute_changeset=self.no_execute_changeset,
             role_arn=self.role_arn,
@@ -280,7 +292,12 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "region", "us-east-1"),
                 call(["deploy"], "parameters", "confirm_changeset", True),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
-                call(["deploy"], "parameters", "parameter_overrides", "Myparameter=guidedParameter"),
+                call(
+                    ["deploy"],
+                    "parameters",
+                    "parameter_overrides",
+                    'Myparameter="guidedParameter" MyParameterSpaces="guided parameter with spaces"',
+                ),
             ],
         )
 
@@ -379,7 +396,7 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "region", "us-east-1"),
                 call(["deploy"], "parameters", "confirm_changeset", True),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
-                call(["deploy"], "parameters", "parameter_overrides", "a=b"),
+                call(["deploy"], "parameters", "parameter_overrides", 'a="b"'),
             ],
         )
 
