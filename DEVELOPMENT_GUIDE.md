@@ -110,14 +110,12 @@ If you're trying to do a quick run, it's ok to use the current python version.  
 
 ### Unit testing with multiple Python versions
 
-[tox](http://tox.readthedocs.io/en/latest/) is used to run tests against
-all supported Python versions. Follow these instructions to setup
-multiple Python versions using [pyenv](https://github.com/pyenv/pyenv)
-before running tox:
-
-1.  Deactivate virtualenvs, if any: `pyenv deactivate`
-2.  `pip install tox`
-3.  Run tests against all supported Python versions: `tox`
+Currently, SAM CLI only supports Python3 versions (see setup.py for exact versions). For the most
+part, code that works in Python3.6 will work in Python3.7. You only run into problems if you are
+trying to use features released in a higher version (for example features introduced into Python3.7
+will not work in Python3.6). If you want to test in many versions, you can create a virtualenv for
+each version and flip between them (sourcing the activate script). Typically, we run all tests in
+one python version locally and then have our ci (appveyor) run all supported versions.
 
 ### Integration Test
 
