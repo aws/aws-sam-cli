@@ -120,9 +120,7 @@ class TestSymbolResolution(TestCase):
         self.assertEqual(res, "arn:aws:sns:us-east-1:123456789012:test")
 
     def test_arn_resolver_lambda_with_function_name(self):
-        template = {
-            "Resources": {"LambdaFunction": {"Properties": {"FunctionName": "function-name-override"},},},
-        }
+        template = {"Resources": {"LambdaFunction": {"Properties": {"FunctionName": "function-name-override"}}}}
         res = IntrinsicsSymbolTable(template=template).arn_resolver("LambdaFunction", service_name="lambda")
         self.assertEquals(res, "arn:aws:lambda:us-east-1:123456789012:function:function-name-override")
 

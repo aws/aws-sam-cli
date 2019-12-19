@@ -383,7 +383,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
             },
             "ReferencingLambdaFunctionWithFunctionName": {
                 "Type": "AWS::Lambda::Function",
-                "Properties": {"Uri": {"Fn::GetAtt": ["LambdaFunctionWithFunctionName", "Arn"],}},
+                "Properties": {"Uri": {"Fn::GetAtt": ["LambdaFunctionWithFunctionName", "Arn"]}},
             },
         }
         template = {"Resources": resources}
@@ -417,9 +417,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
     def test_fn_getatt_with_lambda_function_with_function_name(self):
         intrinsic = self.resources.get("ReferencingLambdaFunctionWithFunctionName").get("Properties").get("Uri")
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
-        self.assertEqual(
-            result, "arn:aws:lambda:us-east-1:406033500479:function:lambda-function-with-function-name",
-        )
+        self.assertEqual(result, "arn:aws:lambda:us-east-1:406033500479:function:lambda-function-with-function-name")
 
     @parameterized.expand(
         [
