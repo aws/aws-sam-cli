@@ -16,8 +16,8 @@ from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands._utils.template import get_template_data
 from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from .user_exceptions import InvokeContextException, DebugContextException
-from ..lib.sam_function_provider import SamFunctionProvider
 
 
 class InvokeContext:

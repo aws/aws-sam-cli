@@ -5,8 +5,8 @@ from unittest import TestCase
 
 from unittest.mock import patch
 
-from samcli.commands.local.lib.api_provider import ApiProvider
-from samcli.commands.local.lib.cfn_api_provider import CfnApiProvider
+from samcli.lib.providers.api_provider import ApiProvider
+from samcli.lib.providers.cfn_api_provider import CfnApiProvider
 from samcli.local.apigw.local_apigw_service import Route
 from tests.unit.commands.local.lib.test_sam_api_provider import make_swagger
 
@@ -65,7 +65,7 @@ class TestApiProviderWithApiGatewayRestRoute(TestCase):
             template = {"Resources": {"Api1": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"Body": filename}}}}
             self.assertRaises(Exception, ApiProvider, template)
 
-    @patch("samcli.commands.local.lib.cfn_base_api_provider.SwaggerReader")
+    @patch("samcli.lib.providers.cfn_base_api_provider.SwaggerReader")
     def test_with_swagger_as_both_body_and_uri_called(self, SwaggerReaderMock):
         body = {"some": "body"}
         filename = "somefile.txt"

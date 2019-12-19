@@ -4,7 +4,7 @@ Class that provides functions from a given SAM template
 import logging
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
-from .exceptions import InvalidLayerReference
+from samcli.lib.providers.exceptions import InvalidLayerReference
 from .provider import FunctionProvider, Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
 

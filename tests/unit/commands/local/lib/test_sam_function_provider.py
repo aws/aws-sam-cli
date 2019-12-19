@@ -2,10 +2,10 @@ from unittest import TestCase
 from unittest.mock import patch
 from parameterized import parameterized
 
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, InvalidSamTemplateException
-from samcli.commands.local.lib.provider import Function, LayerVersion
-from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
-from samcli.commands.local.lib.exceptions import InvalidLayerReference
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.exceptions import InvalidLayerReference
 
 
 class TestSamFunctionProviderEndToEnd(TestCase):
@@ -213,7 +213,7 @@ class TestSamFunctionProvider_init(TestCase):
         self.parameter_overrides = {}
 
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.commands.local.lib.sam_function_provider.SamBaseProvider")
+    @patch("samcli.lib.providers.sam_function_provider.SamBaseProvider")
     def test_must_extract_functions(self, SamBaseProviderMock, extract_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
@@ -227,7 +227,7 @@ class TestSamFunctionProvider_init(TestCase):
         self.assertEqual(provider.functions, extract_result)
 
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.commands.local.lib.sam_function_provider.SamBaseProvider")
+    @patch("samcli.lib.providers.sam_function_provider.SamBaseProvider")
     def test_must_default_to_empty_resources(self, SamBaseProviderMock, extract_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
