@@ -167,7 +167,7 @@ class InitTemplates:
                     click.echo("WARN: Could not clone app template repo.")
 
     def _clone_new_app_templates(self, shared_dir, expected_path):
-        with osutils.mkdir_temp() as tempdir:
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
             try:
                 LOG.info("\nCloning app templates from %s", self._repo_url)
