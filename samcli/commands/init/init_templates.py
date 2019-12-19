@@ -148,16 +148,7 @@ class InitTemplates:
                     stderr=subprocess.STDOUT,
                 )
                 # Now we need to delete the old repo and move this one.
-                try:
-                    LOG.debug("Removing old templates from %s", str(expected_path))
-                    shutil.rmtree(expected_path)
-                    LOG.debug("Copying templates from %s to %s", str(expected_temp_path), str(expected_path))
-                    shutil.copytree(expected_temp_path, expected_path, ignore=shutil.ignore_patterns("*.git"))
-                except (OSError, shutil.Error) as ex:
-                    # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
-                    raise AppTemplateUpdateException(
-                        "Unstable state when updating app templates. Check that you have permissions to create/delete files in the AWS SAM shared directory or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
-                    )
+                self._replace_app_templates(expected_temp_path, expected_path)
                 self.repo_path = expected_path
             except OSError as ex:
                 LOG.warning("WARN: Could not clone app template repo.", exc_info=ex)
@@ -165,6 +156,18 @@ class InitTemplates:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
+
+    def _replace_app_templates(self, temp_path, dest_path):
+        try:
+            LOG.debug("Removing old templates from %s", str(dest_path))
+            shutil.rmtree(dest_path)
+            LOG.debug("Copying templates from %s to %s", str(temp_path), str(dest_path))
+            shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
+        except (OSError, shutil.Error):
+            # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
+            raise AppTemplateUpdateException(
+                "Unstable state when updating app templates. Check that you have permissions to create/delete files in the AWS SAM shared directory or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
+            )
 
     def _clone_new_app_templates(self, shared_dir, expected_path):
         with osutils.mkdir_temp(ignore_errors=True) as tempdir:
