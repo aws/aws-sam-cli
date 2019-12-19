@@ -13,5 +13,5 @@ requests==2.22.0
 serverlessrepo==0.1.9
 aws_lambda_builders==0.6.0
 # https://github.com/mhammond/pywin32/issues/1439
-pywin32 < 226; sys_platform == 'win32'
+pywin32>=227; sys_platform == 'win32'
 tomlkit==0.5.8
