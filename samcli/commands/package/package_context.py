@@ -23,10 +23,13 @@ import boto3
 from botocore.config import Config
 import click
 
+from samcli.cli.global_config import GlobalConfig
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
 from samcli.yamlhelper import yaml_dump
 from samcli.lib.package.s3_uploader import S3Uploader
+
+from samcli import __version__
 
 LOG = logging.getLogger(__name__)
 
@@ -79,9 +82,17 @@ class PackageContext:
 
     def run(self):
 
+        gc = GlobalConfig()
         session = boto3.Session(profile_name=self.profile if self.profile else None)
         s3_client = session.client(
-            "s3", config=Config(signature_version="s3v4", region_name=self.region if self.region else None)
+            "s3",
+            config=Config(
+                signature_version="s3v4",
+                region_name=self.region if self.region else None,
+                user_agent_extra=f"aws-sam-cli/{__version__}/{gc.installation_id}"
+                if gc.telemetry_enabled
+                else f"aws-sam-cli/{__version__}",
+            ),
         )
 
         self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
