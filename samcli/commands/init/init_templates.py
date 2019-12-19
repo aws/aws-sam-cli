@@ -140,7 +140,7 @@ class InitTemplates:
         # workflow to clone a copy to a new directory and overwrite
         with osutils.mkdir_temp() as tempdir:
             try:
-                expected_temp_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
+                expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
                 LOG.info("\nCloning app templates from %s", self._repo_url)
                 subprocess.check_output(
                     [self._git_executable(), "clone", self._repo_url, self._repo_name],
@@ -149,7 +149,9 @@ class InitTemplates:
                 )
                 # Now we need to delete the old repo and move this one.
                 try:
+                    LOG.debug("Removing old templates from %s", str(expected_path))
                     shutil.rmtree(expected_path)
+                    LOG.debug("Copying templates from %s to %s", str(expected_temp_path), str(expected_path))
                     shutil.copytree(expected_temp_path, expected_path, ignore=shutil.ignore_patterns("*.git"))
                 except (OSError, shutil.Error) as ex:
                     # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
