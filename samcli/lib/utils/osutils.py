@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def mkdir_temp(mode=0o755):
+def mkdir_temp(mode=0o755, ignore_errors=False):
     """
     Context manager that makes a temporary directory and yields it name. Directory is deleted
     after the context exits
@@ -42,7 +42,7 @@ def mkdir_temp(mode=0o755):
 
     finally:
         if temp_dir:
-            shutil.rmtree(temp_dir)
+            shutil.rmtree(temp_dir, ignore_errors=ignore_errors)
 
 
 def stdout():

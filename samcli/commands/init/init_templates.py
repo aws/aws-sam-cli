@@ -138,7 +138,7 @@ class InitTemplates:
     def _overwrite_existing_templates(self, shared_dir, expected_path):
         self.repo_path = expected_path
         # workflow to clone a copy to a new directory and overwrite
-        with osutils.mkdir_temp() as tempdir:
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             try:
                 expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
                 LOG.info("\nCloning app templates from %s", self._repo_url)
