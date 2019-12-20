@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def mkdir_temp(mode=0o755):
+def mkdir_temp(mode=0o755, ignore_errors=False):
     """
     Context manager that makes a temporary directory and yields it name. Directory is deleted
     after the context exits
@@ -25,6 +25,10 @@ def mkdir_temp(mode=0o755):
     ----------
     mode : octal
         Permissions to apply to the directory. Defaults to '755' because don't want directories world writable
+
+    ignore_errors : boolean
+        If true, we will log a debug statement on failure to clean up the temp directory, rather than failing.
+        Defaults to False
 
     Returns
     -------
@@ -42,7 +46,14 @@ def mkdir_temp(mode=0o755):
 
     finally:
         if temp_dir:
-            shutil.rmtree(temp_dir)
+            if ignore_errors:
+                shutil.rmtree(temp_dir, False, _rmtree_callback)
+            else:
+                shutil.rmtree(temp_dir)
+
+
+def _rmtree_callback(function, path, excinfo):
+    LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
 
 
 def stdout():
