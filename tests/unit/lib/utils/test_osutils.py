@@ -6,6 +6,7 @@ import os
 import sys
 
 from unittest import TestCase
+from unittest.mock import patch
 import samcli.lib.utils.osutils as osutils
 
 
@@ -23,6 +24,21 @@ class Test_mkdir_temp(TestCase):
             self.assertTrue(os.path.exists(tempdir))
 
         self.assertFalse(os.path.exists(dir_name))
+
+    @patch("os.rmdir")
+    def test_raises_on_cleanup_failure(self, rmdir_mock):
+        rmdir_mock.side_effect = OSError("fail")
+        with self.assertRaises(OSError):
+            with osutils.mkdir_temp() as tempdir:
+                self.assertTrue(os.path.exists(tempdir))
+
+    @patch("os.rmdir")
+    def test_handles_ignore_error_case(self, rmdir_mock):
+        rmdir_mock.side_effect = OSError("fail")
+        dir_name = None
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            dir_name = tempdir
+            self.assertTrue(os.path.exists(tempdir))
 
 
 class Test_stderr(TestCase):

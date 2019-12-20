@@ -15,7 +15,8 @@ from pathlib import Path  # must come after Py2.7 deprecation
 import click
 
 from samcli.cli.main import global_cfg
-from samcli.commands.exceptions import UserException
+from samcli.commands.exceptions import UserException, AppTemplateUpdateException
+from samcli.lib.utils import osutils
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 
 LOG = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class InitTemplates:
     def __init__(self, no_interactive=False, auto_clone=True):
         self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
         self._repo_name = "aws-sam-cli-app-templates"
+        self._temp_repo_name = "TEMP-aws-sam-cli-app-templates"
         self.repo_path = None
         self.clone_attempted = False
         self._no_interactive = no_interactive
@@ -118,15 +120,64 @@ class InitTemplates:
             return False
 
     def _clone_repo(self):
+        if not self._auto_clone:
+            return  # Unit test escape hatch
+        # check if we have templates stored already
         shared_dir = global_cfg.config_dir
         if not self._shared_dir_check(shared_dir):
+            # Nothing we can do if we can't access the shared config directory, use bundled.
             return
         expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
-        if self._should_clone_repo(expected_path):
+        if self._template_directory_exists(expected_path):
+            self._overwrite_existing_templates(shared_dir, expected_path)
+        else:
+            # simply create the app templates repo
+            self._clone_new_app_templates(shared_dir, expected_path)
+        self.clone_attempted = True
+
+    def _overwrite_existing_templates(self, shared_dir, expected_path):
+        self.repo_path = expected_path
+        # workflow to clone a copy to a new directory and overwrite
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
             try:
+                expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
+                LOG.info("\nCloning app templates from %s", self._repo_url)
                 subprocess.check_output(
-                    [self._git_executable(), "clone", self._repo_url], cwd=shared_dir, stderr=subprocess.STDOUT
+                    [self._git_executable(), "clone", self._repo_url, self._repo_name],
+                    cwd=tempdir,
+                    stderr=subprocess.STDOUT,
                 )
+                # Now we need to delete the old repo and move this one.
+                self._replace_app_templates(expected_temp_path, expected_path)
+                self.repo_path = expected_path
+            except OSError as ex:
+                LOG.warning("WARN: Could not clone app template repo.", exc_info=ex)
+            except subprocess.CalledProcessError as clone_error:
+                output = clone_error.output.decode("utf-8")
+                if "not found" in output.lower():
+                    click.echo("WARN: Could not clone app template repo.")
+
+    def _replace_app_templates(self, temp_path, dest_path):
+        try:
+            LOG.debug("Removing old templates from %s", str(dest_path))
+            shutil.rmtree(dest_path)
+            LOG.debug("Copying templates from %s to %s", str(temp_path), str(dest_path))
+            shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
+        except (OSError, shutil.Error):
+            # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
+            raise AppTemplateUpdateException(
+                "Unstable state when updating app templates. Check that you have permissions to create/delete files in the AWS SAM shared directory or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
+            )
+
+    def _clone_new_app_templates(self, shared_dir, expected_path):
+        with osutils.mkdir_temp(ignore_errors=True) as tempdir:
+            expected_temp_path = os.path.normpath(os.path.join(tempdir, self._repo_name))
+            try:
+                LOG.info("\nCloning app templates from %s", self._repo_url)
+                subprocess.check_output(
+                    [self._git_executable(), "clone", self._repo_url], cwd=tempdir, stderr=subprocess.STDOUT
+                )
+                shutil.copytree(expected_temp_path, expected_path, ignore=shutil.ignore_patterns("*.git"))
                 self.repo_path = expected_path
             except OSError as ex:
                 LOG.warning("WARN: Can't clone app repo, git executable not found", exc_info=ex)
@@ -134,7 +185,10 @@ class InitTemplates:
                 output = clone_error.output.decode("utf-8")
                 if "not found" in output.lower():
                     click.echo("WARN: Could not clone app template repo.")
-        self.clone_attempted = True
+
+    def _template_directory_exists(self, expected_path):
+        path = Path(expected_path)
+        return path.exists()
 
     def _git_executable(self):
         execname = "git"
@@ -150,26 +204,6 @@ class InitTemplates:
             except OSError as ex:
                 LOG.debug("Unable to find executable %s", name, exc_info=ex)
         raise OSError("Cannot find git, was looking at executables: {}".format(options))
-
-    def _should_clone_repo(self, expected_path):
-        path = Path(expected_path)
-        if path.exists():
-            if not self._no_interactive:
-                overwrite = click.confirm(
-                    "\nQuick start templates may have been updated. Do you want to re-download the latest", default=True
-                )
-                if overwrite:
-                    shutil.rmtree(expected_path)  # fail hard if there is an issue
-                    return True
-            self.repo_path = expected_path
-            return False
-
-        if self._no_interactive:
-            return self._auto_clone
-        do_clone = click.confirm(
-            "\nAllow SAM CLI to download AWS-provided quick start templates from Github", default=True
-        )
-        return do_clone
 
     def is_dynamic_schemas_template(self, app_template, runtime, dependency_manager):
         """
