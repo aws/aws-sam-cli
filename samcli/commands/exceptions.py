@@ -36,3 +36,9 @@ class RegionError(UserException):
     """
     Exception class when no valid region is passed to a client.
     """
+
+
+class AppTemplateUpdateException(UserException):
+    """
+    Exception class when updates to app templates for init enters an unstable state.
+    """
