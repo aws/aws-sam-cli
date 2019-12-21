@@ -145,12 +145,14 @@ def do_cli(  # pylint: disable=R0914
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
 
-    except NoApisDefined:
-        raise UserException("Template does not have any APIs connected to Lambda functions")
+    except NoApisDefined as ex:
+        raise UserException(
+            "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__
+        )
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
         DebuggingNotSupported,
     ) as ex:
-        raise UserException(str(ex))
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)

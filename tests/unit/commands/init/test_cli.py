@@ -1,7 +1,8 @@
-import botocore.exceptions
-
 from unittest import TestCase
 from unittest.mock import patch, ANY
+
+import botocore.exceptions
+import click
 from click.testing import CliRunner
 
 from samcli.commands.init.init_templates import InitTemplates
@@ -107,7 +108,7 @@ class TestCli(TestCase):
     def test_init_cli_missing_params_fails(self):
         # WHEN we call init without necessary parameters
         # THEN we should receive a UserException
-        with self.assertRaises(UserException):
+        with self.assertRaises(click.UsageError):
             init_cli(
                 self.ctx,
                 no_interactive=True,
@@ -125,7 +126,7 @@ class TestCli(TestCase):
     def test_init_cli_mutually_exclusive_params_fails(self):
         # WHEN we call init without necessary parameters
         # THEN we should receive a UserException
-        with self.assertRaises(UserException):
+        with self.assertRaises(click.UsageError):
             init_cli(
                 self.ctx,
                 no_interactive=self.no_interactive,
@@ -253,7 +254,7 @@ class TestCli(TestCase):
     def test_init_cli_with_extra_context_input_as_wrong_json_raises_exception(self):
         # GIVEN extra_context as wrong json
         # WHEN a sam init is called
-        with self.assertRaises(UserException):
+        with self.assertRaises(click.UsageError):
             init_cli(
                 ctx=self.ctx,
                 no_interactive=self.no_interactive,
