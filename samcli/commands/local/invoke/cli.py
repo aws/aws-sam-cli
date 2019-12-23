@@ -151,17 +151,19 @@ def do_cli(  # pylint: disable=R0914
                 context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr
             )
 
-    except FunctionNotFound:
-        raise UserException("Function {} not found in template".format(function_identifier))
+    except FunctionNotFound as ex:
+        raise UserException(
+            "Function {} not found in template".format(function_identifier), wrapped_from=ex.__class__.__name__
+        )
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
         DebuggingNotSupported,
     ) as ex:
-        raise UserException(str(ex))
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
     except DockerImagePullFailedException as ex:
-        raise UserException(str(ex))
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
 
 
 def _get_event(event_file_name):

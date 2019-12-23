@@ -65,7 +65,10 @@ def track_command(func):
             # Capture exception information and re-raise it later so we can first send metrics.
             exception = ex
             exit_code = ex.exit_code
-            exit_reason = type(ex).__name__
+            if ex.wrapped_from is None:
+                exit_reason = type(ex).__name__
+            else:
+                exit_reason = ex.wrapped_from
 
         except Exception as ex:
             exception = ex

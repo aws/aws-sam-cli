@@ -186,7 +186,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 mode=ctx.mode,
             )
         except FunctionNotFound as ex:
-            raise UserException(str(ex))
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
 
         try:
             artifacts = builder.build()
@@ -222,7 +222,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             ContainerBuildNotSupported,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
-            raise UserException(str(ex))
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
 
 
 def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):

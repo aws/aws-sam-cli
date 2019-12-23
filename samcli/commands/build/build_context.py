@@ -56,10 +56,7 @@ class BuildContext:
         self._container_manager = None
 
     def __enter__(self):
-        try:
-            self._template_dict = get_template_data(self._template_file)
-        except ValueError as ex:
-            raise UserException(str(ex))
+        self._template_dict = get_template_data(self._template_file)
 
         self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
 
