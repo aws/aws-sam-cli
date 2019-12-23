@@ -16,6 +16,10 @@ from samcli.lib.utils.time import to_utc, parse_date
 LOG = logging.getLogger(__name__)
 
 
+class InvalidTimestampError(UserException):
+    pass
+
+
 class LogsCommandContext:
     """
     Sets up a context to run the Logs command by parsing the CLI arguments and creating necessary objects to be able
@@ -213,7 +217,7 @@ class LogsCommandContext:
 
         parsed = parse_date(time_str)
         if not parsed:
-            raise UserException("Unable to parse the time provided by '{}'".format(property_name))
+            raise InvalidTimestampError("Unable to parse the time provided by '{}'".format(property_name))
 
         return to_utc(parsed)
 
@@ -267,4 +271,4 @@ class LogsCommandContext:
             )
 
             # The exception message already has a well formatted error message that we can surface to user
-            raise UserException(str(ex))
+            raise UserException(str(ex), wrapped_from=ex.response["Error"]["Code"])

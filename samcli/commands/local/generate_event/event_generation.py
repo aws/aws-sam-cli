@@ -6,7 +6,7 @@ import functools
 
 import click
 
-import samcli.commands.local.lib.generated_sample_events.events as events
+import samcli.lib.generated_sample_events.events as events
 from samcli.cli.cli_config_file import TomlProvider, get_ctx_defaults
 from samcli.cli.options import debug_option
 from samcli.lib.telemetry.metrics import track_command

@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from parameterized import parameterized, param
 
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
-from samcli.commands.local.lib.provider import Function
+from samcli.lib.providers.provider import Function
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 

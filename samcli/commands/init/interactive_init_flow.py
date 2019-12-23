@@ -3,7 +3,6 @@ Isolates interactive init prompt flow. Expected to call generator logic at end o
 """
 import tempfile
 import logging
-import traceback
 import click
 
 from botocore.exceptions import ClientError, WaiterError

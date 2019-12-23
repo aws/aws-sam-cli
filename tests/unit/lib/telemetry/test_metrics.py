@@ -142,6 +142,26 @@ class TestTrackCommand(TestCase):
         self.telemetry_instance.emit.assert_has_calls([call("commandRun", expected_attrs)])
 
     @patch("samcli.lib.telemetry.metrics.Context")
+    def test_must_record_wrapped_user_exception(self, ContextMock):
+        ContextMock.get_current_context.return_value = self.context_mock
+        expected_exception = UserException("Something went wrong", wrapped_from="CustomException")
+        expected_exception.exit_code = 1235
+
+        def real_fn():
+            raise expected_exception
+
+        with self.assertRaises(UserException) as context:
+            track_command(real_fn)()
+            self.assertEqual(
+                context.exception,
+                expected_exception,
+                "Must re-raise the original exception object " "without modification",
+            )
+
+        expected_attrs = _cmd_run_attrs({"exitReason": "CustomException", "exitCode": 1235})
+        self.telemetry_instance.emit.assert_has_calls([call("commandRun", expected_attrs)])
+
+    @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_record_any_exceptions(self, ContextMock):
         ContextMock.get_current_context.return_value = self.context_mock
         expected_exception = KeyError("IO Error test")

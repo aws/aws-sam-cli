@@ -110,7 +110,8 @@ def do_cli(  # pylint: disable=R0914
     """
 
     from samcli.commands.local.cli_common.invoke_context import InvokeContext
-    from samcli.commands.local.lib.exceptions import NoApisDefined, InvalidLayerReference
+    from samcli.commands.local.lib.exceptions import NoApisDefined
+    from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.commands.exceptions import UserException
     from samcli.commands.local.lib.local_api_service import LocalApiService
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -144,12 +145,14 @@ def do_cli(  # pylint: disable=R0914
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
             service.start()
 
-    except NoApisDefined:
-        raise UserException("Template does not have any APIs connected to Lambda functions")
+    except NoApisDefined as ex:
+        raise UserException(
+            "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__
+        )
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
         DebuggingNotSupported,
     ) as ex:
-        raise UserException(str(ex))
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
