@@ -15,21 +15,18 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import os
-import logging
 import json
+import logging
+import os
 
 import boto3
-from botocore.config import Config
 import click
 
-from samcli.cli.global_config import GlobalConfig
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
-from samcli.yamlhelper import yaml_dump
 from samcli.lib.package.s3_uploader import S3Uploader
-
-from samcli import __version__
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
+from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
 
@@ -82,16 +79,11 @@ class PackageContext:
 
     def run(self):
 
-        gc = GlobalConfig()
         session = boto3.Session(profile_name=self.profile if self.profile else None)
         s3_client = session.client(
             "s3",
-            config=Config(
-                signature_version="s3v4",
-                region_name=self.region if self.region else None,
-                user_agent_extra=f"aws-sam-cli/{__version__}/{gc.installation_id}"
-                if gc.telemetry_enabled
-                else f"aws-sam-cli/{__version__}",
+            config=get_boto_config_with_user_agent(
+                signature_version="s3v4", region_name=self.region if self.region else None
             ),
         )
 

@@ -20,13 +20,11 @@ import os
 
 import boto3
 import click
-from botocore.config import Config
 
-from samcli.cli.global_config import GlobalConfig
-from samcli import __version__
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)
@@ -104,13 +102,8 @@ class DeployContext:
         if template_size > 51200 and not self.s3_bucket:
             raise deploy_exceptions.DeployBucketRequiredError()
 
-        gc = GlobalConfig()
         session = boto3.Session(profile_name=self.profile if self.profile else None)
-        config = Config(
-            user_agent_extra=f"aws-sam-cli/{__version__}/{gc.installation_id}"
-            if gc.telemetry_enabled
-            else f"aws-sam-cli/{__version__}"
-        )
+        config = get_boto_config_with_user_agent()
         cloudformation_client = session.client(
             "cloudformation", region_name=self.region if self.region else None, config=config
         )
