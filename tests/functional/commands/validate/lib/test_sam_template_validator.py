@@ -167,12 +167,6 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/sqs.yaml"),
         ("tests/functional/commands/validate/lib/models/streams.yaml"),
         ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml"),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"
-        ),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"
-        ),
     ]
 
     def test_valid_template(self):
