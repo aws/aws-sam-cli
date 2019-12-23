@@ -159,4 +159,4 @@ def do_cli(  # pylint: disable=R0914
         InvalidLayerReference,
         DebuggingNotSupported,
     ) as ex:
-        raise UserException(str(ex))
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)

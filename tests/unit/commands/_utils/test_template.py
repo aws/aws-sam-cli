@@ -13,6 +13,8 @@ from samcli.commands._utils.template import (
     _update_relative_paths,
     move_template,
     get_template_parameters,
+    TemplateNotFoundException,
+    TemplateFailedParsingException,
 )
 
 
@@ -20,7 +22,7 @@ class Test_get_template_data(TestCase):
     def test_must_raise_if_file_does_not_exist(self):
         filename = "filename"
 
-        with self.assertRaises(ValueError) as exception_ctx:
+        with self.assertRaises(TemplateNotFoundException) as exception_ctx:
             get_template_data(filename)
 
         ex = exception_ctx.exception
@@ -80,7 +82,7 @@ class Test_get_template_data(TestCase):
 
         with patch("samcli.commands._utils.template.open", m):
 
-            with self.assertRaises(ValueError) as ex_ctx:
+            with self.assertRaises(TemplateFailedParsingException) as ex_ctx:
                 get_template_data(filename)
 
             actual_exception = ex_ctx.exception

@@ -22,6 +22,10 @@ from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 LOG = logging.getLogger(__name__)
 
 
+class InvalidInitTemplateError(UserException):
+    pass
+
+
 class InitTemplates:
     def __init__(self, no_interactive=False, auto_clone=True):
         self._repo_url = "https://github.com/awslabs/aws-sam-cli-app-templates.git"
@@ -61,7 +65,7 @@ class InitTemplates:
             return (template_md["init_location"], "hello-world")
         if template_md.get("directory") is not None:
             return (os.path.join(self.repo_path, template_md["directory"]), template_md["appTemplate"])
-        raise UserException("Invalid template. This should not be possible, please raise an issue.")
+        raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, runtime, dependency_manager, app_template):
         options = self.init_options(runtime, dependency_manager)
@@ -71,10 +75,10 @@ class InitTemplates:
                 return template["init_location"]
             if template.get("directory") is not None:
                 return os.path.join(self.repo_path, template["directory"])
-            raise UserException("Invalid template. This should not be possible, please raise an issue.")
+            raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
         except StopIteration:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
-            raise UserException(msg)
+            raise InvalidInitTemplateError(msg)
 
     def _check_app_template(self, entry, app_template):
         return entry["appTemplate"] == app_template
@@ -109,7 +113,7 @@ class InitTemplates:
         msg = "Lambda Runtime {} and dependency manager {} does not have an available initialization template.".format(
             runtime, dependency_manager
         )
-        raise UserException(msg)
+        raise InvalidInitTemplateError(msg)
 
     def _shared_dir_check(self, shared_dir):
         try:
