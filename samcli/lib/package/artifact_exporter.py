@@ -252,6 +252,7 @@ class Resource:
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
     FORCE_ZIP = False
+    _package_cache = {}
 
     def __init__(self, uploader):
         self.uploader = uploader
@@ -265,11 +266,18 @@ class Resource:
 
         property_value = jmespath.search(self.PROPERTY_NAME, resource_dict)
 
+        cache_key = (self.PROPERTY_NAME, property_value)
+
         if not property_value and not self.PACKAGE_NULL_PROPERTY:
             return
 
         if isinstance(property_value, dict):
             LOG.debug("Property %s of %s resource is not a URL", self.PROPERTY_NAME, resource_id)
+            return
+
+        if cache_key in self._package_cache:
+            LOG.debug("Property %s of %s resource has already been exported", self.PROPERTY_NAME, resource_id)
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, self._package_cache[cache_key])
             return
 
         # If property is a file but not a zip file, place file in temp
@@ -280,7 +288,8 @@ class Resource:
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, temp_dir)
 
         try:
-            self.do_export(resource_id, resource_dict, parent_dir)
+            url = self.do_export(resource_id, resource_dict, parent_dir)
+            self._package_cache[cache_key] = url
 
         except Exception as ex:
             LOG.debug("Unable to export", exc_info=ex)
@@ -298,6 +307,7 @@ class Resource:
         """
         uploaded_url = upload_local_artifacts(resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader)
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+        return uploaded_url
 
 
 class ResourceWithS3UrlDict(Resource):

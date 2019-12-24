@@ -81,9 +81,10 @@ class TestArtifactExporter(unittest.TestCase):
         ]
 
         with patch("samcli.lib.package.artifact_exporter.upload_local_artifacts") as upload_local_artifacts_mock:
-            for test in setup:
+            for idx, test in enumerate(setup):
                 self._helper_verify_export_resources(
-                    test["class"], uploaded_s3_url, upload_local_artifacts_mock, test["expected_result"]
+                    test["class"], uploaded_s3_url, upload_local_artifacts_mock, test["expected_result"],
+                    assert_upload_called=(idx == 0)
                 )
 
     def test_invalid_export_resource(self):
@@ -98,7 +99,7 @@ class TestArtifactExporter(unittest.TestCase):
             upload_local_artifacts_mock.assert_not_called()
 
     def _helper_verify_export_resources(
-        self, test_class, uploaded_s3_url, upload_local_artifacts_mock, expected_result
+        self, test_class, uploaded_s3_url, upload_local_artifacts_mock, expected_result, assert_upload_called=False
     ):
 
         s3_uploader_mock = Mock()
@@ -123,9 +124,11 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource_obj.export(resource_id, resource_dict, parent_dir)
 
-        upload_local_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock
-        )
+        if assert_upload_called:
+            upload_local_artifacts_mock.assert_called_once_with(
+                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock
+            )
+
         if "." in test_class.PROPERTY_NAME:
             top_level_property_name = test_class.PROPERTY_NAME.split(".")[0]
             result = resource_dict[top_level_property_name]
@@ -470,6 +473,9 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResourceNoForceZip(Resource):
             PROPERTY_NAME = "foo"
 
+        # reset package cache to avoid influence from other tests
+        Resource._package_cache = {}
+
         resource = MockResourceNoForceZip(self.s3_uploader_mock)
 
         resource_id = "id"
@@ -563,6 +569,9 @@ class TestArtifactExporter(unittest.TestCase):
         class MockResource(Resource):
             PROPERTY_NAME = "foo"
 
+        # reset package cache to avoid influence from other tests
+        Resource._package_cache = {}
+
         resource = MockResource(self.s3_uploader_mock)
         resource_id = "id"
         resource_dict = {}
@@ -582,6 +591,9 @@ class TestArtifactExporter(unittest.TestCase):
         Checks if we properly export from the Resource classc
         :return:
         """
+
+        # reset package cache to avoid influence from other tests
+        Resource._package_cache = {}
 
         self.assertTrue(issubclass(ResourceWithS3UrlDict, Resource))
 
