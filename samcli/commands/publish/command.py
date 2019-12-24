@@ -9,7 +9,7 @@ from serverlessrepo.publish import CREATE_APPLICATION
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
 from samcli.commands._utils.options import template_common_option
-from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.template import get_template_data, TemplateFailedParsingException, TemplateNotFoundException
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
@@ -65,9 +65,9 @@ def do_cli(ctx, template, semantic_version):
 
     try:
         template_data = get_template_data(template)
-    except ValueError as ex:
+    except (TemplateFailedParsingException, TemplateNotFoundException) as ex:
         click.secho("Publish Failed", fg="red")
-        raise UserException(str(ex))
+        raise ex
 
     # Override SemanticVersion in template metadata when provided in command input
     if semantic_version and SERVERLESS_REPO_APPLICATION in template_data.get(METADATA, {}):
@@ -77,17 +77,18 @@ def do_cli(ctx, template, semantic_version):
         publish_output = publish_application(template_data)
         click.secho("Publish Succeeded", fg="green")
         click.secho(_gen_success_message(publish_output))
-    except InvalidS3UriError:
+    except InvalidS3UriError as ex:
         click.secho("Publish Failed", fg="red")
         raise UserException(
             "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
-            "artifacts to S3 by packaging the template. See more details in {}".format(SAM_PACKAGE_DOC)
+            "artifacts to S3 by packaging the template. See more details in {}".format(SAM_PACKAGE_DOC),
+            wrapped_from=ex.__class__.__name__,
         )
     except ServerlessRepoError as ex:
         click.secho("Publish Failed", fg="red")
         LOG.debug("Failed to publish application to serverlessrepo", exc_info=True)
         error_msg = "{}\nPlease follow the instructions in {}".format(str(ex), SAM_PUBLISH_DOC)
-        raise UserException(error_msg)
+        raise UserException(error_msg, wrapped_from=ex.__class__.__name__)
 
     application_id = publish_output.get("application_id")
     _print_console_link(ctx.region, application_id)
