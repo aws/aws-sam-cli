@@ -21,7 +21,6 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # 12: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -32,7 +31,6 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 12
 1
 eb-app-maven
-N
 3
 Y
 1
@@ -57,7 +55,6 @@ Y
         # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 3: partner registry
@@ -68,7 +65,6 @@ Y
 12
 1
 eb-app-maven
-N
 3
 Y
 3
@@ -104,7 +100,6 @@ Y
         # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 4: select pagination-registry as registries
@@ -117,7 +112,6 @@ Y
 12
 1
 eb-app-maven
-N
 3
 Y
 4
@@ -144,7 +138,6 @@ P
         # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: lone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 2: select 2p-schema other-schema
@@ -155,7 +148,6 @@ P
 12
 1
 eb-app-maven
-N
 3
 Y
 2
@@ -190,7 +182,6 @@ Y
         # 1: AWS Quick Start Templates
         # 9: Python 3.7
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -200,7 +191,6 @@ Y
 1
 9
 eb-app-python37
-N
 3
 Y
 1
@@ -222,7 +212,6 @@ Y
         # 1: AWS Quick Start Templates
         # 9: Python 3.7
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
@@ -234,7 +223,6 @@ Y
 1
 9
 eb-app-python37
-N
 3
 N
 2
@@ -260,7 +248,6 @@ N
         # 1: AWS Quick Start Templates
         # 9: Python 3.7
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -270,7 +257,6 @@ N
 1
 9
 eb-app-python37
-N
 3
 Y
 1

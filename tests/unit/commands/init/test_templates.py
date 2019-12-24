@@ -6,6 +6,8 @@ from unittest.mock import mock_open, patch, PropertyMock, MagicMock
 from re import search
 from unittest import TestCase
 
+from pathlib import Path
+
 from samcli.commands.init.init_templates import InitTemplates
 
 
@@ -13,7 +15,8 @@ class TestTemplates(TestCase):
     @patch("subprocess.check_output")
     @patch("samcli.commands.init.init_templates.InitTemplates._git_executable")
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    def test_location_from_app_template(self, subprocess_mock, git_exec_mock, sd_mock):
+    @patch("shutil.copytree")
+    def test_location_from_app_template(self, subprocess_mock, git_exec_mock, sd_mock, copy_mock):
         it = InitTemplates(True)
 
         manifest = {
@@ -79,12 +82,12 @@ class TestTemplates(TestCase):
                 executable = it._git_executable()
 
     def test_shared_dir_check(self):
-        it = InitTemplates(True)
+        it = InitTemplates(True, False)
         shared_dir_mock = MagicMock()
         self.assertTrue(it._shared_dir_check(shared_dir_mock))
 
     def test_shared_dir_failure(self):
-        it = InitTemplates(True)
+        it = InitTemplates(True, False)
         shared_dir_mock = MagicMock()
         shared_dir_mock.mkdir.side_effect = OSError("fail")
         self.assertFalse(it._shared_dir_check(shared_dir_mock))
