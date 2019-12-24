@@ -83,8 +83,11 @@ class TestArtifactExporter(unittest.TestCase):
         with patch("samcli.lib.package.artifact_exporter.upload_local_artifacts") as upload_local_artifacts_mock:
             for idx, test in enumerate(setup):
                 self._helper_verify_export_resources(
-                    test["class"], uploaded_s3_url, upload_local_artifacts_mock, test["expected_result"],
-                    assert_upload_called=(idx == 0)
+                    test["class"],
+                    uploaded_s3_url,
+                    upload_local_artifacts_mock,
+                    test["expected_result"],
+                    assert_upload_called=(idx == 0),
                 )
 
     def test_invalid_export_resource(self):
