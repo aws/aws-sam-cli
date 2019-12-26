@@ -17,7 +17,7 @@ import click
 from samcli.cli.main import global_cfg
 from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils import osutils
-from samcli.lib.utils.osutils import _rmtree_callback
+from samcli.lib.utils.osutils import rmtree_callback
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 
 LOG = logging.getLogger(__name__)
@@ -165,7 +165,7 @@ class InitTemplates:
     def _replace_app_templates(self, temp_path, dest_path):
         try:
             LOG.debug("Removing old templates from %s", str(dest_path))
-            shutil.rmtree(dest_path, onerror=_rmtree_callback)
+            shutil.rmtree(dest_path, onerror=rmtree_callback)
             LOG.debug("Copying templates from %s to %s", str(temp_path), str(dest_path))
             shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
         except (OSError, shutil.Error):
