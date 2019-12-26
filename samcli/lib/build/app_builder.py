@@ -170,7 +170,6 @@ class ApplicationBuilder:
         str
             Path to the location where built artifacts are available
         """
-        # TODO: implement if code_dir already exists then reuse rather than rebuilding
 
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
