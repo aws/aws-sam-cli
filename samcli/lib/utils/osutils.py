@@ -1,16 +1,13 @@
 """
 Common OS utilities
 """
-
-import sys
+import logging
 import os
 import shutil
+import stat
+import sys
 import tempfile
-import logging
-import contextlib
-
 from contextlib import contextmanager
-
 
 LOG = logging.getLogger(__name__)
 
@@ -53,7 +50,11 @@ def mkdir_temp(mode=0o755, ignore_errors=False):
 
 
 def _rmtree_callback(function, path, excinfo):
-    LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
+    try:
+        os.chmod(path=path, mode=stat.S_IWRITE)
+        os.remove(path)
+    except OSError:
+        LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
 
 
 def stdout():
@@ -88,7 +89,7 @@ def remove(path):
             pass
 
 
-@contextlib.contextmanager
+@contextmanager
 def tempfile_platform_independent():
     # NOTE(TheSriram): Setting delete=False is specific to windows.
     # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
