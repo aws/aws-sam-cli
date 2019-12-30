@@ -41,10 +41,16 @@ class ContextIdentity:
         self.account_id = account_id
 
     def to_dict(self):
-        """
-        Constructs an dictionary representation of the Identity Object to be used in serializing to JSON
+        """Constructs an dictionary representation of the Identity Object to be used in serializing to JSON
 
         :return: dict representing the object
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         json_dict = {
             "apiKey": self.api_key,
@@ -103,10 +109,16 @@ class RequestContext:
         self.path = path
 
     def to_dict(self):
-        """
-        Constructs an dictionary representation of the RequestContext Object to be used in serializing to JSON
+        """Constructs an dictionary representation of the RequestContext Object to be used in serializing to JSON
 
         :return: dict representing the object
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         identity_dict = {}
         if self.identity:
@@ -193,10 +205,16 @@ class ApiGatewayLambdaEvent:
         self.is_base_64_encoded = is_base_64_encoded
 
     def to_dict(self):
-        """
-        Constructs an dictionary representation of the ApiGatewayLambdaEvent Object to be used in serializing to JSON
+        """Constructs an dictionary representation of the ApiGatewayLambdaEvent Object to be used in serializing to JSON
 
         :return: dict representing the object
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         request_context_dict = {}
         if self.request_context:

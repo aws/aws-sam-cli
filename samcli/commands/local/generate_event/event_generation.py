@@ -14,16 +14,7 @@ import samcli.lib.config.samconfig as samconfig
 
 
 class ServiceCommand(click.MultiCommand):
-    """
-    Top level command that defines the service provided
-
-    Methods
-    ----------------
-    get_command(self, ctx, cmd_name):
-        Get the subcommand(s) under a given service name.
-    list_commands(self, ctx):
-        List all of the subcommands
-    """
+    """Top level command that defines the service provided"""
 
     def __init__(self, events_lib, *args, **kwargs):
         """
@@ -47,19 +38,19 @@ class ServiceCommand(click.MultiCommand):
         self.all_cmds = self.events_lib.event_mapping
 
     def get_command(self, ctx, cmd_name):
-        """
-        gets the subcommands under the service name
+        """gets the subcommands under the service name
 
         Parameters
         ----------
         ctx : Context
             the context object passed into the method
         cmd_name : str
-            the service name
+
+
         Returns
         -------
-        EventTypeSubCommand:
-            returns subcommand if successful, None if not.
+
+
         """
 
         if cmd_name not in self.all_cmds:
@@ -67,33 +58,24 @@ class ServiceCommand(click.MultiCommand):
         return EventTypeSubCommand(self.events_lib, cmd_name, self.all_cmds[cmd_name])
 
     def list_commands(self, ctx):
-        """
-        lists the service commands available
+        """lists the service commands available
 
         Parameters
         ----------
-        ctx: Context
-            the context object passed into the method
+        ctx : Context
+
+
         Returns
         -------
-        list
-            returns sorted list of the service commands available
+
+
         """
 
         return sorted(self.all_cmds.keys())
 
 
 class EventTypeSubCommand(click.MultiCommand):
-    """
-    Class that describes the commands underneath a given service type
-
-    Methods
-    ----------------
-    get_command(self, ctx, cmd_name):
-        Get the subcommand(s) under a given service name.
-    list_commands(self, ctx):
-        List all of the subcommands
-    """
+    """Class that describes the commands underneath a given service type"""
 
     TAGS = "tags"
 
@@ -122,19 +104,19 @@ class EventTypeSubCommand(click.MultiCommand):
 
     def get_command(self, ctx, cmd_name):
 
-        """
-        gets the Click Commands underneath a service name
+        """gets the Click Commands underneath a service name
 
         Parameters
         ----------
-        ctx: Context
+        ctx : Context
             context object passed in
-        cmd_name: string
-            the service name
+        cmd_name : string
+
+
         Returns
         -------
-        cmd: Click.Command
-            the Click Commands that can be called from the CLI
+
+
         """
 
         if cmd_name not in self.subcmd_definition:
@@ -173,40 +155,46 @@ class EventTypeSubCommand(click.MultiCommand):
         return cmd
 
     def list_commands(self, ctx):
-        """
-        lists the commands underneath a particular event
+        """lists the commands underneath a particular event
 
         Parameters
         ----------
-        ctx: Context
-            the context object passed in
+        ctx : Context
+
+
         Returns
         -------
-        the sorted list of commands under a service
+
+
         """
         return sorted(self.subcmd_definition.keys())
 
     @track_command
     def cmd_implementation(self, events_lib, top_level_cmd_name, subcmd_name, *args, **kwargs):
-        """
-        calls for value substitution in the event json and returns the
+        """calls for value substitution in the event json and returns the
         customized json as a string
 
         Parameters
         ----------
-        events_lib
-        top_level_cmd_name: string
+        events_lib :
+
+        top_level_cmd_name : string
             the name of the service
-        subcmd_name: string
+        subcmd_name : string
             the name of the event under the service
-        args: tuple
+        args : tuple
             any arguments passed in before kwargs
-        kwargs: dict
-            the keys and values for substitution in the json
+        kwargs : dict
+
+        *args :
+
+        **kwargs :
+
+
         Returns
         -------
-        event: string
-            returns the customized event json as a string
+
+
         """
         event = events_lib.generate_event(top_level_cmd_name, subcmd_name, kwargs)
         click.echo(event)
@@ -214,9 +202,7 @@ class EventTypeSubCommand(click.MultiCommand):
 
 
 class GenerateEventCommand(ServiceCommand):
-    """
-    Class that brings ServiceCommand and EventTypeSubCommand into one for easy execution
-    """
+    """Class that brings ServiceCommand and EventTypeSubCommand into one for easy execution"""
 
     def __init__(self, *args, **kwargs):
         """

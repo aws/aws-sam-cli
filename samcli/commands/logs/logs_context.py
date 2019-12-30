@@ -21,14 +21,20 @@ class InvalidTimestampError(UserException):
 
 
 class LogsCommandContext:
-    """
-    Sets up a context to run the Logs command by parsing the CLI arguments and creating necessary objects to be able
+    """Sets up a context to run the Logs command by parsing the CLI arguments and creating necessary objects to be able
     to fetch and display logs
 
     This class **must** be used inside a ``with`` statement as follows:
 
         with LogsCommandContext(**kwargs) as context:
             context.fetcher.fetch(...)
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(
@@ -101,13 +107,7 @@ class LogsCommandContext:
 
     @property
     def formatter(self):
-        """
-        Creates and returns a Formatter capable of nicely formatting Lambda function logs
-
-        Returns
-        -------
-        LogsFormatter
-        """
+        """Creates and returns a Formatter capable of nicely formatting Lambda function logs"""
         formatter_chain = [
             LambdaLogMsgFormatters.colorize_errors,
             # Format JSON "before" highlighting the keywords. Otherwise, JSON will be invalid from all the
@@ -128,14 +128,16 @@ class LogsCommandContext:
 
     @property
     def log_group_name(self):
-        """
-        Name of the AWS CloudWatch Log Group that we will be querying. It generates the name based on the
+        """Name of the AWS CloudWatch Log Group that we will be querying. It generates the name based on the
         Lambda Function name and stack name provided.
+
+        Parameters
+        ----------
 
         Returns
         -------
-        str
-            Name of the CloudWatch Log Group
+
+
         """
 
         function_id = self._function_name
@@ -152,13 +154,7 @@ class LogsCommandContext:
 
     @property
     def colored(self):
-        """
-        Instance of Colored object to colorize strings
-
-        Returns
-        -------
-        samcli.commands.utils.colors.Colored
-        """
+        """Instance of Colored object to colorize strings"""
         # No colors if we are writing output to a file
         return Colored(colorize=self._must_print_colors)
 
@@ -172,8 +168,7 @@ class LogsCommandContext:
 
     @staticmethod
     def _setup_output_file(output_file):
-        """
-        Open a log file if necessary and return the file handle. This will create a file if it does not exist
+        """Open a log file if necessary and return the file handle. This will create a file if it does not exist
 
         Parameters
         ----------
@@ -182,7 +177,8 @@ class LogsCommandContext:
 
         Returns
         -------
-        Handle to the opened log file, if necessary. None otherwise
+
+
         """
         if not output_file:
             return None
@@ -191,14 +187,12 @@ class LogsCommandContext:
 
     @staticmethod
     def _parse_time(time_str, property_name):
-        """
-        Parse the time from the given string, convert to UTC, and return the datetime object
+        """Parse the time from the given string, convert to UTC, and return the datetime object
 
         Parameters
         ----------
         time_str : str
             The time to parse
-
         property_name : str
             Name of the property where this time came from. Used in the exception raised if time is not parseable
 
@@ -207,10 +201,7 @@ class LogsCommandContext:
         datetime.datetime
             Parsed datetime object
 
-        Raises
-        ------
-        samcli.commands.exceptions.UserException
-            If the string cannot be parsed as a timestamp
+
         """
         if not time_str:
             return None
@@ -223,18 +214,15 @@ class LogsCommandContext:
 
     @staticmethod
     def _get_resource_id_from_stack(cfn_client, stack_name, logical_id):
-        """
-        Given the LogicalID of a resource, call AWS CloudFormation to get physical ID of the resource within
+        """Given the LogicalID of a resource, call AWS CloudFormation to get physical ID of the resource within
         the specified stack.
 
         Parameters
         ----------
-        cfn_client
+        cfn_client :
             CloudFormation client provided by AWS SDK
-
         stack_name : str
             Name of the stack to query
-
         logical_id : str
             LogicalId of the resource
 
@@ -243,10 +231,7 @@ class LogsCommandContext:
         str
             Physical ID of the resource
 
-        Raises
-        ------
-        samcli.commands.exceptions.UserException
-            If the stack or resource does not exist
+
         """
 
         LOG.debug(

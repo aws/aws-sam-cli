@@ -20,8 +20,7 @@ class TemplateFailedParsingException(UserException):
 
 
 def get_template_data(template_file):
-    """
-    Read the template file, parse it as JSON/YAML and return the template as a dictionary.
+    """Read the template file, parse it as JSON/YAML and return the template as a dictionary.
 
     Parameters
     ----------
@@ -30,7 +29,8 @@ def get_template_data(template_file):
 
     Returns
     -------
-    Template data as a dictionary
+
+
     """
 
     if not pathlib.Path(template_file).exists():
@@ -44,8 +44,7 @@ def get_template_data(template_file):
 
 
 def move_template(src_template_path, dest_template_path, template_dict):
-    """
-    Move the SAM/CloudFormation template from ``src_template_path`` to ``dest_template_path``. For convenience, this
+    """Move the SAM/CloudFormation template from ``src_template_path`` to ``dest_template_path``. For convenience, this
     method accepts a dictionary of template data ``template_dict`` that will be written to the destination instead of
     reading from the source file.
 
@@ -61,14 +60,17 @@ def move_template(src_template_path, dest_template_path, template_dict):
 
     Parameters
     ----------
-    src_template_path : str
-        Path to the original location of the template
+    src_template_path :
 
-    dest_template_path : str
-        Path to the destination location where updated template should be written to
+    dest_template_path :
 
-    template_dict : dict
-        Dictionary containing template contents. This dictionary will be updated & written to ``dest`` location.
+    template_dict :
+
+
+    Returns
+    -------
+
+
     """
 
     original_root = os.path.dirname(src_template_path)
@@ -83,8 +85,7 @@ def move_template(src_template_path, dest_template_path, template_dict):
 
 
 def _update_relative_paths(template_dict, original_root, new_root):
-    """
-    SAM/CloudFormation template can contain certain properties whose value is a relative path to a local file/folder.
+    """SAM/CloudFormation template can contain certain properties whose value is a relative path to a local file/folder.
     This path is usually relative to the template's location. If the template is being moved from original location
     ``original_root`` to new location ``new_root``, use this method to update these paths to be
     relative to ``new_root``.
@@ -97,22 +98,19 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
     If a property is either an absolute path or a S3 URI, this method will not update them.
 
-
     Parameters
     ----------
     template_dict : dict
         Dictionary containing template contents. This dictionary will be updated & written to ``dest`` location.
-
     original_root : str
         Path to the directory where all paths were originally set relative to. This is usually the directory
         containing the template originally
-
     new_root : str
         Path to the new directory that all paths set relative to after this method completes.
 
     Returns
     -------
-    Updated dictionary
+
 
     """
 
@@ -158,9 +156,21 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
 
 def _update_aws_include_relative_path(template_dict, original_root, new_root):
-    """
-    Update relative paths in "AWS::Include" directive. This directive can be present at any part of the template,
+    """Update relative paths in "AWS::Include" directive. This directive can be present at any part of the template,
     and not just within resources.
+
+    Parameters
+    ----------
+    template_dict :
+
+    original_root :
+
+    new_root :
+
+
+    Returns
+    -------
+
     """
 
     for key, val in template_dict.items():
@@ -186,23 +196,30 @@ def _update_aws_include_relative_path(template_dict, original_root, new_root):
 
 
 def _resolve_relative_to(path, original_root, new_root):
-    """
-    If the given ``path`` is a relative path, then assume it is relative to ``original_root``. This method will
+    """If the given ``path`` is a relative path, then assume it is relative to ``original_root``. This method will
     update the path to be resolve it relative to ``new_root`` and return.
+
+    Parameters
+    ----------
+    path :
+
+    original_root :
+
+    new_root :
+
+
+    Returns
+    -------
 
     Examples
     -------
         # Assume a file called template.txt at location /tmp/original/root/template.txt expressed as relative path
         # We are trying to update it to be relative to /tmp/new/root instead of the /tmp/original/root
-        >>> result = _resolve_relative_to("template.txt",  \
+    >>> result = _resolve_relative_to("template.txt",  \
                                           "/tmp/original/root", \
                                           "/tmp/new/root")
         >>> result
         ../../original/root/template.txt
-
-    Returns
-    -------
-    Updated path if the given path is a relative path. None, if the path is not a relative path.
     """
 
     if not isinstance(path, str) or path.startswith("s3://") or os.path.isabs(path):
@@ -216,8 +233,7 @@ def _resolve_relative_to(path, original_root, new_root):
 
 
 def get_template_parameters(template_file):
-    """
-    Get Parameters from a template file.
+    """Get Parameters from a template file.
 
     Parameters
     ----------
@@ -226,7 +242,8 @@ def get_template_parameters(template_file):
 
     Returns
     -------
-    Template Parameters as a dictionary
+
+
     """
     template_dict = get_template_data(template_file=template_file)
     return template_dict.get("Parameters", dict())

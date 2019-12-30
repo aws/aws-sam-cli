@@ -21,10 +21,7 @@ VALUE_REGEX_COMMA_DELIM = _value_regex(",")
 
 
 class CfnParameterOverridesType(click.ParamType):
-    """
-    Custom Click options type to accept values for CloudFormation template parameters. You can pass values for
-    parameters as "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
-    """
+    """Custom Click options type to accept values for CloudFormation template parameters. You can pass values for"""
 
     __EXAMPLE_1 = "ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
     __EXAMPLE_2 = "KeyPairName=MyKey InstanceType=t1.micro"
@@ -90,14 +87,6 @@ class CfnParameterOverridesType(click.ParamType):
         Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
         value thru shell.
 
-        Examples
-        --------
-        >>> _unquote('val\ ue')
-        value
-
-        >>> _unquote("hel\ lo")
-        hello
-
         Parameters
         ----------
         value : str
@@ -105,7 +94,14 @@ class CfnParameterOverridesType(click.ParamType):
 
         Returns
         -------
-        Unquoted string
+
+        Examples
+        --------
+        >>> _unquote('val\ ue')
+        value
+
+        >>> _unquote("hel\ lo")
+        hello
         """
         if value and (value[0] == value[-1] == '"'):
             # Remove quotes only if the string is wrapped in quotes
@@ -115,9 +111,15 @@ class CfnParameterOverridesType(click.ParamType):
 
 
 class CfnMetadataType(click.ParamType):
-    """
-    Custom Click options type to accept values for metadata parameters.
+    """Custom Click options type to accept values for metadata parameters.
     metadata parameters can be of the type KeyName1=string,KeyName2=string or {"string":"string"}
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     _EXAMPLE = 'KeyName1=string,KeyName2=string or {"string":"string"}'
@@ -161,9 +163,15 @@ class CfnMetadataType(click.ParamType):
 
 
 class CfnTags(click.ParamType):
-    """
-    Custom Click options type to accept values for tag parameters.
+    """Custom Click options type to accept values for tag parameters.
     tag parameters can be of the type KeyName1=string KeyName2=string
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     _EXAMPLE = "KeyName1=string KeyName2=string"

@@ -17,10 +17,16 @@ LOG = logging.getLogger(__name__)
 
 
 class LambdaRuntime:
-    """
-    This class represents a Local Lambda runtime. It can run the Lambda function code locally in a Docker container
+    """This class represents a Local Lambda runtime. It can run the Lambda function code locally in a Docker container
     and return results. Public methods exposed by this class are similar to the AWS Lambda APIs, for convenience only.
     This class is **not** intended to be an local replica of the Lambda APIs.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     SUPPORTED_ARCHIVE_EXTENSIONS = (".zip", ".jar", ".ZIP", ".JAR")
@@ -40,8 +46,7 @@ class LambdaRuntime:
         self._image_builder = image_builder
 
     def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
-        """
-        Invoke the given Lambda function locally.
+        """Invoke the given Lambda function locally.
 
         ##### NOTE: THIS IS A LONG BLOCKING CALL #####
         This method will block until either the Lambda function completes or timed out, which could be seconds.
@@ -50,12 +55,35 @@ class LambdaRuntime:
         take care to invoke the function in a separate thread. Co-Routines or micro-threads might not perform well
         because the underlying implementation essentially blocks on a socket, which is synchronous.
 
-        :param FunctionConfig function_config: Configuration of the function to invoke
-        :param event: String input event passed to Lambda function
-        :param DebugContext debug_context: Debugging context for the function (includes port, args, and path)
-        :param io.IOBase stdout: Optional. IO Stream to that receives stdout text from container.
-        :param io.IOBase stderr: Optional. IO Stream that receives stderr text from container
-        :raises Keyboard
+        Parameters
+        ----------
+        FunctionConfig :
+            function_config: Configuration of the function to invoke
+        event :
+            String input event passed to Lambda function
+        DebugContext :
+            debug_context: Debugging context for the function (includes port, args, and path)
+        io :
+            IOBase stdout: Optional. IO Stream to that receives stdout text from container.
+        io :
+            IOBase stderr: Optional. IO Stream that receives stderr text from container
+        function_config :
+
+        debug_context :
+             (Default value = None)
+        stdout :
+             (Default value = None)
+        stderr :
+             (Default value = None)
+
+        Returns
+        -------
+
+        Raises
+        ------
+        Keyboard
+
+
         """
         timer = None
 
@@ -112,16 +140,33 @@ class LambdaRuntime:
                 self._container_manager.stop(container)
 
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
-        """
-        When a Lambda function is executing, we setup certain interrupt handlers to stop the execution.
+        """When a Lambda function is executing, we setup certain interrupt handlers to stop the execution.
         Usually, we setup a function timeout interrupt to kill the container after timeout expires. If debugging though,
         we don't enforce a timeout. But we setup a SIGINT interrupt to catch Ctrl+C and terminate the container.
 
-        :param string function_name: Name of the function we are running
-        :param integer timeout: Timeout in seconds
-        :param samcli.local.docker.container.Container container: Instance of a container to terminate
-        :param bool is_debugging: Are we debugging?
-        :return threading.Timer: Timer object, if we setup a timer. None otherwise
+        Parameters
+        ----------
+        string :
+            function_name: Name of the function we are running
+        integer :
+            timeout: Timeout in seconds
+        samcli :
+            local.docker.container.Container container: Instance of a container to terminate
+        bool :
+            is_debugging: Are we debugging?
+            :return threading.Timer: Timer object, if we setup a timer. None otherwise
+        function_name :
+
+        timeout :
+
+        container :
+
+        is_debugging :
+
+
+        Returns
+        -------
+
         """
 
         def timer_handler():
@@ -147,8 +192,7 @@ class LambdaRuntime:
 
     @contextmanager
     def _get_code_dir(self, code_path):
-        """
-        Method to get a path to a directory where the Lambda function code is available. This directory will
+        """Method to get a path to a directory where the Lambda function code is available. This directory will
         be mounted directly inside the Docker container.
 
         This method handles a few different cases for ``code_path``:
@@ -157,9 +201,18 @@ class LambdaRuntime:
             - ``code_path`` is a file/dir that does not exist: Return it as is. May be this method is not clever to
                 detect the existence of the path
 
-        :param string code_path: Path to the code. This could be pointing at a file or folder either on a local
+        Parameters
+        ----------
+        string :
+            code_path: Path to the code. This could be pointing at a file or folder either on a local
             disk or in some network file system
-        :return string: Directory containing Lambda function code. It can be mounted directly in container
+            :return string: Directory containing Lambda function code. It can be mounted directly in container
+        code_path :
+
+
+        Returns
+        -------
+
         """
 
         decompressed_dir = None
@@ -179,11 +232,19 @@ class LambdaRuntime:
 
 
 def _unzip_file(filepath):
-    """
-    Helper method to unzip a file to a temporary directory
+    """Helper method to unzip a file to a temporary directory
 
-    :param string filepath: Absolute path to this file
-    :return string: Path to the temporary directory where it was unzipped
+    Parameters
+    ----------
+    string :
+        filepath: Absolute path to this file
+        :return string: Path to the temporary directory where it was unzipped
+    filepath :
+
+
+    Returns
+    -------
+
     """
 
     temp_dir = tempfile.mkdtemp()

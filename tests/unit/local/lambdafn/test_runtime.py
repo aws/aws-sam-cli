@@ -232,8 +232,18 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
     @patch("samcli.local.lambdafn.runtime.threading")
     @patch("samcli.local.lambdafn.runtime.signal")
     def test_verify_signal_handler(self, SignalMock, ThreadingMock):
-        """
-        Verify the internal implementation of the Signal Handler
+        """Verify the internal implementation of the Signal Handler
+
+        Parameters
+        ----------
+        SignalMock :
+
+        ThreadingMock :
+
+
+        Returns
+        -------
+
         """
         is_debugging = True  # We are debugging. So setup signal
         SignalMock.SIGTERM = "sigterm"
@@ -249,8 +259,18 @@ class TestLambdaRuntime_configure_interrupt(TestCase):
     @patch("samcli.local.lambdafn.runtime.threading")
     @patch("samcli.local.lambdafn.runtime.signal")
     def test_verify_timer_handler(self, SignalMock, ThreadingMock):
-        """
-        Verify the internal implementation of the Signal Handler
+        """Verify the internal implementation of the Signal Handler
+
+        Parameters
+        ----------
+        SignalMock :
+
+        ThreadingMock :
+
+
+        Returns
+        -------
+
         """
         is_debugging = False
 
@@ -297,8 +317,20 @@ class TestLambdaRuntime_get_code_dir(TestCase):
     @patch("samcli.local.lambdafn.runtime.shutil")
     @patch("samcli.local.lambdafn.runtime._unzip_file")
     def test_must_return_a_valid_file(self, unzip_file_mock, shutil_mock, os_mock):
-        """
-        Input is a file that exists, but is not a zip/jar file
+        """Input is a file that exists, but is not a zip/jar file
+
+        Parameters
+        ----------
+        unzip_file_mock :
+
+        shutil_mock :
+
+        os_mock :
+
+
+        Returns
+        -------
+
         """
         code_path = "foo.exe"
 

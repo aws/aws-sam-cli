@@ -37,18 +37,19 @@ class LambdaErrorResponses:
 
     @staticmethod
     def resource_not_found(function_name):
-        """
-        Creates a Lambda Service ResourceNotFound Response
+        """Creates a Lambda Service ResourceNotFound Response
 
         Parameters
         ----------
-        function_name str
+        function_name str :
             Name of the function that was requested to invoke
+        function_name :
+
 
         Returns
         -------
-        Flask.Response
-            A response object representing the ResourceNotFound Error
+
+
         """
         exception_tuple = LambdaErrorResponses.ResourceNotFoundException
 
@@ -63,18 +64,19 @@ class LambdaErrorResponses:
 
     @staticmethod
     def invalid_request_content(message):
-        """
-        Creates a Lambda Service InvalidRequestContent Response
+        """Creates a Lambda Service InvalidRequestContent Response
 
         Parameters
         ----------
-        message str
+        message str :
             Message to be added to the body of the response
+        message :
+
 
         Returns
         -------
-        Flask.Response
-            A response object representing the InvalidRequestContent Error
+
+
         """
         exception_tuple = LambdaErrorResponses.InvalidRequestContentException
 
@@ -86,18 +88,19 @@ class LambdaErrorResponses:
 
     @staticmethod
     def unsupported_media_type(content_type):
-        """
-        Creates a Lambda Service UnsupportedMediaType Response
+        """Creates a Lambda Service UnsupportedMediaType Response
 
         Parameters
         ----------
-        content_type str
+        content_type str :
             Content Type of the request that was made
+        content_type :
+
 
         Returns
         -------
-        Flask.Response
-            A response object representing the UnsupportedMediaType Error
+
+
         """
         exception_tuple = LambdaErrorResponses.UnsupportedMediaTypeException
 
@@ -111,18 +114,19 @@ class LambdaErrorResponses:
 
     @staticmethod
     def generic_service_exception(*args):
-        """
-        Creates a Lambda Service Generic ServiceException Response
+        """Creates a Lambda Service Generic ServiceException Response
 
         Parameters
         ----------
-        args list
+        args list :
             List of arguments Flask passes to the method
+        *args :
+
 
         Returns
         -------
-        Flask.Response
-            A response object representing the GenericServiceException Error
+
+
         """
         exception_tuple = LambdaErrorResponses.ServiceException
 
@@ -134,18 +138,19 @@ class LambdaErrorResponses:
 
     @staticmethod
     def not_implemented_locally(message):
-        """
-        Creates a Lambda Service NotImplementedLocally Response
+        """Creates a Lambda Service NotImplementedLocally Response
 
         Parameters
         ----------
-        message str
+        message str :
             Message to be added to the body of the response
+        message :
+
 
         Returns
         -------
-        Flask.Response
-            A response object representing the NotImplementedLocally Error
+
+
         """
         exception_tuple = LambdaErrorResponses.NotImplementedException
 
@@ -157,18 +162,19 @@ class LambdaErrorResponses:
 
     @staticmethod
     def generic_path_not_found(*args):
-        """
-        Creates a Lambda Service Generic PathNotFound Response
+        """Creates a Lambda Service Generic PathNotFound Response
 
         Parameters
         ----------
-        args list
+        args list :
             List of arguments Flask passes to the method
+        *args :
+
 
         Returns
         -------
-        Flask.Response
-            A response object representing the GenericPathNotFound Error
+
+
         """
         exception_tuple = LambdaErrorResponses.PathNotFoundException
 
@@ -182,18 +188,19 @@ class LambdaErrorResponses:
 
     @staticmethod
     def generic_method_not_allowed(*args):
-        """
-        Creates a Lambda Service Generic MethodNotAllowed Response
+        """Creates a Lambda Service Generic MethodNotAllowed Response
 
         Parameters
         ----------
-        args list
+        args list :
             List of arguments Flask passes to the method
+        *args :
+
 
         Returns
         -------
-        Flask.Response
-            A response object representing the GenericMethodNotAllowed Error
+
+
         """
         exception_tuple = LambdaErrorResponses.MethodNotAllowedException
 
@@ -207,38 +214,42 @@ class LambdaErrorResponses:
 
     @staticmethod
     def _construct_error_response_body(error_type, error_message):
-        """
-        Constructs a string to be used in the body of the Response that conforms
+        """Constructs a string to be used in the body of the Response that conforms
         to the structure of the Lambda Service Responses
 
         Parameters
         ----------
-        error_type str
+        error_type str :
             The type of error
-        error_message str
+        error_message str :
             Message of the error that occured
+        error_type :
+
+        error_message :
+
 
         Returns
         -------
-        str
-            str representing the response body
+
+
         """
         # OrderedDict is used to make testing in Py2 and Py3 consistent
         return json.dumps(OrderedDict([("Type", error_type), ("Message", error_message)]))
 
     @staticmethod
     def _construct_headers(error_type):
-        """
-        Constructs Headers for the Local Lambda Error Response
+        """Constructs Headers for the Local Lambda Error Response
 
         Parameters
         ----------
-        error_type str
+        error_type str :
             Error type that occurred to be put into the 'x-amzn-errortype' header
+        error_type :
+
 
         Returns
         -------
-        dict
-            Dict representing the Lambda Error Response Headers
+
+
         """
         return {"x-amzn-errortype": error_type, "Content-Type": "application/json"}

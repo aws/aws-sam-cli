@@ -16,28 +16,13 @@ LOG = logging.getLogger(__name__)
 
 class LocalLambdaInvokeService(BaseLocalService):
     def __init__(self, lambda_runner, port, host, stderr=None):
-        """
-        Creates a Local Lambda Service that will only response to invoking a function
-
-        Parameters
-        ----------
-        lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
-            The Lambda runner class capable of invoking the function
-        port int
-            Optional. port for the service to start listening on
-        host str
-            Optional. host to start the service on
-        stderr io.BaseIO
-            Optional stream where the stderr from Docker container should be written to
-        """
+        """Creates a Local Lambda Service that will only response to invoking a function"""
         super(LocalLambdaInvokeService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.lambda_runner = lambda_runner
         self.stderr = stderr
 
     def create(self):
-        """
-        Creates a Flask Application that can be started.
-        """
+        """Creates a Flask Application that can be started."""
         self._app = Flask(__name__)
 
         path = "/2015-03-31/functions/<function_name>/invocations"
@@ -56,8 +41,7 @@ class LocalLambdaInvokeService(BaseLocalService):
 
     @staticmethod
     def validate_request():
-        """
-        Validates the incoming request
+        """Validates the incoming request
 
         The following are invalid
             1. The Request data is not json serializable
@@ -66,13 +50,13 @@ class LocalLambdaInvokeService(BaseLocalService):
             4. 'X-Amz-Log-Type' header is not 'None'
             5. 'X-Amz-Invocation-Type' header is not 'RequestResponse'
 
+        Parameters
+        ----------
+
         Returns
         -------
-        flask.Response
-            If the request is not valid a flask Response is returned
 
-        None:
-            If the request passes all validation
+
         """
         flask_request = request
         request_data = flask_request.get_data()
@@ -113,27 +97,26 @@ class LocalLambdaInvokeService(BaseLocalService):
         return None
 
     def _construct_error_handling(self):
-        """
-        Updates the Flask app with Error Handlers for different Error Codes
-
-        """
+        """Updates the Flask app with Error Handlers for different Error Codes"""
         self._app.register_error_handler(500, LambdaErrorResponses.generic_service_exception)
         self._app.register_error_handler(404, LambdaErrorResponses.generic_path_not_found)
         self._app.register_error_handler(405, LambdaErrorResponses.generic_method_not_allowed)
 
     def _invoke_request_handler(self, function_name):
-        """
-        Request Handler for the Local Lambda Invoke path. This method is responsible for understanding the incoming
+        """Request Handler for the Local Lambda Invoke path. This method is responsible for understanding the incoming
         request and invoking the Local Lambda Function
 
         Parameters
         ----------
-        function_name str
+        function_name str :
             Name of the function to invoke
+        function_name :
+
 
         Returns
         -------
-        A Flask Response response object as if it was returned from Lambda
+
+
         """
         flask_request = request
 

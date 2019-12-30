@@ -152,9 +152,7 @@ class TestInvokeContext__exit__(TestCase):
 
 
 class TestInvokeContextAsContextManager(TestCase):
-    """
-    Must be able to use the class as a context manager
-    """
+    """Must be able to use the class as a context manager"""
 
     @patch.object(InvokeContext, "__enter__")
     @patch.object(InvokeContext, "__exit__")

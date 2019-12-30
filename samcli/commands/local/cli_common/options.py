@@ -9,26 +9,13 @@ from samcli.commands._utils.options import template_click_option, docker_click_o
 
 
 def get_application_dir():
-    """
-
-    Returns
-    -------
-    Path
-        Path representing the application config directory
-    """
+    """ """
     # TODO: Get the config directory directly from `GlobalConfig`
     return Path(click.get_app_dir("AWS SAM", force_posix=True))
 
 
 def get_default_layer_cache_dir():
-    """
-    Default the layer cache directory
-
-    Returns
-    -------
-    str
-        String representing the layer cache directory
-    """
+    """Default the layer cache directory"""
     layer_cache_dir = get_application_dir().joinpath("layers-pkg")
 
     return str(layer_cache_dir)
@@ -36,20 +23,21 @@ def get_default_layer_cache_dir():
 
 def service_common_options(port):
     def construct_options(f):
-        """
-        Common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
+        """Common CLI Options that are shared for service related commands ('start-api' and 'start_lambda')
 
         Parameters
         ----------
-        f function
+        f function :
             Callback passed by Click
-        port int
+        port int :
             port number to use
+        f :
+
 
         Returns
         -------
-        function
-            The callback function
+
+
         """
         service_options = [
             click.option(
@@ -70,10 +58,16 @@ def service_common_options(port):
 
 
 def invoke_common_options(f):
-    """
-    Common CLI options shared by "local invoke" and "local start-api" commands
+    """Common CLI options shared by "local invoke" and "local start-api" commands
 
-    :param f: Callback passed by Click
+    Parameters
+    ----------
+    f :
+        Callback passed by Click
+
+    Returns
+    -------
+
     """
 
     invoke_options = (

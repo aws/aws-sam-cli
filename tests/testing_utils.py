@@ -28,6 +28,21 @@ class FileCreator(object):
         ``mode`` is the mode the file should be opened either as ``w`` or
         `wb``.
         Returns the full path to the file.
+
+        Parameters
+        ----------
+        filename :
+
+        contents :
+
+        mtime :
+             (Default value = None)
+        mode :
+             (Default value = "w")
+
+        Returns
+        -------
+
         """
         full_path = os.path.join(self.rootdir, filename)
         if not os.path.isdir(os.path.dirname(full_path)):
@@ -46,6 +61,17 @@ class FileCreator(object):
         ``filename`` should be a relative path, e.g. "foo/bar/baz.txt"
         It will be translated into a full path in a tmp dir.
         Returns the full path to the file.
+
+        Parameters
+        ----------
+        filename :
+
+        contents :
+
+
+        Returns
+        -------
+
         """
         full_path = os.path.join(self.rootdir, filename)
         if not os.path.isdir(os.path.dirname(full_path)):
@@ -57,5 +83,14 @@ class FileCreator(object):
     def full_path(self, filename):
         """Translate relative path to full path in temp dir.
         f.full_path('foo/bar.txt') -> /tmp/asdfasd/foo/bar.txt
+
+        Parameters
+        ----------
+        filename :
+
+
+        Returns
+        -------
+
         """
         return os.path.join(self.rootdir, filename)

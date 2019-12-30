@@ -18,24 +18,30 @@ DebugSettings = namedtuple("DebugSettings", ["entrypoint", "debug_env_vars"])
 class LambdaDebugSettings:
     @staticmethod
     def get_debug_settings(debug_port, debug_args_list, runtime, options):
-        """
-        Get Debug settings based on the Runtime
+        """Get Debug settings based on the Runtime
 
         Parameters
         ----------
-        debug_port int
+        debug_port int :
             Port to open for debugging in the container
-        debug_args_list list(str)
+        debug_args_list list(str) :
             Additional debug args
-        runtime str
+        runtime str :
             Lambda Function runtime
-        options dict
+        options dict :
             Additonal options needed (i.e delve Path)
+        debug_port :
+
+        debug_args_list :
+
+        runtime :
+
+        options :
+
 
         Returns
         -------
-        tuple:DebugSettings (list, dict)
-            Tuple of debug entrypoint and debug env vars
+
 
         """
 

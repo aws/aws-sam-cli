@@ -26,8 +26,7 @@ def send_installed_metric():
 
 
 def track_command(func):
-    """
-    Decorator to track execution of a command. This method executes the function, gathers all relevant metrics,
+    """Decorator to track execution of a command. This method executes the function, gathers all relevant metrics,
     reports the metrics and returns.
 
     If you have a Click command, you can track as follows:
@@ -38,6 +37,14 @@ def track_command(func):
         @track_command
         def hello_command():
             print('hello')
+
+    Parameters
+    ----------
+    func :
+
+
+    Returns
+    -------
 
     """
 
@@ -101,24 +108,25 @@ def track_command(func):
 
 
 def _timer():
-    """
-    Timer to measure the elapsed time between two calls in milliseconds. When you first call this method,
+    """Timer to measure the elapsed time between two calls in milliseconds. When you first call this method,
     we will automatically start the timer. The return value is another method that, when called, will end the timer
     and return the duration between the two calls.
 
     ..code:
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+
     >>> import time
     >>> duration_fn = _timer()
     >>> time.sleep(5)  # Say, you sleep for 5 seconds in between calls
     >>> duration_ms = duration_fn()
     >>> print(duration_ms)
         5010
-
-    Returns
-    -------
-    function
-        Call this method to end the timer and return duration in milliseconds
-
     """
     start = default_timer()
 

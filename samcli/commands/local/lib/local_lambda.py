@@ -16,9 +16,15 @@ LOG = logging.getLogger(__name__)
 
 
 class LocalLambdaRunner:
-    """
-    Runs Lambda functions locally. This class is a wrapper around the `samcli.local` library which takes care
+    """Runs Lambda functions locally. This class is a wrapper around the `samcli.local` library which takes care
     of actually running the function on a Docker container.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
@@ -57,27 +63,34 @@ class LocalLambdaRunner:
         self._boto3_region = None
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
-        """
-        Find the Lambda function with given name and invoke it. Pass the given event to the function and return
+        """Find the Lambda function with given name and invoke it. Pass the given event to the function and return
         response through the given streams.
 
         This function will block until either the function completes or times out.
 
         Parameters
         ----------
-        function_name str
+        function_name str :
             Name of the Lambda function to invoke
-        event str
+        event str :
             Event data passed to the function. Must be a valid JSON String.
-        stdout samcli.lib.utils.stream_writer.StreamWriter
+        stdout samcli.lib.utils.stream_writer.StreamWriter :
             Stream writer to write the output of the Lambda function to.
-        stderr samcli.lib.utils.stream_writer.StreamWriter
+        stderr samcli.lib.utils.stream_writer.StreamWriter :
             Stream writer to write the Lambda runtime logs to.
+        function_name :
 
-        Raises
-        ------
-        FunctionNotfound
-            When we cannot find a function with the given name
+        event :
+
+        stdout :
+             (Default value = None)
+        stderr :
+             (Default value = None)
+
+        Returns
+        -------
+
+
         """
 
         # Generate the correct configuration based on given inputs
@@ -100,23 +113,23 @@ class LocalLambdaRunner:
         self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
 
     def is_debugging(self):
-        """
-        Are we debugging the invoke?
-
-        Returns
-        -------
-        bool
-            True, if we are debugging the invoke ie. the Docker container will break into the debugger and wait for
-            attach
-        """
+        """Are we debugging the invoke?"""
         return bool(self.debug_context)
 
     def _get_invoke_config(self, function):
-        """
-        Returns invoke configuration to pass to Lambda Runtime to invoke the given function
+        """Returns invoke configuration to pass to Lambda Runtime to invoke the given function
 
-        :param samcli.commands.local.lib.provider.Function function: Lambda function to generate the configuration for
-        :return samcli.local.lambdafn.config.FunctionConfig: Function configuration to pass to Lambda runtime
+        Parameters
+        ----------
+        samcli :
+            commands.local.lib.provider.Function function: Lambda function to generate the configuration for
+            :return samcli.local.lambdafn.config.FunctionConfig: Function configuration to pass to Lambda runtime
+        function :
+
+
+        Returns
+        -------
+
         """
 
         env_vars = self._make_env_vars(function)
@@ -156,10 +169,6 @@ class LocalLambdaRunner:
         samcli.local.lambdafn.env_vars.EnvironmentVariables
             Environment variable configuration for this function
 
-        Raises
-        ------
-        samcli.commands.local.lib.exceptions.OverridesNotWellDefinedError
-            If the environment dict is in the wrong format to process environment vars
 
         """
 
@@ -224,12 +233,18 @@ class LocalLambdaRunner:
         return self._boto3_session_creds
 
     def get_aws_creds(self):
-        """
-        Returns AWS credentials obtained from the shell environment or given profile
+        """Returns AWS credentials obtained from the shell environment or given profile
 
         :return dict: A dictionary containing credentials. This dict has the structure
              {"region": "", "key": "", "secret": "", "sessiontoken": ""}. If credentials could not be resolved,
              this returns None
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         result = {}
 

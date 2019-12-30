@@ -9,9 +9,7 @@ from samcli.lib.providers.exceptions import InvalidLayerReference
 
 
 class TestSamFunctionProviderEndToEnd(TestCase):
-    """
-    Test all public methods with an input template
-    """
+    """Test all public methods with an input template"""
 
     TEMPLATE = {
         "Resources": {

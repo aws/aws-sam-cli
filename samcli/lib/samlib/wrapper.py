@@ -117,9 +117,7 @@ class SamTranslatorWrapper:
 
 
 class _SamParserReimplemented:
-    """
-    Re-implementation (almost copy) of Parser class from SAM Translator
-    """
+    """Re-implementation (almost copy) of Parser class from SAM Translator"""
 
     def parse(self, sam_template, sam_plugins):
         self._validate(sam_template)
@@ -140,9 +138,18 @@ class _SamParserReimplemented:
             raise InvalidDocumentException(document_errors)
 
     def _validate(self, sam_template):
-        """ Validates the template and parameter values and raises exceptions if there's an issue
+        """Validates the template and parameter values and raises exceptions if there's an issue
 
-        :param dict sam_template: SAM template
+        Parameters
+        ----------
+        dict :
+            sam_template: SAM template
+        sam_template :
+
+
+        Returns
+        -------
+
         """
 
         if (

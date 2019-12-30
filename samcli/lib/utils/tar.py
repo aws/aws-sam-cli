@@ -9,17 +9,17 @@ from contextlib import contextmanager
 
 @contextmanager
 def create_tarball(tar_paths):
-    """
-    Context Manger that creates the tarball of the Docker Context to use for building the image
+    """Context Manger that creates the tarball of the Docker Context to use for building the image
 
     Parameters
     ----------
-    tar_paths dict(str, str)
-        Key representing a full path to the file or directory and the Value representing the path within the tarball
+    tar_paths :
 
-    Yields
-    ------
-        The tarball file
+
+    Returns
+    -------
+
+
     """
     tarballfile = TemporaryFile()
 

@@ -6,9 +6,15 @@ from .env_vars import EnvironmentVariables
 
 
 class FunctionConfig:
-    """
-    Data class to store function configuration. This class is a flavor of function configuration passed to
+    """Data class to store function configuration. This class is a flavor of function configuration passed to
     AWS Lambda APIs on the cloud. It is limited to properties that make sense in a local testing environment.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     _DEFAULT_TIMEOUT_SECONDS = 3

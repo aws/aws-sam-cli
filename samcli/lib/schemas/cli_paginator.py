@@ -6,14 +6,26 @@ import click
 
 
 def do_paginate_cli(pages, page_to_be_rendered, items_per_page, is_last_page, cli_display_message):
-    """
-    Responsible for displaying a generic CLI page with available user choices for pagination/seletion
-    :param pages:
-    :param page_to_be_rendered:
-    :param items_per_page:
-    :param is_last_page:
-    :param cli_display_message:
-    :return: User decision on displayed page
+    """Responsible for displaying a generic CLI page with available user choices for pagination/seletion
+
+    Parameters
+    ----------
+    pages :
+        param page_to_be_rendered:
+    items_per_page :
+        param is_last_page:
+    cli_display_message :
+        return: User decision on displayed page
+    page_to_be_rendered :
+
+    is_last_page :
+
+
+    Returns
+    -------
+    type
+        User decision on displayed page
+
     """
     options = pages.get(page_to_be_rendered)
     choice_num = page_to_be_rendered * items_per_page + 1

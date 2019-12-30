@@ -9,10 +9,16 @@ from .context import Context
 
 
 def debug_option(f):
-    """
-    Configures --debug option for CLI
+    """Configures --debug option for CLI
 
-    :param f: Callback Function to be passed to Click
+    Parameters
+    ----------
+    f :
+        Callback Function to be passed to Click
+
+    Returns
+    -------
+
     """
 
     def callback(ctx, param, value):
@@ -31,10 +37,16 @@ def debug_option(f):
 
 
 def region_option(f):
-    """
-    Configures --region option for CLI
+    """Configures --region option for CLI
 
-    :param f: Callback Function to be passed to Click
+    Parameters
+    ----------
+    f :
+        Callback Function to be passed to Click
+
+    Returns
+    -------
+
     """
 
     def callback(ctx, param, value):
@@ -48,10 +60,16 @@ def region_option(f):
 
 
 def profile_option(f):
-    """
-    Configures --profile option for CLI
+    """Configures --profile option for CLI
 
-    :param f: Callback Function to be passed to Click
+    Parameters
+    ----------
+    f :
+        Callback Function to be passed to Click
+
+    Returns
+    -------
+
     """
 
     def callback(ctx, param, value):

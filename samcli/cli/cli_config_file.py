@@ -22,10 +22,18 @@ LOG = logging.getLogger(__name__)
 
 
 class TomlProvider:
-    """
-    A parser for toml configuration files
-    :param cmd: sam command name as defined by click
-    :param section: section defined in the configuration file nested within `cmd`
+    """A parser for toml configuration files
+
+    Parameters
+    ----------
+    cmd :
+        sam command name as defined by click
+    section :
+        section defined in the configuration file nested within `cmd`
+
+    Returns
+    -------
+
     """
 
     def __init__(self, section=None):
@@ -81,22 +89,36 @@ class TomlProvider:
 
 
 def configuration_callback(cmd_name, option_name, config_env_name, saved_callback, provider, ctx, param, value):
-    """
-    Callback for reading the config file.
+    """Callback for reading the config file.
 
     Also takes care of calling user specified custom callback afterwards.
 
-    :param cmd_name: `sam` command name derived from click.
-    :param option_name: The name of the option. This is used for error messages.
-    :param config_env_name: `top` level section within configuration file
-    :param saved_callback: User-specified callback to be called later.
-    :param provider:  A callable that parses the configuration file and returns a dictionary
+    Parameters
+    ----------
+    cmd_name :
+        sam` command name derived from click.
+    option_name :
+        The name of the option. This is used for error messages.
+    config_env_name :
+        top` level section within configuration file
+    saved_callback :
+        User-specified callback to be called later.
+    provider :
+        A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
         `provider(file_path, config_env, cmd_name)`.
-    :param ctx: Click context
-    :param param: Click parameter
-    :param value: Specified value for config_env
-    :returns specified callback or the specified value for config_env.
+    ctx :
+        Click context
+    param :
+        Click parameter
+    value :
+        Specified value for config_env
+
+    Returns
+    -------
+    type
+        specified callback or the specified value for config_env.
+
     """
 
     # ctx, param and value are default arguments for click specified callbacks.
@@ -111,18 +133,28 @@ def configuration_callback(cmd_name, option_name, config_env_name, saved_callbac
 
 
 def get_ctx_defaults(cmd_name, provider, ctx, config_env_name):
-    """
-    Get the set of the parameters that are needed to be set into the click command.
+    """Get the set of the parameters that are needed to be set into the click command.
     This function also figures out the command name by looking up current click context's parent
     and constructing the parsed command name that is used in default configuration file.
     If a given cmd_name is start-api, the parsed name is "local_start_api".
     provider is called with `config_file`, `config_env_name` and `parsed_cmd_name`.
 
-    :param cmd_name: `sam` command name
-    :param provider: provider to be called for reading configuration file
-    :param ctx: Click context
-    :param config_env_name: config-env within configuration file
-    :return: dictionary of defaults for parameters
+    Parameters
+    ----------
+    cmd_name :
+        sam` command name
+    provider :
+        provider to be called for reading configuration file
+    ctx :
+        Click context
+    config_env_name :
+        config-env within configuration file
+
+    Returns
+    -------
+    type
+        dictionary of defaults for parameters
+
     """
 
     # `config_dir` will be a directory relative to SAM template, if it is available. If not it's relative to cwd
@@ -131,18 +163,12 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name):
 
 
 def configuration_option(*param_decls, **attrs):
-    """
-    Adds configuration file support to a click application.
+    """Adds configuration file support to a click application.
 
     NOTE: This decorator should be added to the top of parameter chain, right below click.command, before
           any options are declared.
 
     Example:
-        >>> @click.command("hello")
-            @configuration_option(provider=TomlProvider(section="parameters"))
-            @click.option('--name', type=click.String)
-            def hello(name):
-                print("Hello " + name)
 
     This will create an option of type `STRING` expecting the config_env in the
     configuration file, by default this config_env is `default`. When specified,
@@ -153,12 +179,31 @@ def configuration_option(*param_decls, **attrs):
 
     This decorator accepts the same arguments as `click.option`.
     In addition, the following keyword arguments are available:
-    :param cmd_name: The command name. Default: `ctx.info_name`
-    :param config_env_name: The config_env name. This is used to determine which part of the configuration
+
+    Parameters
+    ----------
+    cmd_name :
+        The command name. Default: `ctx.info_name`
+    config_env_name :
+        The config_env name. This is used to determine which part of the configuration
         needs to be read.
-    :param provider:         A callable that parses the configuration file and returns a dictionary
+    provider :
+        A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
         `provider(file_path, config_env, cmd_name)
+    *param_decls :
+
+    **attrs :
+
+
+    Returns
+    -------
+
+    >>> @click.command("hello")
+            @configuration_option(provider=TomlProvider(section="parameters"))
+            @click.option('--name', type=click.String)
+            def hello(name):
+                print("Hello " + name)
     """
     param_decls = param_decls or ("--config-env",)
     option_name = param_decls[0]

@@ -24,19 +24,20 @@ class SamApiProvider(CfnBaseApiProvider):
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
 
     def extract_resources(self, resources, collector, cwd=None):
-        """
-        Extract the Route Object from a given resource and adds it to the RouteCollector.
+        """Extract the Route Object from a given resource and adds it to the RouteCollector.
 
         Parameters
         ----------
-        resources: dict
-            The dictionary containing the different resources within the template
+        resources :
 
-        collector: samcli.commands.local.lib.route_collector.ApiCollector
-            Instance of the API collector that where we will save the API information
+        collector :
 
-        cwd : str
-            Optional working directory with respect to which we will resolve relative path to Swagger file
+        cwd :
+             (Default value = None)
+
+        Returns
+        -------
+
 
         """
         # AWS::Serverless::Function is currently included when parsing of Apis because when SamBaseProvider is run on
@@ -53,23 +54,23 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.routes = self.merge_routes(collector)
 
     def _extract_from_serverless_api(self, logical_id, api_resource, collector, cwd=None):
-        """
-        Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
+        """Extract APIs from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result is added
         to the collector.
 
         Parameters
         ----------
-        logical_id : str
-            Logical ID of the resource
+        logical_id :
 
-        api_resource : dict
-            Resource definition, including its properties
+        api_resource :
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
-            Instance of the API collector that where we will save the API information
+        collector :
 
-        cwd : str
-            Optional working directory with respect to which we will resolve relative path to Swagger file
+        cwd :
+             (Default value = None)
+
+        Returns
+        -------
+
 
         """
 
@@ -92,14 +93,18 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.cors = cors
 
     def extract_cors(self, cors_prop):
-        """
-        Extract Cors property from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result
+        """Extract Cors property from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result
         is added to the Api.
 
         Parameters
         ----------
-        cors_prop : dict
-            Resource properties for Cors
+        cors_prop :
+
+
+        Returns
+        -------
+
+
         """
         cors = None
         if cors_prop and isinstance(cors_prop, dict):
@@ -134,17 +139,19 @@ class SamApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _get_cors_prop(cors_dict, prop_name):
-        """
-        Extract cors properties from dictionary and remove extra quotes.
+        """Extract cors properties from dictionary and remove extra quotes.
 
         Parameters
         ----------
-        cors_dict : dict
-            Resource properties for Cors
+        cors_dict :
 
-        Return
-        ------
-        A string with the extra quotes removed
+        prop_name :
+
+
+        Returns
+        -------
+
+
         """
         prop = cors_dict.get(prop_name)
         if prop:
@@ -157,17 +164,17 @@ class SamApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def normalize_cors_allow_methods(allow_methods):
-        """
-        Normalize cors AllowMethods and Options to the methods if it's missing.
+        """Normalize cors AllowMethods and Options to the methods if it's missing.
 
         Parameters
         ----------
-        allow_methods : str
-            The allow_methods string provided in the query
+        allow_methods :
 
-        Return
+
+        Returns
         -------
-        A string with normalized route
+
+
         """
         if allow_methods == "*":
             return ",".join(sorted(Route.ANY_HTTP_METHODS))
@@ -185,19 +192,21 @@ class SamApiProvider(CfnBaseApiProvider):
         return ",".join(sorted(normalized_methods))
 
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
-        """
-        Fetches a list of routes configured for this SAM Function resource.
+        """Fetches a list of routes configured for this SAM Function resource.
 
         Parameters
         ----------
-        logical_id : str
-            Logical ID of the resourc
+        logical_id :
 
-        function_resource : dict
-            Contents of the function resource including its properties
+        function_resource :
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
-            Instance of the API collector that where we will save the API information
+        collector :
+
+
+        Returns
+        -------
+
+
         """
 
         resource_properties = function_resource.get("Properties", {})
@@ -205,20 +214,22 @@ class SamApiProvider(CfnBaseApiProvider):
         self.extract_routes_from_events(logical_id, serverless_function_events, collector)
 
     def extract_routes_from_events(self, function_logical_id, serverless_function_events, collector):
-        """
-        Given an AWS::Serverless::Function Event Dictionary, extract out all 'route' events and store  within the
+        """Given an AWS::Serverless::Function Event Dictionary, extract out all 'route' events and store  within the
         collector
 
         Parameters
         ----------
-        function_logical_id : str
-            LogicalId of the AWS::Serverless::Function
+        function_logical_id :
 
-        serverless_function_events : dict
-            Event Dictionary of a AWS::Serverless::Function
+        serverless_function_events :
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
-            Instance of the Route collector that where we will save the route information
+        collector :
+
+
+        Returns
+        -------
+
+
         """
         count = 0
         for _, event in serverless_function_events.items():
@@ -232,12 +243,23 @@ class SamApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _convert_event_route(lambda_logical_id, event_properties):
-        """
-        Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
+        """Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
 
-        :param str lambda_logical_id: Logical Id of the AWS::Serverless::Function
-        :param dict event_properties: Dictionary of the Event's Property
-        :return tuple: tuple of route resource name and route
+        Parameters
+        ----------
+        str :
+            lambda_logical_id: Logical Id of the AWS::Serverless::Function
+        dict :
+            event_properties: Dictionary of the Event's Property
+            :return tuple: tuple of route resource name and route
+        lambda_logical_id :
+
+        event_properties :
+
+
+        Returns
+        -------
+
         """
         path = event_properties.get(SamApiProvider._EVENT_PATH)
         method = event_properties.get(SamApiProvider._EVENT_METHOD)
@@ -261,21 +283,20 @@ class SamApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def merge_routes(collector):
-        """
-        Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit API
+        """Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit API
         definition wins because that conveys clear intent that the API is backed by a function. This method will
         merge two such list of routes with the right order of precedence. If a Path+Method combination is defined
         in both the places, only one wins.
 
         Parameters
         ----------
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
+        collector : samcli.commands.local.lib.route_collector.RouteCollector
             Collector object that holds all the APIs specified in the template
 
         Returns
         -------
-        list of samcli.local.apigw.local_apigw_service.Route
-            List of routes obtained by combining both the input lists.
+
+
         """
 
         implicit_routes = []

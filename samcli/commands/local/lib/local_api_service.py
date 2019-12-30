@@ -13,9 +13,15 @@ LOG = logging.getLogger(__name__)
 
 
 class LocalApiService:
-    """
-    Implementation of Local API service that is capable of serving API defined in a configuration file that invoke a
+    """Implementation of Local API service that is capable of serving API defined in a configuration file that invoke a
     Lambda function.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, lambda_invoke_context, port, host, static_dir):
@@ -41,12 +47,18 @@ class LocalApiService:
         self.stderr_stream = lambda_invoke_context.stderr
 
     def start(self):
-        """
-        Creates and starts the local API Gateway service. This method will block until the service is stopped
+        """Creates and starts the local API Gateway service. This method will block until the service is stopped
         manually using an interrupt. After the service is started, callers can make HTTP requests to the endpoint
         to invoke the Lambda function and receive a response.
 
         NOTE: This is a blocking call that will not return until the thread is interrupted with SIGINT/SIGTERM
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         if not self.api_provider.api.routes:
@@ -82,8 +94,7 @@ class LocalApiService:
 
     @staticmethod
     def _print_routes(routes, host, port):
-        """
-        Helper method to print the APIs that will be mounted. This method is purely for printing purposes.
+        """Helper method to print the APIs that will be mounted. This method is purely for printing purposes.
         This method takes in a list of Route Configurations and prints out the Routes grouped by path.
         Grouping routes by Function Name + Path is the bulk of the logic.
 
@@ -91,14 +102,30 @@ class LocalApiService:
             Mounting Product at http://127.0.0.1:3000/path1/bar [GET, POST, DELETE]
             Mounting Product at http://127.0.0.1:3000/path2/bar [HEAD]
 
-        :param list(Route) routes:
+        Parameters
+        ----------
+        list :
+            Route) routes:
             List of routes grouped by the same function_name and path
-        :param string host:
+        string :
+            host:
             Host name where the service is running
-        :param int port:
+        int :
+            port:
             Port number where the service is running
-        :returns list(string):
+        routes :
+
+        host :
+
+        port :
+
+
+        Returns
+        -------
+        type
+            list(string):
             List of lines that were printed to the console. Helps with testing
+
         """
 
         print_lines = []
@@ -113,14 +140,25 @@ class LocalApiService:
 
     @staticmethod
     def _make_static_dir_path(cwd, static_dir):
-        """
-        This method returns the path to the directory where static files are to be served from. If static_dir is a
+        """This method returns the path to the directory where static files are to be served from. If static_dir is a
         relative path, then it is resolved to be relative to the current working directory. If no static directory is
         provided, or if the resolved directory does not exist, this method will return None
 
-        :param string cwd: Current working directory relative to which we will resolve the static directory
-        :param string static_dir: Path to the static directory
-        :return string: Path to the static directory, if it exists. None, otherwise
+        Parameters
+        ----------
+        string :
+            cwd: Current working directory relative to which we will resolve the static directory
+        string :
+            static_dir: Path to the static directory
+            :return string: Path to the static directory, if it exists. None, otherwise
+        cwd :
+
+        static_dir :
+
+
+        Returns
+        -------
+
         """
         if not static_dir:
             return None

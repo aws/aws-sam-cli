@@ -33,16 +33,20 @@ LOG = logging.getLogger(__name__)
 
 
 class S3Uploader:
-    """
-    Class to upload objects to S3 bucket that use versioning. If bucket
+    """Class to upload objects to S3 bucket that use versioning. If bucket
     does not already use versioning, this class will turn on versioning.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     @property
     def artifact_metadata(self):
-        """
-        Metadata to attach to the object(s) uploaded by the uploader.
-        """
+        """Metadata to attach to the object(s) uploaded by the uploader."""
         return self._artifact_metadata
 
     @artifact_metadata.setter
@@ -62,11 +66,20 @@ class S3Uploader:
         self._artifact_metadata = None
 
     def upload(self, file_name, remote_path):
-        """
-        Uploads given file to S3
-        :param file_name: Path to the file that will be uploaded
-        :param remote_path:  be uploaded
-        :return: VersionId of the latest upload
+        """Uploads given file to S3
+
+        Parameters
+        ----------
+        file_name :
+            Path to the file that will be uploaded
+        remote_path :
+            be uploaded
+
+        Returns
+        -------
+        type
+            VersionId of the latest upload
+
         """
 
         if self.prefix:
@@ -107,12 +120,20 @@ class S3Uploader:
             raise ex
 
     def upload_with_dedup(self, file_name, extension=None):
-        """
-        Makes and returns name of the S3 object based on the file's MD5 sum
+        """Makes and returns name of the S3 object based on the file's MD5 sum
 
-        :param file_name: file to upload
-        :param extension: String of file extension to append to the object
-        :return: S3 URL of the uploaded object
+        Parameters
+        ----------
+        file_name :
+            file to upload
+        extension :
+            String of file extension to append to the object (Default value = None)
+
+        Returns
+        -------
+        type
+            S3 URL of the uploaded object
+
         """
 
         # This construction of remote_path is critical to preventing duplicate
@@ -127,11 +148,18 @@ class S3Uploader:
         return self.upload(file_name, remote_path)
 
     def file_exists(self, remote_path):
-        """
-        Check if the file we are trying to upload already exists in S3
+        """Check if the file we are trying to upload already exists in S3
 
-        :param remote_path:
-        :return: True, if file exists. False, otherwise
+        Parameters
+        ----------
+        remote_path :
+            return: True, if file exists. False, otherwise
+
+        Returns
+        -------
+        type
+            True, if file exists. False, otherwise
+
         """
 
         try:
@@ -172,9 +200,19 @@ class S3Uploader:
             return md5.hexdigest()
 
     def to_path_style_s3_url(self, key, version=None):
-        """
-            This link describes the format of Path Style URLs
+        """This link describes the format of Path Style URLs
             http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro
+
+        Parameters
+        ----------
+        key :
+
+        version :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         base = self.s3.meta.endpoint_url
         result = "{0}/{1}/{2}".format(base, self.bucket_name, key)

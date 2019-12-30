@@ -6,20 +6,22 @@ import click
 
 
 def progressbar(length, label):
-    """
-    Creates a progressbar
+    """Creates a progressbar
 
     Parameters
     ----------
-    length int
+    length int :
         Length of the ProgressBar
-    label str
+    label str :
         Label to give to the progressbar
+    length :
+
+    label :
+
 
     Returns
     -------
-    click.progressbar
-        Progressbar
+
 
     """
     return click.progressbar(length=length, label=label, show_pos=True)

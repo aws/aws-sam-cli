@@ -25,9 +25,21 @@ from yaml.resolver import ScalarNode, SequenceNode
 
 
 def intrinsics_multi_constructor(loader, tag_prefix, node):
-    """
-    YAML constructor to parse CloudFormation intrinsics.
+    """YAML constructor to parse CloudFormation intrinsics.
     This will return a dictionary with key being the instrinsic name
+
+    Parameters
+    ----------
+    loader :
+
+    tag_prefix :
+
+    node :
+
+
+    Returns
+    -------
+
     """
 
     # Get the actual tag name excluding the first exclamation
@@ -66,10 +78,16 @@ def _dict_representer(dumper, data):
 
 
 def yaml_dump(dict_to_dump):
-    """
-    Dumps the dictionary as a YAML document
-    :param dict_to_dump:
-    :return:
+    """Dumps the dictionary as a YAML document
+
+    Parameters
+    ----------
+    dict_to_dump :
+        return:
+
+    Returns
+    -------
+
     """
     FlattenAliasDumper.add_representer(OrderedDict, _dict_representer)
     return yaml.dump(dict_to_dump, default_flow_style=False, Dumper=FlattenAliasDumper)
@@ -82,7 +100,17 @@ def _dict_constructor(loader, node):
 
 
 def yaml_parse(yamlstr):
-    """Parse a yaml string"""
+    """Parse a yaml string
+
+    Parameters
+    ----------
+    yamlstr :
+
+
+    Returns
+    -------
+
+    """
     try:
         # PyYAML doesn't support json as well as it should, so if the input
         # is actually just json it is better to parse it with the standard

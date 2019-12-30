@@ -11,14 +11,25 @@ from samcli.local.common.runtime_template import SAM_RUNTIME_TO_SCHEMAS_CODE_LAN
 
 
 def do_download_source_code_binding(runtime, schema_template_details, schemas_api_caller, download_location):
-    """
-    Downloads source code binding for given registry and schema version,
+    """Downloads source code binding for given registry and schema version,
     generating the code bindings if they haven't been generated first
-    :param runtime: Lambda runtime
-    :param schema_template_details: e.g: registry_name, schema_name, schema_version
-    :param schemas_api_caller:
-    :param download_dir:
-    :return: directory location where code is downloaded
+
+    Parameters
+    ----------
+    runtime :
+        Lambda runtime
+    schema_template_details :
+        e.g: registry_name, schema_name, schema_version
+    schemas_api_caller :
+        param download_dir:
+    download_location :
+
+
+    Returns
+    -------
+    type
+        directory location where code is downloaded
+
     """
     registry_name = schema_template_details["registry_name"]
     schema_name = schema_template_details["schema_full_name"]
@@ -47,13 +58,22 @@ def do_download_source_code_binding(runtime, schema_template_details, schemas_ap
 
 
 def do_extract_and_merge_schemas_code(download_location, output_dir, project_name, template_location):
-    """
-    Unzips schemas generated code and merge it with cookiecutter genertaed source.
-    :param download_location:
-    :param output_dir:
-    :param project_name:
-    :param template_location:
-    :return:
+    """Unzips schemas generated code and merge it with cookiecutter genertaed source.
+
+    Parameters
+    ----------
+    download_location :
+        param output_dir:
+    project_name :
+        param template_location:
+    output_dir :
+
+    template_location :
+
+
+    Returns
+    -------
+
     """
     click.echo("Merging code bindings...")
     cookiecutter_json_path = os.path.join(template_location, "cookiecutter.json")

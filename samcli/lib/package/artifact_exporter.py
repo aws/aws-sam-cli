@@ -106,8 +106,7 @@ def parse_s3_url(url, bucket_name_property="Bucket", object_key_property="Key", 
 
 
 def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader):
-    """
-    Upload local artifacts referenced by the property at given resource and
+    """Upload local artifacts referenced by the property at given resource and
     return S3 URL of the uploaded object. It is the responsibility of callers
     to ensure property value is a valid string
 
@@ -118,16 +117,27 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
     If path is already a path to S3 object, this method does nothing.
 
-    :param resource_id:     Id of the CloudFormation resource
-    :param resource_dict:   Dictionary containing resource definition
-    :param property_name:   Property name of CloudFormation resource where this
-                            local path is present
-    :param parent_dir:      Resolve all relative paths with respect to this
-                            directory
-    :param uploader:        Method to upload files to S3
+    Parameters
+    ----------
+    resource_id :
+        Id of the CloudFormation resource
+    resource_dict :
+        Dictionary containing resource definition
+    property_name :
+        Property name of CloudFormation resource where this
+        local path is present
+    parent_dir :
+        Resolve all relative paths with respect to this
+        directory
+    uploader :
+        Method to upload files to S3
 
-    :return:                S3 URL of the uploaded object
-    :raise:                 ValueError if path is not a S3 URL or a local path
+    Returns
+    -------
+    type
+        S3 URL of the uploaded object
+        :raise:                 ValueError if path is not a S3 URL or a local path
+
     """
 
     local_path = jmespath.search(property_name, resource_dict)
@@ -171,12 +181,19 @@ def zip_and_upload(local_path, uploader):
 
 @contextmanager
 def zip_folder(folder_path):
-    """
-    Zip the entire folder and return a file to the zip. Use this inside
+    """Zip the entire folder and return a file to the zip. Use this inside
     a "with" statement to cleanup the zipfile after it is used.
 
-    :param folder_path:
-    :return: Name of the zipfile
+    Parameters
+    ----------
+    folder_path :
+        return: Name of the zipfile
+
+    Returns
+    -------
+    type
+        Name of the zipfile
+
     """
     filename = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
 
@@ -224,9 +241,7 @@ def copy_to_temp_dir(filepath):
 
 
 class Resource:
-    """
-    Base class representing a CloudFormation resource that can be exported
-    """
+    """Base class representing a CloudFormation resource that can be exported"""
 
     RESOURCE_TYPE = None
     PROPERTY_NAME = None
@@ -274,18 +289,36 @@ class Resource:
                 shutil.rmtree(temp_dir)
 
     def do_export(self, resource_id, resource_dict, parent_dir):
-        """
-        Default export action is to upload artifacts and set the property to
+        """Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
+
+        Parameters
+        ----------
+        resource_id :
+
+        resource_dict :
+
+        parent_dir :
+
+
+        Returns
+        -------
+
         """
         uploaded_url = upload_local_artifacts(resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader)
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
 class ResourceWithS3UrlDict(Resource):
-    """
-    Represents CloudFormation resources that need the S3 URL to be specified as
+    """Represents CloudFormation resources that need the S3 URL to be specified as
     an dict like {Bucket: "", Key: "", Version: ""}
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     BUCKET_NAME_PROPERTY = None
@@ -293,9 +326,21 @@ class ResourceWithS3UrlDict(Resource):
     VERSION_PROPERTY = None
 
     def do_export(self, resource_id, resource_dict, parent_dir):
-        """
-        Upload to S3 and set property to an dict representing the S3 url
+        """Upload to S3 and set property to an dict representing the S3 url
         of the uploaded object
+
+        Parameters
+        ----------
+        resource_id :
+
+        resource_dict :
+
+        parent_dir :
+
+
+        Returns
+        -------
+
         """
 
         artifact_s3_url = upload_local_artifacts(
@@ -419,19 +464,37 @@ class ServerlessRepoApplicationReadme(Resource):
 
 
 class CloudFormationStackResource(Resource):
-    """
-    Represents CloudFormation::Stack resource that can refer to a nested
+    """Represents CloudFormation::Stack resource that can refer to a nested
     stack template via TemplateURL property.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     RESOURCE_TYPE = AWS_CLOUDFORMATION_STACK
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
 
     def do_export(self, resource_id, resource_dict, parent_dir):
-        """
-        If the nested stack template is valid, this method will
+        """If the nested stack template is valid, this method will
         export on the nested template, upload the exported template to S3
         and set property to URL of the uploaded S3 template
+
+        Parameters
+        ----------
+        resource_id :
+
+        resource_dict :
+
+        parent_dir :
+
+
+        Returns
+        -------
+
         """
 
         template_path = resource_dict.get(self.PROPERTY_NAME, None)
@@ -468,9 +531,15 @@ class CloudFormationStackResource(Resource):
 
 
 class ServerlessApplicationResource(CloudFormationStackResource):
-    """
-    Represents Serverless::Application resource that can refer to a nested
+    """Represents Serverless::Application resource that can refer to a nested
     app template via Location property.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     RESOURCE_TYPE = AWS_SERVERLESS_APPLICATION
@@ -478,9 +547,7 @@ class ServerlessApplicationResource(CloudFormationStackResource):
 
 
 class GlueJobCommandScriptLocationResource(Resource):
-    """
-    Represents Glue::Job resource.
-    """
+    """Represents Glue::Job resource."""
 
     RESOURCE_TYPE = AWS_GLUE_JOB
     # Note the PROPERTY_NAME includes a '.' implying it's nested.
@@ -533,9 +600,7 @@ GLOBAL_EXPORT_DICT = {"Fn::Transform": include_transform_export_handler}
 
 
 class Template:
-    """
-    Class to export a CloudFormation template
-    """
+    """Class to export a CloudFormation template"""
 
     def __init__(
         self,
@@ -564,11 +629,19 @@ class Template:
         self.uploader = uploader
 
     def export_global_artifacts(self, template_dict):
-        """
-        Template params such as AWS::Include transforms are not specific to
+        """Template params such as AWS::Include transforms are not specific to
         any resource type but contain artifacts that should be exported,
         here we iterate through the template dict and export params with a
         handler defined in GLOBAL_EXPORT_DICT
+
+        Parameters
+        ----------
+        template_dict :
+
+
+        Returns
+        -------
+
         """
         for key, val in template_dict.items():
             if key in GLOBAL_EXPORT_DICT:
@@ -582,12 +655,20 @@ class Template:
         return template_dict
 
     def export_metadata(self, template_dict):
-        """
-        Exports the local artifacts referenced by the metadata section in
+        """Exports the local artifacts referenced by the metadata section in
         the given template to an s3 bucket.
 
         :return: The template with references to artifacts that have been
         exported to s3.
+
+        Parameters
+        ----------
+        template_dict :
+
+
+        Returns
+        -------
+
         """
         if "Metadata" not in template_dict:
             return template_dict
@@ -603,12 +684,18 @@ class Template:
         return template_dict
 
     def export(self):
-        """
-        Exports the local artifacts referenced by the given template to an
+        """Exports the local artifacts referenced by the given template to an
         s3 bucket.
 
         :return: The template with references to artifacts that have been
         exported to s3.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         self.template_dict = self.export_metadata(self.template_dict)
 

@@ -82,8 +82,26 @@ def cli(ctx, name, stack_name, filter, tail, start_time, end_time):  # pylint: d
 
 
 def do_cli(function_name, stack_name, filter_pattern, tailing, start_time, end_time):
-    """
-    Implementation of the ``cli`` method
+    """Implementation of the ``cli`` method
+
+    Parameters
+    ----------
+    function_name :
+
+    stack_name :
+
+    filter_pattern :
+
+    tailing :
+
+    start_time :
+
+    end_time :
+
+
+    Returns
+    -------
+
     """
     from .logs_context import LogsCommandContext
 

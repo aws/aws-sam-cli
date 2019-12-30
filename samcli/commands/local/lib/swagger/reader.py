@@ -18,8 +18,7 @@ _FN_TRANSFORM = "Fn::Transform"
 
 
 def parse_aws_include_transform(data):
-    """
-    If the input data is an AWS::Include data, then parse and return the location of the included file.
+    """If the input data is an AWS::Include data, then parse and return the location of the included file.
 
     AWS::Include transform data usually has the following format:
     {
@@ -38,8 +37,8 @@ def parse_aws_include_transform(data):
 
     Returns
     -------
-    str
-        Location of the included file, if available. None, otherwise
+
+
     """
 
     if not data:
@@ -60,9 +59,15 @@ def parse_aws_include_transform(data):
 
 
 class SwaggerReader:
-    """
-    Class to read and parse Swagger document from a variety of sources. This class accepts the same data formats as
+    """Class to read and parse Swagger document from a variety of sources. This class accepts the same data formats as
     available in Serverless::Api SAM resource
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, definition_body=None, definition_uri=None, working_dir=None):
@@ -92,14 +97,16 @@ class SwaggerReader:
             raise ValueError("Require value for either DefinitionBody or DefinitionUri")
 
     def read(self):
-        """
-        Gets the Swagger document from either of the given locations. If we fail to retrieve or parse the Swagger
+        """Gets the Swagger document from either of the given locations. If we fail to retrieve or parse the Swagger
         file, this method will return None.
+
+        Parameters
+        ----------
 
         Returns
         -------
-        dict:
-            Swagger document. None, if we cannot retrieve the document
+
+
         """
 
         swagger = None
@@ -115,15 +122,17 @@ class SwaggerReader:
         return swagger
 
     def _read_from_definition_body(self):
-        """
-        Read the Swagger document from DefinitionBody. It could either be an inline Swagger dictionary or an
+        """Read the Swagger document from DefinitionBody. It could either be an inline Swagger dictionary or an
         AWS::Include macro that contains location of the included Swagger. In the later case, we will download and
         parse the Swagger document.
 
+        Parameters
+        ----------
+
         Returns
         -------
-        dict
-            Swagger document, if we were able to parse. None, otherwise
+
+
         """
 
         # Let's try to parse it as AWS::Include Transform first. If not, then fall back to assuming the Swagger document
@@ -138,8 +147,7 @@ class SwaggerReader:
         return self.definition_body
 
     def _download_swagger(self, location):
-        """
-        Download the file from given local or remote location and return it
+        """Download the file from given local or remote location and return it
 
         Parameters
         ----------
@@ -149,8 +157,8 @@ class SwaggerReader:
 
         Returns
         -------
-        dict or None
-            Downloaded and parsed Swagger document. None, if unable to download
+
+
         """
 
         if not location:
@@ -183,28 +191,23 @@ class SwaggerReader:
 
     @staticmethod
     def _download_from_s3(bucket, key, version=None):
-        """
-        Download a file from given S3 location, if available.
+        """Download a file from given S3 location, if available.
 
         Parameters
         ----------
         bucket : str
             S3 Bucket name
-
         key : str
             S3 Bucket Key aka file path
-
         version : str
-            Optional Version ID of the file
+            Optional Version ID of the file (Default value = None)
 
         Returns
         -------
         str
             Contents of the file that was downloaded
 
-        Raises
-        ------
-        botocore.exceptions.ClientError if we were unable to download the file from S3
+
         """
 
         s3 = boto3.client("s3")
@@ -231,8 +234,7 @@ class SwaggerReader:
 
     @staticmethod
     def _parse_s3_location(location):
-        """
-        Parses the given location input as a S3 Location and returns the file's bucket, key and version as separate
+        """Parses the given location input as a S3 Location and returns the file's bucket, key and version as separate
         values. Input can be in two different formats:
 
         1. Dictionary with ``Bucket``, ``Key``, ``Version`` keys
@@ -248,12 +250,8 @@ class SwaggerReader:
 
         Returns
         -------
-        str
-            Name of the S3 Bucket. None, if bucket value was not found
-        str
-            Key of the file from S3. None, if key was not provided
-        str
-            Optional Version ID of the file. None, if version ID is not provided
+
+
         """
 
         bucket, key, version = None, None, None

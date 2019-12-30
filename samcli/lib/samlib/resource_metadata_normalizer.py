@@ -16,15 +16,18 @@ LOG = logging.getLogger(__name__)
 class ResourceMetadataNormalizer:
     @staticmethod
     def normalize(template_dict):
-        """
-        Normalize all Resources in the template with the Metadata Key on the resource.
+        """Normalize all Resources in the template with the Metadata Key on the resource.
 
         This method will mutate the template
 
         Parameters
         ----------
-        template_dict dict
-            Dictionary representing the template
+        template_dict :
+
+
+        Returns
+        -------
+
 
         """
         resources = template_dict.get(RESOURCES_KEY, {})
@@ -38,21 +41,24 @@ class ResourceMetadataNormalizer:
 
     @staticmethod
     def _replace_property(property_key, property_value, resource, logical_id):
-        """
-        Replace a property with an asset on a given resource
+        """Replace a property with an asset on a given resource
 
         This method will mutate the template
 
         Parameters
         ----------
-        property str
-            The property to replace on the resource
-        property_value str
-            The new value of the property
-        resource dict
-            Dictionary representing the Resource to change
-        logical_id str
-            LogicalId of the Resource
+        property_key :
+
+        property_value :
+
+        resource :
+
+        logical_id :
+
+
+        Returns
+        -------
+
 
         """
         if property_key and property_value:

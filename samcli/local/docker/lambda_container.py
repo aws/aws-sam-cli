@@ -12,10 +12,16 @@ LOG = logging.getLogger(__name__)
 
 
 class LambdaContainer(Container):
-    """
-    Represents a Lambda runtime container. This class knows how to setup entry points, environment variables,
+    """Represents a Lambda runtime container. This class knows how to setup entry points, environment variables,
     exposed ports etc specific to Lambda runtime container. The container management functionality (create/start/stop)
     is provided by the base class
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     _IMAGE_REPO_NAME = "lambci/lambda"
@@ -96,13 +102,21 @@ class LambdaContainer(Container):
 
     @staticmethod
     def _get_exposed_ports(debug_options):
-        """
-        Return Docker container port binding information. If a debug port tuple is given, then we will ask Docker to
+        """Return Docker container port binding information. If a debug port tuple is given, then we will ask Docker to
         bind every given port to same port both inside and outside the container ie. Runtime process is started in debug mode with
         at given port inside the container and exposed to the host machine at the same port
 
-        :param DebugContext debug_options: Debugging options for the function (includes debug port, args, and path)
-        :return dict: Dictionary containing port binding information. None, if debug_port was not given
+        Parameters
+        ----------
+        DebugContext :
+            debug_options: Debugging options for the function (includes debug port, args, and path)
+            :return dict: Dictionary containing port binding information. None, if debug_port was not given
+        debug_options :
+
+
+        Returns
+        -------
+
         """
         if not debug_options:
             return None
@@ -119,11 +133,22 @@ class LambdaContainer(Container):
 
     @staticmethod
     def _get_additional_options(runtime, debug_options):
-        """
-        Return additional Docker container options. Used by container debug mode to enable certain container
+        """Return additional Docker container options. Used by container debug mode to enable certain container
         security options.
-        :param DebugContext debug_options: DebugContext for the runtime of the container.
-        :return dict: Dictionary containing additional arguments to be passed to container creation.
+
+        Parameters
+        ----------
+        DebugContext :
+            debug_options: DebugContext for the runtime of the container.
+            :return dict: Dictionary containing additional arguments to be passed to container creation.
+        runtime :
+
+        debug_options :
+
+
+        Returns
+        -------
+
         """
         if not debug_options:
             return None
@@ -140,11 +165,20 @@ class LambdaContainer(Container):
 
     @staticmethod
     def _get_additional_volumes(debug_options):
-        """
-        Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
+        """Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
         debugger executable into the container.
-        :param DebugContext debug_options: DebugContext for the runtime of the container.
-        :return dict: Dictionary containing volume map passed to container creation.
+
+        Parameters
+        ----------
+        DebugContext :
+            debug_options: DebugContext for the runtime of the container.
+            :return dict: Dictionary containing volume map passed to container creation.
+        debug_options :
+
+
+        Returns
+        -------
+
         """
         if not debug_options or not debug_options.debugger_path:
             return None
@@ -153,36 +187,52 @@ class LambdaContainer(Container):
 
     @staticmethod
     def _get_image(image_builder, runtime, layers):
-        """
-        Returns the name of Docker Image for the given runtime
+        """Returns the name of Docker Image for the given runtime
 
         Parameters
         ----------
-        image_builder samcli.local.docker.lambda_image.LambdaImage
+        image_builder samcli.local.docker.lambda_image.LambdaImage :
             LambdaImage that can be used to build the image needed for starting the container
-        runtime str
+        runtime str :
             Name of the Lambda runtime
-        layers list(str)
+        layers list(str) :
             List of layers
+        image_builder :
+
+        runtime :
+
+        layers :
+
 
         Returns
         -------
-        str
-            Name of Docker Image for the given runtime
+
+
         """
         return image_builder.build(runtime, layers)
 
     @staticmethod
     def _get_debug_settings(runtime, debug_options=None):  # pylint: disable=too-many-branches
-        """
-        Returns the entry point for the container. The default value for the entry point is already configured in the
+        """Returns the entry point for the container. The default value for the entry point is already configured in the
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes
         a few extra flags to start the runtime in debug mode.
 
-        :param string runtime: Lambda function runtime name.
-        :param DebugContext debug_options: Optional. Debug context for the function (includes port, args, and path).
-        :return list: List containing the new entry points. Each element in the list is one portion of the command.
+        Parameters
+        ----------
+        string :
+            runtime: Lambda function runtime name.
+        DebugContext :
+            debug_options: Optional. Debug context for the function (includes port, args, and path).
+            :return list: List containing the new entry points. Each element in the list is one portion of the command.
             ie. if command is ``node index.js arg1 arg2``, then this list will be ["node", "index.js", "arg1", "arg2"]
+        runtime :
+
+        debug_options :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
 
         if not debug_options:

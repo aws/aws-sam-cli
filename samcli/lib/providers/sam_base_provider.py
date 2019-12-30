@@ -13,28 +13,24 @@ LOG = logging.getLogger(__name__)
 
 
 class SamBaseProvider:
-    """
-    Base class for SAM Template providers
-    """
+    """Base class for SAM Template providers"""
 
     @staticmethod
     def get_template(template_dict, parameter_overrides=None):
-        """
-        Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
+        """Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
         and parameter values have been substituted.
 
         Parameters
         ----------
         template_dict : dict
             unprocessed SAM template dictionary
-
-        parameter_overrides: dict
-            Optional dictionary of values for template parameters
+        parameter_overrides : dict
+            Optional dictionary of values for template parameters (Default value = None)
 
         Returns
         -------
-        dict
-            Processed SAM template
+
+
         """
         template_dict = template_dict or {}
         if template_dict:
@@ -51,22 +47,20 @@ class SamBaseProvider:
 
     @staticmethod
     def _get_parameter_values(template_dict, parameter_overrides):
-        """
-        Construct a final list of values for CloudFormation template parameters based on user-supplied values,
+        """Construct a final list of values for CloudFormation template parameters based on user-supplied values,
         default values provided in template, and sane defaults for pseudo-parameters.
 
         Parameters
         ----------
         template_dict : dict
             SAM template dictionary
-
         parameter_overrides : dict
             User-supplied values for CloudFormation template parameters
 
         Returns
         -------
-        dict
-            Values for template parameters to substitute in template with
+
+
         """
 
         default_values = SamBaseProvider._get_default_parameter_values(template_dict)
@@ -82,8 +76,7 @@ class SamBaseProvider:
 
     @staticmethod
     def _get_default_parameter_values(sam_template):
-        """
-        Method to read default values for template parameters and return it
+        """Method to read default values for template parameters and return it
         Example:
         If the template contains the following parameters defined
         Parameters:
@@ -99,8 +92,18 @@ class SamBaseProvider:
             Param1: "default_value1",
             Param2: "default_value2"
         }
-        :param dict sam_template: SAM template
-        :return dict: Default values for parameters
+
+        Parameters
+        ----------
+        dict :
+            sam_template: SAM template
+            :return dict: Default values for parameters
+        sam_template :
+
+
+        Returns
+        -------
+
         """
 
         default_values = {}

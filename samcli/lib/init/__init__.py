@@ -27,26 +27,28 @@ def generate_project(
 
     Parameters
     ----------
-    location: Path, optional
+    location : Path, optional
         Git, HTTP, Local path or Zip containing cookiecutter template
         (the default is None, which means no custom template)
-    runtime: str
-        Lambda Runtime
-    dependency_manager: str, optional
-        Dependency Manager for the Lambda Runtime Project
-    output_dir: str, optional
+    runtime : str
+        Lambda Runtime (Default value = None)
+    dependency_manager : str, optional
+        Dependency Manager for the Lambda Runtime Project (Default value = None)
+    output_dir : str, optional
         Output directory where project should be generated
         (the default is ".", which implies current folder)
-    name: str
-        Name of the project
+    name : str
+        Name of the project (Default value = None)
     no_input : bool, optional
         Whether to prompt for input or to accept default values
         (the default is False, which prompts the user for values it doesn't know for baking)
+    extra_context :
+         (Default value = None)
 
-    Raises
-    ------
-    GenerateProjectFailedError
-        If the process of baking a project fails
+    Returns
+    -------
+
+
     """
 
     template = None

@@ -176,15 +176,22 @@ class DeployContext:
             click.echo(str(ex))
 
     def merge_parameters(self, template_dict, parameter_overrides):
-        """
-        CloudFormation CreateChangeset requires a value for every parameter
+        """CloudFormation CreateChangeset requires a value for every parameter
         from the template, either specifying a new value or use previous value.
         For convenience, this method will accept new parameter values and
         generates a dict of all parameters in a format that ChangeSet API
         will accept
 
-        :param parameter_overrides:
-        :return:
+        Parameters
+        ----------
+        parameter_overrides :
+            return:
+        template_dict :
+
+
+        Returns
+        -------
+
         """
         parameter_values = []
 

@@ -9,9 +9,15 @@ LOG = logging.getLogger(__name__)
 
 
 class LocalLambdaService:
-    """
-    Implementation of Local Lambda Invoke Service that is capable of serving the invoke path to your Lambda Functions
+    """Implementation of Local Lambda Invoke Service that is capable of serving the invoke path to your Lambda Functions
     that are defined in a SAM file.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, lambda_invoke_context, port, host):
@@ -30,12 +36,18 @@ class LocalLambdaService:
         self.stderr_stream = lambda_invoke_context.stderr
 
     def start(self):
-        """
-        Creates and starts the Local Lambda Invoke service. This method will block until the service is stopped
+        """Creates and starts the Local Lambda Invoke service. This method will block until the service is stopped
         manually using an interrupt. After the service is started, callers can make HTTP requests to the endpoint
         to invoke the Lambda function and receive a response.
 
         NOTE: This is a blocking call that will not return until the thread is interrupted with SIGINT/SIGTERM
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         # We care about passing only stderr to the Service and not stdout because stdout from Docker container

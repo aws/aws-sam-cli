@@ -23,20 +23,11 @@ class SwaggerParser:
         self.swagger = swagger or {}
 
     def get_binary_media_types(self):
-        """
-        Get the list of Binary Media Types from Swagger
-
-        Returns
-        -------
-        list of str
-            List of strings that represent the Binary Media Types for the API, defaulting to empty list is None
-
-        """
+        """Get the list of Binary Media Types from Swagger"""
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
     def get_routes(self):
-        """
-        Parses a swagger document and returns a list of APIs configured in the document.
+        """Parses a swagger document and returns a list of APIs configured in the document.
 
         Swagger documents have the following structure
         {
@@ -60,10 +51,13 @@ class SwaggerParser:
             }
         }
 
+        Parameters
+        ----------
+
         Returns
         -------
-        list of list of samcli.commands.local.apigw.local_apigw_service.Route
-            List of APIs that are configured in the Swagger document
+
+
         """
 
         result = []
@@ -89,8 +83,7 @@ class SwaggerParser:
         return result
 
     def _get_integration_function_name(self, method_config):
-        """
-        Tries to parse the Lambda Function name from the Integration defined in the method configuration.
+        """Tries to parse the Lambda Function name from the Integration defined in the method configuration.
         Integration configuration is defined under the special "x-amazon-apigateway-integration" key. We care only
         about Lambda integrations, which are of type aws_proxy, and ignore the rest. Integration URI is complex and
         hard to parse. Hence we do our best to extract function name out of integration URI. If not possible, we
@@ -103,8 +96,8 @@ class SwaggerParser:
 
         Returns
         -------
-        string or None
-            Lambda function name, if possible. None, if not.
+
+
         """
         if not isinstance(method_config, dict) or self._INTEGRATION_KEY not in method_config:
             return None

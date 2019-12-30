@@ -11,38 +11,27 @@ LOG = logging.getLogger(__name__)
 
 class BaseLocalService:
     def __init__(self, is_debugging, port, host):
-        """
-        Creates a BaseLocalService class
-
-        Parameters
-        ----------
-        is_debugging bool
-            Flag to run in debug mode or not
-        port int
-            Optional. port for the service to start listening on Defaults to 3000
-        host str
-            Optional. host to start the service on Defaults to '127.0.0.1
-        """
+        """Creates a BaseLocalService class"""
         self.is_debugging = is_debugging
         self.port = port
         self.host = host
         self._app = None
 
     def create(self):
-        """
-        Creates a Flask Application that can be started.
-        """
+        """Creates a Flask Application that can be started."""
         raise NotImplementedError("Required method to implement")
 
     def run(self):
-        """
-        This starts up the (threaded) Local Server.
+        """This starts up the (threaded) Local Server.
         Note: This is a **blocking call**
 
-        Raises
-        ------
-        RuntimeError
-            if the service was not created
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+
         """
         if not self._app:
             raise RuntimeError("The application must be created before running")
@@ -64,13 +53,28 @@ class BaseLocalService:
 
     @staticmethod
     def service_response(body, headers, status_code):
-        """
-        Constructs a Flask Response from the body, headers, and status_code.
+        """Constructs a Flask Response from the body, headers, and status_code.
 
-        :param str body: Response body as a string
-        :param werkzeug.datastructures.Headers headers: headers for the response
-        :param int status_code: status_code for response
-        :return: Flask Response
+        Parameters
+        ----------
+        str :
+            body: Response body as a string
+        werkzeug :
+            datastructures.Headers headers: headers for the response
+        int :
+            status_code: status_code for response
+        body :
+
+        headers :
+
+        status_code :
+
+
+        Returns
+        -------
+        type
+            Flask Response
+
         """
         response = Response(body)
         response.headers = headers
@@ -81,8 +85,7 @@ class BaseLocalService:
 class LambdaOutputParser:
     @staticmethod
     def get_lambda_output(stdout_stream):
-        """
-        This method will extract read the given stream and return the response from Lambda function separated out
+        """This method will extract read the given stream and return the response from Lambda function separated out
         from any log statements it might have outputted. Logs end up in the stdout stream if the Lambda function
         wrote directly to stdout using System.out.println or equivalents.
 
@@ -93,12 +96,8 @@ class LambdaOutputParser:
 
         Returns
         -------
-        str
-            String data containing response from Lambda function
-        str
-            String data containng logs statements, if any.
-        bool
-            If the response is an error/exception from the container
+
+
         """
         # We only want the last line of stdout, because it's possible that
         # the function may have written directly to stdout using
@@ -131,18 +130,19 @@ class LambdaOutputParser:
 
     @staticmethod
     def is_lambda_error_response(lambda_response):
-        """
-        Check to see if the output from the container is in the form of an Error/Exception from the Lambda invoke
+        """Check to see if the output from the container is in the form of an Error/Exception from the Lambda invoke
 
         Parameters
         ----------
-        lambda_response str
+        lambda_response str :
             The response the container returned
+        lambda_response :
+
 
         Returns
         -------
-        bool
-            True if the output matches the Error/Exception Dictionary otherwise False
+
+
         """
         is_lambda_user_error_response = False
         try:

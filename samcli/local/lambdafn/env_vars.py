@@ -6,8 +6,7 @@ import sys
 
 
 class EnvironmentVariables:
-    """
-    Use this class to get the environment variables necessary to run the Lambda function. It returns the AWS specific
+    """Use this class to get the environment variables necessary to run the Lambda function. It returns the AWS specific
     variables (credentials, regions, etc) along with any environment variables configured on the function.
 
     Customers define the name of the environment variables along with default values, if any, when creating the
@@ -28,6 +27,13 @@ class EnvironmentVariables:
         region = "us-east-1"
         key = "defaultkey"
         secret = "defaultsecret"
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     _BLANK_VALUE = ""
@@ -69,12 +75,18 @@ class EnvironmentVariables:
         self.aws_creds = aws_creds or {}
 
     def resolve(self):
-        """
-        Resolves the values from different sources and returns a dict of environment variables to use when running
+        """Resolves the values from different sources and returns a dict of environment variables to use when running
         the function locally.
 
         :return dict: Dict where key is the variable name and value is the value of the variable. Both key and values
             are strings
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         # AWS_* variables must always be passed to the function, but user has the choice to override them
@@ -98,8 +110,16 @@ class EnvironmentVariables:
         return result
 
     def add_lambda_event_body(self, value):
-        """
-        Adds the value of AWS_LAMBDA_EVENT_BODY environment variable.
+        """Adds the value of AWS_LAMBDA_EVENT_BODY environment variable.
+
+        Parameters
+        ----------
+        value :
+
+
+        Returns
+        -------
+
         """
         self.variables["AWS_LAMBDA_EVENT_BODY"] = value
 
@@ -128,11 +148,17 @@ class EnvironmentVariables:
         self._function["handler"] = value
 
     def _get_aws_variables(self):
-        """
-        Returns the AWS specific environment variables that should be available in the Lambda runtime.
+        """Returns the AWS specific environment variables that should be available in the Lambda runtime.
         They are prefixed it "AWS_*".
 
         :return dict: Name and value of AWS environment variable
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         result = {
@@ -161,13 +187,19 @@ class EnvironmentVariables:
         return result
 
     def _stringify_value(self, value):
-        """
-        This method stringifies values of environment variables. If the value of the method is a list or dictionary,
+        """This method stringifies values of environment variables. If the value of the method is a list or dictionary,
         then this method will replace it with empty string. Values of environment variables in Lambda must be a string.
         List or dictionary usually means they are intrinsic functions which have not been resolved.
 
-        :param value: Value to stringify
-        :return string: Stringified value
+        Parameters
+        ----------
+        value :
+            Value to stringify
+            :return string: Stringified value
+
+        Returns
+        -------
+
         """
 
         # List/dict/None values are replaced with a blank

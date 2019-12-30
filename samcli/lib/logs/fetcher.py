@@ -13,9 +13,15 @@ LOG = logging.getLogger(__name__)
 
 
 class LogsFetcher:
-    """
-    Fetch logs from a CloudWatch Logs group with the ability to scope to a particular time, filter by
+    """Fetch logs from a CloudWatch Logs group with the ability to scope to a particular time, filter by
     a pattern, and in the future possibly multiplex from from multiple streams together.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, cw_client=None):
@@ -30,30 +36,24 @@ class LogsFetcher:
         self.cw_client = cw_client
 
     def fetch(self, log_group_name, start=None, end=None, filter_pattern=None):
-        """
-        Fetch logs from all streams under the given CloudWatch Log Group and yields in the output. Optionally, caller
+        """Fetch logs from all streams under the given CloudWatch Log Group and yields in the output. Optionally, caller
         can filter the logs using a pattern or a start/end time.
 
         Parameters
         ----------
-        log_group_name : string
-            Name of CloudWatch Logs Group to query.
+        log_group_name :
 
-        start : datetime.datetime
-            Optional start time for logs.
+        start :
+             (Default value = None)
+        end :
+             (Default value = None)
+        filter_pattern :
+             (Default value = None)
 
-        end : datetime.datetime
-            Optional end time for logs.
+        Returns
+        -------
 
-        filter_pattern : str
-            Expression to filter the logs by. This is passed directly to CloudWatch, so any expression supported by
-            CloudWatch Logs API is supported here.
 
-        Yields
-        ------
-
-        samcli.lib.logs.event.LogEvent
-            Object containing the information from each log event returned by CloudWatch Logs
         """
 
         kwargs = {"logGroupName": log_group_name, "interleaved": True}
@@ -82,8 +82,7 @@ class LogsFetcher:
                 break
 
     def tail(self, log_group_name, start=None, filter_pattern=None, max_retries=1000, poll_interval=0.3):
-        """
-        ** This is a long blocking call **
+        """** This is a long blocking call **
 
         Fetches logs from CloudWatch logs similar to the ``fetch`` method, but instead of stopping after all logs have
         been fetched, this method continues to poll CloudWatch for new logs. So this essentially simulates the
@@ -94,28 +93,21 @@ class LogsFetcher:
 
         Parameters
         ----------
-        log_group_name : str
-            Name of CloudWatch Logs Group to query.
+        log_group_name :
 
-        start : datetime.datetime
-            Optional start time for logs. Defaults to '5m ago'
+        start :
+             (Default value = None)
+        filter_pattern :
+             (Default value = None)
+        max_retries :
+             (Default value = 1000)
+        poll_interval :
+             (Default value = 0.3)
 
-        filter_pattern : str
-            Expression to filter the logs by. This is passed directly to CloudWatch, so any expression supported by
-            CloudWatch Logs API is supported here.
+        Returns
+        -------
 
-        max_retries : int
-            When logs are not available, this value determines the number of times to retry fetching logs before giving
-            up. This counter is reset every time new logs are available.
 
-        poll_interval : float
-            Number of fractional seconds wait before polling again. Defaults to 300milliseconds.
-            If no new logs available, this method will stop polling after ``max_retries * poll_interval`` seconds
-
-        Yields
-        ------
-        samcli.lib.logs.event.LogEvent
-            Object containing the information from each log event returned by CloudWatch Logs
         """
 
         # On every poll, startTime of the API call is the timestamp of last record observed

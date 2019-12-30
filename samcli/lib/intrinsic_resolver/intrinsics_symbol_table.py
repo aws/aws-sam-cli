@@ -170,8 +170,7 @@ class IntrinsicsSymbolTable:
         }
 
     def resolve_symbols(self, logical_id, resource_attribute, ignore_errors=False):
-        """
-        This function resolves all the symbols given a logical id and a resource_attribute for Fn::GetAtt and Ref.
+        """This function resolves all the symbols given a logical id and a resource_attribute for Fn::GetAtt and Ref.
         This boils Ref into a type of Fn:GetAtt to simplify the implementation.
         For example:
             {"Ref": "AWS::REGION"} => resolve_symbols("AWS::REGION", "REF")
@@ -183,18 +182,20 @@ class IntrinsicsSymbolTable:
 
         Then the default_type_resolver is checked, which has common attributes and functions for each types.
         Then the common_attribute_resolver is run, which has functions that are common for each attribute.
-        Parameters
-        -----------
-        logical_id: str
-            The logical id of the resource in question or a pseudo type.
-        resource_attribute: str
-            The resource attribute of the resource in question or Ref for psuedo types.
-        ignore_errors: bool
-            An optional flags to not return errors. This used in sub
 
-        Return
+        Parameters
+        ----------
+        logical_id :
+
+        resource_attribute :
+
+        ignore_errors :
+             (Default value = False)
+
+        Returns
         -------
-        This resolves the attribute
+
+
         """
         # pylint: disable-msg=too-many-return-statements
         translated = self.get_translation(logical_id, resource_attribute)
@@ -234,20 +235,20 @@ class IntrinsicsSymbolTable:
         )
 
     def arn_resolver(self, logical_id, service_name="lambda"):
-        """
-        This function resolves Arn in the format
+        """This function resolves Arn in the format
             arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{function_name}
 
         Parameters
-        -----------
-        logical_id: str
-            This the reference to the function name used
-        service_name: str
-            This is the service name used such as lambda or sns
+        ----------
+        logical_id :
 
-        Return
+        service_name :
+             (Default value = "lambda")
+
+        Returns
         -------
-        The resolved Arn
+
+
         """
         aws_region = self.handle_pseudo_region()
         account_id = (
@@ -269,19 +270,18 @@ class IntrinsicsSymbolTable:
         )
 
     def get_translation(self, logical_id, resource_attributes=IntrinsicResolver.REF):
-        """
-        This gets the logical_id_translation of the logical id and resource_attributes.
+        """This gets the logical_id_translation of the logical id and resource_attributes.
 
         Parameters
         ----------
-        logical_id: str
+        logical_id : str
             This is the logical id of the resource in question
-        resource_attributes: str
+        resource_attributes : str
             This is the attribute required. By default, it is a REF type
 
         Returns
-        --------
-        This returns the translated item if it already exists
+        -------
+
 
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
@@ -294,39 +294,50 @@ class IntrinsicsSymbolTable:
 
     @staticmethod
     def get_availability_zone(region):
-        """
-        This gets the availability zone from the the specified region
+        """This gets the availability zone from the the specified region
 
         Parameters
-        -----------
-        region: str
-            The specified region from the SymbolTable region
+        ----------
+        region :
 
-        Return
+
+        Returns
         -------
-        The list of availability zones for the specified region
+
+
         """
         return IntrinsicsSymbolTable.REGIONS.get(region)
 
     @staticmethod
     def handle_pseudo_account_id():
-        """
-        This gets a default account id from SamBaseProvider.
-        Return
+        """This gets a default account id from SamBaseProvider.
+
+        Parameters
+        ----------
+
+        Returns
         -------
-        A pseudo account id
+        type
+            -------
+            A pseudo account id
+
         """
         return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_ACCOUNT_ID)
 
     def handle_pseudo_region(self):
-        """
-        Gets the region from the environment and defaults to a the default region from the global variables.
+        """Gets the region from the environment and defaults to a the default region from the global variables.
 
         This is only run if it is not specified by the logical_id_translator as a default.
 
-        Return
+        Parameters
+        ----------
+
+        Returns
         -------
-        The region from the environment or a default one
+        type
+            -------
+            The region from the environment or a default one
+
         """
         return (
             self.logical_id_translator.get(IntrinsicsSymbolTable.AWS_REGION)
@@ -335,13 +346,19 @@ class IntrinsicsSymbolTable:
         )
 
     def handle_pseudo_url_prefix(self):
-        """
-        This gets the AWS::UrlSuffix for the intrinsic with the china and regular prefix.
+        """This gets the AWS::UrlSuffix for the intrinsic with the china and regular prefix.
 
         This is only run if it is not specified by the logical_id_translator as a default.
-        Return
+
+        Parameters
+        ----------
+
+        Returns
         -------
-        The url prefix of amazonaws.com or amazonaws.com.cn
+        type
+            -------
+            The url prefix of amazonaws.com or amazonaws.com.cn
+
         """
         aws_region = self.handle_pseudo_region()
         if self.CHINA_PREFIX in aws_region:
@@ -349,14 +366,19 @@ class IntrinsicsSymbolTable:
         return self.DEFAULT_URL_PREFIX
 
     def handle_pseudo_partition(self):
-        """
-        This resolves AWS::Partition so that the correct partition is returned depending on the region.
+        """This resolves AWS::Partition so that the correct partition is returned depending on the region.
 
         This is only run if it is not specified by the logical_id_translator as a default.
 
-        Return
+        Parameters
+        ----------
+
+        Returns
         -------
-        A pseudo partition like aws-cn or aws or aws-gov
+        type
+            -------
+            A pseudo partition like aws-cn or aws or aws-gov
+
         """
         aws_region = self.handle_pseudo_region()
         if self.CHINA_PREFIX in aws_region:
@@ -367,38 +389,41 @@ class IntrinsicsSymbolTable:
 
     @staticmethod
     def handle_pseudo_stack_id():
-        """
-        This resolves AWS::StackId by using the SamBaseProvider as the default value.
+        """This resolves AWS::StackId by using the SamBaseProvider as the default value.
 
         This is only run if it is not specified by the logical_id_translator as a default.
 
-        Return
+        Parameters
+        ----------
+
+        Returns
         -------
-        A randomized string
+        type
+            -------
+            A randomized string
+
         """
         return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_ID)
 
     @staticmethod
     def handle_pseudo_stack_name():
-        """
-        This resolves AWS::StackName by using the SamBaseProvider as the default value.
+        """This resolves AWS::StackName by using the SamBaseProvider as the default value.
 
         This is only run if it is not specified by the logical_id_translator as a default.
 
-        Return
+        Parameters
+        ----------
+
+        Returns
         -------
-        A randomized string
+        type
+            -------
+            A randomized string
+
         """
         return IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.get(IntrinsicsSymbolTable.AWS_STACK_NAME)
 
     @staticmethod
     def handle_pseudo_no_value():
-        """
-        This resolves AWS::NoValue so that it returns the python None
-
-        Returns
-        --------
-        None
-        :return:
-        """
+        """This resolves AWS::NoValue so that it returns the python None"""
         return None

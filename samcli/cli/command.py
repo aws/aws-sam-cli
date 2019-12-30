@@ -27,8 +27,7 @@ _SAM_CLI_COMMAND_PACKAGES = [
 
 
 class BaseCommand(click.MultiCommand):
-    """
-    Dynamically loads commands. It takes a list of names of Python packages representing the commands, loads
+    """Dynamically loads commands. It takes a list of names of Python packages representing the commands, loads
     these packages, and initializes them as Click commands. If a command "hello" is available in a Python package
     "foo.bar.hello", then this package name is passed to this class to load the command. This allows commands
     to be written as standalone packages that are dynamically initialized by the CLI.
@@ -45,6 +44,13 @@ class BaseCommand(click.MultiCommand):
 
     By convention, the name of last module in the package's name is the command's name. ie. A package of "foo.bar.baz"
     will produce a command name "baz".
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, *args, cmd_packages=None, **kwargs):
@@ -65,12 +71,19 @@ class BaseCommand(click.MultiCommand):
 
     @staticmethod
     def _set_commands(package_names):
-        """
-        Extract the command name from package name. Last part of the module path is the command
+        """Extract the command name from package name. Last part of the module path is the command
         ie. if path is foo.bar.baz, then "baz" is the command name.
 
-        :param package_names: List of package names
-        :return: Dictionary with command name as key and the package name as value.
+        Parameters
+        ----------
+        package_names :
+            List of package names
+
+        Returns
+        -------
+        type
+            Dictionary with command name as key and the package name as value.
+
         """
 
         commands = OrderedDict()
@@ -82,21 +95,36 @@ class BaseCommand(click.MultiCommand):
         return commands
 
     def list_commands(self, ctx):
-        """
-        Overrides a method from Click that returns a list of commands available in the CLI.
+        """Overrides a method from Click that returns a list of commands available in the CLI.
 
-        :param ctx: Click context
-        :return: List of commands available in the CLI
+        Parameters
+        ----------
+        ctx :
+            Click context
+
+        Returns
+        -------
+        type
+            List of commands available in the CLI
+
         """
         return list(self._commands.keys())
 
     def get_command(self, ctx, cmd_name):
-        """
-        Overrides method from ``click.MultiCommand`` that returns Click CLI object for given command name, if found.
+        """Overrides method from ``click.MultiCommand`` that returns Click CLI object for given command name, if found.
 
-        :param ctx: Click context
-        :param cmd_name: Top-level command name
-        :return: Click object representing the command
+        Parameters
+        ----------
+        ctx :
+            Click context
+        cmd_name :
+            Top-level command name
+
+        Returns
+        -------
+        type
+            Click object representing the command
+
         """
         if cmd_name not in self._commands:
             logger.error("Command %s not available", cmd_name)

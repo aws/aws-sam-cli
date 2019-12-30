@@ -22,10 +22,16 @@ from samcli.lib.schemas.schemas_constants import (
 
 
 def get_schema_template_details(schemas_api_caller):
-    """
-    Calls schemas APIs to fetch available selection and returns schema details based on user selection.
-    :param schemas_api_caller:
-    :return:
+    """Calls schemas APIs to fetch available selection and returns schema details based on user selection.
+
+    Parameters
+    ----------
+    schemas_api_caller :
+        return:
+
+    Returns
+    -------
+
     """
     registry_name = _get_registry_cli_choice(schemas_api_caller)
     schema_full_name = _get_schema_cli_choice(schemas_api_caller, registry_name)
@@ -43,7 +49,17 @@ def get_schema_template_details(schemas_api_caller):
 
 
 def _get_registry_cli_choice(schemas_api_caller):
-    """ Returns registry choice if one registry is present otherwise prompt for selection """
+    """Returns registry choice if one registry is present otherwise prompt for selection
+
+    Parameters
+    ----------
+    schemas_api_caller :
+
+
+    Returns
+    -------
+
+    """
     registries = _fetch_available_registries(schemas_api_caller, dict(), None)
     registry_pages = registries["registry_pages"]
     # If only one registry don't prompt for choice
@@ -87,7 +103,19 @@ def _prompt_for_registry_choice(
 
 
 def _get_schema_cli_choice(schemas_api_caller, registry_name):
-    """ Returns registry registry choice if one registry is present otherwise prompt for  selection """
+    """Returns registry registry choice if one registry is present otherwise prompt for  selection
+
+    Parameters
+    ----------
+    schemas_api_caller :
+
+    registry_name :
+
+
+    Returns
+    -------
+
+    """
     schemas = _fetch_available_schemas(schemas_api_caller, registry_name, dict(), None)
     schema_pages = schemas["schema_pages"]
     # If only one schema don't prompt for choice
@@ -131,7 +159,23 @@ def _prompt_for_schemas_choice(
 
 
 def _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, next_token):
-    """ calls schemas api fetch schemas for given registry. Two CLI pages are fetched at a time."""
+    """calls schemas api fetch schemas for given registry. Two CLI pages are fetched at a time.
+
+    Parameters
+    ----------
+    schemas_api_caller :
+
+    registry_name :
+
+    schema_pages :
+
+    next_token :
+
+
+    Returns
+    -------
+
+    """
     list_schemas_response = schemas_api_caller.list_schemas(registry_name, next_token, PAGE_LIMIT)
     schemas = list_schemas_response["schemas"]
 
@@ -144,7 +188,21 @@ def _fetch_available_schemas(schemas_api_caller, registry_name, schema_pages, ne
 
 
 def _fetch_available_registries(schemas_api_caller, registry_pages, next_token):
-    """ calls schemas api to fetch registries. Two CLI pages are fetched at a time. """
+    """calls schemas api to fetch registries. Two CLI pages are fetched at a time.
+
+    Parameters
+    ----------
+    schemas_api_caller :
+
+    registry_pages :
+
+    next_token :
+
+
+    Returns
+    -------
+
+    """
     list_registries_response = schemas_api_caller.list_registries(next_token, PAGE_LIMIT)
     registries = list_registries_response["registries"]
 
@@ -160,8 +218,20 @@ def _fetch_available_registries(schemas_api_caller, registry_pages, next_token):
 
 
 def _construct_cli_page(items, item_per_page):
-    """ Responsible for splitting items into CLI pages. Currently CLI pages are list of dictionary [0:{0:s1, 1:s2: 3:s3}, 1: {4:s4, 5:s5: 6:s6}]
-     We maintain the page detail and item index details. """
+    """Responsible for splitting items into CLI pages. Currently CLI pages are list of dictionary [0:{0:s1, 1:s2: 3:s3}, 1: {4:s4, 5:s5: 6:s6}]
+     We maintain the page detail and item index details.
+
+    Parameters
+    ----------
+    items :
+
+    item_per_page :
+
+
+    Returns
+    -------
+
+    """
     pages = [
         items[i * item_per_page : (i + 1) * item_per_page]
         for i in range((len(items) + item_per_page - 1) // item_per_page)
@@ -176,7 +246,17 @@ def _construct_cli_page(items, item_per_page):
 
 
 def get_schemas_template_parameter(schema_template_details):
-    """ Schemas cookiecutter template parameter mapping """
+    """Schemas cookiecutter template parameter mapping
+
+    Parameters
+    ----------
+    schema_template_details :
+
+
+    Returns
+    -------
+
+    """
     return {
         SCHEMAS_REGISTRY: schema_template_details["registry_name"],
         SCHEMA_NAME: schema_template_details["schema_root_name"],

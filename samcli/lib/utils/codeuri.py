@@ -11,20 +11,20 @@ PRESENT_DIR = "."
 
 
 def resolve_code_path(cwd, codeuri):
-    """
-    Returns path to the function code resolved based on current working directory.
+    """Returns path to the function code resolved based on current working directory.
 
     Parameters
     ----------
-    cwd str
+    cwd str :
         Current working directory
-    codeuri
+    codeuri :
         CodeURI of the function. This should contain the path to the function code
+    cwd :
+
 
     Returns
     -------
-    str
-        Absolute path to the function code
+
 
     """
     LOG.debug("Resolving code path. Cwd=%s, CodeUri=%s", cwd, codeuri)

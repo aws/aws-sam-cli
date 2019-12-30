@@ -36,9 +36,7 @@ Function = namedtuple(
 
 
 class LayerVersion:
-    """
-    Represents the LayerVersion Resource for AWS Lambda
-    """
+    """Represents the LayerVersion Resource for AWS Lambda"""
 
     LAYER_NAME_DELIMETER = "-"
 
@@ -63,20 +61,22 @@ class LayerVersion:
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template, arn):
-        """
-        Parses out the Layer version from the arn
+        """Parses out the Layer version from the arn
 
         Parameters
         ----------
-        is_defined_within_template bool
+        is_defined_within_template bool :
             True if the resource is a Ref to a resource otherwise False
-        arn str
+        arn str :
             ARN of the Resource
+        is_defined_within_template :
+
+        arn :
+
 
         Returns
         -------
-        int
-            The Version of the LayerVersion
+
 
         """
 
@@ -93,23 +93,26 @@ class LayerVersion:
 
     @staticmethod
     def _compute_layer_name(is_defined_within_template, arn):
-        """
-        Computes a unique name based on the LayerVersion Arn
+        """Computes a unique name based on the LayerVersion Arn
 
         Format:
         <Name of the LayerVersion>-<Version of the LayerVersion>-<sha256 of the arn>
 
         Parameters
         ----------
-        is_defined_within_template bool
+        is_defined_within_template bool :
             True if the resource is a Ref to a resource otherwise False
-        arn str
+        arn str :
             ARN of the Resource
+        is_defined_within_template :
+
+        arn :
+
 
         Returns
         -------
-        str
-            A unique name that represents the LayerVersion
+
+
         """
 
         # If the Layer is defined in the template, the arn will represent the LogicalId of the LayerVersion Resource,
@@ -132,16 +135,18 @@ class LayerVersion:
 
     @property
     def name(self):
-        """
-        A unique name from the arn or logical id of the Layer
+        """A unique name from the arn or logical id of the Layer
 
         A LayerVersion Arn example:
         arn:aws:lambda:region:account-id:layer:layer-name:version
 
+        Parameters
+        ----------
+
         Returns
         -------
-        str
-            A name of the Layer that is used on the system to uniquely identify the layer
+
+
         """
         return self._name
 
@@ -170,24 +175,36 @@ class LayerVersion:
 
 
 class FunctionProvider:
-    """
-    Abstract base class of the function provider.
-    """
+    """Abstract base class of the function provider."""
 
     def get(self, name):
-        """
-        Given name of the function, this method must return the Function object
+        """Given name of the function, this method must return the Function object
 
-        :param string name: Name of the function
-        :return Function: namedtuple containing the Function information
+        Parameters
+        ----------
+        string :
+            name: Name of the function
+            :return Function: namedtuple containing the Function information
+        name :
+
+
+        Returns
+        -------
+
         """
         raise NotImplementedError("not implemented")
 
     def get_all(self):
-        """
-        Yields all the Lambda functions available in the provider.
+        """Yields all the Lambda functions available in the provider.
 
         :yields Function: namedtuple containing the function information
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         raise NotImplementedError("not implemented")
 
@@ -234,15 +251,19 @@ _CorsTuple.__new__.__defaults__ = (
 class Cors(_CorsTuple):
     @staticmethod
     def cors_to_headers(cors):
-        """
-        Convert CORS object to headers dictionary
+        """Convert CORS object to headers dictionary
+
         Parameters
         ----------
-        cors list(samcli.commands.local.lib.provider.Cors)
-            CORS configuration objcet
+        cors list(samcli.commands.local.lib.provider.Cors) :
+
+        cors :
+
+
         Returns
         -------
-            Dictionary with CORS headers
+
+
         """
         if not cors:
             return {}
@@ -258,14 +279,18 @@ class Cors(_CorsTuple):
 
 
 class AbstractApiProvider:
-    """
-    Abstract base class to return APIs and the functions they route to
-    """
+    """Abstract base class to return APIs and the functions they route to"""
 
     def get_all(self):
-        """
-        Yields all the APIs available.
+        """Yields all the APIs available.
 
         :yields Api: namedtuple containing the API information
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         raise NotImplementedError("not implemented")

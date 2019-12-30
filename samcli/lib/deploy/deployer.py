@@ -76,11 +76,18 @@ class Deployer:
         self.deploy_color = DeployColor()
 
     def has_stack(self, stack_name):
-        """
-        Checks if a CloudFormation stack with given name exists
+        """Checks if a CloudFormation stack with given name exists
 
-        :param stack_name: Name or ID of the stack
-        :return: True if stack exists. False otherwise
+        Parameters
+        ----------
+        stack_name :
+            Name or ID of the stack
+
+        Returns
+        -------
+        type
+            True if stack exists. False otherwise
+
         """
         try:
             resp = self._client.describe_stacks(StackName=stack_name)
@@ -119,15 +126,30 @@ class Deployer:
     def create_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
     ):
-        """
-        Call Cloudformation to create a changeset and wait for it to complete
+        """Call Cloudformation to create a changeset and wait for it to complete
 
-        :param stack_name: Name or ID of stack
-        :param cfn_template: CloudFormation template string
-        :param parameter_values: Template parameters object
-        :param capabilities: Array of capabilities passed to CloudFormation
-        :param tags: Array of tags passed to CloudFormation
-        :return:
+        Parameters
+        ----------
+        stack_name :
+            Name or ID of stack
+        cfn_template :
+            CloudFormation template string
+        parameter_values :
+            Template parameters object
+        capabilities :
+            Array of capabilities passed to CloudFormation
+        tags :
+            Array of tags passed to CloudFormation
+        role_arn :
+
+        notification_arns :
+
+        s3_uploader :
+
+
+        Returns
+        -------
+
         """
         if not self.has_stack(stack_name):
             changeset_type = "CREATE"
@@ -198,12 +220,22 @@ class Deployer:
         table_header=DESCRIBE_CHANGESET_TABLE_HEADER_NAME,
     )
     def describe_changeset(self, change_set_id, stack_name, **kwargs):
-        """
-        Call Cloudformation to describe a changeset
+        """Call Cloudformation to describe a changeset
 
-        :param change_set_id: ID of the changeset
-        :param stack_name: Name of the CloudFormation stack
-        :return: dictionary of changes described in the changeset.
+        Parameters
+        ----------
+        change_set_id :
+            ID of the changeset
+        stack_name :
+            Name of the CloudFormation stack
+        **kwargs :
+
+
+        Returns
+        -------
+        type
+            dictionary of changes described in the changeset.
+
         """
         paginator = self._client.get_paginator("describe_change_set")
         response_iterator = paginator.paginate(ChangeSetName=change_set_id, StackName=stack_name)
@@ -251,12 +283,20 @@ class Deployer:
         return changes
 
     def wait_for_changeset(self, changeset_id, stack_name):
-        """
-        Waits until the changeset creation completes
+        """Waits until the changeset creation completes
 
-        :param changeset_id: ID or name of the changeset
-        :param stack_name:   Stack name
-        :return: Latest status of the create-change-set operation
+        Parameters
+        ----------
+        changeset_id :
+            ID or name of the changeset
+        stack_name :
+            Stack name
+
+        Returns
+        -------
+        type
+            Latest status of the create-change-set operation
+
         """
         sys.stdout.write("\nWaiting for changeset to be created..\n")
         sys.stdout.flush()
@@ -285,12 +325,20 @@ class Deployer:
             )
 
     def execute_changeset(self, changeset_id, stack_name):
-        """
-        Calls CloudFormation to execute changeset
+        """Calls CloudFormation to execute changeset
 
-        :param changeset_id: ID of the changeset
-        :param stack_name: Name or ID of the stack
-        :return: Response from execute-change-set call
+        Parameters
+        ----------
+        changeset_id :
+            ID of the changeset
+        stack_name :
+            Name or ID of the stack
+
+        Returns
+        -------
+        type
+            Response from execute-change-set call
+
         """
         try:
             return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
@@ -298,10 +346,18 @@ class Deployer:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex))
 
     def get_last_event_time(self, stack_name):
-        """
-        Finds the last event time stamp thats present for the stack, if not get the current time
-        :param stack_name: Name or ID of the stack
-        :return: unix epoch
+        """Finds the last event time stamp thats present for the stack, if not get the current time
+
+        Parameters
+        ----------
+        stack_name :
+            Name or ID of the stack
+
+        Returns
+        -------
+        type
+            unix epoch
+
         """
         try:
             return utc_to_timestamp(
@@ -316,11 +372,20 @@ class Deployer:
         table_header=DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME,
     )
     def describe_stack_events(self, stack_name, time_stamp_marker, **kwargs):
-        """
-        Calls CloudFormation to get current stack events
-        :param stack_name: Name or ID of the stack
-        :param time_stamp_marker: last event time on the stack to start streaming events from.
-        :return:
+        """Calls CloudFormation to get current stack events
+
+        Parameters
+        ----------
+        stack_name :
+            Name or ID of the stack
+        time_stamp_marker :
+            last event time on the stack to start streaming events from.
+        **kwargs :
+
+
+        Returns
+        -------
+
         """
 
         stack_change_in_progress = True

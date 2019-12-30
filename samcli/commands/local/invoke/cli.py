@@ -105,8 +105,46 @@ def do_cli(  # pylint: disable=R0914
     force_image_build,
     parameter_overrides,
 ):
-    """
-    Implementation of the ``cli`` method, just separated out for unit testing purposes
+    """Implementation of the ``cli`` method, just separated out for unit testing purposes
+
+    Parameters
+    ----------
+    # pylint: disable :
+         (Default value = R0914ctx)
+    function_identifier :
+
+    template :
+
+    event :
+
+    no_event :
+
+    env_vars :
+
+    debug_port :
+
+    debug_args :
+
+    debugger_path :
+
+    docker_volume_basedir :
+
+    docker_network :
+
+    log_file :
+
+    layer_cache_basedir :
+
+    skip_pull_image :
+
+    force_image_build :
+
+    parameter_overrides :
+
+
+    Returns
+    -------
+
     """
 
     from samcli.commands.exceptions import UserException
@@ -167,11 +205,19 @@ def do_cli(  # pylint: disable=R0914
 
 
 def _get_event(event_file_name):
-    """
-    Read the event JSON data from the given file. If no file is provided, read the event from stdin.
+    """Read the event JSON data from the given file. If no file is provided, read the event from stdin.
 
-    :param string event_file_name: Path to event file, or '-' for stdin
-    :return string: Contents of the event file or stdin
+    Parameters
+    ----------
+    string :
+        event_file_name: Path to event file, or '-' for stdin
+        :return string: Contents of the event file or stdin
+    event_file_name :
+
+
+    Returns
+    -------
+
     """
 
     if event_file_name == STDIN_FILE_NAME:

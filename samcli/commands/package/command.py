@@ -14,9 +14,15 @@ SHORT_HELP = "Package an AWS SAM application."
 
 
 def resources_and_properties_help_string():
-    """
-    Total list of resources and their property locations that are supported for `sam package`
+    """Total list of resources and their property locations that are supported for `sam package`
     :return: str
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     return "".join(
         f"\nResource : {resource} | Location : {location}\n".format(resource=resource, location=location)

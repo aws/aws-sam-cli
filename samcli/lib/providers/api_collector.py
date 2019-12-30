@@ -42,29 +42,35 @@ class ApiCollector:
             yield logical_id, self._get_routes(logical_id)
 
     def add_routes(self, logical_id, routes):
-        """
-        Stores the given routes tagged under the given logicalId
+        """Stores the given routes tagged under the given logicalId
+
         Parameters
         ----------
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api or AWS::ApiGateway::RestApi resource
-        routes : list of samcli.commands.local.agiw.local_apigw_service.Route
-            List of routes available in this resource
+        logical_id :
+
+        routes :
+
+
+        Returns
+        -------
+
+
         """
         self._get_routes(logical_id).extend(routes)
 
     def _get_routes(self, logical_id):
-        """
-        Returns the properties of resource with given logical ID. If a resource is not found, then it returns an
+        """Returns the properties of resource with given logical ID. If a resource is not found, then it returns an
         empty data.
+
         Parameters
         ----------
         logical_id : str
-            Logical ID of the resource
+
+
         Returns
         -------
-        samcli.commands.local.lib.Routes
-            Properties object for this resource.
+
+
         """
 
         return self._route_per_resource[logical_id]
@@ -78,12 +84,17 @@ class ApiCollector:
         self._routes = routes
 
     def all_routes(self):
-        """
-        Gets all the routes within the _route_per_resource
+        """Gets all the routes within the _route_per_resource
 
-        Return
+        Parameters
+        ----------
+
+        Returns
         -------
-        All the routes within the _route_per_resource
+        type
+            -------
+            All the routes within the _route_per_resource
+
         """
         routes = []
         for logical_id in self._route_per_resource.keys():
@@ -91,16 +102,21 @@ class ApiCollector:
         return routes
 
     def get_api(self):
-        """
-        Creates the api using the parts from the ApiCollector. The routes are also deduped so that there is no
+        """Creates the api using the parts from the ApiCollector. The routes are also deduped so that there is no
         duplicate routes with the same function name, path, but different method.
 
         The normalised_routes are the routes that have been processed. By default, this will get all the routes.
         However, it can be changed to override the default value of normalised routes such as in SamApiProvider
 
-        Return
+        Parameters
+        ----------
+
+        Returns
         -------
-        An Api object with all the properties
+        type
+            -------
+            An Api object with all the properties
+
         """
         api = Api()
         routes = self.dedupe_function_routes(self.routes)
@@ -114,20 +130,19 @@ class ApiCollector:
 
     @staticmethod
     def normalize_cors_methods(routes, cors):
-        """
-        Adds OPTIONS method to all the route methods if cors exists
+        """Adds OPTIONS method to all the route methods if cors exists
 
         Parameters
-        -----------
-        routes: list(samcli.local.apigw.local_apigw_service.Route)
-            List of Routes
+        ----------
+        routes :
 
-        cors: samcli.commands.local.lib.provider.Cors
-            the cors object for the api
+        cors :
 
-        Return
+
+        Returns
         -------
-        A list of routes without duplicate routes with the same function_name and method
+
+
         """
 
         def add_options_to_route(route):
@@ -139,15 +154,22 @@ class ApiCollector:
 
     @staticmethod
     def dedupe_function_routes(routes):
-        """
-        Remove duplicate routes that have the same function_name and method
+        """Remove duplicate routes that have the same function_name and method
 
         route: list(Route)
             List of Routes
 
-       Return
-       -------
-       A list of routes without duplicate routes with the same function_name and method
+        Parameters
+        ----------
+        routes :
+
+
+        Returns
+        -------
+        type
+            -------
+            A list of routes without duplicate routes with the same function_name and method
+
         """
         grouped_routes = {}
 
@@ -162,19 +184,19 @@ class ApiCollector:
         return list(grouped_routes.values())
 
     def add_binary_media_types(self, logical_id, binary_media_types):
-        """
-        Stores the binary media type configuration for the API with given logical ID
+        """Stores the binary media type configuration for the API with given logical ID
+
         Parameters
         ----------
+        logical_id :
 
-        logical_id : str
-            LogicalId of the AWS::Serverless::Api resource
+        binary_media_types :
 
-        api: samcli.commands.local.lib.provider.Api
-            Instance of the Api which will save all the api configurations
 
-        binary_media_types : list of str
-            List of binary media types supported by this resource
+        Returns
+        -------
+
+
         """
 
         binary_media_types = binary_media_types or []
@@ -189,17 +211,18 @@ class ApiCollector:
 
     @staticmethod
     def normalize_binary_media_type(value):
-        """
-        Converts binary media types values to the canonical format. Ex: image~1gif -> image/gif. If the value is not
+        """Converts binary media types values to the canonical format. Ex: image~1gif -> image/gif. If the value is not
         a string, then this method just returns None
+
         Parameters
         ----------
         value : str
-            Value to be normalized
+
+
         Returns
         -------
-        str or None
-            Normalized value. If the input was not a string, then None is returned
+
+
         """
 
         if not isinstance(value, string_types):

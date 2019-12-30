@@ -13,9 +13,7 @@ LOG = logging.getLogger(__name__)
 
 
 class LambdaUri:
-    """
-    Purely static class that helps you parse Lambda Function Integration URI ARN
-    """
+    """Purely static class that helps you parse Lambda Function Integration URI ARN"""
 
     _FN_SUB = "Fn::Sub"
 
@@ -40,8 +38,7 @@ class LambdaUri:
 
     @staticmethod
     def get_function_name(integration_uri):
-        """
-        Gets the name of the function from the Integration URI ARN. This is a best effort service which returns None
+        """Gets the name of the function from the Integration URI ARN. This is a best effort service which returns None
         if function name could not be parsed. This can happen when the ARN is an intrinsic function which is too
         complex or the ARN is not a Lambda integration.
 
@@ -53,8 +50,8 @@ class LambdaUri:
 
         Returns
         -------
-        basestring or None
-            If the function name could be parsed out of the Integration URI ARN. None, otherwise
+
+
         """
 
         arn = LambdaUri._get_function_arn(integration_uri)
@@ -65,8 +62,7 @@ class LambdaUri:
 
     @staticmethod
     def _get_function_arn(uri_data):
-        """
-        Integration URI can be expressed in various shapes and forms. This method normalizes the Integration URI ARN
+        """Integration URI can be expressed in various shapes and forms. This method normalizes the Integration URI ARN
         and returns the Lambda Function ARN. Here are the different forms of Integration URI ARN:
 
         - String:
@@ -101,8 +97,8 @@ class LambdaUri:
 
         Returns
         -------
-        basestring or None
-            Lambda Function ARN extracted from Integration URI. None, if it cannot get function Arn
+
+
         """
 
         if not uri_data:
@@ -129,8 +125,7 @@ class LambdaUri:
 
     @staticmethod
     def _get_function_name_from_arn(function_arn):
-        """
-        Given the integration ARN, extract the Lambda function name from the ARN. If there
+        """Given the integration ARN, extract the Lambda function name from the ARN. If there
         are stage variables, or other unsupported formats, this function will return None.
 
         Parameters
@@ -140,8 +135,8 @@ class LambdaUri:
 
         Returns
         -------
-        basestring or None
-            Function name of this integration. None if the ARN is not parsable
+
+
         """
 
         if not function_arn:
@@ -171,8 +166,7 @@ class LambdaUri:
 
     @staticmethod
     def _resolve_fn_sub(uri_data):
-        """
-        Tries to resolve an Integration URI which contains Fn::Sub intrinsic function. This method tries to resolve
+        """Tries to resolve an Integration URI which contains Fn::Sub intrinsic function. This method tries to resolve
         and produce a string output.
 
         Example:
@@ -212,10 +206,8 @@ class LambdaUri:
 
         Returns
         -------
-        string
-            Integration URI as a string, if we were able to resolve the Sub intrinsic
-        dict
-            Input data is returned unmodified if we are unable to resolve the intrinsic
+
+
         """
 
         # Try the short form of Fn::Sub syntax where the value is the ARN
@@ -253,18 +245,17 @@ class LambdaUri:
 
     @staticmethod
     def _is_sub_intrinsic(data):
-        """
-        Is this input data a Fn::Sub intrinsic function
+        """Is this input data a Fn::Sub intrinsic function
 
         Parameters
         ----------
-        data
+        data :
             Data to check
 
         Returns
         -------
-        bool
-            True if the data Fn::Sub intrinsic function
+
+
         """
         return isinstance(data, dict) and len(data) == 1 and LambdaUri._FN_SUB in data
 

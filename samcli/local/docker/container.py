@@ -14,13 +14,19 @@ LOG = logging.getLogger(__name__)
 
 
 class Container:
-    """
-    Represents an instance of a Docker container with a specific configuration. The container is not actually created
+    """Represents an instance of a Docker container with a specific configuration. The container is not actually created
     or executed until the appropriate methods are called. Each container instance is uniquely identified by an ID that
     the Docker Daemon creates when the container is started.
 
     NOTE: This class does not download container images. It should be pulled separately and made available before
           creating a container with this class
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     # This frame type value is coming directly from Docker Attach Stream API spec
@@ -74,12 +80,18 @@ class Container:
         self.id = None
 
     def create(self):
-        """
-        Calls Docker API to creates the Docker container instance. Creating the container does *not* run the container.
+        """Calls Docker API to creates the Docker container instance. Creating the container does *not* run the container.
         Use ``start`` method to run the container
 
         :return string: ID of the created container
         :raise RuntimeError: If this method is called after a container already has been created
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         if self.is_created():
@@ -140,9 +152,7 @@ class Container:
         return self.id
 
     def delete(self):
-        """
-        Removes a container that was created earlier.
-        """
+        """Removes a container that was created earlier."""
         if not self.is_created():
             LOG.debug("Container was not created. Skipping deletion")
             return
@@ -164,15 +174,19 @@ class Container:
         self.id = None
 
     def start(self, input_data=None):
-        """
-        Calls Docker API to start the container. The container must be created at the first place to run.
+        """Calls Docker API to start the container. The container must be created at the first place to run.
         It waits for the container to complete, fetches both stdout and stderr logs and returns through the
         given streams.
 
         Parameters
         ----------
-        input_data
-            Optional. Input data sent to the container through container's stdin.
+        input_data :
+             (Default value = None)
+
+        Returns
+        -------
+
+
         """
 
         if input_data:
@@ -224,17 +238,21 @@ class Container:
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):
-        """
-        Based on the data returned from the Container output, via the iterator, write it to the appropriate streams
+        """Based on the data returned from the Container output, via the iterator, write it to the appropriate streams
 
         Parameters
         ----------
-        output_itr: Iterator
-            Iterator returned by the Docker Attach command
-        stdout: samcli.lib.utils.stream_writer.StreamWriter, optional
-            Stream writer to write stdout data from Container into
-        stderr: samcli.lib.utils.stream_writer.StreamWriter, optional
-            Stream writer to write stderr data from the Container into
+        output_itr :
+
+        stdout :
+             (Default value = None)
+        stderr :
+             (Default value = None)
+
+        Returns
+        -------
+
+
         """
 
         # Iterator returns a tuple of (stdout, stderr)
@@ -247,34 +265,60 @@ class Container:
 
     @property
     def network_id(self):
-        """
-        Gets the ID of the network this container connects to
+        """Gets the ID of the network this container connects to
         :return string: ID of the network
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         return self._network_id
 
     @network_id.setter
     def network_id(self, value):
-        """
-        Set the ID of network that this container should connect to
+        """Set the ID of network that this container should connect to
 
-        :param string value: Value of the network ID
+        Parameters
+        ----------
+        string :
+            value: Value of the network ID
+        value :
+
+
+        Returns
+        -------
+
         """
         self._network_id = value
 
     @property
     def image(self):
-        """
-        Returns the image used by this container
+        """Returns the image used by this container
 
         :return string: Name of the container image
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         return self._image
 
     def is_created(self):
-        """
-        Checks if a container exists?
+        """Checks if a container exists?
 
         :return bool: True if the container was created
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         return self.id is not None

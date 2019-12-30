@@ -7,9 +7,7 @@ from samcli import __version__ as SAM_CLI_VERSION
 
 class TestSendInstalledMetric(IntegBase):
     def test_send_installed_metric_on_first_run(self):
-        """
-        On the first run, send the installed metric
-        """
+        """On the first run, send the installed metric"""
         self.unset_config()
 
         with TelemetryServer() as server:
@@ -53,9 +51,15 @@ class TestSendInstalledMetric(IntegBase):
             self.assertEqual(request["data"], expected_data)
 
     def test_must_not_send_installed_metric_when_prompt_is_disabled(self):
-        """
-        If the Telemetry Prompt is not displayed, we must *not* send installed metric, even if Telemetry is enabled.
+        """If the Telemetry Prompt is not displayed, we must *not* send installed metric, even if Telemetry is enabled.
         This happens on all subsequent runs.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         # Enable Telemetry. This will skip the Telemetry Prompt.
@@ -75,9 +79,7 @@ class TestSendInstalledMetric(IntegBase):
             self.assertEqual(0, len(requests), "'installed' metric should NOT be sent")
 
     def test_must_not_send_installed_metric_on_second_run(self):
-        """
-        On first run, send installed metric. On second run, must *not* send installed metric
-        """
+        """On first run, send installed metric. On second run, must *not* send installed metric"""
 
         # Unset config to show the prompt
         self.unset_config()

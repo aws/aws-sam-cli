@@ -68,27 +68,30 @@ class UnsupportedRuntimeException(Exception):
 
 
 def get_workflow_config(runtime, code_dir, project_dir):
-    """
-    Get a workflow config that corresponds to the runtime provided. This method examines contents of the project
+    """Get a workflow config that corresponds to the runtime provided. This method examines contents of the project
     and code directories to determine the most appropriate workflow for the given runtime. Currently the decision is
     based on the presence of a supported manifest file. For runtimes that have more than one workflow, we choose a
     workflow by examining ``code_dir`` followed by ``project_dir`` for presence of a supported manifest.
 
     Parameters
     ----------
-    runtime str
+    runtime str :
         The runtime of the config
-
-    code_dir str
+    code_dir str :
         Directory where Lambda function code is present
-
-    project_dir str
+    project_dir str :
         Root of the Serverless application project.
+    runtime :
+
+    code_dir :
+
+    project_dir :
+
 
     Returns
     -------
-    namedtuple(Capability)
-        namedtuple that represents the Builder Workflow Config
+
+
     """
 
     selectors_by_runtime = {
@@ -135,18 +138,19 @@ def get_workflow_config(runtime, code_dir, project_dir):
 
 
 def supports_build_in_container(config):
-    """
-    Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
+    """Given a workflow config, this method provides a boolean on whether the workflow can run within a container or not.
 
     Parameters
     ----------
-    config namedtuple(Capability)
+    config namedtuple(Capability) :
         Config specifying the particular build workflow
+    config :
+
 
     Returns
     -------
-    tuple(bool, str)
-        True, if this workflow can be built inside a container. False, along with a reason message if it cannot be.
+
+
     """
 
     def _key(c):
@@ -171,9 +175,7 @@ def supports_build_in_container(config):
 
 
 class BasicWorkflowSelector:
-    """
-    Basic workflow selector that returns the first available configuration in the given list of configurations
-    """
+    """Basic workflow selector that returns the first available configuration in the given list of configurations"""
 
     def __init__(self, configs):
 
@@ -183,30 +185,41 @@ class BasicWorkflowSelector:
         self.configs = configs
 
     def get_config(self, code_dir, project_dir):
-        """
-        Returns the first available configuration
+        """Returns the first available configuration
+
+        Parameters
+        ----------
+        code_dir :
+
+        project_dir :
+
+
+        Returns
+        -------
+
         """
         return self.configs[0]
 
 
 class ManifestWorkflowSelector(BasicWorkflowSelector):
-    """
-    Selects a workflow by examining the directories for presence of a supported manifest
-    """
+    """Selects a workflow by examining the directories for presence of a supported manifest"""
 
     def get_config(self, code_dir, project_dir):
-        """
-        Finds a configuration by looking for a manifest in the given directories.
+        """Finds a configuration by looking for a manifest in the given directories.
+
+        Parameters
+        ----------
+        code_dir :
+
+        project_dir :
+
 
         Returns
         -------
         samcli.lib.build.workflow_config.CONFIG
             A supported configuration if one is found
 
-        Raises
-        ------
-        ValueError
-            If none of the supported manifests files are found
+
         """
 
         # Search for manifest first in code directory and then in the project directory.

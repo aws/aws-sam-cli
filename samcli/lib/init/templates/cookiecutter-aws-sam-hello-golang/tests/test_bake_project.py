@@ -6,9 +6,16 @@ import subprocess
 
 @contextmanager
 def inside_dir(dirpath):
-    """
-    Execute code from inside the given directory
-    :param dirpath: String, path of the directory the command is being run.
+    """Execute code from inside the given directory
+
+    Parameters
+    ----------
+    dirpath :
+        String, path of the directory the command is being run.
+
+    Returns
+    -------
+
     """
     old_path = os.getcwd()
     try:

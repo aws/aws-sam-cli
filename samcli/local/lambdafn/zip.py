@@ -17,19 +17,21 @@ LOG = logging.getLogger(__name__)
 
 
 def unzip(zip_file_path, output_dir, permission=None):
-    """
-    Unzip the given file into the given directory while preserving file permissions in the process.
+    """Unzip the given file into the given directory while preserving file permissions in the process.
 
     Parameters
     ----------
-    zip_file_path : str
-        Path to the zip file
+    zip_file_path :
 
-    output_dir : str
-        Path to the directory where the it should be unzipped to
+    output_dir :
 
-    permission : octal int
-        Permission to set
+    permission :
+         (Default value = None)
+
+    Returns
+    -------
+
+
     """
 
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
@@ -48,15 +50,18 @@ def unzip(zip_file_path, output_dir, permission=None):
 
 
 def _override_permissions(path, permission):
-    """
-    Forcefully override the permissions on the path
+    """Forcefully override the permissions on the path
 
     Parameters
     ----------
-    path str
-        Path where the file or directory
-    permission octal int
-        Permission to set
+    path :
+
+    permission :
+
+
+    Returns
+    -------
+
 
     """
     if permission:
@@ -64,16 +69,19 @@ def _override_permissions(path, permission):
 
 
 def _set_permissions(zip_file_info, extracted_path):
-    """
-    Sets permissions on the extracted file by reading the ``external_attr`` property of given file info.
+    """Sets permissions on the extracted file by reading the ``external_attr`` property of given file info.
 
     Parameters
     ----------
-    zip_file_info : zipfile.ZipInfo
-        Object containing information about a file within a zip archive
+    zip_file_info :
 
-    extracted_path : str
-        Path where the file has been extracted to
+    extracted_path :
+
+
+    Returns
+    -------
+
+
     """
 
     # Permission information is stored in first two bytes.
@@ -88,19 +96,23 @@ def _set_permissions(zip_file_info, extracted_path):
 
 
 def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
-    """
-    Download the LayerVersion Zip to the Layer Pkg Cache
+    """Download the LayerVersion Zip to the Layer Pkg Cache
 
     Parameters
     ----------
-    uri str
-        Uri to download from
-    layer_zip_path str
-        Path to where the content from the uri should be downloaded to
-    unzip_output_dir str
-        Path to unzip the zip to
-    progressbar_label str
-        Label to use in the Progressbar
+    uri :
+
+    layer_zip_path :
+
+    unzip_output_dir :
+
+    progressbar_label :
+
+
+    Returns
+    -------
+
+
     """
     try:
         get_request = requests.get(uri, stream=True, verify=os.environ.get("AWS_CA_BUNDLE", True))

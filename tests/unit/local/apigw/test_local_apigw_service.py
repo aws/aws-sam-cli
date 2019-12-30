@@ -239,9 +239,15 @@ class TestApiGatewayService(TestCase):
         self.assertEqual(self.service._get_current_route(request_mock), "function")
 
     def test_get_current_route_keyerror(self):
-        """
-        When the a HTTP request for given method+path combination is allowed by Flask but not in the list of routes,
+        """When the a HTTP request for given method+path combination is allowed by Flask but not in the list of routes,
         something is messed up. Flask should be configured only from the list of routes.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         request_mock = Mock()

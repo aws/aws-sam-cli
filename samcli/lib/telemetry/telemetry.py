@@ -19,14 +19,7 @@ LOG = logging.getLogger(__name__)
 
 class Telemetry:
     def __init__(self, url=None):
-        """
-        Initialize the Telemetry object.
-
-        Parameters
-        ----------
-        url : str
-            Optional, URL where the metrics should be published to
-        """
+        """Initialize the Telemetry object."""
         self._session_id = self._default_session_id()
 
         if not self._session_id:
@@ -37,36 +30,40 @@ class Telemetry:
         LOG.debug("Telemetry endpoint configured to be %s", self._url)
 
     def emit(self, metric_name, attrs):
-        """
-        Emits the metric with given name and the attributes and send it immediately to the HTTP backend. This method
+        """Emits the metric with given name and the attributes and send it immediately to the HTTP backend. This method
         will return immediately without waiting for response from the backend. Before sending, this method will
         also update ``attrs`` with some common attributes used by all metrics.
 
         Parameters
         ----------
-        metric_name : str
-            Name of the metric to publish
+        metric_name :
 
-        attrs : dict
-            Attributes sent along with the metric
+        attrs :
+
+
+        Returns
+        -------
+
+
         """
         attrs = self._add_common_metric_attributes(attrs)
 
         self._send({metric_name: attrs})
 
     def _send(self, metric, wait_for_response=False):
-        """
-        Serializes the metric data to JSON and sends to the backend.
+        """Serializes the metric data to JSON and sends to the backend.
 
         Parameters
         ----------
+        metric :
 
-        metric : dict
-            Dictionary of metric data to send to backend.
+        wait_for_response :
+             (Default value = False)
 
-        wait_for_response : bool
-            If set to True, this method will wait until the HTTP server returns a response. If not, it will return
-            immediately after the request is sent.
+        Returns
+        -------
+
+
         """
 
         if not self._url:
@@ -102,9 +99,7 @@ class Telemetry:
         return attrs
 
     def _default_session_id(self):
-        """
-        Get the default SessionId from Click Context.
-        """
+        """Get the default SessionId from Click Context."""
         ctx = Context.get_current_context()
         if ctx:
             return ctx.session_id
@@ -112,16 +107,18 @@ class Telemetry:
         return None
 
     def _get_execution_environment(self):
-        """
-        Returns the environment in which SAM CLI is running. Possible options are:
+        """Returns the environment in which SAM CLI is running. Possible options are:
 
         CLI (default) - SAM CLI was executed from terminal or a script.
         IDEToolkit    - SAM CLI was executed by IDE Toolkit
         CodeBuild     - SAM CLI was executed from within CodeBuild
 
+        Parameters
+        ----------
+
         Returns
         -------
-        str
-            Name of the environment where SAM CLI is executed in.
+
+
         """
         return "CLI"

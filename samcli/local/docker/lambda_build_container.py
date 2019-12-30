@@ -12,10 +12,16 @@ LOG = logging.getLogger(__name__)
 
 
 class LambdaBuildContainer(Container):
-    """
-    Class to manage Build containers that are capable of building AWS Lambda functions.
+    """Class to manage Build containers that are capable of building AWS Lambda functions.
     This container mounts necessary folders, issues a command to the Lambda Builder CLI,
     and if the build was successful, copies back artifacts to the host filesystem
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     _LAMBCI_IMAGE_REPO_NAME = "lambci/lambda"
@@ -147,21 +153,19 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _get_container_dirs(source_dir, manifest_dir):
-        """
-        Provides paths to directories within the container that is required by the builder
+        """Provides paths to directories within the container that is required by the builder
 
         Parameters
         ----------
         source_dir : str
             Path to the function source code
-
         manifest_dir : str
             Path to the directory containing manifest
 
         Returns
         -------
-        dict
-            Contains paths to source, artifacts, scratch & manifest directories
+
+
         """
         base = "/tmp/samcli"
         result = {
@@ -180,8 +184,7 @@ class LambdaBuildContainer(Container):
 
     @staticmethod
     def _convert_to_container_dirs(host_paths_to_convert, host_to_container_path_mapping):
-        """
-        Use this method to convert a list of host paths to a list of equivalent paths within the container
+        """Use this method to convert a list of host paths to a list of equivalent paths within the container
         where the given host path is mounted. This is necessary when SAM CLI needs to pass path information to
         the Lambda Builder running within the container.
 
@@ -195,14 +198,13 @@ class LambdaBuildContainer(Container):
         ----------
         host_paths_to_convert : list
             List of paths in host that needs to be converted
-
         host_to_container_path_mapping : dict
             Mapping of paths in host to the equivalent paths within the container
 
         Returns
         -------
-        list
-            Equivalent paths within the container
+
+
         """
 
         if not host_paths_to_convert:

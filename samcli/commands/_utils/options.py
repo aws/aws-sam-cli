@@ -20,15 +20,26 @@ LOG = logging.getLogger(__name__)
 
 
 def get_or_default_template_file_name(ctx, param, provided_value, include_build):
-    """
-    Default value for the template file name option is more complex than what Click can handle.
+    """Default value for the template file name option is more complex than what Click can handle.
     This method either returns user provided file name or one of the two default options (template.yaml/template.yml)
     depending on the file that exists
 
-    :param ctx: Click Context
-    :param param: Param name
-    :param provided_value: Value provided by Click. It could either be the default value or provided by user.
-    :return: Actual value to be used in the CLI
+    Parameters
+    ----------
+    ctx :
+        Click Context
+    param :
+        Param name
+    provided_value :
+        Value provided by Click. It could either be the default value or provided by user.
+    include_build :
+
+
+    Returns
+    -------
+    type
+        Actual value to be used in the CLI
+
     """
 
     original_template_path = os.path.abspath(provided_value)
@@ -58,12 +69,22 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
 
 
 def guided_deploy_stack_name(ctx, param, provided_value):
-    """
-    Provide a default value for stack name if invoked with a guided deploy.
-    :param ctx: Click Context
-    :param param: Param name
-    :param provided_value: Value provided by Click, it would be the value provided by the user.
-    :return: Actual value to be used in the CLI
+    """Provide a default value for stack name if invoked with a guided deploy.
+
+    Parameters
+    ----------
+    ctx :
+        Click Context
+    param :
+        Param name
+    provided_value :
+        Value provided by Click, it would be the value provided by the user.
+
+    Returns
+    -------
+    type
+        Actual value to be used in the CLI
+
     """
 
     guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
@@ -80,28 +101,50 @@ def guided_deploy_stack_name(ctx, param, provided_value):
 
 
 def template_common_option(f):
-    """
-    Common ClI option for template
+    """Common ClI option for template
 
-    :param f: Callback passed by Click
-    :return: Callback
+    Parameters
+    ----------
+    f :
+        Callback passed by Click
+
+    Returns
+    -------
+    type
+        Callback
+
     """
     return template_click_option()(f)
 
 
 def template_option_without_build(f):
-    """
-    Common ClI option for template
+    """Common ClI option for template
 
-    :param f: Callback passed by Click
-    :return: Callback
+    Parameters
+    ----------
+    f :
+        Callback passed by Click
+
+    Returns
+    -------
+    type
+        Callback
+
     """
     return template_click_option(include_build=False)(f)
 
 
 def template_click_option(include_build=True):
-    """
-    Click Option for template option
+    """Click Option for template option
+
+    Parameters
+    ----------
+    include_build :
+         (Default value = True)
+
+    Returns
+    -------
+
     """
     return click.option(
         "--template-file",

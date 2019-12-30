@@ -38,10 +38,16 @@ class BuildError(Exception):
 
 
 class ApplicationBuilder:
-    """
-    Class to build an entire application. Currently, this class builds Lambda functions only, but there is nothing that
+    """Class to build an entire application. Currently, this class builds Lambda functions only, but there is nothing that
     is stopping this class from supporting other resource types. Building in context of Lambda functions refer to
     converting source code into artifacts that can be run on AWS Lambda
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self,
@@ -85,14 +91,7 @@ class ApplicationBuilder:
         self._mode = mode
 
     def build(self):
-        """
-        Build the entire application
-
-        Returns
-        -------
-        dict
-            Returns the path to where each resource was built as a map of resource's LogicalId to the path string
-        """
+        """Build the entire application"""
 
         result = {}
 
@@ -106,23 +105,22 @@ class ApplicationBuilder:
         return result
 
     def update_template(self, template_dict, original_template_path, built_artifacts):
-        """
-        Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
+        """Given the path to built artifacts, update the template to point appropriate resource CodeUris to the artifacts
         folder
 
         Parameters
         ----------
-        template_dict
+        template_dict :
+
         original_template_path : str
             Path where the template file will be written to
-
         built_artifacts : dict
             Map of LogicalId of a resource to the path where the the built artifacts for this resource lives
 
         Returns
         -------
-        dict
-            Updated template
+
+
         """
 
         original_dir = os.path.dirname(original_template_path)
@@ -149,25 +147,22 @@ class ApplicationBuilder:
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
-        """
-        Given the function information, this method will build the Lambda function. Depending on the configuration
+        """Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
 
         Parameters
         ----------
         function_name : str
             Name or LogicalId of the function
-
         codeuri : str
             Path to where the code lives
-
         runtime : str
             AWS Lambda function runtime
 
         Returns
         -------
-        str
-            Path to the location where built artifacts are available
+
+
         """
 
         # Create the arguments to pass to the builder

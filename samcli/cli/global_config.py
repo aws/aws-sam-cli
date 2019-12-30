@@ -19,12 +19,18 @@ TELEMETRY_ENABLED_KEY = "telemetryEnabled"
 
 
 class GlobalConfig:
-    """
-    Contains helper methods for global configuration files and values. Handles
+    """Contains helper methods for global configuration files and values. Handles
     configuration file creation, updates, and fetching in a platform-neutral way.
 
     Generally uses '~/.aws-sam/' or 'C:\\Users\\<user>\\AppData\\Roaming\\AWS SAM' as
     the base directory, depending on platform.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, config_dir=None, installation_id=None, telemetry_enabled=None):
@@ -48,13 +54,17 @@ class GlobalConfig:
 
     @property
     def installation_id(self):
-        """
-        Returns the installation UUID for this AWS SAM CLI installation. If the
+        """Returns the installation UUID for this AWS SAM CLI installation. If the
         installation id has not yet been set, it will be set before returning.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
 
         Examples
         --------
-
         >>> gc = GlobalConfig()
         >>> gc.installation_id
         "7b7d4db7-2f54-45ba-bf2f-a2cbc9e74a34"
@@ -62,10 +72,6 @@ class GlobalConfig:
         >>> gc = GlobalConfig()
         >>> gc.installation_id
         None
-
-        Returns
-        -------
-        A string containing the installation UUID, or None in case of an error.
         """
         if self._installation_id:
             return self._installation_id
@@ -77,25 +83,24 @@ class GlobalConfig:
 
     @property
     def telemetry_enabled(self):
-        """
-        Check if telemetry is enabled for this installation. Default value of
+        """Check if telemetry is enabled for this installation. Default value of
         False. It first tries to get value from SAM_CLI_TELEMETRY environment variable. If its not set,
         then it fetches the value from config file.
 
         To enable telemetry, set SAM_CLI_TELEMETRY environment variable equal to integer 1 or string '1'.
         All other values including words like 'True', 'true', 'false', 'False', 'abcd' etc will disable Telemetry
 
-        Examples
-        --------
-
-        >>> gc = GlobalConfig()
-        >>> gc.telemetry_enabled
-        True
+        Parameters
+        ----------
 
         Returns
         -------
-        Boolean flag value. True if telemetry is enabled for this installation,
-        False otherwise.
+
+        Examples
+        --------
+        >>> gc = GlobalConfig()
+        >>> gc.telemetry_enabled
+        True
         """
         if self._telemetry_enabled is not None:
             return self._telemetry_enabled
@@ -114,8 +119,15 @@ class GlobalConfig:
 
     @telemetry_enabled.setter
     def telemetry_enabled(self, value):
-        """
-        Sets the telemetry_enabled flag to the provided boolean value.
+        """Sets the telemetry_enabled flag to the provided boolean value.
+
+        Parameters
+        ----------
+        value :
+
+
+        Returns
+        -------
 
         Examples
         --------
@@ -125,14 +137,6 @@ class GlobalConfig:
         >>> gc.telemetry_enabled = True
         >>> gc.telemetry_enabled
         True
-
-        Raises
-        ------
-        IOError
-            If there are errors opening or writing to the global config file.
-
-        JSONDecodeError
-            If the config file exists, and is not valid JSON.
         """
         self._set_value("telemetryEnabled", value)
         self._telemetry_enabled = value
@@ -160,9 +164,15 @@ class GlobalConfig:
             return self._set_json_cfg(cfg_path, key, value, json_body)
 
     def _create_dir(self):
-        """
-        Creates configuration directory if it does not already exist, otherwise does nothing.
+        """Creates configuration directory if it does not already exist, otherwise does nothing.
         May raise an OSError if we do not have permissions to create the directory.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         self.config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
 
@@ -172,14 +182,22 @@ class GlobalConfig:
         return filepath
 
     def _get_or_set_uuid(self, key):
-        """
-        Special logic method for when we want a UUID to always be present, this
+        """Special logic method for when we want a UUID to always be present, this
         method behaves as a getter with side effects. Essentially, if the value
         is not present, we will set it with a generated UUID.
 
         If we have multiple such values in the future, a possible refactor is
         to just be _get_or_set_value, where we also take a default value as a
         parameter.
+
+        Parameters
+        ----------
+        key :
+
+
+        Returns
+        -------
+
         """
         cfg_value = self._get_value(key)
         if cfg_value is not None:
@@ -187,11 +205,25 @@ class GlobalConfig:
         return self._set_value(key, str(uuid.uuid4()))
 
     def _set_json_cfg(self, filepath, key, value, json_body=None):
-        """
-        Special logic method to add a value to a JSON configuration file. This
+        """Special logic method to add a value to a JSON configuration file. This
         method will write a new version of the file in question, so it will
         either write a new file with only the first config value, or if a JSON
         body is provided, it will upsert starting from that JSON body.
+
+        Parameters
+        ----------
+        filepath :
+
+        key :
+
+        value :
+
+        json_body :
+             (Default value = None)
+
+        Returns
+        -------
+
         """
         json_body = json_body or {}
         json_body[key] = value

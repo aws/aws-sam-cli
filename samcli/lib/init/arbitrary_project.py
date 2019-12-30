@@ -28,8 +28,7 @@ BAD_LOCATION_ERROR_MSG = (
 
 
 def generate_non_cookiecutter_project(location, output_dir):
-    """
-    Uses Cookiecutter APIs to download a project at given ``location`` to the ``output_dir``.
+    """Uses Cookiecutter APIs to download a project at given ``location`` to the ``output_dir``.
     This does *not* run cookiecutter on the downloaded project.
 
     Parameters
@@ -37,10 +36,8 @@ def generate_non_cookiecutter_project(location, output_dir):
     location : str
         Path to where the project is. This supports all formats of location cookiecutter supports
         (ex: zip, git, ssh, hg, local zipfile)
-
         NOTE: This value *cannot* be a local directory. We didn't see a value in simply copying the directory
         contents to ``output_dir`` without any processing.
-
     output_dir : str
         Directory where the project should be downloaded to
 
@@ -49,9 +46,7 @@ def generate_non_cookiecutter_project(location, output_dir):
     str
         Name of the directory where the project was downloaded to.
 
-    Raises
-    ------
-    cookiecutter.exception.CookiecutterException if download failed for some reason
+
     """
 
     LOG.debug("Downloading project from %s to %s", location, output_dir)
@@ -85,8 +80,7 @@ def generate_non_cookiecutter_project(location, output_dir):
 
 
 def _download_and_copy(download_fn, output_dir):
-    """
-    Runs the download function to download files into a temporary directory and then copy the files over to
+    """Runs the download function to download files into a temporary directory and then copy the files over to
     the ``output_dir``
 
     Parameters
@@ -94,13 +88,13 @@ def _download_and_copy(download_fn, output_dir):
     download_fn : function
         Method to be called to download. It needs to accept a parameter called `clone_to_dir`. This will be
         set to the temporary directory
-
     output_dir : str
         Path to the directory where files will be copied to
 
     Returns
     -------
-    output_dir
+
+
     """
 
     with osutils.mkdir_temp() as tempdir:

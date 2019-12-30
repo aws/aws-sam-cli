@@ -16,9 +16,7 @@ except ImportError:
 
 
 class LogsFormatter:
-    """
-    Formats log messages returned by CloudWatch Logs service.
-    """
+    """Formats log messages returned by CloudWatch Logs service."""
 
     def __init__(self, colored, formatter_chain=None):
         """
@@ -48,16 +46,11 @@ class LogsFormatter:
                 ----------
                 event : samcli.lib.logs.event.LogEvent
                     Log event to format
-
                 colored : samcli.lib.utils.colors.Colored
                     Instance of ``Colored`` object to add colors to the message
 
                 Returns
                 -------
-                samcli.lib.logs.event.LogEvent
-                    Object representing the log event that has been formatted. It could be the same event object passed
-                    via input.
-                \"""
 
                 # Do your formatting
 
@@ -81,8 +74,7 @@ class LogsFormatter:
         self.formatter_chain.append(LogsFormatter._pretty_print_event)
 
     def do_format(self, event_iterable):
-        """
-        Formats the given CloudWatch Logs Event dictionary as necessary and returns an iterable that will
+        """Formats the given CloudWatch Logs Event dictionary as necessary and returns an iterable that will
         return the formatted string. This can be used to parse and format the events based on context
         ie. In Lambda Function logs, a formatter may wish to color the "ERROR" keywords red,
         or highlight a filter keyword separately etc.
@@ -98,8 +90,8 @@ class LogsFormatter:
 
         Returns
         -------
-        iterable of string
-            Iterable that returns a formatted event as a string.
+
+
         """
 
         for operation in self.formatter_chain:
@@ -112,8 +104,18 @@ class LogsFormatter:
 
     @staticmethod
     def _pretty_print_event(event, colored):
-        """
-        Basic formatter to convert an event object to string
+        """Basic formatter to convert an event object to string
+
+        Parameters
+        ----------
+        event :
+
+        colored :
+
+
+        Returns
+        -------
+
         """
         event.timestamp = colored.yellow(event.timestamp)
         event.log_stream_name = colored.cyan(event.log_stream_name)
@@ -122,18 +124,34 @@ class LogsFormatter:
 
 
 class LambdaLogMsgFormatters:
-    """
-    Format logs printed by AWS Lambda functions.
+    """Format logs printed by AWS Lambda functions.
 
     This class is a collection of static methods that can be used within a formatter chain.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     @staticmethod
     def colorize_errors(event, colored):
-        """
-        Highlights some commonly known Lambda error cases in red:
+        """Highlights some commonly known Lambda error cases in red:
             - Nodejs process crashes
             - Lambda function timeouts
+
+        Parameters
+        ----------
+        event :
+
+        colored :
+
+
+        Returns
+        -------
+
         """
 
         nodejs_crash_msg = "Process exited before completing request"
@@ -146,16 +164,24 @@ class LambdaLogMsgFormatters:
 
 
 class KeywordHighlighter:
-    """
-    Highlight certain keywords in the log line
-    """
+    """Highlight certain keywords in the log line"""
 
     def __init__(self, keyword=None):
         self.keyword = keyword
 
     def highlight_keywords(self, event, colored):
-        """
-        Highlight the keyword in the log statement by drawing an underline
+        """Highlight the keyword in the log statement by drawing an underline
+
+        Parameters
+        ----------
+        event :
+
+        colored :
+
+
+        Returns
+        -------
+
         """
         if self.keyword:
             highlight = colored.underline(self.keyword)
@@ -165,15 +191,23 @@ class KeywordHighlighter:
 
 
 class JSONMsgFormatter:
-    """
-    Pretty print JSONs within a message
-    """
+    """Pretty print JSONs within a message"""
 
     @staticmethod
     def format_json(event, colored):
-        """
-        If the event message is a JSON string, then pretty print the JSON with 2 indents and sort the keys. This makes
+        """If the event message is a JSON string, then pretty print the JSON with 2 indents and sort the keys. This makes
         it very easy to visually parse and search JSON data
+
+        Parameters
+        ----------
+        event :
+
+        colored :
+
+
+        Returns
+        -------
+
         """
 
         try:

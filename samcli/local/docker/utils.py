@@ -9,17 +9,18 @@ import pathlib
 
 
 def to_posix_path(code_path):
-    """
-    Change the code_path to be of unix-style if running on windows when supplied with an absolute windows path.
+    """Change the code_path to be of unix-style if running on windows when supplied with an absolute windows path.
 
     Parameters
     ----------
     code_path : str
-        Directory in the host operating system that should be mounted within the container.
+
+
     Returns
     -------
     str
-        Posix equivalent of absolute windows style path.
+
+
     Examples
     --------
     >>> to_posix_path('/Users/UserName/sam-app')

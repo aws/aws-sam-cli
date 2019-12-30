@@ -6,9 +6,15 @@ import click
 
 
 class OptionNargs(click.Option):
-    """
-    A custom option class that allows parsing for multiple arguments
+    """A custom option class that allows parsing for multiple arguments
     for an option, when the number of arguments for an option are unknown.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, *args, **kwargs):

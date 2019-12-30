@@ -651,26 +651,25 @@ class TestSamConfigWithOverrides(TestCase):
 
 @contextmanager
 def samconfig_parameters(cmd_names, config_dir=None, env=None, **kwargs):
-    """
-    ContextManager to write a new SAM Config and remove the file after the contextmanager exists
+    """ContextManager to write a new SAM Config and remove the file after the contextmanager exists
 
     Parameters
     ----------
     cmd_names : list(str)
         Name of the full commnad split as a list: ["generate-event", "s3", "put"]
-
     config_dir : str
         Path where the SAM config file should be written to. Defaults to os.getcwd()
-
     env : str
-        Optional name of the config environment. This is currently unused
-
+        Optional name of the config environment. This is currently unused (Default value = None)
     kwargs : dict
         Parameter names and values to be written to the file.
+    **kwargs :
+
 
     Returns
     -------
-    Path to the config file
+
+
     """
 
     env = env or DEFAULT_ENV

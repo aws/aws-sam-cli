@@ -1243,18 +1243,18 @@ class TestSamCors(TestCase):
 
 
 def make_swagger(routes, binary_media_types=None):
-    """
-    Given a list of API configurations named tuples, returns a Swagger document
+    """Given a list of API configurations named tuples, returns a Swagger document
 
     Parameters
     ----------
     routes : list of samcli.commands.local.agiw.local_agiw_service.Route
+
     binary_media_types : list of str
+         (Default value = None)
 
     Returns
     -------
-    dict
-        Swagger document
+
 
     """
     swagger = {"paths": {}}

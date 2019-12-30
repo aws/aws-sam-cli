@@ -6,8 +6,7 @@ import click
 
 
 class Colored:
-    """
-    Helper class to add ANSI colors and decorations to text. Given a string, ANSI colors are added with special prefix
+    """Helper class to add ANSI colors and decorations to text. Given a string, ANSI colors are added with special prefix
     and suffix characters that are specially interpreted by Terminals to display colors.
 
         Ex: "message" -> add red color -> \x1b[31mmessage\x1b[0m
@@ -21,6 +20,13 @@ class Colored:
         - Transparently turn off colors: In cases when the string is not written to Terminal (ex: log file) the ANSI
             color codes should not be written. This class supports the scenario by allowing you to turn off colors.
             Calls to methods like `red()` will simply return the input string.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, colorize=True):
@@ -35,30 +41,102 @@ class Colored:
         self.colorize = colorize
 
     def red(self, msg):
-        """Color the input red"""
+        """Color the input red
+
+        Parameters
+        ----------
+        msg :
+
+
+        Returns
+        -------
+
+        """
         return self._color(msg, "red")
 
     def green(self, msg):
-        """Color the input green"""
+        """Color the input green
+
+        Parameters
+        ----------
+        msg :
+
+
+        Returns
+        -------
+
+        """
         return self._color(msg, "green")
 
     def cyan(self, msg):
-        """Color the input cyan"""
+        """Color the input cyan
+
+        Parameters
+        ----------
+        msg :
+
+
+        Returns
+        -------
+
+        """
         return self._color(msg, "cyan")
 
     def white(self, msg):
-        """Color the input white"""
+        """Color the input white
+
+        Parameters
+        ----------
+        msg :
+
+
+        Returns
+        -------
+
+        """
         return self._color(msg, "white")
 
     def yellow(self, msg):
-        """Color the input yellow"""
+        """Color the input yellow
+
+        Parameters
+        ----------
+        msg :
+
+
+        Returns
+        -------
+
+        """
         return self._color(msg, "yellow")
 
     def underline(self, msg):
-        """Underline the input"""
+        """Underline the input
+
+        Parameters
+        ----------
+        msg :
+
+
+        Returns
+        -------
+
+        """
         return click.style(msg, underline=True) if self.colorize else msg
 
     def _color(self, msg, color):
-        """Internal helper method to add colors to input"""
+        """Internal helper method to add colors to input
+
+        Parameters
+        ----------
+        msg :
+
+        color :
+
+
+        Returns
+        -------
+
+        """
         kwargs = {"fg": color}
         return click.style(msg, **kwargs) if self.colorize else msg

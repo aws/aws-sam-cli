@@ -34,16 +34,24 @@ FLASK_TO_APIGW_REGEX = re.compile(FLASK_CAPTURE_ALL_PATH_REGEX)
 class PathConverter:
     @staticmethod
     def convert_path_to_flask(path):
-        """
-        Converts a Path from an Api Gateway defined path to one that is accepted by Flask
+        """Converts a Path from an Api Gateway defined path to one that is accepted by Flask
 
         Examples:
 
         '/id/{id}' => '/id/<id>'
         '/{proxy+}' => '/<path:proxy>'
 
-        :param str path: Path to convert to Flask defined path
-        :return str: Path representing a Flask path
+        Parameters
+        ----------
+        str :
+            path: Path to convert to Flask defined path
+            :return str: Path representing a Flask path
+        path :
+
+
+        Returns
+        -------
+
         """
         proxy_sub_path = APIGW_TO_FLASK_REGEX.sub(FLASK_CAPTURE_ALL_PATH, path)
 
@@ -52,16 +60,24 @@ class PathConverter:
 
     @staticmethod
     def convert_path_to_api_gateway(path):
-        """
-        Converts a Path from a Flask defined path to one that is accepted by Api Gateway
+        """Converts a Path from a Flask defined path to one that is accepted by Api Gateway
 
         Examples:
 
         '/id/<id>' => '/id/{id}'
         '/<path:proxy>' => '/{proxy+}'
 
-        :param str path: Path to convert to Api Gateway defined path
-        :return str: Path representing an Api Gateway path
+        Parameters
+        ----------
+        str :
+            path: Path to convert to Api Gateway defined path
+            :return str: Path representing an Api Gateway path
+        path :
+
+
+        Returns
+        -------
+
         """
         proxy_sub_path = FLASK_TO_APIGW_REGEX.sub(PROXY_PATH_PARAMS, path)
 

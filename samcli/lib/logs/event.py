@@ -10,9 +10,7 @@ LOG = logging.getLogger(__name__)
 
 
 class LogEvent:
-    """
-    Data object representing a CloudWatch Log Event
-    """
+    """Data object representing a CloudWatch Log Event"""
 
     log_group_name = None
     log_stream_name = None

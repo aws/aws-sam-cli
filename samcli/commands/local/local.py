@@ -13,9 +13,7 @@ from .start_lambda.cli import cli as start_lambda_cli
 
 @click.group()
 def cli():
-    """
-    Run your Serverless application locally for quick development & testing
-    """
+    """Run your Serverless application locally for quick development & testing"""
 
 
 # Add individual commands under this group

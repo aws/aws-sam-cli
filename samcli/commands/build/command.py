@@ -141,8 +141,38 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     parameter_overrides,
     mode,
 ):
-    """
-    Implementation of the ``cli`` method
+    """Implementation of the ``cli`` method
+
+    Parameters
+    ----------
+    # pylint: disable :
+         (Default value = too-many-locals)
+    too-many-statementsfunction_identifier :
+
+    template :
+
+    base_dir :
+
+    build_dir :
+
+    clean :
+
+    use_container :
+
+    manifest_path :
+
+    docker_network :
+
+    skip_pull_image :
+
+    parameter_overrides :
+
+    mode :
+
+
+    Returns
+    -------
+
     """
 
     from samcli.commands.exceptions import UserException

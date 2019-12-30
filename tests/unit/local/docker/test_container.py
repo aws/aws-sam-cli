@@ -68,9 +68,15 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get = Mock()
 
     def test_must_create_container_with_required_values(self):
-        """
-        Create a container with only required values. Optional values are not provided
+        """Create a container with only required values. Optional values are not provided
         :return:
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
@@ -97,9 +103,15 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_create_container_including_all_optional_values(self):
-        """
-        Create a container with required and optional values.
+        """Create a container with required and optional values.
         :return:
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         expected_volumes = {
@@ -147,9 +159,17 @@ class TestContainer_create(TestCase):
 
     @patch("samcli.local.docker.utils.os")
     def test_must_create_container_translate_volume_path(self, os_mock):
-        """
-        Create a container with required and optional values, with windows style volume mount.
+        """Create a container with required and optional values, with windows style volume mount.
         :return:
+
+        Parameters
+        ----------
+        os_mock :
+
+
+        Returns
+        -------
+
         """
 
         os_mock.name = "nt"
@@ -203,9 +223,15 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks.get.assert_not_called()
 
     def test_must_connect_to_network_on_create(self):
-        """
-        Create a container with only required values. Optional values are not provided
+        """Create a container with only required values. Optional values are not provided
         :return:
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
 
@@ -240,9 +266,15 @@ class TestContainer_create(TestCase):
         network_mock.connect.assert_called_with(container_id)
 
     def test_must_connect_to_host_network_on_create(self):
-        """
-        Create a container with only required values. Optional values are not provided
+        """Create a container with only required values. Optional values are not provided
         :return:
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
 

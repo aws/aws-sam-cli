@@ -197,8 +197,16 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
     @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT)])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
-        """
-        Debug args list is appended starting at second position in the array
+        """Debug args list is appended starting at second position in the array
+
+        Parameters
+        ----------
+        runtime :
+
+
+        Returns
+        -------
+
         """
         expected_debug_args = ["a=b", "c=d", "e=f"]
         result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
@@ -208,8 +216,16 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
     @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT)])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_bootstrap_based_entrypoint(self, runtime):
-        """
-        Debug args list is appended as arguments to bootstrap-args, which is past the fourth position in the array
+        """Debug args list is appended as arguments to bootstrap-args, which is past the fourth position in the array
+
+        Parameters
+        ----------
+        runtime :
+
+
+        Returns
+        -------
+
         """
         expected_debug_args = ["a=b", "c=d", "e=f"]
         result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)

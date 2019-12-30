@@ -55,7 +55,21 @@ def cli(ctx, template_file, semantic_version):
 
 
 def do_cli(ctx, template, semantic_version):
-    """Publish the application based on command line inputs."""
+    """Publish the application based on command line inputs.
+
+    Parameters
+    ----------
+    ctx :
+
+    template :
+
+    semantic_version :
+
+
+    Returns
+    -------
+
+    """
 
     from serverlessrepo import publish_application
     from serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
@@ -95,8 +109,7 @@ def do_cli(ctx, template, semantic_version):
 
 
 def _gen_success_message(publish_output):
-    """
-    Generate detailed success message for published applications.
+    """Generate detailed success message for published applications.
 
     Parameters
     ----------
@@ -105,8 +118,8 @@ def _gen_success_message(publish_output):
 
     Returns
     -------
-    str
-        Detailed success message
+
+
     """
     application_id = publish_output.get("application_id")
     details = json.dumps(publish_output.get("details"), indent=2)
@@ -118,15 +131,18 @@ def _gen_success_message(publish_output):
 
 
 def _print_console_link(region, application_id):
-    """
-    Print link for the application in AWS Serverless Application Repository console.
+    """Print link for the application in AWS Serverless Application Repository console.
 
     Parameters
     ----------
-    region : str
-        AWS region name
-    application_id : str
-        The Amazon Resource Name (ARN) of the application
+    region :
+
+    application_id :
+
+
+    Returns
+    -------
+
 
     """
     if not region:

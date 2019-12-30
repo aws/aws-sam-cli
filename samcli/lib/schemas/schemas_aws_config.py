@@ -9,9 +9,15 @@ from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound
 
 
 def get_aws_configuration_choice():
-    """
-    Allow user to select their AWS Connection configuration (profile/region)
+    """Allow user to select their AWS Connection configuration (profile/region)
     :return: AWS profile and region dictionary
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
     session = Session()
     profile = session.profile_name

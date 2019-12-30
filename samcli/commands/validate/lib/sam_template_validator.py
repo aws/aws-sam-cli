@@ -31,24 +31,27 @@ class SamTemplateValidator:
 
         Parameters
         ----------
-        sam_template dict
-            Dictionary representing a SAM Template
-        managed_policy_loader ManagedPolicyLoader
-            Sam ManagedPolicyLoader
+
+        Returns
+        -------
+
+
         """
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
 
     def is_valid(self):
-        """
-        Runs the SAM Translator to determine if the template provided is valid. This is similar to running a
+        """Runs the SAM Translator to determine if the template provided is valid. This is similar to running a
         ChangeSet in CloudFormation for a SAM Template
 
-        Raises
+        Parameters
+        ----------
+
+        Returns
         -------
-        InvalidSamDocumentException
-             If the template is not valid, an InvalidSamDocumentException is raised
+
+
         """
         managed_policy_map = self.managed_policy_loader.load()
 
@@ -65,10 +68,16 @@ class SamTemplateValidator:
             )
 
     def _replace_local_codeuri(self):
-        """
-        Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api to a fake
+        """Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api to a fake
         S3 Uri. This is to support running the SAM Translator with valid values for these fields. If this in not done,
         the template is invalid in the eyes of SAM Translator (the translator does not support local paths)
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         all_resources = self.sam_template.get("Resources", {})
@@ -99,37 +108,41 @@ class SamTemplateValidator:
 
     @staticmethod
     def is_s3_uri(uri):
-        """
-        Checks the uri and determines if it is a valid S3 Uri
+        """Checks the uri and determines if it is a valid S3 Uri
 
         Parameters
         ----------
-        uri str, required
+        uri str, required :
             Uri to check
+        uri :
+
 
         Returns
         -------
-        bool
-            Returns True if the uri given is an S3 uri, otherwise False
+
 
         """
         return isinstance(uri, str) and uri.startswith("s3://")
 
     @staticmethod
     def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):
-        """
-        Updates the 'property_key' in the 'resource_property_dict' to the value of 's3_uri_value'
+        """Updates the 'property_key' in the 'resource_property_dict' to the value of 's3_uri_value'
 
         Note: The function will mutate the resource_property_dict that is pass in
 
         Parameters
         ----------
-        property_key str, required
-            Key in the resource_property_dict
-        resource_property_dict dict, required
-            Property dictionary of a Resource in the template to replace
-        s3_uri_value str, optional
-            Value to update the value of the property_key to
+        property_key :
+
+        resource_property_dict :
+
+        s3_uri_value :
+             (Default value = "s3://bucket/value")
+
+        Returns
+        -------
+
+
         """
         uri_property = resource_property_dict.get(property_key, ".")
 

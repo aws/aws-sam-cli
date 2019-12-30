@@ -82,12 +82,19 @@ class IntegBase(TestCase):
 
     @staticmethod
     def wait_for_process_terminate(process, timeout_seconds=5):
-        """
-        This is needed because Python2's wait() method does *not* have a timeout
+        """This is needed because Python2's wait() method does *not* have a timeout
+
+        Parameters
+        ----------
+        process :
+
+        timeout_seconds :
+             (Default value = 5)
 
         Returns
         -------
-            Return code if the process exited within the timout. None, if process is still executing
+
+
         """
 
         start = timeit.default_timer()
@@ -106,9 +113,14 @@ class IntegBase(TestCase):
 
 
 class TelemetryServer(Thread):
-    """
-    HTTP Server that can receive and store Telemetry requests. Caller can later retrieve the responses for
+    """HTTP Server that can receive and store Telemetry requests. Caller can later retrieve the responses for
     assertion
+
+    Parameters
+    ----------
+
+    Returns
+    -------
 
     Examples
     --------
@@ -146,9 +158,7 @@ class TelemetryServer(Thread):
         self._requests = deque()
 
     def run(self):
-        """
-        Method that runs when thread starts. This starts up Flask server as well
-        """
+        """Method that runs when thread starts. This starts up Flask server as well"""
         # os.environ['WERKZEUG_RUN_MAIN'] = 'true'
         self.flask_app.run(port=TELEMETRY_ENDPOINT_PORT, host=TELEMETRY_ENDPOINT_HOST, threaded=True)
 
@@ -173,8 +183,16 @@ class TelemetryServer(Thread):
         return list(self._requests)
 
     def _request_handler(self, **kwargs):
-        """
-        Handles Flask requests
+        """Handles Flask requests
+
+        Parameters
+        ----------
+        **kwargs :
+
+
+        Returns
+        -------
+
         """
 
         # `request` is a variable populated by Flask automatically when handler method is called

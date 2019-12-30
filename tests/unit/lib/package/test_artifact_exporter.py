@@ -568,9 +568,17 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.artifact_exporter.upload_local_artifacts")
     def test_resource_with_s3_url_dict(self, upload_local_artifacts_mock):
-        """
-        Checks if we properly export from the Resource classc
+        """Checks if we properly export from the Resource classc
         :return:
+
+        Parameters
+        ----------
+        upload_local_artifacts_mock :
+
+
+        Returns
+        -------
+
         """
 
         self.assertTrue(issubclass(ResourceWithS3UrlDict, Resource))
@@ -1093,19 +1101,27 @@ class TestArtifactExporter(unittest.TestCase):
                 os.rmdir(filename)
 
     def example_yaml_template(self):
-        return """
-        AWSTemplateFormatVersion: '2010-09-09'
-        Description: Simple CRUD webservice. State is stored in a SimpleTable (DynamoDB) resource.
-        Resources:
-        MyFunction:
-          Type: AWS::Lambda::Function
-          Properties:
+        """
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        type
+            AWSTemplateFormatVersion: '2010-09-09'
+            Description: Simple CRUD webservice. State is stored in a SimpleTable (DynamoDB) resource.
+            Resources:
+            MyFunction:
+            Type: AWS::Lambda::Function
+            Properties:
             Code: ./handler
             Handler: index.get
             Role:
-              Fn::GetAtt:
-              - MyFunctionRole
-              - Arn
+            Fn::GetAtt:
+            - MyFunctionRole
+            - Arn
             Timeout: 20
             Runtime: nodejs4.3
+
         """

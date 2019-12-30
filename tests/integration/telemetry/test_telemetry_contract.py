@@ -2,14 +2,10 @@ from .integ_base import IntegBase, TelemetryServer
 
 
 class TestTelemetryContract(IntegBase):
-    """
-    Validates the basic tenets/contract Telemetry module needs to adhere to
-    """
+    """Validates the basic tenets/contract Telemetry module needs to adhere to"""
 
     def test_must_not_send_metrics_if_disabled_using_envvar(self):
-        """
-        No metrics should be sent if "Enabled via Config file but Disabled via Envvar"
-        """
+        """No metrics should be sent if "Enabled via Config file but Disabled via Envvar"""
         # Enable it via configuration file
         self.set_config(telemetry_enabled=True)
 
@@ -31,9 +27,7 @@ class TestTelemetryContract(IntegBase):
             self.assertEqual(1, len(all_requests), "Command run metric should be sent")
 
     def test_must_send_metrics_if_enabled_via_envvar(self):
-        """
-        Metrics should be sent if "Disabled via config file but Enabled via Envvar"
-        """
+        """Metrics should be sent if "Disabled via config file but Enabled via Envvar"""
         # Disable it via configuration file
         self.set_config(telemetry_enabled=False)
 
@@ -55,9 +49,7 @@ class TestTelemetryContract(IntegBase):
             self.assertEqual(1, len(all_requests), "Command run metric must be sent")
 
     def test_must_not_crash_when_offline(self):
-        """
-        Must not crash the process if internet is not available
-        """
+        """Must not crash the process if internet is not available"""
         self.set_config(telemetry_enabled=True)
 
         # DO NOT START Telemetry Server here.

@@ -28,8 +28,18 @@ def cli(ctx, template_file):
 
 
 def do_cli(ctx, template):
-    """
-    Implementation of the ``cli`` method, just separated out for unit testing purposes
+    """Implementation of the ``cli`` method, just separated out for unit testing purposes
+
+    Parameters
+    ----------
+    ctx :
+
+    template :
+
+
+    Returns
+    -------
+
     """
     from samtranslator.translator.managed_policy_translator import ManagedPolicyLoader
 
@@ -57,12 +67,19 @@ def do_cli(ctx, template):
 
 
 def _read_sam_file(template):
-    """
-        Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
+    """Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
 
-        :param str template: Path to the template file
+    Parameters
+    ----------
+    str :
+        template: Path to the template file
         :return dict: Dictionary representing the SAM Template
-        :raises: SamTemplateNotFoundException when the template file does not exist
+    template :
+
+
+    Returns
+    -------
+
     """
 
     from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException

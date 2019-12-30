@@ -29,9 +29,15 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_same_endpoint(self):
-        """
-        Send two requests to the same path at the same time. This is to ensure we can handle
+        """Send two requests to the same path at the same time. This is to ensure we can handle
         multiple requests at once and do not block/queue up requests
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         number_of_requests = 10
         start_time = time()
@@ -180,8 +186,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_function_timeout(self):
-        """
-        This behavior does not match the actually Lambda Service. For functions that timeout, data returned like the
+        """This behavior does not match the actually Lambda Service. For functions that timeout, data returned like the
         following:
         {"errorMessage":"<timestamp> <request_id> Task timed out after 5.00 seconds"}
 
@@ -189,6 +194,13 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         invoke is on a different thread, we do not (currently) have a way to communicate this back to the caller. So
         when a timeout happens locally, we do not add the FunctionError: Unhandled to the response and have an empty
         string as the data returned (because no data was found in stdout from the container).
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         response = self.lambda_client.invoke(FunctionName="TimeoutFunction")
 

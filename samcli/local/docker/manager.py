@@ -14,10 +14,16 @@ LOG = logging.getLogger(__name__)
 
 
 class ContainerManager:
-    """
-    This class knows how to interface with Docker to create, execute and manage the container's life cycle. It can
+    """This class knows how to interface with Docker to create, execute and manage the container's life cycle. It can
     run multiple containers in parallel, and also comes with the ability to reuse existing containers in order to
     serve requests faster. It is also thread-safe.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False):
@@ -35,14 +41,7 @@ class ContainerManager:
 
     @property
     def is_docker_reachable(self):
-        """
-        Checks if Docker daemon is running. This is required for us to invoke the function locally
-
-        Returns
-        -------
-        bool
-            True, if Docker is available, False otherwise
-        """
+        """Checks if Docker daemon is running. This is required for us to invoke the function locally"""
         try:
             self.docker_client.ping()
 
@@ -54,14 +53,30 @@ class ContainerManager:
             return False
 
     def run(self, container, input_data=None, warm=False):
-        """
-        Create and run a Docker container based on the given configuration.
+        """Create and run a Docker container based on the given configuration.
 
-        :param samcli.local.docker.container.Container container: Container to create and run
-        :param input_data: Optional. Input data sent to the container through container's stdin.
-        :param bool warm: Indicates if an existing container can be reused. Defaults False ie. a new container will
+        Parameters
+        ----------
+        samcli :
+            local.docker.container.Container container: Container to create and run
+        input_data :
+            Optional. Input data sent to the container through container's stdin. (Default value = None)
+        bool :
+            warm: Indicates if an existing container can be reused. Defaults False ie. a new container will
             be created for every request.
-        :raises DockerImagePullFailedException: If the Docker image was not available in the server
+        container :
+
+        warm :
+             (Default value = False)
+
+        Returns
+        -------
+
+        Raises
+        ------
+        DockerImagePullFailedException
+            If the Docker image was not available in the server
+
         """
 
         if warm:
@@ -95,28 +110,39 @@ class ContainerManager:
         container.start(input_data=input_data)
 
     def stop(self, container):
-        """
-        Stop and delete the container
+        """Stop and delete the container
 
-        :param samcli.local.docker.container.Container container: Container to stop
+        Parameters
+        ----------
+        samcli :
+            local.docker.container.Container container: Container to stop
+        container :
+
+
+        Returns
+        -------
+
         """
         container.delete()
 
     def pull_image(self, image_name, stream=None):
-        """
-        Ask Docker to pull the container image with given name.
+        """Ask Docker to pull the container image with given name.
 
         Parameters
         ----------
-        image_name str
+        image_name str :
             Name of the image
-        stream samcli.lib.utils.stream_writer.StreamWriter
+        stream samcli.lib.utils.stream_writer.StreamWriter :
             Optional stream writer to output to. Defaults to stderr
+        image_name :
 
-        Raises
-        ------
-        DockerImagePullFailedException
-            If the Docker image was not available in the server
+        stream :
+             (Default value = None)
+
+        Returns
+        -------
+
+
         """
         stream_writer = stream or StreamWriter(sys.stderr)
 
@@ -139,11 +165,19 @@ class ContainerManager:
         stream_writer.write("\n")
 
     def has_image(self, image_name):
-        """
-        Is the container image with given name available?
+        """Is the container image with given name available?
 
-        :param string image_name: Name of the image
-        :return bool: True, if image is available. False, otherwise
+        Parameters
+        ----------
+        string :
+            image_name: Name of the image
+            :return bool: True, if image is available. False, otherwise
+        image_name :
+
+
+        Returns
+        -------
+
         """
 
         try:

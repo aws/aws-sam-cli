@@ -9,8 +9,7 @@ from dateutil.tz import tzutc
 
 
 def timestamp_to_iso(timestamp):
-    """
-    Convert Unix Epoch Timestamp to ISO formatted time string:
+    """Convert Unix Epoch Timestamp to ISO formatted time string:
         Ex: 1234567890 -> 2018-07-05T03:09:43.842000
 
     Parameters
@@ -20,16 +19,15 @@ def timestamp_to_iso(timestamp):
 
     Returns
     -------
-    str
-        ISO formatted time string
+
+
     """
 
     return to_datetime(timestamp).isoformat()
 
 
 def to_datetime(timestamp):
-    """
-    Convert Unix Epoch Timestamp to Python's ``datetime.datetime`` object
+    """Convert Unix Epoch Timestamp to Python's ``datetime.datetime`` object
 
     Parameters
     ----------
@@ -38,8 +36,8 @@ def to_datetime(timestamp):
 
     Returns
     -------
-    datetime.datetime
-        Datetime representation of timestamp
+
+
     """
 
     timestamp_secs = int(timestamp) / 1000.0
@@ -47,8 +45,7 @@ def to_datetime(timestamp):
 
 
 def to_timestamp(some_time):
-    """
-    Converts the given datetime value to Unix timestamp
+    """Converts the given datetime value to Unix timestamp
 
     Parameters
     ----------
@@ -57,8 +54,8 @@ def to_timestamp(some_time):
 
     Returns
     -------
-    int
-        Unix timestamp of the given time
+
+
     """
 
     # `total_seconds()` returns elaped microseconds as a float. Get just milliseconds and discard the rest.
@@ -66,18 +63,25 @@ def to_timestamp(some_time):
 
 
 def utc_to_timestamp(utc):
-    """
-    Converts utc timestamp with tz_info set to utc to Unix timestamp
-    :param utc: datetime.datetime
-    :return: UNIX timestamp
+    """Converts utc timestamp with tz_info set to utc to Unix timestamp
+
+    Parameters
+    ----------
+    utc :
+        datetime.datetime
+
+    Returns
+    -------
+    type
+        UNIX timestamp
+
     """
 
     return to_timestamp(utc.replace(tzinfo=None))
 
 
 def to_utc(some_time):
-    """
-    Convert the given date to UTC, if the date contains a timezone.
+    """Convert the given date to UTC, if the date contains a timezone.
 
     Parameters
     ----------
@@ -86,8 +90,8 @@ def to_utc(some_time):
 
     Returns
     -------
-    datetime.datetime
-        Converted datetime object
+
+
     """
 
     # Convert timezone aware objects to UTC
@@ -99,8 +103,7 @@ def to_utc(some_time):
 
 
 def parse_date(date_string):
-    """
-    Parse the given string as datetime object. This parser supports in almost any string formats.
+    """Parse the given string as datetime object. This parser supports in almost any string formats.
 
     For relative times, like `10min ago`, this parser computes the actual time relative to current UTC time. This
     allows time to always be in UTC if an explicit time zone is not provided.
@@ -112,8 +115,8 @@ def parse_date(date_string):
 
     Returns
     -------
-    datetime.datetime
-        Parsed datetime object. None, if the string cannot be parsed.
+
+
     """
 
     parser_settings = {

@@ -12,11 +12,17 @@ LOG = logging.getLogger(__name__)
 
 
 class SamFunctionProvider(FunctionProvider):
-    """
-    Fetches and returns Lambda Functions from a SAM Template. The SAM template passed to this provider is assumed
+    """Fetches and returns Lambda Functions from a SAM Template. The SAM template passed to this provider is assumed
     to be valid, normalized and a dictionary.
 
     It may or may not contain a function.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
@@ -50,15 +56,27 @@ class SamFunctionProvider(FunctionProvider):
         self.functions = self._extract_functions(self.resources)
 
     def get(self, name):
-        """
-        Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
+        """Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
         also have a function name. This method searches only for LogicalID and returns the function that matches
         it.
 
-        :param string name: Name of the function
-        :return Function: namedtuple containing the Function information if function is found.
-                          None, if function is not found
-        :raises ValueError If name is not given
+        Parameters
+        ----------
+        string :
+            name: Name of the function
+            :return Function: namedtuple containing the Function information if function is found.
+            None, if function is not found
+        name :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        ValueError
+            If name is not given
+
         """
 
         if not name:
@@ -67,10 +85,16 @@ class SamFunctionProvider(FunctionProvider):
         return self.functions.get(name)
 
     def get_all(self):
-        """
-        Yields all the Lambda functions available in the SAM Template.
+        """Yields all the Lambda functions available in the SAM Template.
 
         :yields Function: namedtuple containing the function information
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         for _, function in self.functions.items():
@@ -78,13 +102,21 @@ class SamFunctionProvider(FunctionProvider):
 
     @staticmethod
     def _extract_functions(resources):
-        """
-        Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
+        """Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
 
-        :param dict resources: Dictionary of SAM/CloudFormation resources
-        :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function LogicalId to the
+        Parameters
+        ----------
+        dict :
+            resources: Dictionary of SAM/CloudFormation resources
+            :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function LogicalId to the
             Function configuration object
+        resources :
+
+
+        Returns
+        -------
+
         """
 
         result = {}
@@ -108,13 +140,26 @@ class SamFunctionProvider(FunctionProvider):
 
     @staticmethod
     def _convert_sam_function_resource(name, resource_properties, layers):
-        """
-        Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
+        """Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
-        :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
+        Parameters
+        ----------
+        string :
+            name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
             declare a name
-        :param dict resource_properties: Properties of this resource
-        :return samcli.commands.local.lib.provider.Function: Function configuration
+        dict :
+            resource_properties: Properties of this resource
+            :return samcli.commands.local.lib.provider.Function: Function configuration
+        name :
+
+        resource_properties :
+
+        layers :
+
+
+        Returns
+        -------
+
         """
 
         codeuri = SamFunctionProvider._extract_sam_function_codeuri(name, resource_properties, "CodeUri")
@@ -135,22 +180,27 @@ class SamFunctionProvider(FunctionProvider):
 
     @staticmethod
     def _extract_sam_function_codeuri(name, resource_properties, code_property_key):
-        """
-        Extracts the SAM Function CodeUri from the Resource Properties
+        """Extracts the SAM Function CodeUri from the Resource Properties
 
         Parameters
         ----------
-        name str
+        name str :
             LogicalId of the resource
-        resource_properties dict
+        resource_properties dict :
             Dictionary representing the Properties of the Resource
-        code_property_key str
+        code_property_key str :
             Property Key of the code on the Resource
+        name :
+
+        resource_properties :
+
+        code_property_key :
+
 
         Returns
         -------
-        str
-            Representing the local code path
+
+
         """
         codeuri = resource_properties.get(code_property_key, SamFunctionProvider._DEFAULT_CODEURI)
         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
@@ -166,13 +216,26 @@ class SamFunctionProvider(FunctionProvider):
 
     @staticmethod
     def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
-        """
-        Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
+        """Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
-        :param string name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
+        Parameters
+        ----------
+        string :
+            name: LogicalID of the resource NOTE: This is *not* the function name because not all functions
             declare a name
-        :param dict resource_properties: Properties of this resource
-        :return samcli.commands.local.lib.provider.Function: Function configuration
+        dict :
+            resource_properties: Properties of this resource
+            :return samcli.commands.local.lib.provider.Function: Function configuration
+        name :
+
+        resource_properties :
+
+        layers :
+
+
+        Returns
+        -------
+
         """
 
         # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
@@ -195,20 +258,23 @@ class SamFunctionProvider(FunctionProvider):
 
     @staticmethod
     def _extract_lambda_function_code(resource_properties, code_property_key):
-        """
-        Extracts the Lambda Function Code from the Resource Properties
+        """Extracts the Lambda Function Code from the Resource Properties
 
         Parameters
         ----------
-        resource_properties dict
+        resource_properties dict :
             Dictionary representing the Properties of the Resource
-        code_property_key str
+        code_property_key str :
             Property Key of the code on the Resource
+        resource_properties :
+
+        code_property_key :
+
 
         Returns
         -------
-        str
-            Representing the local code path
+
+
         """
 
         codeuri = resource_properties.get(code_property_key, SamFunctionProvider._DEFAULT_CODEURI)
@@ -220,23 +286,23 @@ class SamFunctionProvider(FunctionProvider):
 
     @staticmethod
     def _parse_layer_info(list_of_layers, resources):
-        """
-        Creates a list of Layer objects that are represented by the resources and the list of layers
+        """Creates a list of Layer objects that are represented by the resources and the list of layers
 
         Parameters
         ----------
-        list_of_layers List(str)
+        list_of_layers List(str) :
             List of layers that are defined within the Layers Property on a function
-        resources dict
+        resources dict :
             The Resources dictionary defined in a template
+        list_of_layers :
+
+        resources :
+
 
         Returns
         -------
-        List(samcli.commands.local.lib.provider.Layer)
-            List of the Layer objects created from the template and layer list defined on the function. The order
-            of the layers does not change.
 
-            I.E: list_of_layers = ["layer1", "layer2"] the return would be [Layer("layer1"), Layer("layer2")]
+
         """
         layers = []
         for layer in list_of_layers:

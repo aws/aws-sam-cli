@@ -7,9 +7,15 @@ from samcli.cli.main import cli
 
 class TestCliBase(TestCase):
     def test_cli_base(self):
-        """
-        Just invoke the CLI without any commands and assert that help text was printed
+        """Just invoke the CLI without any commands and assert that help text was printed
         :return:
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         mock_cfg = Mock()
         with patch("samcli.cli.main.global_cfg", mock_cfg):

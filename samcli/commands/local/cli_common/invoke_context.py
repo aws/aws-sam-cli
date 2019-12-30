@@ -21,8 +21,7 @@ from .user_exceptions import InvokeContextException, DebugContextException
 
 
 class InvokeContext:
-    """
-    Sets up a context to invoke Lambda functions locally by parsing all command line arguments necessary for the
+    """Sets up a context to invoke Lambda functions locally by parsing all command line arguments necessary for the
     invoke.
 
     ``start-api`` command will also use this class to read and parse invoke related CLI arguments and setup the
@@ -34,6 +33,13 @@ class InvokeContext:
             context.local_lambda_runner.invoke(...)
 
     This class sets up some resources that need to be cleaned up after the context object is used.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(
@@ -149,12 +155,22 @@ class InvokeContext:
 
     @property
     def function_name(self):
-        """
-        Returns name of the function to invoke. If no function identifier is provided, this method will return name of
+        """Returns name of the function to invoke. If no function identifier is provided, this method will return name of
         the only function from the template
 
         :return string: Name of the function
-        :raises InvokeContextException: If function identifier is not provided
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        Raises
+        ------
+        InvokeContextException
+            If function identifier is not provided
+
         """
         if self._function_identifier:
             return self._function_identifier
@@ -177,11 +193,17 @@ class InvokeContext:
 
     @property
     def local_lambda_runner(self):
-        """
-        Returns an instance of the runner capable of running Lambda functions locally
+        """Returns an instance of the runner capable of running Lambda functions locally
 
         :return samcli.commands.local.lib.local_lambda.LocalLambdaRunner: Runner configured to run Lambda functions
             locally
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
@@ -200,47 +222,45 @@ class InvokeContext:
 
     @property
     def stdout(self):
-        """
-        Returns stream writer for stdout to output Lambda function logs to
-
-        Returns
-        -------
-        samcli.lib.utils.stream_writer.StreamWriter
-            Stream writer for stdout
-        """
+        """Returns stream writer for stdout to output Lambda function logs to"""
         stream = self._log_file_handle if self._log_file_handle else osutils.stdout()
         return StreamWriter(stream, self._is_debugging)
 
     @property
     def stderr(self):
-        """
-        Returns stream writer for stderr to output Lambda function errors to
-
-        Returns
-        -------
-        samcli.lib.utils.stream_writer.StreamWriter
-            Stream writer for stderr
-        """
+        """Returns stream writer for stderr to output Lambda function errors to"""
         stream = self._log_file_handle if self._log_file_handle else osutils.stderr()
         return StreamWriter(stream, self._is_debugging)
 
     @property
     def template(self):
-        """
-        Returns the template data as dictionary
+        """Returns the template data as dictionary
 
         :return dict: Template data
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
         return self._template_dict
 
     def get_cwd(self):
-        """
-        Get the working directory. This is usually relative to the directory that contains the template. If a Docker
+        """Get the working directory. This is usually relative to the directory that contains the template. If a Docker
         volume location is specified, it takes preference
 
         All Lambda function code paths are resolved relative to this working directory
 
         :return string: Working directory
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
         """
 
         cwd = os.path.dirname(os.path.abspath(self._template_file))
@@ -263,12 +283,24 @@ class InvokeContext:
 
     @staticmethod
     def _get_template_data(template_file):
-        """
-        Read the template file, parse it as JSON/YAML and return the template as a dictionary.
+        """Read the template file, parse it as JSON/YAML and return the template as a dictionary.
 
-        :param string template_file: Path to the template to read
-        :return dict: Template data as a dictionary
-        :raises InvokeContextException: If template file was not found or the data was not a JSON/YAML
+        Parameters
+        ----------
+        string :
+            template_file: Path to the template to read
+            :return dict: Template data as a dictionary
+        template_file :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        InvokeContextException
+            If template file was not found or the data was not a JSON/YAML
+
         """
 
         try:
@@ -278,13 +310,25 @@ class InvokeContext:
 
     @staticmethod
     def _get_env_vars_value(filename):
-        """
-        If the user provided a file containing values of environment variables, this method will read the file and
+        """If the user provided a file containing values of environment variables, this method will read the file and
         return its value
 
-        :param string filename: Path to file containing environment variable values
-        :return dict: Value of environment variables, if provided. None otherwise
-        :raises InvokeContextException: If the file was not found or not a valid JSON
+        Parameters
+        ----------
+        string :
+            filename: Path to file containing environment variable values
+            :return dict: Value of environment variables, if provided. None otherwise
+        filename :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        InvokeContextException
+            If the file was not found or not a valid JSON
+
         """
         if not filename:
             return None
@@ -302,11 +346,20 @@ class InvokeContext:
 
     @staticmethod
     def _setup_log_file(log_file):
-        """
-        Open a log file if necessary and return the file handle. This will create a file if it does not exist
+        """Open a log file if necessary and return the file handle. This will create a file if it does not exist
 
-        :param string log_file: Path to a file where the logs should be written to
-        :return: Handle to the opened log file, if necessary. None otherwise
+        Parameters
+        ----------
+        string :
+            log_file: Path to a file where the logs should be written to
+        log_file :
+
+
+        Returns
+        -------
+        type
+            Handle to the opened log file, if necessary. None otherwise
+
         """
         if not log_file:
             return None
@@ -315,27 +368,29 @@ class InvokeContext:
 
     @staticmethod
     def _get_debug_context(debug_ports, debug_args, debugger_path):
-        """
-        Creates a DebugContext if the InvokeContext is in a debugging mode
+        """Creates a DebugContext if the InvokeContext is in a debugging mode
 
         Parameters
         ----------
-        debug_ports tuple(int)
-             Ports to bind the debugger to
-        debug_args str
+        debug_ports tuple(int) :
+            Ports to bind the debugger to
+        debug_args str :
             Additional arguments passed to the debugger
-        debugger_path str
+        debugger_path str :
             Path to the directory of the debugger to mount on Docker
+        debug_ports :
+
+        debug_args :
+
+        debugger_path :
+
 
         Returns
         -------
         samcli.commands.local.lib.debug_context.DebugContext
             Object representing the DebugContext
 
-        Raises
-        ------
-        samcli.commands.local.cli_common.user_exceptions.DebugContext
-            When the debugger_path is not valid
+
         """
         if debug_ports and debugger_path:
             try:
@@ -354,20 +409,23 @@ class InvokeContext:
 
     @staticmethod
     def _get_container_manager(docker_network, skip_pull_image):
-        """
-        Creates a ContainerManager with specified options
+        """Creates a ContainerManager with specified options
 
         Parameters
         ----------
-        docker_network str
+        docker_network str :
             Docker network identifier
-        skip_pull_image bool
+        skip_pull_image bool :
             Should the manager skip pulling the image
+        docker_network :
+
+        skip_pull_image :
+
 
         Returns
         -------
-        samcli.local.docker.manager.ContainerManager
-            Object representing Docker container manager
+
+
         """
 
         return ContainerManager(docker_network_id=docker_network, skip_pull_image=skip_pull_image)

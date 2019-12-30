@@ -48,12 +48,20 @@ class Route:
         return route_hash
 
     def normalize_method(self, methods):
-        """
-        Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
+        """Normalizes Http Methods. Api Gateway allows a Http Methods of ANY. This is a special verb to denote all
         supported Http Methods on Api Gateway.
 
-        :param list methods: Http methods
-        :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        Parameters
+        ----------
+        list :
+            methods: Http methods
+            :return list: Either the input http_method or one of the _ANY_HTTP_METHODS (normalized Http Methods)
+        methods :
+
+
+        Returns
+        -------
+
         """
         methods = [method.upper() for method in methods]
         if "ANY" in methods:
@@ -94,9 +102,7 @@ class LocalApigwService(BaseLocalService):
         self.stderr = stderr
 
     def create(self):
-        """
-        Creates a Flask Application that can be started.
-        """
+        """Creates a Flask Application that can be started."""
 
         self._app = Flask(
             __name__,
@@ -119,13 +125,25 @@ class LocalApigwService(BaseLocalService):
         self._construct_error_handling()
 
     def _generate_route_keys(self, methods, path):
-        """
-        Generates the key to the _dict_of_routes based on the list of methods
+        """Generates the key to the _dict_of_routes based on the list of methods
         and path supplied
 
-        :param list(str) methods: List of HTTP Methods
-        :param str path: Path off the base url
-        :return: str of Path:Method
+        Parameters
+        ----------
+        list :
+            str) methods: List of HTTP Methods
+        str :
+            path: Path off the base url
+        methods :
+
+        path :
+
+
+        Returns
+        -------
+        type
+            str of Path:Method
+
         """
         for method in methods:
             yield self._route_key(method, path)
@@ -135,9 +153,7 @@ class LocalApigwService(BaseLocalService):
         return "{}:{}".format(path, method)
 
     def _construct_error_handling(self):
-        """
-        Updates the Flask app with Error Handlers for different Error Codes
-        """
+        """Updates the Flask app with Error Handlers for different Error Codes"""
         # Both path and method not present
         self._app.register_error_handler(404, ServiceErrorResponses.route_not_found)
         # Path is present, but method not allowed
@@ -146,8 +162,7 @@ class LocalApigwService(BaseLocalService):
         self._app.register_error_handler(500, ServiceErrorResponses.lambda_failure_response)
 
     def _request_handler(self, **kwargs):
-        """
-        We handle all requests to the host:port. The general flow of handling a request is as follows
+        """We handle all requests to the host:port. The general flow of handling a request is as follows
 
         * Fetch request from the Flask Global state. This is where Flask places the request and is per thread so
           multiple requests are still handled correctly
@@ -161,12 +176,15 @@ class LocalApigwService(BaseLocalService):
 
         Parameters
         ----------
-        kwargs dict
+        kwargs dict :
             Keyword Args that are passed to the function from Flask. This happens when we have path parameters
+        **kwargs :
+
 
         Returns
         -------
-        Response object
+
+
         """
 
         route = self._get_current_route(request)
@@ -213,11 +231,20 @@ class LocalApigwService(BaseLocalService):
         return self.service_response(body, headers, status_code)
 
     def _get_current_route(self, flask_request):
-        """
-        Get the route (Route) based on the current request
+        """Get the route (Route) based on the current request
 
-        :param request flask_request: Flask Request
-        :return: Route matching the endpoint and method of the request
+        Parameters
+        ----------
+        request :
+            flask_request: Flask Request
+        flask_request :
+
+
+        Returns
+        -------
+        type
+            Route matching the endpoint and method of the request
+
         """
         method, endpoint = self.get_request_methods_endpoints(flask_request)
 
@@ -238,10 +265,20 @@ class LocalApigwService(BaseLocalService):
         return route
 
     def get_request_methods_endpoints(self, flask_request):
-        """
-        Separated out for testing requests in request handler
-        :param request flask_request: Flask Request
-        :return: the request's endpoint and method
+        """Separated out for testing requests in request handler
+
+        Parameters
+        ----------
+        request :
+            flask_request: Flask Request
+        flask_request :
+
+
+        Returns
+        -------
+        type
+            the request's endpoint and method
+
         """
         endpoint = flask_request.endpoint
         method = flask_request.method
@@ -250,11 +287,24 @@ class LocalApigwService(BaseLocalService):
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
     def _parse_lambda_output(lambda_output, binary_types, flask_request):
-        """
-        Parses the output from the Lambda Container
+        """Parses the output from the Lambda Container
 
-        :param str lambda_output: Output from Lambda Invoke
-        :return: Tuple(int, dict, str, bool)
+        Parameters
+        ----------
+        str :
+            lambda_output: Output from Lambda Invoke
+        lambda_output :
+
+        binary_types :
+
+        flask_request :
+
+
+        Returns
+        -------
+        type
+            Tuple(int, dict, str, bool)
+
         """
         # pylint: disable-msg=too-many-statements
         json_output = json.loads(lambda_output)
@@ -313,23 +363,30 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _should_base64_decode_body(binary_types, flask_request, lamba_response_headers, is_base_64_encoded):
-        """
-        Whether or not the body should be decoded from Base64 to Binary
+        """Whether or not the body should be decoded from Base64 to Binary
 
         Parameters
         ----------
-        binary_types list(basestring)
+        binary_types list(basestring) :
             Corresponds to self.binary_types (aka. what is parsed from SAM Template
-        flask_request flask.request
+        flask_request flask.request :
             Flask request
-        lamba_response_headers werkzeug.datastructures.Headers
+        lamba_response_headers werkzeug.datastructures.Headers :
             Headers Lambda returns
-        is_base_64_encoded bool
+        is_base_64_encoded bool :
             True if the body is Base64 encoded
+        binary_types :
+
+        flask_request :
+
+        lamba_response_headers :
+
+        is_base_64_encoded :
+
 
         Returns
         -------
-        True if the body from the request should be converted to binary, otherwise false
+
 
         """
         best_match_mimetype = flask_request.accept_mimetypes.best_match(lamba_response_headers.get_all("Content-Type"))
@@ -339,22 +396,25 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _merge_response_headers(headers, multi_headers):
-        """
-        Merge multiValueHeaders headers with headers
+        """Merge multiValueHeaders headers with headers
 
         * If you specify values for both headers and multiValueHeaders, API Gateway merges them into a single list.
         * If the same key-value pair is specified in both, the value will only appear once.
 
         Parameters
         ----------
-        headers dict
+        headers dict :
             Headers map from the lambda_response_headers
-        multi_headers dict
+        multi_headers dict :
             multiValueHeaders map from the lambda_response_headers
+        headers :
+
+        multi_headers :
+
 
         Returns
         -------
-        Merged list in accordance to the AWS documentation within a Flask Headers object
+
 
         """
 
@@ -372,11 +432,28 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
-        """
-        Helper method that constructs the Event to be passed to Lambda
+        """Helper method that constructs the Event to be passed to Lambda
 
-        :param request flask_request: Flask Request
-        :return: String representing the event
+        Parameters
+        ----------
+        request :
+            flask_request: Flask Request
+        flask_request :
+
+        port :
+
+        binary_types :
+
+        stage_name :
+             (Default value = None)
+        stage_variables :
+             (Default value = None)
+
+        Returns
+        -------
+        type
+            String representing the event
+
         """
         # pylint: disable-msg=too-many-locals
 
@@ -428,17 +505,16 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _query_string_params(flask_request):
-        """
-        Constructs an APIGW equivalent query string dictionary
+        """Constructs an APIGW equivalent query string dictionary
 
         Parameters
         ----------
-        flask_request request
-            Request from Flask
+        flask_request :
 
-        Returns dict (str: str), dict (str: list of str)
+
+        Returns
         -------
-            Empty dict if no query params where in the request otherwise returns a dictionary of key to value
+
 
         """
         query_string_dict = {}
@@ -461,21 +537,18 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _event_headers(flask_request, port):
-        """
-        Constructs an APIGW equivalent headers dictionary
+        """Constructs an APIGW equivalent headers dictionary
 
         Parameters
         ----------
-        flask_request request
-            Request from Flask
-        int port
-            Forwarded Port
-        cors_headers dict
-            Dict of the Cors properties
+        flask_request :
 
-        Returns dict (str: str), dict (str: list of str)
+        port :
+
+
+        Returns
         -------
-            Returns a dictionary of key to list of strings
+
 
         """
         headers_dict = {}
@@ -496,19 +569,22 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _should_base64_encode(binary_types, request_mimetype):
-        """
-        Whether or not to encode the data from the request to Base64
+        """Whether or not to encode the data from the request to Base64
 
         Parameters
         ----------
-        binary_types list(basestring)
+        binary_types list(basestring) :
             Corresponds to self.binary_types (aka. what is parsed from SAM Template
-        request_mimetype str
+        request_mimetype str :
             Mimetype for the request
+        binary_types :
+
+        request_mimetype :
+
 
         Returns
         -------
-            True if the data should be encoded to Base64 otherwise False
+
 
         """
         return request_mimetype in binary_types or "*/*" in binary_types

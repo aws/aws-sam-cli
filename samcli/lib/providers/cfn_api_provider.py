@@ -20,23 +20,21 @@ class CfnApiProvider(CfnBaseApiProvider):
     TYPES = [APIGATEWAY_RESTAPI, APIGATEWAY_STAGE, APIGATEWAY_RESOURCE, APIGATEWAY_METHOD]
 
     def extract_resources(self, resources, collector, cwd=None):
-        """
-        Extract the Route Object from a given resource and adds it to the RouteCollector.
+        """Extract the Route Object from a given resource and adds it to the RouteCollector.
 
         Parameters
         ----------
-        resources: dict
-            The dictionary containing the different resources within the template
+        resources :
 
-        collector: samcli.commands.local.lib.route_collector.RouteCollector
-            Instance of the API collector that where we will save the API information
+        collector :
 
-        cwd : str
-            Optional working directory with respect to which we will resolve relative path to Swagger file
+        cwd :
+             (Default value = None)
 
-        Return
+        Returns
         -------
-        Returns a list of routes
+
+
         """
 
         for logical_id, resource in resources.items():
@@ -56,20 +54,24 @@ class CfnApiProvider(CfnBaseApiProvider):
         return all_apis
 
     def _extract_cloud_formation_route(self, logical_id, api_resource, collector, cwd=None):
-        """
-        Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
+        """Extract APIs from AWS::ApiGateway::RestApi resource by reading and parsing Swagger documents. The result is
         added to the collector.
 
         Parameters
         ----------
-        logical_id : str
-            Logical ID of the resource
+        logical_id :
 
-        api_resource : dict
-            Resource definition, including its properties
+        api_resource :
 
-        collector : ApiCollector
-            Instance of the API collector that where we will save the API information
+        collector :
+
+        cwd :
+             (Default value = None)
+
+        Returns
+        -------
+
+
         """
         properties = api_resource.get("Properties", {})
         body = properties.get("Body")
@@ -84,18 +86,21 @@ class CfnApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _extract_cloud_formation_stage(resources, stage_resource, collector):
-        """
-        Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
+        """Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
+
         Parameters
-       ----------
-        resources: dict
-            All Resource definition, including its properties
+        ----------
+        resources :
 
-        stage_resource : dict
-            Stage Resource definition, including its properties
+        stage_resource :
 
-        collector : ApiCollector
-            Instance of the API collector that where we will save the API information
+        collector :
+
+
+        Returns
+        -------
+
+
         """
         properties = stage_resource.get("Properties", {})
         stage_name = properties.get("StageName")
@@ -116,22 +121,23 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
 
     def _extract_cloud_formation_method(self, resources, logical_id, method_resource, collector):
-        """
-        Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
+        """Extract APIs from AWS::ApiGateway::Method and work backwards up the tree to resolve and find the true path.
 
         Parameters
         ----------
-        resources: dict
-            All Resource definition, including its properties
+        resources :
 
-        logical_id : str
-            Logical ID of the resource
+        logical_id :
 
-        method_resource : dict
-            Resource definition, including its properties
+        method_resource :
 
-        collector : ApiCollector
-            Instance of the API collector that where we will save the API information
+        collector :
+
+
+        Returns
+        -------
+
+
         """
 
         properties = method_resource.get("Properties", {})
@@ -163,19 +169,21 @@ class CfnApiProvider(CfnBaseApiProvider):
         collector.add_routes(rest_api_id, [routes])
 
     def resolve_resource_path(self, resources, resource, current_path):
-        """
-        Extract path from the Resource object by going up the tree
+        """Extract path from the Resource object by going up the tree
 
         Parameters
         ----------
-        resources: dict
-            Dictionary containing all the resources to resolve
+        resources :
 
-        resource : dict
-            AWS::ApiGateway::Resource definition and its properties
+        resource :
 
-        current_path : str
-            Current path resolved so far
+        current_path :
+
+
+        Returns
+        -------
+
+
         """
 
         properties = resource.get("Properties", {})
@@ -191,8 +199,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
     @staticmethod
     def _get_integration_function_name(integration):
-        """
-        Tries to parse the Lambda Function name from the Integration defined in the method configuration. Integration
+        """Tries to parse the Lambda Function name from the Integration defined in the method configuration. Integration
         configuration. We care only about Lambda integrations, which are of type aws_proxy, and ignore the rest.
         Integration URI is complex and hard to parse. Hence we do our best to extract function name out of
         integration URI. If not possible, we return None.
@@ -201,11 +208,13 @@ class CfnApiProvider(CfnBaseApiProvider):
         ----------
         method_config : dict
             Dictionary containing the method configuration which might contain integration settings
+        integration :
+
 
         Returns
         -------
-        string or None
-            Lambda function name, if possible. None, if not.
+
+
         """
 
         if integration and isinstance(integration, dict):

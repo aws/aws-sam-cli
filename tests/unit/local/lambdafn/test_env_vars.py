@@ -101,9 +101,7 @@ class TestEnvironmentVariables_resolve(TestCase):
         }
 
     def test_with_no_additional_variables(self):
-        """
-        Test assuming user has *not* passed any environment variables. Only AWS variables should be setup
-        """
+        """Test assuming user has *not* passed any environment variables. Only AWS variables should be setup"""
 
         expected = {
             "AWS_SAM_LOCAL": "true",
@@ -125,9 +123,7 @@ class TestEnvironmentVariables_resolve(TestCase):
         self.assertEqual(result, expected)
 
     def test_with_only_default_values_for_variables(self):
-        """
-        Given only environment variable values, without any shell env values or overridden values
-        """
+        """Given only environment variable values, without any shell env values or overridden values"""
 
         expected = {
             "AWS_SAM_LOCAL": "true",
@@ -153,9 +149,7 @@ class TestEnvironmentVariables_resolve(TestCase):
         self.assertEqual(environ.resolve(), expected)
 
     def test_with_shell_env_value(self):
-        """
-        Given values for the variables from shell environment
-        """
+        """Given values for the variables from shell environment"""
 
         expected = {
             "AWS_SAM_LOCAL": "true",
@@ -184,9 +178,7 @@ class TestEnvironmentVariables_resolve(TestCase):
         self.assertEqual(environ.resolve(), expected)
 
     def test_with_overrides_value(self):
-        """
-        Given values for the variables from user specified overrides
-        """
+        """Given values for the variables from user specified overrides"""
 
         expected = {
             "AWS_SAM_LOCAL": "true",

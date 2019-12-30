@@ -37,11 +37,19 @@ class Runtime(Enum):
 
     @classmethod
     def has_value(cls, value):
-        """
-        Checks if the enum has this value
+        """Checks if the enum has this value
 
-        :param string value: Value to check
-        :return bool: True, if enum has the value
+        Parameters
+        ----------
+        string :
+            value: Value to check
+            :return bool: True, if enum has the value
+        value :
+
+
+        Returns
+        -------
+
         """
         return any(value == item.value for item in cls)
 
@@ -71,20 +79,23 @@ class LambdaImage:
         self.docker_client = docker_client or docker.from_env()
 
     def build(self, runtime, layers):
-        """
-        Build the image if one is not already on the system that matches the runtime and layers
+        """Build the image if one is not already on the system that matches the runtime and layers
 
         Parameters
         ----------
-        runtime str
+        runtime str :
             Name of the Lambda runtime
-        layers list(samcli.commands.local.lib.provider.Layer)
+        layers list(samcli.commands.local.lib.provider.Layer) :
             List of layers
+        runtime :
+
+        layers :
+
 
         Returns
         -------
-        str
-            The image to be used (REPOSITORY:TAG)
+
+
         """
         base_image = "{}:{}".format(self._DOCKER_LAMBDA_REPO_NAME, runtime)
 
@@ -118,21 +129,23 @@ class LambdaImage:
 
     @staticmethod
     def _generate_docker_image_version(layers, runtime):
-        """
-        Generate the Docker TAG that will be used to create the image
+        """Generate the Docker TAG that will be used to create the image
 
         Parameters
         ----------
-        layers list(samcli.commands.local.lib.provider.Layer)
+        layers list(samcli.commands.local.lib.provider.Layer) :
             List of the layers
-
-        runtime str
+        runtime str :
             Runtime of the image to create
+        layers :
+
+        runtime :
+
 
         Returns
         -------
-        str
-            String representing the TAG to be attached to the image
+
+
         """
 
         # Docker has a concept of a TAG on an image. This is plus the REPOSITORY is a way to determine
@@ -145,26 +158,27 @@ class LambdaImage:
         )
 
     def _build_image(self, base_image, docker_tag, layers):
-        """
-        Builds the image
+        """Builds the image
 
         Parameters
         ----------
-        base_image str
+        base_image str :
             Base Image to use for the new image
-        docker_tag
+        docker_tag :
             Docker tag (REPOSITORY:TAG) to use when building the image
-        layers list(samcli.commands.local.lib.provider.Layer)
+        layers list(samcli.commands.local.lib.provider.Layer) :
             List of Layers to be use to mount in the image
+        base_image :
+
+        layers :
+
 
         Returns
         -------
         None
 
-        Raises
-        ------
-        samcli.commands.local.cli_common.user_exceptions.ImageBuildException
-            When docker fails to build the image
+
+
         """
         dockerfile_content = self._generate_dockerfile(base_image, layers)
 
@@ -194,8 +208,7 @@ class LambdaImage:
 
     @staticmethod
     def _generate_dockerfile(base_image, layers):
-        """
-        Generate the Dockerfile contents
+        """Generate the Dockerfile contents
 
         A generated Dockerfile will look like the following:
         ```
@@ -207,15 +220,18 @@ class LambdaImage:
 
         Parameters
         ----------
-        base_image str
+        base_image str :
             Base Image to use for the new image
-        layers list(samcli.commands.local.lib.provider.Layer)
+        layers list(samcli.commands.local.lib.provider.Layer) :
             List of Layers to be use to mount in the image
+        base_image :
+
+        layers :
+
 
         Returns
         -------
-        str
-            String representing the Dockerfile contents for the image
+
 
         """
         dockerfile_content = "FROM {}\n".format(base_image)
