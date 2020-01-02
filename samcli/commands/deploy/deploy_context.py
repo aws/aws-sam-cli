@@ -15,16 +15,17 @@ Deploy a SAM stack
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import os
 import logging
+import os
+
 import boto3
 import click
 
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
-from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
@@ -102,7 +103,10 @@ class DeployContext:
             raise deploy_exceptions.DeployBucketRequiredError()
 
         session = boto3.Session(profile_name=self.profile if self.profile else None)
-        cloudformation_client = session.client("cloudformation", region_name=self.region if self.region else None)
+        config = get_boto_config_with_user_agent()
+        cloudformation_client = session.client(
+            "cloudformation", region_name=self.region if self.region else None, config=config
+        )
 
         s3_client = None
         if self.s3_bucket:
