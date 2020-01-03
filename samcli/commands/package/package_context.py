@@ -79,9 +79,8 @@ class PackageContext:
 
     def run(self):
 
-        session = boto3.Session(profile_name=self.profile if self.profile else None)
-        s3_client = session.client(
-            "s3", config=Config(signature_version="s3v4", region_name=self.region if self.region else None)
+        s3_client = boto3.client(
+            "s3", config=Config(signature_version="s3v4", region_name=self.region if self.region else None),
         )
 
         self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
