@@ -24,7 +24,6 @@ import click
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)
@@ -103,10 +102,7 @@ class DeployContext:
             raise deploy_exceptions.DeployBucketRequiredError()
 
         session = boto3.Session(profile_name=self.profile if self.profile else None)
-        config = get_boto_config_with_user_agent()
-        cloudformation_client = session.client(
-            "cloudformation", region_name=self.region if self.region else None, config=config
-        )
+        cloudformation_client = session.client("cloudformation", region_name=self.region if self.region else None)
 
         s3_client = None
         if self.s3_bucket:
