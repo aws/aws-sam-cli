@@ -4,12 +4,14 @@ import string
 import random
 import zipfile
 import unittest
+import yaml
 
 from contextlib import contextmanager, closing
 from unittest import mock
 from unittest.mock import patch, Mock
 from tests.testing_utils import FileCreator
 from samcli.commands.package import exceptions
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.package.artifact_exporter import (
     is_s3_url,
     parse_s3_url,
@@ -42,6 +44,7 @@ from samcli.lib.package.artifact_exporter import (
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     GlueJobCommandScriptLocationResource,
+    normalized_sam_template,
 )
 
 
@@ -1083,6 +1086,21 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertEqual(returned_dir, temp_dir)
         copyfile_mock.assert_called_once_with(filename, temp_dir + filename)
 
+    def test_normalized_sam_template_valid_template(self):
+        valid_yaml = yaml.safe_load(self.example_yaml_template())
+        response_dict = normalized_sam_template(valid_yaml)
+        self.assertIsNotNone(response_dict["Resources"]["MyFunction"])
+
+    def test_normalized_sam_template_invalid_template(self):
+        invalid_yaml = yaml.load(
+            """
+        AWSTemplateFormatVersion: '2010-09-09'
+        Description: Invalid template with no resources.
+        """
+        )
+        with self.assertRaises(InvalidSamDocumentException):
+            normalized_sam_template(invalid_yaml)
+
     @contextmanager
     def make_temp_dir(self):
         filename = tempfile.mkdtemp()
@@ -1097,15 +1115,15 @@ class TestArtifactExporter(unittest.TestCase):
         AWSTemplateFormatVersion: '2010-09-09'
         Description: Simple CRUD webservice. State is stored in a SimpleTable (DynamoDB) resource.
         Resources:
-        MyFunction:
-          Type: AWS::Lambda::Function
-          Properties:
-            Code: ./handler
-            Handler: index.get
-            Role:
-              Fn::GetAtt:
-              - MyFunctionRole
-              - Arn
-            Timeout: 20
-            Runtime: nodejs4.3
+          MyFunction:
+            Type: AWS::Lambda::Function
+            Properties:
+              Code: ./handler
+              Handler: index.get
+              Role:
+                Fn::GetAtt:
+                - MyFunctionRole
+                - Arn
+              Timeout: 20
+              Runtime: nodejs4.3
         """

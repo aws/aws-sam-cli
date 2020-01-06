@@ -47,6 +47,7 @@ from samcli.commands._utils.resources import (
 
 from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands.package import exceptions
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
 
@@ -532,6 +533,15 @@ def include_transform_export_handler(template_dict, uploader, parent_dir):
 GLOBAL_EXPORT_DICT = {"Fn::Transform": include_transform_export_handler}
 
 
+def normalized_sam_template(template_yaml):
+    """Takes sam yaml template as input and returns normalized template.
+
+    :param template_yaml: template need to be normalized.
+    :return:
+    """
+    return SamFunctionProvider(template_yaml).template_dict
+
+
 class Template:
     """
     Class to export a CloudFormation template
@@ -615,6 +625,7 @@ class Template:
         if "Resources" not in self.template_dict:
             return self.template_dict
 
+        self.template_dict = normalized_sam_template(self.template_dict)
         self.template_dict = self.export_global_artifacts(self.template_dict)
 
         for resource_id, resource in self.template_dict["Resources"].items():
