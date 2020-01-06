@@ -9,6 +9,8 @@ import yaml
 from contextlib import contextmanager, closing
 from unittest import mock
 from unittest.mock import patch, Mock
+
+from samcli.commands._utils.resources import AWS_SERVERLESS_FUNCTION
 from tests.testing_utils import FileCreator
 from samcli.commands.package import exceptions
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -401,7 +403,6 @@ class TestArtifactExporter(unittest.TestCase):
         is_local_file_mock.return_value = True
 
         with self.make_temp_dir() as tmp_dir:
-
             copy_to_temp_dir_mock.return_value = tmp_dir
 
             # This is not a zip file
@@ -815,7 +816,6 @@ class TestArtifactExporter(unittest.TestCase):
 
         # Patch the file open method to return template string
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
-
             template_exporter = Template(
                 template_path, parent_dir, self.s3_uploader_mock, metadata_to_export=metadata_to_export
             )
@@ -863,7 +863,6 @@ class TestArtifactExporter(unittest.TestCase):
 
         # Patch the file open method to return template string
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
-
             template_exporter = Template(template_path, parent_dir, self.s3_uploader_mock, resources_to_export)
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
@@ -936,6 +935,49 @@ class TestArtifactExporter(unittest.TestCase):
                     exported_template["List"][1]["Fn::Transform"],
                     {"Name": "AWS::Include", "Parameters": {"Location": "s3://foo"}},
                 )
+
+    @patch("samcli.lib.package.artifact_exporter.normalized_sam_template")
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_with_globals_export(self, yaml_parse_mock, normalized_sam_template_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = AWS_SERVERLESS_FUNCTION
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+
+        resources_to_export = [resource_type1_class]
+
+        template_dict = {
+            "Globals": {"Function": {"CodeUri": "RandomUrl"}},
+            "Resources": {"Resource1": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {}}},
+        }
+
+        normalized_template = {
+            "Resources": {"Resource1": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"CodeUri": "S3RandomUrl"}}},
+        }
+
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+        normalized_sam_template_mock.return_value = normalized_template
+
+        # Patch the file open method to return template string
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+            template_exporter = Template(template_path, parent_dir, self.s3_uploader_mock, resources_to_export)
+            exported_template = template_exporter.export()
+            self.assertEqual(exported_template, normalized_template)
+
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+
+            self.assertEqual(1, yaml_parse_mock.call_count)
+
+            resource_type1_class.assert_called_once_with(self.s3_uploader_mock)
+            resource_type1_instance.export.assert_called_once_with(
+                "Resource1", {"CodeUri": "S3RandomUrl"}, template_dir
+            )
 
     @patch("samcli.lib.package.artifact_exporter.is_local_file")
     def test_include_transform_export_handler_with_relative_file_path(self, is_local_file_mock):
