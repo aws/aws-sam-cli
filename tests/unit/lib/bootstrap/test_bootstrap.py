@@ -16,15 +16,19 @@ class TestBootstrapManagedStack(TestCase):
         cf = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
         return [cf, Stubber(cf)]
 
-    @patch("boto3.client")
+    @patch("boto3.Session")
     def test_client_missing_credentials(self, boto_mock):
-        boto_mock.side_effect = NoCredentialsError()
+        session_mock = Mock()
+        session_mock.client.side_effect = NoCredentialsError()
+        boto_mock.return_value = session_mock
         with self.assertRaises(CredentialsError):
             manage_stack("testprofile", "fake-region")
 
-    @patch("boto3.client")
+    @patch("boto3.Session")
     def test_client_missing_region(self, boto_mock):
-        boto_mock.side_effect = NoRegionError()
+        session_mock = Mock()
+        session_mock.client.side_effect = NoRegionError()
+        boto_mock.return_value = session_mock
         with self.assertRaises(RegionError):
             manage_stack("testprofile", "fake-region")
 

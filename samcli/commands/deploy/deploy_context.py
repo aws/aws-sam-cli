@@ -100,11 +100,13 @@ class DeployContext:
         template_size = os.path.getsize(self.template_file)
         if template_size > 51200 and not self.s3_bucket:
             raise deploy_exceptions.DeployBucketRequiredError()
-        cloudformation_client = boto3.client("cloudformation", region_name=self.region if self.region else None)
+
+        session = boto3.Session(profile_name=self.profile if self.profile else None)
+        cloudformation_client = session.client("cloudformation", region_name=self.region if self.region else None)
 
         s3_client = None
         if self.s3_bucket:
-            s3_client = boto3.client("s3", region_name=self.region if self.region else None)
+            s3_client = session.client("s3", region_name=self.region if self.region else None)
 
             self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
 
