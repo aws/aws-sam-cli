@@ -2,13 +2,10 @@
 Context information passed to each CLI command
 """
 
-import logging
 import uuid
-
+import logging
 import boto3
 import botocore
-import botocore.session
-from botocore import credentials
 import click
 
 from samcli.commands.exceptions import CredentialsError
@@ -147,11 +144,6 @@ class Context:
         """
         try:
             boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)
-            # get botocore session and setup caching for MFA based
-            boto3.DEFAULT_SESSION._session.get_component("credential_provider").get_provider(  # pylint: disable=W0212
-                "assume-role"
-            ).cache = credentials.JSONFileCache()
-
         except botocore.exceptions.ProfileNotFound as ex:
             raise CredentialsError(str(ex))
 
