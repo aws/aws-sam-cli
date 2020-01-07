@@ -18,10 +18,9 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java runtime
+        # 11: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -29,10 +28,9 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 
         user_input = """
 1
-13
+11
 1
 eb-app-maven
-N
 3
 Y
 1
@@ -54,10 +52,9 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java Runtime
+        # 11: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 3: partner registry
@@ -65,10 +62,9 @@ Y
 
         user_input = """
 1
-13
+11
 1
 eb-app-maven
-N
 3
 Y
 3
@@ -101,10 +97,9 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java Runtime
+        # 11: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 4: select pagination-registry as registries
@@ -114,10 +109,9 @@ Y
 
         user_input = """
 1
-13
+11
 1
 eb-app-maven
-N
 3
 Y
 4
@@ -141,10 +135,9 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 13: Java Runtime
+        # 11: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
-        # N: lone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 2: select 2p-schema other-schema
@@ -152,10 +145,9 @@ P
 
         user_input = """
 1
-13
+11
 1
 eb-app-maven
-N
 3
 Y
 2
@@ -188,9 +180,8 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 10: Python 3.7
+        # 8: Python 3.7
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -198,9 +189,8 @@ Y
 
         user_input = """
 1
-10
+8
 eb-app-python37
-N
 3
 Y
 1
@@ -220,9 +210,8 @@ Y
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 10: Python 3.7
+        # 8: Python 3.7
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
@@ -232,9 +221,8 @@ Y
 
         user_input = """
 1
-10
+8
 eb-app-python37
-N
 3
 N
 2
@@ -258,9 +246,8 @@ N
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 10: Python 3.7
+        # 8: Python 3.7
         # eb-app-maven: response to name
-        # N: clone/update the source repo
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -268,9 +255,8 @@ N
 
         user_input = """
 1
-10
+8
 eb-app-python37
-N
 3
 Y
 1

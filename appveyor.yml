@@ -14,6 +14,7 @@ environment:
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
+      INSTALL_PY_38_PIP: 1
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
@@ -21,6 +22,15 @@ environment:
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
+      INSTALL_PY_38_PIP: 1
+
+    - PYTHON_HOME: "C:\\Python38-x64"
+      PYTHON_VERSION: '3.8.0'
+      PYTHON_ARCH: '64'
+      RUN_SMOKE: 1
+      NOSE_PARAMETERIZED_NO_WARN: 1
+      INSTALL_PY_36_PIP: 1
+      INSTALL_PY_37_PIP: 1
 
 for:
   - 
@@ -59,9 +69,7 @@ for:
       - "venv\\Scripts\\activate"
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
-      # There are some functional tests that are currently broken due to not being updated with changed code or still running with node4.3 runtimes
-      # We need to update those but this allows us to at least runs the ones we currently have working
-      - "pytest -n 4 tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py"
+      - "pytest -n 4 tests/functional"
 
   - 
     matrix:
@@ -93,7 +101,6 @@ for:
       - sh: "sudo apt-get -y install python3.6"
       - sh: "sudo apt-get -y install python2.7"
       - sh: "sudo apt-get -y install python3.7"
-      - sh: "sudo apt-get update"
       - sh: "sudo apt-get -y install python3.8"
 
       - sh: "which python3.8"
@@ -105,7 +112,7 @@ for:
       - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
 
       - sh: "sudo apt-get -y install python3-distutils"
-      - sh: "python3.8 get-pip.py --user"
+      - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
 
@@ -116,9 +123,7 @@ for:
     test_script:
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
-      # There are some functional tests that are currently broken due to not being updated with changed code or still running with node4.3 runtimes
-      # We need to update those but this allows us to at least runs the ones we currently have working
-      - "pytest -n 4 tests/functional/commands/validate tests/functional/commands/cli/test_global_config.py"
+      - "pytest -n 4 tests/functional"
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"

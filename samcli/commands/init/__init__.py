@@ -147,7 +147,7 @@ You can run 'sam init' without any options for an interactive initialization flo
     --name and --runtime and --app-template and --dependency-manager
     --location
         """
-        raise UserException(msg)
+        raise click.UsageError(msg)
     # check for required parameters
     if location or (name and runtime and dependency_manager and app_template):
         # need to turn app_template into a location before we generate
@@ -170,7 +170,7 @@ Must provide one of the following required parameter combinations:
 
 You can also re-run without the --no-interactive flag to be prompted for required values.
         """
-        raise UserException(error_msg)
+        raise click.UsageError(error_msg)
     else:
         # proceed to interactive state machine, which will call do_generate
         do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
@@ -190,7 +190,7 @@ def _get_cookiecutter_template_context(name, runtime, extra_context):
         try:
             extra_context_dict = json.loads(extra_context)
         except JSONDecodeError:
-            raise UserException(
+            raise click.UsageError(
                 "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
             )
 

@@ -1,22 +1,19 @@
 """
 Common OS utilities
 """
-
-import sys
+import logging
 import os
 import shutil
+import stat
+import sys
 import tempfile
-import logging
-import contextlib
-
 from contextlib import contextmanager
-
 
 LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def mkdir_temp(mode=0o755):
+def mkdir_temp(mode=0o755, ignore_errors=False):
     """
     Context manager that makes a temporary directory and yields it name. Directory is deleted
     after the context exits
@@ -25,6 +22,10 @@ def mkdir_temp(mode=0o755):
     ----------
     mode : octal
         Permissions to apply to the directory. Defaults to '755' because don't want directories world writable
+
+    ignore_errors : boolean
+        If true, we will log a debug statement on failure to clean up the temp directory, rather than failing.
+        Defaults to False
 
     Returns
     -------
@@ -42,7 +43,26 @@ def mkdir_temp(mode=0o755):
 
     finally:
         if temp_dir:
-            shutil.rmtree(temp_dir)
+            if ignore_errors:
+                shutil.rmtree(temp_dir, False, rmtree_callback)
+            else:
+                shutil.rmtree(temp_dir)
+
+
+def rmtree_callback(function, path, excinfo):
+    """
+    Callback function for shutil.rmtree to change permissions on the file path, so that
+    it's delete-able incase the file path is read-only.
+    :param function: platform and implementation dependent function.
+    :param path: argument to the function that caused it to fail.
+    :param excinfo: tuple returned by sys.exc_info()
+    :return:
+    """
+    try:
+        os.chmod(path=path, mode=stat.S_IWRITE)
+        os.remove(path)
+    except OSError:
+        LOG.debug("rmtree failed in %s for %s, details: %s", function, path, excinfo)
 
 
 def stdout():
@@ -77,7 +97,7 @@ def remove(path):
             pass
 
 
-@contextlib.contextmanager
+@contextmanager
 def tempfile_platform_independent():
     # NOTE(TheSriram): Setting delete=False is specific to windows.
     # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile

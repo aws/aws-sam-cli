@@ -8,7 +8,7 @@ import shutil
 import pathlib
 
 from samcli.local.docker.manager import ContainerManager
-from samcli.commands.local.lib.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.commands._utils.template import get_template_data
 from samcli.commands.exceptions import UserException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -23,18 +23,20 @@ class BuildContext:
     # This is usually a optimal permission for directories
     _BUILD_DIR_PERMISSIONS = 0o755
 
-    def __init__(self,
-                 function_identifier,
-                 template_file,
-                 base_dir,
-                 build_dir,
-                 mode,
-                 manifest_path=None,
-                 clean=False,
-                 use_container=False,
-                 parameter_overrides=None,
-                 docker_network=None,
-                 skip_pull_image=False):
+    def __init__(
+        self,
+        function_identifier,
+        template_file,
+        base_dir,
+        build_dir,
+        mode,
+        manifest_path=None,
+        clean=False,
+        use_container=False,
+        parameter_overrides=None,
+        docker_network=None,
+        skip_pull_image=False,
+    ):
 
         self._function_identifier = function_identifier
         self._template_file = template_file
@@ -54,10 +56,7 @@ class BuildContext:
         self._container_manager = None
 
     def __enter__(self):
-        try:
-            self._template_dict = get_template_data(self._template_file)
-        except ValueError as ex:
-            raise UserException(str(ex))
+        self._template_dict = get_template_data(self._template_file)
 
         self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
 
@@ -68,8 +67,9 @@ class BuildContext:
         self._build_dir = self._setup_build_dir(self._build_dir, self._clean)
 
         if self._use_container:
-            self._container_manager = ContainerManager(docker_network_id=self._docker_network,
-                                                       skip_pull_image=self._skip_pull_image)
+            self._container_manager = ContainerManager(
+                docker_network_id=self._docker_network, skip_pull_image=self._skip_pull_image
+            )
 
         return self
 
@@ -143,8 +143,9 @@ class BuildContext:
 
             if not function:
                 all_functions = [f.name for f in self._function_provider.get_all()]
-                available_function_message = "{} not found. Possible options in your template: {}" \
-                    .format(self._function_identifier, all_functions)
+                available_function_message = "{} not found. Possible options in your template: {}".format(
+                    self._function_identifier, all_functions
+                )
                 LOG.info(available_function_message)
                 raise FunctionNotFound("Unable to find a Function with name '{}'".format(self._function_identifier))
 

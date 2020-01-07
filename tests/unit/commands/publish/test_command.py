@@ -6,9 +6,11 @@ from unittest.mock import patch, call, Mock
 from serverlessrepo.exceptions import ServerlessRepoError, InvalidS3UriError
 from serverlessrepo.publish import CREATE_APPLICATION, UPDATE_APPLICATION
 from serverlessrepo.parser import METADATA, SERVERLESS_REPO_APPLICATION
+from parameterized import parameterized, param
 
 from samcli.commands.publish.command import do_cli as publish_cli, SEMANTIC_VERSION
 from samcli.commands.exceptions import UserException
+from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 
 
 class TestCli(TestCase):
@@ -22,11 +24,12 @@ class TestCli(TestCase):
             "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
         )
 
+    @parameterized.expand([param(TemplateFailedParsingException), param(TemplateNotFoundException)])
     @patch("samcli.commands.publish.command.get_template_data")
     @patch("samcli.commands.publish.command.click")
-    def test_must_raise_if_value_error(self, click_mock, get_template_data_mock):
-        get_template_data_mock.side_effect = ValueError("Template not found")
-        with self.assertRaises(UserException) as context:
+    def test_must_raise_if_invalid_template(self, exception_to_raise, click_mock, get_template_data_mock):
+        get_template_data_mock.side_effect = exception_to_raise("Template not found")
+        with self.assertRaises(exception_to_raise) as context:
             publish_cli(self.ctx_mock, self.template, None)
 
         message = str(context.exception)
