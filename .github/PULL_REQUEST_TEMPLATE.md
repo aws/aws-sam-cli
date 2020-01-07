@@ -6,6 +6,8 @@
 
 *What side effects does this change have?*
 
+*What are the security implications?
+
 *Checklist:*
 
 - [ ] Write Design Document ([Do I need to write a design document?](https://github.com/awslabs/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.rst#design-document))
