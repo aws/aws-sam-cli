@@ -15,8 +15,9 @@ Deploy a SAM stack
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import os
 import logging
+import os
+
 import boto3
 import click
 
@@ -24,7 +25,6 @@ from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.yamlhelper import yaml_parse
-from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 

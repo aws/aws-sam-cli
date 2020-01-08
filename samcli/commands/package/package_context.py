@@ -15,18 +15,18 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import os
-import logging
 import json
+import logging
+import os
 
 import boto3
-from botocore.config import Config
 import click
+from botocore.config import Config
 
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
-from samcli.yamlhelper import yaml_dump
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
 
