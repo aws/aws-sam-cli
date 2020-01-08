@@ -33,7 +33,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 5005d2f4-1627-41fd-9cef-bb27b804f7f7
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Events:
         SNS1:
           Type: SNS
