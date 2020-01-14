@@ -141,14 +141,21 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
         for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
             properties = resource.get("Properties", {})
-            path = properties.get(path_prop_name)
+
+            p_ref = properties
+            if isinstance(path_prop_name, list):
+                for nested_prop_name in path_prop_name[:-1]:
+                    p_ref = p_ref.get(nested_prop_name)
+                path_prop_name = path_prop_name[-1]
+
+            path = p_ref.get(path_prop_name)
 
             updated_path = _resolve_relative_to(path, original_root, new_root)
             if not updated_path:
                 # This path does not need to get updated
                 continue
 
-            properties[path_prop_name] = updated_path
+            p_ref[path_prop_name] = updated_path
 
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there

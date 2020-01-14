@@ -32,7 +32,7 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_APPLICATION: ["Location"],
     AWS_LAMBDA_LAYERVERSION: ["Content"],
     AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
-    AWS_GLUE_JOB: ["Command.ScriptLocation"],
+    AWS_GLUE_JOB: [["Command", "ScriptLocation"]],
 }
 
 
