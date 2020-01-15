@@ -212,7 +212,7 @@ class ApplicationBuilder:
         dict
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
-        return {'artifact_executable_name': handler} if language=='go' else None
+        return {'artifact_executable_name': handler} if language == 'go' else None
 
     def _build_function_in_process(self,
                                    config,

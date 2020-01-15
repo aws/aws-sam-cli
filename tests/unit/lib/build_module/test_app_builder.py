@@ -35,8 +35,8 @@ class TestApplicationBuilder_build(TestCase):
 
         build_function_mock.assert_has_calls(
             [
-                call(self.func1.name, self.func1.codeuri, self.func1.runtime),
-                call(self.func2.name, self.func2.codeuri, self.func2.runtime),
+                call(self.func1.name, self.func1.codeuri, self.func1.runtime, self.func1.handler),
+                call(self.func2.name, self.func2.codeuri, self.func2.runtime, self.func2.handler),
             ],
             any_order=False,
         )
@@ -94,6 +94,7 @@ class TestApplicationBuilder_build_function(TestCase):
         codeuri = "path/to/source"
         runtime = "runtime"
         scratch_dir = "scratch"
+        handler = "handler.handle"
         config_mock = get_workflow_config_mock.return_value = Mock()
         config_mock.manifest_name = "manifest_name"
 
@@ -106,10 +107,10 @@ class TestApplicationBuilder_build_function(TestCase):
         artifacts_dir = str(Path("/build/dir/function_name"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
-        self.builder._build_function(function_name, codeuri, runtime)
+        self.builder._build_function(function_name, codeuri, runtime, handler)
 
         self.builder._build_function_in_process.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -119,6 +120,7 @@ class TestApplicationBuilder_build_function(TestCase):
         codeuri = "path/to/source"
         runtime = "runtime"
         scratch_dir = "scratch"
+        handler = "handler.handle"
         config_mock = get_workflow_config_mock.return_value = Mock()
         config_mock.manifest_name = "manifest_name"
 
@@ -133,10 +135,10 @@ class TestApplicationBuilder_build_function(TestCase):
 
         # Settting the container manager will make us use the container
         self.builder._container_manager = Mock()
-        self.builder._build_function(function_name, codeuri, runtime)
+        self.builder._build_function(function_name, codeuri, runtime, handler)
 
         self.builder._build_function_on_container.assert_called_with(
-            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
         )
 
 
@@ -150,7 +152,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
         builder_instance_mock = lambda_builder_mock.return_value = Mock()
 
         result = self.builder._build_function_in_process(
-            config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
+            config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -168,6 +170,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
             runtime="runtime",
             executable_search_paths=config_mock.executable_search_paths,
             mode="mode",
+            options=None,
         )
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
@@ -179,7 +182,7 @@ class TestApplicationBuilder_build_function_in_process(TestCase):
 
         with self.assertRaises(BuildError):
             self.builder._build_function_in_process(
-                config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
+                config_mock, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None
             )
 
 
@@ -210,7 +213,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         self.builder._parse_builder_response.return_value = response
 
         result = self.builder._build_function_on_container(
-            config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
+            config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", None
         )
         self.assertEqual(result, "artifacts_dir")
 
@@ -248,7 +251,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
         with self.assertRaises(UnsupportedBuilderLibraryVersionError) as ctx:
             self.builder._build_function_on_container(
-                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
+                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", {}
             )
 
         msg = (
@@ -267,7 +270,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
         with self.assertRaises(BuildError) as ctx:
             self.builder._build_function_on_container(
-                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
+                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", {}
             )
 
         self.assertEqual(
@@ -283,7 +286,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
         with self.assertRaises(ContainerBuildNotSupported) as ctx:
             self.builder._build_function_on_container(
-                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime"
+                config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", {}
             )
 
         self.assertEqual(str(ctx.exception), reason)
