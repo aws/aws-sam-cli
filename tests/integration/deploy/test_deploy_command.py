@@ -70,7 +70,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 parameter_overrides="Parameter=Clarity",
                 kms_key_id=self.kms_key,
                 no_execute_changeset=True,
-                tags="integ=true clarity=yes",
+                tags="integ=true clarity=yes foo_bar=baz",
             )
 
             deploy_process_no_execute = Popen(deploy_command_list_no_execute, stdout=PIPE)
@@ -91,7 +91,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 notification_arns=self.sns_arn,
                 parameter_overrides="Parameter=Clarity",
                 kms_key_id=self.kms_key,
-                tags="integ=true clarity=yes",
+                tags="integ=true clarity=yes foo_bar=baz",
             )
 
             deploy_process = Popen(deploy_command_list_execute, stdout=PIPE)
@@ -121,7 +121,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -212,7 +212,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=True,
         )
 
@@ -237,7 +237,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -272,7 +272,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -301,7 +301,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -327,7 +327,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -359,7 +359,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -384,7 +384,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
             region="eu-west-2",
         )
@@ -425,7 +425,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             "parameter_overrides": "Parameter=Clarity",
             "kms_key_id": self.kms_key,
             "no_execute_changeset": False,
-            "tags": "integ=true clarity=yes",
+            "tags": "integ=true clarity=yes foo_bar=baz",
             "confirm_changeset": False,
         }
         # Package and Deploy in one go without confirming change set.
@@ -473,7 +473,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             "parameter_overrides": "Parameter=Clarity",
             "kms_key_id": self.kms_key,
             "no_execute_changeset": False,
-            "tags": "integ=true clarity=yes",
+            "tags": "integ=true clarity=yes foo_bar=baz",
             "confirm_changeset": False,
         }
         deploy_command_list = self.get_deploy_command_list(**kwargs)
