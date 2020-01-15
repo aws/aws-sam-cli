@@ -14,6 +14,7 @@ def _value_regex(delim):
 
 
 KEY_REGEX = '([A-Za-z0-9\\"]+)'
+TAG_KEY_REGEX = '([A-Za-z0-9\\"_:\\./\\+-]+)'
 # Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
 VALUE_REGEX_SPACE_DELIM = _value_regex(" ")
 # Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
@@ -168,7 +169,7 @@ class CfnTags(click.ParamType):
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
 
-    _pattern = r"{key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
+    _pattern = r"{key}={value}".format(key=TAG_KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
