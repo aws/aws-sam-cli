@@ -169,6 +169,9 @@ def supports_build_in_container(config):
         _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
                                         "Try building without the container. Most .NET Core functions will build "
                                         "successfully.",
+        _key(GO_MOD_CONFIG): "We do not support building Go Lambda functions within a container. "
+                                        "Try building without the container. Most Go functions will build "
+                                        "successfully.",
     }
 
     thiskey = _key(config)
