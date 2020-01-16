@@ -146,6 +146,9 @@ class ApplicationBuilder:
             if resource_type == "AWS::Lambda::Function":
                 properties["Code"] = artifact_relative_path
 
+            if resource_type == "AWS::Glue::Job":
+                properties["Command"]["ScriptLocation"] = artifact_relative_path
+
         return template_dict
 
     def _build_function(self, function_name, codeuri, runtime):
