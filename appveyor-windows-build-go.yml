@@ -57,12 +57,14 @@ install:
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 
-    # Echo final Path
-    - "echo %PATH%"
-
     # Check Go Install
+    - "SET PATH=c:\\Go\\bin;%PATH%"
+    - "echo %PATH%"
     - "go version"
     - "go env"
+
+    # Echo final Path
+    - "echo %PATH%"
 
 test_script:
     # Reactivate virtualenv before running tests
