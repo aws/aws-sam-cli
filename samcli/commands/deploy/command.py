@@ -90,7 +90,7 @@ LOG = logging.getLogger(__name__)
     "--no-execute-changeset",
     required=False,
     is_flag=True,
-    help="Indicates  whether  to  execute  the"
+    help="Indicates  whether  to  execute  the "
     "change  set.  Specify  this flag if you want to view your stack changes "
     "before executing the change set. The command creates an AWS CloudFormation "
     "change set and then exits without executing the change set. if "
