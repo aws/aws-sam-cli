@@ -558,6 +558,8 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         process = Popen(cmdlist, cwd=self.working_dir, env=newenv, stderr=PIPE)
         try:
             stdout, stderr = process.communicate(timeout=TIMEOUT)
+            LOG.info("Go Build STDOUT: {}".format(stdout))
+            LOG.info("Go Build STDERR: {}".format(stderr))
         except TimeoutExpired:
             process.kill()
             raise
@@ -585,7 +587,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
 
     @pytest.mark.flaky(reruns=3)
     @parameterized.expand([("go1.x", "Go")])
-    def test_must_fail_with_container(self, runtime, code_uri):
+    def test_go_must_fail_with_container(self, runtime, code_uri):
         use_container = True
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)

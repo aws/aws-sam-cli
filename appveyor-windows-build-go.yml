@@ -60,11 +60,16 @@ install:
     # Echo final Path
     - "echo %PATH%"
 
+    # Check Go Install
+    - "go version"
+    - "go env"
+
 test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
     - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_with_go"
+    - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_go_must_fail_with_container"
 
 # Uncomment for RDP
 # on_finish:
