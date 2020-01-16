@@ -535,23 +535,12 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 class TestBuildCommand_Go_Modules(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
-    EXPECTED_FILES_PROJECT_MANIFEST = {
-        "hello-world",
-    }
+    EXPECTED_FILES_PROJECT_MANIFEST = {"hello-world"}
 
     @pytest.mark.flaky(reruns=3)
-    @parameterized.expand(
-        [
-            ("go1.x", "Go", None),
-            ("go1.x", "Go", "debug"),
-        ]
-    )
+    @parameterized.expand([("go1.x", "Go", None), ("go1.x", "Go", "debug")])
     def test_with_go(self, runtime, code_uri, mode):
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "hello-world",
-        }
+        overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
         # Need to pass GOPATH ENV variable to match the test directory when running build
@@ -598,11 +587,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
     @parameterized.expand([("go1.x", "Go")])
     def test_must_fail_with_container(self, runtime, code_uri):
         use_container = True
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "hello-world",
-        }
+        overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
