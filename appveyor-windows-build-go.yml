@@ -58,9 +58,9 @@ install:
     - ps: Switch-DockerLinux
 
     # Check Go Install
-    - "SET PATH=c:\\Go\\bin;%PATH%"
+    - "SET PATH=C:\\Go\\bin;%PATH%"
     - "echo %PATH%"
-    - "dir c:\\Go\\bin"
+    - "dir C:\\Go\\bin"
     - "go version"
     - "go env"
 
