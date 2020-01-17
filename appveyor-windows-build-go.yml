@@ -33,6 +33,7 @@ init:
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
 
+stack: go 1.13
 
 install:
 
@@ -60,7 +61,6 @@ install:
     # Check Go Install
     - "SET PATH=C:\\Go\\bin;%PATH%"
     - "echo %PATH%"
-    - "dir C:\\Go\\bin"
     - "go version"
     - "go env"
 
