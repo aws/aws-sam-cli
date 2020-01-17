@@ -19,6 +19,22 @@ VALUE_REGEX_SPACE_DELIM = _value_regex(" ")
 # Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
 VALUE_REGEX_COMMA_DELIM = _value_regex(",")
 
+class CfnResourcesToImportType(click.ParamType):
+    """
+    TODO. Cleanup. Document. Add error handling.
+    """
+
+    def convert(self, value, param, ctx):
+        # pylint: disable=protected-access
+        import awscli.clidriver
+        d = awscli.clidriver.create_clidriver()
+        name = 'process-cli-arg.cloudformation.create-change-set'
+        rti_arg = d._get_command_table()['cloudformation'] \
+                ._create_command_table()['create-change-set'] \
+                .arg_table['resources-to-import']
+        resources_to_import = d.session.emit(name, cli_argument=rti_arg, value=list(value))[0][1]
+        return resources_to_import
+
 
 class CfnParameterOverridesType(click.ParamType):
     """

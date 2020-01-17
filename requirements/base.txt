@@ -1,3 +1,4 @@
+awscli==1.17.7
 chevron~=0.12
 click~=7.0
 Flask~=1.0.2

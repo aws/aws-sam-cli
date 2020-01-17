@@ -8,7 +8,7 @@ from functools import partial
 
 import click
 from click.types import FuncParamType
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
+from samcli.cli.types import CfnParameterOverridesType, CfnResourcesToImportType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
 
@@ -159,6 +159,16 @@ def parameter_override_click_option():
 def parameter_override_option(f):
     return parameter_override_click_option()(f)
 
+def resources_to_import_click_option():
+    return click.option(
+        "--resources-to-import",
+        cls=OptionNargs,
+        type=CfnResourcesToImportType(),
+        default=[],
+        help="Optional. A string that contains AWS CloudFormation resources to import."
+    )
+def resources_to_import_option(f):
+    return resources_to_import_click_option()(f)
 
 def metadata_click_option():
     return click.option(

@@ -56,6 +56,7 @@ class DeployContext:
         region,
         profile,
         confirm_changeset,
+        resources_to_import,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -75,6 +76,7 @@ class DeployContext:
         self.s3_uploader = None
         self.deployer = None
         self.confirm_changeset = confirm_changeset
+        self.resources_to_import = resources_to_import
 
     def __enter__(self):
         return self
@@ -125,6 +127,7 @@ class DeployContext:
             self.s3_uploader,
             [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],
             region,
+            self.resources_to_import,
             self.fail_on_empty_changeset,
             self.confirm_changeset,
         )
@@ -141,6 +144,7 @@ class DeployContext:
         s3_uploader,
         tags,
         region,
+        resources_to_import,
         fail_on_empty_changeset=True,
         confirm_changeset=False,
     ):
@@ -154,6 +158,7 @@ class DeployContext:
                 notification_arns=notification_arns,
                 s3_uploader=s3_uploader,
                 tags=tags,
+                resources_to_import=resources_to_import,
             )
             click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 

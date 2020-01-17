@@ -117,7 +117,7 @@ class Deployer:
             raise e
 
     def create_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+            self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags, resources_to_import
     ):
         """
         Call Cloudformation to create a changeset and wait for it to complete
@@ -127,16 +127,17 @@ class Deployer:
         :param parameter_values: Template parameters object
         :param capabilities: Array of capabilities passed to CloudFormation
         :param tags: Array of tags passed to CloudFormation
+        :param resources_to_import: TODO Array of tags passed to CloudFormation
         :return:
         """
         if not self.has_stack(stack_name):
-            changeset_type = "CREATE"
+            changeset_type = "CREATE" if not resources_to_import else "IMPORT"
             # When creating a new stack, UsePreviousValue=True is invalid.
             # For such parameters, users should either override with new value,
             # or set a Default value in template to successfully create a stack.
             parameter_values = [x for x in parameter_values if not x.get("UsePreviousValue", False)]
         else:
-            changeset_type = "UPDATE"
+            changeset_type = "UPDATE" if not resources_to_import else "IMPORT"
             # UsePreviousValue not valid if parameter is new
             summary = self._client.get_template_summary(StackName=stack_name)
             existing_parameters = [parameter["ParameterKey"] for parameter in summary["Parameters"]]
@@ -158,6 +159,11 @@ class Deployer:
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.utcnow().isoformat()),
             "Tags": tags,
         }
+
+        if resources_to_import:
+            kwargs['ResourcesToImport'] = resources_to_import
+
+
 
         # If an S3 uploader is available, use TemplateURL to deploy rather than
         # TemplateBody. This is required for large templates.
@@ -207,7 +213,7 @@ class Deployer:
         """
         paginator = self._client.get_paginator("describe_change_set")
         response_iterator = paginator.paginate(ChangeSetName=change_set_id, StackName=stack_name)
-        changes = {"Add": [], "Modify": [], "Remove": []}
+        changes = {"Add": [], "Modify": [], "Remove": [], "Import": []}
         changes_showcase = {"Add": "+ Add", "Modify": "* Modify", "Remove": "- Delete"}
         changeset = False
         for item in response_iterator:
@@ -384,6 +390,8 @@ class Deployer:
             waiter = self._client.get_waiter("stack_create_complete")
         elif changeset_type == "UPDATE":
             waiter = self._client.get_waiter("stack_update_complete")
+        elif changeset_type == "IMPORT":
+            waiter = self._client.get_waiter("stack_import_complete")
         else:
             raise RuntimeError("Invalid changeset type {0}".format(changeset_type))
 
@@ -401,11 +409,11 @@ class Deployer:
         self.get_stack_outputs(stack_name=stack_name)
 
     def create_and_wait_for_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+            self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags, resources_to_import
     ):
         try:
             result, changeset_type = self.create_changeset(
-                stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+                stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags, resources_to_import
             )
             self.wait_for_changeset(result["Id"], stack_name)
             self.describe_changeset(result["Id"], stack_name)
