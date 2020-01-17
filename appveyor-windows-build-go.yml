@@ -57,7 +57,6 @@ install:
     - ps: Switch-DockerLinux
 
     # Install Go
-    - rmdir c:\go /s /q
     - "choco install golang"
     - "choco install bzr"
     - "choco install dep"
