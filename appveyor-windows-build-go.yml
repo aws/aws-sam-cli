@@ -33,8 +33,6 @@ init:
   - ps: gcim Win32_Processor | % { "$($_.NumberOfLogicalProcessors) logical CPUs" }
   - ps: gcim Win32_OperatingSystem | % { "$([int]($_.TotalVisibleMemorySize/1mb)) Gb" }
 
-stack: go 1.13
-
 install:
 
     # Make sure the temp directory exists for Python to use.
@@ -58,9 +56,12 @@ install:
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
 
-    # Check Go Install
-    - "SET PATH=C:\\Go\\bin;%PATH%"
-    - "echo %PATH%"
+    # Install Go
+    - rmdir c:\go /s /q
+    - "choco install golang"
+    - "choco install bzr"
+    - "choco install dep"
+    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
     - "go version"
     - "go env"
 
