@@ -1,6 +1,9 @@
 import os
 import copy
+
+import jmespath
 import yaml
+from botocore.utils import set_value_from_jmespath
 
 from unittest import TestCase
 from unittest.mock import patch, mock_open
@@ -122,19 +125,9 @@ class Test_update_relative_paths(TestCase):
     @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
         for propname in properties:
-            relative_path_prop = {}
-            propname_seg = propname.split(".")
-            propname_seg_len = len(propname_seg) - 1
-
-            for i, propname_seg_val in enumerate(reversed(propname_seg)):
-                if i == 0:
-                    relative_path_prop = {propname_seg_val: self.curpath}
-                else:
-                    relative_path_prop = {propname_seg_val: relative_path_prop}
-
             template_dict = {
                 "Resources": {
-                    "MyResourceWithRelativePath": {"Type": resource_type, "Properties": relative_path_prop},
+                    "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {}},
                     "MyResourceWithS3Path": {"Type": resource_type, "Properties": {propname: self.s3path}},
                     "MyResourceWithAbsolutePath": {"Type": resource_type, "Properties": {propname: self.abspath}},
                     "MyResourceWithInvalidPath": {
@@ -151,20 +144,17 @@ class Test_update_relative_paths(TestCase):
                 "Parameters": {"a": "b"},
             }
 
+            set_value_from_jmespath(
+                template_dict, f"Resources.MyResourceWithRelativePath.Properties.{propname}", self.curpath
+            )
+
             expected_template_dict = copy.deepcopy(template_dict)
 
-            if propname_seg_len == 0:
-                expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Properties"][
-                    propname
-                ] = self.expected_result
-            else:
-                for i, propname_seg_val in enumerate(propname_seg):
-                    if i == 0:
-                        node = expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Properties"]
-                    if i == propname_seg_len:
-                        node[propname_seg_val] = self.expected_result
-                    else:
-                        node = node[propname_seg_val]
+            set_value_from_jmespath(
+                expected_template_dict,
+                f"Resources.MyResourceWithRelativePath.Properties.{propname}",
+                self.expected_result,
+            )
 
             result = _update_relative_paths(template_dict, self.src, self.dest)
 
