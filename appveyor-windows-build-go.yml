@@ -35,6 +35,13 @@ init:
 
 install:
 
+    # Install Go
+    - "choco install golang"
+    - "choco install bzr"
+    - "refreshenv"
+    - "go version"
+    - "go env"
+
     # Make sure the temp directory exists for Python to use.
     - ps: "mkdir -Force D:\\tmp"
     - "SET PATH=%PYTHON_HOME%;%PATH%"
@@ -55,13 +62,6 @@ install:
 
     # Switch to Docker Linux containers
     - ps: Switch-DockerLinux
-
-    # Install Go
-    - "choco install golang"
-    - "choco install bzr"
-    - "refreshenv"
-    - "go version"
-    - "go env"
 
     # Echo final Path
     - "echo %PATH%"
