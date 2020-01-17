@@ -1,13 +1,11 @@
 version: 1.0.{build}
-image: Visual Study 2017
+image: Windows Server 2019
 build: off
 
 # Change the clone folder to somewhere in "D:\" because this is shared by default with Docker. We need this to mount folders.
 clone_folder: D:\source
 
 environment:
-  GOPATH: c:\gopath
-  GOVERSION: 1.13
   AWS_DEFAULT_REGION: us-east-1
   SAM_CLI_DEV: 1
   APPVEYOR_CI_OVERRIDE: 1
@@ -55,11 +53,13 @@ install:
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
 
+    # Switch to Docker Linux containers
+    - ps: Switch-DockerLinux
+
     # Install Go
-    - rmdir c:\go /s /q
     - "choco install golang"
     - "choco install bzr"
-    - setx PATH "C:\go\bin;C:\gopath\bin;C:\Program Files (x86)\Bazaar\;C:\Program Files\Mercurial;%PATH%;"
+    - "refreshenv"
     - "go version"
     - "go env"
 
@@ -69,6 +69,7 @@ install:
 test_script:
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
+    - "docker system prune -a -f"
     - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_with_go"
     - "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_go_must_fail_with_container"
 
