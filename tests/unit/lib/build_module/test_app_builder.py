@@ -50,7 +50,7 @@ class TestApplicationBuilder_update_template(TestCase):
             "Resources": {
                 "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
                 "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
-                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "oldvalue"}}},
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
             }
         }
@@ -60,7 +60,6 @@ class TestApplicationBuilder_update_template(TestCase):
         built_artifacts = {
             "MyFunction1": "/path/to/build/MyFunction1",
             "MyFunction2": "/path/to/build/MyFunction2",
-            "GlueResource": "/path/to/build/GlueResource",
         }
 
         expected_result = {
@@ -73,10 +72,7 @@ class TestApplicationBuilder_update_template(TestCase):
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "MyFunction2")},
                 },
-                "GlueResource": {
-                    "Type": "AWS::Glue::Job",
-                    "Properties": {"Command": {"ScriptLocation": os.path.join("build", "GlueResource")}},
-                },
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
             }
         }

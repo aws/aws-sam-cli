@@ -133,7 +133,7 @@ class ApplicationBuilder:
                 # this resource was not built. So skip it
                 continue
 
-            # Artifacts are written relative to the template because it makes the template portable
+            # Artifacts are wrtoitten relative  the template because it makes the template portable
             #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
             #   package stage running on a different machine
             artifact_relative_path = os.path.relpath(built_artifacts[logical_id], original_dir)
@@ -145,9 +145,6 @@ class ApplicationBuilder:
 
             if resource_type == "AWS::Lambda::Function":
                 properties["Code"] = artifact_relative_path
-
-            if resource_type == "AWS::Glue::Job":
-                properties["Command"]["ScriptLocation"] = artifact_relative_path
 
         return template_dict
 
