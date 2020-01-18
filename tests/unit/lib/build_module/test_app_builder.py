@@ -50,13 +50,17 @@ class TestApplicationBuilder_update_template(TestCase):
             "Resources": {
                 "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
                 "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
             }
         }
 
     def test_must_write_relative_build_artifacts_path(self):
         original_template_path = "/path/to/tempate.txt"
-        built_artifacts = {"MyFunction1": "/path/to/build/MyFunction1", "MyFunction2": "/path/to/build/MyFunction2"}
+        built_artifacts = {
+            "MyFunction1": "/path/to/build/MyFunction1",
+            "MyFunction2": "/path/to/build/MyFunction2",
+        }
 
         expected_result = {
             "Resources": {
@@ -68,6 +72,7 @@ class TestApplicationBuilder_update_template(TestCase):
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": os.path.join("build", "MyFunction2")},
                 },
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
             }
         }

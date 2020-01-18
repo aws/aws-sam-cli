@@ -73,6 +73,16 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ),
         )
 
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         expected = {"pi": "3.14"}
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -178,6 +188,17 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
                 str(self.default_build_dir),
             ),
         )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
@@ -253,6 +274,17 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
                 str(self.default_build_dir),
             ),
         )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
@@ -377,6 +409,16 @@ class TestBuildCommand_Java(BuildIntegBase):
             ),
         )
 
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         # If we are testing in the container, invoke the function as well. Otherwise we cannot guarantee docker is on appveyor
         if use_container:
             expected = "Hello World"
@@ -474,6 +516,16 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             str(self.built_template),
             "OtherRelativePathResource",
             "BodyS3Location",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
             os.path.relpath(
                 os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
                 str(self.default_build_dir),
