@@ -89,7 +89,7 @@ for:
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
       # Install black
-      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.3b0/black"
+      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
       - sh: "chmod +x /tmp/black"
       - sh: "/tmp/black --version"
 

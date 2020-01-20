@@ -62,6 +62,13 @@ DOTNET_CLIPACKAGE_CONFIG = CONFIG(
                 manifest_name=".csproj",
                 executable_search_paths=None)
 
+GO_MOD_CONFIG = CONFIG(
+    language="go",
+    dependency_manager="modules",
+    application_framework=None,
+    manifest_name="go.mod",
+    executable_search_paths=None)
+
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -104,6 +111,7 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnetcore2.0": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
 
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
@@ -160,6 +168,9 @@ def supports_build_in_container(config):
     unsupported = {
         _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
                                         "Try building without the container. Most .NET Core functions will build "
+                                        "successfully.",
+        _key(GO_MOD_CONFIG): "We do not support building Go Lambda functions within a container. "
+                                        "Try building without the container. Most Go functions will build "
                                         "successfully.",
     }
 
