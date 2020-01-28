@@ -2,7 +2,7 @@ import boto3
 import logging
 
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 
 from samcli.cli.context import Context
 
@@ -47,7 +47,7 @@ class TestContext(TestCase):
 
         ctx.profile = profile
         self.assertEqual(ctx.profile, profile)
-        boto_mock.setup_default_session.assert_called_with(region_name=None, profile_name=profile)
+        boto_mock.setup_default_session.assert_called_with(region_name=None, profile_name=profile, botocore_session=ANY)
 
     @patch("samcli.cli.context.boto3")
     def test_must_set_all_aws_session_properties(self, boto_mock):
@@ -57,7 +57,9 @@ class TestContext(TestCase):
 
         ctx.profile = profile
         ctx.region = region
-        boto_mock.setup_default_session.assert_called_with(region_name=region, profile_name=profile)
+        boto_mock.setup_default_session.assert_called_with(
+            region_name=region, profile_name=profile, botocore_session=ANY
+        )
 
     @patch("samcli.cli.context.uuid")
     def test_must_set_session_id_to_uuid(self, uuid_mock):

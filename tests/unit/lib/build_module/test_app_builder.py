@@ -57,10 +57,7 @@ class TestApplicationBuilder_update_template(TestCase):
 
     def test_must_write_relative_build_artifacts_path(self):
         original_template_path = "/path/to/tempate.txt"
-        built_artifacts = {
-            "MyFunction1": "/path/to/build/MyFunction1",
-            "MyFunction2": "/path/to/build/MyFunction2",
-        }
+        built_artifacts = {"MyFunction1": "/path/to/build/MyFunction1", "MyFunction2": "/path/to/build/MyFunction2"}
 
         expected_result = {
             "Resources": {
