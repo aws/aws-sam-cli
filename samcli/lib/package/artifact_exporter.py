@@ -602,6 +602,22 @@ class Template:
 
         return template_dict
 
+    def apply_global_values(self, template_dict):
+        """
+        Takes values from the "Global" parameters and applies them to resources where needed for packaging.
+        """
+        for resource_id, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", None)
+
+            if 'CodeUri' not in resource and resource_type == AWS_SERVERLESS_FUNCTION:
+                code_uri_global = self.template_dict.get('Globals', {}).get('Function', {}).get('CodeUri', None)
+                if code_uri_global is not None and resource_dict is not None:
+                    resource_dict['CodeUri'] = code_uri_global
+
+        return template_dict
+
     def export(self):
         """
         Exports the local artifacts referenced by the given template to an
@@ -616,6 +632,7 @@ class Template:
             return self.template_dict
 
         self.template_dict = self.export_global_artifacts(self.template_dict)
+        self.template_dict = self.apply_global_values(self.template_dict)
 
         for resource_id, resource in self.template_dict["Resources"].items():
 
