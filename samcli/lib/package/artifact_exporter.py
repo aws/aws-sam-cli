@@ -605,6 +605,11 @@ class Template:
     def apply_global_values(self, template_dict):
         """
         Takes values from the "Global" parameters and applies them to resources where needed for packaging.
+
+        This transform method addresses issue 1706, where CodeUri is expected to be allowed as a global param for
+        packaging, even when there may not be a build step (such as the source being an S3 file). This is the only
+        known use case for using any global values in the package step, so any other such global value applications
+        should be scoped to this method if possible.
         """
         for resource_id, resource in self.template_dict["Resources"].items():
 
