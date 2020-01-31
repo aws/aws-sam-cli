@@ -894,20 +894,13 @@ class TestArtifactExporter(unittest.TestCase):
 
         properties = {"foo": "bar"}
         template_dict = {
-            "Globals": {
-                "Function": {
-                    "CodeUri": "s3://test-bucket/test-key"
-                }
-            },
+            "Globals": {"Function": {"CodeUri": "s3://test-bucket/test-key"}},
             "Resources": {
                 "FunResource": {
                     "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "Handler": "lambda.handler",
-                        "Runtime": "nodejs10.x"
-                    }
+                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x"},
                 }
-            }
+            },
         }
 
         open_mock = mock.mock_open()
@@ -920,8 +913,7 @@ class TestArtifactExporter(unittest.TestCase):
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
             self.assertEqual(
-                exported_template["Resources"]["FunResource"]["Properties"]["CodeUri"],
-                "s3://test-bucket/test-key"
+                exported_template["Resources"]["FunResource"]["Properties"]["CodeUri"], "s3://test-bucket/test-key"
             )
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
