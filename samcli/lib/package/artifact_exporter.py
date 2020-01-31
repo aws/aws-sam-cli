@@ -610,6 +610,8 @@ class Template:
         packaging, even when there may not be a build step (such as the source being an S3 file). This is the only
         known use case for using any global values in the package step, so any other such global value applications
         should be scoped to this method if possible.
+
+        Intentionally not dealing with Api:DefinitionUri at this point.
         """
         for _, resource in self.template_dict["Resources"].items():
 
