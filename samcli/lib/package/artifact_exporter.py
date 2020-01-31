@@ -618,10 +618,11 @@ class Template:
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
 
-            if "CodeUri" not in resource_dict and resource_type == AWS_SERVERLESS_FUNCTION:
-                code_uri_global = self.template_dict.get("Globals", {}).get("Function", {}).get("CodeUri", None)
-                if code_uri_global is not None and resource_dict is not None:
-                    resource_dict["CodeUri"] = code_uri_global
+            if resource_dict is not None:
+                if "CodeUri" not in resource_dict and resource_type == AWS_SERVERLESS_FUNCTION:
+                    code_uri_global = self.template_dict.get("Globals", {}).get("Function", {}).get("CodeUri", None)
+                    if code_uri_global is not None and resource_dict is not None:
+                        resource_dict["CodeUri"] = code_uri_global
 
         return template_dict
 
