@@ -611,7 +611,7 @@ class Template:
         known use case for using any global values in the package step, so any other such global value applications
         should be scoped to this method if possible.
         """
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for _, resource in self.template_dict["Resources"].items():
 
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
