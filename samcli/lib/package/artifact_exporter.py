@@ -616,7 +616,7 @@ class Template:
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
 
-            if "CodeUri" not in resource and resource_type == AWS_SERVERLESS_FUNCTION:
+            if "CodeUri" not in resource_dict and resource_type == AWS_SERVERLESS_FUNCTION:
                 code_uri_global = self.template_dict.get("Globals", {}).get("Function", {}).get("CodeUri", None)
                 if code_uri_global is not None and resource_dict is not None:
                     resource_dict["CodeUri"] = code_uri_global
@@ -636,8 +636,8 @@ class Template:
         if "Resources" not in self.template_dict:
             return self.template_dict
 
-        self.template_dict = self.export_global_artifacts(self.template_dict)
         self.template_dict = self.apply_global_values(self.template_dict)
+        self.template_dict = self.export_global_artifacts(self.template_dict)
 
         for resource_id, resource in self.template_dict["Resources"].items():
 
