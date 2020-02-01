@@ -340,10 +340,9 @@ class Deployer:
                 is_reached_old_entry = False
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
-                        current_time_stamp_marker = utc_to_timestamp(event["Timestamp"])
-                        if event["EventId"] not in events and current_time_stamp_marker > time_stamp_marker:
+                        if event["EventId"] not in events and utc_to_timestamp(event["Timestamp"]) > time_stamp_marker:
                             events.add(event["EventId"])
-                            latest_time_stamp_marker = max(latest_time_stamp_marker, current_time_stamp_marker)
+                            latest_time_stamp_marker = max(latest_time_stamp_marker, utc_to_timestamp(event["Timestamp"]))
                             row_color = self.deploy_color.get_stack_events_status_color(status=event["ResourceStatus"])
                             pprint_columns(
                                 columns=[
@@ -359,6 +358,7 @@ class Deployer:
                                 columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
                                 color=row_color,
                             )
+                        # Skip already shown old event entries
                         elif utc_to_timestamp(event["Timestamp"]) < time_stamp_marker:
                             time_stamp_marker = latest_time_stamp_marker
                             is_reached_old_entry = True
