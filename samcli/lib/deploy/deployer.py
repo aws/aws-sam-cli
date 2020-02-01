@@ -342,7 +342,9 @@ class Deployer:
                     for event in event_items["StackEvents"]:
                         if event["EventId"] not in events and utc_to_timestamp(event["Timestamp"]) > time_stamp_marker:
                             events.add(event["EventId"])
-                            latest_time_stamp_marker = max(latest_time_stamp_marker, utc_to_timestamp(event["Timestamp"]))
+                            latest_time_stamp_marker = max(
+                                latest_time_stamp_marker, utc_to_timestamp(event["Timestamp"])
+                            )
                             row_color = self.deploy_color.get_stack_events_status_color(status=event["ResourceStatus"])
                             pprint_columns(
                                 columns=[
