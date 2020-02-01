@@ -337,7 +337,6 @@ class Deployer:
                 response_iterator = paginator.paginate(StackName=stack_name)
                 stack_status = describe_stacks_resp["Stacks"][0]["StackStatus"]
                 latest_time_stamp_marker = time_stamp_marker
-                is_reached_old_entry = False
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
                         if event["EventId"] not in events and utc_to_timestamp(event["Timestamp"]) > time_stamp_marker:
@@ -363,10 +362,10 @@ class Deployer:
                         # Skip already shown old event entries
                         elif utc_to_timestamp(event["Timestamp"]) < time_stamp_marker:
                             time_stamp_marker = latest_time_stamp_marker
-                            is_reached_old_entry = True
                             break
-                    if is_reached_old_entry:
-                        break
+                    else:  # go to next loop if not break from inside loop
+                        continue
+                    break  # reached here only if break from inner loop!
 
                 if self._check_stack_complete(stack_status):
                     stack_change_in_progress = False
