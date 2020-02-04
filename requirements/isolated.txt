@@ -1,6 +1,6 @@
 arrow==0.15.2
 attrs==19.1.0
-aws-lambda-builders==0.5.0
+aws-lambda-builders==0.7.0
 aws-sam-translator==1.15.1
 binaryornot==0.4.4
 boto3==1.9.228
