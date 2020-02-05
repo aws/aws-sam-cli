@@ -9,6 +9,7 @@ import json
 from unittest import TestCase
 
 import docker
+import jmespath
 from pathlib import Path
 
 from samcli.yamlhelper import yaml_parse
@@ -106,7 +107,9 @@ class BuildIntegBase(TestCase):
 
         with open(template_path, "r") as fp:
             template_dict = yaml_parse(fp.read())
-            self.assertEqual(expected_value, template_dict["Resources"][logical_id]["Properties"][property])
+            self.assertEqual(
+                expected_value, jmespath.search(f"Resources.{logical_id}.Properties.{property}", template_dict)
+            )
 
     def _verify_invoke_built_function(self, template_path, function_logical_id, overrides, expected_result):
         LOG.info("Invoking built function '{}'".format(function_logical_id))
