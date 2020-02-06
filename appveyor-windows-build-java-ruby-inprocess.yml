@@ -8,10 +8,10 @@ environment:
   APPVEYOR_CI_OVERRIDE: 1
   GRADLE_OPTS: -Dorg.gradle.daemon=false
 
-  # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python36-x64"
-  PYTHON_SCRIPTS: "C:\\Python36-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python36-x64\\python.exe"
+  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python37-x64"
+  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
   PYTHON_VERSION: '3.6.8'
   PYTHON_ARCH: '64'
 
