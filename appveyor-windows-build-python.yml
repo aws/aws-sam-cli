@@ -36,7 +36,7 @@ init:
 install:
 
     - ps: "mkdir -Force D:\\tmp"
-    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python37-x64;C:\\Python27-x64;C:\\Python38"
+    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python36-x64;C:\\Python27-x64;C:\\Python38-x64"
     - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
