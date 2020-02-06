@@ -18,8 +18,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.commands.deploy.utils import print_deploy_args, sanitize_parameter_overrides
 from samcli.lib.telemetry.metrics import track_command
-from samcli.lib.utils import osutils
-
+from samcli.lib.utils import
 SHORT_HELP = "Deploy an AWS SAM application."
 
 
@@ -78,7 +77,7 @@ LOG = logging.getLogger(__name__)
     "--s3-prefix",
     required=False,
     help="A prefix name that the command adds to the "
-    "artifacts' name when it uploads them to the S3 bucket."
+    "artifacts' name when it uploads them to the S3 bucket. "
     "The prefix name is a path name (folder name) for the S3 bucket.",
 )
 @click.option(
@@ -90,8 +89,8 @@ LOG = logging.getLogger(__name__)
     "--no-execute-changeset",
     required=False,
     is_flag=True,
-    help="Indicates  whether  to  execute  the "
-    "change  set.  Specify  this flag if you want to view your stack changes "
+    help="Indicates whether to execute the change set. "
+    "Specify this flag if you want to view your stack changes "
     "before executing the change set. The command creates an AWS CloudFormation "
     "change set and then exits without executing the change set. if "
     "the changeset looks satisfactory, the stack changes can be made by "

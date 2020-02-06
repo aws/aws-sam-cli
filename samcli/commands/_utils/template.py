@@ -4,7 +4,10 @@ Utilities to manipulate template
 
 import os
 import pathlib
+
+import jmespath
 import yaml
+from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import yaml_parse, yaml_dump
@@ -141,14 +144,15 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
         for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
             properties = resource.get("Properties", {})
-            path = properties.get(path_prop_name)
 
+            path = jmespath.search(path_prop_name, properties)
             updated_path = _resolve_relative_to(path, original_root, new_root)
+
             if not updated_path:
                 # This path does not need to get updated
                 continue
 
-            properties[path_prop_name] = updated_path
+            set_value_from_jmespath(properties, path_prop_name, updated_path)
 
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there
