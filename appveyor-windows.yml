@@ -20,7 +20,6 @@ environment:
   PYTHON_HOME: "C:\\Python37-x64"
   PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
   PYTHON_EXE: "C:\\Python37-x64\\python.exe"
-  PYTHON_VERSION: '3.7.5'
   PYTHON_ARCH: '64'
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: 'C:'
