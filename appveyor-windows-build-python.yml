@@ -35,13 +35,6 @@ init:
 
 install:
 
-    # Make sure the temp directory exists for Python to use.
-    # Install python3.8
-    - "choco install chocolatey-core.extension --version 1.3.3 --force -y"
-    - "choco install python3 --version 3.8.0"
-    - "C:\\Python38\\python.exe -m pip freeze"
-    - "refreshenv"
-
     - ps: "mkdir -Force D:\\tmp"
     - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python37-x64;C:\\Python27-x64;C:\\Python38"
     - "echo %PYTHON_HOME%"
