@@ -113,7 +113,9 @@ def template_click_option(include_build=True):
         callback=partial(get_or_default_template_file_name, include_build=include_build),
         show_default=True,
         is_eager=True,
-        help="AWS SAM template file",
+        help="AWS SAM template which references built artifacts for resources in the template. (if applicable)"
+        if include_build
+        else "AWS SAM template file.",
     )
 
 
