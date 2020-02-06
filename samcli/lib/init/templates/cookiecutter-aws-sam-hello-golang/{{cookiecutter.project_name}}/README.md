@@ -4,9 +4,9 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 
 ```bash
 .
-├── Makefile                    <-- Make to automate build
 ├── README.md                   <-- This instructions file
 ├── hello-world                 <-- Source code for a lambda function
+│   ├── go.mod                  <-- Go dependency definitions
 │   ├── main.go                 <-- Lambda function code
 │   └── main_test.go            <-- Unit tests
 └── template.yaml
@@ -18,29 +18,9 @@ This is a sample template for {{ cookiecutter.project_name }} - Below is a brief
 * [Docker installed](https://www.docker.com/community-edition)
 * [Golang](https://golang.org)
 
-## Setup process
-
-### Installing dependencies
-
-In this example we use the built-in `go get` and the only dependency we need is AWS Lambda Go SDK:
-
-```shell
-go get -u github.com/aws/aws-lambda-go/...
-```
-
-**NOTE:** As you change your application code as well as dependencies during development, you might want to research how to handle dependencies in Golang at scale.
-
 ### Building
 
-Golang is a statically compiled language, meaning that in order to run it you have to build the executable target.
-
-You can issue the following command in a shell to build it:
-
-```shell
-GOOS=linux GOARCH=amd64 go build -o hello-world/hello-world ./hello-world
-```
-
-**NOTE**: If you're not building the function on a Linux machine, you will need to specify the `GOOS` and `GOARCH` environment variables, this allows Golang to build your function for another system architecture and ensure compatibility.
+Golang is a statically compiled language, meaning that in order to run it you have to build the executable target. Ensure your `go.mod` file in your application directory has all of your dependencies, and simply run `sam build` to build your application using Go modules.
 
 ### Local development
 

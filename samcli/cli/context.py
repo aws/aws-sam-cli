@@ -2,10 +2,13 @@
 Context information passed to each CLI command
 """
 
-import uuid
 import logging
+import uuid
+
 import boto3
 import botocore
+import botocore.session
+from botocore import credentials
 import click
 
 from samcli.commands.exceptions import CredentialsError
@@ -143,7 +146,15 @@ class Context:
         region & profile), it will call this method to create a new session with latest values for these properties.
         """
         try:
-            boto3.setup_default_session(region_name=self._aws_region, profile_name=self._aws_profile)
+            botocore_session = botocore.session.get_session()
+            boto3.setup_default_session(
+                botocore_session=botocore_session, region_name=self._aws_region, profile_name=self._aws_profile
+            )
+            # get botocore session and setup caching for MFA based credentials
+            botocore_session.get_component("credential_provider").get_provider(
+                "assume-role"
+            ).cache = credentials.JSONFileCache()
+
         except botocore.exceptions.ProfileNotFound as ex:
             raise CredentialsError(str(ex))
 

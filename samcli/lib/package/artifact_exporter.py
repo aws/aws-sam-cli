@@ -602,6 +602,30 @@ class Template:
 
         return template_dict
 
+    def apply_global_values(self, template_dict):
+        """
+        Takes values from the "Global" parameters and applies them to resources where needed for packaging.
+
+        This transform method addresses issue 1706, where CodeUri is expected to be allowed as a global param for
+        packaging, even when there may not be a build step (such as the source being an S3 file). This is the only
+        known use case for using any global values in the package step, so any other such global value applications
+        should be scoped to this method if possible.
+
+        Intentionally not dealing with Api:DefinitionUri at this point.
+        """
+        for _, resource in self.template_dict["Resources"].items():
+
+            resource_type = resource.get("Type", None)
+            resource_dict = resource.get("Properties", None)
+
+            if resource_dict is not None:
+                if "CodeUri" not in resource_dict and resource_type == AWS_SERVERLESS_FUNCTION:
+                    code_uri_global = self.template_dict.get("Globals", {}).get("Function", {}).get("CodeUri", None)
+                    if code_uri_global is not None and resource_dict is not None:
+                        resource_dict["CodeUri"] = code_uri_global
+
+        return template_dict
+
     def export(self):
         """
         Exports the local artifacts referenced by the given template to an
@@ -615,6 +639,7 @@ class Template:
         if "Resources" not in self.template_dict:
             return self.template_dict
 
+        self.template_dict = self.apply_global_values(self.template_dict)
         self.template_dict = self.export_global_artifacts(self.template_dict)
 
         for resource_id, resource in self.template_dict["Resources"].items():
