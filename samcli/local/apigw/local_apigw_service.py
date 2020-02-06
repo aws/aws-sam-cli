@@ -173,7 +173,7 @@ class LocalApigwService(BaseLocalService):
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         method, _ = self.get_request_methods_endpoints(request)
-        if method == "OPTIONS" and method not in route.methods:
+        if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
