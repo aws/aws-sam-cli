@@ -36,12 +36,12 @@ init:
 install:
 
     - ps: "mkdir -Force D:\\tmp"
-    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python36-x64;C:\\Python27-x64;C:\\Python38-x64"
+    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python36-x64;C:\\Python27-x64;C:\\Python38"
     - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
     # Check if python3.8 exists on the image
-    - "C:\\Python38-x64\\python.exe --version"
+    - "C:\\Python38\\python.exe --version"
 
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"
