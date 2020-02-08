@@ -360,10 +360,11 @@ class Deployer:
                                 color=row_color,
                             )
                         # Skip already shown old event entries
-                        elif utc_to_timestamp(event["Timestamp"]) < time_stamp_marker:
+                        elif utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:
                             time_stamp_marker = latest_time_stamp_marker
                             break
                     else:  # go to next loop if not break from inside loop
+                        time_stamp_marker = latest_time_stamp_marker  # update marker if all events are new
                         continue
                     break  # reached here only if break from inner loop!
 
