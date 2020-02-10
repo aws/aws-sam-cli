@@ -26,6 +26,7 @@ from botocore.config import Config
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
@@ -80,7 +81,10 @@ class PackageContext:
     def run(self):
 
         s3_client = boto3.client(
-            "s3", config=Config(signature_version="s3v4", region_name=self.region if self.region else None)
+            "s3",
+            config=get_boto_config_with_user_agent(
+                signature_version="s3v4", region_name=self.region if self.region else None
+            ),
         )
 
         self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
