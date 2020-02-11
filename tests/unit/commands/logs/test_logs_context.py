@@ -200,7 +200,7 @@ class TestLogsCommandContext(TestCase):
 class TestLogsCommandContext_get_resource_id_from_stack(TestCase):
     def setUp(self):
 
-        self.real_client = botocore.session.get_session().create_client("cloudformation", region_name="us-east-1")
+        self.real_client = botocore.session.get_session().create_client("cloudformation", region_name="us-west-2")
         self.cfn_client_stubber = Stubber(self.real_client)
 
         self.logical_id = "name"

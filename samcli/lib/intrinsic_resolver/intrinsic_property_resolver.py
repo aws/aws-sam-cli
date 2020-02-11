@@ -504,7 +504,7 @@ class IntrinsicResolver:
         """
         { "Fn::GetAZs" : "" }
         { "Fn::GetAZs" : { "Ref" : "AWS::Region" } }
-        { "Fn::GetAZs" : "us-east-1" }
+        { "Fn::GetAZs" : "us-west-2" }
         This intrinsic function will get the availability zones specified for the specified region. This is usually used
         with {"Ref": "AWS::Region"}. If it is an empty string, it will get the default region.
 

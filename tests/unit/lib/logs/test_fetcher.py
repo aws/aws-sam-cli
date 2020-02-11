@@ -14,7 +14,7 @@ from samcli.lib.utils.time import to_timestamp, to_datetime
 class TestLogsFetcher_fetch(TestCase):
     def setUp(self):
 
-        real_client = botocore.session.get_session().create_client("logs", region_name="us-east-1")
+        real_client = botocore.session.get_session().create_client("logs", region_name="us-west-2")
         self.client_stubber = Stubber(real_client)
         self.fetcher = LogsFetcher(real_client)
 

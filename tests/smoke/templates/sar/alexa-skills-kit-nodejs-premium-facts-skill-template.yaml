@@ -65,7 +65,7 @@ Resources:
                   - Ref: AWS::StackId
       Handler: index.handler
       Layers:
-      - arn:aws:lambda:us-east-1:173334852312:layer:ask-sdk-for-nodejs:5
+      - arn:aws:lambda:us-west-2:173334852312:layer:ask-sdk-for-nodejs:5
       MemorySize: 128
       Runtime: nodejs8.10
       Timeout: 8

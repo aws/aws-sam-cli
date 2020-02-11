@@ -211,13 +211,13 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = stdout.strip()
         environ = json.loads(process_stdout.decode("utf-8"))
 
-        self.assertEqual(environ["Region"], "us-east-1")
+        self.assertEqual(environ["Region"], "us-west-2")
         self.assertEqual(environ["AccountId"], "123456789012")
         self.assertEqual(environ["Partition"], "aws")
         self.assertEqual(environ["StackName"], "local")
         self.assertEqual(
             environ["StackId"],
-            "arn:aws:cloudformation:us-east-1:123456789012:stack/" "local/51af3dc0-da77-11e4-872e-1234567db123",
+            "arn:aws:cloudformation:us-west-2:123456789012:stack/" "local/51af3dc0-da77-11e4-872e-1234567db123",
         )
 
         self.assertEqual(environ["URLSuffix"], "localhost")

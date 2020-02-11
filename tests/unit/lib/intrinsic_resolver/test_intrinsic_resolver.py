@@ -262,7 +262,7 @@ class TestIntrinsicFnFindInMapResolver(TestCase):
 
 class TestIntrinsicFnAzsResolver(TestCase):
     def setUp(self):
-        logical_id_translator = {"AWS::Region": "us-east-1"}
+        logical_id_translator = {"AWS::Region": "us-west-2"}
         self.resolver = IntrinsicResolver(
             template={}, symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator)
         )
@@ -270,11 +270,11 @@ class TestIntrinsicFnAzsResolver(TestCase):
     def test_basic_azs(self):
         intrinsic = {"Ref": "AWS::Region"}
         result = self.resolver.intrinsic_property_resolver({"Fn::GetAZs": intrinsic}, True)
-        self.assertEqual(result, ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"])
+        self.assertEqual(result, ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"])
 
     def test_default_get_azs(self):
         result = self.resolver.intrinsic_property_resolver({"Fn::GetAZs": ""}, True)
-        self.assertEqual(result, ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1e", "us-east-1f"])
+        self.assertEqual(result, ["us-west-2a", "us-west-2b", "us-west-2c", "us-west-2d"])
 
     @parameterized.expand(
         [
@@ -294,7 +294,7 @@ class TestIntrinsicFnAzsResolver(TestCase):
 
 class TestFnTransform(TestCase):
     def setUp(self):
-        logical_id_translator = {"AWS::Region": "us-east-1"}
+        logical_id_translator = {"AWS::Region": "us-west-2"}
         self.resolver = IntrinsicResolver(
             template={}, symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator)
         )
@@ -348,11 +348,11 @@ class TestIntrinsicFnGetAttResolver(TestCase):
         logical_id_translator = {
             "RestApi": {"Ref": "NewRestApi"},
             "LambdaFunction": {
-                "Arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-                "-1:123456789012:LambdaFunction/invocations"
+                "Arn": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west"
+                "-2:123456789012:LambdaFunction/invocations"
             },
             "AWS::StackId": "12301230123",
-            "AWS::Region": "us-east-1",
+            "AWS::Region": "us-west-2",
             "AWS::AccountId": "406033500479",
         }
         resources = {
@@ -393,8 +393,8 @@ class TestIntrinsicFnGetAttResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-            "-1:123456789012:LambdaFunction/invocations",
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west"
+            "-2:123456789012:LambdaFunction/invocations",
         )
 
     def test_fn_getatt_with_fn_join(self):
@@ -402,8 +402,8 @@ class TestIntrinsicFnGetAttResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us"
-            "-east-1:406033500479:function:HelloHandler2E4FBA4D/invocations",
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us"
+            "-west-2:406033500479:function:HelloHandler2E4FBA4D/invocations",
         )
 
     @parameterized.expand(
@@ -449,7 +449,7 @@ class TestIntrinsicFnGetAttResolver(TestCase):
 
 class TestIntrinsicFnSubResolver(TestCase):
     def setUp(self):
-        logical_id_translator = {"AWS::Region": "us-east-1", "AWS::AccountId": "123456789012"}
+        logical_id_translator = {"AWS::Region": "us-west-2", "AWS::AccountId": "123456789012"}
         resources = {"LambdaFunction": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"Uri": "test"}}}
         template = {"Resources": resources}
         self.resolver = IntrinsicResolver(
@@ -464,7 +464,7 @@ class TestIntrinsicFnSubResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1"
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2"
             ":123456789012:function:LambdaFunction/invocations",
         )
 
@@ -478,8 +478,8 @@ class TestIntrinsicFnSubResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(
             result,
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-            "-1:123456789012:function:LambdaFunction/invocations",
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west"
+            "-2:123456789012:function:LambdaFunction/invocations",
         )
 
     @parameterized.expand(
@@ -894,11 +894,11 @@ class TestIntrinsicAttribteResolution(TestCase):
         logical_id_translator = {
             "RestApi": "NewRestApi",
             "LambdaFunction": {
-                "Arn": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east"
-                "-1:123456789012:LambdaFunction/invocations"
+                "Arn": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west"
+                "-2:123456789012:LambdaFunction/invocations"
             },
             "AWS::StackId": "12301230123",
-            "AWS::Region": "us-east-1",
+            "AWS::Region": "us-west-2",
             "AWS::AccountId": "406033500479",
             "RestApi.Deployment": {"Ref": "RestApi"},
         }
@@ -927,8 +927,8 @@ class TestIntrinsicAttribteResolution(TestCase):
             "HelloHandler2E4FBA4D": {"Properties": {"handler": "main.handle"}, "Type": "AWS::Lambda::Function"},
             "LambdaFunction": {
                 "Properties": {
-                    "Uri": "arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31/functions/arn:aws"
-                    ":lambda:us-east-1:406033500479:function:HelloHandler2E4FBA4D/invocations"
+                    "Uri": "arn:aws:apigateway:us-west-2a:lambda:path/2015-03-31/functions/arn:aws"
+                    ":lambda:us-west-2:406033500479:function:HelloHandler2E4FBA4D/invocations"
                 },
                 "Type": "AWS::Lambda::Function",
             },
@@ -980,8 +980,8 @@ class TestIntrinsicAttribteResolution(TestCase):
             "MyCustomLambdaLayer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": "custom_layer/"}},
             "LambdaFunction": {
                 "Properties": {
-                    "Uri": "arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31"
-                    "/functions/arn:aws:lambda:us-east-1:406033500479"
+                    "Uri": "arn:aws:apigateway:us-west-2a:lambda:path/2015-03-31"
+                    "/functions/arn:aws:lambda:us-west-2:406033500479"
                     ":function:HelloHandler2E4FBA4D/invocations"
                 },
                 "Type": "AWS::Lambda::Function",

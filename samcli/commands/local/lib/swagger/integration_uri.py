@@ -198,7 +198,7 @@ class LambdaUri:
                 "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
             }
 
-            Output: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:LambdaFunction/invocations"  # NOQA
+            Output: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:LambdaFunction/invocations"  # NOQA
 
         Note
         ~~~~

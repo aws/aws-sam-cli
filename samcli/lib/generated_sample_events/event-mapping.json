@@ -138,7 +138,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "stage": {
           "type": "string",
@@ -187,7 +187,7 @@
           "default": "123456789012"
         },
         "dns-suffix": {
-          "default": "us-east-1.amazonaws.com"
+          "default": "us-west-2.amazonaws.com"
         }
       }
     }
@@ -216,7 +216,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "stack": {
           "type": "string",
@@ -376,7 +376,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "repository": {
           "type": "string",
@@ -426,7 +426,7 @@
       "help": "Generates an Amazon Cognito Sync Trigger Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         }
       }
     }
@@ -437,7 +437,7 @@
       "help": "Generates an AWS Config Configuration Item Change Notification Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -452,7 +452,7 @@
       "help": "Generates an AWS Config Oversized Configuration Item Change Notification Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -467,7 +467,7 @@
       "help": "Generates an AWS Config Periodic Rule Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -484,7 +484,7 @@
       "help": "Generates an Amazon Connect Contact Flow Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -513,7 +513,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "table": {
           "type": "string",
@@ -539,7 +539,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "rule": {
           "type": "string",
@@ -554,7 +554,7 @@
       "help": "Generates an Amazon Kinesis Data Stream Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -582,7 +582,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "data": {
           "default": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IDEyMy4="
@@ -597,7 +597,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "account-id": {
           "default": "123456789012"
@@ -625,7 +625,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "account-id": {
           "default": "123456789012"
@@ -652,7 +652,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "account-id": {
           "default": "123456789012"
@@ -680,7 +680,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "account-id": {
           "default": "123456789012"
@@ -700,7 +700,7 @@
       "help": "Generates an Amazon Kinesis Data Firehose Apachelog Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "data": {
           "default": "NjQuMjQyLjg4LjEwIC0gLSBbMDcvTWFyLzIwMDQ6MTY6MTA6MDIgLTA4MDBdICJHRVQgL21haWxtYW4vbGlzdGluZm8vaHNkaXZpc2lvbiBIVFRQLzEuMSIgMjAwIDYyOTE=="
@@ -712,7 +712,7 @@
       "help": "Generates an Amazon Kinesis Data Firehose Cloudwatch Logs Processor Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -730,7 +730,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition-key": {
           "type": "string",
@@ -751,7 +751,7 @@
       "help": "Generates an Amazon Kinesis Data Firehose Syslog Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "data": {
           "type": "string",
@@ -788,7 +788,7 @@
       "help": "Generates an Amazon Rekognition S3 Request Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -811,7 +811,7 @@
       "help": "Generates an Amazon S3 Delete Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -832,7 +832,7 @@
       "help": "Generates an Amazon S3 Put Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -855,7 +855,7 @@
       "help": "Generates a SageMaker Ground Truth PreHumanTask request",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -876,7 +876,7 @@
       "help": "Generates a SageMaker Ground Truth AnnotationConsolidation request",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -908,7 +908,7 @@
       "help": "Generates an Amazon SES Email Receiving Event",
       "tags": {
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "partition": {
           "default": "aws"
@@ -917,7 +917,7 @@
           "default": "123456789012"
         },
         "dns-suffix": {
-          "default": "us-east-1.amazonaws.com"
+          "default": "us-west-2.amazonaws.com"
         }
       }
     }
@@ -934,7 +934,7 @@
           "default": "aws"
         },
         "region": {
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "topic": {
           "type": "string",
@@ -961,7 +961,7 @@
         },
         "region": {
           "type": "string",
-          "default": "us-east-1"
+          "default": "us-west-2"
         },
         "account-id": {
           "default": "123456789012"

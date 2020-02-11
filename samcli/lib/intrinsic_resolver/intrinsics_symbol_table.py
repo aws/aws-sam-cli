@@ -38,9 +38,9 @@ class IntrinsicsSymbolTable:
     DEFAULT_PSEUDO_PARAM_VALUES = {
         "AWS::AccountId": "123456789012",
         "AWS::Partition": "aws",
-        "AWS::Region": "us-east-1",
+        "AWS::Region": "us-west-2",
         "AWS::StackName": "local",
-        "AWS::StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/"
+        "AWS::StackId": "arn:aws:cloudformation:us-west-2:123456789012:stack/"
         "local/51af3dc0-da77-11e4-872e-1234567db123",
         "AWS::URLSuffix": "localhost",
     }
@@ -107,7 +107,7 @@ class IntrinsicsSymbolTable:
                     "Ref": "LambdaFunction",
                     "Arn": "MyArn"
                 }
-                "AWS::Region": "us-east-1"
+                "AWS::Region": "us-west-2"
             }
         default_type_resolver: dict
             This can be used provide common attributes that are true across all objects of a certain type.

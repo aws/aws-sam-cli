@@ -66,7 +66,7 @@ class GuidedContext:
 
     def guided_prompts(self, parameter_override_keys):
         default_stack_name = self.stack_name or "sam-app"
-        default_region = self.region or "us-east-1"
+        default_region = self.region or "us-west-2"
         default_capabilities = ("CAPABILITY_IAM",)
         input_capabilities = None
 

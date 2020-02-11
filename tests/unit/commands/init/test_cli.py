@@ -525,7 +525,7 @@ Y
         session_mock.return_value.profile_name = "default"
         session_mock.return_value.region_name = "ap-south-1"
         session_mock.return_value.available_profiles = ["default", "test-profile"]
-        session_mock.return_value.get_available_regions.return_value = ["ap-south-2", "us-east-1"]
+        session_mock.return_value.get_available_regions.return_value = ["ap-south-2", "us-west-2"]
         schemas_api_caller_mock.return_value.list_registries.return_value = {
             "registries": ["aws.events"],
             "next_token": None,
@@ -597,7 +597,7 @@ N
                 "AWS_Schema_root": "schemas.aws.AWSAPICallViaCloudTrail",
             },
         )
-        get_schemas_client_mock.assert_called_once_with("default", "us-east-1")
+        get_schemas_client_mock.assert_called_once_with("default", "us-west-2")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code("result.zip", ".", "test-project", ANY)
 
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")

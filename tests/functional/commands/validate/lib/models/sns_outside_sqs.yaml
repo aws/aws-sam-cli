@@ -11,8 +11,8 @@ Resources:
           Properties:
             Topic: !Ref Notifications
             SqsSubscription:
-              QueueUrl: https://sqs.us-east-1.amazonaws.com/123456789012/MyQueue
-              QueueArn: arn:aws:sqs:us-east-1:123456789012:MyQueue
+              QueueUrl: https://sqs.us-west-2.amazonaws.com/123456789012/MyQueue
+              QueueArn: arn:aws:sqs:us-west-2:123456789012:MyQueue
               QueuePolicyLogicalId: NotificationB
               BatchSize: 8
               Enabled: true

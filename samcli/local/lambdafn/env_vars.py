@@ -25,13 +25,13 @@ class EnvironmentVariables:
 
     If real AWS Credentials were supplied, this class will expose them through appropriate environment variables.
     If not, this class will provide the following placeholder values to AWS Credentials:
-        region = "us-east-1"
+        region = "us-west-2"
         key = "defaultkey"
         secret = "defaultsecret"
     """
 
     _BLANK_VALUE = ""
-    _DEFAULT_AWS_CREDS = {"region": "us-east-1", "key": "defaultkey", "secret": "defaultsecret"}
+    _DEFAULT_AWS_CREDS = {"region": "us-west-2", "key": "defaultkey", "secret": "defaultsecret"}
 
     def __init__(
         self,

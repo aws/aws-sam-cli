@@ -3,7 +3,7 @@ image: Visual Studio 2017
 build: off
 
 environment:
-  AWS_DEFAULT_REGION: us-east-1
+  AWS_DEFAULT_REGION: us-west-2
   SAM_CLI_DEV: 1
   APPVEYOR_CI_OVERRIDE: 1
   GRADLE_OPTS: -Dorg.gradle.daemon=false

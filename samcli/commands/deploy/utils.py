@@ -15,7 +15,7 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
         Deploying with following values
         ===============================
         Stack name                 : sam-app
-        Region                     : us-east-1
+        Region                     : us-west-2
         Confirm changeset          : False
         Deployment s3 bucket       : aws-sam-cli-managed-default-samclisourcebucket-abcdef
         Capabilities               : ["CAPABILITY_IAM"]

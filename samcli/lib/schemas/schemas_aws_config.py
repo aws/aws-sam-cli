@@ -22,7 +22,7 @@ def get_aws_configuration_choice():
 
     # TODO: Replce with RIP call once Schemas is updated in RIP
     # schemas_available_regions_name = session.get_available_regions("schemas")
-    schemas_available_regions_name = ["us-east-1", "us-east-2", "us-west-2", "eu-west-1", "ap-northeast-1"]
+    schemas_available_regions_name = ["us-west-2", "us-east-2", "us-west-2", "eu-west-1", "ap-northeast-1"]
 
     if choice and (region not in schemas_available_regions_name):
         raise NotAvailableInRegion(

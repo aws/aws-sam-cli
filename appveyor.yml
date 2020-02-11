@@ -1,28 +1,28 @@
 version: 1.0.{build}
 image: 
   - Ubuntu
-  - Visual Studio 2017
+#  - Visual Studio 2017
 
 environment:
-  AWS_DEFAULT_REGION: us-east-1
+  AWS_DEFAULT_REGION: us-west-2
   SAM_CLI_DEV: 1
  
   matrix:
 
-    - PYTHON_HOME: "C:\\Python36-x64"
-      PYTHON_VERSION: '3.6.9'
-      PYTHON_ARCH: '64'
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_37_PIP: 1
-      INSTALL_PY_38_PIP: 1
-
-    - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7.4'
-      PYTHON_ARCH: '64'
-      RUN_SMOKE: 1
-      NOSE_PARAMETERIZED_NO_WARN: 1
-      INSTALL_PY_36_PIP: 1
-      INSTALL_PY_38_PIP: 1
+#    - PYTHON_HOME: "C:\\Python36-x64"
+#      PYTHON_VERSION: '3.6.9'
+#      PYTHON_ARCH: '64'
+#      NOSE_PARAMETERIZED_NO_WARN: 1
+#      INSTALL_PY_37_PIP: 1
+#      INSTALL_PY_38_PIP: 1
+#
+#    - PYTHON_HOME: "C:\\Python37-x64"
+#      PYTHON_VERSION: '3.7.4'
+#      PYTHON_ARCH: '64'
+#      RUN_SMOKE: 1
+#      NOSE_PARAMETERIZED_NO_WARN: 1
+#      INSTALL_PY_36_PIP: 1
+#      INSTALL_PY_38_PIP: 1
 
     - PYTHON_HOME: "C:\\Python38-x64"
       PYTHON_VERSION: '3.8.0'

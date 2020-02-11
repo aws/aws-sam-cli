@@ -136,7 +136,7 @@ Conditions:
   InUSEastOne:
     Fn::Equals:
     - Ref: AWS::Region
-    - us-east-1
+    - us-west-2
 Resources:
   ApiGatewayApi:
     Type: AWS::Serverless::Api
@@ -1101,7 +1101,7 @@ Resources:
       SourceArn:
         Fn::Join:
         - ''
-        - - arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-
+        - - arn:aws:sns:us-west-2:287250355862:aws-mp-subscription-notification-
           - Ref: MarketplaceSubscriptionTopicProductCode
   LambdaSNSExecutionTestPermission:
     Type: AWS::Lambda::Permission

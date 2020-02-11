@@ -19,7 +19,7 @@ class TestLambdaUri(TestCase):
     SUCCESS_CASES = [
         (
             "URI is a string with fully resolved ARN",
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:MyCoolFunction/invocations",  # NOQA
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:MyCoolFunction/invocations",  # NOQA
         ),
         (
             "URI is a full ARN with any region and any account id",
@@ -28,13 +28,13 @@ class TestLambdaUri(TestCase):
         (
             "URI is a Fn::Sub with a Lambda ARN as a variable",
             {
-                "Fn::Sub": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${MyCoolFunction.Arn}/invocations"  # NOQA
+                "Fn::Sub": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${MyCoolFunction.Arn}/invocations"  # NOQA
             },
         ),
         (
             "URI is a Fn::Sub with a Lambda Alias as a variable",
             {
-                "Fn::Sub": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${MyCoolFunction.Alias}/invocations"  # NOQA
+                "Fn::Sub": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${MyCoolFunction.Alias}/invocations"  # NOQA
             },
         ),
         (
@@ -56,7 +56,7 @@ class TestLambdaUri(TestCase):
             "URI is a Fn::Sub resolvable intrinsic as an array",
             {
                 "Fn::Sub": [
-                    "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${MyCoolFunction.Arn}/invocations"
+                    "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${MyCoolFunction.Arn}/invocations"
                 ]
             },
         ),
@@ -75,22 +75,22 @@ class TestLambdaUri(TestCase):
     FAILURE_CASES = [
         (
             "URI is a string with stage variables",
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:${stageVariables.FunctionName}/invocations",  # NOQA
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:${stageVariables.FunctionName}/invocations",  # NOQA
         ),
         (
             "URI is an ARN string of non-Lambda resource",
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:something:us-east-1:123456789012:event:MyCoolFunction/invocations",  # NOQA
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:something:us-west-2:123456789012:event:MyCoolFunction/invocations",  # NOQA
         ),
         ("URI is a random string", "hello world"),
         (
             "URI is an integration ARN without proper Lambda function name",
-            "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:${ThisIntrinsicDidntGetSubstituted}/invocations",  # NOQA
+            "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:${ThisIntrinsicDidntGetSubstituted}/invocations",  # NOQA
         ),
         ("URI is a list", [1, 2, 3]),
         (
             "URI is a dictionary with more than one keys",
             {
-                "Fn::Sub": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${MyCoolFunction.Arn}/invocations",  # NOQA
+                "Fn::Sub": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${MyCoolFunction.Arn}/invocations",  # NOQA
                 "SomeKey": "value",
             },
         ),
@@ -102,7 +102,7 @@ class TestLambdaUri(TestCase):
                 "Fn::Sub": [
                     # In CloudFormation this intrinsic function will resolve to correct function name.
                     # But unfortunately we don't support this here
-                    "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${MyArn}/invocations",
+                    "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${MyArn}/invocations",
                     {"MyArn": {"Fn::GetAtt": "MyCoolFunction.Arn"}},
                 ]
             },
@@ -110,13 +110,13 @@ class TestLambdaUri(TestCase):
         (
             "URI is a Fn::Sub with intrinsic that does not return an Arn or Alias",
             {
-                "Fn::Sub": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${MyCoolFunction}/invocations"  # NOQA
+                "Fn::Sub": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${MyCoolFunction}/invocations"  # NOQA
             },
         ),
         (
             "URI is a Fn::Sub with ignored variable created with ${! syntax",
             {
-                "Fn::Sub": "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/${!MyCoolFunction.Arn}/invocations"  # NOQA
+                "Fn::Sub": "arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/${!MyCoolFunction.Arn}/invocations"  # NOQA
             },
         ),
         ("URI is a Fn::Sub is invalid in structure", {"Fn::Sub": {"foo": "bar"}}),

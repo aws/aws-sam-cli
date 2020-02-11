@@ -6,7 +6,7 @@ build: off
 clone_folder: D:\source
 
 environment:
-  AWS_DEFAULT_REGION: us-east-1
+  AWS_DEFAULT_REGION: us-west-2
   SAM_CLI_DEV: 1
 
   # In Windows, tempdir is usually in C:\. But in AppVeyor only D:\ is shared in Docker. 

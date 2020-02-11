@@ -94,7 +94,7 @@
     "LambdaFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
-        "Uri": "arn:aws:apigateway:us-east-1a:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:HelloHandler2E4FBA4D/invocations"
+        "Uri": "arn:aws:apigateway:us-west-2a:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:HelloHandler2E4FBA4D/invocations"
       }
     }
   }

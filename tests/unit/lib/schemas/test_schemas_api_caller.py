@@ -179,7 +179,7 @@ class TestSchemasCommand(TestCase):
 
     def test_get_schema_metadata_3p_schema(self):
         self.client.describe_schema.return_value = {
-            "SchemaArn": "arn:aws:schemas:us-east-1:434418839121:schema/discovered-schemas/order@NewOrder",
+            "SchemaArn": "arn:aws:schemas:us-west-2:434418839121:schema/discovered-schemas/order@NewOrder",
             "Tags": {},
             "LastModified": "2019-11-22T01:38:02Z",
             "Content": '{"openapi":"3.0.0","info":{"version":"1.0.0","title":"NewOrder"},"paths":{},"components":{"schemas":{"AWSEvent":{"type":"object",'
@@ -275,7 +275,7 @@ class TestSchemasCommand(TestCase):
             '        },\n          "region" : {\n            "type" : "string",\n            "enum" : [ '
             '"ap-south-1", "eu-west-3", "eu-north-1", "eu-west-2", "eu-west-1", "ap-northeast-2", '
             '"ap-northeast-1", "me-south-1", "sa-east-1", "ca-central-1", "ap-east-1", "cn-north-1", '
-            '"us-gov-west-1", "ap-southeast-1", "ap-southeast-2", "eu-central-1", "us-east-1", '
+            '"us-gov-west-1", "ap-southeast-1", "ap-southeast-2", "eu-central-1", "us-west-2", '
             '"us-west-1", "cn-northwest-1", "us-west-2" ]\n          },\n          "version" : {\n         '
             '   "type" : "string"\n          },\n          "account" : {\n            "type" : "string"\n  '
             '        }\n        }\n      },\n      "CodeCommitPullRequestStateChange" : {\n        "type" '

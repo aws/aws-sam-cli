@@ -32,7 +32,7 @@ class HelloWorldTest < Test::Unit::TestCase
         'CloudFront-Is-SmartTV-Viewer' => 'false',
         'CloudFront-Is-Tablet-Viewer' => 'false',
         'CloudFront-Viewer-Country' => 'US',
-        'Host' => '1234567890.execute-api.us-east-1.amazonaws.com',
+        'Host' => '1234567890.execute-api.us-west-2.amazonaws.com',
         'Upgrade-Insecure-Requests' => '1',
         'User-Agent' => 'Custom User Agent String',
         'Via' => '1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)',

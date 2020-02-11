@@ -35,7 +35,7 @@ class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
     @patch("samcli.lib.intrinsic_resolver.intrinsics_symbol_table.os")
     def test_pseudo_default_region(self, mock_os):
         mock_os.getenv.return_value = None
-        self.assertEqual(self.symbol_table.handle_pseudo_region(), "us-east-1")
+        self.assertEqual(self.symbol_table.handle_pseudo_region(), "us-west-2")
 
     def test_pseudo_no_value(self):
         self.assertIsNone(self.symbol_table.handle_pseudo_no_value())
@@ -49,8 +49,8 @@ class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
         self.assertEqual(self.symbol_table.handle_pseudo_url_prefix(), "amazonaws.com.cn")
 
     def test_get_availability_zone(self):
-        res = IntrinsicsSymbolTable.get_availability_zone("us-east-1")
-        self.assertIn("us-east-1a", res)
+        res = IntrinsicsSymbolTable.get_availability_zone("us-west-2")
+        self.assertIn("us-west-2a", res)
 
     def test_handle_pseudo_account_id(self):
         res = IntrinsicsSymbolTable.handle_pseudo_account_id()
@@ -63,7 +63,7 @@ class TestIntrinsicsSymbolTablePseudoProperties(TestCase):
     def test_handle_pseudo_stack_id(self):
         res = IntrinsicsSymbolTable.handle_pseudo_stack_id()
         self.assertEqual(
-            res, "arn:aws:cloudformation:us-east-1:123456789012:stack/" "local/51af3dc0-da77-11e4-872e-1234567db123"
+            res, "arn:aws:cloudformation:us-west-2:123456789012:stack/" "local/51af3dc0-da77-11e4-872e-1234567db123"
         )
 
 
@@ -115,11 +115,11 @@ class TestSymbolResolution(TestCase):
 
     def test_arn_resolver_lambda(self):
         res = IntrinsicsSymbolTable().arn_resolver("test")
-        self.assertEqual(res, "arn:aws:lambda:us-east-1:123456789012:function:test")
+        self.assertEqual(res, "arn:aws:lambda:us-west-2:123456789012:function:test")
 
     def test_arn_resolver(self):
         res = IntrinsicsSymbolTable().arn_resolver("test", service_name="sns")
-        self.assertEqual(res, "arn:aws:sns:us-east-1:123456789012:test")
+        self.assertEqual(res, "arn:aws:sns:us-west-2:123456789012:test")
 
     def test_resolver_ignore_errors(self):
         resolver = IntrinsicsSymbolTable()

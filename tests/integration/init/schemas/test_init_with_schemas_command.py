@@ -215,7 +215,7 @@ Y
         # 3: select event-bridge app from scratch
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
-        # schemas aws region us-east-1
+        # schemas aws region us-west-2
         # 1: select aws.events as registries
         # 1: select aws schema
 

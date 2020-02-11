@@ -16,9 +16,9 @@ from samcli.commands._utils.template import TemplateFailedParsingException, Temp
 class TestCli(TestCase):
     def setUp(self):
         self.template = "./template"
-        self.application_id = "arn:aws:serverlessrepo:us-east-1:123456789012:applications/hello"
+        self.application_id = "arn:aws:serverlessrepo:us-west-2:123456789012:applications/hello"
         self.ctx_mock = Mock()
-        self.ctx_mock.region = "us-east-1"
+        self.ctx_mock.region = "us-west-2"
         self.console_link = (
             "Click the link below to view your application in AWS console:\n"
             "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"

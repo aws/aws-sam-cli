@@ -64,5 +64,5 @@ class TestInitAWSConfiguration(TestCase):
         session_mock.return_value.available_profiles = ["default", "test-profile"]
         with self.assertRaises(NotAvailableInRegion) as ctx:
             get_aws_configuration_choice()
-        msg = "EventBridge Schemas are not yet available in ap-south-1. Please select one of ['us-east-1', 'us-east-2', 'us-west-2', 'eu-west-1', 'ap-northeast-1']"
+        msg = "EventBridge Schemas are not yet available in ap-south-1. Please select one of ['us-west-2', 'us-east-2', 'us-west-2', 'eu-west-1', 'ap-northeast-1']"
         self.assertEqual(str(ctx.exception), msg)

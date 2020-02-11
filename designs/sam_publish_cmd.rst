@@ -194,7 +194,7 @@ CLI Changes
                               in the template metadata.
     --profile TEXT            Select a specific profile from your credential file to
                               get AWS credentials.
-    --region TEXT             Set the AWS Region of the service (e.g. us-east-1).
+    --region TEXT             Set the AWS Region of the service (e.g. us-west-2).
     --debug                   Turn on debug logging to print debug message generated
                               by SAM CLI.
     --help                    Show this message and exit.

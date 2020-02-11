@@ -105,7 +105,7 @@ use_container=true
 [default.package]
 [default.package.parameters]
 profile="srirammv"
-region="us-east-1"
+region="us-west-2"
 s3_bucket="sam-bucket"
 output_template_file="packaged.yaml"
 
@@ -113,7 +113,7 @@ output_template_file="packaged.yaml"
 [default.deploy.parameters]
 stack_name="using_config_file"
 capabilities="CAPABILITY_IAM"
-region="us-east-1"
+region="us-west-2"
 profile="srirammv"
 
 ```
@@ -135,14 +135,14 @@ use_container=true
 
 [default.package.parameters]
 profile="srirammv"
-region="us-east-1"
+region="us-west-2"
 s3_bucket="sam-bucket"
 output_template_file="packaged.yaml"
 
 [default.deploy.parameters]
 stack_name="using_config_file"
 capabilities="CAPABILITY_IAM"
-region="us-east-1"
+region="us-west-2"
 profile="srirammv"
 
 
@@ -154,14 +154,14 @@ use_container=true
 
 [dev.package.parameters]
 profile="srirammv"
-region="us-east-1"
+region="us-west-2"
 s3_bucket="sam-bucket"
 output_template_file="packaged.yaml"
 
 [dev.deploy.parameters]
 stack_name="using_config_file"
 capabilities="CAPABILITY_IAM"
-region="us-east-1"
+region="us-west-2"
 profile="srirammv"
 ```
 

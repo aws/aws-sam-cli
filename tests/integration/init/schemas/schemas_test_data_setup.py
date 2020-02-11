@@ -172,7 +172,7 @@ def _create_3p_schemas(registry_name, schemas_client, no_of_schemas):
         r'"$ref":"#\/components\/schemas\/aws.partner\/mongodb.com\/Ticket.Created"},"detail-type":{"type":"string"},"resources":{"type":"array",'
         '"items":{"type":"string"}},"id":{"type":"string"},"source":{"type":"string"},"time":{"type":"string","format":"date-time"},'
         '"region":{"type":"string","enum":["ap-south-1","eu-west-3","eu-north-1","eu-west-2","eu-west-1","ap-northeast-2","ap-northeast-1","me-south-1",'
-        '"sa-east-1","ca-central-1","ap-east-1","cn-north-1","us-gov-west-1","ap-southeast-1","ap-southeast-2","eu-central-1","us-east-1","us-west-1",'
+        '"sa-east-1","ca-central-1","ap-east-1","cn-north-1","us-gov-west-1","ap-southeast-1","ap-southeast-2","eu-central-1","us-west-2","us-west-1",'
         '"cn-northwest-1","us-west-2"]},"version":{"type":"string"},"account":{"type":"string"}}},"TicketCreated":{"type":"object","required":["creator",'
         '"department","ticketId"],"properties":{"creator":{"type":"string"},"department":{"type":"string"},"ticketId":{"type":"string"}}}}}} '
     )

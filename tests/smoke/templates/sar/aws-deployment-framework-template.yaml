@@ -4,7 +4,7 @@ Conditions:
     Fn::Equals:
     - true
     - Ref: CommitInitialBootstrapContent
-Description: ADF CloudFormation Initial Base Stack for the Master Account in the us-east-1 region.
+Description: ADF CloudFormation Initial Base Stack for the Master Account in the us-west-2 region.
 Outputs:
   ADFVersionNumber:
     Export:

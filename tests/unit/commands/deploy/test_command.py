@@ -119,7 +119,7 @@ class TestDeployCliCommand(TestCase):
         context_mock = Mock()
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, False, True]
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = ["sam-app", "us-west-2", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
 
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -165,7 +165,7 @@ class TestDeployCliCommand(TestCase):
                 notification_arns=self.notification_arns,
                 fail_on_empty_changeset=self.fail_on_empty_changset,
                 tags=self.tags,
-                region="us-east-1",
+                region="us-west-2",
                 profile=self.profile,
                 confirm_changeset=True,
             )
@@ -179,12 +179,12 @@ class TestDeployCliCommand(TestCase):
                 capabilities=("CAPABILITY_IAM",),
                 confirm_changeset=True,
                 profile=self.profile,
-                region="us-east-1",
+                region="us-west-2",
                 s3_bucket="managed-s3-bucket",
                 stack_name="sam-app",
                 s3_prefix="sam-app",
             )
-            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-west-2")
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
@@ -223,7 +223,7 @@ class TestDeployCliCommand(TestCase):
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_prompt.side_effect = [
             "sam-app",
-            "us-east-1",
+            "us-west-2",
             "guidedParameter",
             "guided parameter with spaces",
             "secure",
@@ -273,13 +273,13 @@ class TestDeployCliCommand(TestCase):
             notification_arns=self.notification_arns,
             fail_on_empty_changeset=self.fail_on_empty_changset,
             tags=self.tags,
-            region="us-east-1",
+            region="us-west-2",
             profile=self.profile,
             confirm_changeset=True,
         )
 
         context_mock.run.assert_called_with()
-        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-west-2")
         self.assertEqual(context_mock.run.call_count, 1)
 
         self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 7)
@@ -289,7 +289,7 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "stack_name", "sam-app"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
+                call(["deploy"], "parameters", "region", "us-west-2"),
                 call(["deploy"], "parameters", "confirm_changeset", True),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
                 call(
@@ -336,7 +336,7 @@ class TestDeployCliCommand(TestCase):
 
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = ["sam-app", "us-west-2", ("CAPABILITY_IAM",)]
         mock_confirm.side_effect = [True, False, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -377,13 +377,13 @@ class TestDeployCliCommand(TestCase):
             notification_arns=self.notification_arns,
             fail_on_empty_changeset=self.fail_on_empty_changset,
             tags=self.tags,
-            region="us-east-1",
+            region="us-west-2",
             profile=self.profile,
             confirm_changeset=True,
         )
 
         context_mock.run.assert_called_with()
-        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-west-2")
         self.assertEqual(context_mock.run.call_count, 1)
 
         self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 7)
@@ -393,7 +393,7 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "stack_name", "sam-app"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
+                call(["deploy"], "parameters", "region", "us-west-2"),
                 call(["deploy"], "parameters", "confirm_changeset", True),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
                 call(["deploy"], "parameters", "parameter_overrides", 'a="b"'),
@@ -426,7 +426,7 @@ class TestDeployCliCommand(TestCase):
         context_mock = Mock()
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = ["sam-app", "us-west-2", ("CAPABILITY_IAM",)]
         mock_confirm.side_effect = [True, False, False]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -469,12 +469,12 @@ class TestDeployCliCommand(TestCase):
                 notification_arns=self.notification_arns,
                 fail_on_empty_changeset=self.fail_on_empty_changset,
                 tags=self.tags,
-                region="us-east-1",
+                region="us-west-2",
                 profile=self.profile,
                 confirm_changeset=True,
             )
 
             context_mock.run.assert_called_with()
             self.assertEqual(mock_save_config.call_count, 0)
-            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-west-2")
             self.assertEqual(context_mock.run.call_count, 1)

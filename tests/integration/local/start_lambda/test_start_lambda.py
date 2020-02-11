@@ -20,7 +20,7 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name="us-west-2",
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -60,7 +60,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name="us-west-2",
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
@@ -114,7 +114,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.lambda_client = boto3.client(
             "lambda",
             endpoint_url=self.url,
-            region_name="us-east-1",
+            region_name="us-west-2",
             use_ssl=False,
             verify=False,
             config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),

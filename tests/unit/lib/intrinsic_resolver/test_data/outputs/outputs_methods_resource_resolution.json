@@ -38,7 +38,7 @@
         "Action": "lambda:InvokeFunction",
         "FunctionName": "HelloHandler2E4FBA4D",
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/EndpointDeploymentStageprodB78BEEA0/*/"
+        "SourceArn": "arn:aws:execute-api:us-west-2:123456789012:EndpointEEF1FD8F/EndpointDeploymentStageprodB78BEEA0/*/"
       },
       "Metadata": {
         "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.ANY.."
@@ -50,7 +50,7 @@
         "Action": "lambda:InvokeFunction",
         "FunctionName": "HelloHandler2E4FBA4D",
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/test-invoke-stage/*/"
+        "SourceArn": "arn:aws:execute-api:us-west-2:123456789012:EndpointEEF1FD8F/test-invoke-stage/*/"
       },
       "Metadata": {
         "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.Test.ANY.."
@@ -62,7 +62,7 @@
         "Action": "lambda:InvokeFunction",
         "FunctionName": "HelloHandler2E4FBA4D",
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/EndpointDeploymentStageprodB78BEEA0/*/{proxy+}"
+        "SourceArn": "arn:aws:execute-api:us-west-2:123456789012:EndpointEEF1FD8F/EndpointDeploymentStageprodB78BEEA0/*/{proxy+}"
       },
       "Metadata": {
         "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.ANY..{proxy+}"
@@ -74,7 +74,7 @@
         "Action": "lambda:InvokeFunction",
         "FunctionName": "HelloHandler2E4FBA4D",
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:EndpointEEF1FD8F/test-invoke-stage/*/{proxy+}"
+        "SourceArn": "arn:aws:execute-api:us-west-2:123456789012:EndpointEEF1FD8F/test-invoke-stage/*/{proxy+}"
       },
       "Metadata": {
         "aws:cdk:path": "CdkWorkshopStack/HelloHandler/ApiPermission.Test.ANY..{proxy+}"
@@ -141,7 +141,7 @@
     "EndpointAccountB8304247": {
       "Type": "AWS::ApiGateway::Account",
       "Properties": {
-        "CloudWatchRoleArn": "arn:aws:lambda:us-east-1:123456789012:function:EndpointCloudWatchRoleC3C64E0F"
+        "CloudWatchRoleArn": "arn:aws:lambda:us-west-2:123456789012:function:EndpointCloudWatchRoleC3C64E0F"
       },
       "DependsOn": [
         "EndpointEEF1FD8F"
@@ -171,7 +171,7 @@
         "Integration": {
           "IntegrationHttpMethod": "POST",
           "Type": "AWS_PROXY",
-          "Uri": "arn:aws:apigateway:us-east-1lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:HelloHandler2E4FBA4D/invocations"
+          "Uri": "arn:aws:apigateway:us-west-2lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:HelloHandler2E4FBA4D/invocations"
         }
       },
       "Metadata": {
@@ -188,7 +188,7 @@
         "Integration": {
           "IntegrationHttpMethod": "POST",
           "Type": "AWS_PROXY",
-          "Uri": "arn:aws:apigateway:us-east-1lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:HelloHandler2E4FBA4D/invocations"
+          "Uri": "arn:aws:apigateway:us-west-2lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:HelloHandler2E4FBA4D/invocations"
         }
       },
       "Metadata": {
@@ -214,7 +214,7 @@
   },
   "Outputs": {
     "Endpoint8024A810": {
-      "Value": "https://EndpointEEF1FD8F.execute-api.us-east-1.amazonaws.com/EndpointDeploymentStageprodB78BEEA0/",
+      "Value": "https://EndpointEEF1FD8F.execute-api.us-west-2.amazonaws.com/EndpointDeploymentStageprodB78BEEA0/",
       "Export": {
         "Name": "CdkWorkshopStack:Endpoint8024A810"
       }

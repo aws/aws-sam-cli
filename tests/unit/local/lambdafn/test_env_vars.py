@@ -134,7 +134,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            "AWS_REGION": "us-east-1",
+            "AWS_REGION": "us-west-2",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
             # This value is coming from user passed environment variable
@@ -162,7 +162,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            "AWS_REGION": "us-east-1",
+            "AWS_REGION": "us-west-2",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
             # This value is coming from user passed environment variable
@@ -193,7 +193,7 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            "AWS_REGION": "us-east-1",
+            "AWS_REGION": "us-west-2",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
             # This value is coming from user passed environment variable
@@ -259,8 +259,8 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
             # Default values assigned to these variables
-            "AWS_REGION": "us-east-1",
-            "AWS_DEFAULT_REGION": "us-east-1",
+            "AWS_REGION": "us-west-2",
+            "AWS_DEFAULT_REGION": "us-west-2",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
         }
