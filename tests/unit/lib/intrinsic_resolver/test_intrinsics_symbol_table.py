@@ -74,6 +74,12 @@ class TestSymbolResolution(TestCase):
         result = symbol_resolver.resolve_symbols("Test", IntrinsicResolver.REF)
         self.assertEqual(result, "data")
 
+    def test_parameter_symbols_for_empty_string(self):
+        template = {"Resources": {}, "Parameters": {"Test": {"Default": ""}}}
+        symbol_resolver = IntrinsicsSymbolTable(template=template)
+        result = symbol_resolver.resolve_symbols("Test", IntrinsicResolver.REF)
+        self.assertEqual(result, "")
+
     def test_default_type_resolver_function(self):
         template = {"Resources": {"MyApi": {"Type": "AWS::ApiGateway::RestApi"}}}
         default_type_resolver = {"AWS::ApiGateway::RestApi": {"RootResourceId": lambda logical_id: logical_id}}

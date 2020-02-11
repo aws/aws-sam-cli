@@ -230,8 +230,8 @@ class TestSchemasCommand(TestCase):
             "openapi": "3.0.0",
             "info": {"version": "1.0.0", "title": "SomeAwesomeSchema"},
             "paths": {},
-            "Content": '{"components":{"schemas":{"Some\/Awesome\/Schema.Object.1":{"type":"object","required":["foo","bar","baz"],"properties":{"foo":{"type":"string"},'
-            '"bar":{"type":"string"},"baz":{"type":"string"}}},"Some\/Awesome\/Schema.Object$2":{"type":"object","required":["foo","bar","baz"],'
+            "Content": r'{"components":{"schemas":{"Some\/Awesome\/Schema.Object.1":{"type":"object","required":["foo","bar","baz"],"properties":{"foo":{"type":"string"},'
+            r'"bar":{"type":"string"},"baz":{"type":"string"}}},"Some\/Awesome\/Schema.Object$2":{"type":"object","required":["foo","bar","baz"],'
             '"properties":{"foo":{"type":"string"},"bar":{"type":"string"},"baz":{"type":"string"}}}}}}',
         }
         registry_name = "registry1"
