@@ -7,6 +7,7 @@ boto3==1.9.228
 botocore==1.12.228
 certifi==2019.9.11
 chardet==3.0.4
+checksumdir==1.1.7
 chevron==0.13.1
 Click==7.0
 cookiecutter==1.6.0

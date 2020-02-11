@@ -106,12 +106,13 @@ class S3Uploader:
                 raise NoSuchBucketError(bucket_name=self.bucket_name)
             raise ex
 
-    def upload_with_dedup(self, file_name, extension=None):
+    def upload_with_dedup(self, file_name, extension=None, precomputed_md5=None):
         """
         Makes and returns name of the S3 object based on the file's MD5 sum
 
         :param file_name: file to upload
         :param extension: String of file extension to append to the object
+        :param precomputed_md5: Specified md5 hash for the file to be uploaded.
         :return: S3 URL of the uploaded object
         """
 
@@ -119,7 +120,7 @@ class S3Uploader:
         # uploads of same object. Uploader will check if the file exists in S3
         # and re-upload only if necessary. So the template points to same file
         # in multiple places, this will upload only once
-        filemd5 = self.file_checksum(file_name)
+        filemd5 = precomputed_md5 or self.file_checksum(file_name)
         remote_path = filemd5
         if extension:
             remote_path = remote_path + "." + extension
