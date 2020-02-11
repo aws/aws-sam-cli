@@ -17,6 +17,7 @@ from samcli import __version__
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
 
+
 SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
 LOG = logging.getLogger(__name__)
 
@@ -142,9 +143,10 @@ def _get_stack_template():
                   Fn::Join:
                     - ""
                     -
-                      - "arn:aws:s3:::"
-                      -
-                        !Ref SamCliSourceBucket
+                      - "arn:"
+                      - !Ref AWS::Partition
+                      - ":s3:::"
+                      - !Ref SamCliSourceBucket
                       - "/*"
                 Principal:
                   Service: serverlessrepo.amazonaws.com
