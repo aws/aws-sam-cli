@@ -31,7 +31,7 @@ from samcli.commands.deploy.exceptions import (
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
 )
-from samcli.commands._utils.table_print import pprint_column_names, pprint_columns
+from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.package.artifact_exporter import mktempfile, parse_s3_url
 from samcli.lib.utils.time import utc_to_timestamp
@@ -59,8 +59,10 @@ DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
 
 DESCRIBE_CHANGESET_TABLE_HEADER_NAME = "CloudFormation stack changeset"
 
-OUTPUTS_FORMAT_STRING = "{OutputKey-Description:<{0}} {OutputValue:<{1}}"
-OUTPUTS_DEFAULTS_ARGS = OrderedDict({"OutputKey-Description": "OutputKey-Description", "OutputValue": "OutputValue"})
+OUTPUTS_FORMAT_STRING = "{Outputs:<{0}}"
+OUTPUTS_DEFAULTS_ARGS = OrderedDict({"Outputs": "Outputs"})
+
+OUTPUTS_TABLE_HEADER_NAME = "CloudFormation outputs from deployed stack"
 
 
 class Deployer:
@@ -398,7 +400,8 @@ class Deployer:
 
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
-        self.get_stack_outputs(stack_name=stack_name)
+        outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
+        self._stack_outputs(outputs)
 
     def create_and_wait_for_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
@@ -413,17 +416,29 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex))
 
-    @pprint_column_names(format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS)
+    @pprint_column_names(
+        format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
+    )
     def _stack_outputs(self, stack_outputs, **kwargs):
-        for output in stack_outputs:
-            pprint_columns(
-                columns=[" - ".join([output["OutputKey"], output.get("Description", "")]), output["OutputValue"]],
-                width=kwargs["width"],
-                margin=kwargs["margin"],
-                format_string=OUTPUTS_FORMAT_STRING,
-                format_args=kwargs["format_args"],
-                columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
-            )
+        for counter, output in enumerate(stack_outputs):
+            for k, v in [
+                ("Key", output.get("OutputKey")),
+                ("Description", output.get("Description", "-")),
+                ("Value", output.get("OutputValue")),
+            ]:
+                pprint_columns(
+                    columns=["{k:<{0}}{v:<{0}}".format(MIN_OFFSET, k=k, v=v)],
+                    width=kwargs["width"],
+                    margin=kwargs["margin"],
+                    format_string=OUTPUTS_FORMAT_STRING,
+                    format_args=kwargs["format_args"],
+                    columns_dict=OUTPUTS_DEFAULTS_ARGS.copy(),
+                    color="green",
+                    replace_whitespace=False,
+                    break_long_words=False,
+                    drop_whitespace=False,
+                )
+            newline_per_item(stack_outputs, counter)
 
     def get_stack_outputs(self, stack_name, echo=True):
         try:
