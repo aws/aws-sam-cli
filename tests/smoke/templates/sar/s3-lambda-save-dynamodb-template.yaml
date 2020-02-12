@@ -56,7 +56,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 8aaad0a6-d8fd-4bbe-b85e-49de11742aea
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Events:
         S3BucketEvent:
           Type: S3

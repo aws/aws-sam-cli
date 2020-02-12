@@ -11,6 +11,5 @@ Resources:
       ContentUri: "."
       CompatibleRuntimes:
         - nodejs10.x
-        - nodejs8.10
       LicenseInfo: 'Available under the MIT-0 license.'
       RetentionPolicy: Retain

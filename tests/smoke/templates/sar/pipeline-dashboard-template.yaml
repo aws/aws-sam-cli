@@ -12,7 +12,7 @@ Resources:
     Properties:
       Description: Create CloudWatch metrics from AWS CodePipeline events
       Handler: index.handlePipelineEvent
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: aca8822e-f832-499e-8a12-21a72beb392f
@@ -37,7 +37,7 @@ Resources:
     Properties:
       Description: Build CloudWatch dashboard from CloudWatch metrics
       Handler: index.generateDashboard
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: aca8822e-f832-499e-8a12-21a72beb392f
