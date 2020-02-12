@@ -10,7 +10,6 @@ Resources:
       Description: Layer description
       ContentUri: "."
       CompatibleRuntimes:
-        - nodejs6.10
         - nodejs10.x
       LicenseInfo: 'Available under the MIT-0 license.'
       RetentionPolicy: Retain

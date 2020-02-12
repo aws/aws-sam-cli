@@ -223,6 +223,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(environ["URLSuffix"], "localhost")
         self.assertEqual(environ["Timeout"], "100")
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
+        self.assertEqual(environ["EmptyDefaultParameter"], "")
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters_with_custom_region(self):
