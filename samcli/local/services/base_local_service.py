@@ -152,12 +152,11 @@ class LambdaOutputParser:
             # Error/Exception that was raised/returned/thrown from the container. To ensure minimal false positives in
             # this checking, we check for all the keys that can occur in Lambda raised/thrown/returned an
             # Error/Exception. This still risks false positives when the data returned matches exactly a dictionary with
-            # the keys 'errorMessage' and 'errorType'.
+            # the keys 'errorMessage', 'errorType' and 'cause'
             if (
                 isinstance(lambda_response_dict, dict)
-                and len(lambda_response_dict) in [2, 3]
-                and "errorMessage" in lambda_response_dict
-                and "errorType" in lambda_response_dict
+                and len(lambda_response_dict.keys() & {"errorMessage", "errorType", "stackTrace", "cause"})
+                  == len(lambda_response_dict)
             ):
                 is_lambda_user_error_response = True
         except ValueError:
