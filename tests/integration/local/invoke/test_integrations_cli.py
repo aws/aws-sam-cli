@@ -13,11 +13,11 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Travis and when the branch is not master.
-SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 from pathlib import Path
 
