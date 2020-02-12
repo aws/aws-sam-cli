@@ -413,7 +413,8 @@ class Deployer:
             raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
 
         outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
-        self._stack_outputs(outputs)
+        if outputs:
+            self._display_stack_outputs(outputs)
 
     def create_and_wait_for_changeset(
         self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
@@ -431,7 +432,7 @@ class Deployer:
     @pprint_column_names(
         format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
     )
-    def _stack_outputs(self, stack_outputs, **kwargs):
+    def _display_stack_outputs(self, stack_outputs, **kwargs):
         for counter, output in enumerate(stack_outputs):
             for k, v in [
                 ("Key", output.get("OutputKey")),
@@ -460,7 +461,7 @@ class Deployer:
                 if echo:
                     sys.stdout.write("\nStack {stack_name} outputs:\n".format(stack_name=stack_name))
                     sys.stdout.flush()
-                    self._stack_outputs(stack_outputs=outputs)
+                    self._display_stack_outputs(stack_outputs=outputs)
                 return outputs
             except KeyError:
                 return None

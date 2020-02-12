@@ -670,3 +670,31 @@ class TestDeployer(TestCase):
 
         with self.assertRaises(DeployStackOutPutFailedError):
             self.deployer.get_stack_outputs(stack_name="test")
+
+    @patch("time.sleep")
+    def test_wait_for_execute_no_outputs(self, patched_time):
+        self.deployer.describe_stack_events = MagicMock()
+        self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
+        self.deployer._display_stack_outputs = MagicMock()
+        self.deployer.get_stack_outputs = MagicMock(return_value=None)
+        self.deployer.wait_for_execute("test", "CREATE")
+        self.assertEqual(self.deployer._display_stack_outputs.call_count, 0)
+
+    @patch("time.sleep")
+    def test_wait_for_execute_with_outputs(self, patched_time):
+        self.deployer.describe_stack_events = MagicMock()
+        outputs = {
+            "Stacks": [
+                {
+                    "Outputs": [
+                        {"OutputKey": "Key1", "OutputValue": "Value1", "Description": "output for s3"},
+                        {"OutputKey": "Key2", "OutputValue": "Value2", "Description": "output for kms"},
+                    ]
+                }
+            ]
+        }
+        self.deployer._client.get_waiter = MagicMock(return_value=MockCreateUpdateWaiter())
+        self.deployer._display_stack_outputs = MagicMock()
+        self.deployer.get_stack_outputs = MagicMock(return_value=outputs["Stacks"][0]["Outputs"])
+        self.deployer.wait_for_execute("test", "CREATE")
+        self.assertEqual(self.deployer._display_stack_outputs.call_count, 1)
