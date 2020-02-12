@@ -27,7 +27,6 @@ from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
 import jmespath
-from checksumdir import dirhash
 
 from samcli.commands._utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
@@ -48,6 +47,7 @@ from samcli.commands._utils.resources import (
 
 from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands.package import exceptions
+from samcli.lib.utils.hash import dir_checksum
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
 
@@ -179,7 +179,7 @@ def zip_folder(folder_path):
     :param folder_path:
     :return: Name of the zipfile
     """
-    md5hash = dirhash(folder_path, ignore_hidden=False, followlinks=True)
+    md5hash = dir_checksum(folder_path, followlinks=True)
     filename = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
 
     zipfile_name = make_zip(filename, folder_path)

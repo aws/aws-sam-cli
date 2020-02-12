@@ -28,6 +28,7 @@ import botocore.exceptions
 from boto3.s3 import transfer
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
+from samcli.lib.utils.hash import file_checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ class S3Uploader:
         # uploads of same object. Uploader will check if the file exists in S3
         # and re-upload only if necessary. So the template points to same file
         # in multiple places, this will upload only once
-        filemd5 = precomputed_md5 or self.file_checksum(file_name)
+        filemd5 = precomputed_md5 or file_checksum(file_name)
         remote_path = filemd5
         if extension:
             remote_path = remote_path + "." + extension
@@ -150,27 +151,6 @@ class S3Uploader:
         if not self.bucket_name:
             raise BucketNotSpecifiedError()
         return "s3://{0}/{1}".format(self.bucket_name, obj_path)
-
-    def file_checksum(self, file_name):
-
-        with open(file_name, "rb") as file_handle:
-            md5 = hashlib.md5()
-            # Read file in chunks of 4096 bytes
-            block_size = 4096
-
-            # Save current cursor position and reset cursor to start of file
-            curpos = file_handle.tell()
-            file_handle.seek(0)
-
-            buf = file_handle.read(block_size)
-            while buf:
-                md5.update(buf)
-                buf = file_handle.read(block_size)
-
-            # Restore file cursor's position
-            file_handle.seek(curpos)
-
-            return md5.hexdigest()
 
     def to_path_style_s3_url(self, key, version=None):
         """
