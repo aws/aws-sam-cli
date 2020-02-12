@@ -23,3 +23,9 @@ Resources:
     Type: AWS::ApiGateway::RestApi
     Properties:
       BodyS3Location: SomeRelativePath
+
+  GlueResource:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        ScriptLocation: SomeRelativePath
