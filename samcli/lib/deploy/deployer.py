@@ -338,10 +338,14 @@ class Deployer:
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)
                 stack_status = describe_stacks_resp["Stacks"][0]["StackStatus"]
+                latest_time_stamp_marker = time_stamp_marker
                 for event_items in response_iterator:
                     for event in event_items["StackEvents"]:
                         if event["EventId"] not in events and utc_to_timestamp(event["Timestamp"]) > time_stamp_marker:
                             events.add(event["EventId"])
+                            latest_time_stamp_marker = max(
+                                latest_time_stamp_marker, utc_to_timestamp(event["Timestamp"])
+                            )
                             row_color = self.deploy_color.get_stack_events_status_color(status=event["ResourceStatus"])
                             pprint_columns(
                                 columns=[
@@ -357,6 +361,14 @@ class Deployer:
                                 columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
                                 color=row_color,
                             )
+                        # Skip already shown old event entries
+                        elif utc_to_timestamp(event["Timestamp"]) <= time_stamp_marker:
+                            time_stamp_marker = latest_time_stamp_marker
+                            break
+                    else:  # go to next loop if not break from inside loop
+                        time_stamp_marker = latest_time_stamp_marker  # update marker if all events are new
+                        continue
+                    break  # reached here only if break from inner loop!
 
                 if self._check_stack_complete(stack_status):
                     stack_change_in_progress = False

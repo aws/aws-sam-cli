@@ -364,6 +364,78 @@ class TestDeployer(TestCase):
 
         self.deployer.describe_stack_events("test", time.time() - 1)
 
+    @patch("time.sleep")
+    @patch("samcli.lib.deploy.deployer.pprint_columns")
+    def test_describe_stack_events_skip_old_event(self, patched_pprint_columns, patched_time):
+        current_timestamp = datetime.utcnow()
+
+        self.deployer._client.describe_stacks = MagicMock(
+            side_effect=[
+                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
+                {"Stacks": [{"StackStatus": "CREATE_IN_PROGRESS"}]},
+                {"Stacks": [{"StackStatus": "CREATE_COMPLETE_CLEANUP_IN_PROGRESS"}]},
+                {"Stacks": [{"StackStatus": "CREATE_COMPLETE"}]},
+            ]
+        )
+        sample_events = [
+            {
+                "StackEvents": [
+                    {
+                        "EventId": str(uuid.uuid4()),
+                        "Timestamp": current_timestamp,
+                        "ResourceStatus": "CREATE_IN_PROGRESS",
+                        "ResourceType": "s3",
+                        "LogicalResourceId": "mybucket",
+                    }
+                ]
+            },
+            {
+                "StackEvents": [
+                    {
+                        "EventId": str(uuid.uuid4()),
+                        "Timestamp": current_timestamp + timedelta(seconds=10),
+                        "ResourceStatus": "CREATE_IN_PROGRESS",
+                        "ResourceType": "kms",
+                        "LogicalResourceId": "mykms",
+                    }
+                ]
+            },
+            {
+                "StackEvents": [
+                    {
+                        "EventId": str(uuid.uuid4()),
+                        "Timestamp": current_timestamp + timedelta(seconds=20),
+                        "ResourceStatus": "CREATE_COMPLETE",
+                        "ResourceType": "s3",
+                        "LogicalResourceId": "mybucket",
+                    }
+                ]
+            },
+            {
+                "StackEvents": [
+                    {
+                        "EventId": str(uuid.uuid4()),
+                        "Timestamp": current_timestamp + timedelta(seconds=30),
+                        "ResourceStatus": "CREATE_COMPLETE",
+                        "ResourceType": "kms",
+                        "LogicalResourceId": "mykms",
+                    }
+                ]
+            },
+        ]
+        invalid_event = {"StackEvents": [{}]}  # if deployer() loop read this, KeyError would raise
+        self.deployer._client.get_paginator = MagicMock(
+            side_effect=[
+                MockPaginator([sample_events[0]]),
+                MockPaginator([sample_events[1], sample_events[0], invalid_event]),
+                MockPaginator([sample_events[2], sample_events[1], invalid_event]),
+                MockPaginator([sample_events[3], sample_events[2], invalid_event]),
+            ]
+        )
+
+        self.deployer.describe_stack_events("test", time.time() - 1)
+        self.assertEqual(patched_pprint_columns.call_count, 4)
+
     @patch("samcli.lib.deploy.deployer.math")
     @patch("time.sleep")
     def test_describe_stack_events_exceptions(self, patched_time, patched_math):
