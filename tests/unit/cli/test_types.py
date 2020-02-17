@@ -193,6 +193,7 @@ class TestCfnTags(TestCase):
             (("a=b",), {"a": "b"}),
             (("a=b", "c=d"), {"a": "b", "c": "d"}),
             (('"a+-=._:/@"="b+-=._:/@" "--c="="=d/"',), {"a+-=._:/@": "b+-=._:/@", "--c=": "=d/"}),
+            (('owner:name="son of anton"',), {"owner:name": "son of anton"}),
             (("",), {}),
         ]
     )
