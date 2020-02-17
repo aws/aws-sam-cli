@@ -9,16 +9,47 @@ from json import JSONDecodeError
 import click
 
 
-def _value_regex(delim):
-    return f'(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^{delim}\\"\\\\]+)+)'
+def _match_regex(match, delim):
+    return f'(\\"(?:\\\\{match}|[^\\"\\\\]+)*\\"|(?:\\\\{match}|[^{delim}\\"\\\\]+)+)'
 
 
 KEY_REGEX = '([A-Za-z0-9\\"]+)'
-TAG_KEY_REGEX = '([A-Za-z0-9\\"_:\\./\\+-]+)'
+# Tags have additional constraints and they allow "+ - = . _ : / @" apart from alpha-numerics.
+TAG_REGEX = '[A-Za-z0-9\\"_:\\.\\/\\+-\\@=]'
+
 # Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
-VALUE_REGEX_SPACE_DELIM = _value_regex(" ")
+VALUE_REGEX_SPACE_DELIM = _match_regex(match=".", delim=" ")
 # Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
-VALUE_REGEX_COMMA_DELIM = _value_regex(",")
+VALUE_REGEX_COMMA_DELIM = _match_regex(match=".", delim=",")
+
+
+def _unquote(value):
+    r"""
+    Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
+    value thru shell.
+
+    Examples
+    --------
+    >>> _unquote('val\ ue')
+    value
+
+    >>> _unquote("hel\ lo")
+    hello
+
+    Parameters
+    ----------
+    value : str
+        Input to unquote
+
+    Returns
+    -------
+    Unquoted string
+    """
+    if value and (value[0] == value[-1] == '"'):
+        # Remove quotes only if the string is wrapped in quotes
+        value = value.strip('"')
+
+    return value.replace("\\ ", " ").replace('\\"', '"')
 
 
 class CfnParameterOverridesType(click.ParamType):
@@ -81,38 +112,9 @@ class CfnParameterOverridesType(click.ParamType):
 
             # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
             for key, param_value in groups:
-                result[self._unquote(key)] = self._unquote(param_value)
+                result[_unquote(key)] = _unquote(param_value)
 
         return result
-
-    @staticmethod
-    def _unquote(value):
-        r"""
-        Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
-        value thru shell.
-
-        Examples
-        --------
-        >>> _unquote('val\ ue')
-        value
-
-        >>> _unquote("hel\ lo")
-        hello
-
-        Parameters
-        ----------
-        value : str
-            Input to unquote
-
-        Returns
-        -------
-        Unquoted string
-        """
-        if value and (value[0] == value[-1] == '"'):
-            # Remove quotes only if the string is wrapped in quotes
-            value = value.strip('"')
-
-        return value.replace("\\ ", " ").replace('\\"', '"')
 
 
 class CfnMetadataType(click.ParamType):
@@ -169,7 +171,7 @@ class CfnTags(click.ParamType):
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
 
-    _pattern = r"{key}={value}".format(key=TAG_KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
+    _pattern = r"{tag}={tag}".format(tag=_match_regex(match=TAG_REGEX, delim=" "))
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -192,7 +194,7 @@ class CfnTags(click.ParamType):
             for group in groups:
                 key, v = group
                 # assign to result['KeyName1'] = string and so on.
-                result[key] = v
+                result[_unquote(key)] = _unquote(v)
 
             if fail:
                 return self.fail(
