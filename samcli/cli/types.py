@@ -8,6 +8,8 @@ from json import JSONDecodeError
 
 import click
 
+PARAM_AND_METADATA_KEY_REGEX = '([A-Za-z0-9\\"]+)'
+
 
 def _generate_match_regex(match_pattern, delim):
 
@@ -28,16 +30,6 @@ def _generate_match_regex(match_pattern, delim):
 
     # Non capturing groups reduces duplicates in groups, but does not reduce matches.
     return f'(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)'
-
-
-KEY_REGEX = '([A-Za-z0-9\\"]+)'
-# Tags have additional constraints and they allow "+ - = . _ : / @" apart from alpha-numerics.
-TAG_REGEX = '[A-Za-z0-9\\"_:\\.\\/\\+-\\@=]'
-
-# Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
-VALUE_REGEX_SPACE_DELIM = _generate_match_regex(match_pattern=".", delim=" ")
-# Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
-VALUE_REGEX_COMMA_DELIM = _generate_match_regex(match_pattern=".", delim=",")
 
 
 def _unquote_wrapped_quotes(value):
@@ -85,8 +77,12 @@ class CfnParameterOverridesType(click.ParamType):
     # If Both ParameterKey pattern and KeyPairName=MyKey should not be present
     # while adding parameter overrides, if they are, it
     # can result in unpredicatable behavior.
-    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
-    _pattern_2 = r"(?:(?: ){key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
+    # Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
+    VALUE_REGEX_SPACE_DELIM = _generate_match_regex(match_pattern=".", delim=" ")
+    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(
+        key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM
+    )
+    _pattern_2 = r"(?:(?: ){key}={value})".format(key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
@@ -141,8 +137,10 @@ class CfnMetadataType(click.ParamType):
     """
 
     _EXAMPLE = 'KeyName1=string,KeyName2=string or {"string":"string"}'
+    # Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
+    VALUE_REGEX_COMMA_DELIM = _generate_match_regex(match_pattern=".", delim=",")
 
-    _pattern = r"(?:{key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
+    _pattern = r"(?:{key}={value})".format(key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -187,6 +185,8 @@ class CfnTags(click.ParamType):
     """
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
+    # Tags have additional constraints and they allow "+ - = . _ : / @" apart from alpha-numerics.
+    TAG_REGEX = '[A-Za-z0-9\\"_:\\.\\/\\+-\\@=]'
 
     _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
 
