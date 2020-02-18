@@ -801,6 +801,7 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         response_data = response.json()
         self.assertEqual(response_data.get("stageVariables"), {"VarName": "varValue"})
 
+
 class TestOptionsHandler(StartApiIntegBaseClass):
     """
     Test to check that an OPTIONS handler is invoked
