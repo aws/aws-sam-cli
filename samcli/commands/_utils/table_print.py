@@ -7,6 +7,8 @@ from functools import wraps
 
 import click
 
+MIN_OFFSET = 20
+
 
 def pprint_column_names(format_string, format_kwargs, margin=None, table_header=None, color="yellow"):
     """
@@ -75,7 +77,7 @@ def pprint_column_names(format_string, format_kwargs, margin=None, table_header=
     return pprint_wrap
 
 
-def wrapped_text_generator(texts, width, margin):
+def wrapped_text_generator(texts, width, margin, **textwrap_kwargs):
     """
 
     Return a generator where the contents are wrapped text to a specified width.
@@ -83,13 +85,14 @@ def wrapped_text_generator(texts, width, margin):
     :param texts: list of text that needs to be wrapped at specified width
     :param width: width of the text to be wrapped
     :param margin: margin to be reduced from width for cleaner UX
+    :param textwrap_kwargs: keyword arguments that are passed to textwrap.wrap
     :return: generator of wrapped text
     """
     for text in texts:
-        yield textwrap.wrap(text, width=width - margin)
+        yield textwrap.wrap(text, width=width - margin, **textwrap_kwargs)
 
 
-def pprint_columns(columns, width, margin, format_string, format_args, columns_dict, color="yellow"):
+def pprint_columns(columns, width, margin, format_string, format_args, columns_dict, color="yellow", **textwrap_kwargs):
     """
 
     Print columns based on list of columnar text, associated formatting string and associated format arguments.
@@ -101,12 +104,29 @@ def pprint_columns(columns, width, margin, format_string, format_args, columns_d
     :param format_args: list of offset specifiers
     :param columns_dict: arguments dictionary that have dummy values per column
     :param color: color supplied for rows within the table.
+    :param textwrap_kwargs: keyword arguments that are passed to textwrap.wrap
     :return:
     """
-    for columns_text in zip_longest(*wrapped_text_generator(columns, width, margin), fillvalue=""):
+    for columns_text in zip_longest(*wrapped_text_generator(columns, width, margin, **textwrap_kwargs), fillvalue=""):
         counter = count()
         # Generate columnar data that correspond to the column names and update them.
         for k, _ in columns_dict.items():
             columns_dict[k] = columns_text[next(counter)]
 
         click.secho(format_string.format(*format_args, **columns_dict), fg=color)
+
+
+def newline_per_item(iterable, counter):
+    """
+    Adds a new line based on the index of a given iterable
+    Parameters
+    ----------
+    iterable: Any iterable that implements __len__
+    counter: Current index within the iterable
+
+    Returns
+    -------
+
+    """
+    if counter < len(iterable) - 1:
+        click.echo(message="", nl=True)
