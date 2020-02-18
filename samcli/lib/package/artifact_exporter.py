@@ -47,6 +47,7 @@ from samcli.commands._utils.resources import (
 
 from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
 from samcli.commands.package import exceptions
+from samcli.lib.utils.hash import dir_checksum
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
 
@@ -165,8 +166,8 @@ def resource_not_packageable(resource_dict):
 
 
 def zip_and_upload(local_path, uploader):
-    with zip_folder(local_path) as zip_file:
-        return uploader.upload_with_dedup(zip_file)
+    with zip_folder(local_path) as (zip_file, md5_hash):
+        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash)
 
 
 @contextmanager
@@ -178,11 +179,12 @@ def zip_folder(folder_path):
     :param folder_path:
     :return: Name of the zipfile
     """
-    filename = os.path.join(tempfile.gettempdir(), "data-" + uuid.uuid4().hex)
+    md5hash = dir_checksum(folder_path, followlinks=True)
+    filename = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
 
     zipfile_name = make_zip(filename, folder_path)
     try:
-        yield zipfile_name
+        yield zipfile_name, md5hash
     finally:
         if os.path.exists(zipfile_name):
             os.remove(zipfile_name)
