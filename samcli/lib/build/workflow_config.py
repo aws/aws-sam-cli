@@ -62,6 +62,13 @@ DOTNET_CLIPACKAGE_CONFIG = CONFIG(
                 manifest_name=".csproj",
                 executable_search_paths=None)
 
+GO_MOD_CONFIG = CONFIG(
+    language="go",
+    dependency_manager="modules",
+    application_framework=None,
+    manifest_name="go.mod",
+    executable_search_paths=None)
+
 
 class UnsupportedRuntimeException(Exception):
     pass
@@ -95,17 +102,26 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "python2.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.6": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "python3.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
+        "python3.8": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
         "nodejs4.3": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs6.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs8.10": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs10.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
+        "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnetcore2.0": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
+        "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
 
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
         "java8": ManifestWorkflowSelector([
+            # Gradle builder needs custom executable paths to find `gradlew` binary
+            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_MAVEN_CONFIG
+        ]),
+        "java11": ManifestWorkflowSelector([
             # Gradle builder needs custom executable paths to find `gradlew` binary
             JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
             JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
@@ -153,6 +169,9 @@ def supports_build_in_container(config):
         _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
                                         "Try building without the container. Most .NET Core functions will build "
                                         "successfully.",
+        _key(GO_MOD_CONFIG): "We do not support building Go Lambda functions within a container. "
+                                        "Try building without the container. Most Go functions will build "
+                                        "successfully.",
     }
 
     thiskey = _key(config)
@@ -162,7 +181,7 @@ def supports_build_in_container(config):
     return True, None
 
 
-class BasicWorkflowSelector(object):
+class BasicWorkflowSelector:
     """
     Basic workflow selector that returns the first available configuration in the given list of configurations
     """

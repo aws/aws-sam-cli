@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  QueueNameParameter:
+    Type: String
+Description: Periodically polls an SQS queue and asynchronously consumes each message.
+Resources:
+  sqspoller:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Periodically polls an SQS queue and asynchronously consumes each message.
+      Policies:
+      - Statement:
+        - Action:
+          - sqs:ChangeMessageVisibility
+          - sqs:ChangeMessageVisibilityBatch
+          - sqs:DeleteMessage
+          - sqs:DeleteMessageBatch
+          - sqs:GetQueueAttributes
+          - sqs:ReceiveMessage
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:${queueName}
+            - queueName:
+                Ref: QueueNameParameter
+          Effect: Allow
+      MemorySize: 128
+      Environment:
+        Variables:
+          queueUrl: <enter value here>
+      Handler: index.handler
+      Timeout: 10
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: c1574e73-6807-416d-8df0-4c96a2452ad2
+      Runtime: nodejs10.x
+Transform: AWS::Serverless-2016-10-31

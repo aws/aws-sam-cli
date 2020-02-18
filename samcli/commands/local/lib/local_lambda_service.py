@@ -8,16 +8,13 @@ from samcli.local.lambda_service.local_lambda_invoke_service import LocalLambdaI
 LOG = logging.getLogger(__name__)
 
 
-class LocalLambdaService(object):
+class LocalLambdaService:
     """
     Implementation of Local Lambda Invoke Service that is capable of serving the invoke path to your Lambda Functions
     that are defined in a SAM file.
     """
 
-    def __init__(self,
-                 lambda_invoke_context,
-                 port,
-                 host):
+    def __init__(self, lambda_invoke_context, port, host):
         """
         Initialize the Local Lambda Invoke service.
 
@@ -45,14 +42,15 @@ class LocalLambdaService(object):
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalLambdaInvokeService(lambda_runner=self.lambda_runner,
-                                           port=self.port,
-                                           host=self.host,
-                                           stderr=self.stderr_stream)
+        service = LocalLambdaInvokeService(
+            lambda_runner=self.lambda_runner, port=self.port, host=self.host, stderr=self.stderr_stream
+        )
 
         service.create()
 
-        LOG.info("Starting the Local Lambda Service. You can now invoke your Lambda Functions defined in your template"
-                 " through the endpoint.")
+        LOG.info(
+            "Starting the Local Lambda Service. You can now invoke your Lambda Functions defined in your template"
+            " through the endpoint."
+        )
 
         service.run()

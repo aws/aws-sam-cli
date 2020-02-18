@@ -5,6 +5,7 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 import errno
 import json
 import os
+from pathlib import Path
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -13,21 +14,13 @@ from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
-from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.template import get_template_data, TemplateNotFoundException, TemplateFailedParsingException
 from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from .user_exceptions import InvokeContextException, DebugContextException
-from ..lib.sam_function_provider import SamFunctionProvider
-
-# This is an attempt to do a controlled import. pathlib is in the
-# Python standard library starting at 3.4. This will import pathlib2,
-# which is a backport of the Python Standard Library pathlib
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
 
 
-class InvokeContext(object):
+class InvokeContext:
     """
     Sets up a context to invoke Lambda functions locally by parsing all command line arguments necessary for the
     invoke.
@@ -43,23 +36,24 @@ class InvokeContext(object):
     This class sets up some resources that need to be cleaned up after the context object is used.
     """
 
-    def __init__(self,  # pylint: disable=R0914
-                 template_file,
-                 function_identifier=None,
-                 env_vars_file=None,
-                 docker_volume_basedir=None,
-                 docker_network=None,
-                 log_file=None,
-                 skip_pull_image=None,
-                 debug_port=None,
-                 debug_args=None,
-                 debugger_path=None,
-                 parameter_overrides=None,
-                 layer_cache_basedir=None,
-                 force_image_build=None,
-                 aws_region=None,
-                 aws_profile=None,
-                 ):
+    def __init__(
+        self,  # pylint: disable=R0914
+        template_file,
+        function_identifier=None,
+        env_vars_file=None,
+        docker_volume_basedir=None,
+        docker_network=None,
+        log_file=None,
+        skip_pull_image=None,
+        debug_ports=None,
+        debug_args=None,
+        debugger_path=None,
+        parameter_overrides=None,
+        layer_cache_basedir=None,
+        force_image_build=None,
+        aws_region=None,
+        aws_profile=None,
+    ):
         """
         Initialize the context
 
@@ -82,8 +76,8 @@ class InvokeContext(object):
             Should we skip pulling the Docker container image?
         aws_profile str
             Name of the profile to fetch AWS credentials from
-        debug_port int
-            Port to bind the debugger to
+        debug_ports tuple(int)
+            Ports to bind the debugger to
         debug_args str
             Additional arguments passed to the debugger
         debugger_path str
@@ -104,7 +98,7 @@ class InvokeContext(object):
         self._docker_network = docker_network
         self._log_file = log_file
         self._skip_pull_image = skip_pull_image
-        self._debug_port = debug_port
+        self._debug_ports = debug_ports
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._parameter_overrides = parameter_overrides or {}
@@ -135,12 +129,9 @@ class InvokeContext(object):
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
 
-        self._debug_context = self._get_debug_context(self._debug_port,
-                                                      self._debug_args,
-                                                      self._debugger_path)
+        self._debug_context = self._get_debug_context(self._debug_ports, self._debug_args, self._debugger_path)
 
-        self._container_manager = self._get_container_manager(self._docker_network,
-                                                              self._skip_pull_image)
+        self._container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
 
         if not self._container_manager.is_docker_reachable:
             raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")
@@ -179,8 +170,10 @@ class InvokeContext(object):
         all_function_names = [f.name for f in all_functions]
 
         # There are more functions in the template, and function identifier is not provided, hence raise.
-        raise InvokeContextException("You must provide a function identifier (function's Logical ID in the template). "
-                                     "Possible options in your template: {}".format(all_function_names))
+        raise InvokeContextException(
+            "You must provide a function identifier (function's Logical ID in the template). "
+            "Possible options in your template: {}".format(all_function_names)
+        )
 
     @property
     def local_lambda_runner(self):
@@ -192,18 +185,18 @@ class InvokeContext(object):
         """
 
         layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
-        image_builder = LambdaImage(layer_downloader,
-                                    self._skip_pull_image,
-                                    self._force_image_build)
+        image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
 
         lambda_runtime = LambdaRuntime(self._container_manager, image_builder)
-        return LocalLambdaRunner(local_runtime=lambda_runtime,
-                                 function_provider=self._function_provider,
-                                 cwd=self.get_cwd(),
-                                 aws_profile=self._aws_profile,
-                                 aws_region=self._aws_region,
-                                 env_vars_values=self._env_vars_value,
-                                 debug_context=self._debug_context)
+        return LocalLambdaRunner(
+            local_runtime=lambda_runtime,
+            function_provider=self._function_provider,
+            cwd=self.get_cwd(),
+            aws_profile=self._aws_profile,
+            aws_region=self._aws_region,
+            env_vars_values=self._env_vars_value,
+            debug_context=self._debug_context,
+        )
 
     @property
     def stdout(self):
@@ -280,7 +273,7 @@ class InvokeContext(object):
 
         try:
             return get_template_data(template_file)
-        except ValueError as ex:
+        except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex))
 
     @staticmethod
@@ -299,13 +292,13 @@ class InvokeContext(object):
         # Try to read the file and parse it as JSON
         try:
 
-            with open(filename, 'r') as fp:
+            with open(filename, "r") as fp:
                 return json.load(fp)
 
         except Exception as ex:
-            raise InvokeContextException("Could not read environment variables overrides from file {}: {}".format(
-                                         filename,
-                                         str(ex)))
+            raise InvokeContextException(
+                "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
+            )
 
     @staticmethod
     def _setup_log_file(log_file):
@@ -318,17 +311,17 @@ class InvokeContext(object):
         if not log_file:
             return None
 
-        return open(log_file, 'wb')
+        return open(log_file, "wb")
 
     @staticmethod
-    def _get_debug_context(debug_port, debug_args, debugger_path):
+    def _get_debug_context(debug_ports, debug_args, debugger_path):
         """
         Creates a DebugContext if the InvokeContext is in a debugging mode
 
         Parameters
         ----------
-        debug_port int
-             Port to bind the debugger to
+        debug_ports tuple(int)
+             Ports to bind the debugger to
         debug_args str
             Additional arguments passed to the debugger
         debugger_path str
@@ -344,21 +337,20 @@ class InvokeContext(object):
         samcli.commands.local.cli_common.user_exceptions.DebugContext
             When the debugger_path is not valid
         """
-        if debug_port and debugger_path:
+        if debug_ports and debugger_path:
             try:
                 debugger = Path(debugger_path).resolve(strict=True)
             except OSError as error:
                 if error.errno == errno.ENOENT:
                     raise DebugContextException("'{}' could not be found.".format(debugger_path))
-                else:
-                    raise error
 
-            # We turn off pylint here due to https://github.com/PyCQA/pylint/issues/1660
-            if not debugger.is_dir():  # pylint: disable=no-member
+                raise error
+
+            if not debugger.is_dir():
                 raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
             debugger_path = str(debugger)
 
-        return DebugContext(debug_port=debug_port, debug_args=debug_args, debugger_path=debugger_path)
+        return DebugContext(debug_ports=debug_ports, debug_args=debug_args, debugger_path=debugger_path)
 
     @staticmethod
     def _get_container_manager(docker_network, skip_pull_image):

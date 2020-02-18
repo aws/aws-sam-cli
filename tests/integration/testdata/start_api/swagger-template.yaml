@@ -15,10 +15,10 @@ Resources:
       Variables:
         VarName: varValue
       Cors:
-        AllowOrigin: "*"
-        AllowMethods: "GET"
-        AllowHeaders: "origin, x-requested-with"
-        MaxAge: 510
+        AllowOrigin: "'*''"
+        AllowMethods: "'GET'"
+        AllowHeaders: "'origin, x-requested-with'"
+        MaxAge: "'510'"
       DefinitionBody:
         swagger: "2.0"
         info:
@@ -89,6 +89,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 600
       Events:
         GetApi:
           Type: Api
@@ -104,6 +105,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 600
 
   MyNonServerlessLambdaFunction:
     Type: AWS::Lambda::Function
@@ -111,6 +113,7 @@ Resources:
       Handler: main.handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 600
 
   Base64ResponseFunction:
     Type: AWS::Serverless::Function
@@ -118,6 +121,7 @@ Resources:
       Handler: main.base64_response
       Runtime: python3.6
       CodeUri: .
+      Timeout: 600
 
   EchoBase64EventBodyFunction:
     Type: AWS::Serverless::Function
@@ -125,6 +129,7 @@ Resources:
       Handler: main.echo_base64_event_body
       Runtime: python3.6
       CodeUri: .
+      Timeout: 600
 
   EchoEventHandlerFunction:
     Type:  AWS::Serverless::Function
@@ -132,6 +137,7 @@ Resources:
       Handler: main.echo_event_handler
       Runtime: python3.6
       CodeUri: .
+      Timeout: 600
       Events:
         GetApi:
           Type: Api

@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  StandardRedirectsForCloudFrontVersionOutput:
+    Description: The ARN of the function, including the version
+    Export:
+      Name: StandardRedirectsForCloudFrontARN
+    Value:
+      Ref: StandardRedirectsForCloudFront.Version
+Resources:
+  StandardRedirectsForCloudFront:
+    Properties:
+      AutoPublishAlias: CurrentProd
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 1a045fd4-f7d8-43e4-a7e6-8d98fa0555ba
+      Description: Standard Redirects for CloudFront by Digital Sailors via the Serverless Application Repository.
+      Handler: index.handler
+      MemorySize: 128
+      Runtime: nodejs10.x
+      Timeout: 3
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31

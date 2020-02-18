@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  Name: alexa-skills-kit-nodejs-howtoskill
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  alexaskillskithowtoskill:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Description: Demonstrate a basic howto skill built with the ASK NodeJS SDK
+      Timeout: 7
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 5eb72e41-efab-405a-a429-ac765d3c08ca
+      Runtime: nodejs10.x
+      MemorySize: 128
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill
+Description: Demonstrate a basic how-to skill built with the ASK NodeJS SDK

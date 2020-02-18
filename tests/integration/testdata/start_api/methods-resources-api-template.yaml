@@ -6,27 +6,30 @@ Resources:
       Code: "."
       Handler: main.base64_response
       Runtime: python3.6
+      Timeout: 600
     Type: AWS::Lambda::Function
   EchoBase64EventBodyFunction:
     Properties:
       Code: "."
       Handler: main.echo_base64_event_body
       Runtime: python3.6
+      Timeout: 600
     Type: AWS::Lambda::Function
 
   Dev:
     Type: AWS::ApiGateway::Stage
     Properties:
       StageName: Dev
-      RestApiId: TestApi
+      RestApiId: !Ref TestApi
       Variables:
-      Stack: Dev
+        Stack: Dev
 
   MyNonServerlessLambdaFunction:
     Properties:
       Code: "."
       Handler: main.handler
       Runtime: python3.6
+      Timeout: 600
     Type: AWS::Lambda::Function
 
   TestApi:

@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless web application for uploading files to S3
+Globals:
+  Api:
+    BinaryMediaTypes:
+    - '*~1*'
+Resources:
+  uploader:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Serverless web application for uploading files to S3
+      Handler: src/index.handler
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 63450f0c-68e6-4fe5-98e4-ca1adde7512c
+      MemorySize: 1536
+      Policies:
+      - S3CrudPolicy:
+          BucketName:
+            Ref: destBucket
+      Timeout: 60
+      Events:
+        root:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+        getProxy:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: get
+        postProxy:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: post
+      Environment:
+        Variables:
+          DEST_BUCKET:
+            Ref: destBucket
+Parameters:
+  destBucket:
+    Type: String
+    Description: Name of the S3 Bucket to put uploaded files into (must exist prior to deployment)

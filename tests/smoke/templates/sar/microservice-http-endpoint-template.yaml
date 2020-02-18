@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A simple backend (read/write to DynamoDB) with a RESTful API endpoint using Amazon API Gateway.
+Parameters:
+  TableNameParameter:
+    Type: String
+Resources:
+  microservicehttpendpoint:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: d8f1a87b-7933-44b9-93f7-3afc739b616d
+      Description: A simple backend (read/write to DynamoDB) with a RESTful API endpoint using Amazon API Gateway.
+      MemorySize: 512
+      Timeout: 10
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: TableNameParameter
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /MyResource
+            Method: ANY

@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: headless chromium running selenium
+Resources:
+  Lambdium:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: headless chromium running selenium
+      MemorySize: 1156
+      Environment:
+        Variables:
+          CLEAR_TMP: 'true'
+      Handler: index.handler
+      Timeout: 20
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 9d35d21b-e9f4-4e59-8650-a2f9db304462
+      Runtime: nodejs10.x
+      FunctionName: lambdium
+Transform: AWS::Serverless-2016-10-31

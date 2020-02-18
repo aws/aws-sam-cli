@@ -1,0 +1,108 @@
+Parameters:
+  CorsOrigin:
+    Default: ''
+    Type: String
+    Description: (Optional) Cross-origin resource sharing (CORS) Origin. You can specify a single origin, all "*" or leave empty and no CORS will be applied.
+    MaxLength: 250
+  TableName:
+    AllowedPattern: ^[A-Za-z_]+$
+    Type: String
+    Description: (Required) The name of the existing DynamoDB table you want to get one record from. Minimum 3 characters.
+    MaxLength: 50
+    MinLength: 3
+    ConstraintDescription: Required. Can be characters and underscore only. No numbers or special characters allowed.
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  DynamoDBTableName:
+    Description: The name of the DynamoDB Table
+    Value:
+      Ref: TableName
+  ApiUrl:
+    Description: The URL of the API Gateway you invoke with a GET request to retrieve all of your items in the DynamoDB Table. Don't forget to change the some-id to an id in your database.
+    Value:
+      Fn::Sub: https://${GetOneApi}.execute-api.${AWS::Region}.amazonaws.com/prod/${TableName}/some-id
+Conditions:
+  IsCorsDefined:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: CorsOrigin
+      - ''
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  GetOneApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      DefinitionBody:
+        info:
+          title:
+            Ref: AWS::StackName
+        paths:
+          /{items}/{id}:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetOneLambda.Arn}/invocations
+              responses: {}
+              parameters:
+              - required: true
+                type: string
+                name: items
+                in: path
+              - required: true
+                type: string
+                name: id
+                in: path
+        swagger: 2.0
+      StageName: prod
+  GetOneLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          IS_CORS: IsCorsDefined
+          TABLE_NAME:
+            Ref: TableName
+          PRIMARY_KEY:
+            Fn::Sub: ${TableName}Id
+          CORS_ORIGIN:
+            Ref: CorsOrigin
+      Handler: index.handler
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          - dynamodb:DescribeTable
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: TableName
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 6353ff98-b2cd-44af-8ef5-c6e0383e464b
+      Runtime: nodejs10.x
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /{items}/{id}
+            RestApiId:
+              Ref: GetOneApi
+            Method: GET
+        OptionsApi:
+          Type: Api
+          Properties:
+            Path: /{items}/{id}
+            RestApiId:
+              Ref: GetOneApi
+            Method: OPTIONS

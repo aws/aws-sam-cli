@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Blueprint for returning HTTP redirect implemented in NodeJS.
+Parameters:
+  KeyIdParameter:
+    Type: String
+Resources:
+  cloudfronthttpredirect:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: f5f8769e-fdae-4778-a078-828efebe97c1
+      Description: Blueprint for returning HTTP redirect implemented in NodeJS.
+      MemorySize: 128
+      Timeout: 1
+      Policies:
+      - KMSDecryptPolicy:
+          KeyId:
+            Ref: KeyIdParameter

@@ -31,8 +31,7 @@ APIGW_TO_FLASK_REGEX = re.compile(PROXY_PATH_PARAMS_ESCAPED)
 FLASK_TO_APIGW_REGEX = re.compile(FLASK_CAPTURE_ALL_PATH_REGEX)
 
 
-class PathConverter(object):
-
+class PathConverter:
     @staticmethod
     def convert_path_to_flask(path):
         """

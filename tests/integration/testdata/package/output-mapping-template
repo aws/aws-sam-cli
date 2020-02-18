@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "PhotosOutputModel",
+  "type": "object",
+  "properties": {
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "owner": { "type": "string" },
+          "title": { "type": "string" },
+          "ispublic": { "type": "integer" },
+          "isfriend": { "type": "integer" },
+          "isfamily": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

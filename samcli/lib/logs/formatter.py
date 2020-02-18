@@ -15,7 +15,7 @@ except ImportError:
     from builtins import map as imap
 
 
-class LogsFormatter(object):
+class LogsFormatter:
     """
     Formats log messages returned by CloudWatch Logs service.
     """
@@ -118,10 +118,10 @@ class LogsFormatter(object):
         event.timestamp = colored.yellow(event.timestamp)
         event.log_stream_name = colored.cyan(event.log_stream_name)
 
-        return ' '.join([event.log_stream_name, event.timestamp, event.message])
+        return " ".join([event.log_stream_name, event.timestamp, event.message])
 
 
-class LambdaLogMsgFormatters(object):
+class LambdaLogMsgFormatters:
     """
     Format logs printed by AWS Lambda functions.
 
@@ -139,14 +139,13 @@ class LambdaLogMsgFormatters(object):
         nodejs_crash_msg = "Process exited before completing request"
         timeout_msg = "Task timed out"
 
-        if nodejs_crash_msg in event.message \
-                or timeout_msg in event.message:
+        if nodejs_crash_msg in event.message or timeout_msg in event.message:
             event.message = colored.red(event.message)
 
         return event
 
 
-class KeywordHighlighter(object):
+class KeywordHighlighter:
     """
     Highlight certain keywords in the log line
     """
@@ -165,7 +164,7 @@ class KeywordHighlighter(object):
         return event
 
 
-class JSONMsgFormatter(object):
+class JSONMsgFormatter:
     """
     Pretty print JSONs within a message
     """

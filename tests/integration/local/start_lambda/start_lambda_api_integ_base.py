@@ -5,10 +5,7 @@ import time
 import os
 import random
 
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class StartLambdaIntegBaseClass(TestCase):
@@ -33,8 +30,8 @@ class StartLambdaIntegBaseClass(TestCase):
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
 
-        cls.start_lambda_process = \
-            Popen([command, "local", "start-lambda", "-t", cls.template, "-p", cls.port, "--debug"])
+        cls.start_lambda_process = Popen([command, "local", "start-lambda", "-t", cls.template, "-p", cls.port])
+
         # we need to wait some time for start-lambda to start, hence the sleep
         time.sleep(5)
 

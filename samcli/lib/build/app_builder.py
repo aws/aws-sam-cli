@@ -6,19 +6,15 @@ import os
 import io
 import json
 import logging
-
-try:
-    import pathlib
-except ImportError:
-    import pathlib2 as pathlib
+import pathlib
 
 import docker
-
-import samcli.lib.utils.osutils as osutils
-from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
+
+import samcli.lib.utils.osutils as osutils
+from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, supports_build_in_container
 
 
@@ -41,7 +37,7 @@ class BuildError(Exception):
     pass
 
 
-class ApplicationBuilder(object):
+class ApplicationBuilder:
     """
     Class to build an entire application. Currently, this class builds Lambda functions only, but there is nothing that
     is stopping this class from supporting other resource types. Building in context of Lambda functions refer to
@@ -105,7 +101,8 @@ class ApplicationBuilder(object):
             LOG.info("Building resource '%s'", lambda_function.name)
             result[lambda_function.name] = self._build_function(lambda_function.name,
                                                                 lambda_function.codeuri,
-                                                                lambda_function.runtime)
+                                                                lambda_function.runtime,
+                                                                lambda_function.handler)
 
         return result
 
@@ -137,7 +134,7 @@ class ApplicationBuilder(object):
                 # this resource was not built. So skip it
                 continue
 
-            # Artifacts are written relative to the template because it makes the template portable
+            # Artifacts are wrtoitten relative  the template because it makes the template portable
             #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
             #   package stage running on a different machine
             artifact_relative_path = os.path.relpath(built_artifacts[logical_id], original_dir)
@@ -152,7 +149,7 @@ class ApplicationBuilder(object):
 
         return template_dict
 
-    def _build_function(self, function_name, codeuri, runtime):
+    def _build_function(self, function_name, codeuri, runtime, handler):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
@@ -191,12 +188,31 @@ class ApplicationBuilder(object):
             if self._container_manager:
                 build_method = self._build_function_on_container
 
+            options = ApplicationBuilder._get_build_options(config.language, handler)
+
             return build_method(config,
                                 code_dir,
                                 artifacts_dir,
                                 scratch_dir,
                                 manifest_path,
-                                runtime)
+                                runtime,
+                                options)
+
+    @staticmethod
+    def _get_build_options(language, handler):
+        """
+        Parameters
+        ----------
+        language str
+            Language of the runtime
+        handler str
+            Handler value of the Lambda Function Resource
+        Returns
+        -------
+        dict
+            Dictionary that represents the options to pass to the builder workflow or None if options are not needed
+        """
+        return {'artifact_executable_name': handler} if language == 'go' else None
 
     def _build_function_in_process(self,
                                    config,
@@ -204,7 +220,8 @@ class ApplicationBuilder(object):
                                    artifacts_dir,
                                    scratch_dir,
                                    manifest_path,
-                                   runtime):
+                                   runtime,
+                                   options):
 
         builder = LambdaBuilder(language=config.language,
                                 dependency_manager=config.dependency_manager,
@@ -217,7 +234,8 @@ class ApplicationBuilder(object):
                           manifest_path,
                           runtime=runtime,
                           executable_search_paths=config.executable_search_paths,
-                          mode=self._mode)
+                          mode=self._mode,
+                          options=options)
         except LambdaBuilderError as ex:
             raise BuildError(str(ex))
 
@@ -229,7 +247,8 @@ class ApplicationBuilder(object):
                                      artifacts_dir,
                                      scratch_dir,
                                      manifest_path,
-                                     runtime):
+                                     runtime,
+                                     options):
 
         if not self._container_manager.is_docker_reachable:
             raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
@@ -250,7 +269,7 @@ class ApplicationBuilder(object):
                                          runtime,
                                          log_level=log_level,
                                          optimizations=None,
-                                         options=None,
+                                         options=options,
                                          executable_search_paths=config.executable_search_paths,
                                          mode=self._mode)
 
@@ -322,8 +341,7 @@ class ApplicationBuilder(object):
                 LOG.debug("Builder library does not support the supplied method")
                 raise UnsupportedBuilderLibraryVersionError(image_name, msg)
 
-            else:
-                LOG.debug("Builder crashed")
-                raise ValueError(msg)
+            LOG.debug("Builder crashed")
+            raise ValueError(msg)
 
         return response

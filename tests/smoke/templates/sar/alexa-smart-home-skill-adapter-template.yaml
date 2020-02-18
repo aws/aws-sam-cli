@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  TopicNameParameter:
+    Type: String
+Description: Provides the basic framework for a skill adapter for a smart home skill.
+Resources:
+  alexasmarthomeskilladapter:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - sns:Publish
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${topicName}
+            - topicName:
+                Ref: TopicNameParameter
+          Effect: Allow
+      Handler: index.handler
+      Description: Provides the basic framework for a skill adapter for a smart home skill.
+      Timeout: 7
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 2c1547a5-be00-41e2-aec5-5bbcccb28ce5
+      Runtime: nodejs10.x
+      MemorySize: 128
+Transform: AWS::Serverless-2016-10-31

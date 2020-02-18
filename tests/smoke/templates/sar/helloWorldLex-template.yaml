@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 1831d44b-8ccb-4610-b4f2-1ee88282bb42
+      Handler: lambda.handler
+      Runtime: nodejs10.x
+Description: A hello world application for a Lex based chatbot

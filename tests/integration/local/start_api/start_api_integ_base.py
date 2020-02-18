@@ -4,11 +4,7 @@ from subprocess import Popen
 import time
 import os
 import random
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 
 class StartApiIntegBaseClass(TestCase):
@@ -37,7 +33,7 @@ class StartApiIntegBaseClass(TestCase):
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
 
-        cls.start_api_process = Popen([command, "local", "start-api", "-t", cls.template, "-p", cls.port, "--debug"])
+        cls.start_api_process = Popen([command, "local", "start-api", "-t", cls.template, "-p", cls.port])
         # we need to wait some time for start-api to start, hence the sleep
         time.sleep(5)
 

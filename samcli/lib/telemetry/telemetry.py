@@ -17,8 +17,7 @@ from samcli.settings import telemetry_endpoint_url as DEFAULT_ENDPOINT_URL
 LOG = logging.getLogger(__name__)
 
 
-class Telemetry(object):
-
+class Telemetry:
     def __init__(self, url=None):
         """
         Initialize the Telemetry object.
@@ -80,9 +79,10 @@ class Telemetry(object):
 
         timeout_ms = 2000 if wait_for_response else 100  # 2 seconds to wait for response or 100ms
 
-        timeout = (2,  # connection timeout. Always set to 2 seconds
-                   timeout_ms / 1000.0  # Read timeout. Tweaked based on input.
-                   )
+        timeout = (
+            2,  # connection timeout. Always set to 2 seconds
+            timeout_ms / 1000.0,  # Read timeout. Tweaked based on input.
+        )
         try:
             r = requests.post(self._url, json=payload, timeout=timeout)
             LOG.debug("Telemetry response: %d", r.status_code)
@@ -108,6 +108,8 @@ class Telemetry(object):
         ctx = Context.get_current_context()
         if ctx:
             return ctx.session_id
+
+        return None
 
     def _get_execution_environment(self):
         """

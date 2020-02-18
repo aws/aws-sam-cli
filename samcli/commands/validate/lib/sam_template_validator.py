@@ -3,19 +3,18 @@ Library for Validating Sam Templates
 """
 import logging
 import functools
+
 from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
-from samcli.yamlhelper import yaml_dump
-import six
 
+from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
 LOG = logging.getLogger(__name__)
 
 
-class SamTemplateValidator(object):
-
+class SamTemplateValidator:
     def __init__(self, sam_template, managed_policy_loader):
         """
         Construct a SamTemplateValidator
@@ -53,19 +52,17 @@ class SamTemplateValidator(object):
         """
         managed_policy_map = self.managed_policy_loader.load()
 
-        sam_translator = Translator(managed_policy_map=managed_policy_map,
-                                    sam_parser=self.sam_parser,
-                                    plugins=[])
+        sam_translator = Translator(managed_policy_map=managed_policy_map, sam_parser=self.sam_parser, plugins=[])
 
         self._replace_local_codeuri()
 
         try:
-            template = sam_translator.translate(sam_template=self.sam_template,
-                                                parameter_values={})
+            template = sam_translator.translate(sam_template=self.sam_template, parameter_values={})
             LOG.debug("Translated template is:\n%s", yaml_dump(template))
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
-                functools.reduce(lambda message, error: message + ' ' + str(error), e.causes, str(e)))
+                functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
+            )
 
     def _replace_local_codeuri(self):
         """
@@ -116,7 +113,7 @@ class SamTemplateValidator(object):
             Returns True if the uri given is an S3 uri, otherwise False
 
         """
-        return isinstance(uri, six.string_types) and uri.startswith("s3://")
+        return isinstance(uri, str) and uri.startswith("s3://")
 
     @staticmethod
     def _update_to_s3_uri(property_key, resource_property_dict, s3_uri_value="s3://bucket/value"):

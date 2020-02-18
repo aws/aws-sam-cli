@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  TopicNameParameter:
+    Type: String
+Description: Blueprint for API Gateway custom authorizers, implemented in NodeJS.
+Resources:
+  apigatewayauthorizernodejs:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - sns:Publish
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${topicName}
+            - topicName:
+                Ref: TopicNameParameter
+          Effect: Allow
+      Handler: index.handler
+      Description: Blueprint for API Gateway custom authorizers, implemented in NodeJS.
+      Timeout: 5
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: e52b633b-f6c5-481b-acbc-b0d94aac32cb
+      Runtime: nodejs10.x
+      MemorySize: 256
+Transform: AWS::Serverless-2016-10-31

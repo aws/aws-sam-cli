@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  LambdaWebPageApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: lambda-web-page
+      StageName: prod
+      DefinitionBody:
+        info:
+          title:
+            Ref: AWS::StackName
+        paths:
+          /:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaWebPageLambdaFunction.Arn}/invocations
+              responses: {}
+        swagger: 2.0
+  LambdaWebPageLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: lambda-web-page
+      MemorySize: 128
+      Handler: index.handler
+      Timeout: 30
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 54b95c42-b951-409a-aaab-1cf9576f207e
+      Runtime: nodejs10.x
+      Events:
+        GetApi:
+          Type: Api
+          Properties:
+            Path: /
+            RestApiId:
+              Ref: LambdaWebPageApi
+            Method: GET
+      Description: API Endpoint connected to lambda function, returns HTML.
+Description: Set up API Gateway endpoint connected to Lambda function that returns HTML

@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  HereApiURL:
+    Description: AWS API Gateway URL for HERE GeoCode & GeoCode Suggest (aka autocomplete) API.
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+Parameters:
+  HereAppCode:
+    Description: HERE Location Services API App Code (https://saas.awsmarketplace.here.com/faq#api-access)
+    Type: String
+  HereAppId:
+    Description: HERE Location Services API App ID (https://saas.awsmarketplace.here.com/faq#api-access)
+    Type: String
+Resources:
+  GeocodeFunction:
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: d2f9f2b6-52fe-405f-810f-d721817dd5a0
+      Description: A Lambda function that converts street addresses to geo-coordinates and vice-versa with geocoding, including landmarks, and reverse geocoding using HERE Location Services.
+      Environment:
+        Variables:
+          HERE_APP_CODE:
+            Ref: HereAppCode
+          HERE_APP_ID:
+            Ref: HereAppId
+      Events:
+        GET:
+          Properties:
+            Method: get
+            Path: /geocode/{searchtext}
+          Type: Api
+      Handler: geocode.geocodeGET
+      Runtime: nodejs10.x
+    Type: AWS::Serverless::Function
+  GeocodeSuggestFunction:
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: d2f9f2b6-52fe-405f-810f-d721817dd5a0
+      Description: Correct misspellings and get better suggestions for your address search with fewer keystrokes.
+      Environment:
+        Variables:
+          HERE_APP_CODE:
+            Ref: HereAppCode
+          HERE_APP_ID:
+            Ref: HereAppId
+      Events:
+        GET:
+          Properties:
+            Method: get
+            Path: /geocodesuggest/{query}
+          Type: Api
+      Handler: geocodesuggest.geocodesuggestGET
+      Runtime: nodejs10.x
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31

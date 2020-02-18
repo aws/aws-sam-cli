@@ -3,11 +3,14 @@ Generates the services and commands for selection in SAM CLI generate-event
 """
 
 import functools
+
 import click
 
+import samcli.lib.generated_sample_events.events as events
+from samcli.cli.cli_config_file import TomlProvider, get_ctx_defaults
 from samcli.cli.options import debug_option
-import samcli.commands.local.lib.generated_sample_events.events as events
 from samcli.lib.telemetry.metrics import track_command
+import samcli.lib.config.samconfig as samconfig
 
 
 class ServiceCommand(click.MultiCommand):
@@ -92,7 +95,7 @@ class EventTypeSubCommand(click.MultiCommand):
         List all of the subcommands
     """
 
-    TAGS = 'tags'
+    TAGS = "tags"
 
     def __init__(self, events_lib, top_level_cmd_name, subcmd_definition, *args, **kwargs):
         """
@@ -139,20 +142,32 @@ class EventTypeSubCommand(click.MultiCommand):
         parameters = []
         for param_name in self.subcmd_definition[cmd_name][self.TAGS].keys():
             default = self.subcmd_definition[cmd_name][self.TAGS][param_name]["default"]
-            parameters.append(click.Option(
-                ["--{}".format(param_name)],
-                default=default,
-                help="Specify the {} name you'd like, otherwise the default = {}".format(param_name, default)
-            ))
+            parameters.append(
+                click.Option(
+                    ["--{}".format(param_name)],
+                    default=default,
+                    help="Specify the {} name you'd like, otherwise the default = {}".format(param_name, default),
+                )
+            )
 
-        command_callback = functools.partial(self.cmd_implementation,
-                                             self.events_lib,
-                                             self.top_level_cmd_name,
-                                             cmd_name)
-        cmd = click.Command(name=cmd_name,
-                            short_help=self.subcmd_definition[cmd_name]["help"],
-                            params=parameters,
-                            callback=command_callback)
+        command_callback = functools.partial(
+            self.cmd_implementation, self.events_lib, self.top_level_cmd_name, cmd_name
+        )
+
+        config = get_ctx_defaults(
+            cmd_name=cmd_name,
+            provider=TomlProvider(section="parameters"),
+            ctx=ctx,
+            config_env_name=samconfig.DEFAULT_ENV,
+        )
+
+        cmd = click.Command(
+            name=cmd_name,
+            short_help=self.subcmd_definition[cmd_name]["help"],
+            context_settings={"default_map": config},
+            params=parameters,
+            callback=command_callback,
+        )
 
         cmd = debug_option(cmd)
         return cmd

@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A starter AWS Lambda function.
+Parameters:
+  IdentityNameParameter:
+    Type: String
+Resources:
+  helloworld:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: e492b2b5-8e5b-499e-9e60-6d6dbb9acd65
+      Description: A starter AWS Lambda function.
+      MemorySize: 128
+      Timeout: 3
+      Policies:
+      - SESSendBouncePolicy:
+          IdentityName:
+            Ref: IdentityNameParameter

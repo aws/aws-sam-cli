@@ -12,11 +12,7 @@ from flask import Flask, request, Response
 from threading import Thread
 from collections import deque
 from unittest import TestCase
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
+from pathlib import Path
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.cli.main import TELEMETRY_PROMPT
@@ -28,11 +24,10 @@ TELEMETRY_ENDPOINT_HOST = "localhost"
 TELEMETRY_ENDPOINT_URL = "http://{}:{}".format(TELEMETRY_ENDPOINT_HOST, TELEMETRY_ENDPOINT_PORT)
 
 # Convert line separators to work with Windows \r\n
-EXPECTED_TELEMETRY_PROMPT = re.sub(r'\n', os.linesep, TELEMETRY_PROMPT)
+EXPECTED_TELEMETRY_PROMPT = re.sub(r"\n", os.linesep, TELEMETRY_PROMPT)
 
 
 class IntegBase(TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.cmd = cls.base_command()
@@ -69,8 +64,9 @@ class IntegBase(TestCase):
         env["__SAM_CLI_APP_DIR"] = self.config_dir
         env["__SAM_CLI_TELEMETRY_ENDPOINT_URL"] = "{}/metrics".format(TELEMETRY_ENDPOINT_URL)
 
-        process = subprocess.Popen(cmd_list, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   env=env)
+        process = subprocess.Popen(
+            cmd_list, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env
+        )
         return process
 
     def unset_config(self):
@@ -134,16 +130,17 @@ class TelemetryServer(Thread):
 
         self.flask_app = Flask(__name__)
 
-        self.flask_app.add_url_rule("/metrics",
-                                    endpoint="/metrics",
-                                    view_func=self._request_handler,
-                                    methods=["POST"],
-                                    provide_automatic_options=False)
+        self.flask_app.add_url_rule(
+            "/metrics",
+            endpoint="/metrics",
+            view_func=self._request_handler,
+            methods=["POST"],
+            provide_automatic_options=False,
+        )
 
-        self.flask_app.add_url_rule("/_shutdown",
-                                    endpoint="/_shutdown",
-                                    view_func=self._shutdown_flask,
-                                    methods=["GET"])
+        self.flask_app.add_url_rule(
+            "/_shutdown", endpoint="/_shutdown", view_func=self._shutdown_flask, methods=["GET"]
+        )
 
         # Thread-safe data structure to record requests sent to the server
         self._requests = deque()
@@ -185,7 +182,7 @@ class TelemetryServer(Thread):
             "endpoint": request.endpoint,
             "method": request.method,
             "data": request.get_json(),
-            "headers": dict(request.headers)
+            "headers": dict(request.headers),
         }
 
         self._requests.append(request_data)
@@ -194,6 +191,6 @@ class TelemetryServer(Thread):
 
     def _shutdown_flask(self):
         # Based on http://flask.pocoo.org/snippets/67/
-        request.environ.get('werkzeug.server.shutdown')()
-        print('Server shutting down...')
-        return ''
+        request.environ.get("werkzeug.server.shutdown")()
+        print("Server shutting down...")
+        return ""

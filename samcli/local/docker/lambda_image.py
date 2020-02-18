@@ -1,20 +1,16 @@
 """
 Generates a Docker Image to be used for invoking a function locally
 """
-from enum import Enum
 import uuid
 import logging
 import hashlib
+from enum import Enum
+from pathlib import Path
 
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
 from samcli.lib.utils.tar import create_tarball
-
-try:
-    from pathlib import Path
-except ImportError:
-    from pathlib2 import Path
 
 
 LOG = logging.getLogger(__name__)
@@ -26,11 +22,14 @@ class Runtime(Enum):
     nodejs610 = "nodejs6.10"
     nodejs810 = "nodejs8.10"
     nodejs10x = "nodejs10.x"
+    nodejs12x = "nodejs12.x"
     python27 = "python2.7"
     python36 = "python3.6"
     python37 = "python3.7"
+    python38 = "python3.8"
     ruby25 = "ruby2.5"
     java8 = "java8"
+    java11 = "java11"
     go1x = "go1.x"
     dotnetcore20 = "dotnetcore2.0"
     dotnetcore21 = "dotnetcore2.1"
@@ -47,7 +46,7 @@ class Runtime(Enum):
         return any(value == item.value for item in cls)
 
 
-class LambdaImage(object):
+class LambdaImage:
     _LAYERS_DIR = "/opt"
     _DOCKER_LAMBDA_REPO_NAME = "lambci/lambda"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
@@ -107,9 +106,11 @@ class LambdaImage(object):
             LOG.info("Image was not found.")
             image_not_found = True
 
-        if self.force_image_build or \
-                image_not_found or \
-                any(layer.is_defined_within_template for layer in downloaded_layers):
+        if (
+            self.force_image_build
+            or image_not_found
+            or any(layer.is_defined_within_template for layer in downloaded_layers)
+        ):
             LOG.info("Building image...")
             self._build_image(base_image, image_tag, downloaded_layers)
 
@@ -139,8 +140,9 @@ class LambdaImage(object):
         # specified in the template. This will allow reuse of the runtime and layers across different
         # functions that are defined. If two functions use the same runtime with the same layers (in the
         # same order), SAM CLI will only produce one image and use this image across both functions for invoke.
-        return runtime + '-' + hashlib.sha256(
-            "-".join([layer.name for layer in layers]).encode('utf-8')).hexdigest()[0:25]
+        return (
+            runtime + "-" + hashlib.sha256("-".join([layer.name for layer in layers]).encode("utf-8")).hexdigest()[0:25]
+        )
 
     def _build_image(self, base_image, docker_tag, layers):
         """
@@ -176,15 +178,13 @@ class LambdaImage(object):
 
             tar_paths = {str(full_dockerfile_path): "Dockerfile"}
             for layer in layers:
-                tar_paths[layer.codeuri] = '/' + layer.name
+                tar_paths[layer.codeuri] = "/" + layer.name
 
             with create_tarball(tar_paths) as tarballfile:
                 try:
-                    self.docker_client.images.build(fileobj=tarballfile,
-                                                    custom_context=True,
-                                                    rm=True,
-                                                    tag=docker_tag,
-                                                    pull=not self.skip_pull_image)
+                    self.docker_client.images.build(
+                        fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
+                    )
                 except (docker.errors.BuildError, docker.errors.APIError):
                     LOG.exception("Failed to build Docker Image")
                     raise ImageBuildException("Building Image failed.")
@@ -221,6 +221,7 @@ class LambdaImage(object):
         dockerfile_content = "FROM {}\n".format(base_image)
 
         for layer in layers:
-            dockerfile_content = dockerfile_content + \
-                                 "ADD --chown=sbx_user1051:495 {} {}\n".format(layer.name, LambdaImage._LAYERS_DIR)
+            dockerfile_content = dockerfile_content + "ADD --chown=sbx_user1051:495 {} {}\n".format(
+                layer.name, LambdaImage._LAYERS_DIR
+            )
         return dockerfile_content

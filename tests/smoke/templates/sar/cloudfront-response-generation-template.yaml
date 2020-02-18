@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Blueprint for generating a response from viewer-request trigger implemented in NodeJS.
+Parameters:
+  KeyIdParameter:
+    Type: String
+Resources:
+  cloudfrontresponsegeneration:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: d4b73f19-7bd5-47a3-aa66-be568b0ea9e1
+      Description: Blueprint for generating a response from viewer-request trigger implemented in NodeJS.
+      MemorySize: 128
+      Timeout: 1
+      Policies:
+      - KMSDecryptPolicy:
+          KeyId:
+            Ref: KeyIdParameter

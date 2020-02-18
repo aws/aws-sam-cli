@@ -1,11 +1,11 @@
 """
 Lambda Function configuration data required by the runtime
 """
-
+from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 from .env_vars import EnvironmentVariables
 
 
-class FunctionConfig(object):
+class FunctionConfig:
     """
     Data class to store function configuration. This class is a flavor of function configuration passed to
     AWS Lambda APIs on the cloud. It is limited to properties that make sense in a local testing environment.
@@ -14,15 +14,7 @@ class FunctionConfig(object):
     _DEFAULT_TIMEOUT_SECONDS = 3
     _DEFAULT_MEMORY = 128
 
-    def __init__(self,
-                 name,
-                 runtime,
-                 handler,
-                 code_abs_path,
-                 layers,
-                 memory=None,
-                 timeout=None,
-                 env_vars=None):
+    def __init__(self, name, runtime, handler, code_abs_path, layers, memory=None, timeout=None, env_vars=None):
         """
         Initialize the class.
 
@@ -52,7 +44,15 @@ class FunctionConfig(object):
         self.code_abs_path = code_abs_path
         self.layers = layers
         self.memory = memory or self._DEFAULT_MEMORY
+
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
+
+        if not isinstance(self.timeout, int):
+            try:
+                self.timeout = int(self.timeout)
+
+            except (ValueError, TypeError):
+                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout))
 
         if not env_vars:
             env_vars = EnvironmentVariables(self.memory, self.timeout, self.handler)

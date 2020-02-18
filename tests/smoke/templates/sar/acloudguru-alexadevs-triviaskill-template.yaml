@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  acloudgurualexa:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: f8b0837c-e68a-41d5-ab0a-13b1071b7c56
+      Handler: index.handler
+      Description: Demonstrate a basic trivia skill built with the ASK NodeJS SDK
+      Runtime: nodejs10.x
+      Events:
+        AlexaSkillEvent:
+          Type: AlexaSkill

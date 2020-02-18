@@ -2,13 +2,19 @@
 Context information passed to each CLI command
 """
 
-import uuid
 import logging
+import uuid
+
 import boto3
+import botocore
+import botocore.session
+from botocore import credentials
 import click
 
+from samcli.commands.exceptions import CredentialsError
 
-class Context(object):
+
+class Context:
     """
     Top level context object for the CLI. Exposes common functionality required by a CLI, including logging,
     environment config parsing, debug logging etc.
@@ -45,8 +51,8 @@ class Context(object):
 
         if self._debug:
             # Turn on debug logging
-            logging.getLogger('samcli').setLevel(logging.DEBUG)
-            logging.getLogger('aws_lambda_builders').setLevel(logging.DEBUG)
+            logging.getLogger("samcli").setLevel(logging.DEBUG)
+            logging.getLogger("aws_lambda_builders").setLevel(logging.DEBUG)
 
     @property
     def region(self):
@@ -98,6 +104,8 @@ class Context(object):
         if click_core_ctx:
             return click_core_ctx.command_path
 
+        return None
+
     @staticmethod
     def get_current_context():
         """
@@ -129,11 +137,62 @@ class Context(object):
         if click_core_ctx:
             return click_core_ctx.find_object(Context) or click_core_ctx.ensure_object(Context)
 
+        return None
+
     def _refresh_session(self):
         """
         Update boto3's default session by creating a new session based on values set in the context. Some properties of
         the Boto3's session object are read-only. Therefore when Click parses new AWS session related properties (like
         region & profile), it will call this method to create a new session with latest values for these properties.
         """
-        boto3.setup_default_session(region_name=self._aws_region,
-                                    profile_name=self._aws_profile)
+        try:
+            botocore_session = botocore.session.get_session()
+            boto3.setup_default_session(
+                botocore_session=botocore_session, region_name=self._aws_region, profile_name=self._aws_profile
+            )
+            # get botocore session and setup caching for MFA based credentials
+            botocore_session.get_component("credential_provider").get_provider(
+                "assume-role"
+            ).cache = credentials.JSONFileCache()
+
+        except botocore.exceptions.ProfileNotFound as ex:
+            raise CredentialsError(str(ex))
+
+
+def get_cmd_names(cmd_name, ctx):
+    """
+    Given the click core context, return a list representing all the subcommands passed to the CLI
+
+    Parameters
+    ----------
+    cmd_name : name of current command
+
+    ctx : click.Context
+
+    Returns
+    -------
+    list(str)
+        List containing subcommand names. Ex: ["local", "start-api"]
+
+    """
+    if not ctx:
+        return []
+
+    if ctx and not getattr(ctx, "parent", None):
+        return [ctx.info_name]
+    # Find parent of current context
+    _parent = ctx.parent
+    _cmd_names = []
+    # Need to find the total set of commands that current command is part of.
+    if cmd_name != ctx.info_name:
+        _cmd_names = [cmd_name]
+    _cmd_names.append(ctx.info_name)
+    # Go through all parents till a parent of a context exists.
+    while _parent.parent:
+        info_name = _parent.info_name
+        _cmd_names.append(info_name)
+        _parent = _parent.parent
+
+    # Make sure the output reads natural. Ex: ["local", "start-api"]
+    _cmd_names.reverse()
+    return _cmd_names

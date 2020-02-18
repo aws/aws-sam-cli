@@ -3,7 +3,7 @@ Represents Lambda runtime containers.
 """
 import logging
 
-from samcli.local.docker.lambda_debug_entrypoint import LambdaDebugEntryPoint
+from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from .container import Container
 from .lambda_image import Runtime
 
@@ -31,15 +31,17 @@ class LambdaContainer(Container):
     # This is the dictionary that represents where the debugger_path arg is mounted in docker to as readonly.
     _DEBUGGER_VOLUME_MOUNT = {"bind": _DEBUGGER_VOLUME_MOUNT_PATH, "mode": "ro"}
 
-    def __init__(self,  # pylint: disable=R0914
-                 runtime,
-                 handler,
-                 code_dir,
-                 layers,
-                 image_builder,
-                 memory_mb=128,
-                 env_vars=None,
-                 debug_options=None):
+    def __init__(
+        self,  # pylint: disable=R0914
+        runtime,
+        handler,
+        code_dir,
+        layers,
+        image_builder,
+        memory_mb=128,
+        env_vars=None,
+        debug_options=None,
+    ):
         """
         Initializes the class
 
@@ -69,39 +71,51 @@ class LambdaContainer(Container):
 
         image = LambdaContainer._get_image(image_builder, runtime, layers)
         ports = LambdaContainer._get_exposed_ports(debug_options)
-        entry = LambdaContainer._get_entry_point(runtime, debug_options)
+        entry, debug_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
         additional_volumes = LambdaContainer._get_additional_volumes(debug_options)
         cmd = [handler]
 
-        super(LambdaContainer, self).__init__(image,
-                                              cmd,
-                                              self._WORKING_DIR,
-                                              code_dir,
-                                              memory_limit_mb=memory_mb,
-                                              exposed_ports=ports,
-                                              entrypoint=entry,
-                                              env_vars=env_vars,
-                                              container_opts=additional_options,
-                                              additional_volumes=additional_volumes)
+        if not env_vars:
+            env_vars = {}
+
+        env_vars = {**env_vars, **debug_env_vars}
+
+        super(LambdaContainer, self).__init__(
+            image,
+            cmd,
+            self._WORKING_DIR,
+            code_dir,
+            memory_limit_mb=memory_mb,
+            exposed_ports=ports,
+            entrypoint=entry,
+            env_vars=env_vars,
+            container_opts=additional_options,
+            additional_volumes=additional_volumes,
+        )
 
     @staticmethod
     def _get_exposed_ports(debug_options):
         """
-        Return Docker container port binding information. If a debug port is given, then we will ask Docker to
-        bind to same port both inside and outside the container ie. Runtime process is started in debug mode with
+        Return Docker container port binding information. If a debug port tuple is given, then we will ask Docker to
+        bind every given port to same port both inside and outside the container ie. Runtime process is started in debug mode with
         at given port inside the container and exposed to the host machine at the same port
 
-        :param int debug_port: Optional, integer value of debug port
+        :param DebugContext debug_options: Debugging options for the function (includes debug port, args, and path)
         :return dict: Dictionary containing port binding information. None, if debug_port was not given
         """
         if not debug_options:
             return None
 
-        return {
-            # container port : host port
-            debug_options.debug_port: debug_options.debug_port
-        }
+        if not debug_options.debug_ports:
+            return None
+
+        # container port : host port
+        ports_map = {}
+        for port in debug_options.debug_ports:
+            ports_map[port] = port
+
+        return ports_map
 
     @staticmethod
     def _get_additional_options(runtime, debug_options):
@@ -135,9 +149,7 @@ class LambdaContainer(Container):
         if not debug_options or not debug_options.debugger_path:
             return None
 
-        return {
-            debug_options.debugger_path: LambdaContainer._DEBUGGER_VOLUME_MOUNT
-        }
+        return {debug_options.debugger_path: LambdaContainer._DEBUGGER_VOLUME_MOUNT}
 
     @staticmethod
     def _get_image(image_builder, runtime, layers):
@@ -161,23 +173,26 @@ class LambdaContainer(Container):
         return image_builder.build(runtime, layers)
 
     @staticmethod
-    def _get_entry_point(runtime, debug_options=None):  # pylint: disable=too-many-branches
+    def _get_debug_settings(runtime, debug_options=None):  # pylint: disable=too-many-branches
         """
         Returns the entry point for the container. The default value for the entry point is already configured in the
         Dockerfile. We override this default specifically when enabling debugging. The overridden entry point includes
         a few extra flags to start the runtime in debug mode.
 
-        :param string runtime: Lambda function runtime name
-        :param int debug_port: Optional, port for debugger
-        :param string debug_args: Optional additional arguments passed to the entry point.
+        :param string runtime: Lambda function runtime name.
+        :param DebugContext debug_options: Optional. Debug context for the function (includes port, args, and path).
         :return list: List containing the new entry points. Each element in the list is one portion of the command.
             ie. if command is ``node index.js arg1 arg2``, then this list will be ["node", "index.js", "arg1", "arg2"]
         """
 
         if not debug_options:
-            return None
+            return None, {}
 
-        debug_port = debug_options.debug_port
+        debug_ports = debug_options.debug_ports
+        if not debug_ports:
+            return None, {}
+
+        debug_port = debug_ports[0]
         debug_args_list = []
 
         if debug_options.debug_args:
@@ -185,7 +200,9 @@ class LambdaContainer(Container):
 
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
-        return LambdaDebugEntryPoint.get_entry_point(debug_port=debug_port,
-                                                     debug_args_list=debug_args_list,
-                                                     runtime=runtime,
-                                                     options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS)
+        return LambdaDebugSettings.get_debug_settings(
+            debug_port=debug_port,
+            debug_args_list=debug_args_list,
+            runtime=runtime,
+            options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,
+        )

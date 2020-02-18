@@ -1,0 +1,132 @@
+Parameters:
+  CorsOrigin:
+    Default: ''
+    Type: String
+    Description: (Optional) Cross-origin resource sharing (CORS) Origin. You can specify a single origin, all "*" or leave empty and no CORS will be applied.
+    MaxLength: 250
+  TableName:
+    AllowedPattern: ^[A-Za-z_]+$
+    Type: String
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    MaxLength: 50
+    MinLength: 3
+    ConstraintDescription: Required. Can be characters and underscore only. No numbers or special characters allowed.
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  DynamoDBTable:
+    Description: The name of your DynamoDB Table
+    Value:
+      Ref: TableName
+  ApiUrl:
+    Description: The URL of the API Gateway you invoke to save to your DynamoDB Table.
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/save
+  DynamoDBTableStreamArn:
+    Description: The ARN of your DynamoDB Table Stream
+    Value:
+      Fn::GetAtt:
+      - DynamoDBTable
+      - StreamArn
+Conditions:
+  IsCorsDefined:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: CorsOrigin
+      - ''
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+      - KeyType: HASH
+        AttributeName:
+          Fn::Sub: ${TableName}Id
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName:
+        Ref: TableName
+      AttributeDefinitions:
+      - AttributeName:
+          Fn::Sub: ${TableName}Id
+        AttributeType: S
+      ProvisionedThroughput:
+        WriteCapacityUnits: 1
+        ReadCapacityUnits: 1
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      __MANAGE_SWAGGER: true
+      DefinitionBody:
+        info:
+          version: '1.0'
+          title:
+            Ref: AWS::StackName
+        paths:
+          /save:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaSaver.Arn}/invocations
+              responses: {}
+            options:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaSaver.Arn}/invocations
+              responses: {}
+        swagger: '2.0'
+      StageName: Prod
+  LambdaSaver:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          IS_CORS: IsCorsDefined
+          TABLE_NAME:
+            Ref: TableName
+          PRIMARY_KEY:
+            Fn::Sub: ${TableName}Id
+          CORS_ORIGIN:
+            Ref: CorsOrigin
+      Handler: index.handler
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          - dynamodb:DescribeTable
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: TableName
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: fb1a3a5a-28d6-415a-85f4-0e358a30383f
+      Runtime: nodejs10.x
+      Events:
+        SaveApi:
+          Type: Api
+          Properties:
+            Path: /save
+            RestApiId:
+              Ref: ServerlessRestApi
+            Method: POST
+        SaveOptionsApi:
+          Type: Api
+          Properties:
+            Path: /save
+            RestApiId:
+              Ref: ServerlessRestApi
+            Method: OPTIONS

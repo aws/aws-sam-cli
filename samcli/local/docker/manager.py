@@ -13,17 +13,14 @@ from samcli.lib.utils.stream_writer import StreamWriter
 LOG = logging.getLogger(__name__)
 
 
-class ContainerManager(object):
+class ContainerManager:
     """
     This class knows how to interface with Docker to create, execute and manage the container's life cycle. It can
     run multiple containers in parallel, and also comes with the ability to reuse existing containers in order to
     serve requests faster. It is also thread-safe.
     """
 
-    def __init__(self,
-                 docker_network_id=None,
-                 docker_client=None,
-                 skip_pull_image=False):
+    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False):
         """
         Instantiate the container manager
 
@@ -76,7 +73,7 @@ class ContainerManager(object):
 
         # Skip Pulling a new image if: a) Image name is samcli/lambda OR b) Image is available AND
         # c) We are asked to skip pulling the image
-        if (is_image_local and self.skip_pull_image) or image_name.startswith('samcli/lambda'):
+        if (is_image_local and self.skip_pull_image) or image_name.startswith("samcli/lambda"):
             LOG.info("Requested to skip pulling images ...\n")
         else:
             try:
@@ -84,10 +81,10 @@ class ContainerManager(object):
             except DockerImagePullFailedException:
                 if not is_image_local:
                     raise DockerImagePullFailedException(
-                        "Could not find {} image locally and failed to pull it from docker.".format(image_name))
+                        "Could not find {} image locally and failed to pull it from docker.".format(image_name)
+                    )
 
-                LOG.info(
-                    "Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
+                LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
 
         if not container.is_created():
             # Create the container first before running.
@@ -130,16 +127,16 @@ class ContainerManager(object):
             raise DockerImagePullFailedException(str(ex))
 
         # io streams, especially StringIO, work only with unicode strings
-        stream_writer.write(u"\nFetching {} Docker container image...".format(image_name))
+        stream_writer.write("\nFetching {} Docker container image...".format(image_name))
 
         # Each line contains information on progress of the pull. Each line is a JSON string
         for _ in result_itr:
             # For every line, print a dot to show progress
-            stream_writer.write(u'.')
+            stream_writer.write(".")
             stream_writer.flush()
 
         # We are done. Go to the next line
-        stream_writer.write(u"\n")
+        stream_writer.write("\n")
 
     def has_image(self, image_name):
         """

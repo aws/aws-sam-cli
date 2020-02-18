@@ -15,21 +15,24 @@ from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 LOG = logging.getLogger(__name__)
 
 
-class LocalLambdaRunner(object):
+class LocalLambdaRunner:
     """
     Runs Lambda functions locally. This class is a wrapper around the `samcli.local` library which takes care
     of actually running the function on a Docker container.
     """
+
     MAX_DEBUG_TIMEOUT = 36000  # 10 hours in seconds
 
-    def __init__(self,
-                 local_runtime,
-                 function_provider,
-                 cwd,
-                 aws_profile=None,
-                 aws_region=None,
-                 env_vars_values=None,
-                 debug_context=None):
+    def __init__(
+        self,
+        local_runtime,
+        function_provider,
+        cwd,
+        aws_profile=None,
+        aws_region=None,
+        env_vars_values=None,
+        debug_context=None,
+    ):
         """
         Initializes the class
 
@@ -37,9 +40,10 @@ class LocalLambdaRunner(object):
         :param samcli.commands.local.lib.provider.FunctionProvider function_provider: Provider that can return a
             Lambda function
         :param string cwd: Current working directory. We will resolve all function CodeURIs relative to this directory.
-        :param dict env_vars_values: Optional. Dictionary containing values of environment variables
-        :param integer debug_port: Optional. Port to bind the debugger to
-        :param string debug_args: Optional. Additional arguments passed to the debugger
+        :param string aws_profile: Optional. Name of the profile to fetch AWS credentials from.
+        :param string aws_region: Optional. AWS Region to use.
+        :param dict env_vars_values: Optional. Dictionary containing values of environment variables.
+        :param DebugContext debug_context: Optional. Debug context for the function (includes port, args, and path).
         """
 
         self.local_runtime = local_runtime
@@ -49,6 +53,8 @@ class LocalLambdaRunner(object):
         self.aws_region = aws_region
         self.env_vars_values = env_vars_values or {}
         self.debug_context = debug_context
+        self._boto3_session_creds = None
+        self._boto3_region = None
 
     def invoke(self, function_name, event, stdout=None, stderr=None):
         """
@@ -79,10 +85,11 @@ class LocalLambdaRunner(object):
 
         if not function:
             all_functions = [f.name for f in self.provider.get_all()]
-            available_function_message = "{} not found. Possible options in your template: {}"\
-                .format(function_name, all_functions)
+            available_function_message = "{} not found. Possible options in your template: {}".format(
+                function_name, all_functions
+            )
             LOG.info(available_function_message)
-            raise FunctionNotFound("Unable to find a Function with name '%s'", function_name)
+            raise FunctionNotFound("Unable to find a Function with name '{}'".format(function_name))
 
         LOG.debug("Found one Lambda function with name '%s'", function_name)
 
@@ -125,14 +132,16 @@ class LocalLambdaRunner(object):
         if self.is_debugging():
             function_timeout = self.MAX_DEBUG_TIMEOUT
 
-        return FunctionConfig(name=function.name,
-                              runtime=function.runtime,
-                              handler=function.handler,
-                              code_abs_path=code_abs_path,
-                              layers=function.layers,
-                              memory=function.memory,
-                              timeout=function_timeout,
-                              env_vars=env_vars)
+        return FunctionConfig(
+            name=function.name,
+            runtime=function.runtime,
+            handler=function.handler,
+            code_abs_path=code_abs_path,
+            layers=function.layers,
+            memory=function.memory,
+            timeout=function_timeout,
+            env_vars=env_vars,
+        )
 
     def _make_env_vars(self, function):
         """Returns the environment variables configuration for this function
@@ -188,13 +197,31 @@ class LocalLambdaRunner(object):
         shell_env = os.environ
         aws_creds = self.get_aws_creds()
 
-        return EnvironmentVariables(function.memory,
-                                    function.timeout,
-                                    function.handler,
-                                    variables=variables,
-                                    shell_env_values=shell_env,
-                                    override_values=overrides,
-                                    aws_creds=aws_creds)
+        return EnvironmentVariables(
+            function.memory,
+            function.timeout,
+            function.handler,
+            variables=variables,
+            shell_env_values=shell_env,
+            override_values=overrides,
+            aws_creds=aws_creds,
+        )
+
+    def _get_session_creds(self):
+        if self._boto3_session_creds is None:
+            # to pass command line arguments for region & profile to setup boto3 default session
+            LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
+            session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
+
+            # check for region_name in session and cache
+            if hasattr(session, "region_name") and session.region_name:
+                self._boto3_region = session.region_name
+
+            # don't set cached session creds if there is not a session
+            if session:
+                self._boto3_session_creds = session.get_credentials()
+
+        return self._boto3_session_creds
 
     def get_aws_creds(self):
         """
@@ -206,34 +233,25 @@ class LocalLambdaRunner(object):
         """
         result = {}
 
-        # to pass command line arguments for region & profile to setup boto3 default session
-        LOG.debug("Loading AWS credentials from session with profile '%s'", self.aws_profile)
-        # boto3.session.Session is not thread safe. To ensure we do not run into a race condition with start-lambda
-        # or start-api, we create the session object here on every invoke.
-        session = boto3.session.Session(profile_name=self.aws_profile, region_name=self.aws_region)
-
-        if not session:
-            return result
-
         # Load the credentials from profile/environment
-        creds = session.get_credentials()
-
-        if not creds:
-            # If we were unable to load credentials, then just return empty. We will use the default
-            return result
+        creds = self._get_session_creds()
 
         # After loading credentials, region name might be available here.
-        if hasattr(session, 'region_name') and session.region_name:
-            result["region"] = session.region_name
+        if self._boto3_region:
+            result["region"] = self._boto3_region
+
+        if not creds:
+            # If we were unable to load credentials, then just return result. We will use the default
+            return result
 
         # Only add the key, if its value is present
-        if hasattr(creds, 'access_key') and creds.access_key:
+        if hasattr(creds, "access_key") and creds.access_key:
             result["key"] = creds.access_key
 
-        if hasattr(creds, 'secret_key') and creds.secret_key:
+        if hasattr(creds, "secret_key") and creds.secret_key:
             result["secret"] = creds.secret_key
 
-        if hasattr(creds, 'token') and creds.token:
+        if hasattr(creds, "token") and creds.token:
             result["sessiontoken"] = creds.token
 
         return result

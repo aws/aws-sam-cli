@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Transforms images by resizing to a configured max dimension
+Resources:
+  transform:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Transforms images by resizing to a configured max dimension
+      Handler: src/index.handler
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 6556286d-fa63-425c-a64d-633c32689d3b
+      MemorySize: 1536
+      Policies:
+      - S3ReadPolicy:
+          BucketName:
+            Ref: sourceBucket
+      - S3CrudPolicy:
+          BucketName:
+            Ref: destBucket
+      Timeout: 300
+      Events:
+        upload:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: source
+            Events: s3:ObjectCreated:*
+      Environment:
+        Variables:
+          DEST_BUCKET:
+            Ref: destBucket
+          MAX_DIMENSION:
+            Ref: maxDimension
+  source:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: sourceBucket
+Parameters:
+  sourceBucket:
+    Type: String
+    Description: Name of the S3 Bucket to read source images from (must NOT exist prior to deployment)
+  destBucket:
+    Type: String
+    Description: Name of the S3 Bucket to put transformed images into (must exist prior to deployment)
+  maxDimension:
+    Type: Number
+    Description: Maximum dimension length in pixels
+    Default: 300

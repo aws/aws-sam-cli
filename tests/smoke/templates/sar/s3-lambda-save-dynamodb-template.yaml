@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  S3Bucket:
+    Description: The S3 Bucket where the files are stored
+    Value:
+      Ref: S3FileStorage
+  DynamoDBTableArn:
+    Description: The ARN of your DynamoDB Table
+    Value:
+      Fn::GetAtt:
+      - DynamoDBTable
+      - Arn
+  DynamoDBTableStreamArn:
+    Description: The ARN of your DynamoDB Table Stream
+    Value:
+      Fn::GetAtt:
+      - DynamoDBTable
+      - StreamArn
+Parameters:
+  TableName:
+    AllowedPattern: ^[A-Za-z]+$
+    ConstraintDescription: Required parameter. Must be characters only. No numbers allowed.
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    MaxLength: 50
+    Default: yourTableName
+    MinLength: 3
+    Type: String
+Resources:
+  LambdaSave:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: TableName
+          PRIMARY_KEY:
+            Fn::Sub: ${TableName}Id
+      Handler: index.handler
+      Policies:
+      - Statement:
+        - Action:
+          - dynamodb:GetItem
+          - dynamodb:DeleteItem
+          - dynamodb:PutItem
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:BatchWriteItem
+          - dynamodb:BatchGetItem
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+            - tableName:
+                Ref: TableName
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 8aaad0a6-d8fd-4bbe-b85e-49de11742aea
+      Runtime: nodejs10.x
+      Events:
+        S3BucketEvent:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: S3FileStorage
+            Events: s3:ObjectCreated:*
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+      - KeyType: HASH
+        AttributeName:
+          Fn::Sub: ${TableName}Id
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName:
+        Ref: TableName
+      AttributeDefinitions:
+      - AttributeName:
+          Fn::Sub: ${TableName}Id
+        AttributeType: S
+      ProvisionedThroughput:
+        WriteCapacityUnits: 1
+        ReadCapacityUnits: 1
+  S3FileStorage:
+    Type: AWS::S3::Bucket
+    Properties:
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Function:
+            Fn::GetAtt:
+            - LambdaSave
+            - Arn
+          Event: s3:ObjectCreated:*
+    DependsOn:
+    - LambdaSaveS3BucketEventPermission
+Transform: AWS::Serverless-2016-10-31

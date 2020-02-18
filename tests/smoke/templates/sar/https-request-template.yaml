@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  IdentityNameParameter:
+    Type: String
+Description: Demonstrates using a built-in Node.js module to make an HTTPS request.
+Resources:
+  httpsrequest:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - ses:SendBounce
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/${identityName}
+            - identityName:
+                Ref: IdentityNameParameter
+          Effect: Allow
+      Handler: index.handler
+      Description: Demonstrates using a built-in Node.js module to make an HTTPS request.
+      Timeout: 60
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 92c64a18-abe6-4481-899b-6146fb8bec50
+      Runtime: nodejs10.x
+      MemorySize: 128
+Transform: AWS::Serverless-2016-10-31

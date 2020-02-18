@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Blueprint for modifying CloudFront response header implemented in NodeJS.
+Parameters:
+  KeyIdParameter:
+    Type: String
+Resources:
+  cloudfrontmodifyresponseheader:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs10.x
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 7e855ca1-e613-4e4f-b733-43ddd337b55b
+      Description: Blueprint for modifying CloudFront response header implemented in NodeJS.
+      MemorySize: 128
+      Timeout: 1
+      Policies:
+      - KMSDecryptPolicy:
+          KeyId:
+            Ref: KeyIdParameter

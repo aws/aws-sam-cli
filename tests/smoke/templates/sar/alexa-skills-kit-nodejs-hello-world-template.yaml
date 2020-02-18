@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  Name: alexa-skills-kit-nodejs-hello-world
+Transform: AWS::Serverless-2016-10-31
+Description: This is a simple Hello World Alexa skill
+Parameters:
+  TopicNameParameter:
+    Type: String
+    Default: HelloWorld
+Resources:
+  alexaskillskitnodejsbasicwelcome:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Description: This is a simple Hello World Alexa skill
+      Timeout: 7
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: a3adadbb-f261-42e4-a1cc-5a83f2a7e052
+      Runtime: nodejs10.x
+      MemorySize: 128
+      Policies:
+      - Statement:
+        - Action:
+          - sns:Publish
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:sns:${AWS::Region}:${AWS::AccountId}:${topicName}
+            - topicName:
+                Ref: TopicNameParameter
+          Effect: Allow
+      Events:
+        AlexaTrigger:
+          Type: AlexaSkill

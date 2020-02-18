@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  PipelineBucketName:
+    Type: String
+    Description: 'The pattern of bucket names to allow access to read artifacts from.  Recommended
+      value: *'
+Description: Lambda function to run cfn_nag as a step in a pipeline
+Resources:
+  CfnNagFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+      - Statement:
+        - Action:
+          - codepipeline:PutJobSuccessResult
+          - codepipeline:PutJobFailureResult
+          Resource:
+          - Fn::Sub: arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:*
+          Effect: Allow
+      - Statement:
+        - Action:
+          - s3:GetObject
+          - s3:ListBucket
+          - s3:GetBucketLocation
+          - s3:GetObjectVersion
+          - s3:GetLifecycleConfiguration
+          Resource:
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}
+            - bucketName:
+                Ref: PipelineBucketName
+          - Fn::Sub:
+            - arn:${AWS::Partition}:s3:::${bucketName}/*
+            - bucketName:
+                Ref: PipelineBucketName
+          Effect: Allow
+      Handler: JRubyHandlerWrapper
+      FunctionName: cfn-nag-pipeline
+      Timeout: 300
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 3f2189f9-d086-457b-81a8-a68b4cca82dd
+      Runtime: java8
+      MemorySize: 1024
+Transform: AWS::Serverless-2016-10-31

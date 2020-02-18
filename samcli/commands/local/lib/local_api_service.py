@@ -7,22 +7,18 @@ import os
 
 from samcli.commands.local.lib.exceptions import NoApisDefined
 from samcli.local.apigw.local_apigw_service import LocalApigwService
-from samcli.commands.local.lib.api_provider import ApiProvider
+from samcli.lib.providers.api_provider import ApiProvider
 
 LOG = logging.getLogger(__name__)
 
 
-class LocalApiService(object):
+class LocalApiService:
     """
     Implementation of Local API service that is capable of serving API defined in a configuration file that invoke a
     Lambda function.
     """
 
-    def __init__(self,
-                 lambda_invoke_context,
-                 port,
-                 host,
-                 static_dir):
+    def __init__(self, lambda_invoke_context, port, host, static_dir):
         """
         Initialize the local API service.
 
@@ -38,9 +34,9 @@ class LocalApiService(object):
         self.static_dir = static_dir
 
         self.cwd = lambda_invoke_context.get_cwd()
-        self.api_provider = ApiProvider(lambda_invoke_context.template,
-                                        parameter_overrides=lambda_invoke_context.parameter_overrides,
-                                        cwd=self.cwd)
+        self.api_provider = ApiProvider(
+            lambda_invoke_context.template, parameter_overrides=lambda_invoke_context.parameter_overrides, cwd=self.cwd
+        )
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
 
@@ -62,21 +58,25 @@ class LocalApiService(object):
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalApigwService(api=self.api_provider.api,
-                                    lambda_runner=self.lambda_runner,
-                                    static_dir=static_dir_path,
-                                    port=self.port,
-                                    host=self.host,
-                                    stderr=self.stderr_stream)
+        service = LocalApigwService(
+            api=self.api_provider.api,
+            lambda_runner=self.lambda_runner,
+            static_dir=static_dir_path,
+            port=self.port,
+            host=self.host,
+            stderr=self.stderr_stream,
+        )
 
         service.create()
 
         # Print out the list of routes that will be mounted
         self._print_routes(self.api_provider.api.routes, self.host, self.port)
-        LOG.info("You can now browse to the above endpoints to invoke your functions. "
-                 "You do not need to restart/reload SAM CLI while working on your functions, "
-                 "changes will be reflected instantly/automatically. You only need to restart "
-                 "SAM CLI if you update your AWS SAM template")
+        LOG.info(
+            "You can now browse to the above endpoints to invoke your functions. "
+            "You do not need to restart/reload SAM CLI while working on your functions, "
+            "changes will be reflected instantly/automatically. You only need to restart "
+            "SAM CLI if you update your AWS SAM template"
+        )
 
         service.run()
 
@@ -103,13 +103,8 @@ class LocalApiService(object):
 
         print_lines = []
         for route in routes:
-            methods_str = "[{}]".format(', '.join(route.methods))
-            output = "Mounting {} at http://{}:{}{} {}".format(
-                route.function_name,
-                host,
-                port,
-                route.path,
-                methods_str)
+            methods_str = "[{}]".format(", ".join(route.methods))
+            output = "Mounting {} at http://{}:{}{} {}".format(route.function_name, host, port, route.path, methods_str)
             print_lines.append(output)
 
             LOG.info(output)
@@ -134,3 +129,5 @@ class LocalApiService(object):
         if os.path.exists(static_dir_path):
             LOG.info("Mounting static files from %s at /", static_dir_path)
             return static_dir_path
+
+        return None

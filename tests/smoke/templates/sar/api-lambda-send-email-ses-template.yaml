@@ -1,0 +1,95 @@
+Parameters:
+  FromEmail:
+    Type: String
+    Description: (Required) Represents the email sender. Must be a SES verified email. If you attempt to send email using a non-verified address or domain, the operation results in an "Email address not verified" error. Minimum 4 characters.
+    MaxLength: 70
+    Default: your@email.com
+    MinLength: 4
+    ConstraintDescription: Required. Must be a SES verified email address.
+  CorsOrigin:
+    Default: ''
+    Type: String
+    Description: (Optional) Cross-origin resource sharing (CORS) Origin. You can specify a single origin, all "*" or leave empty and no CORS will be applied.
+    MaxLength: 250
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  ApiUrl:
+    Description: The URL of the API Gateway you should invoke to send an email
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/send
+Conditions:
+  IsCorsDefined:
+    Fn::Not:
+    - Fn::Equals:
+      - Ref: CorsOrigin
+      - ''
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  LambdaEmailer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Environment:
+        Variables:
+          CORS_ORIGIN:
+            Ref: CorsOrigin
+          FROM_EMAIL:
+            Ref: FromEmail
+      Handler: index.handler
+      Policies:
+      - Statement:
+        - Action:
+          - ses:GetIdentityVerificationAttributes
+          - ses:SendEmail
+          - ses:VerifyEmailIdentity
+          Resource:
+            Fn::Sub:
+            - arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/${identityName}
+            - identityName:
+                Ref: FromEmail
+          Effect: Allow
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 18fa6025-1f7a-43b0-8715-37d55e17b71f
+      Runtime: nodejs10.x
+      Events:
+        EmailApi:
+          Type: Api
+          Properties:
+            Path: /send
+            RestApiId:
+              Ref: ServerlessRestApi
+            Method: POST
+        EmailOptionsApi:
+          Type: Api
+          Properties:
+            Path: /send
+            RestApiId:
+              Ref: ServerlessRestApi
+            Method: OPTIONS
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      __MANAGE_SWAGGER: true
+      DefinitionBody:
+        info:
+          version: '1.0'
+          title:
+            Ref: AWS::StackName
+        paths:
+          /send:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaEmailer.Arn}/invocations
+              responses: {}
+            options:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaEmailer.Arn}/invocations
+              responses: {}
+        swagger: '2.0'
+      StageName: Prod

@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  acloudgurualexa:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: <%REPO_BUCKET%>
+        Key: 72571b00-7b1e-4e28-bf57-6bbd36bb70d0
+      Handler: index.handler
+      Description: Episode 4 - customise your leaderboard for the Echo Show and Spot
+      Runtime: nodejs10.x
+      Events:
+        AlexaSkillEvent:
+          Type: AlexaSkill
