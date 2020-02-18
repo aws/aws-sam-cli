@@ -40,17 +40,17 @@ VALUE_REGEX_SPACE_DELIM = _generate_match_regex(match_pattern=".", delim=" ")
 VALUE_REGEX_COMMA_DELIM = _generate_match_regex(match_pattern=".", delim=",")
 
 
-def _unquote(value):
+def _unquote_wrapped_quotes(value):
     r"""
     Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
     value thru shell.
 
     Examples
     --------
-    >>> _unquote('val\ ue')
+    >>> _unquote_wrapped_quotes('val\ ue')
     value
 
-    >>> _unquote("hel\ lo")
+    >>> _unquote_wrapped_quotes("hel\ lo")
     hello
 
     Parameters
@@ -129,7 +129,7 @@ class CfnParameterOverridesType(click.ParamType):
 
             # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
             for key, param_value in groups:
-                result[_unquote(key)] = _unquote(param_value)
+                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
 
         return result
 
@@ -211,7 +211,7 @@ class CfnTags(click.ParamType):
             for group in groups:
                 key, v = group
                 # assign to result['KeyName1'] = string and so on.
-                result[_unquote(key)] = _unquote(v)
+                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(v)
 
             if fail:
                 return self.fail(
