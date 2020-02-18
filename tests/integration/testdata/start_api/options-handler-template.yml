@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  AOptionsHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handle_options_cors
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        IdBasePath:
+          Type: Api
+          Properties:
+            Method: OPTIONS
+            Path: /optionshandler

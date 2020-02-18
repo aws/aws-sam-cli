@@ -806,7 +806,7 @@ class TestOptionsHandler(StartApiIntegBaseClass):
     Test to check that an OPTIONS handler is invoked
     """
 
-    template_path = "/testdata/start_api/options_handler/swagger-template.yaml"
+    template_path = "/testdata/start_api/options-handler-template.yml"
 
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
@@ -817,7 +817,7 @@ class TestOptionsHandler(StartApiIntegBaseClass):
         """
         This tests that a template's OPTIONS handler is invoked
         """
-        response = requests.options(self.url + "/", timeout=300)
+        response = requests.options(self.url + "/optionshandler", timeout=300)
 
         self.assertEqual(response.status_code, 204)
 
