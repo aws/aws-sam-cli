@@ -9,8 +9,25 @@ from json import JSONDecodeError
 import click
 
 
-def _match_regex(match, delim):
-    return f'(\\"(?:\\\\{match}|[^\\"\\\\]+)*\\"|(?:\\\\{match}|[^{delim}\\"\\\\]+)+)'
+def _generate_match_regex(match_pattern, delim):
+
+    """
+    Creates a regex string based on a match pattern (also a regex) that is to be
+    run on a string (which may contain escaped quotes) that is separated by delimiters.
+
+    Parameters
+    ----------
+    match_pattern: (str) regex pattern to match
+    delim: (str) delimiter that is respected when identifying matching groups with generated regex.
+
+    Returns
+    -------
+    str: regex expression
+
+    """
+
+    # Non capturing groups reduces duplicates in groups, but does not reduce matches.
+    return f'(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)'
 
 
 KEY_REGEX = '([A-Za-z0-9\\"]+)'
@@ -18,9 +35,9 @@ KEY_REGEX = '([A-Za-z0-9\\"]+)'
 TAG_REGEX = '[A-Za-z0-9\\"_:\\.\\/\\+-\\@=]'
 
 # Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
-VALUE_REGEX_SPACE_DELIM = _match_regex(match=".", delim=" ")
+VALUE_REGEX_SPACE_DELIM = _generate_match_regex(match_pattern=".", delim=" ")
 # Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
-VALUE_REGEX_COMMA_DELIM = _match_regex(match=".", delim=",")
+VALUE_REGEX_COMMA_DELIM = _generate_match_regex(match_pattern=".", delim=",")
 
 
 def _unquote(value):
@@ -171,7 +188,7 @@ class CfnTags(click.ParamType):
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
 
-    _pattern = r"{tag}={tag}".format(tag=_match_regex(match=TAG_REGEX, delim=" "))
+    _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
