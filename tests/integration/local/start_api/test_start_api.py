@@ -801,6 +801,26 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         response_data = response.json()
         self.assertEqual(response_data.get("stageVariables"), {"VarName": "varValue"})
 
+class TestOptionsHandler(StartApiIntegBaseClass):
+    """
+    Test to check that an OPTIONS handler is invoked
+    """
+
+    template_path = "/testdata/start_api/options_handler/swagger-template.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_options_handler(self):
+        """
+        This tests that a template's OPTIONS handler is invoked
+        """
+        response = requests.options(self.url + "/", timeout=300)
+
+        self.assertEqual(response.status_code, 204)
+
 
 class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     """

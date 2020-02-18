@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  Assignments:
+    Properties:
+      Environment:
+        Variables:
+          NODE_ENV: development
+      Events:
+        GetEvent:
+          Properties:
+            Method: get
+            Path: /
+          Type: Api
+        OptionsEvent:
+          Properties:
+            Method: options
+            Path: /
+          Type: Api
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Timeout: 6
+    Type: AWS::Serverless::Function
