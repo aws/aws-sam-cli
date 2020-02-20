@@ -17,14 +17,6 @@ AWS_PROFILE = "AWS_PROFILE"
 SLEEP_TIME = 1
 
 
-def _print_relevant_environment_vars(environ):
-    session = Session()
-    print("Session current region={}".format(session.region_name))
-    print("Session available_profiles={}".format(session.available_profiles))
-    print("Session access_key={}".format(session.get_credentials().access_key))
-    print("Session secret_key={}".format(session.get_credentials().secret_key))
-
-
 class SchemaTestDataSetup(TestCase):
     original_cred_file = None
     original_config_file = None
@@ -72,21 +64,19 @@ Y
         if AWS_DEFAULT_REGION in env:
             self.original_region = env[AWS_DEFAULT_REGION]
 
-        print("Original env values from function before customization:")
-        _print_relevant_environment_vars(env)
         custom_config = self._create_config_file(profile, region)
         session = Session()
         custom_cred = self._create_cred_file(
-            profile, session.get_credentials().access_key, session.get_credentials().secret_key
+            profile,
+            session.get_credentials().access_key,
+            session.get_credentials().secret_key,
+            session.get_credentials().token,
         )
 
         env[AWS_CONFIG_FILE] = custom_config
         env[AWS_SHARED_CREDENTIALS_FILE] = custom_cred
         env[AWS_PROFILE] = profile
         env[AWS_DEFAULT_REGION] = region
-
-        print("Updated env values after customization:")
-        _print_relevant_environment_vars(env)
 
     def _tear_down_custom_config(self):
         env = os.environ
@@ -111,9 +101,6 @@ Y
         else:
             env[AWS_DEFAULT_REGION] = self.original_region
 
-        print("Restored env values after teardown:")
-        _print_relevant_environment_vars(env)
-
         shutil.rmtree(self.config_dir, ignore_errors=True)
 
     def _create_config_file(self, profile, region):
@@ -128,11 +115,15 @@ Y
             file.write(config_file_content)
         return custom_config
 
-    def _create_cred_file(self, profile, access_key, secret_key):
+    def _create_cred_file(self, profile, access_key, secret_key, session_token=None):
         cred_file_content = "[default]\naws_access_key_id = {1}\naws_secret_access_key = {2}\n"
+        if session_token:
+            cred_file_content += f"\naws_session_token = {session_token}"
         if profile != DEFAULT:
             cred_file_content += "\n[{0}]\naws_access_key_id = {1}\naws_secret_access_key = {2}"
         cred_file_content = cred_file_content.format(profile, access_key, secret_key)
+        if session_token:
+            cred_file_content += f"\naws_session_token = {session_token}"
         custom_cred = os.path.join(self.config_dir, "customcred")
         print("Writing custom creds to {}".format(custom_cred))
         with open(custom_cred, "w") as file:

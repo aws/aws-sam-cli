@@ -121,22 +121,22 @@ for:
       - "pip install -e \".[dev]\""
 
     test_script:
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-      - "pylint --rcfile .pylintrc samcli"
-      - "pytest -n 4 tests/functional"
+#      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+#      - "pylint --rcfile .pylintrc samcli"
+#      - "pytest -n 4 tests/functional"
 
       # Runs only in Linux
-      - sh: "pytest -vv tests/integration/buildcmd"
-      - sh: "pytest -vv tests/integration/deploy"
-      - sh: "pytest -vv tests/integration/init"
-      - sh: "pytest -vv tests/integration/local/generate_event"
-      - sh: "pytest -vv tests/integration/local/invoke"
-      - sh: "pytest -vv tests/integration/local/start_api"
-      - sh: "pytest -vv tests/integration/local/start_lambda"
-      - sh: "pytest -vv tests/integration/package"
-      - sh: "pytest -vv tests/integration/publish"
-      - sh: "pytest -vv tests/regression/telemetry"
-      - sh: "/tmp/black --check setup.py tests samcli scripts"
+#      - sh: "pytest -vv tests/integration/buildcmd"
+#      - sh: "pytest -vv tests/integration/deploy"
+      - sh: "pytest -vv tests/integration/init/schemas"
+#      - sh: "pytest -vv tests/integration/local/generate_event"
+#      - sh: "pytest -vv tests/integration/local/invoke"
+#      - sh: "pytest -vv tests/integration/local/start_api"
+#      - sh: "pytest -vv tests/integration/local/start_lambda"
+#      - sh: "pytest -vv tests/integration/package"
+#      - sh: "pytest -vv tests/integration/publish"
+#      - sh: "pytest -vv tests/regression/telemetry"
+#      - sh: "/tmp/black --check setup.py tests samcli scripts"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
