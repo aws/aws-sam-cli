@@ -127,7 +127,7 @@ Resources:
         Key: 07a400a4-d13f-4d23-ac71-8b244284d184
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Environment:
         Variables:
           TABLE_NAME:
@@ -154,7 +154,7 @@ Resources:
         Key: 0832c5f6-a81c-40dd-8f84-de6abe2e5401
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Environment:
         Variables:
           TABLE_NAME:
@@ -181,7 +181,7 @@ Resources:
         Key: d1638bef-3e9c-4b79-ade6-37cb03f25b2a
       Handler: app.handler
       MemorySize: 256
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Environment:
         Variables:
           TABLE_NAME:

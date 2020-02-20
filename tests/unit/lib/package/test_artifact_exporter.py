@@ -342,7 +342,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         with self.make_temp_dir() as dirname:
             with zip_folder(dirname) as actual_zip_file_name:
-                self.assertEqual(actual_zip_file_name, zip_file_name)
+                self.assertEqual(actual_zip_file_name, (zip_file_name, mock.ANY))
 
         make_zip_mock.assert_called_once_with(mock.ANY, dirname)
 

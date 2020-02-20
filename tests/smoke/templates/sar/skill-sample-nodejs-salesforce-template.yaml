@@ -69,7 +69,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 5d45f176-8801-4f34-a33e-1c57cc0bc896
-      Runtime: nodejs6.10
+      Runtime: nodejs10.x
       Events:
         AlexaSkillEvent:
           Type: AlexaSkill

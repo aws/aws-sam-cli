@@ -2,11 +2,11 @@ from unittest import skipIf
 from parameterized import parameterized
 
 from .regression_package_base import PackageRegressionBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Package Regression tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD and when the branch is not master.
-SKIP_PACKAGE_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+# This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
+SKIP_PACKAGE_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 # Only tested cases where the output template file changes, adding metadata or kms keys does not change the output.
@@ -22,19 +22,13 @@ class TestPackageRegression(PackageRegressionBase):
 
     @parameterized.expand(
         [
-            "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-stack.yaml",
-            "aws-serverless-application.yaml",
-            "aws-lambda-layerversion.yaml",
-            "aws-serverless-layerversion.yaml",
-            "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
         ]
     )
@@ -46,19 +40,13 @@ class TestPackageRegression(PackageRegressionBase):
 
     @parameterized.expand(
         [
-            "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-stack.yaml",
-            "aws-serverless-application.yaml",
-            "aws-lambda-layerversion.yaml",
-            "aws-serverless-layerversion.yaml",
-            "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
         ]
     )
@@ -74,19 +62,13 @@ class TestPackageRegression(PackageRegressionBase):
 
     @parameterized.expand(
         [
-            "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-stack.yaml",
-            "aws-serverless-application.yaml",
-            "aws-lambda-layerversion.yaml",
-            "aws-serverless-layerversion.yaml",
-            "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
         ]
     )

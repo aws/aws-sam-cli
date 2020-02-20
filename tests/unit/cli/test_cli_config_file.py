@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import TomlProvider, configuration_option, configuration_callback, get_ctx_defaults
-from samcli.lib.config.samconfig import SamConfig
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
 
 
 class MockContext:
@@ -58,6 +58,7 @@ class TestCliConfiguration(TestCase):
     def setUp(self):
         self.cmd_name = "test_cmd"
         self.option_name = "test_option"
+        # No matter what config-env is passed in, default is chosen.
         self.config_env = "test_config_env"
         self.saved_callback = MagicMock()
         self.provider = MagicMock()
@@ -85,8 +86,9 @@ class TestCliConfiguration(TestCase):
             value=self.value,
         )
         self.assertEqual(self.saved_callback.call_count, 1)
-        for arg in [self.ctx, self.param, self.value]:
+        for arg in [self.ctx, self.param, DEFAULT_ENV]:
             self.assertIn(arg, self.saved_callback.call_args[0])
+        self.assertNotIn(self.value, self.saved_callback.call_args[0])
 
     def test_configuration_option(self):
         toml_provider = TomlProvider()

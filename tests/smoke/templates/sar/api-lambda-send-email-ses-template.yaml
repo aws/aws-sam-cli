@@ -50,7 +50,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 18fa6025-1f7a-43b0-8715-37d55e17b71f
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Events:
         EmailApi:
           Type: Api

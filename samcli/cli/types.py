@@ -8,16 +8,57 @@ from json import JSONDecodeError
 
 import click
 
-
-def _value_regex(delim):
-    return f'(\\"(?:\\\\.|[^\\"\\\\]+)*\\"|(?:\\\\.|[^{delim}\\"\\\\]+)+)'
+PARAM_AND_METADATA_KEY_REGEX = '([A-Za-z0-9\\"]+)'
 
 
-KEY_REGEX = '([A-Za-z0-9\\"]+)'
-# Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
-VALUE_REGEX_SPACE_DELIM = _value_regex(" ")
-# Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
-VALUE_REGEX_COMMA_DELIM = _value_regex(",")
+def _generate_match_regex(match_pattern, delim):
+
+    """
+    Creates a regex string based on a match pattern (also a regex) that is to be
+    run on a string (which may contain escaped quotes) that is separated by delimiters.
+
+    Parameters
+    ----------
+    match_pattern: (str) regex pattern to match
+    delim: (str) delimiter that is respected when identifying matching groups with generated regex.
+
+    Returns
+    -------
+    str: regex expression
+
+    """
+
+    # Non capturing groups reduces duplicates in groups, but does not reduce matches.
+    return f'(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)'
+
+
+def _unquote_wrapped_quotes(value):
+    r"""
+    Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
+    value thru shell.
+
+    Examples
+    --------
+    >>> _unquote_wrapped_quotes('val\ ue')
+    value
+
+    >>> _unquote_wrapped_quotes("hel\ lo")
+    hello
+
+    Parameters
+    ----------
+    value : str
+        Input to unquote
+
+    Returns
+    -------
+    Unquoted string
+    """
+    if value and (value[0] == value[-1] == '"'):
+        # Remove quotes only if the string is wrapped in quotes
+        value = value.strip('"')
+
+    return value.replace("\\ ", " ").replace('\\"', '"')
 
 
 class CfnParameterOverridesType(click.ParamType):
@@ -36,8 +77,12 @@ class CfnParameterOverridesType(click.ParamType):
     # If Both ParameterKey pattern and KeyPairName=MyKey should not be present
     # while adding parameter overrides, if they are, it
     # can result in unpredicatable behavior.
-    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
-    _pattern_2 = r"(?:(?: ){key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
+    # Use this regex when you have space as delimiter Ex: "KeyName1=string KeyName2=string"
+    VALUE_REGEX_SPACE_DELIM = _generate_match_regex(match_pattern=".", delim=" ")
+    _pattern_1 = r"(?:ParameterKey={key},ParameterValue={value})".format(
+        key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM
+    )
+    _pattern_2 = r"(?:(?: ){key}={value})".format(key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
 
     ordered_pattern_match = [_pattern_1, _pattern_2]
 
@@ -80,38 +125,9 @@ class CfnParameterOverridesType(click.ParamType):
 
             # 'groups' variable is a list of tuples ex: [(key1, value1), (key2, value2)]
             for key, param_value in groups:
-                result[self._unquote(key)] = self._unquote(param_value)
+                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(param_value)
 
         return result
-
-    @staticmethod
-    def _unquote(value):
-        r"""
-        Removes wrapping double quotes and any '\ ' characters. They are usually added to preserve spaces when passing
-        value thru shell.
-
-        Examples
-        --------
-        >>> _unquote('val\ ue')
-        value
-
-        >>> _unquote("hel\ lo")
-        hello
-
-        Parameters
-        ----------
-        value : str
-            Input to unquote
-
-        Returns
-        -------
-        Unquoted string
-        """
-        if value and (value[0] == value[-1] == '"'):
-            # Remove quotes only if the string is wrapped in quotes
-            value = value.strip('"')
-
-        return value.replace("\\ ", " ").replace('\\"', '"')
 
 
 class CfnMetadataType(click.ParamType):
@@ -121,8 +137,10 @@ class CfnMetadataType(click.ParamType):
     """
 
     _EXAMPLE = 'KeyName1=string,KeyName2=string or {"string":"string"}'
+    # Use this regex when you have comma as delimiter Ex: "KeyName1=string,KeyName2=string"
+    VALUE_REGEX_COMMA_DELIM = _generate_match_regex(match_pattern=".", delim=",")
 
-    _pattern = r"(?:{key}={value})".format(key=KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
+    _pattern = r"(?:{key}={value})".format(key=PARAM_AND_METADATA_KEY_REGEX, value=VALUE_REGEX_COMMA_DELIM)
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -167,8 +185,10 @@ class CfnTags(click.ParamType):
     """
 
     _EXAMPLE = "KeyName1=string KeyName2=string"
+    # Tags have additional constraints and they allow "+ - = . _ : / @" apart from alpha-numerics.
+    TAG_REGEX = '[A-Za-z0-9\\"_:\\.\\/\\+-\\@=]'
 
-    _pattern = r"{key}={value}".format(key=KEY_REGEX, value=VALUE_REGEX_SPACE_DELIM)
+    _pattern = r"{tag}={tag}".format(tag=_generate_match_regex(match_pattern=TAG_REGEX, delim=" "))
 
     # NOTE(TheSriram): name needs to be added to click.ParamType requires it.
     name = ""
@@ -191,7 +211,7 @@ class CfnTags(click.ParamType):
             for group in groups:
                 key, v = group
                 # assign to result['KeyName1'] = string and so on.
-                result[key] = v
+                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(v)
 
             if fail:
                 return self.fail(

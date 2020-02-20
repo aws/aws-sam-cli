@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import uuid
 import time
@@ -12,11 +13,11 @@ from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD and when the branch is not master.
-SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary.
+SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 TIMEOUT = 300
 
@@ -31,6 +32,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         super(TestDeploy, self).setUp()
 
     def tearDown(self):
+        shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack_name in self.stack_names:
             self.cf_client.delete_stack(StackName=stack_name)
         super(TestDeploy, self).tearDown()
@@ -68,7 +70,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 parameter_overrides="Parameter=Clarity",
                 kms_key_id=self.kms_key,
                 no_execute_changeset=True,
-                tags="integ=true clarity=yes",
+                tags="integ=true clarity=yes foo_bar=baz",
             )
 
             deploy_process_no_execute = Popen(deploy_command_list_no_execute, stdout=PIPE)
@@ -89,7 +91,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 notification_arns=self.sns_arn,
                 parameter_overrides="Parameter=Clarity",
                 kms_key_id=self.kms_key,
-                tags="integ=true clarity=yes",
+                tags="integ=true clarity=yes foo_bar=baz",
             )
 
             deploy_process = Popen(deploy_command_list_execute, stdout=PIPE)
@@ -119,6 +121,46 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = Popen(deploy_command_list, stdout=PIPE)
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
+        self.assertEqual(deploy_process_execute.returncode, 0)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_no_redeploy_on_same_built_artifacts(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        # Build project
+        build_command_list = self.get_minimal_build_command_list(template_file=template_path)
+
+        build_process = Popen(build_command_list, stdout=PIPE)
+        try:
+            build_process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            build_process.kill()
+            raise
+
+        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set on a built template.
+        # Should result in a zero exit code.
+        deploy_command_list = self.get_deploy_command_list(
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
             tags="integ=true clarity=yes",
             confirm_changeset=False,
         )
@@ -130,6 +172,26 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             deploy_process_execute.kill()
             raise
         self.assertEqual(deploy_process_execute.returncode, 0)
+        # ReBuild project, absolutely nothing has changed, will result in same build artifacts.
+
+        build_process = Popen(build_command_list, stdout=PIPE)
+        try:
+            build_process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            build_process.kill()
+            raise
+
+        # Re-deploy, this should cause an empty changeset error and not re-deploy.
+        # This will cause a non zero exit code.
+
+        deploy_process_execute = Popen(deploy_command_list, stdout=PIPE)
+        try:
+            deploy_process_execute.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            deploy_process_execute.kill()
+            raise
+        # Does not cause a re-deploy
+        self.assertEqual(deploy_process_execute.returncode, 1)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_no_package_and_deploy_with_s3_bucket_all_args_confirm_changeset(self, template_file):
@@ -150,7 +212,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=True,
         )
 
@@ -175,7 +237,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -210,7 +272,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -239,7 +301,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -265,7 +327,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -297,7 +359,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
         )
 
@@ -322,7 +384,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             parameter_overrides="Parameter=Clarity",
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
-            tags="integ=true clarity=yes",
+            tags="integ=true clarity=yes foo_bar=baz",
             confirm_changeset=False,
             region="eu-west-2",
         )
@@ -363,7 +425,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             "parameter_overrides": "Parameter=Clarity",
             "kms_key_id": self.kms_key,
             "no_execute_changeset": False,
-            "tags": "integ=true clarity=yes",
+            "tags": "integ=true clarity=yes foo_bar=baz",
             "confirm_changeset": False,
         }
         # Package and Deploy in one go without confirming change set.
@@ -411,7 +473,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             "parameter_overrides": "Parameter=Clarity",
             "kms_key_id": self.kms_key,
             "no_execute_changeset": False,
-            "tags": "integ=true clarity=yes",
+            "tags": "integ=true clarity=yes foo_bar=baz",
             "confirm_changeset": False,
         }
         deploy_command_list = self.get_deploy_command_list(**kwargs)

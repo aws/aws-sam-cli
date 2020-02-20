@@ -118,7 +118,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 664d7928-e50c-403a-9f59-d9bf93bc5c9b
-      Runtime: nodejs6.10
+      Runtime: nodejs10.x
       Events:
         GetApi:
           Type: Api
@@ -163,4 +163,4 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 664d7928-e50c-403a-9f59-d9bf93bc5c9b
-      Runtime: nodejs6.10
+      Runtime: nodejs10.x
