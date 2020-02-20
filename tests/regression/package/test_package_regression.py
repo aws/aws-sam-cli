@@ -22,19 +22,13 @@ class TestPackageRegression(PackageRegressionBase):
 
     @parameterized.expand(
         [
-            "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-stack.yaml",
-            "aws-serverless-application.yaml",
-            "aws-lambda-layerversion.yaml",
-            "aws-serverless-layerversion.yaml",
-            "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
         ]
     )
@@ -46,19 +40,13 @@ class TestPackageRegression(PackageRegressionBase):
 
     @parameterized.expand(
         [
-            "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-stack.yaml",
-            "aws-serverless-application.yaml",
-            "aws-lambda-layerversion.yaml",
-            "aws-serverless-layerversion.yaml",
-            "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
         ]
     )
@@ -74,19 +62,13 @@ class TestPackageRegression(PackageRegressionBase):
 
     @parameterized.expand(
         [
-            "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
-            "aws-lambda-function.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-cloudformation-stack.yaml",
-            "aws-serverless-application.yaml",
-            "aws-lambda-layerversion.yaml",
-            "aws-serverless-layerversion.yaml",
-            "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
         ]
     )
