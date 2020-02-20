@@ -109,6 +109,7 @@ def get_workflow_config(runtime, code_dir, project_dir):
         "nodejs10.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "nodejs12.x": BasicWorkflowSelector(NODEJS_NPM_CONFIG),
         "ruby2.5": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
+        "ruby2.7": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnetcore2.0": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),

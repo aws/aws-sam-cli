@@ -22,7 +22,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "ruby": [
         {
-            "runtimes": ["ruby2.5"],
+            "runtimes": ["ruby2.5", "ruby2.7"],
             "dependency_manager": "bundler",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
             "build": True,
@@ -74,6 +74,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "python3.6": ["pip"],
     "python2.7": ["pip"],
     "ruby2.5": ["bundler"],
+    "ruby2.7": ["bundler"],
     "nodejs12.x": ["npm"],
     "nodejs10.x": ["npm"],
     "dotnetcore2.1": ["cli-package"],
@@ -100,7 +101,7 @@ INIT_RUNTIMES = [
     # latest of each runtime version
     "nodejs12.x",
     "python3.8",
-    "ruby2.5",
+    "ruby2.7",
     "go1.x",
     "java11",
     "dotnetcore2.1",
@@ -111,6 +112,7 @@ INIT_RUNTIMES = [
     "python3.6",
     "python2.7",
     # older ruby runtimes
+    "ruby2.5",
     # older java runtimes
     "java8",
     # older dotnetcore runtimes
