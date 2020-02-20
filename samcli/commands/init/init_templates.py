@@ -125,14 +125,16 @@ class InitTemplates:
             return False
 
     def _clone_repo(self):
+        # from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
         if not self._auto_clone:
             return  # Unit test escape hatch
         # check if we have templates stored already
-        shared_dir = global_cfg.config_dir
+        shared_dir = global_cfg.config_dir # /home/appveyor/.aws-sam
         if not self._shared_dir_check(shared_dir):
             # Nothing we can do if we can't access the shared config directory, use bundled.
             return
-        expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name))
+        expected_path = os.path.normpath(os.path.join(shared_dir, self._repo_name)) # /home/appveyor/.aws-sam/aws-sam-cli-app-templates
+        # Permission to .aws-sam -> dr-------T   2 appveyor appveyor  4096 Feb 21 01:22 .aws-sam
         if self._template_directory_exists(expected_path):
             self._overwrite_existing_templates(shared_dir, expected_path)
         else:

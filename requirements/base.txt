@@ -13,3 +13,4 @@ requests==2.22.0
 serverlessrepo==0.1.9
 aws_lambda_builders==0.7.0
 tomlkit==0.5.8
+remote-pdb
