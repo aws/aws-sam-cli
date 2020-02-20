@@ -157,12 +157,6 @@ Y
             runner = CliRunner()
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
 
-            print("#########################")
-            print(result.stdout)
-            print("#########################")
-            print(result.output)
-            print("#########################")
-
             self.assertFalse(result.exception)
             expected_output_folder = Path(temp, "eb-app-maven")
             self.assertTrue(expected_output_folder.exists)
@@ -239,6 +233,12 @@ N
         with tempfile.TemporaryDirectory() as temp:
             runner = CliRunner()
             result = runner.invoke(init_cmd, ["--output-dir", temp], input=user_input)
+
+            print("#########################")
+            print(result.stdout)
+            print("#########################")
+            print(result.stderr)
+            print("#########################")
 
             self.assertFalse(result.exception)
             expected_output_folder = Path(temp, "eb-app-python37")
