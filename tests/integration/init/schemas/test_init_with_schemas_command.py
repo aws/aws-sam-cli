@@ -28,7 +28,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3
@@ -62,7 +62,7 @@ Y
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3
@@ -109,7 +109,7 @@ Y
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3
@@ -145,7 +145,7 @@ P
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3
