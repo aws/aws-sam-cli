@@ -237,12 +237,12 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @pytest.mark.flaky(reruns=3)
-    @parameterized.expand([("ruby2.5")])
+    @parameterized.expand([("ruby2.5"), ("ruby2.7")])
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container")
 
     @pytest.mark.flaky(reruns=3)
-    @parameterized.expand([("ruby2.5")])
+    @parameterized.expand([("ruby2.5"), ("ruby2.7")])
     def test_building_ruby_in_process(self, runtime):
         self._test_with_default_gemfile(runtime, False)
 
