@@ -493,7 +493,7 @@ class TestServiceParsingLambdaOutput(TestCase):
 
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
-        self.assertEqual(body, "no data")
+        self.assertEqual(body, None)
 
 
 class TestService_construct_event(TestCase):
