@@ -50,6 +50,7 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/api_with_cors_no_definitionbody.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_cors_openapi_3.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_custom_domain_route53.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_custom_domain_route53_hosted_zone_name.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_default_aws_iam_auth.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_default_aws_iam_auth_and_no_auth_route.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_gateway_responses.yaml"),
@@ -58,6 +59,7 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/api_with_gateway_responses_implicit.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_gateway_responses_minimal.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_gateway_responses_string_status_code.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_if_conditional_with_resource_policy.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_incompatible_stage_name.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_ip_range_blacklist.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_ip_range_whitelist.yaml"),
@@ -76,6 +78,8 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/api_with_source_vpc_whitelist.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_stage_tags.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_swagger_and_openapi_with_auth.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_usageplans.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_usageplans_intrinsics.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_xray_tracing.yaml"),
         ("tests/functional/commands/validate/lib/models/basic_function.yaml"),
         ("tests/functional/commands/validate/lib/models/basic_function_with_tags.yaml"),
@@ -97,28 +101,22 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/function_event_conditions.yaml"),
         ("tests/functional/commands/validate/lib/models/function_managed_inline_policy.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_alias.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_alias_and_code_sha256.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_alias_and_event_sources.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_alias_intrinsics.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_condition.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy.yaml"),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy_and_ref_no_value.yaml"
-        ),
+        ("tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy_and_ref_no_value.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_conditional_policy_template.yaml"),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_conditional_policy_template_and_ref_no_value.yaml"
-        ),
+        ("tests/functional/commands/validate/lib/models/function_with_conditional_policy_template_and_ref_no_value.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_custom_codedeploy_deployment_preference.yaml"),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"
-        ),
+        ("tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_and_custom_role.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_no_service_role.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_preference.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_deployment_preference_all_parameters.yaml"),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"
-        ),
+        ("tests/functional/commands/validate/lib/models/function_with_deployment_preference_from_parameters.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_disabled_deployment_preference.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_dlq.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_event_dest.yaml"),
@@ -178,7 +176,18 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/sns_topic_outside_template.yaml"),
         ("tests/functional/commands/validate/lib/models/sqs.yaml"),
         ("tests/functional/commands/validate/lib/models/streams.yaml"),
-        ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml"),
+        ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml")
+    ]
+        (
+            "tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy_and_ref_no_value.yaml"
+        ),
+            "tests/functional/commands/validate/lib/models/function_with_conditional_policy_template_and_ref_no_value.yaml"
+        ),
+            "tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"
+        ),
+        (
+            "tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"
+        ),
     ]
 
     def test_valid_template(self):
