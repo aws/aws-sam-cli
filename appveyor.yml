@@ -124,7 +124,7 @@ for:
 #      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
 #      - "pylint --rcfile .pylintrc samcli"
 #      - "pytest -n 4 tests/functional"
-#      - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
+      - sh: curl -sflL 'https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-ssh.sh' | bash -e -
 
       # Runs only in Linux
 #      - sh: "pytest -vv tests/integration/buildcmd"
