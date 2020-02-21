@@ -2,7 +2,7 @@ import json
 
 from unittest import TestCase
 from unittest.mock import Mock, patch, call
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 from samcli.lib.logs.formatter import LogsFormatter, LambdaLogMsgFormatters, KeywordHighlighter, JSONMsgFormatter
 from samcli.lib.logs.event import LogEvent

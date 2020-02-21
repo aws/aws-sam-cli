@@ -1,5 +1,5 @@
 from unittest import TestCase
-from nose_parameterized import parameterized, param
+from parameterized import parameterized, param
 
 from samcli.lib.utils.colors import Colored
 

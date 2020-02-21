@@ -169,7 +169,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
         self.debug_options = DebugContext(debug_ports=[1235], debug_args="a=b c=d e=f")
 
     def test_must_skip_if_debug_port_is_not_specified(self):
-        self.assertEquals(
+        self.assertEqual(
             (None, {}),
             LambdaContainer._get_debug_settings("runtime", None),
             "Must not provide entrypoint if debug port is not given",

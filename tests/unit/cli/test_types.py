@@ -1,6 +1,6 @@
 from unittest import TestCase
 from unittest.mock import Mock, ANY
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 from samcli.cli.types import CfnParameterOverridesType, CfnTags
 from samcli.cli.types import CfnMetadataType
