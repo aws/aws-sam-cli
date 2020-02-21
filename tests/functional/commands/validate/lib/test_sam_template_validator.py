@@ -176,18 +176,11 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/sns_topic_outside_template.yaml"),
         ("tests/functional/commands/validate/lib/models/sqs.yaml"),
         ("tests/functional/commands/validate/lib/models/streams.yaml"),
-        ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml")
-    ]
-        (
-            "tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy_and_ref_no_value.yaml"
-        ),
-            "tests/functional/commands/validate/lib/models/function_with_conditional_policy_template_and_ref_no_value.yaml"
-        ),
-            "tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"
-        ),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"
-        ),
+        ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy_and_ref_no_value.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_conditional_policy_template_and_ref_no_value.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"),
     ]
 
     def test_valid_template(self):
