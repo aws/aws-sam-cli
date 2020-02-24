@@ -14,6 +14,7 @@ environment:
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
+      INSTALL_PY_38_PIP: 1
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
@@ -21,6 +22,15 @@ environment:
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
+      INSTALL_PY_38_PIP: 1
+
+    - PYTHON_HOME: "C:\\Python38-x64"
+      PYTHON_VERSION: '3.8.0'
+      PYTHON_ARCH: '64'
+      RUN_SMOKE: 1
+      NOSE_PARAMETERIZED_NO_WARN: 1
+      INSTALL_PY_36_PIP: 1
+      INSTALL_PY_37_PIP: 1
 
 for:
   - 
@@ -79,7 +89,7 @@ for:
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
       # Install black
-      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.3b0/black"
+      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
       - sh: "chmod +x /tmp/black"
       - sh: "/tmp/black --version"
 
@@ -102,7 +112,7 @@ for:
       - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
 
       - sh: "sudo apt-get -y install python3-distutils"
-      - sh: "python3.8 get-pip.py --user"
+      - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
 

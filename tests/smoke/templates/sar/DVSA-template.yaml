@@ -928,7 +928,7 @@ Resources:
               - Ref: AWS::AccountId
               - function:*
         Version: '2012-10-17'
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Timeout: 30
     Type: AWS::Serverless::Function
   OrderNewFunction:

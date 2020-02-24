@@ -76,5 +76,5 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 2658129b-dbc7-49f1-97dd-f7a21ed3aa2f
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Description: Log Lex intent to a DynamoDB table

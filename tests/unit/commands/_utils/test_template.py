@@ -1,6 +1,9 @@
 import os
 import copy
+
+import jmespath
 import yaml
+from botocore.utils import set_value_from_jmespath
 
 from unittest import TestCase
 from unittest.mock import patch, mock_open
@@ -13,6 +16,8 @@ from samcli.commands._utils.template import (
     _update_relative_paths,
     move_template,
     get_template_parameters,
+    TemplateNotFoundException,
+    TemplateFailedParsingException,
 )
 
 
@@ -20,7 +25,7 @@ class Test_get_template_data(TestCase):
     def test_must_raise_if_file_does_not_exist(self):
         filename = "filename"
 
-        with self.assertRaises(ValueError) as exception_ctx:
+        with self.assertRaises(TemplateNotFoundException) as exception_ctx:
             get_template_data(filename)
 
         ex = exception_ctx.exception
@@ -80,7 +85,7 @@ class Test_get_template_data(TestCase):
 
         with patch("samcli.commands._utils.template.open", m):
 
-            with self.assertRaises(ValueError) as ex_ctx:
+            with self.assertRaises(TemplateFailedParsingException) as ex_ctx:
                 get_template_data(filename)
 
             actual_exception = ex_ctx.exception
@@ -119,12 +124,10 @@ class Test_update_relative_paths(TestCase):
 
     @parameterized.expand([(resource_type, props) for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items()])
     def test_must_update_relative_resource_paths(self, resource_type, properties):
-
         for propname in properties:
-
             template_dict = {
                 "Resources": {
-                    "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {propname: self.curpath}},
+                    "MyResourceWithRelativePath": {"Type": resource_type, "Properties": {}},
                     "MyResourceWithS3Path": {"Type": resource_type, "Properties": {propname: self.s3path}},
                     "MyResourceWithAbsolutePath": {"Type": resource_type, "Properties": {propname: self.abspath}},
                     "MyResourceWithInvalidPath": {
@@ -141,10 +144,17 @@ class Test_update_relative_paths(TestCase):
                 "Parameters": {"a": "b"},
             }
 
+            set_value_from_jmespath(
+                template_dict, f"Resources.MyResourceWithRelativePath.Properties.{propname}", self.curpath
+            )
+
             expected_template_dict = copy.deepcopy(template_dict)
-            expected_template_dict["Resources"]["MyResourceWithRelativePath"]["Properties"][
-                propname
-            ] = self.expected_result
+
+            set_value_from_jmespath(
+                expected_template_dict,
+                f"Resources.MyResourceWithRelativePath.Properties.{propname}",
+                self.expected_result,
+            )
 
             result = _update_relative_paths(template_dict, self.src, self.dest)
 

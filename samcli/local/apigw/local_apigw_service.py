@@ -7,7 +7,7 @@ import base64
 from flask import Flask, request
 from werkzeug.datastructures import Headers
 
-from samcli.commands.local.lib.provider import Cors
+from samcli.lib.providers.provider import Cors
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -173,7 +173,7 @@ class LocalApigwService(BaseLocalService):
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         method, _ = self.get_request_methods_endpoints(request)
-        if method == "OPTIONS":
+        if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 

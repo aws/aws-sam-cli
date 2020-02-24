@@ -122,7 +122,7 @@ def do_cli(  # pylint: disable=R0914
     """
 
     from samcli.commands.exceptions import UserException
-    from samcli.commands.local.lib.exceptions import InvalidLayerReference
+    from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.commands.local.cli_common.invoke_context import InvokeContext
     from samcli.local.lambdafn.exceptions import FunctionNotFound
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -164,17 +164,19 @@ def do_cli(  # pylint: disable=R0914
                 context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr
             )
 
-    except FunctionNotFound:
-        raise UserException("Function {} not found in template".format(function_identifier))
+    except FunctionNotFound as ex:
+        raise UserException(
+            "Function {} not found in template".format(function_identifier), wrapped_from=ex.__class__.__name__
+        )
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
         DebuggingNotSupported,
     ) as ex:
-        raise UserException(str(ex))
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
     except DockerImagePullFailedException as ex:
-        raise UserException(str(ex))
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
 
 
 def _get_event(event_file_name):

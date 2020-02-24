@@ -8,7 +8,8 @@ from unittest.mock import patch, Mock
 from parameterized import parameterized
 
 from samcli.commands.local.start_api.cli import do_cli as start_api_cli
-from samcli.commands.local.lib.exceptions import NoApisDefined, InvalidLayerReference
+from samcli.commands.local.lib.exceptions import NoApisDefined
+from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError

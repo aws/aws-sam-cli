@@ -1,14 +1,15 @@
-import botocore.exceptions
-
 from unittest import TestCase
 from unittest.mock import patch, ANY
+
+import botocore.exceptions
+import click
 from click.testing import CliRunner
 
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
-from samcli.local.init.exceptions import GenerateProjectFailedError
-from samcli.commands.exceptions import UserException, SchemasApiException
+from samcli.lib.init import GenerateProjectFailedError
+from samcli.commands.exceptions import UserException
 
 
 class MockInitTemplates:
@@ -104,133 +105,10 @@ class TestCli(TestCase):
                 auto_clone=False,
             )
 
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_interactive(self, generate_project_patch, sd_mock):
-        # WHEN the user follows interactive init prompts
-
-        # 1: selecting managed templates
-        # 3: ruby2.5 response to runtime
-        # test-project: response to name
-        # N: Don't clone/update the source repo
-        user_input = """
-1
-3
-test-project
-N
-        """
-        runner = CliRunner()
-        result = runner.invoke(init_cmd, input=user_input)
-
-        # THEN we should receive no errors
-        self.assertFalse(result.exception)
-        generate_project_patch.assert_called_once_with(
-            # need to change the location validation check
-            ANY,
-            "ruby2.5",
-            "bundler",
-            ".",
-            "test-project",
-            True,
-            {"project_name": "test-project", "runtime": "ruby2.5"},
-        )
-
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_interactive_multiple_dep_mgrs(self, generate_project_patch, sd_mock):
-        # WHEN the user follows interactive init prompts
-
-        # 1: selecting managed templates
-        # 5: java8 response to runtime
-        # 2: gradle as the dependency manager
-        # test-project: response to name
-        # N: Don't clone/update the source repo
-        # 1: first app template
-        user_input = """
-1
-5
-2
-test-project
-N
-1
-        """
-        runner = CliRunner()
-        result = runner.invoke(init_cmd, input=user_input)
-
-        # THEN we should receive no errors
-        self.assertFalse(result.exception)
-        generate_project_patch.assert_called_once_with(
-            # need to change the location validation check
-            ANY,
-            "java11",
-            "gradle",
-            ".",
-            "test-project",
-            True,
-            {"project_name": "test-project", "runtime": "java11"},
-        )
-
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_with_app_template(self, generate_project_patch, sd_mock):
-        # WHEN the user follows interactive init prompts
-
-        # 3: ruby2.5 response to runtime
-        # test-project: response to name
-        # N: Don't clone/update the source repo
-        user_input = """
-3
-test-project
-N
-        """
-        runner = CliRunner()
-        result = runner.invoke(init_cmd, ["--app-template", "hello-world"], input=user_input)
-
-        # THEN we should receive no errors
-        self.assertFalse(result.exception)
-        generate_project_patch.assert_called_once_with(
-            # need to change the location validation check
-            ANY,
-            "ruby2.5",
-            "bundler",
-            ".",
-            "test-project",
-            True,
-            {"project_name": "test-project", "runtime": "ruby2.5"},
-        )
-
-    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
-    @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_int_from_location(self, generate_project_patch, sd_mock):
-        # WHEN the user follows interactive init prompts
-
-        # 2: selecting custom location
-        # foo: the "location"
-        user_input = """
-2
-foo
-        """
-
-        runner = CliRunner()
-        result = runner.invoke(init_cmd, input=user_input)
-
-        # THEN we should receive no errors
-        self.assertFalse(result.exception)
-        generate_project_patch.assert_called_once_with(
-            # need to change the location validation check
-            "foo",
-            None,
-            None,
-            ".",
-            None,
-            False,
-            None,
-        )
-
     def test_init_cli_missing_params_fails(self):
         # WHEN we call init without necessary parameters
         # THEN we should receive a UserException
-        with self.assertRaises(UserException):
+        with self.assertRaises(click.UsageError):
             init_cli(
                 self.ctx,
                 no_interactive=True,
@@ -248,7 +126,7 @@ foo
     def test_init_cli_mutually_exclusive_params_fails(self):
         # WHEN we call init without necessary parameters
         # THEN we should receive a UserException
-        with self.assertRaises(UserException):
+        with self.assertRaises(click.UsageError):
             init_cli(
                 self.ctx,
                 no_interactive=self.no_interactive,
@@ -376,7 +254,7 @@ foo
     def test_init_cli_with_extra_context_input_as_wrong_json_raises_exception(self):
         # GIVEN extra_context as wrong json
         # WHEN a sam init is called
-        with self.assertRaises(UserException):
+        with self.assertRaises(click.UsageError):
             init_cli(
                 ctx=self.ctx,
                 no_interactive=self.no_interactive,
@@ -936,4 +814,32 @@ Y
             self.name,
             True,
             self.extra_context_as_json,
+        )
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_int_from_location(self, generate_project_patch, sd_mock):
+        # WHEN the user follows interactive init prompts
+
+        # 2: selecting custom location
+        # foo: the "location"
+        user_input = """
+2
+foo
+        """
+
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+
+        # THEN we should receive no errors
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            "foo",
+            None,
+            None,
+            ".",
+            None,
+            False,
+            None,
         )

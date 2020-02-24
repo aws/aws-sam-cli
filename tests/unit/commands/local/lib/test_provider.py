@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from parameterized import parameterized
 
-from samcli.commands.local.lib.provider import LayerVersion
+from samcli.lib.providers.provider import LayerVersion
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
 

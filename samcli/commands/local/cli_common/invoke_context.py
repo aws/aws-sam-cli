@@ -14,10 +14,10 @@ from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.lambdafn.runtime import LambdaRuntime
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
-from samcli.commands._utils.template import get_template_data
+from samcli.commands._utils.template import get_template_data, TemplateNotFoundException, TemplateFailedParsingException
 from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from .user_exceptions import InvokeContextException, DebugContextException
-from ..lib.sam_function_provider import SamFunctionProvider
 
 
 class InvokeContext:
@@ -277,7 +277,7 @@ class InvokeContext:
 
         try:
             return get_template_data(template_file)
-        except ValueError as ex:
+        except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
             raise InvokeContextException(str(ex))
 
     @staticmethod

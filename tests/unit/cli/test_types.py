@@ -188,7 +188,15 @@ class TestCfnTags(TestCase):
 
         self.param_type.fail.assert_called_with(ANY, "param", "ctx")
 
-    @parameterized.expand([(("a=b",), {"a": "b"}), (("a=b", "c=d"), {"a": "b", "c": "d"}), (("",), {})])
+    @parameterized.expand(
+        [
+            (("a=b",), {"a": "b"}),
+            (("a=b", "c=d"), {"a": "b", "c": "d"}),
+            (('"a+-=._:/@"="b+-=._:/@" "--c="="=d/"',), {"a+-=._:/@": "b+-=._:/@", "--c=": "=d/"}),
+            (('owner:name="son of anton"',), {"owner:name": "son of anton"}),
+            (("",), {}),
+        ]
+    )
     def test_successful_parsing(self, input, expected):
         result = self.param_type.convert(input, None, None)
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))

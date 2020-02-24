@@ -73,6 +73,16 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ),
         )
 
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         expected = {"pi": "3.14"}
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -178,6 +188,17 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
                 str(self.default_build_dir),
             ),
         )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
@@ -216,12 +237,12 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @pytest.mark.flaky(reruns=3)
-    @parameterized.expand([("ruby2.5")])
+    @parameterized.expand([("ruby2.5"), ("ruby2.7")])
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container")
 
     @pytest.mark.flaky(reruns=3)
-    @parameterized.expand([("ruby2.5")])
+    @parameterized.expand([("ruby2.5"), ("ruby2.7")])
     def test_building_ruby_in_process(self, runtime):
         self._test_with_default_gemfile(runtime, False)
 
@@ -253,6 +274,17 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
                 str(self.default_build_dir),
             ),
         )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
@@ -377,6 +409,16 @@ class TestBuildCommand_Java(BuildIntegBase):
             ),
         )
 
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         # If we are testing in the container, invoke the function as well. Otherwise we cannot guarantee docker is on appveyor
         if use_container:
             expected = "Hello World"
@@ -480,6 +522,16 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             ),
         )
 
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
         expected = "{'message': 'Hello World'}"
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
@@ -511,6 +563,99 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_Go_Modules(BuildIntegBase):
+
+    FUNCTION_LOGICAL_ID = "Function"
+    EXPECTED_FILES_PROJECT_MANIFEST = {"hello-world"}
+
+    @pytest.mark.flaky(reruns=3)
+    @parameterized.expand([("go1.x", "Go", None), ("go1.x", "Go", "debug")])
+    def test_with_go(self, runtime, code_uri, mode):
+        overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
+        cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
+
+        # Need to pass GOPATH ENV variable to match the test directory when running build
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        LOG.info("Running with SAM_BUILD_MODE={}".format(mode))
+
+        newenv = os.environ.copy()
+        if mode:
+            newenv["SAM_BUILD_MODE"] = mode
+
+        newenv["GOPROXY"] = "direct"
+        newenv["GOPATH"] = str(self.working_dir)
+
+        process = Popen(cmdlist, cwd=self.working_dir, env=newenv, stderr=PIPE)
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+            LOG.info("Go Build STDOUT: {}".format(stdout))
+            LOG.info("Go Build STDERR: {}".format(stderr))
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self._verify_built_artifact(
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "OtherRelativePathResource",
+            "BodyS3Location",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        expected = "{'message': 'Hello World'}"
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
+
+        self.verify_docker_container_cleanedup(runtime)
+
+    @pytest.mark.flaky(reruns=3)
+    @parameterized.expand([("go1.x", "Go")])
+    def test_go_must_fail_with_container(self, runtime, code_uri):
+        use_container = True
+        overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        process = Popen(cmdlist, cwd=self.working_dir)
+        try:
+            process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        # Must error out, because container builds are not supported
+        self.assertEqual(process.returncode, 1)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))

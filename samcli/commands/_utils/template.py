@@ -4,10 +4,22 @@ Utilities to manipulate template
 
 import os
 import pathlib
-import yaml
 
+import jmespath
+import yaml
+from botocore.utils import set_value_from_jmespath
+
+from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import yaml_parse, yaml_dump
 from samcli.commands._utils.resources import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
+
+
+class TemplateNotFoundException(UserException):
+    pass
+
+
+class TemplateFailedParsingException(UserException):
+    pass
 
 
 def get_template_data(template_file):
@@ -25,13 +37,13 @@ def get_template_data(template_file):
     """
 
     if not pathlib.Path(template_file).exists():
-        raise ValueError("Template file not found at {}".format(template_file))
+        raise TemplateNotFoundException("Template file not found at {}".format(template_file))
 
     with open(template_file, "r") as fp:
         try:
             return yaml_parse(fp.read())
         except (ValueError, yaml.YAMLError) as ex:
-            raise ValueError("Failed to parse template: {}".format(str(ex)))
+            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex)))
 
 
 def move_template(src_template_path, dest_template_path, template_dict):
@@ -132,14 +144,15 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
         for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
             properties = resource.get("Properties", {})
-            path = properties.get(path_prop_name)
 
+            path = jmespath.search(path_prop_name, properties)
             updated_path = _resolve_relative_to(path, original_root, new_root)
+
             if not updated_path:
                 # This path does not need to get updated
                 continue
 
-            properties[path_prop_name] = updated_path
+            set_value_from_jmespath(properties, path_prop_name, updated_path)
 
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there

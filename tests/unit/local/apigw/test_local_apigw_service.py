@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch, ANY, MagicMock
 from parameterized import parameterized, param
 from werkzeug.datastructures import Headers
 
-from samcli.commands.local.lib.provider import Api
-from samcli.commands.local.lib.provider import Cors
+from samcli.lib.providers.provider import Api
+from samcli.lib.providers.provider import Cors
 from samcli.local.apigw.local_apigw_service import LocalApigwService, Route
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -44,6 +44,30 @@ class TestApiGatewayService(TestCase):
         self.service.service_response = service_response_mock
 
         request_mock.return_value = ("test", "test")
+
+        result = self.service._request_handler()
+
+        self.assertEqual(result, make_response_mock)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_options_request_must_invoke_lambda(self, request_mock):
+        make_response_mock = Mock()
+
+        self.service.service_response = make_response_mock
+        self.service._get_current_route = MagicMock()
+        self.service._get_current_route.return_value.methods = ["OPTIONS"]
+        self.service._construct_event = Mock()
+
+        parse_output_mock = Mock()
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        self.service._parse_lambda_output = parse_output_mock
+
+        service_response_mock = Mock()
+        service_response_mock.return_value = make_response_mock
+        self.service.service_response = service_response_mock
+
+        request_mock.return_value = ("OPTIONS", "test")
 
         result = self.service._request_handler()
 
@@ -226,13 +250,10 @@ class TestApiGatewayService(TestCase):
         result = self.service._request_handler()
         self.assertEqual(result, failure_mock)
 
-    @patch("samcli.local.apigw.local_apigw_service.request")
-    def test_get_current_route(self, request_patch):
+    def test_get_current_route(self):
         request_mock = Mock()
-        request_mock.endpoint = "path"
-        request_mock.method = "method"
-
-        request_patch.return_value = request_mock
+        request_mock.return_value.endpoint = "path"
+        request_mock.return_value.method = "method"
 
         route_key_method_mock = Mock()
         route_key_method_mock.return_value = "method:path"
@@ -241,8 +262,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(self.service._get_current_route(request_mock), "function")
 
-    @patch("samcli.local.apigw.local_apigw_service.request")
-    def test_get_current_route_keyerror(self, request_patch):
+    def test_get_current_route_keyerror(self):
         """
         When the a HTTP request for given method+path combination is allowed by Flask but not in the list of routes,
         something is messed up. Flask should be configured only from the list of routes.
@@ -251,8 +271,6 @@ class TestApiGatewayService(TestCase):
         request_mock = Mock()
         request_mock.endpoint = "path"
         request_mock.method = "method"
-
-        request_patch.return_value = request_mock
 
         route_key_method_mock = Mock()
         route_key_method_mock.return_value = "method:path"

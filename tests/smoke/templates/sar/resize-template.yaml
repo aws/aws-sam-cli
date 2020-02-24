@@ -7,7 +7,7 @@ Resources:
     Properties:
       Description: Transforms images by resizing to a configured max dimension
       Handler: src/index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 6556286d-fa63-425c-a64d-633c32689d3b

@@ -397,7 +397,67 @@ class TestSamConfigForAllCommands(TestCase):
                 ["notify1", "notify2"],
                 True,
                 True,
-                {"a": "tag1", "b": '"tag with spaces"'},
+                {"a": "tag1", "b": "tag with spaces"},
+                {"m1": "value1", "m2": "value2"},
+                True,
+                True,
+                "myregion",
+                None,
+            )
+
+    @patch("samcli.commands.deploy.command.do_cli")
+    def test_deploy_different_parameter_override_format(self, do_cli_mock):
+
+        config_values = {
+            "template_file": "mytemplate.yaml",
+            "stack_name": "mystack",
+            "s3_bucket": "mybucket",
+            "force_upload": True,
+            "s3_prefix": "myprefix",
+            "kms_key_id": "mykms",
+            "parameter_overrides": 'Key1=Value1 Key2="Multiple spaces in the value"',
+            "capabilities": "cap1 cap2",
+            "no_execute_changeset": True,
+            "role_arn": "arn",
+            "notification_arns": "notify1 notify2",
+            "fail_on_empty_changeset": True,
+            "use_json": True,
+            "tags": 'a=tag1 b="tag with spaces"',
+            "metadata": '{"m1": "value1", "m2": "value2"}',
+            "guided": True,
+            "confirm_changeset": True,
+            "region": "myregion",
+        }
+
+        with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.deploy.command import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(
+                str(Path(os.getcwd(), "mytemplate.yaml")),
+                "mystack",
+                "mybucket",
+                True,
+                "myprefix",
+                "mykms",
+                {"Key1": "Value1", "Key2": "Multiple spaces in the value"},
+                ["cap1", "cap2"],
+                True,
+                "arn",
+                ["notify1", "notify2"],
+                True,
+                True,
+                {"a": "tag1", "b": "tag with spaces"},
                 {"m1": "value1", "m2": "value2"},
                 True,
                 True,

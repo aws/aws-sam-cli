@@ -103,11 +103,12 @@ def configuration_callback(cmd_name, option_name, config_env_name, saved_callbac
     ctx.default_map = ctx.default_map or {}
     cmd_name = cmd_name or ctx.info_name
     param.default = None
-    config_env_name = value or config_env_name
+    # explicitly ignore values passed to --config-env, can be opened up in the future.
+    config_env_name = DEFAULT_ENV
     config = get_ctx_defaults(cmd_name, provider, ctx, config_env_name=config_env_name)
     ctx.default_map.update(config)
 
-    return saved_callback(ctx, param, value) if saved_callback else value
+    return saved_callback(ctx, param, config_env_name) if saved_callback else config_env_name
 
 
 def get_ctx_defaults(cmd_name, provider, ctx, config_env_name):
