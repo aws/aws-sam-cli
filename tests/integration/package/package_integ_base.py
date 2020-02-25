@@ -14,7 +14,22 @@ class PackageIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.pre_created_bucket = os.environ.get("AWS_S3", False)
+        """
+        Our integration tests use S3 bucket to run several tests. Given that S3 objects are eventually consistent
+        and we are using same bucket for lot of integration tests, we want to have multiple buckets to reduce
+        transient failures. In order to achieve this we created 3 buckets one for each python version we support (3.6,
+        3.7 and 3.8). Tests running for respective python version will use respective bucket.
+
+        AWS_S3 will point to a new environment variable AWS_S3_36 or AWS_S3_37 or AWS_S3_38. This is controlled by
+        Appveyor. These environment variables will hold bucket name to run integration tests. Eg:
+
+        For Python36:
+        AWS_S3=AWS_S3_36
+        AWS_S3_36=aws-sam-cli-canary-region-awssamclitestbucket-forpython36
+
+        For backwards compatibility we are falling back to reading AWS_S3 so that current tests keep working.
+        """
+        cls.pre_created_bucket = os.environ.get(os.environ.get("AWS_S3", False), os.environ.get("AWS_S3"))
         cls.bucket_name = cls.pre_created_bucket if cls.pre_created_bucket else str(uuid.uuid4())
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "package")
 

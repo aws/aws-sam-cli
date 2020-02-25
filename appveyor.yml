@@ -15,6 +15,7 @@ environment:
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
+      AWS_S3: 'AWS_S3_36'
 
     - PYTHON_HOME: "C:\\Python37-x64"
       PYTHON_VERSION: '3.7.4'
@@ -23,6 +24,7 @@ environment:
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
+      AWS_S3: 'AWS_S3_37'
 
     - PYTHON_HOME: "C:\\Python38-x64"
       PYTHON_VERSION: '3.8.0'
@@ -31,6 +33,7 @@ environment:
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
+      AWS_S3: 'AWS_S3_38'
 
 for:
   - 
