@@ -118,7 +118,7 @@ class InitTemplates:
 
     def _shared_dir_check(self, shared_dir):
         try:
-            shared_dir.mkdir(mode=0x700, parents=True, exist_ok=True)
+            shared_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
             return True
         except OSError as ex:
             LOG.warning("WARN: Unable to create shared directory.", exc_info=ex)
