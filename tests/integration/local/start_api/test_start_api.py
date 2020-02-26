@@ -528,7 +528,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "no data")
+        self.assertEqual(response.content.decode("utf-8"), "")
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
     @pytest.mark.flaky(reruns=3)
@@ -557,12 +557,12 @@ class TestServiceResponses(StartApiIntegBaseClass):
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_body(self):
         """
-        Test that if no body is given, the response is 'no data'
+        Test that if no body is given, the response is ''
         """
         response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "no data")
+        self.assertEqual(response.content.decode("utf-8"), "")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -883,7 +883,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "no data")
+        self.assertEqual(response.content.decode("utf-8"), "")
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
