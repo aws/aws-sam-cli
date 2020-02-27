@@ -16,7 +16,8 @@ class PublishAppIntegBase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.region_name = os.environ.get("AWS_DEFAULT_REGION")
-        cls.pre_created_bucket = os.environ.get("AWS_S3", False)
+        """Please read comments in package_integ_base.py for more details around this."""
+        cls.pre_created_bucket = os.environ.get(os.environ.get("AWS_S3"), False)
         cls.bucket_name = cls.pre_created_bucket if cls.pre_created_bucket else str(uuid.uuid4())
         cls.bucket_name_placeholder = "<bucket-name>"
         cls.application_name_placeholder = "<application-name>"
