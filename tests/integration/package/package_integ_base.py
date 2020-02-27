@@ -29,7 +29,10 @@ class PackageIntegBase(TestCase):
 
         For backwards compatibility we are falling back to reading AWS_S3 so that current tests keep working.
         """
-        cls.pre_created_bucket = os.environ.get(os.environ.get("AWS_S3", False), os.environ.get("AWS_S3"))
+        cls.pre_created_bucket = os.environ.get(
+            os.environ.get("AWS_S3", False),  # Reading env var key for specific bucket.
+            os.environ.get("AWS_S3"),  # Fallback to old logic if separate env key not present.
+        )
         cls.bucket_name = cls.pre_created_bucket if cls.pre_created_bucket else str(uuid.uuid4())
         cls.test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "package")
 
