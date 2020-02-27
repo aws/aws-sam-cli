@@ -134,7 +134,8 @@ Y
 aws_access_key_id = {access_key}
 aws_secret_access_key = {secret_key}
 """
-        cred_profile_content += f"aws_session_token={session_token}\n"
+        if session_token:
+            cred_profile_content += f"aws_session_token={session_token}\n"
         return cred_profile_content
 
 
