@@ -4,7 +4,7 @@ import os
 import tempfile
 
 from subprocess import Popen, PIPE, TimeoutExpired
-from nose_parameterized import parameterized, param
+from parameterized import parameterized, param
 import pytest
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase

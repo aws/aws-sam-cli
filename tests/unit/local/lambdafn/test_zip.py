@@ -9,7 +9,7 @@ from unittest import TestCase
 from unittest import skipIf
 
 from unittest.mock import Mock, patch
-from nose_parameterized import parameterized, param
+from parameterized import parameterized, param
 
 from samcli.local.lambdafn.zip import unzip, unzip_from_uri, _override_permissions
 
