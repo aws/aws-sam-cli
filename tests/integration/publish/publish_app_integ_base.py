@@ -54,13 +54,14 @@ class PublishAppIntegBase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.s3_bucket.delete_objects(
-            Delete={
-                "Objects": [{"Key": "LICENSE"}, {"Key": "README.md"}, {"Key": "README_UPDATE.md"}, {"Key": "main.py"}]
-            }
-        )
-        if not cls.pre_created_bucket:
-            cls.s3_bucket.delete()
+        # cls.s3_bucket.delete_objects(
+        #     Delete={
+        #         "Objects": [{"Key": "LICENSE"}, {"Key": "README.md"}, {"Key": "README_UPDATE.md"}, {"Key": "main.py"}]
+        #     }
+        # )
+        # if not cls.pre_created_bucket:
+        #     cls.s3_bucket.delete()
+        pass
 
     @classmethod
     def replace_template_placeholder(cls, placeholder, replace_text):
