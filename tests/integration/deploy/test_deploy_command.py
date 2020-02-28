@@ -86,7 +86,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 tags="integ=true clarity=yes foo_bar=baz",
             )
 
-            deploy_process = self._run_command(deploy_command_list_execute, tag="pnd_no_s3_bucket")
+            deploy_process = self._run_command(deploy_command_list_execute)
             self.assertEqual(deploy_process.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -112,7 +112,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list, "no_pnd_with_s3_all_args")
+        deploy_process_execute = self._run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -121,7 +121,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Build project
         build_command_list = self.get_minimal_build_command_list(template_file=template_path)
 
-        self._run_command(build_command_list, "deploy_no_redeploy_on_same_built_artifacts")
+        self._run_command(build_command_list)
         stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
         self.stack_names.append(stack_name)
 
