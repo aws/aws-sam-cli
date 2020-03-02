@@ -80,6 +80,7 @@ for:
         - image: Ubuntu
 
     install:
+      - sh: "gvm use go1.13"
       - sh: "echo $PATH"
       - sh: "ls /usr/"
       - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
