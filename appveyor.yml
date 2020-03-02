@@ -80,6 +80,8 @@ for:
         - image: Ubuntu
 
     install:
+      - sh: "echo $PATH"
+      - sh: "ls /usr/"
       - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
