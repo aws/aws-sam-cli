@@ -127,6 +127,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self._run_command(build_command_list)
         method_name = self.id().split(".")[-1]
         stack_name = f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
+        self.stack_names.append(stack_name)
         # Should result in a zero exit code.
         deploy_command_list = self.get_deploy_command_list(
             stack_name=stack_name,
