@@ -53,7 +53,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
             self.assertEqual(package_process.process.returncode, 0)
 
-            stack_name = f"test-package-and-deploy-no-s3-bucket-all-args-{CFN_PYTHON_VERSION_SUFFIX}"
+            method_name = self.id().split(".")[1]
+            stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
             self.stack_names.append(stack_name)
 
             # Deploy and only show changeset.
@@ -94,7 +95,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_no_package_and_deploy_with_s3_bucket_all_args(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-no-package-and-deploy-with-s3-bucket-all-args-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -123,7 +125,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         build_command_list = self.get_minimal_build_command_list(template_file=template_path)
 
         self._run_command(build_command_list)
-        stack_name = f"test-deploy-no-redeploy-on-same-built-artifacts-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         # Should result in a zero exit code.
         deploy_command_list = self.get_deploy_command_list(
             stack_name=stack_name,
@@ -156,7 +159,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_no_package_and_deploy_with_s3_bucket_all_args_confirm_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-no-package-and-deploy-with-s3-bucket-all-args-confirm-changeset-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -182,7 +186,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_without_s3_bucket(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-without-s3-bucket-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -235,7 +240,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_without_capabilities(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-without-capabilities-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -256,7 +262,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_without_template_file(self, template_file):
-        stack_name = f"test-deploy-without-template-file-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -279,7 +286,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_with_s3_bucket_switch_region(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-with-s3-bucket-switch-region-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -336,7 +344,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_twice_with_no_fail_on_empty_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-twice-with-no-fail-on-empty-changeset-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         kwargs = {
@@ -373,7 +382,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_twice_with_fail_on_empty_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-twice-with-fail-on-empty-changeset-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -409,7 +419,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     @parameterized.expand(["aws-serverless-inline.yaml"])
     def test_deploy_inline_no_package(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        stack_name = f"test-deploy-inline-no-package-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         deploy_command_list = self.get_deploy_command_list(
@@ -422,7 +433,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_guided(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-guided-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -442,7 +454,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_guided_set_parameter(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-guided-set-parameter-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -462,7 +475,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_guided_set_capabilities(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-guided-set-capabilities-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -482,7 +496,8 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_guided_set_confirm_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = f"test-deploy-guided-set-confirm-changeset-{CFN_PYTHON_VERSION_SUFFIX}"
+        method_name = self.id().split(".")[1]
+        stack_name = f"{method_name.replace('.', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
