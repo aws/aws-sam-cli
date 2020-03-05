@@ -53,17 +53,6 @@ class PublishAppIntegBase(TestCase):
         cls.s3_bucket.put_object(Key="main.py", Body=code_body)
 
     @classmethod
-    def tearDownClass(cls):
-        # cls.s3_bucket.delete_objects(
-        #     Delete={
-        #         "Objects": [{"Key": "LICENSE"}, {"Key": "README.md"}, {"Key": "README_UPDATE.md"}, {"Key": "main.py"}]
-        #     }
-        # )
-        # if not cls.pre_created_bucket:
-        #     cls.s3_bucket.delete()
-        pass
-
-    @classmethod
     def replace_template_placeholder(cls, placeholder, replace_text):
         for f in cls.temp_dir.iterdir():
             if f.suffix == ".yaml" or f.suffix == ".json":
