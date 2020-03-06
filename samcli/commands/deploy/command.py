@@ -114,7 +114,7 @@ LOG = logging.getLogger(__name__)
     "non-zero exit code.",
 )
 @click.option(
-    "--confirm-changeset",
+    "--confirm-changeset/--no-confirm-changeset",
     required=False,
     is_flag=True,
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
