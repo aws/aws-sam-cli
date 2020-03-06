@@ -5,7 +5,7 @@ import copy
 import tempfile
 from unittest import skipIf
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
 import pytest

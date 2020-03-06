@@ -4,7 +4,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from unittest.mock import patch
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_provider import ApiProvider

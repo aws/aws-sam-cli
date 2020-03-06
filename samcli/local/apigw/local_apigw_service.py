@@ -266,7 +266,9 @@ class LocalApigwService(BaseLocalService):
         headers = LocalApigwService._merge_response_headers(
             json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
         )
-        body = json_output.get("body") or "no data"
+        body = json_output.get("body")
+        if body is None:
+            LOG.warning("Lambda returned empty body!")
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
         try:
