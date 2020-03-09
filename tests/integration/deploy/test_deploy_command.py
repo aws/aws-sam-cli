@@ -21,7 +21,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 TIMEOUT = 300
-CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "3.6.9").replace(".", "-")
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
 
