@@ -4,13 +4,11 @@ import logging
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized
-from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
 
 from .build_integ_base import BuildIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
-
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, _run_command
 
 LOG = logging.getLogger(__name__)
 
@@ -52,12 +50,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        process = Popen(cmdlist, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        _run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -122,17 +115,10 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        process = Popen(cmdlist, cwd=self.working_dir, stdout=PIPE)
-        try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(1, process_execute.process.returncode)
 
-        process_stdout = stdout.strip().decode("utf-8")
-        self.assertEqual(1, process.returncode)
-
-        self.assertIn("Build Failed", process_stdout)
+        self.assertIn("Build Failed", str(process_execute.stdout))
 
 
 @skipIf(
@@ -165,12 +151,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        process = Popen(cmdlist, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        _run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -251,12 +232,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process = Popen(cmdlist, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        _run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -388,12 +364,7 @@ class TestBuildCommand_Java(BuildIntegBase):
             self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process = Popen(cmdlist, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        _run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, self.EXPECTED_DEPENDENCIES
@@ -501,12 +472,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         if mode:
             newenv["SAM_BUILD_MODE"] = mode
 
-        process = Popen(cmdlist, cwd=self.working_dir, env=newenv)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        _run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -551,15 +517,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process = Popen(cmdlist, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = _run_command(cmdlist, cwd=self.working_dir)
 
         # Must error out, because container builds are not supported
-        self.assertEqual(process.returncode, 1)
+        self.assertEqual(process_execute.process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
 
@@ -607,14 +568,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         newenv["GOPROXY"] = "direct"
         newenv["GOPATH"] = str(self.working_dir)
 
-        process = Popen(cmdlist, cwd=self.working_dir, env=newenv, stderr=PIPE)
-        try:
-            stdout, stderr = process.communicate(timeout=TIMEOUT)
-            LOG.info("Go Build STDOUT: {}".format(stdout))
-            LOG.info("Go Build STDERR: {}".format(stderr))
-        except TimeoutExpired:
-            process.kill()
-            raise
+        _run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -645,15 +599,10 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process = Popen(cmdlist, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        process_execute = _run_command(cmdlist, cwd=self.working_dir)
 
         # Must error out, because container builds are not supported
-        self.assertEqual(process.returncode, 1)
+        self.assertEqual(process_execute.process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -694,11 +643,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(parameter_overrides=overrides, function_identifier="FunctionNotInTemplate")
 
-        process = Popen(cmdlist, cwd=self.working_dir, stderr=PIPE)
-        _, stderr = process.communicate(timeout=TIMEOUT)
+        process_execute = _run_command(cmdlist, cwd=self.working_dir)
 
-        self.assertEqual(process.returncode, 1)
-        self.assertIn("FunctionNotInTemplate not found", str(stderr.decode("utf8")))
+        self.assertEqual(process_execute.process.returncode, 1)
+        self.assertIn("FunctionNotInTemplate not found", str(process_execute.stderr))
 
     @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
@@ -716,12 +664,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         )
 
         LOG.info("Running Command: {}", cmdlist)
-        process = Popen(cmdlist, cwd=self.working_dir)
-        try:
-            process.communicate(timeout=TIMEOUT)
-        except TimeoutExpired:
-            process.kill()
-            raise
+        _run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
 
