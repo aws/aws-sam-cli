@@ -100,7 +100,8 @@ class TestLambdaOutputParser(TestCase):
             ),
             param(
                 '{"errorMessage": "has a message", "stackTrace": "has a stacktrace", "errorType": "has a type",'
-                '"cause": "has a cause"}', True
+                '"cause": "has a cause"}', 
+                True,
             ),
             param('{"errorMessage": "has a message", "errorType": "has a type"}', True),
             param(
