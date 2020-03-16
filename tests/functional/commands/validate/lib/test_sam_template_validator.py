@@ -189,6 +189,7 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/sns_topic_outside_template.yaml"),
         ("tests/functional/commands/validate/lib/models/sqs.yaml"),
         ("tests/functional/commands/validate/lib/models/streams.yaml"),
+        ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml"),
     ]
 
     def test_valid_template(self):
