@@ -13,7 +13,7 @@ from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
-from tests.testing_utils import CommandResult, _run_command, _run_command_with_input
+from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary.
@@ -46,7 +46,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             package_command_list = self.get_command_list(
                 s3_bucket=self.s3_bucket.name, template=template_path, output_template_file=output_template_file.name
             )
-            package_process = _run_command(command_list=package_command_list)
+            package_process = run_command(command_list=package_command_list)
 
             self.assertEqual(package_process.process.returncode, 0)
 
@@ -68,7 +68,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 tags="integ=true clarity=yes foo_bar=baz",
             )
 
-            deploy_process_no_execute = _run_command(deploy_command_list_no_execute)
+            deploy_process_no_execute = run_command(deploy_command_list_no_execute)
             self.assertEqual(deploy_process_no_execute.process.returncode, 0)
 
             # Deploy the given stack with the changeset.
@@ -84,7 +84,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 tags="integ=true clarity=yes foo_bar=baz",
             )
 
-            deploy_process = _run_command(deploy_command_list_execute)
+            deploy_process = run_command(deploy_command_list_execute)
             self.assertEqual(deploy_process.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -110,7 +110,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -119,7 +119,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Build project
         build_command_list = self.get_minimal_build_command_list(template_file=template_path)
 
-        _run_command(build_command_list)
+        run_command(build_command_list)
         stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
         # Should result in a zero exit code.
@@ -137,16 +137,16 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         # ReBuild project, absolutely nothing has changed, will result in same build artifacts.
 
-        _run_command(build_command_list)
+        run_command(build_command_list)
 
         # Re-deploy, this should cause an empty changeset error and not re-deploy.
         # This will cause a non zero exit code.
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Does not cause a re-deploy
         self.assertEqual(deploy_process_execute.process.returncode, 1)
 
@@ -173,7 +173,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=True,
         )
 
-        deploy_process_execute = _run_command_with_input(deploy_command_list, "Y".encode())
+        deploy_process_execute = run_command_with_input(deploy_command_list, "Y".encode())
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -197,7 +197,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Error asking for s3 bucket
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn(
@@ -226,7 +226,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 2)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -249,7 +249,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 1)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -269,7 +269,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Error template file not specified
         self.assertEqual(deploy_process_execute.process.returncode, 1)
 
@@ -296,7 +296,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
@@ -317,7 +317,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             region="eu-west-2",
         )
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Deploy should fail, asking for s3 bucket
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         stderr = deploy_process_execute.stderr.strip()
@@ -354,14 +354,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(**kwargs)
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
         # Deploy with `--no-fail-on-empty-changeset` after deploying the same template first
         deploy_command_list = self.get_deploy_command_list(fail_on_empty_changeset=False, **kwargs)
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Deploy should not fail
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         stdout = deploy_process_execute.stdout.strip()
@@ -391,14 +391,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         }
         deploy_command_list = self.get_deploy_command_list(**kwargs)
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
         # Deploy with `--fail-on-empty-changeset` after deploying the same template first
         deploy_command_list = self.get_deploy_command_list(fail_on_empty_changeset=True, **kwargs)
 
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         # Deploy should not fail
         self.assertNotEqual(deploy_process_execute.process.returncode, 0)
         stderr = deploy_process_execute.stderr.strip()
@@ -413,7 +413,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM"
         )
-        deploy_process_execute = _run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -426,7 +426,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = _run_command_with_input(
+        deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n\n\n\n\n\n".format(stack_name).encode()
         )
 
@@ -446,7 +446,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = _run_command_with_input(
+        deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n\nSuppliedParameter\n\n\n\n".format(stack_name).encode()
         )
 
@@ -466,7 +466,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = _run_command_with_input(
+        deploy_process_execute = run_command_with_input(
             deploy_command_list,
             "{}\n\nSuppliedParameter\n\nn\nCAPABILITY_IAM CAPABILITY_NAMED_IAM\n\n".format(stack_name).encode(),
         )
@@ -486,7 +486,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = _run_command_with_input(
+        deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n\nSuppliedParameter\nY\n\n\nY\n".format(stack_name).encode()
         )
 

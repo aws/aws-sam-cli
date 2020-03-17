@@ -8,7 +8,7 @@ from parameterized import parameterized
 import pytest
 
 from .build_integ_base import BuildIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, _run_command
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
 LOG = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -115,7 +115,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
 
         self.assertIn("Build Failed", str(process_execute.stdout))
@@ -151,7 +151,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -232,7 +232,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -364,7 +364,7 @@ class TestBuildCommand_Java(BuildIntegBase):
             self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, self.EXPECTED_DEPENDENCIES
@@ -472,7 +472,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         if mode:
             newenv["SAM_BUILD_MODE"] = mode
 
-        _run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -517,7 +517,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
 
         # Must error out, because container builds are not supported
         self.assertEqual(process_execute.process.returncode, 1)
@@ -568,7 +568,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         newenv["GOPROXY"] = "direct"
         newenv["GOPATH"] = str(self.working_dir)
 
-        _run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -599,7 +599,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
 
         # Must error out, because container builds are not supported
         self.assertEqual(process_execute.process.returncode, 1)
@@ -643,7 +643,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(parameter_overrides=overrides, function_identifier="FunctionNotInTemplate")
 
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(process_execute.process.returncode, 1)
         self.assertIn("FunctionNotInTemplate not found", str(process_execute.stderr))
@@ -664,7 +664,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         )
 
         LOG.info("Running Command: {}", cmdlist)
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
 

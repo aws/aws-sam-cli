@@ -13,7 +13,7 @@ import jmespath
 from pathlib import Path
 
 from samcli.yamlhelper import yaml_parse
-from tests.testing_utils import IS_WINDOWS, _run_command
+from tests.testing_utils import IS_WINDOWS, run_command
 
 LOG = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ class BuildIntegBase(TestCase):
             overrides,
         ]
 
-        process_execute = _run_command(cmdlist)
+        process_execute = run_command(cmdlist)
         process_execute.process.wait()
 
         process_stdout = process_execute.stdout.decode("utf-8")
