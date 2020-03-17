@@ -34,7 +34,9 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/api_with_aws_account_whitelist.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_aws_iam_auth_overrides.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_basic_custom_domain.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_basic_custom_domain_http.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_basic_custom_domain_intrinsics.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_basic_custom_domain_intrinsics_http.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_binary_media_types.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_binary_media_types_definition_body.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_canary_setting.yaml"),
@@ -51,6 +53,8 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/api_with_cors_openapi_3.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_custom_domain_route53.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_custom_domain_route53_hosted_zone_name.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_custom_domain_route53_hosted_zone_name_http.yaml"),
+        ("tests/functional/commands/validate/lib/models/api_with_custom_domain_route53_http.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_default_aws_iam_auth.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_default_aws_iam_auth_and_no_auth_route.yaml"),
         ("tests/functional/commands/validate/lib/models/api_with_gateway_responses.yaml"),
@@ -149,6 +153,7 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/http_api_existing_openapi.yaml"),
         ("tests/functional/commands/validate/lib/models/http_api_existing_openapi_conditions.yaml"),
         ("tests/functional/commands/validate/lib/models/http_api_explicit_stage.yaml"),
+        ("tests/functional/commands/validate/lib/models/http_api_with_cors.yaml"),
         ("tests/functional/commands/validate/lib/models/implicit_and_explicit_api_with_conditions.yaml"),
         ("tests/functional/commands/validate/lib/models/implicit_api.yaml"),
         ("tests/functional/commands/validate/lib/models/implicit_api_with_auth_and_conditions_max.yaml"),
@@ -185,18 +190,6 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/sqs.yaml"),
         ("tests/functional/commands/validate/lib/models/streams.yaml"),
         ("tests/functional/commands/validate/lib/models/unsupported_resources.yaml"),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_conditional_managed_policy_and_ref_no_value.yaml"
-        ),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_conditional_policy_template_and_ref_no_value.yaml"
-        ),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_custom_conditional_codedeploy_deployment_preference.yaml"
-        ),
-        (
-            "tests/functional/commands/validate/lib/models/function_with_deployment_preference_multiple_combinations.yaml"
-        ),
     ]
 
     def test_valid_template(self):
