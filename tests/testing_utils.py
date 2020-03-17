@@ -18,7 +18,7 @@ CommandResult = namedtuple("CommandResult", "process stdout stderr")
 TIMEOUT = 300
 
 
-def _run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
+def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
     process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(timeout=timeout)
@@ -32,7 +32,7 @@ def _run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRe
         raise
 
 
-def _run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
+def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
     process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     try:
         stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
