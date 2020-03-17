@@ -25,6 +25,7 @@ environment:
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
   NOSE_PARAMETERIZED_NO_WARN: 1
+  AWS_S3: 'AWS_S3_37_WIN'
 
 init:
   # Uncomment this for RDP

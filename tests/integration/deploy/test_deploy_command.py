@@ -3,8 +3,6 @@ import shutil
 import tempfile
 import uuid
 import time
-from collections import namedtuple
-from subprocess import Popen, PIPE, TimeoutExpired
 from unittest import skipIf
 
 import boto3
@@ -15,14 +13,14 @@ from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.package.package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import CommandResult, _run_command, _run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary.
 SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 TIMEOUT = 300
-
-CommandResult = namedtuple("CommandResult", "process stdout stderr")
+CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
@@ -48,11 +46,11 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             package_command_list = self.get_command_list(
                 s3_bucket=self.s3_bucket.name, template=template_path, output_template_file=output_template_file.name
             )
-            package_process = self._run_command(command_list=package_command_list)
+            package_process = _run_command(command_list=package_command_list)
 
             self.assertEqual(package_process.process.returncode, 0)
 
-            stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+            stack_name = self._method_to_stack_name(self.id())
             self.stack_names.append(stack_name)
 
             # Deploy and only show changeset.
@@ -70,7 +68,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 tags="integ=true clarity=yes foo_bar=baz",
             )
 
-            deploy_process_no_execute = self._run_command(deploy_command_list_no_execute)
+            deploy_process_no_execute = _run_command(deploy_command_list_no_execute)
             self.assertEqual(deploy_process_no_execute.process.returncode, 0)
 
             # Deploy the given stack with the changeset.
@@ -86,14 +84,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
                 tags="integ=true clarity=yes foo_bar=baz",
             )
 
-            deploy_process = self._run_command(deploy_command_list_execute)
+            deploy_process = _run_command(deploy_command_list_execute)
             self.assertEqual(deploy_process.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_no_package_and_deploy_with_s3_bucket_all_args(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -112,7 +110,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -121,11 +119,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Build project
         build_command_list = self.get_minimal_build_command_list(template_file=template_path)
 
-        self._run_command(build_command_list)
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        _run_command(build_command_list)
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
-
-        # Package and Deploy in one go without confirming change set on a built template.
         # Should result in a zero exit code.
         deploy_command_list = self.get_deploy_command_list(
             stack_name=stack_name,
@@ -141,16 +137,16 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         # ReBuild project, absolutely nothing has changed, will result in same build artifacts.
 
-        self._run_command(build_command_list)
+        _run_command(build_command_list)
 
         # Re-deploy, this should cause an empty changeset error and not re-deploy.
         # This will cause a non zero exit code.
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Does not cause a re-deploy
         self.assertEqual(deploy_process_execute.process.returncode, 1)
 
@@ -158,7 +154,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_no_package_and_deploy_with_s3_bucket_all_args_confirm_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -177,14 +173,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=True,
         )
 
-        deploy_process_execute = self._run_command_with_input(deploy_command_list, "Y".encode())
+        deploy_process_execute = _run_command_with_input(deploy_command_list, "Y".encode())
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_without_s3_bucket(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -201,7 +197,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Error asking for s3 bucket
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         self.assertIn(
@@ -230,14 +226,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 2)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_without_capabilities(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -253,12 +249,12 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 1)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_without_template_file(self, template_file):
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(
@@ -273,7 +269,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Error template file not specified
         self.assertEqual(deploy_process_execute.process.returncode, 1)
 
@@ -281,7 +277,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_with_s3_bucket_switch_region(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -300,7 +296,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             confirm_changeset=False,
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
@@ -321,7 +317,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             region="eu-west-2",
         )
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Deploy should fail, asking for s3 bucket
         self.assertEqual(deploy_process_execute.process.returncode, 1)
         stderr = deploy_process_execute.stderr.strip()
@@ -338,7 +334,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_twice_with_no_fail_on_empty_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         kwargs = {
@@ -358,14 +354,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(**kwargs)
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
         # Deploy with `--no-fail-on-empty-changeset` after deploying the same template first
         deploy_command_list = self.get_deploy_command_list(fail_on_empty_changeset=False, **kwargs)
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Deploy should not fail
         self.assertEqual(deploy_process_execute.process.returncode, 0)
         stdout = deploy_process_execute.stdout.strip()
@@ -375,7 +371,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_twice_with_fail_on_empty_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
@@ -395,14 +391,14 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         }
         deploy_command_list = self.get_deploy_command_list(**kwargs)
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
         # Deploy with `--fail-on-empty-changeset` after deploying the same template first
         deploy_command_list = self.get_deploy_command_list(fail_on_empty_changeset=True, **kwargs)
 
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         # Deploy should not fail
         self.assertNotEqual(deploy_process_execute.process.returncode, 0)
         stderr = deploy_process_execute.stderr.strip()
@@ -411,26 +407,26 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     @parameterized.expand(["aws-serverless-inline.yaml"])
     def test_deploy_inline_no_package(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         deploy_command_list = self.get_deploy_command_list(
             template_file=template_path, stack_name=stack_name, capabilities="CAPABILITY_IAM"
         )
-        deploy_process_execute = self._run_command(deploy_command_list)
+        deploy_process_execute = _run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_guided(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = self._run_command_with_input(
+        deploy_process_execute = _run_command_with_input(
             deploy_command_list, "{}\n\n\n\n\n\n".format(stack_name).encode()
         )
 
@@ -444,13 +440,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_guided_set_parameter(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = self._run_command_with_input(
+        deploy_process_execute = _run_command_with_input(
             deploy_command_list, "{}\n\nSuppliedParameter\n\n\n\n".format(stack_name).encode()
         )
 
@@ -464,15 +460,35 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_guided_set_capabilities(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = self._run_command_with_input(
+        deploy_process_execute = _run_command_with_input(
             deploy_command_list,
             "{}\n\nSuppliedParameter\n\nn\nCAPABILITY_IAM CAPABILITY_NAMED_IAM\n\n".format(stack_name).encode(),
+        )
+        # Deploy should succeed with a managed stack
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.stack_names.append(SAM_CLI_STACK_NAME)
+        # Remove samconfig.toml
+        os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_guided_capabilities_default(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        # Set no for Allow SAM CLI IAM role creation, but allow default of ["CAPABILITY_IAM"] by just hitting the return key.
+        deploy_process_execute = _run_command_with_input(
+            deploy_command_list, "{}\n\nSuppliedParameter\n\nn\n\n\n\n".format(stack_name).encode(),
         )
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -484,13 +500,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def test_deploy_guided_set_confirm_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
-        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        stack_name = self._method_to_stack_name(self.id())
         self.stack_names.append(stack_name)
 
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
-        deploy_process_execute = self._run_command_with_input(
+        deploy_process_execute = _run_command_with_input(
             deploy_command_list, "{}\n\nSuppliedParameter\nY\n\n\nY\n".format(stack_name).encode()
         )
 
@@ -500,32 +516,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
-    def _run_command(self, command_list):
-        process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE)
-        try:
-            stdout_data, stderr_data = process_execute.communicate(timeout=TIMEOUT)
-            print(f"=====stdout=====")
-            print(stdout_data.decode("utf-8"))
-            print(f"=====stderr=====")
-            print(stderr_data.decode("utf-8"))
-            return CommandResult(process_execute, stdout_data, stderr_data)
-        except TimeoutExpired:
-            print(f"Command: {command_list}, TIMED OUT")
-            print(f"Return Code: {process_execute.returncode}")
-            process_execute.kill()
-            raise
-
-    def _run_command_with_input(self, command_list, stdin_input):
-        process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
-        try:
-            stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=TIMEOUT)
-            print(f"=====stdout=====")
-            print(stdout_data.decode("utf-8"))
-            print(f"=====stderr=====")
-            print(stderr_data.decode("utf-8"))
-            return CommandResult(process_execute, stdout_data, stderr_data)
-        except TimeoutExpired:
-            print(f"Command: {command_list}, TIMED OUT")
-            print(f"Return Code: {process_execute.returncode}")
-            process_execute.kill()
-            raise
+    def _method_to_stack_name(self, method_name):
+        """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
+        method_name = method_name.split(".")[-1]
+        return f"{method_name.replace('_', '-')}-{CFN_PYTHON_VERSION_SUFFIX}"

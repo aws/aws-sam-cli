@@ -8,7 +8,7 @@ from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.deploy.exceptions import DeployBucketRequiredError, DeployFailedError, ChangeEmptyError
 
 
-class TestPackageCommand(TestCase):
+class TestSamDeployCommand(TestCase):
     def setUp(self):
         self.deploy_command_context = DeployContext(
             template_file="template-file",
