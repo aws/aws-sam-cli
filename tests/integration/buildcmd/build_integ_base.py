@@ -13,7 +13,7 @@ import jmespath
 from pathlib import Path
 
 from samcli.yamlhelper import yaml_parse
-from tests.testing_utils import IS_WINDOWS
+from tests.testing_utils import IS_WINDOWS, _run_command
 
 LOG = logging.getLogger(__name__)
 
@@ -126,8 +126,8 @@ class BuildIntegBase(TestCase):
             overrides,
         ]
 
-        process = subprocess.Popen(cmdlist, stdout=subprocess.PIPE)
-        process.wait()
+        process_execute = _run_command(cmdlist)
+        process_execute.process.wait()
 
-        process_stdout = b"".join(process.stdout.readlines()).strip().decode("utf-8")
+        process_stdout = process_execute.stdout.decode("utf-8")
         self.assertEqual(json.loads(process_stdout), expected_result)
