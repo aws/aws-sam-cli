@@ -477,6 +477,26 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
 
     @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_guided_capabilities_default(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        # Set no for Allow SAM CLI IAM role creation, but allow default of ["CAPABILITY_IAM"] by just hitting the return key.
+        deploy_process_execute = _run_command_with_input(
+            deploy_command_list, "{}\n\nSuppliedParameter\n\nn\n\n\n\n".format(stack_name).encode(),
+        )
+        # Deploy should succeed with a managed stack
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.stack_names.append(SAM_CLI_STACK_NAME)
+        # Remove samconfig.toml
+        os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_guided_set_confirm_changeset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
