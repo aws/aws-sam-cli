@@ -94,7 +94,7 @@ class GuidedContext:
         if not capabilities_confirm:
             input_capabilities = prompt(
                 f"\t{self.start_bold}Capabilities{self.end_bold}",
-                default=default_capabilities[0],
+                default=list(default_capabilities),
                 type=FuncParamType(func=_space_separated_list_func_type),
             )
 

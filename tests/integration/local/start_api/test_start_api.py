@@ -1111,3 +1111,18 @@ class TestSwaggerIncludedFromSeparateFile(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestUnresolvedCorsIntrinsic(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-with-unresolved-intrinsic-in-cors.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_lambda_is_reachable_when_cors_is_an_unresolved_intrinsic(self):
+        response = requests.patch(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})

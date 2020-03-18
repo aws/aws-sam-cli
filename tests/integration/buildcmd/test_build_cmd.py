@@ -8,7 +8,7 @@ from parameterized import parameterized
 import pytest
 
 from .build_integ_base import BuildIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, _run_command
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
 LOG = logging.getLogger(__name__)
 
@@ -32,7 +32,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("python2.7", False),
@@ -45,12 +44,13 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ("python3.8", "use_container"),
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -115,7 +115,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
 
         self.assertIn("Build Failed", str(process_execute.stdout))
@@ -133,7 +133,6 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("nodejs6.10", False),
@@ -146,12 +145,13 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
             ("nodejs12.x", "use_container"),
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_with_default_package_json(self, runtime, use_container):
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}", cmdlist)
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -217,13 +217,13 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([("ruby2.5"), ("ruby2.7")])
+    @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container")
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([("ruby2.5"), ("ruby2.7")])
+    @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_process(self, runtime):
         self._test_with_default_gemfile(runtime, False)
 
@@ -232,7 +232,7 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir,
@@ -312,7 +312,6 @@ class TestBuildCommand_Java(BuildIntegBase):
     WINDOWS_LINE_ENDING = b"\r\n"
     UNIX_LINE_ENDING = b"\n"
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
@@ -327,10 +326,10 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_building_java_in_container(self, runtime, code_path, expected_files):
         self._test_with_building_java(runtime, code_path, expected_files, "use_container")
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
@@ -340,10 +339,10 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_building_java8_in_process(self, runtime, code_path, expected_files):
         self._test_with_building_java(runtime, code_path, expected_files, False)
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
@@ -353,6 +352,7 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_building_java11_in_process(self, runtime, code_path, expected_files):
         self._test_with_building_java(runtime, code_path, expected_files, False)
 
@@ -364,7 +364,7 @@ class TestBuildCommand_Java(BuildIntegBase):
             self._change_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
 
         LOG.info("Running Command: {}".format(cmdlist))
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, expected_files, self.EXPECTED_DEPENDENCIES
@@ -448,7 +448,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         "HelloWorld.dll",
     }
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("dotnetcore2.0", "Dotnetcore2.0", None),
@@ -457,6 +456,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
             ("dotnetcore2.1", "Dotnetcore2.1", "debug"),
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_with_dotnetcore(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
@@ -472,7 +472,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         if mode:
             newenv["SAM_BUILD_MODE"] = mode
 
-        _run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -505,8 +505,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         self.verify_docker_container_cleanedup(runtime)
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([("dotnetcore2.0", "Dotnetcore2.0"), ("dotnetcore2.1", "Dotnetcore2.1")])
+    @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):
         use_container = True
         overrides = {
@@ -517,7 +517,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
 
         # Must error out, because container builds are not supported
         self.assertEqual(process_execute.process.returncode, 1)
@@ -550,8 +550,8 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"hello-world"}
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([("go1.x", "Go", None), ("go1.x", "Go", "debug")])
+    @pytest.mark.flaky(reruns=3)
     def test_with_go(self, runtime, code_uri, mode):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
@@ -568,7 +568,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         newenv["GOPROXY"] = "direct"
         newenv["GOPATH"] = str(self.working_dir)
 
-        _run_command(cmdlist, cwd=self.working_dir, env=newenv)
+        run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
             self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
@@ -591,15 +591,15 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
 
         self.verify_docker_container_cleanedup(runtime)
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand([("go1.x", "Go")])
+    @pytest.mark.flaky(reruns=3)
     def test_go_must_fail_with_container(self, runtime, code_uri):
         use_container = True
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
 
         # Must error out, because container builds are not supported
         self.assertEqual(process_execute.process.returncode, 1)
@@ -643,12 +643,11 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         overrides = {"Runtime": "python3.7", "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(parameter_overrides=overrides, function_identifier="FunctionNotInTemplate")
 
-        process_execute = _run_command(cmdlist, cwd=self.working_dir)
+        process_execute = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(process_execute.process.returncode, 1)
         self.assertIn("FunctionNotInTemplate not found", str(process_execute.stderr))
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [
             ("python3.7", False, "FunctionOne"),
@@ -657,6 +656,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             ("python3.7", "use_container", "FunctionTwo"),
         ]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_build_single_function(self, runtime, use_container, function_identifier):
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(
@@ -664,7 +664,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         )
 
         LOG.info("Running Command: {}", cmdlist)
-        _run_command(cmdlist, cwd=self.working_dir)
+        run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
 
