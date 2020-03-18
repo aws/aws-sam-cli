@@ -148,7 +148,14 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         prop = cors_dict.get(prop_name)
         if prop:
-            if (not isinstance(prop, string_types)) or (not (prop.startswith("'") and prop.endswith("'"))):
+            if not isinstance(prop, string_types) or prop.startswith("!"):
+                LOG.warning(
+                    "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",
+                    prop_name,
+                )
+                return None
+
+            if not (prop.startswith("'") and prop.endswith("'")):
                 raise InvalidSamDocumentException(
                     "{} must be a quoted string " '(i.e. "\'value\'" is correct, but "value" is not).'.format(prop_name)
                 )
