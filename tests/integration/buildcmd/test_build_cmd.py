@@ -76,6 +76,13 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
             ),
         )
 
+        self._verify_resource_property(
+            str(self.built_template),
+            "ExampleNestedStack",
+            "TemplateURL",
+            "https://s3.amazonaws.com/examplebucket/exampletemplate.yml",
+        )
+
         expected = {"pi": "3.14"}
         self._verify_invoke_built_function(
             self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected

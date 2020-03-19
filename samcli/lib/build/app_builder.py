@@ -134,7 +134,7 @@ class ApplicationBuilder:
                 # this resource was not built. So skip it
                 continue
 
-            # Artifacts are wrtoitten relative  the template because it makes the template portable
+            # Artifacts are written relative  the template because it makes the template portable
             #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
             #   package stage running on a different machine
             artifact_relative_path = os.path.relpath(built_artifacts[logical_id], original_dir)
