@@ -158,8 +158,13 @@ class LambdaOutputParser:
             if (
                 isinstance(lambda_response_dict, dict)
                 and len(lambda_response_dict.keys() & {"errorMessage", "errorType"}) == 2
-                and ((len(lambda_response_dict.keys() & {"errorMessage", "errorType", "stackTrace", "cause"})
-                    == len(lambda_response_dict)) or (len(lambda_response_dict) == 3))
+                and (
+                    (
+                        len(lambda_response_dict.keys() & {"errorMessage", "errorType", "stackTrace", "cause"})
+                        == len(lambda_response_dict)
+                    )
+                    or (len(lambda_response_dict) == 3)
+                )
             ):
                 is_lambda_user_error_response = True
         except ValueError:
