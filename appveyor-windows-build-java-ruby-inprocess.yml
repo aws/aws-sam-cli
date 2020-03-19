@@ -13,6 +13,7 @@ environment:
   PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
   PYTHON_EXE: "C:\\Python37-x64\\python.exe"
   PYTHON_ARCH: '64'
+  APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
 

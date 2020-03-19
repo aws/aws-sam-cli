@@ -25,6 +25,7 @@ environment:
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
+  APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 init:
   # Uncomment this for RDP
