@@ -13,6 +13,8 @@ Function = namedtuple(
     [
         # Function name or logical ID
         "name",
+        # Function name (used in place of logical ID)
+        "functionname",
         # Runtime/language
         "runtime",
         # Memory in MBs
