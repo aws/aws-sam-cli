@@ -110,6 +110,9 @@ class LocalApigwService(BaseLocalService):
             static_folder=self.static_dir,  # Serve static files from this directory
         )
 
+        # This will normalize all endpoints and strip any trailing '/'
+        self._app.url_map.strict_slashes = False
+
         for api_gateway_route in self.api.routes:
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods, path):
