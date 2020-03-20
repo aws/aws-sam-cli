@@ -545,6 +545,18 @@ class TestServiceResponses(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_slash_after_url_path(self):
+        """
+        Test that if no status_code is given, the status code is 200
+        :return:
+        """
+        response = requests.get(self.url + "/onlysetbody/", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_string_status_code(self):
         """
         Test that an integer-string can be returned as the status code
