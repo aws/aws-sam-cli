@@ -24,8 +24,7 @@ LOG = logging.getLogger(__name__)
 
 def manage_stack(profile, region):
     try:
-        session = boto3.Session(profile_name=profile if profile else None)
-        cloudformation_client = session.client("cloudformation", config=Config(region_name=region if region else None))
+        cloudformation_client = boto3.client("cloudformation", config=Config(region_name=region if region else None))
     except NoCredentialsError:
         raise CredentialsError(
             "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. Please see their documentation for options to pass in credentials: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
@@ -144,9 +143,10 @@ def _get_stack_template():
                   Fn::Join:
                     - ""
                     -
-                      - "arn:aws:s3:::"
-                      -
-                        !Ref SamCliSourceBucket
+                      - "arn:"
+                      - !Ref AWS::Partition
+                      - ":s3:::"
+                      - !Ref SamCliSourceBucket
                       - "/*"
                 Principal:
                   Service: serverlessrepo.amazonaws.com

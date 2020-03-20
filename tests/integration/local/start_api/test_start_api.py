@@ -528,7 +528,7 @@ class TestServiceResponses(StartApiIntegBaseClass):
         response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "no data")
+        self.assertEqual(response.content.decode("utf-8"), "")
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
 
     @pytest.mark.flaky(reruns=3)
@@ -557,12 +557,12 @@ class TestServiceResponses(StartApiIntegBaseClass):
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_default_body(self):
         """
-        Test that if no body is given, the response is 'no data'
+        Test that if no body is given, the response is ''
         """
         response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "no data")
+        self.assertEqual(response.content.decode("utf-8"), "")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -802,6 +802,27 @@ class TestStartApiWithStageAndSwagger(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("stageVariables"), {"VarName": "varValue"})
 
 
+class TestOptionsHandler(StartApiIntegBaseClass):
+    """
+    Test to check that an OPTIONS handler is invoked
+    """
+
+    template_path = "/testdata/start_api/options-handler-template.yml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_options_handler(self):
+        """
+        This tests that a template's OPTIONS handler is invoked
+        """
+        response = requests.options(self.url + "/optionshandler", timeout=300)
+
+        self.assertEqual(response.status_code, 204)
+
+
 class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
     """
     Test to check that the correct headers are being added with Cors with swagger code
@@ -862,7 +883,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         response = requests.get(self.url + "/onlysetstatuscode", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode("utf-8"), "no data")
+        self.assertEqual(response.content.decode("utf-8"), "")
         self.assertEqual(response.headers.get("Content-Type"), "application/json")
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
@@ -1086,6 +1107,21 @@ class TestSwaggerIncludedFromSeparateFile(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_was_tranformed_and_api_is_reachable(self):
+        response = requests.patch(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestUnresolvedCorsIntrinsic(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-with-unresolved-intrinsic-in-cors.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_lambda_is_reachable_when_cors_is_an_unresolved_intrinsic(self):
         response = requests.patch(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)

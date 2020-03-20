@@ -17,14 +17,6 @@ AWS_PROFILE = "AWS_PROFILE"
 SLEEP_TIME = 1
 
 
-def _print_relevant_environment_vars(environ):
-    session = Session()
-    print("Session current region={}".format(session.region_name))
-    print("Session available_profiles={}".format(session.available_profiles))
-    print("Session access_key={}".format(session.get_credentials().access_key))
-    print("Session secret_key={}".format(session.get_credentials().secret_key))
-
-
 class SchemaTestDataSetup(TestCase):
     original_cred_file = None
     original_config_file = None
@@ -72,21 +64,19 @@ Y
         if AWS_DEFAULT_REGION in env:
             self.original_region = env[AWS_DEFAULT_REGION]
 
-        print("Original env values from function before customization:")
-        _print_relevant_environment_vars(env)
         custom_config = self._create_config_file(profile, region)
         session = Session()
         custom_cred = self._create_cred_file(
-            profile, session.get_credentials().access_key, session.get_credentials().secret_key
+            profile,
+            session.get_credentials().access_key,
+            session.get_credentials().secret_key,
+            session.get_credentials().token,
         )
 
         env[AWS_CONFIG_FILE] = custom_config
         env[AWS_SHARED_CREDENTIALS_FILE] = custom_cred
         env[AWS_PROFILE] = profile
         env[AWS_DEFAULT_REGION] = region
-
-        print("Updated env values after customization:")
-        _print_relevant_environment_vars(env)
 
     def _tear_down_custom_config(self):
         env = os.environ
@@ -111,9 +101,6 @@ Y
         else:
             env[AWS_DEFAULT_REGION] = self.original_region
 
-        print("Restored env values after teardown:")
-        _print_relevant_environment_vars(env)
-
         shutil.rmtree(self.config_dir, ignore_errors=True)
 
     def _create_config_file(self, profile, region):
@@ -128,16 +115,28 @@ Y
             file.write(config_file_content)
         return custom_config
 
-    def _create_cred_file(self, profile, access_key, secret_key):
-        cred_file_content = "[default]\naws_access_key_id = {1}\naws_secret_access_key = {2}\n"
+    def _create_cred_file(self, profile, access_key, secret_key, session_token=None):
+        cred_file_content = self._create_cred_profile("default", access_key, secret_key, session_token)
         if profile != DEFAULT:
-            cred_file_content += "\n[{0}]\naws_access_key_id = {1}\naws_secret_access_key = {2}"
-        cred_file_content = cred_file_content.format(profile, access_key, secret_key)
+            cred_file_content += f"\n{self._create_cred_profile(profile, access_key, secret_key, session_token)}"
         custom_cred = os.path.join(self.config_dir, "customcred")
         print("Writing custom creds to {}".format(custom_cred))
         with open(custom_cred, "w") as file:
             file.write(cred_file_content)
         return custom_cred
+
+    def _create_cred_profile(self, profile_name, access_key, secret_key, session_token=None):
+        """
+        Method to create aws credentials entry similar to ~/.aws/credentials file format.
+        """
+        cred_profile_content = f"""
+[{profile_name}]
+aws_access_key_id = {access_key}
+aws_secret_access_key = {secret_key}
+"""
+        if session_token:
+            cred_profile_content += f"aws_session_token={session_token}\n"
+        return cred_profile_content
 
 
 def setup_partner_schema_data(registry_name, schemas_client):
@@ -169,7 +168,7 @@ def _create_3p_schemas(registry_name, schemas_client, no_of_schemas):
         '{"openapi":"3.0.0","info":{"version":"1.0.0","title":"TicketCreated"},"paths":{},"components":{"schemas":{"AWSEvent":{"type":"object",'
         '"required":["detail-type","resources","id","source","time","detail","region","version","account"],"x-amazon-events-detail-type":"MongoDB Trigger for '
         'my_store.reviews","x-amazon-events-source":"aws.partner-mongodb.com","properties":{"detail":{'
-        '"$ref":"#\/components\/schemas\/aws.partner\/mongodb.com\/Ticket.Created"},"detail-type":{"type":"string"},"resources":{"type":"array",'
+        r'"$ref":"#\/components\/schemas\/aws.partner\/mongodb.com\/Ticket.Created"},"detail-type":{"type":"string"},"resources":{"type":"array",'
         '"items":{"type":"string"}},"id":{"type":"string"},"source":{"type":"string"},"time":{"type":"string","format":"date-time"},'
         '"region":{"type":"string","enum":["ap-south-1","eu-west-3","eu-north-1","eu-west-2","eu-west-1","ap-northeast-2","ap-northeast-1","me-south-1",'
         '"sa-east-1","ca-central-1","ap-east-1","cn-north-1","us-gov-west-1","ap-southeast-1","ap-southeast-2","eu-central-1","us-east-1","us-west-1",'

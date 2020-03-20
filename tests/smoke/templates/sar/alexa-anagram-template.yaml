@@ -7,7 +7,7 @@ Resources:
     Properties:
       Description: Alexa responds with the count and anagrams for a requested word
       Handler: src/index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: a44a03c9-ccb1-4ddc-b196-8e2c9fdeec35

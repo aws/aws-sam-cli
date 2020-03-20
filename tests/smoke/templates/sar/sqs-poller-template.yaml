@@ -32,5 +32,5 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: c1574e73-6807-416d-8df0-4c96a2452ad2
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
 Transform: AWS::Serverless-2016-10-31

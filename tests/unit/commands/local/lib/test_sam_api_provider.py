@@ -4,7 +4,7 @@ from collections import OrderedDict
 from unittest import TestCase
 
 from unittest.mock import patch
-from nose_parameterized import parameterized
+from parameterized import parameterized
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.providers.api_provider import ApiProvider
@@ -808,6 +808,62 @@ class TestSamStageValues(TestCase):
 
 
 class TestSamCors(TestCase):
+    def test_provider_parse_cors_with_unresolved_intrinsic(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "Cors": {"AllowOrigin": {"Fn:Sub": "Some string to sub"}},
+                        "DefinitionBody": {
+                            "paths": {
+                                "/path2": {
+                                    "post": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                },
+                            }
+                        },
+                    },
+                }
+            }
+        }
+
+        provider = ApiProvider(template)
+
+        routes = provider.routes
+        cors = Cors(
+            allow_origin=None,
+            allow_methods=",".join(sorted(["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"])),
+        )
+        route1 = Route(path="/path2", methods=["POST", "OPTIONS"], function_name="NoApiEventFunction")
+        route2 = Route(path="/path", methods=["GET", "OPTIONS"], function_name="NoApiEventFunction")
+
+        self.assertEqual(len(routes), 2)
+        self.assertIn(route1, routes)
+        self.assertIn(route2, routes)
+        self.assertEqual(provider.api.cors, cors)
+
     def test_provider_parse_cors_string(self):
         template = {
             "Resources": {

@@ -210,7 +210,7 @@ class IntrinsicsSymbolTable:
 
         # Handle Default Parameters
         translated = self._parameters.get(logical_id, {}).get("Default")
-        if translated:
+        if translated is not None:
             return translated
         # Handle Default Property Type Resolution
         resource_type = self._resources.get(logical_id, {}).get(IntrinsicsSymbolTable.CFN_RESOURCE_TYPE)

@@ -100,3 +100,7 @@ def multiple_headers_overrides_headers(event, context):
         "headers": {"Content-Type": "text/plain", "MyCustomHeader": "Custom"},
         "multiValueHeaders": {"MyCustomHeader": ["Value1", "Value2"]},
     }
+
+
+def handle_options_cors(event, context):
+    return {"statusCode": 204, "body": json.dumps({"hello": "world"})}

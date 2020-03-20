@@ -31,11 +31,12 @@ Supported Resource Types
 \b
 Supported Runtimes
 ------------------
-1. Python 2.7, 3.6, 3.7 using PIP\n
-2. Nodejs 10.x, 8.10, 6.10 using NPM\n
+1. Python 2.7, 3.6, 3.7, 3.8 using PIP\n
+2. Nodejs 12.x, 10.x, 8.10, 6.10 using NPM\n
 3. Ruby 2.5 using Bundler\n
-4. Java 8 using Gradle\n
+4. Java 8, Java 11 using Gradle and Maven\n
 5. Dotnetcore2.0 and 2.1 using Dotnet CLI (without --use-container flag)\n
+6. Go 1.x using Go Modules (without --use-container flag)\n
 \b
 Examples
 --------
@@ -186,7 +187,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 mode=ctx.mode,
             )
         except FunctionNotFound as ex:
-            raise UserException(str(ex))
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
 
         try:
             artifacts = builder.build()
@@ -222,7 +223,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             ContainerBuildNotSupported,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
-            raise UserException(str(ex))
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
 
 
 def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):

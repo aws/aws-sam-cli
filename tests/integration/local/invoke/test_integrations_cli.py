@@ -5,7 +5,7 @@ import copy
 import tempfile
 from unittest import skipIf
 
-from nose_parameterized import parameterized
+from parameterized import parameterized
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
 import pytest
@@ -13,11 +13,11 @@ import docker
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
-# This is to restrict layers tests to run outside of Travis and when the branch is not master.
-SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+# This is to restrict layers tests to run outside of Travis, when the branch is not master and tests are not run by Canary.
+SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 from pathlib import Path
 
@@ -105,10 +105,10 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello world"')
 
-    @pytest.mark.flaky(reruns=3)
     @parameterized.expand(
         [("TimeoutFunction"), ("TimeoutFunctionWithParameter"), ("TimeoutFunctionWithStringParameter")]
     )
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_timeout_set(self, function_name):
         command_list = self.get_command_list(
             function_name, template_path=self.template_path, event_path=self.event_path
@@ -239,6 +239,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(environ["URLSuffix"], "localhost")
         self.assertEqual(environ["Timeout"], "100")
         self.assertEqual(environ["MyRuntimeVersion"], "v0")
+        self.assertEqual(environ["EmptyDefaultParameter"], "")
 
     @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters_with_custom_region(self):

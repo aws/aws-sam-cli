@@ -15,16 +15,17 @@ Deploy a SAM stack
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import os
 import logging
+import os
+
 import boto3
 import click
 
 from samcli.commands.deploy import exceptions as deploy_exceptions
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.package.s3_uploader import S3Uploader
+from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
-from samcli.lib.utils.colors import Colored
 
 LOG = logging.getLogger(__name__)
 
@@ -100,13 +101,14 @@ class DeployContext:
         template_size = os.path.getsize(self.template_file)
         if template_size > 51200 and not self.s3_bucket:
             raise deploy_exceptions.DeployBucketRequiredError()
-
-        session = boto3.Session(profile_name=self.profile if self.profile else None)
-        cloudformation_client = session.client("cloudformation", region_name=self.region if self.region else None)
+        boto_config = get_boto_config_with_user_agent()
+        cloudformation_client = boto3.client(
+            "cloudformation", region_name=self.region if self.region else None, config=boto_config
+        )
 
         s3_client = None
         if self.s3_bucket:
-            s3_client = session.client("s3", region_name=self.region if self.region else None)
+            s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
 
             self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
 

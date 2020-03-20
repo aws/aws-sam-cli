@@ -1,6 +1,10 @@
 *Issue #, if available:*
 
-*Description of changes:*
+*Why is this change necessary?*
+
+*How does it address the issue?*
+
+*What side effects does this change have?*
 
 *Checklist:*
 

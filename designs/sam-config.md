@@ -38,35 +38,33 @@ Tenets
 What will be changed?
 ---------------------
 
-The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located under the `.aws-sam/` at the project root where template.yaml is located by default.
+The suite of commands supported by SAM CLI would be aided by looking for a configuration file thats locally located under at the project root where template.yaml is located by default.
 
-`.aws-sam/samconfig.toml`
+`samconfig.toml`
 
 
 This configuration would be used for specifiying the parameters that each of SAM CLI commands use and would be in TOML format.
 
-Running a SAM CLI command now automatically looks for `.aws-sam/samconfig.toml` file and if its finds it goes ahead with parameter passthroughs to the CLI.
+Running a SAM CLI command now automatically looks for `samconfig.toml` file and if its finds it goes ahead with parameter passthroughs to the CLI.
 
 ```
 sam build
-Default Config file location: .aws-sam/samconfig.toml
+Default Config file location: samconfig.toml
 ..
 ..
 ..
 ```
 
-Why samconfig under `.aws-sam`
+Why `samconfig.toml` not under `.aws-sam` directory?
 ---------------------------------
 
-The `.aws-sam` directory within the project directory is created with normal 755 permissions as default without any special permisions. `sam build` only creates a build directory within `.aws-sam` as `.aws-sam/build`. This directory is erased and re-built on every build. but top level directory is left unaffected.
-
-The `.gitignore` specified in the init apps also only have `.aws-sam/build` ignored and not anything else.
+The `.aws-sam` directory generally holds artifacts that are driven by the implementation details behind the sam cli commands themselves. A configuration file which controls how a sam app behaves should exist by itself as a first class citizen right next to the sam template.
 
 
 Config file versioning
 -----------------------
 
-The configuration file: `samconfig.toml` will come with a top level version key that specifies the version of the configuration file. This version can then be used to determine if a given configuration file works with a version of SAM CLI.
+The configuration file: `samconfig.toml` will come with a top level version key that specifies the version of the configuration file based on the spec of the file. This version can then be used to determine if a given configuration file works with a given version of SAM CLI.
 
 It also paves the forward when major changes need to be made to the configuration file and add a version bump to the config file version
 
@@ -74,17 +72,21 @@ It also paves the forward when major changes need to be made to the configuratio
 version = 0.1
 ```
 
+* SAM CLI expects the version format to follow a semantic format.
+* SAM CLI will remain backward compatible with reading older configuration file versions.
 
 Overrides
 ----------
 
-The default location of a .aws-sam/samconfig can be replaced by overriding an environment variable called `SAM_CLI_CONFIG`
+The default location of a samconfig.toml can be replaced by overriding an environment variable called `SAM_CLI_CONFIG`
 
 `
 export SAM_CLI_CONFIG=~/Users/username/mysamconfig.toml
 `
 
-Users can pass an environment `--env` for the section that will be scanned within the configuration file to pass parameters through.
+Users can choose to pass their own configuration file with a `--config-file` command line option.
+
+Users can pass an environment `--config-prefix` for the section that will be scanned within the configuration file to pass parameters through.
 
 By default the `default` section of the configuration is chosen.
 
@@ -118,7 +120,7 @@ profile="srirammv"
 
 If a custom environment is specified, the environment is looked up in `samconfig.toml` file instead.
 
-`sam build --env dev`
+`sam build --config-prefix dev`
 
 Sample configuration file
 
@@ -163,10 +165,7 @@ region="us-east-1"
 profile="srirammv"
 ```
 
-
-The configuration file can then be potentially intialized
-
-* all sam init projects could come with a sample samconfig file
+NOTE: Due to the nature of tomlkit or the interaction mode when writing configuration values to the configuration, there are multiple empty sections such as `[default.package]`. They need to be investigated.
 
 Showcase configuration values
 -----------------------------
@@ -181,34 +180,24 @@ Config file in Git Repos
 
 Optionally, if multiple configuration files are checked in. One can change the `SAM_CLI_CONFIG` environment variable to point a different configuration file.
 
-`--env` can also be passed in to deal with custom environments defined in the configuration file.
+`--config-prefix` can also be passed in to deal with custom environments defined in the configuration file.
 
 Error Messages
 ---------------
 
-When a custom env is passed in, and such an environment is not found. The error message can highlight all the environments that were found in the given configuration file.
+When a custom config prefix is passed in, and such an environment is not found. The error message can highlight all the environments that were found in the given configuration file.
 
 `
-sam build --env devo
-Error: Environment 'devo' was not found in .aws-sam/samconfig.toml , Possible environments are : ['dev', 'prod']
+sam build --config-prefix devo
+Error: Environment 'devo' was not found in samconfig.toml , Possible environments are : ['default', 'dev', 'prod']
 `
 
 Future
 ----------
 
-In the future, based on the file names of the configuration files, the environment could also be inferred.
-
-```
-.aws-sam/samconfig-dev.toml
-.aws-sam/samconfig-beta.toml
-.aws-sam/samconfig-prod.toml
-```
-
-`--env` dev will refer to `.aws-sam/samconfig-dev.toml` and so on.
-
 If multiple default file locations are added in the look up order for `samconfig.toml`, this means that multiple config files can be merged together.
 
-For example, if the hierachy of lookup for configuration files are: $SAM_CLI_CONFIG -> `.aws-sam/samconfig.toml` -> `~/.aws-sam/samconfig.toml`
+For example, if the hierachy of lookup for configuration files are: $SAM_CLI_CONFIG -> `samconfig.toml` -> `~/.aws-sam/samconfig.toml`
 
 The resulting configuration would be a merge of all the sections that are relevant for the command that was run.
 
@@ -239,16 +228,14 @@ skip_pull_image = True
 parameter_overrides="ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,ParameterValue=t1.micro"
 ```
 
+* How different versions of the configuration files will be merge-able is still an open question.
+* Can `--config-file` take multiple parameters as arguments and thereby merge all of them together?
+
 Open Questions
 -------------------------------
 
 * Potentially every sam command could have functionality to have a series of command line parameters exported into a configuraion file.
 
-
-Out-of-Scope
-------------
-
-* Not focusing on a global configuration. SAM CLI already has a notion of a global config at `~/.aws-sam/metadata.json`
 
 User Experience Walkthrough
 ---------------------------
@@ -265,8 +252,14 @@ Implementation
 CLI Changes
 -----------
 
-New command line argument is added per command called `--env` to be able to specify non default environment section within a config file.
+Implemented
+-----------
+* Default configuration file for sam cli commands for parameter passthroughs.
 
+Not Implemented
+---------------
+* New command line argument for specifying configuration file via `--config-file`.
+* New command line argument per command called `--config-prefix` to be able to specify non default environment section within a config file.
 
 ### Breaking Change
 
@@ -302,15 +295,10 @@ Phases
 
 The design can be built in phases.
 
-* No option to specify configuration file or env name
-* Specify configuration file with an environment variable
-* Read `--env` to make sure we can select an appropriate portion in configuration file.
+* No option to specify configuration file or configuration prefix ✅
+* Specify configuration file with an environment variable and with a command line argument `--config-file`
+* Read `--config-prefix` to make sure we can select an appropriate portion in configuration file.
 
-
-`.samrc` Changes
-----------------
-
-This design emphasizes parameter pass throughs with a configuration file and does not change the core working of the SAM CLI itself. The SAM CLI continues to be working just as it was with efficiency gains in usability.
 
 Security
 --------
@@ -320,7 +308,7 @@ questions to help answer this question better:*
 
 **What new dependencies (libraries/cli) does this change require?**
 
-toml
+tomlkit
 
 **What other Docker container images are you using?**
 
@@ -341,9 +329,6 @@ used for and when do you clean up?**
 
 N/A. But we do read from a confiuration file thats either at a default location or specified by the user via an environment variable.
 
-**How do you validate new .samrc configuration?**
-
-
 
 What is your Testing Plan (QA)?
 ===============================
@@ -361,7 +346,7 @@ N/A
 Test Scenarios/Cases
 --------------------
 
-* Integration tests for every command with `env` based overrides, and command line overrides on existing sam configuration file and custom configuration file through environment variables.
+* Integration tests for every command with `--config-file` and `--config-prefix` based overrides, and command line overrides on existing sam configuration file and custom configuration file through environment variables.
 * Tested to work on all platforms
 
 Expected Results
@@ -373,7 +358,8 @@ Expected Results
 Documentation Changes
 =====================
 
-* Addition of a new `--env` parameter per command
+* Addition of a new `--config-file` parameter per command
+* Addition of a new `--config-prefix` parameter per command
 
 Related Open Issues
 ============
