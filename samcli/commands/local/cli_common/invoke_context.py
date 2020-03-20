@@ -164,10 +164,10 @@ class InvokeContext:
 
         all_functions = [f for f in self._function_provider.get_all()]
         if len(all_functions) == 1:
-            return all_functions[0].name
+            return all_functions[0].functionname
 
         # Get all the available function names to print helpful exception message
-        all_function_names = [f.name for f in all_functions]
+        all_function_names = [f.functionname for f in all_functions]
 
         # There are more functions in the template, and function identifier is not provided, hence raise.
         raise InvokeContextException(

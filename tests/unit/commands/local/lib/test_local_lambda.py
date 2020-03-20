@@ -206,6 +206,7 @@ class TestLocalLambda_make_env_vars(TestCase):
 
         function = Function(
             name="function_name",
+            functionname="function_name",
             runtime="runtime",
             memory=1234,
             timeout=12,
@@ -245,6 +246,7 @@ class TestLocalLambda_make_env_vars(TestCase):
 
         function = Function(
             name="function_name",
+            functionname="function_name",
             runtime="runtime",
             memory=1234,
             timeout=12,
@@ -275,6 +277,7 @@ class TestLocalLambda_make_env_vars(TestCase):
 
         function = Function(
             name="function_name",
+            functionname="function_name",
             runtime="runtime",
             memory=1234,
             timeout=12,
@@ -335,6 +338,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         function = Function(
             name="function_name",
+            functionname="function_name",
             runtime="runtime",
             memory=1234,
             timeout=12,
@@ -351,7 +355,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         self.assertEqual(actual, config)
 
         FunctionConfigMock.assert_called_with(
-            name=function.name,
+            name=function.functionname,
             runtime=function.runtime,
             handler=function.handler,
             code_abs_path=codepath,
@@ -379,6 +383,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         function = Function(
             name="function_name",
+            functionname="function_name",
             runtime="runtime",
             memory=1234,
             timeout=36000,
@@ -395,7 +400,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
         self.assertEqual(actual, config)
 
         FunctionConfigMock.assert_called_with(
-            name=function.name,
+            name=function.functionname,
             runtime=function.runtime,
             handler=function.handler,
             code_abs_path=codepath,
@@ -432,10 +437,10 @@ class TestLocalLambda_invoke(TestCase):
         event = "event"
         stdout = "stdout"
         stderr = "stderr"
-        function = Mock()
+        function = Mock(functionname="name")
         invoke_config = "config"
 
-        self.function_provider_mock.get.return_value = function
+        self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda._get_invoke_config = Mock()
         self.local_lambda._get_invoke_config.return_value = invoke_config
 
@@ -447,7 +452,8 @@ class TestLocalLambda_invoke(TestCase):
 
     def test_must_raise_if_function_not_found(self):
         function = Mock()
-        function.name = "FunctionLogicalId"
+        function.name = "name"
+        function.functionname = "FunctionLogicalId"
 
         self.function_provider_mock.get.return_value = None  # function not found
         self.function_provider_mock.get_all.return_value = [function]

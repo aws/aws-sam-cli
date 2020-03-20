@@ -545,6 +545,18 @@ class TestServiceResponses(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    def test_slash_after_url_path(self):
+        """
+        Test that if no status_code is given, the status code is 200
+        :return:
+        """
+        response = requests.get(self.url + "/onlysetbody/", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
     def test_string_status_code(self):
         """
         Test that an integer-string can be returned as the status code
@@ -1107,6 +1119,21 @@ class TestSwaggerIncludedFromSeparateFile(StartApiIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
     def test_swagger_was_tranformed_and_api_is_reachable(self):
+        response = requests.patch(self.url + "/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestUnresolvedCorsIntrinsic(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-with-unresolved-intrinsic-in-cors.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_lambda_is_reachable_when_cors_is_an_unresolved_intrinsic(self):
         response = requests.patch(self.url + "/anyandall", timeout=300)
 
         self.assertEqual(response.status_code, 200)

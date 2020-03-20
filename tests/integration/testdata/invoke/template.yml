@@ -139,3 +139,18 @@ Resources:
       CodeUri: .
       Timeout:
         Ref: StringValueTimeout
+
+  FunctionWithFunctionNameOverride:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: func-name-override
+      Handler: main.handler
+      Runtime: python3.6
+
+  EchoFunctionWithFunctionNameOverride:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: echo-func-name-override
+      Handler: main.echo_event
+      Runtime: python3.6
+      CodeUri: .

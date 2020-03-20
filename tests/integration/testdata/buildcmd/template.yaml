@@ -29,3 +29,8 @@ Resources:
     Properties:
       Command:
         ScriptLocation: SomeRelativePath
+
+  ExampleNestedStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/examplebucket/exampletemplate.yml

@@ -209,7 +209,13 @@ def _resolve_relative_to(path, original_root, new_root):
     Updated path if the given path is a relative path. None, if the path is not a relative path.
     """
 
-    if not isinstance(path, str) or path.startswith("s3://") or os.path.isabs(path):
+    if (
+        not isinstance(path, str)
+        or path.startswith("s3://")
+        or path.startswith("http://")
+        or path.startswith("https://")
+        or os.path.isabs(path)
+    ):
         # Value is definitely NOT a relative path. It is either a S3 URi or Absolute path or not a string at all
         return None
 

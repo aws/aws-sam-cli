@@ -53,12 +53,6 @@ class PackageIntegBase(TestCase):
     def tearDown(self):
         super(PackageIntegBase, self).tearDown()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.s3_bucket.objects.all().delete()
-        if not cls.pre_created_bucket:
-            cls.s3_bucket.delete()
-
     def base_command(self):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
