@@ -12,7 +12,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 5eb72e41-efab-405a-a429-ac765d3c08ca
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       MemorySize: 128
       Events:
         AlexaTrigger:

@@ -23,3 +23,14 @@ Resources:
     Type: AWS::ApiGateway::RestApi
     Properties:
       BodyS3Location: SomeRelativePath
+
+  GlueResource:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        ScriptLocation: SomeRelativePath
+
+  ExampleNestedStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3.amazonaws.com/examplebucket/exampletemplate.yml

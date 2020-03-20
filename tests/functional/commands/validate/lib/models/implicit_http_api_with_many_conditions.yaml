@@ -48,6 +48,9 @@ Conditions:
       - false
 Globals:
   HttpApi:
+    RouteSettings:
+      "GET /sub":
+        ThrottlingBurstLimit: 100
     Auth:
       Authorizers:
         oauth2:
@@ -64,7 +67,7 @@ Resources:
     Condition: MyCondition
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -73,6 +76,8 @@ Resources:
         HttpApiEvent:
           Type: HttpApi
           Properties:
+            RouteSettings:
+              ThrottlingBurstLimit: 200
             Path: /sub
             Method: get
   helloworld1099:
@@ -80,7 +85,7 @@ Resources:
     Condition: Cond
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -89,6 +94,8 @@ Resources:
         HttpApiEvent:
           Type: HttpApi
           Properties:
+            RouteSettings:
+              ThrottlingBurstLimit: 200
             Auth:
               Authorizer: oauth2
         HttpApiEvent2:
@@ -101,7 +108,7 @@ Resources:
     Condition: Cond1
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -117,7 +124,7 @@ Resources:
     Condition: Cond2
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -133,7 +140,7 @@ Resources:
     Condition: Cond3
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -149,7 +156,7 @@ Resources:
     Condition: Cond4
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -165,7 +172,7 @@ Resources:
     Condition: Cond5
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -181,7 +188,7 @@ Resources:
     Condition: Cond6
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -197,7 +204,7 @@ Resources:
     Condition: Cond7
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -213,7 +220,7 @@ Resources:
     Condition: Cond8
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |
@@ -229,7 +236,7 @@ Resources:
     Condition: Cond9
     Properties:
       Handler: index.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 3
       InlineCode: |

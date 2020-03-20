@@ -7,10 +7,10 @@ from samcli.commands.init import cli as init_cmd
 from pathlib import Path
 
 from tests.integration.init.schemas.schemas_test_data_setup import SchemaTestDataSetup
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
+from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Schemas tests require credentials. This is to skip running the test where credentials are not available.
-SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI
+SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
@@ -28,7 +28,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3
@@ -62,7 +62,7 @@ Y
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3
@@ -109,7 +109,7 @@ Y
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3
@@ -145,7 +145,7 @@ P
 
         user_input = """
 1
-11
+12
 1
 eb-app-maven
 3

@@ -18,6 +18,12 @@ from .path_converter import PathConverter
 LOG = logging.getLogger(__name__)
 
 
+class LambdaResponseParseException(Exception):
+    """
+    An exception raised when we fail to parse the response for Lambda
+    """
+
+
 class Route:
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
@@ -175,7 +181,7 @@ class LocalApigwService(BaseLocalService):
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         method, _ = self.get_request_methods_endpoints(request)
-        if method == "OPTIONS":
+        if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
@@ -204,12 +210,8 @@ class LocalApigwService(BaseLocalService):
             (status_code, headers, body) = self._parse_lambda_output(
                 lambda_response, self.api.binary_media_types, request
             )
-        except (KeyError, TypeError, ValueError):
-            LOG.error(
-                "Function returned an invalid response (must include one of: body, headers, multiValueHeaders or "
-                "statusCode in the response object). Response received: %s",
-                lambda_response,
-            )
+        except LambdaResponseParseException:
+            LOG.error(str(LambdaResponseParseException))
             return ServiceErrorResponses.lambda_failure_response()
 
         return self.service_response(body, headers, status_code)
@@ -259,16 +261,21 @@ class LocalApigwService(BaseLocalService):
         :return: Tuple(int, dict, str, bool)
         """
         # pylint: disable-msg=too-many-statements
-        json_output = json.loads(lambda_output)
+        try:
+            json_output = json.loads(lambda_output)
+        except ValueError:
+            raise LambdaResponseParseException(f"Lambda response must be valid json: {lambda_output}")
 
         if not isinstance(json_output, dict):
-            raise TypeError("Lambda returned {} instead of dict".format(type(json_output)))
+            raise LambdaResponseParseException(f"Lambda returned {type(json_output)} instead of dict")
 
         status_code = json_output.get("statusCode") or 200
         headers = LocalApigwService._merge_response_headers(
             json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
         )
-        body = json_output.get("body") or "no data"
+        body = json_output.get("body")
+        if body is None:
+            LOG.warning("Lambda returned empty body!")
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
         try:
@@ -278,7 +285,7 @@ class LocalApigwService(BaseLocalService):
         except ValueError:
             message = "statusCode must be a positive int"
             LOG.error(message)
-            raise TypeError(message)
+            raise LambdaResponseParseException(message)
 
         try:
             if body:
@@ -286,7 +293,7 @@ class LocalApigwService(BaseLocalService):
         except ValueError:
             message = "Non null response bodies should be able to convert to string: {}".format(body)
             LOG.error(message)
-            raise TypeError(message)
+            raise LambdaResponseParseException(message)
 
         # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
         # a response shape.
@@ -294,23 +301,25 @@ class LocalApigwService(BaseLocalService):
         if bool(invalid_keys):
             msg = "Invalid API Gateway Response Keys: " + str(invalid_keys) + " in " + str(json_output)
             LOG.error(msg)
-            raise ValueError(msg)
+            raise LambdaResponseParseException(msg)
 
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
             LOG.info("No Content-Type given. Defaulting to 'application/json'.")
             headers["Content-Type"] = "application/json"
 
-        if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
-            body = base64.b64decode(body)
+        try:
+            if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
+                body = base64.b64decode(body)
+        except ValueError as ex:
+            LambdaResponseParseException(str(ex))
 
         return status_code, headers, body
 
     @staticmethod
     def _invalid_apig_response_keys(output):
         allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded"}
-        # In Python 2.7, need to explicitly make the Dictionary keys into a set
-        invalid_keys = set(output.keys()) - allowable
+        invalid_keys = output.keys() - allowable
         return invalid_keys
 
     @staticmethod

@@ -17,15 +17,15 @@ environment:
   TEMP: D:\tmp
   TMP: D:\tmp
 
-  # MSI Installers only use Py3.6.6. It is sufficient to test with this version here.
-  PYTHON_HOME: "C:\\Python36-x64"
-  PYTHON_SCRIPTS: "C:\\Python36-x64\\Scripts"
-  PYTHON_EXE: "C:\\Python36-x64\\python.exe"
-  PYTHON_VERSION: '3.6.8'
+  # MSI Installers only use Py3.7.6. It is sufficient to test with this version here.
+  PYTHON_HOME: "C:\\Python37-x64"
+  PYTHON_SCRIPTS: "C:\\Python37-x64\\Scripts"
+  PYTHON_EXE: "C:\\Python37-x64\\python.exe"
   PYTHON_ARCH: '64'
   HOME: 'C:\Users\appveyor'
   HOMEDRIVE: 'C:'
   HOMEPATH: 'C:\Users\appveyor'
+  APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 init:
   # Uncomment this for RDP
@@ -35,19 +35,19 @@ init:
 
 
 install:
-
     # Make sure the temp directory exists for Python to use.
     # Install python3.8
     - "choco install chocolatey-core.extension --version 1.3.3 --force -y"
     - "choco install python3 --version 3.8.0"
     - "C:\\Python38\\python.exe -m pip freeze"
     - "refreshenv"
-
     - ps: "mkdir -Force D:\\tmp"
-    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python37-x64;C:\\Python27-x64;C:\\Python38"
+    - "SET PATH=%PYTHON_HOME%;%PATH%;C:\\Python36-x64;C:\\Python27-x64;C:\\Python38"
     - "echo %PYTHON_HOME%"
     - "echo %PATH%"
     - "python --version"
+    # Check if python3.8 exists on the image
+    - "C:\\Python38\\python.exe --version"
 
     # Upgrade setuptools, wheel and virtualenv
     - "python -m pip install --upgrade setuptools wheel virtualenv"

@@ -1,10 +1,10 @@
 Resources:
-  HttpApiFunction: 
+  HttpApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: s3://sam-demo-bucket/todo_list.zip
       Handler: index.restapi
-      Runtime: nodejs4.3
+      Runtime: nodejs12.x
       Policies: AmazonDynamoDBFullAccess
       Events:
         Basic:
@@ -15,12 +15,12 @@ Resources:
         SimpleCase:
           Type: HttpApi
 
-  HttpApiFunction2: 
+  HttpApiFunction2:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: s3://sam-demo-bucket/todo_list.zip
       Handler: index.restapi
-      Runtime: nodejs4.3
+      Runtime: nodejs12.x
       Policies: AmazonDynamoDBFullAccess
       Events:
         Basic2:
@@ -28,3 +28,8 @@ Resources:
           Properties:
             Path: /basic2
             Method: post
+        PathParameters:
+          Type: HttpApi
+          Properties:
+            Path: /get/{something}/with/{params}
+            Method: POST

@@ -342,7 +342,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         with self.make_temp_dir() as dirname:
             with zip_folder(dirname) as actual_zip_file_name:
-                self.assertEqual(actual_zip_file_name, zip_file_name)
+                self.assertEqual(actual_zip_file_name, (zip_file_name, mock.ANY))
 
         make_zip_mock.assert_called_once_with(mock.ANY, dirname)
 
@@ -873,6 +873,48 @@ class TestArtifactExporter(unittest.TestCase):
             resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
             resource_type2_class.assert_called_once_with(self.s3_uploader_mock)
             resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_with_globals(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_instance = Mock()
+        resource_type1_class.return_value = resource_type1_instance
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_instance = Mock()
+        resource_type2_class.return_value = resource_type2_instance
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+
+        properties = {"foo": "bar"}
+        template_dict = {
+            "Globals": {"Function": {"CodeUri": "s3://test-bucket/test-key"}},
+            "Resources": {
+                "FunResource": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"Handler": "lambda.handler", "Runtime": "nodejs10.x"},
+                }
+            },
+        }
+
+        open_mock = mock.mock_open()
+        yaml_parse_mock.return_value = template_dict
+
+        # Patch the file open method to return template string
+        with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
+
+            template_exporter = Template(template_path, parent_dir, self.s3_uploader_mock, resources_to_export)
+            exported_template = template_exporter.export()
+            self.assertEqual(exported_template, template_dict)
+            self.assertEqual(
+                exported_template["Resources"]["FunResource"]["Properties"]["CodeUri"], "s3://test-bucket/test-key"
+            )
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_template_global_export(self, yaml_parse_mock):

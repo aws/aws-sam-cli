@@ -1,13 +1,49 @@
+import logging
 import os
 import platform
 import tempfile
 import shutil
-
+from collections import namedtuple
+from subprocess import Popen, PIPE, TimeoutExpired
 
 IS_WINDOWS = platform.system().lower() == "windows"
 RUNNING_ON_CI = os.environ.get("APPVEYOR", False)
 RUNNING_TEST_FOR_MASTER_ON_CI = os.environ.get("APPVEYOR_REPO_BRANCH", "master") != "master"
 CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False)
+RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
+
+LOG = logging.getLogger(__name__)
+
+CommandResult = namedtuple("CommandResult", "process stdout stderr")
+TIMEOUT = 300
+
+
+def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandResult:
+    process_execute = Popen(command_list, cwd=cwd, env=env, stdout=PIPE, stderr=PIPE)
+    try:
+        stdout_data, stderr_data = process_execute.communicate(timeout=timeout)
+        LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
+        LOG.info(f"Stderr: {stderr_data.decode('utf-8')}")
+        return CommandResult(process_execute, stdout_data, stderr_data)
+    except TimeoutExpired:
+        LOG.error(f"Command: {command_list}, TIMED OUT")
+        LOG.error(f"Return Code: {process_execute.returncode}")
+        process_execute.kill()
+        raise
+
+
+def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT) -> CommandResult:
+    process_execute = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE)
+    try:
+        stdout_data, stderr_data = process_execute.communicate(stdin_input, timeout=timeout)
+        LOG.info(f"Stdout: {stdout_data.decode('utf-8')}")
+        LOG.info(f"Stderr: {stderr_data.decode('utf-8')}")
+        return CommandResult(process_execute, stdout_data, stderr_data)
+    except TimeoutExpired:
+        LOG.error(f"Command: {command_list}, TIMED OUT")
+        LOG.error(f"Return Code: {process_execute.returncode}")
+        process_execute.kill()
+        raise
 
 
 class FileCreator(object):

@@ -10,27 +10,33 @@ environment:
   matrix:
 
     - PYTHON_HOME: "C:\\Python36-x64"
-      PYTHON_VERSION: '3.6.9'
+      PYTHON_VERSION: '3.6.10'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
+      AWS_S3: 'AWS_S3_36'
+      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7.4'
+      PYTHON_VERSION: '3.7.5'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
+      AWS_S3: 'AWS_S3_37'
+      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python38-x64"
-      PYTHON_VERSION: '3.8.0'
+      PYTHON_VERSION: '3.8.2'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
+      AWS_S3: 'AWS_S3_38'
+      APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 for:
   - 
@@ -77,6 +83,9 @@ for:
         - image: Ubuntu
 
     install:
+      - sh: "gvm use go1.13"
+      - sh: "echo $PATH"
+      - sh: "ls /usr/"
       - sh: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
@@ -89,7 +98,7 @@ for:
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
 
       # Install black
-      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.3b0/black"
+      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
       - sh: "chmod +x /tmp/black"
       - sh: "/tmp/black --version"
 

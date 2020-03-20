@@ -1,11 +1,5 @@
 import os
-import uuid
-import json
-import time
-from pathlib import Path
 from unittest import TestCase
-
-import boto3
 
 
 class DeployIntegBase(TestCase):
@@ -89,5 +83,15 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--region", str(region)]
         if profile:
             command_list = command_list + ["--profile", str(profile)]
+
+        return command_list
+
+    def get_minimal_build_command_list(self, template_file=None, build_dir=None):
+        command_list = [self.base_command(), "build"]
+
+        if template_file:
+            command_list = command_list + ["--template-file", str(template_file)]
+        if build_dir:
+            command_list = command_list + ["--build-dir", str(build_dir)]
 
         return command_list

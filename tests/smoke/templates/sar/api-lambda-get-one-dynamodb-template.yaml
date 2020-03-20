@@ -90,7 +90,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: 6353ff98-b2cd-44af-8ef5-c6e0383e464b
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       Events:
         Api:
           Type: Api

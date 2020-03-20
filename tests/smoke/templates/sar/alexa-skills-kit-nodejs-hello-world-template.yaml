@@ -17,7 +17,7 @@ Resources:
       CodeUri:
         Bucket: <%REPO_BUCKET%>
         Key: a3adadbb-f261-42e4-a1cc-5a83f2a7e052
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       MemorySize: 128
       Policies:
       - Statement:
