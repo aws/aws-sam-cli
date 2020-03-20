@@ -84,7 +84,7 @@ class LocalLambdaRunner:
         function = self.provider.get(function_name)
 
         if not function:
-            all_functions = [f.name for f in self.provider.get_all()]
+            all_functions = [f.functionname for f in self.provider.get_all()]
             available_function_message = "{} not found. Possible options in your template: {}".format(
                 function_name, all_functions
             )
@@ -133,7 +133,7 @@ class LocalLambdaRunner:
             function_timeout = self.MAX_DEBUG_TIMEOUT
 
         return FunctionConfig(
-            name=function.name,
+            name=function.functionname,
             runtime=function.runtime,
             handler=function.handler,
             code_abs_path=code_abs_path,
@@ -163,7 +163,7 @@ class LocalLambdaRunner:
 
         """
 
-        name = function.name
+        name = function.functionname
 
         variables = None
         if function.environment and isinstance(function.environment, dict) and "Variables" in function.environment:

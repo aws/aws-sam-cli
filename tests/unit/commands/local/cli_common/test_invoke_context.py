@@ -193,7 +193,7 @@ class TestInvokeContext_function_name_property(TestCase):
         context = InvokeContext(template_file="template_file")
 
         function = Mock()
-        function.name = "myname"
+        function.functionname = "myname"
         context._function_provider = Mock()
         context._function_provider.get_all.return_value = [function]  # Provider returns only one function
 
