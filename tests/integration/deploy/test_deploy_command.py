@@ -114,6 +114,34 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_no_package_and_deploy_with_s3_bucket_and_no_confirm_changeset(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = "a" + str(uuid.uuid4()).replace("-", "")[:10]
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_command_list.append("--no-confirm-changeset")
+
+        deploy_process_execute = self._run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_no_redeploy_on_same_built_artifacts(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         # Build project
