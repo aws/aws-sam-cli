@@ -115,6 +115,7 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--confirm-changeset/--no-confirm-changeset",
+    default=False,
     required=False,
     is_flag=True,
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
