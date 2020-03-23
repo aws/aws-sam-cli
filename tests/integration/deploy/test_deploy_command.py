@@ -138,7 +138,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_command_list.append("--no-confirm-changeset")
 
-        deploy_process_execute = self.run_command(deploy_command_list)
+        deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
