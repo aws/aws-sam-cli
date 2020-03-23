@@ -96,6 +96,8 @@ class Test_update_relative_paths(TestCase):
     def setUp(self):
 
         self.s3path = "s3://foo/bar"
+        self.s3_full_url_https = "https://s3.amazonaws.com/examplebucket/exampletemplate.yml"
+        self.s3_full_url_http = "http://s3.amazonaws.com/examplebucket/exampletemplate.yml"
         self.abspath = os.path.abspath("tosomefolder")
         self.curpath = os.path.join("foo", "bar")
         self.src = os.path.abspath("src")  # /path/from/root/src
@@ -107,7 +109,7 @@ class Test_update_relative_paths(TestCase):
     def test_must_update_relative_metadata_paths(self, resource_type, properties):
 
         for propname in properties:
-            for path in [self.s3path, self.abspath, self.curpath]:
+            for path in [self.s3path, self.abspath, self.curpath, self.s3_full_url_https, self.s3_full_url_http]:
                 template_dict = {
                     "Metadata": {resource_type: {propname: path}, "AWS::Ec2::Instance": {propname: path}},
                     "Parameters": {"a": "b"},
