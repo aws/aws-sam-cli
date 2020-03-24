@@ -16,6 +16,7 @@ Resources:
     Properties:
       Handler: main.handler
       Runtime: python3.6
+      FunctionName: customname
       CodeUri: .
       Timeout: 600
       Events:
