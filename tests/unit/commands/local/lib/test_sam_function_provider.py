@@ -15,9 +15,14 @@ class TestSamFunctionProviderEndToEnd(TestCase):
 
     TEMPLATE = {
         "Resources": {
-            "SamFunc1": {
+            "SamFunctions": {
                 "Type": "AWS::Serverless::Function",
-                "Properties": {"CodeUri": "/usr/foo/bar", "Runtime": "nodejs4.3", "Handler": "index.handler"},
+                "Properties": {
+                    "FunctionName": "SamFunc1",
+                    "CodeUri": "/usr/foo/bar",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                },
             },
             "SamFunc2": {
                 "Type": "AWS::Serverless::Function",
@@ -83,7 +88,22 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             (
                 "SamFunc1",
                 Function(
-                    name="SamFunc1",
+                    name="SamFunctions",
+                    functionname="SamFunc1",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="/usr/foo/bar",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                ),
+            ),
+            (
+                "SamFunctions",
+                Function(
+                    name="SamFunctions",
                     functionname="SamFunc1",
                     runtime="nodejs4.3",
                     handler="index.handler",
