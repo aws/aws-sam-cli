@@ -216,7 +216,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
 
         result = {f.name for f in self.provider.get_all()}
         expected = {
-            "SamFunc1",
+            "SamFunctions",
             "SamFunc2",
             "SamFunc3",
             "SamFuncWithFunctionNameOverride",
