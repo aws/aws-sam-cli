@@ -58,7 +58,19 @@ Resources:
       CodeUri: .
       Environment:
         Variables:
-          CustomEnvVar: "MyVar"
+          CustomEnvVar: "MyOtherVar"
+      Timeout: 600
+
+  EchoCustomEnvVarWithFunctionNameDefinedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: customname
+      Handler: main.custom_env_var_echo_hanler
+      Runtime: python3.6
+      CodeUri: .
+      Environment:
+        Variables:
+          CustomEnvVar: "MyOtherVar"
       Timeout: 600
 
   WriteToStderrFunction:
