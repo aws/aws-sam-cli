@@ -58,7 +58,11 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello World in a different dir"')
 
     @parameterized.expand(
-        [("MyReallyCoolFunction",), ("HelloWorldServerlessFunction",), ("HelloWorldServerlessWithFunctionNameRefFunction",)]
+        [
+            ("MyReallyCoolFunction",),
+            ("HelloWorldServerlessFunction",),
+            ("HelloWorldServerlessWithFunctionNameRefFunction",),
+        ]
     )
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_execpted_results(self, function_name):
