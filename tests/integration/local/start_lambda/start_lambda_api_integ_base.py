@@ -19,6 +19,7 @@ class StartLambdaIntegBaseClass(TestCase):
         # files for integ tests
         cls.template = cls.integration_dir + cls.template_path
         cls.port = str(StartLambdaIntegBaseClass.random_port())
+        cls.env_var_path = cls.integration_dir + "/testdata/invoke/vars.json"
 
         cls.thread = threading.Thread(target=cls.start_lambda())
         cls.thread.setDaemon(True)
@@ -30,7 +31,9 @@ class StartLambdaIntegBaseClass(TestCase):
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
 
-        cls.start_lambda_process = Popen([command, "local", "start-lambda", "-t", cls.template, "-p", cls.port])
+        cls.start_lambda_process = Popen(
+            [command, "local", "start-lambda", "-t", cls.template, "-p", cls.port, "--env-vars", cls.env_var_path]
+        )
 
         # we need to wait some time for start-lambda to start, hence the sleep
         time.sleep(5)
