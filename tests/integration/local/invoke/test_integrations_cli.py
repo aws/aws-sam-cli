@@ -57,10 +57,17 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         self.assertEqual(process_stdout.decode("utf-8"), '"Hello World in a different dir"')
 
+    @parameterized.expand(
+        [
+            ("MyReallyCoolFunction",),
+            ("HelloWorldServerlessFunction",),
+            ("HelloWorldServerlessWithFunctionNameRefFunction",),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
-    def test_invoke_returns_execpted_results(self):
+    def test_invoke_returns_execpted_results(self, function_name):
         command_list = self.get_command_list(
-            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+            function_name, template_path=self.template_path, event_path=self.event_path
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -146,6 +153,24 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
             template_path=self.template_path,
             event_path=self.event_path,
             env_var_path=self.env_var_path,
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"MyVar"')
+
+    @parameterized.expand(
+        [("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname"),]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_env_vars_with_functionname_defined(self, function_name):
+        command_list = self.get_command_list(
+            function_name, template_path=self.template_path, event_path=self.event_path, env_var_path=self.env_var_path,
         )
 
         process = Popen(command_list, stdout=PIPE)
