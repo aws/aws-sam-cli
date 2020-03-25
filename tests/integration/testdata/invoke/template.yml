@@ -18,6 +18,10 @@ Parameters:
     Type: String
     Default: ""
 
+  FunctionNameParam:
+    Type: String
+    Default: "MyReallyCoolFunction"
+
 Resources:
   HelloWorldServerlessFunction:
     Type: AWS::Serverless::Function
@@ -46,6 +50,15 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.sleep_handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+
+  HelloWorldServerlessWithFunctionNameRefFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Ref FunctionNameParam
+      Handler: main.handler
       Runtime: python3.6
       CodeUri: .
       Timeout: 600
