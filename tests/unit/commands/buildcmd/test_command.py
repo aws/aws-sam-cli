@@ -10,11 +10,15 @@ from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
-    BuildInsideContanerError,
+    BuildInsideContainerError,
     ContainerBuildNotSupported,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
+
+
+class DeepWrap(Exception):
+    pass
 
 
 class TestDoCli(TestCase):
@@ -63,16 +67,19 @@ class TestDoCli(TestCase):
 
     @parameterized.expand(
         [
-            (UnsupportedRuntimeException(),),
-            (BuildInsideContanerError(),),
-            (BuildError(wrapped_from=Exception, msg="Test"),),
-            (ContainerBuildNotSupported(),),
-            (UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),),
+            (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
+            (BuildInsideContainerError(), "BuildInsideContainerError"),
+            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
+            (ContainerBuildNotSupported(), "ContainerBuildNotSupported"),
+            (
+                UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
+                "UnsupportedBuilderLibraryVersionError",
+            ),
         ]
     )
     @patch("samcli.commands.build.build_context.BuildContext")
     @patch("samcli.lib.build.app_builder.ApplicationBuilder")
-    def test_must_catch_known_exceptions(self, exception, ApplicationBuilderMock, BuildContextMock):
+    def test_must_catch_known_exceptions(self, exception, wrapped_exception, ApplicationBuilderMock, BuildContextMock):
 
         ctx_mock = Mock()
         BuildContextMock.return_value.__enter__ = Mock()
@@ -97,6 +104,7 @@ class TestDoCli(TestCase):
             )
 
         self.assertEqual(str(ctx.exception), str(exception))
+        self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
 
     @patch("samcli.commands.build.build_context.BuildContext")
     @patch("samcli.lib.build.app_builder.ApplicationBuilder")

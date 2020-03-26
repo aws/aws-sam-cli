@@ -12,7 +12,7 @@ from samcli.commands._utils.options import (
     parameter_override_option,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.lib.build.app_builder import BuildInsideContanerError
+from samcli.lib.build.app_builder import BuildInsideContainerError
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
@@ -218,13 +218,14 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             click.secho(msg, fg="yellow")
 
         except (
-            UnsupportedRuntimeException,
-            BuildError,
-            BuildInsideContanerError,
-            UnsupportedBuilderLibraryVersionError,
-            ContainerBuildNotSupported,
+                UnsupportedRuntimeException,
+                BuildError,
+                BuildInsideContainerError,
+                UnsupportedBuilderLibraryVersionError,
+                ContainerBuildNotSupported,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
+
             # Some Exceptions have a deeper wrapped exception that needs to be surfaced
             # from deeper than just one level down.
             deep_wrap = getattr(ex, "wrapped_from", None)
