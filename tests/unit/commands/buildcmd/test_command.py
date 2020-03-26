@@ -7,7 +7,12 @@ from parameterized import parameterized
 
 from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar
 from samcli.commands.exceptions import UserException
-from samcli.lib.build.app_builder import BuildError, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.app_builder import (
+    BuildError,
+    UnsupportedBuilderLibraryVersionError,
+    BuildInsideContanerError,
+    ContainerBuildNotSupported,
+)
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 
@@ -59,7 +64,9 @@ class TestDoCli(TestCase):
     @parameterized.expand(
         [
             (UnsupportedRuntimeException(),),
-            (BuildError(),),
+            (BuildInsideContanerError(),),
+            (BuildError(wrapped_from=Exception, msg="Test"),),
+            (ContainerBuildNotSupported(),),
             (UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),),
         ]
     )

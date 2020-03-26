@@ -34,6 +34,12 @@ class ContainerBuildNotSupported(Exception):
 
 
 class BuildError(Exception):
+
+    def __init__(self, wrapped_from, msg):
+        self.wrapped_from = wrapped_from
+        Exception.__init__(self, msg)
+
+class BuildInsideContanerError(Exception):
     pass
 
 
@@ -237,7 +243,7 @@ class ApplicationBuilder:
                           mode=self._mode,
                           options=options)
         except LambdaBuilderError as ex:
-            raise BuildError(str(ex))
+            raise BuildError(ex.__class__.__name__, str(ex))
 
         return artifacts_dir
 
@@ -251,7 +257,7 @@ class ApplicationBuilder:
                                      options):
 
         if not self._container_manager.is_docker_reachable:
-            raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
+            raise BuildInsideContanerError("Docker is unreachable. Docker needs to be running to build inside a container.")
 
         container_build_supported, reason = supports_build_in_container(config)
         if not container_build_supported:
@@ -324,7 +330,7 @@ class ApplicationBuilder:
 
             if 400 <= err_code < 500:
                 # Like HTTP 4xx - customer error
-                raise BuildError(msg)
+                raise BuildInsideContanerError(msg)
 
             if err_code == 505:
                 # Like HTTP 505 error code: Version of the protocol is not supported
