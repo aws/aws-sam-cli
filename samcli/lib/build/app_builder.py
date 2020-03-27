@@ -186,7 +186,11 @@ class ApplicationBuilder:
             # By default prefer to build in-process for speed
             build_method = self._build_function_in_process
             if self._container_manager:
-                build_method = self._build_function_on_container
+                container_build_supported, reason = supports_build_in_container(config)
+                if container_build_supported:
+                    build_method = self._build_function_on_container
+                else:
+                    LOG.warning("Container Build Skipped: '%s'", reason)
 
             options = ApplicationBuilder._get_build_options(config.language, handler)
 
