@@ -457,14 +457,18 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore2.0", "Dotnetcore2.0", None),
-            ("dotnetcore2.1", "Dotnetcore2.1", None),
-            ("dotnetcore2.0", "Dotnetcore2.0", "debug"),
-            ("dotnetcore2.1", "Dotnetcore2.1", "debug"),
+            ("dotnetcore2.0", "Dotnetcore2.0", None, False),
+            ("dotnetcore2.1", "Dotnetcore2.1", None, False),
+            ("dotnetcore2.0", "Dotnetcore2.0", "debug", False),
+            ("dotnetcore2.1", "Dotnetcore2.1", "debug", False),
+            ("dotnetcore2.0", "Dotnetcore2.0", None, "use_container"),
+            ("dotnetcore2.1", "Dotnetcore2.1", None, "use_container"),
+            ("dotnetcore2.0", "Dotnetcore2.0", "debug", "use_container"),
+            ("dotnetcore2.1", "Dotnetcore2.1", "debug", "use_container"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_with_dotnetcore(self, runtime, code_uri, mode):
+    def test_with_dotnetcore(self, runtime, code_uri, mode, use_container):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -557,9 +561,16 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"hello-world"}
 
-    @parameterized.expand([("go1.x", "Go", None), ("go1.x", "Go", "debug")])
+    @parameterized.expand(
+        [
+            ("go1.x", "Go", None, False),
+            ("go1.x", "Go", "debug", False),
+            ("go1.x", "Go", None, "use_container"),
+            ("go1.x", "Go", "debug", "use_container"),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
-    def test_with_go(self, runtime, code_uri, mode):
+    def test_with_go(self, runtime, code_uri, mode, use_container):
         overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "hello-world"}
         cmdlist = self.get_command_list(use_container=False, parameter_overrides=overrides)
 
