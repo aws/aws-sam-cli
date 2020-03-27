@@ -81,7 +81,9 @@ $ sam build && sam package --s3-bucket <bucketname>
     "-u",
     is_flag=True,
     help="If your functions depend on packages that have natively compiled dependencies, use this flag "
-    "to build your function inside an AWS Lambda-like Docker container",
+    "to build your function inside an AWS Lambda-like Docker container.  IFF the runtime does not support "
+    "building inside a container, a warning will be logged, and the function will attempt to be built "
+    "outside the container.",
 )
 @click.option(
     "--manifest",
