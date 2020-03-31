@@ -38,7 +38,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnetcore2.1", "dotnetcore2.0", "dotnetcore1.0"],
+            "runtimes": ["dotnetcore3.1", "dotnetcore2.1", "dotnetcore2.0", "dotnetcore1.0"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -77,6 +77,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "ruby2.7": ["bundler"],
     "nodejs12.x": ["npm"],
     "nodejs10.x": ["npm"],
+    "dotnetcore3.1": ["cli-package"],
     "dotnetcore2.1": ["cli-package"],
     "dotnetcore2.0": ["cli-package"],
     "dotnetcore1.0": ["cli-package"],
@@ -104,6 +105,7 @@ INIT_RUNTIMES = [
     "ruby2.7",
     "go1.x",
     "java11",
+    "dotnetcore3.1",
     "dotnetcore2.1",
     # older nodejs runtimes
     "nodejs10.x",
