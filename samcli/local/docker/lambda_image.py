@@ -34,6 +34,7 @@ class Runtime(Enum):
     go1x = "go1.x"
     dotnetcore20 = "dotnetcore2.0"
     dotnetcore21 = "dotnetcore2.1"
+    dotnetcore31 = "dotnetcore3.1"
     provided = "provided"
 
     @classmethod

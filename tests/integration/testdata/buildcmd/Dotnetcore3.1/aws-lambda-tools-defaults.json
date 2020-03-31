@@ -11,14 +11,8 @@
   "profile":"",
   "region" : "",
   "configuration": "Release",
-  {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
-  "framework": "netcoreapp2.0",
-  {%- elif cookiecutter.runtime == 'dotnetcore2.1' %}
-  "framework": "netcoreapp2.1",
-  {%- else %}
-  "framework" : "netcoreapp3.1",
-  {%- endif %}
-  "function-runtime":"{{ cookiecutter.runtime }}",
+  "framework": "netcoreapp3.1",
+  "function-runtime":"dotnetcore3.1",
   "function-memory-size" : 256,
   "function-timeout" : 30,
   "function-handler" : "HelloWorld::HelloWorld.Function::FunctionHandler"
