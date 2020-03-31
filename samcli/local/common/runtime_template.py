@@ -106,7 +106,6 @@ INIT_RUNTIMES = [
     "go1.x",
     "java11",
     "dotnetcore3.1",
-    "dotnetcore2.1",
     # older nodejs runtimes
     "nodejs10.x",
     # older python runtimes
@@ -118,6 +117,7 @@ INIT_RUNTIMES = [
     # older java runtimes
     "java8",
     # older dotnetcore runtimes
+    "dotnetcore2.1",
     "dotnetcore2.0",
     "dotnetcore1.0",
 ]
