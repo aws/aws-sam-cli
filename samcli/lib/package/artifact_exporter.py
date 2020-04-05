@@ -25,11 +25,11 @@ import pathlib
 import contextlib
 from contextlib import contextmanager
 import uuid
-from samcli.lib.utils.osutils import is_windows, popen
 from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
 import jmespath
+from samcli.lib.utils.osutils import popen, is_windows
 
 from samcli.commands._utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
