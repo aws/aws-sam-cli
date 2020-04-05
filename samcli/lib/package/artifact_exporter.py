@@ -20,9 +20,12 @@ import logging
 import os
 import tempfile
 import zipfile
+import sys
+import pathlib
 import contextlib
 from contextlib import contextmanager
 import uuid
+from samcli.lib.utils.osutils import is_windows, popen
 from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
@@ -132,6 +135,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
     """
 
     local_path = jmespath.search(property_name, resource_dict)
+    runtime = jmespath.search("Runtime", resource_dict)
 
     if local_path is None:
         # Build the root directory and upload to S3
@@ -146,6 +150,10 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
         return local_path
 
     local_path = make_abs_path(parent_dir, local_path)
+
+    if is_windows() and runtime is not None and runtime.startswith("go"):
+        sys.stdout.write("Runtime is Go on Windows\nUse aws-lambda-go/cmd/build-lambda-zip")
+        return go_zip_and_upload(local_path, uploader)
 
     # Or, pointing to a folder. Zip the folder and upload
     if is_local_folder(local_path):
@@ -163,6 +171,48 @@ def resource_not_packageable(resource_dict):
     if inline_code is not None:
         return True
     return False
+
+
+def go_zip_and_upload(local_path, uploader):
+    with go_zip_folder(local_path) as (zip_file, md5_hash):
+        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash)
+
+
+@contextmanager
+def go_zip_folder(folder_path):
+    """
+	Only for Golang
+    Zip the entire folder and return a file to the zip. Use this inside
+    a "with" statement to cleanup the zipfile after it is used.
+
+    :param folder_path:
+    :return: Name of the zipfile
+    """
+    md5hash = dir_checksum(folder_path, followlinks=True)
+    zipfile_name = os.path.join(tempfile.gettempdir(), "data-" + md5hash)
+
+    files = []
+    for (dirpath, _, filenames) in os.walk(folder_path):
+        for file in filenames:
+            files.append(os.path.join(dirpath, file))
+    if not files:
+        raise exceptions.UserException(message="no file in path")
+    if len(files) > 1:
+        raise exceptions.UserException(
+            message="There are more than one file in path")
+
+    p = popen([str(pathlib.Path.home()) + "\\go\\bin\\build-lambda-zip.exe",
+               "-o", zipfile_name, files[0]])
+    _, err = p.communicate()
+
+    if p.returncode != 0:
+        raise exceptions.UserException(message=err.decode("utf8").strip())
+
+    try:
+        yield zipfile_name, md5hash
+    finally:
+        if os.path.exists(zipfile_name):
+            os.remove(zipfile_name)
 
 
 def zip_and_upload(local_path, uploader):

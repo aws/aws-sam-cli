@@ -7,6 +7,8 @@ import shutil
 import stat
 import sys
 import tempfile
+import platform
+import subprocess
 from contextlib import contextmanager
 
 LOG = logging.getLogger(__name__)
@@ -155,3 +157,13 @@ def copytree(source, destination, ignore=None):
             copytree(new_source, new_destination, ignore=ignore)
         else:
             shutil.copy2(new_source, new_destination)
+
+
+def popen(command, _stdout=subprocess.PIPE, _stderr=subprocess.PIPE, env=None, cwd=None):
+    p = subprocess.Popen(command, stdout=_stdout,
+							stderr=_stderr, env=env, cwd=cwd)
+    return p
+
+
+def is_windows():
+    return platform.system().lower() == "windows"
