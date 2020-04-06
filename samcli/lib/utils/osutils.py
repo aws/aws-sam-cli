@@ -160,8 +160,7 @@ def copytree(source, destination, ignore=None):
 
 
 def popen(command, _stdout=subprocess.PIPE, _stderr=subprocess.PIPE, env=None, cwd=None):
-    p = subprocess.Popen(command, stdout=_stdout,
-							stderr=_stderr, env=env, cwd=cwd)
+    p = subprocess.Popen(command, stdout=_stdout, stderr=_stderr, env=env, cwd=cwd)
     return p
 
 

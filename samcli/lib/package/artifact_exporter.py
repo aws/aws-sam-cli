@@ -198,11 +198,9 @@ def go_zip_folder(folder_path):
     if not files:
         raise exceptions.UserException(message="no file in path")
     if len(files) > 1:
-        raise exceptions.UserException(
-            message="There are more than one file in path")
+        raise exceptions.UserException(message="There are more than one file in path")
 
-    p = popen([str(pathlib.Path.home()) + "\\go\\bin\\build-lambda-zip.exe",
-               "-o", zipfile_name, files[0]])
+    p = popen([str(pathlib.Path.home()) + "\\go\\bin\\build-lambda-zip.exe", "-o", zipfile_name, files[0]])
     _, err = p.communicate()
 
     if p.returncode != 0:
