@@ -12,6 +12,7 @@ from samcli.lib.build.app_builder import (
     BuildError,
     LambdaBuilderError,
     ContainerBuildNotSupported,
+    BuildInsideContainerError,
 )
 
 
@@ -270,7 +271,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
         self.container_manager.is_docker_reachable = False
 
-        with self.assertRaises(BuildError) as ctx:
+        with self.assertRaises(BuildInsideContainerError) as ctx:
             self.builder._build_function_on_container(
                 config, "source_dir", "artifacts_dir", "scratch_dir", "manifest_path", "runtime", {}
             )
@@ -315,7 +316,7 @@ class TestApplicationBuilder_parse_builder_response(TestCase):
         msg = "invalid params"
         data = {"error": {"code": 488, "message": msg}}
 
-        with self.assertRaises(BuildError) as ctx:
+        with self.assertRaises(BuildInsideContainerError) as ctx:
             self.builder._parse_builder_response(json.dumps(data), self.image_name)
 
         self.assertEqual(str(ctx.exception), msg)

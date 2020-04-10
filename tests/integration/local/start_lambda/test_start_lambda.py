@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 import json
+from parameterized import parameterized
 
 import pytest
 
@@ -162,6 +163,18 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         response = self.lambda_client.invoke(FunctionName="echo-func-name-override")
 
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 200)
+
+    @parameterized.expand(
+        [("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname"),]
+    )
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_overrode_env_var_and_functionname_defined(self, function_name):
+        response = self.lambda_client.invoke(FunctionName=function_name)
+
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), '"MyVar"')
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
