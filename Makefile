@@ -44,7 +44,8 @@ black-check:
 # Verifications to run before sending a pull request
 pr: init dev black-check
 
-update-isolated-req:
-	pipenv --three
-	pipenv run pip install -r requirements/base.txt
-	pipenv run pip freeze > requirements/isolated.txt
+update-reproducible-reqs:
+	python3 -m venv venv-update-reproducible-requirements
+	venv-update-reproducible-requirements/bin/pip install --upgrade pip-tools pip
+	venv-update-reproducible-requirements/bin/pip install -r requirements/base.txt
+	venv-update-reproducible-requirements/bin/pip-compile --generate-hashes --allow-unsafe > requirements/reproducible-linux.txt
