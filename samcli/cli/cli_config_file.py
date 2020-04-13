@@ -15,15 +15,10 @@ from samcli.commands.exceptions import ConfigException
 from samcli.lib.config.exceptions import SamConfigVersionException
 from samcli.cli.context import get_cmd_names
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
-from samcli.lib.utils.sam_logging import SamCliLogger
 
 __all__ = ("TomlProvider", "configuration_option", "get_ctx_defaults")
 
-# Adding Samconfig prefix to the formatter here to show explicitly that the log messages generated
-# are exclusively from the configuration file context.
-
 LOG = logging.getLogger(__name__)
-SamCliLogger.configure_logger(LOG, logging.Formatter("Samconfig: %(message)s"), logging.INFO)
 
 
 class TomlProvider:
@@ -48,25 +43,25 @@ class TomlProvider:
         """
 
         resolved_config = {}
+
         samconfig = SamConfig(config_dir)
+        LOG.debug("Config file location: %s", samconfig.path())
 
         if not samconfig.exists():
-            LOG.info("Config file does not exist")
+            LOG.debug("Config file does not exist")
             return resolved_config
 
-        LOG.info("Config file location : %s", samconfig.path())
-
         try:
-            LOG.info("Getting configuration value for %s %s %s", cmd_names, self.section, config_env)
+            LOG.debug("Getting configuration value for %s %s %s", cmd_names, self.section, config_env)
 
             # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
             # so that click defaults work out of the box.
             samconfig.sanity_check()
             resolved_config = {k: v for k, v in samconfig.get_all(cmd_names, self.section, env=config_env).items()}
-            LOG.info("Configuration values read from the file: %s", resolved_config)
+            LOG.debug("Configuration values read from the file: %s", resolved_config)
 
         except KeyError as ex:
-            LOG.info(
+            LOG.debug(
                 "Error reading configuration file at %s with config_env=%s, command=%s, section=%s %s",
                 samconfig.path(),
                 config_env,
@@ -76,11 +71,11 @@ class TomlProvider:
             )
 
         except SamConfigVersionException as ex:
-            LOG.info("%s %s", samconfig.path(), str(ex))
+            LOG.debug("%s %s", samconfig.path(), str(ex))
             raise ConfigException(f"Syntax invalid in samconfig.toml: {str(ex)}")
 
         except Exception as ex:
-            LOG.info("Error reading configuration file: %s %s", samconfig.path(), str(ex))
+            LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))
 
         return resolved_config
 
