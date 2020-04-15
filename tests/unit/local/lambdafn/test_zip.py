@@ -125,7 +125,7 @@ class TestUnzipWithPermissions(TestCase):
             self.actual_symlinks += 1
             return
 
-        self.assertEquals(
+        self.assertEqual(
             expected_permission,
             actual_permissions,
             "File {} has wrong permission {}, expected {}.".format(key, actual_permissions, expected_permission),

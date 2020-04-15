@@ -101,11 +101,15 @@ def unzip(zip_file_path, output_dir, permission=None):
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
             extracted_path = _extract(file_info, output_dir, zip_ref)
-            _set_permissions(file_info, extracted_path)
 
-            _override_permissions(extracted_path, permission)
+            # If the extracted_path is a symlink, do not set the permissions. If the target of the symlink does not
+            # exist, then os.chmod will fail with FileNotFoundError
+            if not os.path.islink(extracted_path):
+                _set_permissions(file_info, extracted_path)
+                _override_permissions(extracted_path, permission)
 
-    _override_permissions(output_dir, permission)
+    if not os.path.islink(extracted_path):
+        _override_permissions(output_dir, permission)
 
 
 def _override_permissions(path, permission):
@@ -138,7 +142,7 @@ def _set_permissions(zip_file_info, extracted_path):
     """
 
     # Permission information is stored in first two bytes.
-    permission = (zip_file_info.external_attr >> 16) & 511
+    permission = zip_file_info.external_attr >> 16
     if not permission:
         # Zips created on certain Windows machines, however, might not have any permission information on them.
         # Skip setting a permission on these files.
