@@ -401,6 +401,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+    @skipIf(IS_WINDOWS, "This test failes on windows due to unix permissions not set properly on unzipped binary")
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_execpted_results_from_git_function(self):
         command_list = self.get_command_list(
