@@ -9,23 +9,22 @@ import pathlib
 
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.commands._utils.template import get_template_data
-from samcli.commands.exceptions import UserException
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.build.exceptions import InvalidBuildDirException
+from samcli.local.lambdafn.exceptions import ResourceNotFound
+from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 
 LOG = logging.getLogger(__name__)
 
 
 class BuildContext:
-
     # Build directories need not be world writable.
     # This is usually a optimal permission for directories
     _BUILD_DIR_PERMISSIONS = 0o755
 
     def __init__(
         self,
-        function_identifier,
+        resource_identifier,
         template_file,
         base_dir,
         build_dir,
@@ -38,7 +37,7 @@ class BuildContext:
         skip_pull_image=False,
     ):
 
-        self._function_identifier = function_identifier
+        self._resource_identifier = resource_identifier
         self._template_file = template_file
         self._base_dir = base_dir
         self._build_dir = build_dir
@@ -51,6 +50,7 @@ class BuildContext:
         self._mode = mode
 
         self._function_provider = None
+        self._layer_provider = None
         self._template_dict = None
         self._app_builder = None
         self._container_manager = None
@@ -59,6 +59,7 @@ class BuildContext:
         self._template_dict = get_template_data(self._template_file)
 
         self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
+        self._layer_provider = SamLayerProvider(self._template_dict, self._parameter_overrides)
 
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
@@ -102,6 +103,10 @@ class BuildContext:
         return self._function_provider
 
     @property
+    def layer_provider(self):
+        return self._layer_provider
+
+    @property
     def template_dict(self):
         return self._template_dict
 
@@ -137,18 +142,40 @@ class BuildContext:
         return self._mode
 
     @property
-    def functions_to_build(self):
-        if self._function_identifier:
-            function = self._function_provider.get(self._function_identifier)
+    def resources_to_build(self):
+        """
+        Function return resources that should be build by current build command. This function considers
+        Lambda Functions and Layers with build method as buildable resources.
+        Returns
+        -------
+        Map with list of Function and Layer in template file.
 
-            if not function:
-                all_functions = [f.name for f in self._function_provider.get_all()]
-                available_function_message = "{} not found. Possible options in your template: {}".format(
-                    self._function_identifier, all_functions
-                )
-                LOG.info(available_function_message)
-                raise FunctionNotFound("Unable to find a Function with name '{}'".format(self._function_identifier))
+        """
+        result = {}
+        if self._resource_identifier:
+            function = self._function_provider.get(self._resource_identifier)
+            if function:
+                result['Function'] = [function]
+            # TODO: Check what layers function have, and add that to resources to build
 
-            return [function]
+            layer = self._layer_provider.get(self._resource_identifier)
+            if layer:
+                if layer.build_method is None:
+                    LOG.error("Layer %s is missing BuildMethod Metadata.", self._function_provider)
+                    raise MissingBuildMethodException(f"Build method missing in layer {self._resource_identifier}.")
+                result['Layer'] = [layer]
 
-        return self._function_provider.get_all()
+            if result:
+                return result
+
+            all_resources = [f.name for f in self._function_provider.get_all()]
+            all_resources.extend([l.name for l in self._layer_provider.get_all()])
+
+            available_resource_message = f"{self._resource_identifier} not found. Possible options in your " \
+                                         f"template: {all_resources}"
+            LOG.info(available_resource_message)
+            raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
+
+        result['Function'] = self._function_provider.get_all()
+        result['Layer'] = [l for l in self._layer_provider.get_all() if l.build_method is not None]
+        return result

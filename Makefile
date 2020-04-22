@@ -10,6 +10,10 @@ test:
 	# Fail if coverage falls below 95%
 	pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
 
+test-cov-report:
+	# Run unit tests with html coverage report
+	pytest --cov samcli --cov-report html --cov-fail-under 95 tests/unit
+
 integ-test:
 	# Integration tests don't need code coverage
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)

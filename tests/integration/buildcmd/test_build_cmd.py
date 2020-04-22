@@ -32,24 +32,13 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand(
-        [
-            ("python2.7", False),
-            ("python3.6", False),
-            ("python3.7", False),
-            ("python3.8", False),
-            ("python2.7", "use_container"),
-            ("python3.6", "use_container"),
-            ("python3.7", "use_container"),
-            ("python3.8", "use_container"),
-        ]
-    )
     @pytest.mark.flaky(reruns=3)
-    def test_with_default_requirements(self, runtime, use_container):
+    def test_with_default_requirements(self, runtime="python3.8", use_container=False):
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -121,7 +110,8 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command:", cmdlist)
+        LOG.info(cmdlist)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
 
@@ -153,7 +143,8 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -234,7 +225,8 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -666,7 +658,8 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
