@@ -22,7 +22,7 @@ SAM_CLI_STACK_NAME = "aws-sam-cli-managed-default"
 LOG = logging.getLogger(__name__)
 
 
-def manage_stack(profile, region):
+def manage_stack(profile, region, role_arn=None):
     try:
         cloudformation_client = boto3.client("cloudformation", config=Config(region_name=region if region else None))
     except NoCredentialsError:
@@ -33,10 +33,10 @@ def manage_stack(profile, region):
         raise RegionError(
             "Error Setting Up Managed Stack Client: Unable to resolve a region. Please provide a region via the --region parameter or by the AWS_REGION environment variable."
         )
-    return _create_or_get_stack(cloudformation_client)
+    return _create_or_get_stack(cloudformation_client, role_arn)
 
 
-def _create_or_get_stack(cloudformation_client):
+def _create_or_get_stack(cloudformation_client, role_arn=None):
     try:
         stack = None
         try:
@@ -46,7 +46,7 @@ def _create_or_get_stack(cloudformation_client):
             click.echo("\n\tLooking for resources needed for deployment: Found!")
         except ClientError:
             click.echo("\n\tLooking for resources needed for deployment: Not found.")
-            stack = _create_stack(cloudformation_client)  # exceptions are not captured from subcommands
+            stack = _create_stack(cloudformation_client, role_arn)  # exceptions are not captured from subcommands
         # Sanity check for non-none stack? Sanity check for tag?
         tags = stack["Tags"]
         try:
@@ -83,16 +83,21 @@ def _create_or_get_stack(cloudformation_client):
         raise ManagedStackError(str(ex))
 
 
-def _create_stack(cloudformation_client):
+def _create_stack(cloudformation_client, role_arn=None):
     click.echo("\tCreating the required resources...")
     change_set_name = "InitialCreation"
-    change_set_resp = cloudformation_client.create_change_set(
-        StackName=SAM_CLI_STACK_NAME,
-        TemplateBody=_get_stack_template(),
-        Tags=[{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
-        ChangeSetType="CREATE",
-        ChangeSetName=change_set_name,  # this must be unique for the stack, but we only create so that's fine
-    )
+
+    params = {
+        "StackName": SAM_CLI_STACK_NAME,
+        "TemplateBody": _get_stack_template(),
+        "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
+        "ChangeSetType": "CREATE",
+        "ChangeSetName": change_set_name,  # this must be unique for the stack, but we only create so that's fine
+    }
+    if role_arn:
+        params["RoleARN"] = role_arn
+
+    change_set_resp = cloudformation_client.create_change_set(**params)
     stack_id = change_set_resp["StackId"]
     change_waiter = cloudformation_client.get_waiter("change_set_create_complete")
     change_waiter.wait(

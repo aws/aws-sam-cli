@@ -28,6 +28,7 @@ class GuidedContext:
         s3_prefix,
         region=None,
         profile=None,
+        role_arn=None,
         confirm_changeset=None,
         capabilities=None,
         parameter_overrides=None,
@@ -40,6 +41,7 @@ class GuidedContext:
         self.s3_prefix = s3_prefix
         self.region = region
         self.profile = profile
+        self.role_arn = role_arn
         self.confirm_changeset = confirm_changeset
         self.capabilities = (capabilities,)
         self.parameter_overrides = parameter_overrides
@@ -100,7 +102,7 @@ class GuidedContext:
 
         save_to_config = confirm(f"\t{self.start_bold}Save arguments to samconfig.toml{self.end_bold}", default=True)
 
-        s3_bucket = manage_stack(profile=self.profile, region=region)
+        s3_bucket = manage_stack(profile=self.profile, region=region, role_arn=self.role_arn)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
         click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
 

@@ -184,7 +184,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name="sam-app",
                 s3_prefix="sam-app",
             )
-            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1", role_arn="role_arn")
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
@@ -279,7 +279,7 @@ class TestDeployCliCommand(TestCase):
         )
 
         context_mock.run.assert_called_with()
-        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1", role_arn="role_arn")
         self.assertEqual(context_mock.run.call_count, 1)
 
         self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 7)
@@ -383,7 +383,7 @@ class TestDeployCliCommand(TestCase):
         )
 
         context_mock.run.assert_called_with()
-        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1", role_arn="role_arn")
         self.assertEqual(context_mock.run.call_count, 1)
 
         self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 7)
@@ -476,5 +476,5 @@ class TestDeployCliCommand(TestCase):
 
             context_mock.run.assert_called_with()
             self.assertEqual(mock_save_config.call_count, 0)
-            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1", role_arn="role_arn")
             self.assertEqual(context_mock.run.call_count, 1)

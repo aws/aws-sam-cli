@@ -40,6 +40,7 @@ class TestBootstrapManagedStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
+            "RoleARN": "arn:aws:iam::12345678000:role/CloudFormationRole"
         }
         ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
         stubber.add_response("create_change_set", ccs_resp, ccs_params)
@@ -66,7 +67,7 @@ class TestBootstrapManagedStack(TestCase):
         stubber.add_response("describe_stacks", post_create_ds_resp, ds_params)
         stubber.add_response("describe_stacks", post_create_ds_resp, ds_params)
         stubber.activate()
-        _create_or_get_stack(stub_cf)
+        _create_or_get_stack(stub_cf, role_arn="arn:aws:iam::12345678000:role/CloudFormationRole")
         stubber.assert_no_pending_responses()
         stubber.deactivate()
 

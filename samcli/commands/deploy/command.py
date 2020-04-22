@@ -215,6 +215,7 @@ def do_cli(
             s3_prefix=s3_prefix,
             region=region,
             profile=profile,
+            role_arn=role_arn,
             confirm_changeset=confirm_changeset,
             capabilities=capabilities,
             parameter_overrides=parameter_overrides,
