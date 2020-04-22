@@ -40,7 +40,7 @@ class TestBootstrapManagedStack(TestCase):
             "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
             "ChangeSetType": "CREATE",
             "ChangeSetName": "InitialCreation",
-            "RoleARN": "arn:aws:iam::12345678000:role/CloudFormationRole"
+            "RoleARN": "arn:aws:iam::12345678000:role/CloudFormationRole",
         }
         ccs_resp = {"Id": "id", "StackId": "aws-sam-cli-managed-default"}
         stubber.add_response("create_change_set", ccs_resp, ccs_params)
