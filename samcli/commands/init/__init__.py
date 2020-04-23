@@ -9,8 +9,7 @@ from json import JSONDecodeError
 import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
-from samcli.commands.exceptions import UserException
-from samcli.cli.main import pass_context, common_options, global_cfg
+from samcli.cli.main import pass_context, common_options
 from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
 from samcli.lib.telemetry.metrics import track_command
 
@@ -138,6 +137,8 @@ def do_cli(
     from samcli.commands.init.interactive_init_flow import do_interactive
     from samcli.commands.init.init_templates import InitTemplates
 
+    _deprecate_notification(runtime)
+
     # check for mutually exclusive parameters
     if location and app_template:
         msg = """
@@ -174,6 +175,19 @@ You can also re-run without the --no-interactive flag to be prompted for require
     else:
         # proceed to interactive state machine, which will call do_generate
         do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
+
+
+def _deprecate_notification(runtime):
+    from samcli.lib.utils.colors import Colored
+
+    depreciated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
+    if runtime in depreciated_runtimes:
+        message = (
+            f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+            f"will drop support for all deprecated runtimes {depreciated_runtimes} on May 1st. "
+            f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+        )
+        LOG.warning(Colored().yellow(message))
 
 
 def _get_cookiecutter_template_context(name, runtime, extra_context):
