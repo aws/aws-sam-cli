@@ -180,11 +180,11 @@ You can also re-run without the --no-interactive flag to be prompted for require
 def _deprecate_notification(runtime):
     from samcli.lib.utils.colors import Colored
 
-    depreciated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
-    if runtime in depreciated_runtimes:
+    deprecated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
+    if runtime in deprecated_runtimes:
         message = (
             f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
-            f"will drop support for all deprecated runtimes {depreciated_runtimes} on May 1st. "
+            f"will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
             f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
         )
         LOG.warning(Colored().yellow(message))
