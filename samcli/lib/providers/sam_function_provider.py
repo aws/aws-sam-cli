@@ -5,6 +5,7 @@ import logging
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
+from samcli.lib.utils.colors import Colored
 from .provider import FunctionProvider, Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
 
@@ -49,6 +50,9 @@ class SamFunctionProvider(FunctionProvider):
         # Store a map of function name to function information for quick reference
         self.functions = self._extract_functions(self.resources)
 
+        self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
+        self._colored = Colored()
+
     def get(self, name):
         """
         Returns the function given name or LogicalId of the function. Every SAM resource has a logicalId, but it may
@@ -66,12 +70,23 @@ class SamFunctionProvider(FunctionProvider):
 
         for f in self.get_all():
             if f.name == name:
+                self._deprecate_notification(f.runtime)
                 return f
 
             if f.functionname == name:
+                self._deprecate_notification(f.runtime)
                 return f
 
         return None
+
+    def _deprecate_notification(self, runtime):
+        if runtime in self._deprecated_runtimes:
+            message = (
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
+                f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            )
+            LOG.warning(self._colored.yellow(message))
 
     def get_all(self):
         """

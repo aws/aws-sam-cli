@@ -14,6 +14,7 @@ from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils.colors import Colored
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, supports_build_in_container
 
@@ -89,6 +90,9 @@ class ApplicationBuilder:
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
+
+        self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
+        self._colored = Colored()
 
     def build(self):
         """
@@ -176,6 +180,12 @@ class ApplicationBuilder:
         str
             Path to the location where built artifacts are available
         """
+
+        if runtime in self._deprecated_runtimes:
+            message = f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI " \
+                      f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. " \
+                      f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            LOG.warning(self._colored.yellow(message))
 
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
