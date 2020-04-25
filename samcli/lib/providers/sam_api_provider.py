@@ -15,8 +15,9 @@ LOG = logging.getLogger(__name__)
 class SamApiProvider(CfnBaseApiProvider):
     SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     SERVERLESS_API = "AWS::Serverless::Api"
-    TYPES = [SERVERLESS_FUNCTION, SERVERLESS_API]
-    _FUNCTION_EVENT_TYPE_API = "Api"
+    SERVERLESS_HTTP_API = "AWS::Serverless::HttpApi"
+    TYPES = [SERVERLESS_FUNCTION, SERVERLESS_API, SERVERLESS_HTTP_API]
+    _FUNCTION_EVENT_TYPE_APIS = ["Api", "HttpApi"]
     _FUNCTION_EVENT = "Events"
     _EVENT_PATH = "Path"
     _EVENT_METHOD = "Method"
@@ -230,7 +231,7 @@ class SamApiProvider(CfnBaseApiProvider):
         count = 0
         for _, event in serverless_function_events.items():
 
-            if self._FUNCTION_EVENT_TYPE_API == event.get(self._EVENT_TYPE):
+            if event.get(self._EVENT_TYPE) in self._FUNCTION_EVENT_TYPE_APIS:
                 route_resource_id, route = self._convert_event_route(function_logical_id, event.get("Properties"))
                 collector.add_routes(route_resource_id, [route])
                 count += 1
