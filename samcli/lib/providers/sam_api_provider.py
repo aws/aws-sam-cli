@@ -48,8 +48,10 @@ class SamApiProvider(CfnBaseApiProvider):
             resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
             if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
                 self._extract_routes_from_function(logical_id, resource, collector)
-            if resource_type in [SamApiProvider.SERVERLESS_API, SamApiProvider.SERVERLESS_HTTP_API]:
+            if resource_type == SamApiProvider.SERVERLESS_API:
                 self._extract_from_serverless_api(logical_id, resource, collector, cwd=cwd)
+            if resource_type == SamApiProvider.SERVERLESS_HTTP_API:
+                self._extract_from_serverless_http(logical_id, resource, collector, cwd=cwd)
 
         collector.routes = self.merge_routes(collector)
 
@@ -88,6 +90,44 @@ class SamApiProvider(CfnBaseApiProvider):
             )
             return
         self.extract_swagger_route(logical_id, body, uri, binary_media, collector, cwd=cwd)
+        collector.stage_name = stage_name
+        collector.stage_variables = stage_variables
+        collector.cors = cors
+
+    def _extract_from_serverless_http(self, logical_id, api_resource, collector, cwd=None):
+        """
+        Extract APIs from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents. The result is added
+        to the collector.
+
+        Parameters
+        ----------
+        logical_id : str
+            Logical ID of the resource
+
+        api_resource : dict
+            Resource definition, including its properties
+
+        collector: samcli.commands.local.lib.route_collector.RouteCollector
+            Instance of the API collector that where we will save the API information
+
+        cwd : str
+            Optional working directory with respect to which we will resolve relative path to Swagger file
+
+        """
+
+        properties = api_resource.get("Properties", {})
+        body = properties.get("DefinitionBody")
+        uri = properties.get("DefinitionUri")
+        cors = self.extract_cors(properties.get("CorsConfiguration", {}))
+        stage_name = properties.get("StageName")
+        stage_variables = properties.get("StageVariables")
+        if not body and not uri:
+            # Swagger is not found anywhere.
+            LOG.debug(
+                "Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri", logical_id
+            )
+            return
+        self.extract_swagger_route(logical_id, body, uri, None, collector, cwd=cwd)
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
