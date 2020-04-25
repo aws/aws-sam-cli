@@ -48,7 +48,7 @@ class SamApiProvider(CfnBaseApiProvider):
             resource_type = resource.get(CfnBaseApiProvider.RESOURCE_TYPE)
             if resource_type == SamApiProvider.SERVERLESS_FUNCTION:
                 self._extract_routes_from_function(logical_id, resource, collector)
-            if resource_type == SamApiProvider.SERVERLESS_API:
+            if resource_type in [SamApiProvider.SERVERLESS_API, SamApiProvider.SERVERLESS_HTTP_API]:
                 self._extract_from_serverless_api(logical_id, resource, collector, cwd=cwd)
 
         collector.routes = self.merge_routes(collector)
