@@ -6,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from pathlib import Path
 
+from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     UnsupportedBuilderLibraryVersionError,
@@ -23,9 +24,10 @@ class TestApplicationBuilder_build(TestCase):
         self.layer1 = Mock()
         self.layer2 = Mock()
 
-        self.builder = ApplicationBuilder(
-            {"Function": [self.func1, self.func2], "Layer": [self.layer1, self.layer2]}, "builddir", "basedir"
-        )
+        resources_to_build_collector = ResourcesToBuildCollector()
+        resources_to_build_collector.add_functions([self.func1, self.func2])
+        resources_to_build_collector.add_layers([self.layer1, self.layer2])
+        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
 
     def test_must_iterate_on_functions_and_layers(self):
         build_function_mock = Mock()

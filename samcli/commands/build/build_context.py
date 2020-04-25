@@ -7,6 +7,7 @@ import os
 import shutil
 import pathlib
 
+from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.local.docker.manager import ContainerManager
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
@@ -23,18 +24,18 @@ class BuildContext:
     _BUILD_DIR_PERMISSIONS = 0o755
 
     def __init__(
-        self,
-        resource_identifier,
-        template_file,
-        base_dir,
-        build_dir,
-        mode,
-        manifest_path=None,
-        clean=False,
-        use_container=False,
-        parameter_overrides=None,
-        docker_network=None,
-        skip_pull_image=False,
+            self,
+            resource_identifier,
+            template_file,
+            base_dir,
+            build_dir,
+            mode,
+            manifest_path=None,
+            clean=False,
+            use_container=False,
+            parameter_overrides=None,
+            docker_network=None,
+            skip_pull_image=False,
     ):
 
         self._resource_identifier = resource_identifier
@@ -148,34 +149,65 @@ class BuildContext:
         Lambda Functions and Layers with build method as buildable resources.
         Returns
         -------
-        Map with list of Function and Layer in template file.
+        ResourcesToBuildCollector
+        """
+        result = ResourcesToBuildCollector()
+        if self._resource_identifier:
+            self._collect_single_function_and_dependent_layers(self._resource_identifier, result)
+            self._collect_single_buildable_layer(self._resource_identifier, result)
+
+            if not result.functions and not result.layers:
+                all_resources = [f.name for f in self._function_provider.get_all()]
+                all_resources.extend([l.name for l in self._layer_provider.get_all()])
+
+                available_resource_message = f"{self._resource_identifier} not found. Possible options in your " \
+                                             f"template: {all_resources}"
+                LOG.info(available_resource_message)
+                raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
+            return result
+        result.add_functions(self._function_provider.get_all())
+        result.add_layers([l for l in self._layer_provider.get_all() if l.build_method is not None])
+        return result
+
+    def _collect_single_function_and_dependent_layers(self, resource_identifier, resource_collector):
+        """
+        Populate resource_collector with function with provided identifier and all layers that function need to be
+        build in resource_collector
+        Parameters
+        ----------
+        resource_collector: Collector that will be populated with resources.
+
+        Returns
+        -------
+        ResourcesToBuildCollector
 
         """
-        result = {}
-        if self._resource_identifier:
-            function = self._function_provider.get(self._resource_identifier)
-            if function:
-                result['Function'] = [function]
-            # TODO: Check what layers function have, and add that to resources to build
+        function = self._function_provider.get(resource_identifier)
+        if not function:
+            # No function found
+            return
 
-            layer = self._layer_provider.get(self._resource_identifier)
-            if layer:
-                if layer.build_method is None:
-                    LOG.error("Layer %s is missing BuildMethod Metadata.", self._function_provider)
-                    raise MissingBuildMethodException(f"Build method missing in layer {self._resource_identifier}.")
-                result['Layer'] = [layer]
+        resource_collector.add_function(function)
+        resource_collector.add_layers([l for l in function.layers if l.build_method is not None])
 
-            if result:
-                return result
+    def _collect_single_buildable_layer(self, resource_identifier, resource_collector):
+        """
+        Populate resource_collector with layer with provided identifier.
 
-            all_resources = [f.name for f in self._function_provider.get_all()]
-            all_resources.extend([l.name for l in self._layer_provider.get_all()])
+        Parameters
+        ----------
+        resource_collector
 
-            available_resource_message = f"{self._resource_identifier} not found. Possible options in your " \
-                                         f"template: {all_resources}"
-            LOG.info(available_resource_message)
-            raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
+        Returns
+        -------
 
-        result['Function'] = self._function_provider.get_all()
-        result['Layer'] = [l for l in self._layer_provider.get_all() if l.build_method is not None]
-        return result
+        """
+        layer = self._layer_provider.get(resource_identifier)
+        if not layer:
+            # No layer found
+            return
+        if layer and layer.build_method is None:
+            LOG.error("Layer %s is missing BuildMethod Metadata.", self._function_provider)
+            raise MissingBuildMethodException(f"Build method missing in layer {resource_identifier}.")
+
+        resource_collector.add_layer(layer)

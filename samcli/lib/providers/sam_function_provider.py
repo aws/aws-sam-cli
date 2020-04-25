@@ -282,6 +282,6 @@ class SamFunctionProvider(SamBaseProvider):
                         layer_logical_id, layer_properties, "ContentUri", ignore_code_extraction_warnings
                     )
 
-                layers.append(LayerVersion(layer_logical_id, codeuri))
+                layers.append(LayerVersion(layer_logical_id, codeuri, layer_resource.get("Metadata", None)))
 
         return layers

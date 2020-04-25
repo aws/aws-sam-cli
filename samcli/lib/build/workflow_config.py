@@ -78,19 +78,19 @@ def get_layer_subfolder(runtime):
         "python3.6": "python",
         "python3.7": "python",
         "python3.8": "python",
-        "nodejs4.3": "nodejs/node_modules",
-        "nodejs6.10": "nodejs/node_modules",
-        "nodejs8.10": "nodejs/node_modules",
-        "nodejs10.x": "nodejs/node_modules",
-        "nodejs12.x": "nodejs/node_modules",
+        "nodejs4.3": "nodejs",
+        "nodejs6.10": "nodejs",
+        "nodejs8.10": "nodejs",
+        "nodejs10.x": "nodejs",
+        "nodejs12.x": "nodejs",
         "ruby2.5": "ruby/lib",
         "ruby2.7": "ruby/lib",
-        "java8": "java/lib",
-        "java11": "java/lib",
+        "java8": "java",
+        "java11": "java",
     }
 
     if runtime not in subfolders_by_runtime:
-        raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
+        raise UnsupportedRuntimeException("'{}' runtime is not supported for layers".format(runtime))
 
     return subfolders_by_runtime[runtime]
 

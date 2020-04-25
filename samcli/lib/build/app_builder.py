@@ -15,6 +15,7 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
+from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
@@ -107,16 +108,16 @@ class ApplicationBuilder:
 
         result = {}
 
-        for function in self._resources_to_build.get('Function', []):
+        for function in self._resources_to_build.functions:
             LOG.info("Building function '%s'", function.name)
             result[function.name] = self._build_function(function.name,
                                                          function.codeuri,
                                                          function.runtime,
                                                          function.handler)
-        for layer in self._resources_to_build.get('Layer', []):
+        for layer in self._resources_to_build.layers:
             LOG.info("Building layer '%s'", layer.name)
             if layer.build_method is None:
-                raise Exception(
+                raise MissingBuildMethodException(
                     f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
             result[layer.name] = self._build_layer(layer.name,
                                                    layer.codeuri,

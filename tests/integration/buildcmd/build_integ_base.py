@@ -4,7 +4,6 @@ import shutil
 import tempfile
 import time
 import logging
-import subprocess
 import json
 from unittest import TestCase
 
@@ -65,6 +64,7 @@ class BuildIntegBase(TestCase):
         parameter_overrides=None,
         mode=None,
         function_identifier=None,
+        debug=False,
     ):
 
         command_list = [self.cmd, "build"]
@@ -88,6 +88,9 @@ class BuildIntegBase(TestCase):
 
         if use_container:
             command_list += ["--use-container"]
+
+        if debug:
+            command_list += ["--debug"]
 
         return command_list
 

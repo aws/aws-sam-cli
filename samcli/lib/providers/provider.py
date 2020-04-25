@@ -8,6 +8,8 @@ from collections import namedtuple
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
 
+LOG = logging.getLogger(__name__)
+
 # Named Tuple to representing the properties of a Lambda Function
 Function = namedtuple(
     "Function",
@@ -38,6 +40,37 @@ Function = namedtuple(
         "events",
     ],
 )
+
+
+class ResourcesToBuildCollector:
+    def __init__(self):
+        self.result = {"Function": [], "Layer": []}
+
+    def add_function(self, function):
+        self.result.get("Function").append(function)
+
+    def add_functions(self, functions):
+        self.result.get("Function").extend(functions)
+
+    def add_layer(self, layer):
+        self.result.get("Layer").append(layer)
+
+    def add_layers(self, layers):
+        self.result.get("Layer").extend(layers)
+
+    @property
+    def functions(self):
+        return self.result.get("Function")
+
+    @property
+    def layers(self):
+        return self.result.get("Layer")
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.__dict__ == other.__dict__
+
+        return False
 
 
 class LayerVersion:

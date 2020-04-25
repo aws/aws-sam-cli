@@ -13,7 +13,7 @@ class TestSamLayerProvider(TestCase):
                 "Type": "AWS::Serverless::LayerVersion",
                 "Properties": {
                     "LayerName": "Layer1",
-                    "ContentUri": "my_layer/",
+                    "ContentUri": "PyLayer/",
                     "CompatibleRuntimes": ["python3.8", "python3.6"],
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
@@ -22,7 +22,7 @@ class TestSamLayerProvider(TestCase):
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
                     "LayerName": "Layer1",
-                    "Content": "my_layer/",
+                    "Content": "PyLayer/",
                     "CompatibleRuntimes": ["python3.8", "python3.6"],
                 },
                 "Metadata": {"BuildMethod": "python3.8"},
@@ -31,7 +31,7 @@ class TestSamLayerProvider(TestCase):
                 "Type": "AWS::Serverless::LayerVersion",
                 "Properties": {
                     "LayerName": "Layer1",
-                    "ContentUri": "my_layer/",
+                    "ContentUri": "PyLayer/",
                     "CompatibleRuntimes": ["python3.8", "python3.6"],
                 },
             },
@@ -39,7 +39,7 @@ class TestSamLayerProvider(TestCase):
                 "Type": "AWS::Lambda::LayerVersion",
                 "Properties": {
                     "LayerName": "Layer1",
-                    "Content": "my_layer/",
+                    "Content": "PyLayer/",
                     "CompatibleRuntimes": ["python3.8", "python3.6"],
                 },
             },
@@ -77,10 +77,10 @@ class TestSamLayerProvider(TestCase):
 
     @parameterized.expand(
         [
-            ("ServerlessLayer", LayerVersion("ServerlessLayer", "my_layer/", {"BuildMethod": "python3.8"})),
-            ("LambdaLayer", LayerVersion("LambdaLayer", "my_layer/", {"BuildMethod": "python3.8"})),
-            ("ServerlessLayerNoBuild", LayerVersion("ServerlessLayerNoBuild", "my_layer/", None)),
-            ("LambdaLayerNoBuild", LayerVersion("LambdaLayerNoBuild", "my_layer/", None)),
+            ("ServerlessLayer", LayerVersion("ServerlessLayer", "PyLayer/", {"BuildMethod": "python3.8"})),
+            ("LambdaLayer", LayerVersion("LambdaLayer", "PyLayer/", {"BuildMethod": "python3.8"})),
+            ("ServerlessLayerNoBuild", LayerVersion("ServerlessLayerNoBuild", "PyLayer/", None)),
+            ("LambdaLayerNoBuild", LayerVersion("LambdaLayerNoBuild", "PyLayer/", None)),
             ("ServerlessLayerS3Content", LayerVersion("ServerlessLayerS3Content", ".", None)),
             ("LambdaLayerS3Content", LayerVersion("LambdaLayerS3Content", ".", None)),
         ]

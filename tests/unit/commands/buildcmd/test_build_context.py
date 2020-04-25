@@ -17,15 +17,17 @@ class TestBuildContext__enter__(TestCase):
         self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
     ):
         template_dict = get_template_data_mock.return_value = "template dict"
-        func_provider_mock = Mock()
-        func_provider_mock.get.return_value = "function to build"
-        funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         layer1 = DummyLayer("layer1", "buildmethod")
         layer2 = DummyLayer("layer1", None)
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
+
+        function1 = DummyFunction("func1")
+        func_provider_mock = Mock()
+        func_provider_mock.get.return_value = function1
+        funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
         container_mgr_mock = ContainerManagerMock.return_value = Mock()
@@ -61,7 +63,9 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
         self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
-        self.assertEqual(context.resources_to_build, {"Function": ["function to build"], "Layer": [layer1]})
+        resources_to_build = context.resources_to_build
+        self.assertTrue(function1 in resources_to_build.functions)
+        self.assertTrue(layer1 in resources_to_build.layers)
 
         get_template_data_mock.assert_called_once_with("template_file")
         SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
@@ -75,13 +79,13 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
-    def test_must_return_only_layer_when_layer_is_build(
+    def test_must_fail_with_illegal_identifier(
         self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
     ):
         template_dict = get_template_data_mock.return_value = "template dict"
         func_provider_mock = Mock()
         func_provider_mock.get.return_value = None
-        func_provider_mock.get_all.return_value = [DummyFunction("layer1"), DummyFunction("layer2")]
+        func_provider_mock.get_all.return_value = [DummyFunction("func1"), DummyFunction("func2")]
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         layer_provider_mock = Mock()
@@ -119,7 +123,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
-    def test_must_fail_with_illegal_identifier(
+    def test_must_return_only_layer_when_layer_is_build(
         self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
     ):
         template_dict = get_template_data_mock.return_value = "template dict"
@@ -127,7 +131,7 @@ class TestBuildContext__enter__(TestCase):
         func_provider_mock.get.return_value = None
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
-        layer1 = DummyLayer("layer1", None)
+        layer1 = DummyLayer("layer1", "python3.8")
         layer_provider_mock = Mock()
         layer_provider_mock.get.return_value = layer1
         layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
@@ -153,9 +157,55 @@ class TestBuildContext__enter__(TestCase):
         context._setup_build_dir = setup_build_dir_mock
 
         # call the enter method
-        result = context.__enter__()
-        with self.assertRaises(MissingBuildMethodException):
-            context.resources_to_build
+        context.__enter__()
+        self.assertTrue(layer1 in context.resources_to_build.layers)
+
+    @patch("samcli.commands.build.build_context.get_template_data")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.pathlib")
+    @patch("samcli.commands.build.build_context.ContainerManager")
+    def test_must_return_buildable_dependent_layer_when_function_is_build(
+        self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
+    ):
+        template_dict = get_template_data_mock.return_value = "template dict"
+
+        layer1 = DummyLayer("layer1", "python3.8")
+        layer2 = DummyLayer("layer2", None)
+        layer_provider_mock = Mock()
+        layer_provider_mock.get.return_value = layer1
+        layerprovider = SamLayerProviderMock.return_value = layer_provider_mock
+
+        func1 = DummyFunction("func1", [layer1, layer2])
+        func_provider_mock = Mock()
+        func_provider_mock.get.return_value = func1
+        funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
+
+        base_dir = pathlib_mock.Path.return_value.resolve.return_value.parent = "basedir"
+        container_mgr_mock = ContainerManagerMock.return_value = Mock()
+
+        context = BuildContext(
+            "func1",
+            "template_file",
+            None,  # No base dir is provided
+            "build_dir",
+            manifest_path="manifest_path",
+            clean=True,
+            use_container=True,
+            docker_network="network",
+            parameter_overrides="overrides",
+            skip_pull_image=True,
+            mode="buildmode",
+        )
+        setup_build_dir_mock = Mock()
+        build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
+        context._setup_build_dir = setup_build_dir_mock
+
+        # call the enter method
+        context.__enter__()
+        self.assertTrue(func1 in context.resources_to_build.functions)
+        self.assertTrue(layer1 in context.resources_to_build.layers)
+        self.assertTrue(layer2 not in context.resources_to_build.layers)
 
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
@@ -209,8 +259,10 @@ class TestBuildContext__enter__(TestCase):
         self, ContainerManagerMock, pathlib_mock, SamLayerProviderMock, SamFunctionProviderMock, get_template_data_mock
     ):
         template_dict = get_template_data_mock.return_value = "template dict"
+        func1 = DummyFunction("func1")
+        func2 = DummyFunction("func2")
         func_provider_mock = Mock()
-        func_provider_mock.get_all.return_value = ["function to build", "and another function"]
+        func_provider_mock.get_all.return_value = [func1, func2]
         funcprovider = SamFunctionProviderMock.return_value = func_provider_mock
 
         layer1 = DummyLayer("layer1", "buildMethod")
@@ -254,10 +306,9 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(context.output_template_path, os.path.join(build_dir_result, "template.yaml"))
         self.assertEqual(context.manifest_path_override, os.path.abspath("manifest_path"))
         self.assertEqual(context.mode, "buildmode")
-        self.assertEqual(
-            context.resources_to_build, {"Function": ["function to build", "and another function"], "Layer": [layer1]}
-        )
-
+        resources_to_build = context.resources_to_build
+        self.assertEqual(resources_to_build.functions, [func1, func2])
+        self.assertEqual(resources_to_build.layers, [layer1])
         get_template_data_mock.assert_called_once_with("template_file")
         SamFunctionProviderMock.assert_called_once_with(template_dict, "overrides")
         pathlib_mock.Path.assert_called_once_with("template_file")
@@ -396,5 +447,6 @@ class DummyLayer:
 
 
 class DummyFunction:
-    def __init__(self, name):
+    def __init__(self, name, layers=[]):
         self.name = name
+        self.layers = layers
