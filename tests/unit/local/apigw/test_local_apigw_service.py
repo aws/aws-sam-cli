@@ -17,7 +17,9 @@ class TestApiGatewayService(TestCase):
     def setUp(self):
         self.function_name = Mock()
         self.api_gateway_route = Route(methods=["GET"], function_name=self.function_name, path="/")
-        self.http_gateway_route = Route(methods=["GET"], function_name=self.function_name, path="/", event_type=Route.HTTP)
+        self.http_gateway_route = Route(
+            methods=["GET"], function_name=self.function_name, path="/", event_type=Route.HTTP
+        )
         self.api_list_of_routes = [self.api_gateway_route]
         self.http_list_of_routes = [self.http_gateway_route]
 
@@ -27,8 +29,12 @@ class TestApiGatewayService(TestCase):
         self.stderr = Mock()
         self.api = Api(routes=self.api_list_of_routes)
         self.http = Api(routes=self.http_list_of_routes)
-        self.api_service = LocalApigwService(self.api, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr)
-        self.http_service = LocalApigwService(self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr)
+        self.api_service = LocalApigwService(
+            self.api, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
+        )
+        self.http_service = LocalApigwService(
+            self.http, self.lambda_runner, port=3000, host="127.0.0.1", stderr=self.stderr
+        )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_api_request_must_invoke_lambda(self, request_mock):
@@ -208,7 +214,11 @@ class TestApiGatewayService(TestCase):
         self.api_service.create()
 
         app_mock.add_url_rule.assert_called_once_with(
-            "/", endpoint="/", view_func=self.api_service._request_handler, methods=["GET"], provide_automatic_options=False
+            "/",
+            endpoint="/",
+            view_func=self.api_service._request_handler,
+            methods=["GET"],
+            provide_automatic_options=False,
         )
 
     def test_api_initalize_creates_default_values(self):
@@ -720,7 +730,7 @@ class TestService_construct_event_http(TestCase):
         query_param_args_mock = Mock()
         query_param_args_mock.lists.return_value = {"query": ["params"]}.items()
         self.request_mock.args = query_param_args_mock
-        self.request_mock.query_string = b'query=params'
+        self.request_mock.query_string = b"query=params"
         headers_mock = Mock()
         headers_mock.keys.return_value = ["Content-Type", "X-Test"]
         headers_mock.get.side_effect = ["application/json", "Value"]
@@ -769,11 +779,12 @@ class TestService_construct_event_http(TestCase):
         }
         """
 
-
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
-        actual_event_str = LocalApigwService._construct_event_http(self.request_mock, 3000, binary_types=[], route_key="GET /endpoint")
+        actual_event_str = LocalApigwService._construct_event_http(
+            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+        )
         print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
         print("DEBUG: self.expected_dict", self.expected_dict)
         self.assertEqual(json.loads(actual_event_str), self.expected_dict)
@@ -782,7 +793,9 @@ class TestService_construct_event_http(TestCase):
         self.request_mock.get_data.return_value = None
         self.expected_dict["body"] = None
 
-        actual_event_str = LocalApigwService._construct_event_http(self.request_mock, 3000, binary_types=[], route_key="GET /endpoint")
+        actual_event_str = LocalApigwService._construct_event_http(
+            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+        )
         self.assertEqual(json.loads(actual_event_str), self.expected_dict)
 
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_encode")
@@ -797,7 +810,9 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict["isBase64Encoded"] = True
         self.maxDiff = None
 
-        actual_event_str = LocalApigwService._construct_event_http(self.request_mock, 3000, binary_types=[], route_key="GET /endpoint")
+        actual_event_str = LocalApigwService._construct_event_http(
+            self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+        )
         self.assertEqual(json.loads(actual_event_str), self.expected_dict)
 
     def test_event_headers_with_empty_list(self):
@@ -808,10 +823,7 @@ class TestService_construct_event_http(TestCase):
         request_mock.scheme = "http"
 
         actual_query_string = LocalApigwService._event_http_headers(request_mock, "3000")
-        self.assertEqual(
-            actual_query_string,
-            {"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"}
-        )
+        self.assertEqual(actual_query_string, {"X-Forwarded-Proto": "http", "X-Forwarded-Port": "3000"})
 
     def test_event_headers_with_non_empty_list(self):
         request_mock = Mock()
@@ -830,7 +842,7 @@ class TestService_construct_event_http(TestCase):
                 "X-Test": "Value",
                 "X-Forwarded-Proto": "http",
                 "X-Forwarded-Port": "3000",
-            }
+            },
         )
 
 

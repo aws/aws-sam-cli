@@ -205,15 +205,11 @@ class LocalApigwService(BaseLocalService):
                     self.api.binary_media_types,
                     self.api.stage_name,
                     self.api.stage_variables,
-                    route_key
+                    route_key,
                 )
             else:
                 event = self._construct_event(
-                    request,
-                    self.port,
-                    self.api.binary_media_types,
-                    self.api.stage_name,
-                    self.api.stage_variables
+                    request, self.port, self.api.binary_media_types, self.api.stage_name, self.api.stage_variables
                 )
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
@@ -408,9 +404,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(
-        flask_request, port, binary_types, stage_name=None, stage_variables=None,
-    ):
+    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -466,9 +460,7 @@ class LocalApigwService(BaseLocalService):
         return event_str
 
     @staticmethod
-    def _construct_event_http(
-        flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None
-    ):
+    def _construct_event_http(flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None):
         """
         Helper method that constructs the Event 2.0 to be passed to Lambda
 
