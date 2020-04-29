@@ -484,7 +484,7 @@ class LocalApigwService(BaseLocalService):
             LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
             request_data = base64.b64encode(request_data)
 
-        if request_data:
+        if request_data is not None:
             # Flask does not parse/decode the request data. We should do it ourselves
             request_data = request_data.decode("utf-8")
 
