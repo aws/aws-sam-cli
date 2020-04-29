@@ -33,6 +33,8 @@ Function = namedtuple(
         "rolearn",
         # List of Layers
         "layers",
+        # Event
+        "events",
     ],
 )
 
