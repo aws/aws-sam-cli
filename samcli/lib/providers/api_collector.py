@@ -158,7 +158,9 @@ class ApiCollector:
             if config:
                 methods += config.methods
             sorted_methods = sorted(methods)
-            grouped_routes[key] = Route(function_name=route.function_name, path=route.path, methods=sorted_methods)
+            grouped_routes[key] = Route(
+                function_name=route.function_name, path=route.path, methods=sorted_methods, event_type=route.event_type
+            )
         return list(grouped_routes.values())
 
     def add_binary_media_types(self, logical_id, binary_media_types):
