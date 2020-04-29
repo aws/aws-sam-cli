@@ -20,12 +20,6 @@ class SamFunctionProvider(SamBaseProvider):
     It may or may not contain a function.
     """
 
-    _SERVERLESS_FUNCTION = "AWS::Serverless::Function"
-    _LAMBDA_FUNCTION = "AWS::Lambda::Function"
-    _SERVERLESS_LAYER = "AWS::Serverless::LayerVersion"
-    _LAMBDA_LAYER = "AWS::Lambda::LayerVersion"
-    _DEFAULT_CODEURI = "."
-
     def __init__(self, template_dict, parameter_overrides=None, ignore_code_extraction_warnings=False):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -119,12 +113,22 @@ class SamFunctionProvider(SamBaseProvider):
             resource_type = resource.get("Type")
             resource_properties = resource.get("Properties", {})
 
-            if resource_type == SamFunctionProvider._SERVERLESS_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(resource_properties.get("Layers", []),resources, ignore_code_extraction_warnings=ignore_code_extraction_warnings)
-                result[name] = SamFunctionProvider._convert_sam_function_resource(name, resource_properties, layers, ignore_code_extraction_warnings=ignore_code_extraction_warnings)
+            if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
+                layers = SamFunctionProvider._parse_layer_info(
+                    resource_properties.get("Layers", []),
+                    resources,
+                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                )
+                result[name] = SamFunctionProvider._convert_sam_function_resource(
+                    name, resource_properties, layers, ignore_code_extraction_warnings=ignore_code_extraction_warnings
+                )
 
-            elif resource_type == SamFunctionProvider._LAMBDA_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(resource_properties.get("Layers", []), resources, ignore_code_extraction_warnings=ignore_code_extraction_warnings)
+            elif resource_type == SamFunctionProvider.LAMBDA_FUNCTION:
+                layers = SamFunctionProvider._parse_layer_info(
+                    resource_properties.get("Layers", []),
+                    resources,
+                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                )
                 result[name] = SamFunctionProvider._convert_lambda_function_resource(name, resource_properties, layers)
 
             # We don't care about other resource types. Just ignore them

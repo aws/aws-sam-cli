@@ -250,7 +250,7 @@ class TestSamFunctionProvider_init(TestCase):
         get_template_mock.return_value = template
         provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
-        extract_mock.assert_called_with({"a": "b"})
+        extract_mock.assert_called_with({"a": "b"}, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 

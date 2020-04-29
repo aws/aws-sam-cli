@@ -67,7 +67,7 @@ class SamBaseProvider:
 
     @staticmethod
     def _extract_sam_function_codeuri(
-            name, resource_properties, code_property_key, ignore_code_extraction_warnings=False
+        name, resource_properties, code_property_key, ignore_code_extraction_warnings=False
     ):
         """
         Extracts the SAM Function CodeUri from the Resource Properties
@@ -88,10 +88,10 @@ class SamBaseProvider:
         str
             Representing the local code path
         """
-        codeuri = resource_properties.get(code_property_key, SamBaseProvider._DEFAULT_CODEURI)
+        codeuri = resource_properties.get(code_property_key, SamBaseProvider.DEFAULT_CODEURI)
         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
         if isinstance(codeuri, dict) or (isinstance(codeuri, str) and codeuri.startswith("s3://")):
-            codeuri = SamBaseProvider._DEFAULT_CODEURI
+            codeuri = SamBaseProvider.DEFAULT_CODEURI
             if not ignore_code_extraction_warnings:
                 LOG.warning(
                     "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
