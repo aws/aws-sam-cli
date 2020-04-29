@@ -14,6 +14,7 @@ from aws_lambda_builders.exceptions import LambdaBuilderError
 from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils.colors import Colored
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, supports_build_in_container
 
@@ -34,6 +35,12 @@ class ContainerBuildNotSupported(Exception):
 
 
 class BuildError(Exception):
+
+    def __init__(self, wrapped_from, msg):
+        self.wrapped_from = wrapped_from
+        Exception.__init__(self, msg)
+
+class BuildInsideContainerError(Exception):
     pass
 
 
@@ -83,6 +90,9 @@ class ApplicationBuilder:
         self._container_manager = container_manager
         self._parallel = parallel
         self._mode = mode
+
+        self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
+        self._colored = Colored()
 
     def build(self):
         """
@@ -171,6 +181,12 @@ class ApplicationBuilder:
             Path to the location where built artifacts are available
         """
 
+        if runtime in self._deprecated_runtimes:
+            message = f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI " \
+                      f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. " \
+                      f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            LOG.warning(self._colored.yellow(message))
+
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
@@ -237,7 +253,7 @@ class ApplicationBuilder:
                           mode=self._mode,
                           options=options)
         except LambdaBuilderError as ex:
-            raise BuildError(str(ex))
+            raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex))
 
         return artifacts_dir
 
@@ -251,7 +267,7 @@ class ApplicationBuilder:
                                      options):
 
         if not self._container_manager.is_docker_reachable:
-            raise BuildError("Docker is unreachable. Docker needs to be running to build inside a container.")
+            raise BuildInsideContainerError("Docker is unreachable. Docker needs to be running to build inside a container.")
 
         container_build_supported, reason = supports_build_in_container(config)
         if not container_build_supported:
@@ -324,7 +340,7 @@ class ApplicationBuilder:
 
             if 400 <= err_code < 500:
                 # Like HTTP 4xx - customer error
-                raise BuildError(msg)
+                raise BuildInsideContainerError(msg)
 
             if err_code == 505:
                 # Like HTTP 505 error code: Version of the protocol is not supported

@@ -179,3 +179,12 @@ Resources:
       Handler: main.echo_event
       Runtime: python3.6
       CodeUri: .
+
+  GitLayerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: main.execute_git
+      Runtime: python3.8
+      Layers:
+        - arn:aws:lambda:us-east-1:553035198032:layer:git-lambda2:5

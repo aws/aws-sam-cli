@@ -6,6 +6,9 @@
 
 *What side effects does this change have?*
 
+*Did you change a dependency in `requirements/base.txt`?*
+    *If so, did you run `make update-reproducible-reqs`*
+
 *Checklist:*
 
 - [ ] Write Design Document ([Do I need to write a design document?](https://github.com/awslabs/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.rst#design-document))

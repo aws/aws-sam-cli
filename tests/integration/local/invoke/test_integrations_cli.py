@@ -400,6 +400,24 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stderr = stderr.strip()
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
+    @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+    @skipIf(IS_WINDOWS, "This test failes on windows due to unix permissions not set properly on unzipped binary")
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returns_execpted_results_from_git_function(self):
+        command_list = self.get_command_list(
+            "GitLayerFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"git init passed"')
+
 
 class TestUsingConfigFiles(InvokeIntegBase):
     template = Path("template.yml")
