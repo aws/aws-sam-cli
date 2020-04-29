@@ -17,7 +17,8 @@ class SamApiProvider(CfnBaseApiProvider):
     SERVERLESS_API = "AWS::Serverless::Api"
     SERVERLESS_HTTP_API = "AWS::Serverless::HttpApi"
     TYPES = [SERVERLESS_FUNCTION, SERVERLESS_API, SERVERLESS_HTTP_API]
-    _FUNCTION_EVENT_TYPE_APIS = ["Api", "HttpApi"]
+    EVENT_TYPE_API = "Api"
+    EVENT_TYPE_HTTP_API = "HttpApi"
     _FUNCTION_EVENT = "Events"
     _EVENT_PATH = "Path"
     _EVENT_METHOD = "Method"
@@ -270,8 +271,8 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         count = 0
         for _, event in serverless_function_events.items():
-
-            if event.get(self._EVENT_TYPE) in self._FUNCTION_EVENT_TYPE_APIS:
+            event_type = event.get(self._EVENT_TYPE)
+            if event_type in [self.EVENT_TYPE_API, self.EVENT_TYPE_HTTP_API]:
                 route_resource_id, route = self._convert_event_route(function_logical_id, event.get("Properties"))
                 collector.add_routes(route_resource_id, [route])
                 count += 1
@@ -289,6 +290,7 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         path = event_properties.get(SamApiProvider._EVENT_PATH)
         method = event_properties.get(SamApiProvider._EVENT_METHOD)
+        event_type = event_properties.get(SamApiProvider._EVENT_TYPE)
 
         # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
         # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
@@ -305,7 +307,10 @@ class SamApiProvider(CfnBaseApiProvider):
                 "It should either be a LogicalId string or a Ref of a Logical Id string".format(lambda_logical_id)
             )
 
-        return api_resource_id, Route(path=path, methods=[method], function_name=lambda_logical_id)
+        return (
+            api_resource_id,
+            Route(path=path, methods=[method], function_name=lambda_logical_id, event_type=event_type),
+        )
 
     @staticmethod
     def merge_routes(collector):
