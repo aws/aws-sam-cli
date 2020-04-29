@@ -32,9 +32,11 @@ class LambdaResponseParseException(Exception):
 
 
 class Route:
+    API = "Api"
+    HTTP = "HttpApi"
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
-    def __init__(self, function_name, path, methods, event_type=None):
+    def __init__(self, function_name, path, methods, event_type=API):
         """
         Creates an ApiGatewayRoute
 
@@ -199,14 +201,23 @@ class LocalApigwService(BaseLocalService):
             return self.service_response("", headers, 200)
 
         try:
-            event = self._construct_event(
-                request,
-                self.port,
-                self.api.binary_media_types,
-                self.api.stage_name,
-                self.api.stage_variables,
-                route_key=route_key,
-            )
+            if route.event_type == Route.HTTP:
+                event = self._construct_event_http(
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables,
+                    route_key
+                )
+            else:
+                event = self._construct_event(
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables
+                )
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
 
@@ -395,7 +406,7 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _construct_event(
-        flask_request, port, binary_types, stage_name=None, stage_variables=None, event_type=None, route_key=None
+        flask_request, port, binary_types, stage_name=None, stage_variables=None,
     ):
         """
         Helper method that constructs the Event to be passed to Lambda
@@ -455,27 +466,63 @@ class LocalApigwService(BaseLocalService):
             stage_variables=stage_variables,
         )
 
-        if event_type == "HttpApi":
-            cookies = LocalApigwService._event_http_cookies(flask_request)
-            headers = LocalApigwService._event_http_headers(flask_request)
-            context_http = ContextHTTP(method=method, path=endpoint, user_agent=flask_request.user_agent)
-            context = RequestContextV2(http=context_http, route_key=route_key, stage=stage_name)
-            event = ApiGatewayV2LambdaEvent(
-                route_key=route_key,
-                raw_path=flask_request.path,
-                raw_query_string=flask_request.query_string,
-                cookies=cookies,
-                headers=headers,
-                query_string_params=query_string_dict,
-                request_context=context,
-                body=request_data,
-                path_parameters=flask_request.view_args,
-                is_base_64_encoded=is_base_64,
-                stage_variables=stage_variables,
-            )
-
         event_str = json.dumps(event.to_dict())
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
+        return event_str
+
+    @staticmethod
+    def _construct_event_http(
+        flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None
+    ):
+        """
+        Helper method that constructs the Event 2.0 to be passed to Lambda
+
+        https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html
+
+        :param request flask_request: Flask Request
+        :return: String representing the event
+        """
+        # pylint: disable-msg=too-many-locals
+
+        endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
+        method = flask_request.method
+
+        request_data = flask_request.get_data()
+
+        request_mimetype = flask_request.mimetype
+
+        is_base_64 = LocalApigwService._should_base64_encode(binary_types, request_mimetype)
+
+        if is_base_64:
+            LOG.debug("Incoming Request seems to be binary. Base64 encoding the request data before sending to Lambda.")
+            request_data = base64.b64encode(request_data)
+
+        if request_data:
+            # Flask does not parse/decode the request data. We should do it ourselves
+            request_data = request_data.decode("utf-8")
+
+        query_string_dict, _ = LocalApigwService._query_string_params(flask_request)
+
+        cookies = LocalApigwService._event_http_cookies(flask_request)
+        headers = LocalApigwService._event_http_headers(flask_request, port)
+        context_http = ContextHTTP(method=method, path=flask_request.path, source_ip=flask_request.remote_addr)
+        context = RequestContextV2(http=context_http, route_key=route_key, stage=stage_name)
+        event = ApiGatewayV2LambdaEvent(
+            route_key=route_key,
+            raw_path=flask_request.path,
+            raw_query_string=flask_request.query_string.decode("utf-8"),
+            cookies=cookies,
+            headers=headers,
+            query_string_params=query_string_dict,
+            request_context=context,
+            body=request_data,
+            path_parameters=flask_request.view_args,
+            is_base_64_encoded=is_base_64,
+            stage_variables=stage_variables,
+        )
+
+        event_str = json.dumps(event.to_dict())
+        LOG.debug("Constructed String representation of Event Version 2.0 to invoke Lambda. Event: %s", event_str)
         return event_str
 
     @staticmethod
@@ -564,12 +611,12 @@ class LocalApigwService(BaseLocalService):
 
         """
         cookies = []
-        for cookie_key in flask_request.cookies:
-            cookies.append("{}={}".format(cookie_key, flask_request.cookies[cookie_key]))
+        for cookie_key in flask_request.cookies.keys():
+            cookies.append("{}={}".format(cookie_key, flask_request.cookies.get(cookie_key)))
         return cookies
 
     @staticmethod
-    def _event_http_headers(flask_request):
+    def _event_http_headers(flask_request, port):
         """
         Duplicate headers are combined with commas.
 
@@ -585,12 +632,14 @@ class LocalApigwService(BaseLocalService):
             Returns a list of cookies
 
         """
+        headers = {}
         # Multi-value request headers is not really supported by Flask.
         # See https://github.com/pallets/flask/issues/850
-        headers = {}
         for header_key in flask_request.headers.keys():
             headers[header_key] = flask_request.headers.get(header_key)
 
+        headers["X-Forwarded-Proto"] = flask_request.scheme
+        headers["X-Forwarded-Port"] = str(port)
         return headers
 
     @staticmethod
