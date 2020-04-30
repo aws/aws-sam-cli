@@ -216,6 +216,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             rolearn=None,
             layers=[],
             events=None,
+            metadata=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -257,6 +258,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             rolearn=None,
             layers=[],
             events=None,
+            metadata=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -289,6 +291,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             rolearn=None,
             layers=[],
             events=None,
+            metadata=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -351,6 +354,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             rolearn=None,
             layers=layers,
             events=None,
+            metadata=None,
         )
 
         config = "someconfig"
@@ -397,6 +401,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             rolearn=None,
             layers=[],
             events=None,
+            metadata=None,
         )
 
         config = "someconfig"

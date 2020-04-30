@@ -113,7 +113,8 @@ class ApplicationBuilder:
             result[function.name] = self._build_function(function.name,
                                                          function.codeuri,
                                                          function.runtime,
-                                                         function.handler)
+                                                         function.handler,
+                                                         function.metadata)
         for layer in self._resources_to_build.layers:
             LOG.info("Building layer '%s'", layer.name)
             if layer.build_method is None:
@@ -200,7 +201,7 @@ class ApplicationBuilder:
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
-    def _build_function(self, function_name, codeuri, runtime, handler):
+    def _build_function(self, function_name, codeuri, runtime, handler, metadata=None):
         """
         Given the function information, this method will build the Lambda function. Depending on the configuration
         it will either build the function in process or by spinning up a Docker container.
@@ -215,6 +216,9 @@ class ApplicationBuilder:
 
         runtime : str
             AWS Lambda function runtime
+
+        metadata : dict
+            AWS Lambda function metadata
 
         Returns
         -------
@@ -232,7 +236,10 @@ class ApplicationBuilder:
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
-        config = get_workflow_config(runtime, code_dir, self._base_dir)
+        # Determine if there was a build workflow that was specified directly in the template.
+        specified_build_workflow = metadata.get("BuildMethod", None) if metadata else None
+
+        config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_build_workflow)
 
         # artifacts directory will be created by the builder
         artifacts_dir = str(pathlib.Path(self._build_dir, function_name))
@@ -245,7 +252,7 @@ class ApplicationBuilder:
             if self._container_manager:
                 build_method = self._build_function_on_container
 
-            options = ApplicationBuilder._get_build_options(config.language, handler)
+            options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
 
             return build_method(config,
                                 code_dir,
@@ -256,12 +263,14 @@ class ApplicationBuilder:
                                 options)
 
     @staticmethod
-    def _get_build_options(language, handler):
+    def _get_build_options(function_name, language, handler):
         """
         Parameters
         ----------
+        function_name str
+            currrent function resource name
         language str
-            Language of the runtime
+            language of the runtime
         handler str
             Handler value of the Lambda Function Resource
         Returns
@@ -269,7 +278,12 @@ class ApplicationBuilder:
         dict
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
-        return {'artifact_executable_name': handler} if language == 'go' else None
+
+        _build_options = {
+            'go': {'artifact_executable_name': handler},
+            'provided': {'build_logical_id': function_name}
+        }
+        return _build_options.get(language, None)
 
     def _build_function_in_process(self,
                                    config,

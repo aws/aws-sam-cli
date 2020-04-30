@@ -38,6 +38,8 @@ Function = namedtuple(
         "layers",
         # Event
         "events",
+        # Metadata
+        "metadata",
     ],
 )
 
