@@ -81,18 +81,18 @@ Y
             self.assertTrue(
                 Path(expected_output_folder, "HelloWorldFunction", "src", "main", "java", "schema").is_dir()
             )
-            # self.assertTrue(
-            #     Path(
-            #         expected_output_folder,
-            #         "HelloWorldFunction",
-            #         "src",
-            #         "main",
-            #         "java",
-            #         "schema",
-            #         "schema_test_0",
-            #         "TicketCreated.java",
-            #     ).is_file()
-            # )
+            self.assertTrue(
+                Path(
+                    expected_output_folder,
+                    "HelloWorldFunction",
+                    "src",
+                    "main",
+                    "java",
+                    "schema",
+                    "schema_test_0",
+                    "TicketCreated.java",
+                ).is_file()
+            )
 
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
@@ -164,18 +164,18 @@ Y
             self.assertTrue(
                 Path(expected_output_folder, "HelloWorldFunction", "src", "main", "java", "schema").is_dir()
             )
-            # self.assertTrue(
-            #     Path(
-            #         expected_output_folder,
-            #         "HelloWorldFunction",
-            #         "src",
-            #         "main",
-            #         "java",
-            #         "schema",
-            #         "schema_test_0",
-            #         "Some_Awesome_Schema.java",
-            #     ).is_file()
-            # )
+            self.assertTrue(
+                Path(
+                    expected_output_folder,
+                    "HelloWorldFunction",
+                    "src",
+                    "main",
+                    "java",
+                    "schema",
+                    "schema_test_0",
+                    "Some_Awesome_Schema.java",
+                ).is_file()
+            )
 
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts

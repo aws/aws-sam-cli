@@ -30,7 +30,13 @@ class TestInitAWSConfiguration(TestCase):
         session_mock.return_value.profile_name = "default"
         session_mock.return_value.region_name = "us-west-2"
         session_mock.return_value.available_profiles = ["default", "test-profile"]
-        session_mock.return_value.get_available_regions.return_value = ["us-east-1", "us-east-2", "us-west-2", "eu-west-1", "ap-northeast-1"]
+        session_mock.return_value.get_available_regions.return_value = [
+            "us-east-1",
+            "us-east-2",
+            "us-west-2",
+            "eu-west-1",
+            "ap-northeast-1",
+        ]
         aws_configuration_choice = get_aws_configuration_choice()
         self.assertEqual(aws_configuration_choice["profile"], "test-profile"),
         self.assertEqual(aws_configuration_choice["region"], "us-east-2")
@@ -51,19 +57,3 @@ class TestInitAWSConfiguration(TestCase):
             get_aws_configuration_choice()
         msg = "No configured AWS profile found."
         self.assertEqual(str(ctx.exception), msg)
-
-    # @patch("samcli.lib.schemas.schemas_aws_config.Session")
-    # @patch("click.confirm")
-    # @patch("click.prompt")
-    # def test_get_aws_configuration_raises_exception_when_schema_service_not_available_in_region(
-    #     self, prompt_mock, confirm_mock, session_mock
-    # ):
-    #     confirm_mock.side_effect = [True]
-    #     prompt_mock.side_effect = ["2"]
-    #     session_mock.return_value.profile_name = "default"
-    #     session_mock.return_value.region_name = "ap-south-1"
-    #     session_mock.return_value.available_profiles = ["default", "test-profile"]
-    #     with self.assertRaises(NotAvailableInRegion) as ctx:
-    #         get_aws_configuration_choice()
-    #     msg = "EventBridge Schemas are not yet available in ap-south-1. Please select one of ['us-east-1', 'us-east-2', 'us-west-2', 'eu-west-1', 'ap-northeast-1']"
-    #     self.assertEqual(str(ctx.exception), msg)

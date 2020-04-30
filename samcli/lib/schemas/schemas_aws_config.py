@@ -74,7 +74,7 @@ def _get_aws_region_choice(available_regions_name, region):
         msg = cli_display_regions[cli_display_region]
         click.echo("# " + msg)
 
-    region_choice = click.prompt("Region "+"["+region+"]", type=str, show_choices=False)
+    region_choice = click.prompt("Region " + "[" + region + "]", type=str, show_choices=False)
     return region_choice
 
 

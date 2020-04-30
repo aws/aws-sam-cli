@@ -70,7 +70,7 @@ class TestSchemasCommand(TestCase):
             PaginationConfig={"StartingToken": None, "MaxItems": max_items, "PageSize": max_items}
         )
 
-    def test_list_registries_with_endpoint_exception(self):
+    def test_list_registries_raises_not_available_in_region_exception(self):
         max_items = 10
         schemas_api_caller = SchemasApiCaller(self.client)
         self.client.can_paginate.return_value = False
@@ -79,8 +79,10 @@ class TestSchemasCommand(TestCase):
         )
         with self.assertRaises(NotAvailableInRegion) as ctx:
             schemas_api_caller.list_registries("next_token", max_items)
-        msg = "EventBridge Schemas are not available in provided region. Please check " \
-              "AWS doc for Schemas supported regions."
+        msg = (
+            "EventBridge Schemas are not available in provided region. Please check "
+            "AWS doc for Schemas supported regions."
+        )
         self.assertEqual(str(ctx.exception), msg)
 
     def test_list_schemas_with_next_token(self):
@@ -160,7 +162,7 @@ class TestSchemasCommand(TestCase):
             PaginationConfig={"StartingToken": None, "MaxItems": max_items, "PageSize": max_items},
         )
 
-    def test_list_schemas_with_endpoint_exception(self):
+    def test_list_schemas_raises_not_available_in_region_exception(self):
         max_items = 10
         schemas_api_caller = SchemasApiCaller(self.client)
         self.client.can_paginate.return_value = False
@@ -169,8 +171,10 @@ class TestSchemasCommand(TestCase):
         )
         with self.assertRaises(NotAvailableInRegion) as ctx:
             schemas_api_caller.list_schemas("registry-name", "next_token", max_items)
-        msg = "EventBridge Schemas are not available in provided region. Please check " \
-              "AWS doc for Schemas supported regions."
+        msg = (
+            "EventBridge Schemas are not available in provided region. Please check "
+            "AWS doc for Schemas supported regions."
+        )
         self.assertEqual(str(ctx.exception), msg)
 
     def test_get_schema_metadata_1p(self):
@@ -337,15 +341,17 @@ class TestSchemasCommand(TestCase):
         with self.assertRaises(SchemasApiException):
             schemas_api_caller.get_schema_metadata(registry_name, schema_name)
 
-    def test_get_schema_metadata_with_endpoint_exception(self):
+    def test_get_schema_metadata_raises_not_available_in_region_exception(self):
         schemas_api_caller = SchemasApiCaller(self.client)
         self.client.describe_schema.side_effect = botocore.exceptions.EndpointConnectionError(
             endpoint_url="Not valid endpoint."
         )
         with self.assertRaises(NotAvailableInRegion) as ctx:
             schemas_api_caller.get_schema_metadata("registry-name", "schema-name")
-        msg = "EventBridge Schemas are not available in provided region. Please check " \
-              "AWS doc for Schemas supported regions."
+        msg = (
+            "EventBridge Schemas are not available in provided region. Please check "
+            "AWS doc for Schemas supported regions."
+        )
         self.assertEqual(str(ctx.exception), msg)
 
     def test_get_latest_schema_version(self):
@@ -372,7 +378,7 @@ class TestSchemasCommand(TestCase):
             RegistryName=registry_name, SchemaName=schema_name, PaginationConfig={"StartingToken": None}
         )
 
-    def test_get_latest_schema_version_with_endpoint_exception(self):
+    def test_get_latest_schema_version_raises_not_available_in_region_exception(self):
         schemas_api_caller = SchemasApiCaller(self.client)
         self.client.can_paginate.return_value = False
         self.client.get_paginator.return_value.paginate.side_effect = botocore.exceptions.EndpointConnectionError(
@@ -380,8 +386,10 @@ class TestSchemasCommand(TestCase):
         )
         with self.assertRaises(NotAvailableInRegion) as ctx:
             schemas_api_caller.get_latest_schema_version("registry-name", "schema-name")
-        msg = "EventBridge Schemas are not available in provided region. Please check " \
-              "AWS doc for Schemas supported regions."
+        msg = (
+            "EventBridge Schemas are not available in provided region. Please check "
+            "AWS doc for Schemas supported regions."
+        )
         self.assertEqual(str(ctx.exception), msg)
 
     def test_list_registries_throws_exception_when_result_set_is_empty(self):
@@ -422,7 +430,7 @@ class TestSchemasCommand(TestCase):
                 "Java8", "aws.events", "aws.batch.BatchJobStateChange", "1", download_dir
             )
 
-    def test_download_source_code_binding_not_available_exception(self):
+    def test_download_source_code_binding_raises_not_available_in_region_exception(self):
         response = io.BytesIO(b"some initial binary data: \x00\x01")
         schemas_api_caller = SchemasApiCaller(self.client)
         self.client.get_code_binding_source.side_effect = botocore.exceptions.EndpointConnectionError(
@@ -432,19 +440,10 @@ class TestSchemasCommand(TestCase):
             schemas_api_caller.download_source_code_binding(
                 "Java8", "aws.events", "aws.batch.BatchJobStateChange", "1", "download_dir"
             )
-        msg = "EventBridge Schemas are not available in provided region. Please check " \
-              "AWS doc for Schemas supported regions."
-        self.assertEqual(str(ctx.exception), msg)
-
-    def test_put_code_binding_not_available_exception(self):
-        schemas_api_caller = SchemasApiCaller(self.client)
-        self.client.put_code_binding.side_effect = botocore.exceptions.EndpointConnectionError(
-            endpoint_url="Not valid endpoint."
+        msg = (
+            "EventBridge Schemas are not available in provided region. Please check "
+            "AWS doc for Schemas supported regions."
         )
-        with self.assertRaises(NotAvailableInRegion) as ctx:
-            schemas_api_caller.put_code_binding("Java8", "aws.events", "aws.batch.BatchJobStateChange", "1")
-        msg = "EventBridge Schemas are not available in provided region. Please check " \
-              "AWS doc for Schemas supported regions."
         self.assertEqual(str(ctx.exception), msg)
 
     def test_put_code_binding_with_conflict_exception(self):
@@ -469,6 +468,19 @@ class TestSchemasCommand(TestCase):
         with self.assertRaises(Exception):
             schemas_api_caller.put_code_binding("Java8", "aws.events", "aws.batch.BatchJobStateChange", "1")
 
+    def test_put_code_binding_raises_not_available_in_region_exception(self):
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.put_code_binding.side_effect = botocore.exceptions.EndpointConnectionError(
+            endpoint_url="Not valid endpoint."
+        )
+        with self.assertRaises(NotAvailableInRegion) as ctx:
+            schemas_api_caller.put_code_binding("Java8", "aws.events", "aws.batch.BatchJobStateChange", "1")
+        msg = (
+            "EventBridge Schemas are not available in provided region. Please check "
+            "AWS doc for Schemas supported regions."
+        )
+        self.assertEqual(str(ctx.exception), msg)
+
     def test_poll_for_code_generation_completion(self):
         schemas_api_caller = SchemasApiCaller(self.client)
         self.client.get_waiter.return_value.wait.return_value = None
@@ -484,3 +496,19 @@ class TestSchemasCommand(TestCase):
         )
         with self.assertRaises(WaiterError):
             schemas_api_caller.poll_for_code_binding_status("Java8", "aws.events", "aws.batch.BatchJobStateChange", "1")
+
+    def test_poll_for_code_generation_completion_raises_not_available_in_region_exception(self):
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.get_waiter.return_value.wait.return_value = None
+        schemas_api_caller.poll_for_code_binding_status("Java8", "aws.events", "aws.batch.BatchJobStateChange", "1")
+        schemas_api_caller = SchemasApiCaller(self.client)
+        self.client.get_waiter.return_value.wait.side_effect = botocore.exceptions.EndpointConnectionError(
+            endpoint_url="Not valid endpoint."
+        )
+        with self.assertRaises(NotAvailableInRegion) as ctx:
+            schemas_api_caller.poll_for_code_binding_status("Java8", "aws.events", "aws.batch.BatchJobStateChange", "1")
+        msg = (
+            "EventBridge Schemas are not available in provided region. Please check "
+            "AWS doc for Schemas supported regions."
+        )
+        self.assertEqual(str(ctx.exception), msg)

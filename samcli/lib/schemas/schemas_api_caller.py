@@ -33,8 +33,10 @@ class SchemasApiCaller:
             next_token = page.get("NextToken", None)
             return {"registries": registries, "next_token": next_token}
         except EndpointConnectionError:
-            raise NotAvailableInRegion("EventBridge Schemas are not available in provided region. "
-                                       "Please check AWS doc for Schemas supported regions.")
+            raise NotAvailableInRegion(
+                "EventBridge Schemas are not available in provided region. "
+                "Please check AWS doc for Schemas supported regions."
+            )
 
     def list_schemas(self, registry_name, next_token=None, limit=10):
         schemas = []
@@ -53,8 +55,10 @@ class SchemasApiCaller:
             next_token = page.get("NextToken", None)
             return {"schemas": schemas, "next_token": next_token}
         except EndpointConnectionError:
-            raise NotAvailableInRegion("EventBridge Schemas are not available in provided region. "
-                                       "Please check AWS doc for Schemas supported regions.")
+            raise NotAvailableInRegion(
+                "EventBridge Schemas are not available in provided region. "
+                "Please check AWS doc for Schemas supported regions."
+            )
 
     def get_latest_schema_version(self, registry_name, schema_name):
         versions = []
@@ -74,8 +78,10 @@ class SchemasApiCaller:
                 if next_token is None:
                     break
         except EndpointConnectionError:
-            raise NotAvailableInRegion("EventBridge Schemas are not available in provided region. "
-                                       "Please check AWS doc for Schemas supported regions.")
+            raise NotAvailableInRegion(
+                "EventBridge Schemas are not available in provided region. "
+                "Please check AWS doc for Schemas supported regions."
+            )
         versions.sort()
         return versions[-1]
 
@@ -85,8 +91,10 @@ class SchemasApiCaller:
                 RegistryName=registry_name, SchemaName=schema_name
             )
         except EndpointConnectionError:
-            raise NotAvailableInRegion("EventBridge Schemas are not available in provided region. "
-                                       "Please check AWS doc for Schemas supported regions.")
+            raise NotAvailableInRegion(
+                "EventBridge Schemas are not available in provided region. "
+                "Please check AWS doc for Schemas supported regions."
+            )
         try:
             content = json.loads(describe_schema_response["Content"])
             schemas = content["components"]["schemas"]
@@ -102,7 +110,7 @@ class SchemasApiCaller:
                 if aws_event.get("x-amazon-events-detail-type") is not None:
                     event_source_detail_type = aws_event.get("x-amazon-events-detail-type")
                 possible_root_schema_name = aws_event["properties"]["detail"]["$ref"]
-                schema_root_name = sanitize_name(possible_root_schema_name[len("#/components/schemas/"):])
+                schema_root_name = sanitize_name(possible_root_schema_name[len("#/components/schemas/") :])
             return {
                 "event_source": event_source,
                 "event_source_detail_type": event_source_detail_type,
@@ -121,8 +129,10 @@ class SchemasApiCaller:
                 Language=runtime, RegistryName=registry_name, SchemaName=schema_name, SchemaVersion=schema_version
             )
         except EndpointConnectionError:
-            raise NotAvailableInRegion("EventBridge Schemas are not available in provided region. "
-                                       "Please check AWS doc for Schemas supported regions.")
+            raise NotAvailableInRegion(
+                "EventBridge Schemas are not available in provided region. "
+                "Please check AWS doc for Schemas supported regions."
+            )
 
         for data in response["Body"]:
             download_location.write(data)
@@ -133,8 +143,10 @@ class SchemasApiCaller:
                 Language=runtime, RegistryName=registry_name, SchemaName=schema_name, SchemaVersion=schema_version
             )
         except EndpointConnectionError:
-            raise NotAvailableInRegion("EventBridge Schemas are not available in provided region. "
-                                       "Please check AWS doc for Schemas supported regions.")
+            raise NotAvailableInRegion(
+                "EventBridge Schemas are not available in provided region. "
+                "Please check AWS doc for Schemas supported regions."
+            )
         except ClientError as e:
             if e.response["Error"]["Code"] != "ConflictException":
                 raise e
@@ -143,9 +155,13 @@ class SchemasApiCaller:
         try:
             waiter = self._schemas_client.get_waiter("code_binding_exists")
             waiter.wait(
-                Language=schemas_runtime, RegistryName=registry_name, SchemaName=schema_name,
-                SchemaVersion=schema_version
+                Language=schemas_runtime,
+                RegistryName=registry_name,
+                SchemaName=schema_name,
+                SchemaVersion=schema_version,
             )
         except EndpointConnectionError:
-            raise NotAvailableInRegion("EventBridge Schemas are not available in provided region. "
-                                       "Please check AWS doc for Schemas supported regions.")
+            raise NotAvailableInRegion(
+                "EventBridge Schemas are not available in provided region. "
+                "Please check AWS doc for Schemas supported regions."
+            )
