@@ -10,12 +10,30 @@ from samcli.lib.schemas.schemas_constants import DEFAULT_EVENT_SOURCE, DEFAULT_E
 from samcli.commands.exceptions import SchemasApiException
 from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound, NotAvailableInRegion
 
+SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR = (
+    "EventBridge Schemas are not available in provided region. Please check AWS doc for Schemas supported regions."
+)
+
 
 class SchemasApiCaller:
     def __init__(self, schemas_client):
         self._schemas_client = schemas_client
 
     def list_registries(self, next_token=None, limit=10):
+        """
+        Calls schemas service to get list of schema registries.
+
+        Parameters
+        ----------
+        next_token:
+            Continuation token
+        limit:
+            Number of items tro fetch
+
+        Returns
+        -------
+        List of registries available
+        """
         if limit is None:
             limit = 10
         registries = []
@@ -33,12 +51,25 @@ class SchemasApiCaller:
             next_token = page.get("NextToken", None)
             return {"registries": registries, "next_token": next_token}
         except EndpointConnectionError:
-            raise NotAvailableInRegion(
-                "EventBridge Schemas are not available in provided region. "
-                "Please check AWS doc for Schemas supported regions."
-            )
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
 
     def list_schemas(self, registry_name, next_token=None, limit=10):
+        """
+        Calls schemas service to get list of schemas for given registry.
+
+        Parameters
+        ----------
+        registry_name:
+            Name of the registry
+        next_token:
+            Continuation token
+        limit:
+            Number of items to fetch
+
+        Returns
+        -------
+        List of Schemas available for given registry
+        """
         schemas = []
         try:
             paginator = self._schemas_client.get_paginator("list_schemas")
@@ -55,12 +86,23 @@ class SchemasApiCaller:
             next_token = page.get("NextToken", None)
             return {"schemas": schemas, "next_token": next_token}
         except EndpointConnectionError:
-            raise NotAvailableInRegion(
-                "EventBridge Schemas are not available in provided region. "
-                "Please check AWS doc for Schemas supported regions."
-            )
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
 
     def get_latest_schema_version(self, registry_name, schema_name):
+        """
+        Calls schemas service to get schema latest version.
+
+        Parameters
+        ----------
+        registry_name:
+            Registry name
+        schema_name:
+            Schema Name
+
+        Returns
+        -------
+        Latest Schema version
+        """
         versions = []
         next_token = None
         try:
@@ -78,23 +120,31 @@ class SchemasApiCaller:
                 if next_token is None:
                     break
         except EndpointConnectionError:
-            raise NotAvailableInRegion(
-                "EventBridge Schemas are not available in provided region. "
-                "Please check AWS doc for Schemas supported regions."
-            )
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
         versions.sort()
         return versions[-1]
 
     def get_schema_metadata(self, registry_name, schema_name):
+        """
+        Calls schemas service to get schema metadata.
+
+        Parameters
+        ----------
+        registry_name:
+            Registry Name
+        schema_name:
+            Schema Name
+
+        Returns
+        -------
+        Schema metadata
+        """
         try:
             describe_schema_response = self._schemas_client.describe_schema(
                 RegistryName=registry_name, SchemaName=schema_name
             )
         except EndpointConnectionError:
-            raise NotAvailableInRegion(
-                "EventBridge Schemas are not available in provided region. "
-                "Please check AWS doc for Schemas supported regions."
-            )
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
         try:
             content = json.loads(describe_schema_response["Content"])
             schemas = content["components"]["schemas"]
@@ -124,20 +174,47 @@ class SchemasApiCaller:
             )
 
     def download_source_code_binding(self, runtime, registry_name, schema_name, schema_version, download_location):
+        """
+        Calls schemas service to download code binding for given schema in download_location.
+
+        Parameters
+        ----------
+        runtime:
+            Code binding runtime e.g: Java, Python
+        registry_name:
+            Registry Name
+        schema_name:
+            Schema Name
+        schema_version:
+            Schema version for which code binding needs to be downloaded
+        download_location:
+            Location at which code binding should be downloaded
+        """
         try:
             response = self._schemas_client.get_code_binding_source(
                 Language=runtime, RegistryName=registry_name, SchemaName=schema_name, SchemaVersion=schema_version
             )
         except EndpointConnectionError:
-            raise NotAvailableInRegion(
-                "EventBridge Schemas are not available in provided region. "
-                "Please check AWS doc for Schemas supported regions."
-            )
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
 
         for data in response["Body"]:
             download_location.write(data)
 
     def put_code_binding(self, runtime, registry_name, schema_name, schema_version):
+        """
+        Calls schemas service to generate code binding for given schema.
+
+        Parameters
+        ----------
+        runtime:
+            Code binding runtime e.g: Java, Python
+        registry_name:
+            Registry Name
+        schema_name:
+            Schema Name
+        schema_version:
+            Schema version for which code binding needs to be generated
+        """
         try:
             self._schemas_client.put_code_binding(
                 Language=runtime, RegistryName=registry_name, SchemaName=schema_name, SchemaVersion=schema_version
@@ -152,6 +229,20 @@ class SchemasApiCaller:
                 raise e
 
     def poll_for_code_binding_status(self, schemas_runtime, registry_name, schema_name, schema_version):
+        """
+        Calls schemas service and wait for code binding to be generated.
+
+        Parameters
+        ----------
+        schemas_runtime:
+            Code binding runtime e.g: Java, Python
+        registry_name:
+            Registry Name
+        schema_name:
+            Schema Name
+        schema_version:
+            Schema version
+        """
         try:
             waiter = self._schemas_client.get_waiter("code_binding_exists")
             waiter.wait(
@@ -161,7 +252,4 @@ class SchemasApiCaller:
                 SchemaVersion=schema_version,
             )
         except EndpointConnectionError:
-            raise NotAvailableInRegion(
-                "EventBridge Schemas are not available in provided region. "
-                "Please check AWS doc for Schemas supported regions."
-            )
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
