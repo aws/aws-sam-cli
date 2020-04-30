@@ -57,3 +57,28 @@ class TestInitAWSConfiguration(TestCase):
             get_aws_configuration_choice()
         msg = "No configured AWS profile found."
         self.assertEqual(str(ctx.exception), msg)
+
+    @patch("samcli.lib.schemas.schemas_aws_config.Session")
+    @patch("click.confirm")
+    @patch("click.prompt")
+    def test_get_aws_configuration_allow_free_text_region_value(self, prompt_mock, confirm_mock, session_mock):
+        confirm_mock.side_effect = [False]
+        prompt_mock.side_effect = ["2", "random-region"]
+        session_mock.return_value.profile_name = "default"
+        session_mock.return_value.region_name = "us-west-2"
+        session_mock.return_value.available_profiles = ["default", "test-profile"]
+        session_mock.return_value.get_available_regions.return_value = [
+            "us-east-1",
+            "us-east-2",
+            "us-west-2",
+            "eu-west-1",
+            "ap-northeast-1",
+        ]
+        aws_configuration_choice = get_aws_configuration_choice()
+        self.assertEqual(aws_configuration_choice["profile"], "test-profile"),
+        self.assertEqual(aws_configuration_choice["region"], "random-region")
+        confirm_mock.assert_any_call(
+            "\nDo you want to use the default AWS profile [default] and region [us-west-2]?", default=True
+        )
+        prompt_mock.assert_any_call("Profile", type=ANY, show_choices=False)
+        prompt_mock.assert_any_call("Region [us-west-2]", type=ANY, show_choices=False)
