@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Invalid template with bad layer intrinsic.
+
+Parameters:
+
+  LayerVersion:
+    Default: 1
+    Type: String
+
+Resources:
+  LayerBadInstrinsic:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: layer-main.handler
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 20
+      Layers:
+        - "arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:${LayerVersion}"

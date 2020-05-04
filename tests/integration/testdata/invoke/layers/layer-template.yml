@@ -19,10 +19,6 @@ Parameters:
     Default: arn:aws:lambda:us-west-2:111111111111:layer:non_existent_layer:1
     Type: String
 
-  LayerVersion:
-    Default: 1
-    Type: String
-
 Resources:
   # AWS::Serverless::Function
   OneLayerVersionServerlessFunction:
@@ -148,16 +144,6 @@ Resources:
       Timeout: 20
       Layers:
         - arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:1
-
-  LayerBadInstrinsic:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: layer-main.handler
-      Runtime: python3.6
-      CodeUri: .
-      Timeout: 20
-      Layers:
-        - "arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:${LayerVersion}"
 
   # AWS::Lambda::LayerVersion
   MyCustomLambdaLayer:

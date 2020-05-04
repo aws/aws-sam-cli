@@ -15,8 +15,8 @@ from tests.integration.local.invoke.layer_utils import LayerUtils
 from .invoke_integ_base import InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
-# Layers tests require credentials and Travis will only add credentials to the env if the PR is from the same repo.
-# This is to restrict layers tests to run outside of Travis, when the branch is not master and tests are not run by Canary.
+# Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
+# This is to restrict layers tests to run outside of Appveyor, when the branch is not master and tests are not run by Canary.
 SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 from pathlib import Path
@@ -645,7 +645,7 @@ class TestUsingConfigFiles(InvokeIntegBase):
         return custom_cred
 
 
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Travis only")
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
 class TestLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = "us-west-2"
@@ -857,7 +857,7 @@ class TestLayerVersion(InvokeIntegBase):
         self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
 
 
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Travis only")
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = "us-west-2"
@@ -925,6 +925,13 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         )
 
         self.assertIn(expected_error_output, error_output)
+
+
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+class TestBadLayerVersion(InvokeIntegBase):
+    template = Path("layers", "layer-bad-template.yaml")
+    region = "us-west-2"
+    layer_utils = LayerUtils(region=region)
 
     def test_unresolved_layer_due_to_bad_instrinsic(self):
         command_list = self.get_command_list(
