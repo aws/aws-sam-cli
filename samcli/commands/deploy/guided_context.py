@@ -14,6 +14,7 @@ from samcli.commands._utils.template import get_template_parameters, get_templat
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.auth_utils import auth_per_resource
+from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.colors import Colored
 
@@ -99,7 +100,7 @@ class GuidedContext:
                 type=FuncParamType(func=_space_separated_list_func_type),
             )
 
-        self.prompt_authorization(input_parameter_overrides)
+        self.prompt_authorization(sanitize_parameter_overrides(input_parameter_overrides))
 
         save_to_config = confirm(f"\t{self.start_bold}Save arguments to samconfig.toml{self.end_bold}", default=True)
 
