@@ -401,9 +401,9 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
-    @skipIf(IS_WINDOWS, "This test failes on windows due to unix permissions not set properly on unzipped binary")
+    @skipIf(IS_WINDOWS, "This test fails on windows due to unix permissions not set properly on unzipped binary")
     @pytest.mark.flaky(reruns=3)
-    def test_invoke_returns_execpted_results_from_git_function(self):
+    def test_invoke_returns_expected_results_from_git_function(self):
         command_list = self.get_command_list(
             "GitLayerFunction", template_path=self.template_path, event_path=self.event_path
         )
@@ -417,6 +417,48 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"git init passed"')
+
+    @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+    @skipIf(IS_WINDOWS, "This test fails on windows due to unix permissions not set properly on unzipped binary")
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_returns_expected_results_from_git_function_with_parameters(self):
+        command_list = self.get_command_list(
+            "GitLayerFunctionParameters",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            parameter_overrides={"LayerVersion": "5"},
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        self.assertEqual(process_stdout.decode("utf-8"), '"git init passed"')
+
+
+class TestSamInstrinsicsAndPlugins(InvokeIntegBase):
+    template = "template-pseudo-params.yaml"
+
+    @pytest.mark.flaky(reruns=3)
+    def test_resolve_instrincs_which_runs_plugins(self):
+        command_list = self.get_command_list(
+            "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        # Returned result is dependent on region, but should not be None.
+        self.assertIsNotNone(process_stdout.decode("utf-8"), "Invalid ApplicationId")
 
 
 class TestUsingConfigFiles(InvokeIntegBase):
@@ -881,5 +923,28 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
             "Credentials provided are missing lambda:Getlayerversion policy that is needed to "
             "download the layer or you do not have permission to download the layer"
         )
+
+        self.assertIn(expected_error_output, error_output)
+
+    def test_unresolved_layer_due_to_bad_instrinsic(self):
+        command_list = self.get_command_list(
+            "LayerBadInstrinsic",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            parameter_overrides={"LayerVersion": "1"},
+        )
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stderr = stderr.strip()
+        error_output = process_stderr.decode("utf-8")
+
+        expected_error_output = "Error: arn:aws:lambda:us-west-2:111111111101:layer:layerDoesNotExist:${LayerVersion} is an Invalid Layer Arn."
 
         self.assertIn(expected_error_output, error_output)

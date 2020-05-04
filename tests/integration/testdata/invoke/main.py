@@ -15,6 +15,8 @@ def handler(event, context):
 
     return "Hello world"
 
+def intrinsics_handler(event, context):
+    return os.environ.get("ApplicationId")
 
 def sleep_handler(event, context):
     time.sleep(10)
