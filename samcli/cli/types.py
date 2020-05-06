@@ -230,7 +230,7 @@ class CfnTags(click.ParamType):
     @staticmethod
     def _standard_key_value_parser(tag_value):
         """
-        Method to parse simple `Key=Value` type tags without using regex. This is similar to how CFN does this.
+        Method to parse simple `Key=Value` type tags without using regex. This is similar to how aws-cli does this.
         https://github.com/aws/aws-cli/blob/eff79a263347e8e83c8a2cc07265ab366315a992/awscli/customizations/cloudformation/deploy.py#L361
         Parameters
         ----------
