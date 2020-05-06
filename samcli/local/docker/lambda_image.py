@@ -17,7 +17,6 @@ LOG = logging.getLogger(__name__)
 
 
 class Runtime(Enum):
-    nodejs = "nodejs"
     nodejs10x = "nodejs10.x"
     nodejs12x = "nodejs12.x"
     python27 = "python2.7"

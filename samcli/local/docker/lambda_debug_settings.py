@@ -76,20 +76,6 @@ class LambdaDebugSettings:
                 + ["-debug=true", "-delvePort=" + str(debug_port), "-delvePath=" + options.get("delvePath")],
                 debug_env_vars={},
             ),
-            Runtime.nodejs.value: DebugSettings(
-                ["/usr/bin/node"]
-                + debug_args_list
-                + [
-                    "--debug-brk=" + str(debug_port),
-                    "--nolazy",
-                    "--max-old-space-size=1229",
-                    "--max-new-space-size=153",
-                    "--max-executable-size=153",
-                    "--expose-gc",
-                    "/var/runtime/node_modules/awslambda/bin/awslambda",
-                ],
-                debug_env_vars={},
-            ),
             Runtime.nodejs10x.value: DebugSettings(
                 [
                     "/var/rapid/init",

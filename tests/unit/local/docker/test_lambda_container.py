@@ -14,7 +14,6 @@ RUNTIMES_WITH_ENTRYPOINT = [
     Runtime.java8.value,
     Runtime.dotnetcore21.value,
     Runtime.go1x.value,
-    Runtime.nodejs.value,
     Runtime.python36.value,
     Runtime.python27.value,
 ]
