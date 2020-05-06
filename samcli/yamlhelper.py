@@ -27,6 +27,21 @@ TAG_STR = "tag:yaml.org,2002:str"
 
 
 def string_representer(dumper, value):
+    """
+    Customer Yaml representer that will force the scalar to be quoted in a yaml.dump
+    if it scalar starts with a 0. This is needed to keep account ids a string instead
+    of turning into on int because yaml thinks it an octal.
+
+    Parameters
+    ----------
+    dumper yaml.dumper
+    value str
+        Value in template to resolve
+
+    Returns
+    -------
+
+    """
     if value.startswith("0"):
         return dumper.represent_scalar(TAG_STR, value, style="'")
 
