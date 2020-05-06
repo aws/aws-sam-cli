@@ -5,6 +5,7 @@ import logging
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
+from samcli.lib.utils.colors import Colored
 from .provider import FunctionProvider, Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
 
@@ -25,7 +26,7 @@ class SamFunctionProvider(FunctionProvider):
     _LAMBDA_LAYER = "AWS::Lambda::LayerVersion"
     _DEFAULT_CODEURI = "."
 
-    def __init__(self, template_dict, parameter_overrides=None):
+    def __init__(self, template_dict, parameter_overrides=None, ignore_code_extraction_warnings=False):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
         to be valid, normalized and a dictionary. It should be normalized by running all pre-processing
@@ -39,15 +40,20 @@ class SamFunctionProvider(FunctionProvider):
         :param dict template_dict: SAM Template as a dictionary
         :param dict parameter_overrides: Optional dictionary of values for SAM template parameters that might want
             to get substituted within the template
+        :param bool ignore_code_extraction_warnings: Ignores Log warnings
         """
 
         self.template_dict = SamBaseProvider.get_template(template_dict, parameter_overrides)
+        self.ignore_code_extraction_warnings = ignore_code_extraction_warnings
         self.resources = self.template_dict.get("Resources", {})
 
         LOG.debug("%d resources found in the template", len(self.resources))
 
         # Store a map of function name to function information for quick reference
-        self.functions = self._extract_functions(self.resources)
+        self.functions = self._extract_functions(self.resources, self.ignore_code_extraction_warnings)
+
+        self._deprecated_runtimes = {"nodejs4.3", "nodejs6.10", "nodejs8.10", "dotnetcore2.0"}
+        self._colored = Colored()
 
     def get(self, name):
         """
@@ -66,12 +72,23 @@ class SamFunctionProvider(FunctionProvider):
 
         for f in self.get_all():
             if f.name == name:
+                self._deprecate_notification(f.runtime)
                 return f
 
             if f.functionname == name:
+                self._deprecate_notification(f.runtime)
                 return f
 
         return None
+
+    def _deprecate_notification(self, runtime):
+        if runtime in self._deprecated_runtimes:
+            message = (
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
+                f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            )
+            LOG.warning(self._colored.yellow(message))
 
     def get_all(self):
         """
@@ -84,12 +101,13 @@ class SamFunctionProvider(FunctionProvider):
             yield function
 
     @staticmethod
-    def _extract_functions(resources):
+    def _extract_functions(resources, ignore_code_extraction_warnings=False):
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
         method supports functions defined with AWS::Serverless::Function and AWS::Lambda::Function
 
         :param dict resources: Dictionary of SAM/CloudFormation resources
+        :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
         :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function LogicalId to the
             Function configuration object
         """
@@ -102,11 +120,21 @@ class SamFunctionProvider(FunctionProvider):
             resource_properties = resource.get("Properties", {})
 
             if resource_type == SamFunctionProvider._SERVERLESS_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(resource_properties.get("Layers", []), resources)
-                result[name] = SamFunctionProvider._convert_sam_function_resource(name, resource_properties, layers)
+                layers = SamFunctionProvider._parse_layer_info(
+                    resource_properties.get("Layers", []),
+                    resources,
+                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                )
+                result[name] = SamFunctionProvider._convert_sam_function_resource(
+                    name, resource_properties, layers, ignore_code_extraction_warnings=ignore_code_extraction_warnings
+                )
 
             elif resource_type == SamFunctionProvider._LAMBDA_FUNCTION:
-                layers = SamFunctionProvider._parse_layer_info(resource_properties.get("Layers", []), resources)
+                layers = SamFunctionProvider._parse_layer_info(
+                    resource_properties.get("Layers", []),
+                    resources,
+                    ignore_code_extraction_warnings=ignore_code_extraction_warnings,
+                )
                 result[name] = SamFunctionProvider._convert_lambda_function_resource(name, resource_properties, layers)
 
             # We don't care about other resource types. Just ignore them
@@ -114,7 +142,7 @@ class SamFunctionProvider(FunctionProvider):
         return result
 
     @staticmethod
-    def _convert_sam_function_resource(name, resource_properties, layers):
+    def _convert_sam_function_resource(name, resource_properties, layers, ignore_code_extraction_warnings=False):
         """
         Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
 
@@ -133,14 +161,18 @@ class SamFunctionProvider(FunctionProvider):
             Function configuration
         """
 
-        codeuri = SamFunctionProvider._extract_sam_function_codeuri(name, resource_properties, "CodeUri")
+        codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+            name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
+        )
 
         LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
 
         return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers)
 
     @staticmethod
-    def _extract_sam_function_codeuri(name, resource_properties, code_property_key):
+    def _extract_sam_function_codeuri(
+        name, resource_properties, code_property_key, ignore_code_extraction_warnings=False
+    ):
         """
         Extracts the SAM Function CodeUri from the Resource Properties
 
@@ -152,6 +184,8 @@ class SamFunctionProvider(FunctionProvider):
             Dictionary representing the Properties of the Resource
         code_property_key str
             Property Key of the code on the Resource
+        ignore_code_extraction_warnings
+            Boolean to ignore log statements on code extraction from Resources.
 
         Returns
         -------
@@ -162,12 +196,13 @@ class SamFunctionProvider(FunctionProvider):
         # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
         if isinstance(codeuri, dict) or (isinstance(codeuri, str) and codeuri.startswith("s3://")):
             codeuri = SamFunctionProvider._DEFAULT_CODEURI
-            LOG.warning(
-                "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
-                "Using default value of '%s' instead",
-                name,
-                codeuri,
-            )
+            if not ignore_code_extraction_warnings:
+                LOG.warning(
+                    "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
+                    "Using default value of '%s' instead",
+                    name,
+                    codeuri,
+                )
         return codeuri
 
     @staticmethod
@@ -254,11 +289,12 @@ class SamFunctionProvider(FunctionProvider):
             codeuri=codeuri,
             environment=resource_properties.get("Environment"),
             rolearn=resource_properties.get("Role"),
+            events=resource_properties.get("Events"),
             layers=layers,
         )
 
     @staticmethod
-    def _parse_layer_info(list_of_layers, resources):
+    def _parse_layer_info(list_of_layers, resources, ignore_code_extraction_warnings=False):
         """
         Creates a list of Layer objects that are represented by the resources and the list of layers
 
@@ -314,7 +350,7 @@ class SamFunctionProvider(FunctionProvider):
 
                 if resource_type == SamFunctionProvider._SERVERLESS_LAYER:
                     codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-                        layer_logical_id, layer_properties, "ContentUri"
+                        layer_logical_id, layer_properties, "ContentUri", ignore_code_extraction_warnings
                     )
 
                 layers.append(LayerVersion(layer_logical_id, codeuri))
