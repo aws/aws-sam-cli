@@ -37,7 +37,7 @@ class TestYaml(TestCase):
             "Key4": {"Fn::SomeTag": {"a": "1"}},
             "Key5": {"Fn::GetAtt": ["OneMore", "Outputs.Arn"]},
             "Key6": {"Condition": "OtherCondition"},
-            "Key7": "012345678"
+            "Key7": "012345678",
         }
     }
 
@@ -51,11 +51,7 @@ class TestYaml(TestCase):
         self.assertEqual(output, output_again)
 
     def test_yaml_dumps(self):
-        input_yaml_dict = {
-            "Resource": {
-                "Key7": "012345678"
-            }
-        }
+        input_yaml_dict = {"Resource": {"Key7": "012345678"}}
 
         expected_output = "Resource:\n  Key7: '012345678'\n"
 
