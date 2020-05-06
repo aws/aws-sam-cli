@@ -18,9 +18,6 @@ LOG = logging.getLogger(__name__)
 
 class Runtime(Enum):
     nodejs = "nodejs"
-    nodejs43 = "nodejs4.3"
-    nodejs610 = "nodejs6.10"
-    nodejs810 = "nodejs8.10"
     nodejs10x = "nodejs10.x"
     nodejs12x = "nodejs12.x"
     python27 = "python2.7"
@@ -32,7 +29,6 @@ class Runtime(Enum):
     java8 = "java8"
     java11 = "java11"
     go1x = "go1.x"
-    dotnetcore20 = "dotnetcore2.0"
     dotnetcore21 = "dotnetcore2.1"
     dotnetcore31 = "dotnetcore3.1"
     provided = "provided"
