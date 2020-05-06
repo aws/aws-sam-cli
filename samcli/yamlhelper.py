@@ -23,6 +23,15 @@ from botocore.compat import OrderedDict
 import yaml
 from yaml.resolver import ScalarNode, SequenceNode
 
+TAG_STR = "tag:yaml.org,2002:str"
+
+
+def string_representer(dumper, value):
+    if value.startswith("0"):
+        return dumper.represent_scalar(TAG_STR, value, style="'")
+
+    return dumper.represent_scalar(TAG_STR, value)
+
 
 def intrinsics_multi_constructor(loader, tag_prefix, node):
     """
@@ -71,8 +80,9 @@ def yaml_dump(dict_to_dump):
     :param dict_to_dump:
     :return:
     """
-    FlattenAliasDumper.add_representer(OrderedDict, _dict_representer)
-    return yaml.dump(dict_to_dump, default_flow_style=False, Dumper=FlattenAliasDumper)
+    CfnDumper.add_representer(OrderedDict, _dict_representer)
+    CfnDumper.add_representer(str, string_representer)
+    return yaml.dump(dict_to_dump, default_flow_style=False, Dumper=CfnDumper)
 
 
 def _dict_constructor(loader, node):
@@ -94,6 +104,6 @@ def yaml_parse(yamlstr):
         return yaml.safe_load(yamlstr)
 
 
-class FlattenAliasDumper(yaml.SafeDumper):
+class CfnDumper(yaml.SafeDumper):
     def ignore_aliases(self, data):
         return True
