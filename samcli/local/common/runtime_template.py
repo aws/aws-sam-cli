@@ -38,7 +38,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnetcore3.1", "dotnetcore2.1", "dotnetcore2.0", "dotnetcore1.0"],
+            "runtimes": ["dotnetcore3.1", "dotnetcore2.1"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -79,8 +79,6 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "nodejs10.x": ["npm"],
     "dotnetcore3.1": ["cli-package"],
     "dotnetcore2.1": ["cli-package"],
-    "dotnetcore2.0": ["cli-package"],
-    "dotnetcore1.0": ["cli-package"],
     "go1.x": ["mod"],
     "java8": ["maven", "gradle"],
     "java11": ["maven", "gradle"],
@@ -118,8 +116,6 @@ INIT_RUNTIMES = [
     "java8",
     # older dotnetcore runtimes
     "dotnetcore2.1",
-    "dotnetcore2.0",
-    "dotnetcore1.0",
 ]
 
 # Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages

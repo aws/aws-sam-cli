@@ -14,9 +14,7 @@ Resources:
     Properties:
       CodeUri: ./src/HelloWorld/
       Handler: HelloWorld::HelloWorld.Function::FunctionHandler
-      {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
-      Runtime: {{ cookiecutter.runtime }}
-      {%- elif cookiecutter.runtime == 'dotnetcore2.1' %}
+      {%- if cookiecutter.runtime == 'dotnetcore2.1' %}
       Runtime: {{ cookiecutter.runtime }}
       {%- else %}
       Runtime: dotnetcore3.1

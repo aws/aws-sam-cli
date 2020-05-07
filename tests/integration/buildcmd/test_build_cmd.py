@@ -142,12 +142,8 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("nodejs6.10", False),
-            ("nodejs8.10", False),
             ("nodejs10.x", False),
             ("nodejs12.x", False),
-            ("nodejs6.10", "use_container"),
-            ("nodejs8.10", "use_container"),
             ("nodejs10.x", "use_container"),
             ("nodejs12.x", "use_container"),
         ]
@@ -457,10 +453,8 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
     @parameterized.expand(
         [
-            ("dotnetcore2.0", "Dotnetcore2.0", None),
             ("dotnetcore2.1", "Dotnetcore2.1", None),
             ("dotnetcore3.1", "Dotnetcore3.1", None),
-            ("dotnetcore2.0", "Dotnetcore2.0", "debug"),
             ("dotnetcore2.1", "Dotnetcore2.1", "debug"),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
         ]
@@ -514,9 +508,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand(
-        [("dotnetcore2.0", "Dotnetcore2.0"), ("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")]
-    )
+    @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):
         use_container = True
