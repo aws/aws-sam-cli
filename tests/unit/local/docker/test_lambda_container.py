@@ -12,13 +12,8 @@ from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
 RUNTIMES_WITH_ENTRYPOINT = [
     Runtime.java8.value,
-    Runtime.dotnetcore20.value,
     Runtime.dotnetcore21.value,
     Runtime.go1x.value,
-    Runtime.nodejs.value,
-    Runtime.nodejs43.value,
-    Runtime.nodejs610.value,
-    Runtime.nodejs810.value,
     Runtime.python36.value,
     Runtime.python27.value,
 ]
@@ -39,7 +34,7 @@ ALL_RUNTIMES = [r.value for r in Runtime]
 
 class TestLambdaContainer_init(TestCase):
     def setUp(self):
-        self.runtime = "nodejs4.3"
+        self.runtime = "nodejs12.x"
         self.handler = "handler"
         self.code_dir = "codedir"
         self.env_var = {"var": "value"}
