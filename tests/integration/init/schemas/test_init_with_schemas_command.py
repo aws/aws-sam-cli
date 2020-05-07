@@ -18,7 +18,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 11: Java runtime
+        # 12: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -52,7 +52,7 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 11: Java Runtime
+        # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -97,7 +97,7 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 11: Java Runtime
+        # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -135,7 +135,7 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 11: Java Runtime
+        # 12: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -181,7 +181,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Python 3.7
-        # eb-app-maven: response to name
+        # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
@@ -211,7 +211,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Python 3.7
-        # eb-app-maven: response to name
+        # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # N: Use default profile
         # 2: uses second profile from displayed one (myprofile)
@@ -226,7 +226,7 @@ eb-app-python37
 3
 N
 2
-1
+us-east-1
 1
 1
         """
@@ -247,7 +247,7 @@ N
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # 8: Python 3.7
-        # eb-app-maven: response to name
+        # eb-app-python37: response to name
         # 3: select event-bridge app from scratch
         # Y: Use default profile
         # 1: select aws.events as registries
