@@ -204,14 +204,19 @@ class CfnTags(click.ParamType):
         value = (value,) if not isinstance(value, tuple) else value
 
         for val in value:
-            groups = re.findall(self._pattern, val)
+            # Using standard parser first. We should implement other type parser like JSON and Key=key,Value=val type format.
+            parsed, k, v = self._standard_key_value_parser(val)
+            if parsed:
+                result[_unquote_wrapped_quotes(k)] = _unquote_wrapped_quotes(v)
+            else:
+                groups = re.findall(self._pattern, val)
 
-            if not groups:
-                fail = True
-            for group in groups:
-                key, v = group
-                # assign to result['KeyName1'] = string and so on.
-                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(v)
+                if not groups:
+                    fail = True
+                for group in groups:
+                    key, v = group
+                    # assign to result['KeyName1'] = string and so on.
+                    result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(v)
 
             if fail:
                 return self.fail(
@@ -221,3 +226,23 @@ class CfnTags(click.ParamType):
                 )
 
         return result
+
+    @staticmethod
+    def _standard_key_value_parser(tag_value):
+        """
+        Method to parse simple `Key=Value` type tags without using regex. This is similar to how aws-cli does this.
+        https://github.com/aws/aws-cli/blob/eff79a263347e8e83c8a2cc07265ab366315a992/awscli/customizations/cloudformation/deploy.py#L361
+        Parameters
+        ----------
+        tag_value
+
+        Returns
+        -------
+
+        """
+        equals_count = tag_value.count("=")
+        if equals_count != 1:
+            return False, None, None
+
+        splits = tag_value.split("=")
+        return True, splits[0], splits[1]
