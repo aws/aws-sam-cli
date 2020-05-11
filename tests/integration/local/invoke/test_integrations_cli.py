@@ -789,6 +789,7 @@ class TestLayerVersion(InvokeIntegBase):
         self.assertEqual(process_stdout, expected_output)
 
     @parameterized.expand([("TwoLayerVersionServerlessFunction"), ("TwoLayerVersionLambdaFunction")])
+    @pytest.mark.flaky(reruns=3)
     def test_download_two_layers(self, function_logical_id):
 
         command_list = self.get_command_list(
