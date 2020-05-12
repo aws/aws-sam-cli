@@ -19,7 +19,7 @@ environment:
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7.5'
+      PYTHON_VERSION: '3.7.7'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
