@@ -1,7 +1,7 @@
 version: 1.0.{build}
 image: 
-  - Ubuntu
-  - Visual Studio 2017
+  - Previous Ubuntu
+  - Previous Visual Studio 2017
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -42,7 +42,7 @@ for:
   - 
     matrix:
       only:
-        - image: Visual Studio 2017
+        - image: Previous Visual Studio 2017
 
     install:
       - "SET PATH=%PYTHON_HOME%;%PATH%"
@@ -80,7 +80,7 @@ for:
   - 
     matrix:
       only:
-        - image: Ubuntu
+        - image: Previous Ubuntu
 
     install:
       - sh: "gvm use go1.13"
