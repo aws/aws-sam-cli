@@ -45,7 +45,7 @@ black-check:
 pr: init dev black-check
 
 update-reproducible-reqs:
-	python3 -m venv venv-update-reproducible-requirements
+	python3.7 -m venv venv-update-reproducible-requirements
 	venv-update-reproducible-requirements/bin/pip install --upgrade pip-tools pip
 	venv-update-reproducible-requirements/bin/pip install -r requirements/base.txt
 	venv-update-reproducible-requirements/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt
