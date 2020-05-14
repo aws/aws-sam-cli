@@ -1,7 +1,7 @@
 version: 1.0.{build}
 image: 
-  - Ubuntu
-  - Visual Studio 2017
+  - Previous Ubuntu
+  - Previous Visual Studio 2017
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -19,7 +19,7 @@ environment:
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7.5'
+      PYTHON_VERSION: '3.7.7'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
@@ -42,7 +42,7 @@ for:
   - 
     matrix:
       only:
-        - image: Visual Studio 2017
+        - image: Previous Visual Studio 2017
 
     install:
       - "SET PATH=%PYTHON_HOME%;%PATH%"
@@ -80,7 +80,7 @@ for:
   - 
     matrix:
       only:
-        - image: Ubuntu
+        - image: Previous Ubuntu
 
     install:
       - sh: "gvm use go1.13"

@@ -64,12 +64,6 @@ class LambdaDebugSettings:
                     + " ".join(debug_args_list)
                 },
             ),
-            Runtime.dotnetcore20.value: DebugSettings(
-                ["/var/lang/bin/dotnet"]
-                + debug_args_list
-                + ["/var/runtime/MockBootstraps.dll", "--debugger-spin-wait"],
-                debug_env_vars={},
-            ),
             Runtime.dotnetcore21.value: DebugSettings(
                 ["/var/lang/bin/dotnet"]
                 + debug_args_list
@@ -80,63 +74,6 @@ class LambdaDebugSettings:
                 ["/var/runtime/aws-lambda-go"]
                 + debug_args_list
                 + ["-debug=true", "-delvePort=" + str(debug_port), "-delvePath=" + options.get("delvePath")],
-                debug_env_vars={},
-            ),
-            Runtime.nodejs.value: DebugSettings(
-                ["/usr/bin/node"]
-                + debug_args_list
-                + [
-                    "--debug-brk=" + str(debug_port),
-                    "--nolazy",
-                    "--max-old-space-size=1229",
-                    "--max-new-space-size=153",
-                    "--max-executable-size=153",
-                    "--expose-gc",
-                    "/var/runtime/node_modules/awslambda/bin/awslambda",
-                ],
-                debug_env_vars={},
-            ),
-            Runtime.nodejs43.value: DebugSettings(
-                ["/usr/local/lib64/node-v4.3.x/bin/node"]
-                + debug_args_list
-                + [
-                    "--debug-brk=" + str(debug_port),
-                    "--nolazy",
-                    "--max-old-space-size=2547",
-                    "--max-semi-space-size=150",
-                    "--max-executable-size=160",
-                    "--expose-gc",
-                    "/var/runtime/node_modules/awslambda/index.js",
-                ],
-                debug_env_vars={},
-            ),
-            Runtime.nodejs610.value: DebugSettings(
-                ["/var/lang/bin/node"]
-                + debug_args_list
-                + [
-                    "--debug-brk=" + str(debug_port),
-                    "--nolazy",
-                    "--max-old-space-size=2547",
-                    "--max-semi-space-size=150",
-                    "--max-executable-size=160",
-                    "--expose-gc",
-                    "/var/runtime/node_modules/awslambda/index.js",
-                ],
-                debug_env_vars={},
-            ),
-            Runtime.nodejs810.value: DebugSettings(
-                ["/var/lang/bin/node"]
-                + debug_args_list
-                + [
-                    # Node8 requires the host to be explicitly set in order to bind to localhost
-                    # instead of 127.0.0.1. https://github.com/nodejs/node/issues/11591#issuecomment-283110138
-                    "--inspect-brk=0.0.0.0:" + str(debug_port),
-                    "--nolazy",
-                    "--expose-gc",
-                    "--max-semi-space-size=150",
-                    "--max-old-space-size=2707",
-                    "/var/runtime/node_modules/awslambda/index.js",
-                ],
                 debug_env_vars={},
             ),
             Runtime.nodejs10x.value: DebugSettings(

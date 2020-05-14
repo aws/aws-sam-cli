@@ -37,14 +37,14 @@ class SamBaseProvider:
             Processed SAM template
         """
         template_dict = template_dict or {}
+        parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict:
-            template_dict = SamTranslatorWrapper(template_dict).run_plugins()
+            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
         ResourceMetadataNormalizer.normalize(template_dict)
-        logical_id_translator = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
 
         resolver = IntrinsicResolver(
             template=template_dict,
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template_dict),
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=parameters_values, template=template_dict),
         )
         template_dict = resolver.resolve_template(ignore_errors=True)
         return template_dict
