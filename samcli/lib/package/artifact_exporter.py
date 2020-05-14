@@ -200,7 +200,11 @@ def make_zip(file_name, source_root):
                 for filename in files:
                     full_path = os.path.join(root, filename)
                     relative_path = os.path.relpath(full_path, source_root)
-                    zf.write(full_path, relative_path)
+                    with open(filename, 'rb') as data:
+                        file_bytes = data.read()
+                        info = zipfile.ZipInfo(relative_path)
+                        info.external_attr = 0o777 << 16L
+                        zf.writestr(info, file_bytes)
 
     return zipfile_name
 
