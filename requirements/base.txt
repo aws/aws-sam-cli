@@ -11,6 +11,6 @@ docker~=4.0
 dateparser~=0.7
 python-dateutil~=2.6, <2.8.1
 requests==2.23.0
-serverlessrepo==0.1.9
+serverlessrepo==0.1.10
 aws_lambda_builders==0.9.0
 tomlkit==0.5.8
