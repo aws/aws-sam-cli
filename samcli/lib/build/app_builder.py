@@ -15,9 +15,10 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
+from samcli.commands.build.exceptions import MissingBuildMethodException
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
-from .workflow_config import get_workflow_config, supports_build_in_container
-
+from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
 LOG = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class BuildError(Exception):
         self.wrapped_from = wrapped_from
         Exception.__init__(self, msg)
 
+
 class BuildInsideContainerError(Exception):
     pass
 
@@ -52,7 +54,7 @@ class ApplicationBuilder:
     """
 
     def __init__(self,
-                 functions_to_build,
+                 resources_to_build,
                  build_dir,
                  base_dir,
                  manifest_path_override=None,
@@ -82,7 +84,7 @@ class ApplicationBuilder:
         mode : str
             Optional, name of the build mode to use ex: 'debug'
         """
-        self._functions_to_build = functions_to_build
+        self._resources_to_build = resources_to_build
         self._build_dir = build_dir
         self._base_dir = base_dir
         self._manifest_path_override = manifest_path_override
@@ -106,13 +108,20 @@ class ApplicationBuilder:
 
         result = {}
 
-        for lambda_function in self._functions_to_build:
-
-            LOG.info("Building resource '%s'", lambda_function.name)
-            result[lambda_function.name] = self._build_function(lambda_function.name,
-                                                                lambda_function.codeuri,
-                                                                lambda_function.runtime,
-                                                                lambda_function.handler)
+        for function in self._resources_to_build.functions:
+            LOG.info("Building function '%s'", function.name)
+            result[function.name] = self._build_function(function.name,
+                                                         function.codeuri,
+                                                         function.runtime,
+                                                         function.handler)
+        for layer in self._resources_to_build.layers:
+            LOG.info("Building layer '%s'", layer.name)
+            if layer.build_method is None:
+                raise MissingBuildMethodException(
+                    f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
+            result[layer.name] = self._build_layer(layer.name,
+                                                   layer.codeuri,
+                                                   layer.build_method)
 
         return result
 
@@ -151,13 +160,45 @@ class ApplicationBuilder:
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
-            if resource_type == "AWS::Serverless::Function":
+            if resource_type == SamBaseProvider.SERVERLESS_FUNCTION:
                 properties["CodeUri"] = artifact_relative_path
 
-            if resource_type == "AWS::Lambda::Function":
+            if resource_type == SamBaseProvider.LAMBDA_FUNCTION:
                 properties["Code"] = artifact_relative_path
 
+            if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
+                properties["ContentUri"] = artifact_relative_path
+
         return template_dict
+
+    def _build_layer(self, layer_name, codeuri, runtime):
+        # Create the arguments to pass to the builder
+        # Code is always relative to the given base directory.
+        code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
+
+        config = get_workflow_config(runtime, code_dir, self._base_dir)
+        subfolder = get_layer_subfolder(runtime)
+
+        # artifacts directory will be created by the builder
+        artifacts_dir = str(pathlib.Path(self._build_dir, layer_name, subfolder))
+
+        with osutils.mkdir_temp() as scratch_dir:
+            manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
+
+            # By default prefer to build in-process for speed
+            build_method = self._build_function_in_process
+            if self._container_manager:
+                build_method = self._build_function_on_container
+
+            build_method(config,
+                         code_dir,
+                         artifacts_dir,
+                         scratch_dir,
+                         manifest_path,
+                         runtime,
+                         None)
+            # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
+            return str(pathlib.Path(self._build_dir, layer_name))
 
     def _build_function(self, function_name, codeuri, runtime, handler):
         """
