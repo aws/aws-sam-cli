@@ -6,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from pathlib import Path
 
+from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
     UnsupportedBuilderLibraryVersionError,
@@ -20,18 +21,31 @@ class TestApplicationBuilder_build(TestCase):
     def setUp(self):
         self.func1 = Mock()
         self.func2 = Mock()
-        self.builder = ApplicationBuilder([self.func1, self.func2], "builddir", "basedir")
+        self.layer1 = Mock()
+        self.layer2 = Mock()
 
-    def test_must_iterate_on_functions(self):
+        resources_to_build_collector = ResourcesToBuildCollector()
+        resources_to_build_collector.add_functions([self.func1, self.func2])
+        resources_to_build_collector.add_layers([self.layer1, self.layer2])
+        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+
+    def test_must_iterate_on_functions_and_layers(self):
         build_function_mock = Mock()
+        build_layer_mock = Mock()
 
         self.builder._build_function = build_function_mock
+        self.builder._build_layer = build_layer_mock
 
         result = self.builder.build()
 
         self.assertEqual(
             result,
-            {self.func1.name: build_function_mock.return_value, self.func2.name: build_function_mock.return_value},
+            {
+                self.func1.name: build_function_mock.return_value,
+                self.func2.name: build_function_mock.return_value,
+                self.layer1.name: build_layer_mock.return_value,
+                self.layer2.name: build_layer_mock.return_value,
+            },
         )
 
         build_function_mock.assert_has_calls(
@@ -79,7 +93,6 @@ class TestApplicationBuilder_update_template(TestCase):
         self.assertEqual(actual, expected_result)
 
     def test_must_skip_if_no_artifacts(self):
-
         built_artifacts = {}
         actual = self.builder.update_template(self.template_dict, "/foo/bar/template.txt", built_artifacts)
 

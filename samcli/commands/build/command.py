@@ -180,7 +180,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     ) as ctx:
         try:
             builder = ApplicationBuilder(
-                ctx.functions_to_build,
+                ctx.resources_to_build,
                 ctx.build_dir,
                 ctx.base_dir,
                 manifest_path_override=ctx.manifest_path_override,
