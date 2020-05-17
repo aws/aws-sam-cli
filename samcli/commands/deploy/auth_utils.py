@@ -129,7 +129,11 @@ def _auth_definition_body_and_uri(definition_body, definition_uri):
     # https://swagger.io/docs/specification/authentication/
     for _, verb in swagger.get("paths", {}).items():
         for _property in verb.values():
-            _auths.append(bool(_property.get("security", False)))
+            # A path object may have entries that are not verbs.
+            # We should first check whether _property is a dict
+            # https://swagger.io/specification/#path-item-object
+            if isinstance(_property, dict):
+                _auths.append(bool(_property.get("security", False)))
 
     _auths.append(bool(swagger.get("security", False)))
 
