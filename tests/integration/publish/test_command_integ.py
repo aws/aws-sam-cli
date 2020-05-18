@@ -37,7 +37,7 @@ class TestPublishExistingApp(PublishAppIntegBase):
     def tearDown(self):
         super(TestPublishExistingApp, self).tearDown()
         # Delete application for each test
-        # self.sar_client.delete_application(ApplicationId=self.application_id)
+        self.sar_client.delete_application(ApplicationId=self.application_id)
 
     def test_update_application(self):
         template_path = self.temp_dir.joinpath("template_update_app.yaml")
