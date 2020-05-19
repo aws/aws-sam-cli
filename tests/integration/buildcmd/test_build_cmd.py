@@ -20,7 +20,6 @@ TIMEOUT = 420  # 7 mins
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
-
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
@@ -49,7 +48,8 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -90,7 +90,6 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -121,7 +120,8 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command:", cmdlist)
+        LOG.info(cmdlist)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
 
@@ -133,7 +133,6 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
-
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"node_modules", "main.js"}
     EXPECTED_NODE_MODULES = {"minimal-request-promise"}
@@ -153,7 +152,8 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -186,7 +186,6 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -213,7 +212,6 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_RubyFunctions(BuildIntegBase):
-
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
     EXPECTED_RUBY_GEM = "aws-record"
@@ -234,7 +232,8 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: {}".format(cmdlist))
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -267,7 +266,6 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -302,7 +300,6 @@ class TestBuildCommand_RubyFunctions(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_Java(BuildIntegBase):
-
     EXPECTED_FILES_PROJECT_MANIFEST_GRADLE = {"aws", "lib", "META-INF"}
     EXPECTED_FILES_PROJECT_MANIFEST_MAVEN = {"aws", "lib"}
     EXPECTED_DEPENDENCIES = {"annotations-2.1.0.jar", "aws-lambda-java-core-1.1.0.jar"}
@@ -438,7 +435,6 @@ class TestBuildCommand_Java(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
-
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "Amazon.Lambda.APIGatewayEvents.dll",
@@ -526,7 +522,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.assertEqual(process_execute.process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
-
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -549,7 +544,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_Go_Modules(BuildIntegBase):
-
     FUNCTION_LOGICAL_ID = "Function"
     EXPECTED_FILES_PROJECT_MANIFEST = {"hello-world"}
 
@@ -666,7 +660,8 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
@@ -689,6 +684,146 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 
         # Make sure the template has correct CodeUri for resource
         self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+    def _get_python_version(self):
+        return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_LayerBuilds(BuildIntegBase):
+    template = "layers-functions-template.yaml"
+
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "requirements.txt",
+    }
+    EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "layer.py",
+        "numpy",
+        "requirements.txt",
+    }
+
+    @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
+    def test_build_single_layer(self, runtime, use_container, layer_identifier):
+        overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
+
+        run_command(cmdlist, cwd=self.working_dir)
+
+        LOG.info("Default build dir: %s", self.default_build_dir)
+        self._verify_built_artifact(
+            self.default_build_dir,
+            layer_identifier,
+            self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
+            "ContentUri",
+            "python",
+        )
+
+    @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
+    def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
+        overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
+
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
+
+    @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
+    def test_build_function_and_layer(self, runtime, use_container):
+        overrides = {
+            "LayerBuildMethod": runtime,
+            "LayerContentUri": "PyLayer",
+            "Runtime": runtime,
+            "CodeUri": "PythonWithLayer",
+            "Handler": "main.handler",
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
+
+        run_command(cmdlist, cwd=self.working_dir)
+
+        LOG.info("Default build dir: %s", self.default_build_dir)
+        self._verify_built_artifact(
+            self.default_build_dir, "FunctionOne", self.EXPECTED_FILES_PROJECT_MANIFEST, "CodeUri"
+        )
+        self._verify_built_artifact(
+            self.default_build_dir, "LayerOne", self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST, "ContentUri", "python"
+        )
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
+        )
+        self.verify_docker_container_cleanedup(runtime)
+
+    @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
+    def test_build_function_with_dependent_layer(self, runtime, use_container):
+        overrides = {
+            "LayerBuildMethod": runtime,
+            "LayerContentUri": "PyLayer",
+            "Runtime": runtime,
+            "CodeUri": "PythonWithLayer",
+            "Handler": "main.handler",
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionOne"
+        )
+
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
+
+        run_command(cmdlist, cwd=self.working_dir)
+
+        LOG.info("Default build dir: %s", self.default_build_dir)
+        self._verify_built_artifact(
+            self.default_build_dir, "FunctionOne", self.EXPECTED_FILES_PROJECT_MANIFEST, "CodeUri"
+        )
+        self._verify_built_artifact(
+            self.default_build_dir, "LayerOne", self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST, "ContentUri", "python"
+        )
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
+        )
+        self.verify_docker_container_cleanedup(runtime)
+
+    def _verify_built_artifact(
+        self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""
+    ):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(resource_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(resource_logical_id, artifact_subfolder)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), resource_logical_id, code_property_name, resource_logical_id)
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)

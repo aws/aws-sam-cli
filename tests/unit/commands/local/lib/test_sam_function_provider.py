@@ -240,28 +240,28 @@ class TestSamFunctionProvider_init(TestCase):
     def setUp(self):
         self.parameter_overrides = {}
 
+    @patch.object(SamFunctionProvider, "get_template")
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.lib.providers.sam_function_provider.SamBaseProvider")
-    def test_must_extract_functions(self, SamBaseProviderMock, extract_mock):
+    def test_must_extract_functions(self, extract_mock, get_template_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
 
         template = {"Resources": {"a": "b"}}
-        SamBaseProviderMock.get_template.return_value = template
+        get_template_mock.return_value = template
         provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
         extract_mock.assert_called_with({"a": "b"}, False)
-        SamBaseProviderMock.get_template.assert_called_with(template, self.parameter_overrides)
+        get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
+    @patch.object(SamFunctionProvider, "get_template")
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.lib.providers.sam_function_provider.SamBaseProvider")
-    def test_must_default_to_empty_resources(self, SamBaseProviderMock, extract_mock):
+    def test_must_default_to_empty_resources(self, extract_mock, get_template_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
 
         template = {"a": "b"}  # Template does *not* have 'Resources' key
-        SamBaseProviderMock.get_template.return_value = template
+        get_template_mock.return_value = template
         provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
         extract_mock.assert_called_with({}, False)  # Empty Resources value must be passed
