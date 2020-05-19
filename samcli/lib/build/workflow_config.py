@@ -6,9 +6,7 @@ import os
 import logging
 from collections import namedtuple
 
-
 LOG = logging.getLogger(__name__)
-
 
 CONFIG = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name",
                                    "executable_search_paths"])
@@ -72,6 +70,29 @@ GO_MOD_CONFIG = CONFIG(
 
 class UnsupportedRuntimeException(Exception):
     pass
+
+
+def get_layer_subfolder(runtime):
+    subfolders_by_runtime = {
+        "python2.7": "python",
+        "python3.6": "python",
+        "python3.7": "python",
+        "python3.8": "python",
+        "nodejs4.3": "nodejs",
+        "nodejs6.10": "nodejs",
+        "nodejs8.10": "nodejs",
+        "nodejs10.x": "nodejs",
+        "nodejs12.x": "nodejs",
+        "ruby2.5": "ruby/lib",
+        "ruby2.7": "ruby/lib",
+        "java8": "java",
+        "java11": "java",
+    }
+
+    if runtime not in subfolders_by_runtime:
+        raise UnsupportedRuntimeException("'{}' runtime is not supported for layers".format(runtime))
+
+    return subfolders_by_runtime[runtime]
 
 
 def get_workflow_config(runtime, code_dir, project_dir):
@@ -172,8 +193,8 @@ def supports_build_in_container(config):
                                         "Try building without the container. Most .NET Core functions will build "
                                         "successfully.",
         _key(GO_MOD_CONFIG): "We do not support building Go Lambda functions within a container. "
-                                        "Try building without the container. Most Go functions will build "
-                                        "successfully.",
+                             "Try building without the container. Most Go functions will build "
+                             "successfully.",
     }
 
     thiskey = _key(config)
@@ -189,7 +210,6 @@ class BasicWorkflowSelector:
     """
 
     def __init__(self, configs):
-
         if not isinstance(configs, list):
             configs = [configs]
 
@@ -234,8 +254,8 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
                 return config
 
         raise ValueError("None of the supported manifests '{}' were found in the following paths '{}'".format(
-                         [config.manifest_name for config in self.configs],
-                         search_dirs))
+            [config.manifest_name for config in self.configs],
+            search_dirs))
 
     @staticmethod
     def _has_manifest(config, directory):

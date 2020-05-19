@@ -50,7 +50,7 @@ class TestDoCli(TestCase):
         )
 
         ApplicationBuilderMock.assert_called_once_with(
-            ctx_mock.functions_to_build,
+            ctx_mock.resources_to_build,
             ctx_mock.build_dir,
             ctx_mock.base_dir,
             manifest_path_override=ctx_mock.manifest_path_override,
