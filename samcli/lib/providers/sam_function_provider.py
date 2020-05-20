@@ -281,6 +281,7 @@ class SamFunctionProvider(SamBaseProvider):
 
                 layer_properties = layer_resource.get("Properties", {})
                 resource_type = layer_resource.get("Type")
+                compatible_runtimes = layer_properties.get("CompatibleRuntimes")
                 codeuri = None
 
                 if resource_type == SamFunctionProvider.LAMBDA_LAYER:
@@ -291,6 +292,8 @@ class SamFunctionProvider(SamBaseProvider):
                         layer_logical_id, layer_properties, "ContentUri", ignore_code_extraction_warnings
                     )
 
-                layers.append(LayerVersion(layer_logical_id, codeuri, layer_resource.get("Metadata", None)))
+                layers.append(
+                    LayerVersion(layer_logical_id, codeuri, compatible_runtimes, layer_resource.get("Metadata", None))
+                )
 
         return layers
