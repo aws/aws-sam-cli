@@ -172,13 +172,13 @@ class ApplicationBuilder:
 
         return template_dict
 
-    def _build_layer(self, layer_name, codeuri, runtime):
+    def _build_layer(self, layer_name, codeuri, specified_workflow):
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
-        config = get_workflow_config(runtime, code_dir, self._base_dir)
-        subfolder = get_layer_subfolder(runtime)
+        config = get_workflow_config(None, code_dir, self._base_dir, specified_workflow)
+        subfolder = get_layer_subfolder(specified_workflow)
 
         # artifacts directory will be created by the builder
         artifacts_dir = str(pathlib.Path(self._build_dir, layer_name, subfolder))
@@ -190,14 +190,15 @@ class ApplicationBuilder:
             build_method = self._build_function_in_process
             if self._container_manager:
                 build_method = self._build_function_on_container
+            options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
             build_method(config,
                          code_dir,
                          artifacts_dir,
                          scratch_dir,
                          manifest_path,
-                         runtime,
-                         None)
+                         specified_workflow,
+                         options)
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 

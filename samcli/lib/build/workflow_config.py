@@ -140,6 +140,8 @@ def get_layer_subfolder(runtime):
         "ruby2.7": "ruby/lib",
         "java8": "java",
         "java11": "java",
+        # User is responsible for creating subfolder in these workflows
+        "makefile": "",
     }
 
     if runtime not in subfolders_by_runtime:
@@ -211,7 +213,9 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
         "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)
     }
     # First check if the runtime is present and is buildable, if not raise an UnsupportedRuntimeException Error.
-    if runtime not in selectors_by_runtime:
+    # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime so in that case
+    # we move ahead and resolve to any matching workflow from both types.
+    if runtime and runtime not in selectors_by_runtime:
         raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 
     try:
