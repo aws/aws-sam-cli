@@ -739,8 +739,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     @parameterized.expand(
         [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")]
     )
-    def test_build_layer_with_makefile(self, runtime, use_container, layer_identifier):
-        overrides = {"LayerBuildMethod": runtime, "LayerMakeContentUri": "PyLayerMake"}
+    def test_build_layer_with_makefile(self, build_method, use_container, layer_identifier):
+        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )

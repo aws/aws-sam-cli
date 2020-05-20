@@ -125,7 +125,7 @@ def get_selector(selector_list, identifiers, specified_workflow=None):
 
     return selector
 
-def get_layer_subfolder(runtime):
+def get_layer_subfolder(build_workflow):
     subfolders_by_runtime = {
         "python2.7": "python",
         "python3.6": "python",
@@ -144,10 +144,10 @@ def get_layer_subfolder(runtime):
         "makefile": "",
     }
 
-    if runtime not in subfolders_by_runtime:
-        raise UnsupportedRuntimeException("'{}' runtime is not supported for layers".format(runtime))
+    if build_workflow not in subfolders_by_runtime:
+        raise UnsupportedRuntimeException("'{}' runtime is not supported for layers".format(build_workflow))
 
-    return subfolders_by_runtime[runtime]
+    return subfolders_by_runtime[build_workflow]
 
 
 def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None):
