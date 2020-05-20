@@ -1,3 +1,4 @@
+import platform
 import sys
 import os
 import logging
@@ -522,6 +523,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.assertEqual(process_execute.process.returncode, 1)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+
         self.assertTrue(build_dir.exists(), "Build directory should be created")
 
         build_dir_files = os.listdir(str(build_dir))
@@ -824,6 +826,197 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         # Make sure the template has correct CodeUri for resource
         self._verify_resource_property(str(template_path), resource_logical_id, code_property_name, resource_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+    def _get_python_version(self):
+        return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
+    # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
+    # if the makefile is present.
+
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "requests",
+        "requirements.txt",
+    }
+
+    FUNCTION_LOGICAL_ID = "Function"
+
+    @parameterized.expand(
+        [("provided", False, None), ("provided", "use_container", "Makefile-container"),]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_with_Makefile(self, runtime, use_container, manifest):
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler"}
+        manifest_path = None
+        if manifest:
+            manifest_path = os.path.join(self.test_data_path, "Provided", manifest)
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+        )
+
+        LOG.info("Running Command: {}", cmdlist)
+        # Built using Makefile for a python project.
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+        )
+
+        expected = "2.23.0"
+        # Building was done with a makefile, but invoke should be checked with corresponding python image.
+        overrides["Runtime"] = self._get_python_version()
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
+        self.verify_docker_container_cleanedup(runtime)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+    def _get_python_version(self):
+        return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithBuildMethod(BuildIntegBase):
+    # Test Suite where `BuildMethod` is explicitly specified.
+
+    template = "custom-build-function.yaml"
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "requests",
+        "requirements.txt",
+    }
+
+    FUNCTION_LOGICAL_ID = "Function"
+
+    @parameterized.expand(
+        [(False, None, "makefile"), ("use_container", "Makefile-container", "makefile"),]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
+        # runtime is chosen based off current python version.
+        runtime = self._get_python_version()
+        # Codeuri is still Provided, since that directory has the makefile.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": build_method}
+        manifest_path = None
+        if manifest:
+            manifest_path = os.path.join(self.test_data_path, "Provided", manifest)
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+        )
+
+        LOG.info("Running Command: {}", cmdlist)
+        # Built using Makefile for a python project.
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+        )
+
+        expected = "2.23.0"
+        # Building was done with a makefile, invoke is checked with the same runtime image.
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
+        self.verify_docker_container_cleanedup(runtime)
+
+    @parameterized.expand(
+        [(False,), ("use_container"),]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_with_native_builder_specified_python_runtime(self, use_container):
+        # runtime is chosen based off current python version.
+        runtime = self._get_python_version()
+        # Codeuri is still Provided, since that directory has the makefile, but it also has the
+        # actual manifest file of `requirements.txt`.
+        # BuildMethod is set to the same name as of the runtime.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": runtime}
+        manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+        )
+
+        LOG.info("Running Command: {}", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+        )
+
+        expected = "2.23.0"
+        # Building was done with a `python-pip` builder, invoke is checked with the same runtime image.
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+        )
+        self.verify_docker_container_cleanedup(runtime)
+
+    @parameterized.expand(
+        [(False,), ("use_container"),]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_with_wrong_builder_specified_python_runtime(self, use_container):
+        # runtime is chosen based off current python version.
+        runtime = self._get_python_version()
+        # BuildMethod is set to the ruby2.7, this should cause failure.
+        overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": "ruby2.7"}
+        manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+        )
+
+        LOG.info("Running Command: {}", cmdlist)
+        # This will error out.
+        command = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command.process.returncode, 1)
+        self.assertEqual(command.stdout.strip(), b"Build Failed")
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
+
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
 
         all_artifacts = set(os.listdir(str(resource_artifact_dir)))
         actual_files = all_artifacts.intersection(expected_files)

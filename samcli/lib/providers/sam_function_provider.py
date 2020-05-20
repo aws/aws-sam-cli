@@ -112,6 +112,10 @@ class SamFunctionProvider(SamBaseProvider):
 
             resource_type = resource.get("Type")
             resource_properties = resource.get("Properties", {})
+            resource_metadata = resource.get("Metadata", None)
+            # Add extra metadata information to properties under a separate field.
+            if resource_metadata:
+                resource_properties["Metadata"] = resource_metadata
 
             if resource_type == SamFunctionProvider.SERVERLESS_FUNCTION:
                 layers = SamFunctionProvider._parse_layer_info(
@@ -224,6 +228,7 @@ class SamFunctionProvider(SamBaseProvider):
             rolearn=resource_properties.get("Role"),
             events=resource_properties.get("Events"),
             layers=layers,
+            metadata=resource_properties.get("Metadata", None),
         )
 
     @staticmethod
