@@ -82,7 +82,7 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
-    def __init__(self, arn, codeuri, metadata=None):
+    def __init__(self, arn, codeuri, compatible_runtimes=[], metadata=None):
         """
         Parameters
         ----------
@@ -102,6 +102,7 @@ class LayerVersion:
         self._name = LayerVersion._compute_layer_name(self.is_defined_within_template, arn)
         self._version = LayerVersion._compute_layer_version(self.is_defined_within_template, arn)
         self._build_method = metadata.get("BuildMethod", None)
+        self._compatible_runtimes = compatible_runtimes
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template, arn):
@@ -208,10 +209,13 @@ class LayerVersion:
     def build_method(self):
         return self._build_method
 
+    @property
+    def compatible_runtimes(self):
+        return self._compatible_runtimes
+
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
-
         return False
 
 

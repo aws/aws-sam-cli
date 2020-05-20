@@ -736,6 +736,29 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "python",
         )
 
+    @parameterized.expand(
+        [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")]
+    )
+    def test_build_layer_with_makefile(self, runtime, use_container, layer_identifier):
+        overrides = {"LayerBuildMethod": runtime, "LayerMakeContentUri": "PyLayerMake"}
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
+
+        run_command(cmdlist, cwd=self.working_dir)
+
+        LOG.info("Default build dir: %s", self.default_build_dir)
+        self._verify_built_artifact(
+            self.default_build_dir,
+            layer_identifier,
+            self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
+            "ContentUri",
+            "python",
+        )
+
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
@@ -755,6 +778,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         overrides = {
             "LayerBuildMethod": runtime,
             "LayerContentUri": "PyLayer",
+            "LayerMakeContentUri": "PyLayerMake",
             "Runtime": runtime,
             "CodeUri": "PythonWithLayer",
             "Handler": "main.handler",
