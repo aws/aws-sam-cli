@@ -82,7 +82,7 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
-    def __init__(self, arn, codeuri, compatible_runtimes=[], metadata=None):
+    def __init__(self, arn, codeuri, compatible_runtimes=None, metadata=None):
         """
         Parameters
         ----------
@@ -91,6 +91,8 @@ class LayerVersion:
         codeuri str
             CodeURI of the layer. This should contain the path to the layer code
         """
+        if compatible_runtimes is None:
+            compatible_runtimes = []
         if metadata is None:
             metadata = {}
         if not isinstance(arn, str):
