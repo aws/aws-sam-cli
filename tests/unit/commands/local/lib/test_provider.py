@@ -30,7 +30,7 @@ class TestLayerVersion(TestCase):
 
     def test_layer_build_method_returned(self):
         layer_version = LayerVersion(
-            "arn:aws:lambda:region:account-id:layer:layer-name:1", None, {"BuildMethod": "dummy_build_method"}
+            "arn:aws:lambda:region:account-id:layer:layer-name:1", None, [], {"BuildMethod": "dummy_build_method"}
         )
 
         self.assertEqual(layer_version.build_method, "dummy_build_method")
