@@ -91,6 +91,7 @@ class SamLayerProvider(SamBaseProvider):
         # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
         layer_properties = layer_resource.get("Properties", {})
         resource_type = layer_resource.get("Type")
+        compatible_runtimes = layer_properties.get("CompatibleRuntimes")
         codeuri = None
 
         if resource_type == self.SERVERLESS_LAYER:
@@ -98,4 +99,4 @@ class SamLayerProvider(SamBaseProvider):
         if resource_type == self.LAMBDA_LAYER:
             codeuri = SamLayerProvider._extract_lambda_function_code(layer_properties, "Content")
 
-        return LayerVersion(layer_logical_id, codeuri, layer_resource.get("Metadata", None))
+        return LayerVersion(layer_logical_id, codeuri, compatible_runtimes, layer_resource.get("Metadata", None))

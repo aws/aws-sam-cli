@@ -50,8 +50,8 @@ class TestApplicationBuilder_build(TestCase):
 
         build_function_mock.assert_has_calls(
             [
-                call(self.func1.name, self.func1.codeuri, self.func1.runtime, self.func1.handler),
-                call(self.func2.name, self.func2.codeuri, self.func2.runtime, self.func2.handler),
+                call(self.func1.name, self.func1.codeuri, self.func1.runtime, self.func1.handler, self.func1.metadata),
+                call(self.func2.name, self.func2.codeuri, self.func2.runtime, self.func2.handler, self.func2.metadata),
             ],
             any_order=False,
         )
@@ -124,6 +124,36 @@ class TestApplicationBuilder_build_function(TestCase):
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         self.builder._build_function(function_name, codeuri, runtime, handler)
+
+        self.builder._build_function_in_process.assert_called_with(
+            config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_in_process_with_metadata(self, osutils_mock, get_workflow_config_mock):
+        function_name = "function_name"
+        codeuri = "path/to/source"
+        runtime = "runtime"
+        scratch_dir = "scratch"
+        handler = "handler.handle"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_in_process = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        self.builder._build_function(function_name, codeuri, runtime, handler, metadata={"BuildMethod": "Workflow"})
+
+        get_workflow_config_mock.assert_called_with(
+            runtime, code_dir, self.builder._base_dir, specified_workflow="Workflow"
+        )
 
         self.builder._build_function_in_process.assert_called_with(
             config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None

@@ -99,6 +99,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -115,6 +116,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -131,6 +133,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -147,6 +150,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -163,6 +167,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -179,6 +184,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -195,6 +201,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -211,6 +218,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    metadata=None,
                 ),
             ),
         ]
@@ -350,6 +358,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             rolearn="myrole",
             layers=["Layer1", "Layer2"],
             events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -373,6 +382,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             rolearn=None,
             layers=[],
             events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
@@ -436,6 +446,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             rolearn="myrole",
             layers=["Layer1", "Layer2"],
             events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -459,6 +470,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             rolearn=None,
             layers=[],
             events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, [])
@@ -557,6 +569,7 @@ class TestSamFunctionProvider_get(TestCase):
             rolearn=None,
             layers=[],
             events=None,
+            metadata=None,
         )
         provider.functions = {"func1": function}
 

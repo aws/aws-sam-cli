@@ -2,7 +2,11 @@ from unittest import TestCase
 from parameterized import parameterized
 from unittest.mock import patch
 
-from samcli.lib.build.workflow_config import get_workflow_config, UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import (
+    get_workflow_config,
+    UnsupportedRuntimeException,
+    UnsupportedBuilderException,
+)
 
 
 class Test_get_workflow_config(TestCase):
@@ -10,7 +14,7 @@ class Test_get_workflow_config(TestCase):
         self.code_dir = ""
         self.project_dir = ""
 
-    @parameterized.expand([("python2.7",), ("python3.6",)])
+    @parameterized.expand([("python2.7",), ("python3.6",), ("python3.7",), ("python3.8",)])
     def test_must_work_for_python(self, runtime):
 
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
@@ -20,7 +24,7 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(result.manifest_name, "requirements.txt")
         self.assertIsNone(result.executable_search_paths)
 
-    @parameterized.expand([("nodejs4.3",), ("nodejs6.10",), ("nodejs8.10",)])
+    @parameterized.expand([("nodejs10.x",), ("nodejs12.x",)])
     def test_must_work_for_nodejs(self, runtime):
 
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
@@ -30,7 +34,31 @@ class Test_get_workflow_config(TestCase):
         self.assertEqual(result.manifest_name, "package.json")
         self.assertIsNone(result.executable_search_paths)
 
-    @parameterized.expand([("ruby2.5",)])
+    @parameterized.expand([("provided",)])
+    def test_must_work_for_provided(self, runtime):
+        result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="makefile")
+        self.assertEqual(result.language, "provided")
+        self.assertEqual(result.dependency_manager, None)
+        self.assertEqual(result.application_framework, None)
+        self.assertEqual(result.manifest_name, "Makefile")
+        self.assertIsNone(result.executable_search_paths)
+
+    @parameterized.expand([("provided",)])
+    def test_must_work_for_provided_with_no_specified_workflow(self, runtime):
+        # Implicitly look for makefile capability.
+        result = get_workflow_config(runtime, self.code_dir, self.project_dir)
+        self.assertEqual(result.language, "provided")
+        self.assertEqual(result.dependency_manager, None)
+        self.assertEqual(result.application_framework, None)
+        self.assertEqual(result.manifest_name, "Makefile")
+        self.assertIsNone(result.executable_search_paths)
+
+    @parameterized.expand([("provided",)])
+    def test_raise_exception_for_bad_specified_workflow(self, runtime):
+        with self.assertRaises(UnsupportedBuilderException):
+            get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="Wrong")
+
+    @parameterized.expand([("ruby2.5",), ("ruby2.7",)])
     def test_must_work_for_ruby(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "ruby")
