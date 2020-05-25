@@ -17,6 +17,7 @@ Deploy a SAM stack
 
 import logging
 import os
+import json
 
 import boto3
 import click
@@ -56,6 +57,7 @@ class DeployContext:
         role_arn,
         notification_arns,
         fail_on_empty_changeset,
+        save_env_vars,
         tags,
         region,
         profile,
@@ -73,6 +75,7 @@ class DeployContext:
         self.role_arn = role_arn
         self.notification_arns = notification_arns
         self.fail_on_empty_changeset = fail_on_empty_changeset
+        self.save_env_vars = save_env_vars
         self.tags = tags
         self.region = region
         self.profile = profile
@@ -131,6 +134,7 @@ class DeployContext:
             [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],
             region,
             self.fail_on_empty_changeset,
+            self.save_env_vars,
             self.confirm_changeset,
         )
 
@@ -147,6 +151,7 @@ class DeployContext:
         tags,
         region,
         fail_on_empty_changeset=True,
+        save_env_vars=False,
         confirm_changeset=False,
     ):
 
@@ -182,6 +187,12 @@ class DeployContext:
 
             self.deployer.execute_changeset(result["Id"], stack_name)
             self.deployer.wait_for_execute(stack_name, changeset_type)
+            if save_env_vars:
+                lambda_client = boto3.client('lambda')
+                environment_variables = self.deployer.get_lambda_environment_variables(stack_name, lambda_client)
+                with open("environment_variables.json", "w+") as file:
+                    json.dump(environment_variables, file, indent=4)
+
             click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
 
         except deploy_exceptions.ChangeEmptyError as ex:
