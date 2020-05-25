@@ -133,8 +133,8 @@ DEFAULT_ENV_VARS_FILE = "environment_variables.json"
     "--save-env-vars",
     required=False,
     is_flag=True,
-    help="Indicates whether to create a JSON file containing the environment variables "
-    "if a filename is not specified, save to the default destination",
+    help="Indicates whether to create a JSON file containing the environment variables. "
+    "If a filename is not specified, save to the default destination",
 )
 @click.argument(
     "env-vars-filename", required=False, default=DEFAULT_ENV_VARS_FILE,
