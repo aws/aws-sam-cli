@@ -34,6 +34,7 @@ e.g. sam deploy --template-file packaged.yaml --stack-name sam-app --capabilitie
 CONFIG_SECTION = "parameters"
 LOG = logging.getLogger(__name__)
 
+DEFAULT_ENV_VARS_FILE = "environment_variables.json"
 
 @click.command(
     "deploy",
@@ -131,8 +132,14 @@ LOG = logging.getLogger(__name__)
     "--save-env-vars",
     required=False,
     is_flag=True,
-    help="Indicates whether to create a JSON file containing the environment variables"
+    help="Indicates whether to create a JSON file containing the environment variables "
+    "if a filename is not specified, save to the default destination",
 )
+@click.argument(
+    'env-vars-filename',
+    required=False,
+    default=DEFAULT_ENV_VARS_FILE,
+    )
 @metadata_override_option
 @notification_arns_override_option
 @tags_override_option
@@ -157,11 +164,12 @@ def cli(
     notification_arns,
     fail_on_empty_changeset,
     use_json,
-    save_env_vars,
     tags,
     metadata,
     guided,
     confirm_changeset,
+    save_env_vars,
+    env_vars_filename
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -179,11 +187,12 @@ def cli(
         notification_arns,
         fail_on_empty_changeset,
         use_json,
-        save_env_vars,
         tags,
         metadata,
         guided,
         confirm_changeset,
+        save_env_vars,
+        env_vars_filename,
         ctx.region,
         ctx.profile,
     )  # pragma: no cover
@@ -203,11 +212,12 @@ def do_cli(
     notification_arns,
     fail_on_empty_changeset,
     use_json,
-    save_env_vars,
     tags,
     metadata,
     guided,
     confirm_changeset,
+    save_env_vars,
+    env_vars_filename,
     region,
     profile,
 ):
@@ -272,10 +282,10 @@ def do_cli(
             role_arn=role_arn,
             notification_arns=notification_arns,
             fail_on_empty_changeset=fail_on_empty_changeset,
-            save_env_vars=save_env_vars,
             tags=tags,
             region=guided_context.guided_region if guided else region,
             profile=profile,
             confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
+            save_env_vars=env_vars_filename if save_env_vars and env_vars_filename is not None else False,
         ) as deploy_context:
             deploy_context.run()
