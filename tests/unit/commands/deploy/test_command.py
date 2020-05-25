@@ -39,6 +39,7 @@ class TestDeployCliCommand(TestCase):
         self.metadata = {}
         self.guided = False
         self.confirm_changeset = False
+        self.save_env_vars = False
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -70,6 +71,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
+            save_env_vars=self.save_env_vars,
         )
 
         mock_deploy_context.assert_called_with(
@@ -89,6 +91,7 @@ class TestDeployCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
+            save_env_vars=self.save_env_vars,
         )
 
         context_mock.run.assert_called_with()
@@ -156,6 +159,7 @@ class TestDeployCliCommand(TestCase):
                     metadata=self.metadata,
                     guided=True,
                     confirm_changeset=True,
+                    save_env_vars=self.save_env_vars,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -219,6 +223,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                save_env_vars=self.save_env_vars,
             )
 
             mock_deploy_context.assert_called_with(
@@ -238,6 +243,7 @@ class TestDeployCliCommand(TestCase):
                 region="us-east-1",
                 profile=self.profile,
                 confirm_changeset=True,
+                save_env_vars=self.save_env_vars,
             )
 
             context_mock.run.assert_called_with()
@@ -328,6 +334,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            save_env_vars=self.save_env_vars,
         )
 
         mock_deploy_context.assert_called_with(
@@ -351,6 +358,7 @@ class TestDeployCliCommand(TestCase):
             region="us-east-1",
             profile=self.profile,
             confirm_changeset=True,
+            save_env_vars=self.save_env_vars
         )
 
         context_mock.run.assert_called_with()
@@ -441,6 +449,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            save_env_vars=self.save_env_vars,
         )
 
         mock_deploy_context.assert_called_with(
@@ -460,6 +469,7 @@ class TestDeployCliCommand(TestCase):
             region="us-east-1",
             profile=self.profile,
             confirm_changeset=True,
+            save_env_vars=self.save_env_vars,
         )
 
         context_mock.run.assert_called_with()
@@ -538,6 +548,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                save_env_vars=self.save_env_vars,
             )
 
             mock_deploy_context.assert_called_with(
@@ -557,6 +568,7 @@ class TestDeployCliCommand(TestCase):
                 region="us-east-1",
                 profile=self.profile,
                 confirm_changeset=True,
+                save_env_vars=self.save_env_vars,
             )
 
             context_mock.run.assert_called_with()
