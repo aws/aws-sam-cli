@@ -136,7 +136,7 @@ DEFAULT_ENV_VARS_FILE = "environment_variables.json"
     "if a filename is not specified, save to the default destination",
 )
 @click.argument(
-    'env-vars-filename',
+    "env-vars-filename",
     required=False,
     default=DEFAULT_ENV_VARS_FILE,
     )
