@@ -21,6 +21,7 @@ from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
+from functools import reduce
 
 import botocore
 
@@ -468,3 +469,20 @@ class Deployer:
 
         except botocore.exceptions.ClientError as ex:
             raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex))
+
+    def get_lambda_environment_variables(self, stack_name, lambda_client):
+        def reduce_lambda_configuration(environment_variables, resource):
+            if resource["ResourceType"] == "AWS::Lambda::Function":
+                lambda_configuration = lambda_client.get_function_configuration(FunctionName=resource["PhysicalResourceId"])
+                environment_variables.update({
+                    resource["LogicalResourceId"]: lambda_configuration["Environment"]["Variables"]
+                })
+
+            return environment_variables
+        try:
+            stack_resources = self._client.describe_stack_resources(StackName=stack_name)['StackResources']
+
+            return reduce(reduce_lambda_configuration, stack_resources, {})
+
+        except botocore.exceptions.ClientError as ex:
+            raise Exception(stack_name=stack_name, msg=str(ex))
