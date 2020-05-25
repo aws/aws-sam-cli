@@ -27,6 +27,7 @@ class TestSamDeployCommand(TestCase):
             region=None,
             profile=None,
             confirm_changeset=False,
+            save_env_vars=False,
         )
 
     def test_template_improper(self):
