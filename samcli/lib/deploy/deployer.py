@@ -31,6 +31,7 @@ from samcli.commands.deploy.exceptions import (
     ChangeSetError,
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
+    DeployEnviromentVariablesFailedError,
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
@@ -77,6 +78,7 @@ class Deployer:
         # Maximum number of attempts before raising exception back up the chain.
         self.max_attempts = 3
         self.deploy_color = DeployColor()
+        self.lambda_environment_variables = {}
 
     def has_stack(self, stack_name):
         """
@@ -471,18 +473,21 @@ class Deployer:
             raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex))
 
     def get_lambda_environment_variables(self, stack_name, lambda_client):
-        def reduce_lambda_configuration(environment_variables, resource):
-            if resource["ResourceType"] == "AWS::Lambda::Function":
-                lambda_configuration = lambda_client.get_function_configuration(FunctionName=resource["PhysicalResourceId"])
-                environment_variables.update({
-                    resource["LogicalResourceId"]: lambda_configuration["Environment"]["Variables"]
-                })
-
-            return environment_variables
         try:
             stack_resources = self._client.describe_stack_resources(StackName=stack_name)['StackResources']
+            for resource in stack_resources:
+                try:
+                    if resource["ResourceType"] == "AWS::Lambda::Function":
+                        lambda_configuration = lambda_client.get_function_configuration(FunctionName=resource["PhysicalResourceId"])
+                        self.lambda_environment_variables.update({
+                            resource["LogicalResourceId"]: lambda_configuration["Environment"]["Variables"]
+                        })
+                    if resource["ResourceType"] == "AWS::CloudFormation::Stack":
+                        self.get_lambda_environment_variables(stack_name=resource["PhysicalResourceId"], lambda_client=lambda_client)
+                except KeyError:
+                    return None
 
-            return reduce(reduce_lambda_configuration, stack_resources, {})
+            return self.lambda_environment_variables
 
         except botocore.exceptions.ClientError as ex:
-            raise Exception(stack_name=stack_name, msg=str(ex))
+            raise DeployEnviromentVariablesFailedError(stack_name=stack_name, msg=str(ex))
