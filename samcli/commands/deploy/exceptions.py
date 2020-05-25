@@ -68,6 +68,7 @@ class DeployBucketRequiredError(UserException):
 
         super(DeployBucketRequiredError, self).__init__(message=message_fmt)
 
+
 class DeployEnviromentVariablesFailedError(UserException):
     def __init__(self, stack_name, msg):
         self.stack_name = stack_name

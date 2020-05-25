@@ -474,16 +474,20 @@ class Deployer:
 
     def get_lambda_environment_variables(self, stack_name, lambda_client):
         try:
-            stack_resources = self._client.describe_stack_resources(StackName=stack_name)['StackResources']
+            stack_resources = self._client.describe_stack_resources(StackName=stack_name)["StackResources"]
             for resource in stack_resources:
                 try:
                     if resource["ResourceType"] == "AWS::Lambda::Function":
-                        lambda_configuration = lambda_client.get_function_configuration(FunctionName=resource["PhysicalResourceId"])
-                        self.lambda_environment_variables.update({
-                            resource["LogicalResourceId"]: lambda_configuration["Environment"]["Variables"]
-                        })
+                        lambda_configuration = lambda_client.get_function_configuration(
+                            FunctionName=resource["PhysicalResourceId"]
+                        )
+                        self.lambda_environment_variables.update(
+                            {resource["LogicalResourceId"]: lambda_configuration["Environment"]["Variables"]}
+                        )
                     if resource["ResourceType"] == "AWS::CloudFormation::Stack":
-                        self.get_lambda_environment_variables(stack_name=resource["PhysicalResourceId"], lambda_client=lambda_client)
+                        self.get_lambda_environment_variables(
+                            stack_name=resource["PhysicalResourceId"], lambda_client=lambda_client
+                        )
                 except KeyError:
                     return None
 
