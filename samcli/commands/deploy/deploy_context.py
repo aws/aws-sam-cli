@@ -57,11 +57,11 @@ class DeployContext:
         role_arn,
         notification_arns,
         fail_on_empty_changeset,
-        save_env_vars,
         tags,
         region,
         profile,
         confirm_changeset,
+        save_env_vars,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -75,13 +75,13 @@ class DeployContext:
         self.role_arn = role_arn
         self.notification_arns = notification_arns
         self.fail_on_empty_changeset = fail_on_empty_changeset
-        self.save_env_vars = save_env_vars
         self.tags = tags
         self.region = region
         self.profile = profile
         self.s3_uploader = None
         self.deployer = None
         self.confirm_changeset = confirm_changeset
+        self.save_env_vars = save_env_vars
 
     def __enter__(self):
         return self
@@ -133,8 +133,8 @@ class DeployContext:
             self.s3_uploader,
             [{"Key": key, "Value": value} for key, value in self.tags.items()] if self.tags else [],
             region,
-            self.fail_on_empty_changeset,
             self.save_env_vars,
+            self.fail_on_empty_changeset,
             self.confirm_changeset,
         )
 
@@ -150,8 +150,8 @@ class DeployContext:
         s3_uploader,
         tags,
         region,
+        save_env_vars,
         fail_on_empty_changeset=True,
-        save_env_vars=False,
         confirm_changeset=False,
     ):
 
@@ -190,7 +190,7 @@ class DeployContext:
             if save_env_vars:
                 lambda_client = boto3.client('lambda')
                 environment_variables = self.deployer.get_lambda_environment_variables(stack_name, lambda_client)
-                with open("environment_variables.json", "w+") as file:
+                with open(save_env_vars, "w+") as file:
                     json.dump(environment_variables, file, indent=4)
 
             click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
