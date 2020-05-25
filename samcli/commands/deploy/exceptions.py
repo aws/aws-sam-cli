@@ -67,3 +67,14 @@ class DeployBucketRequiredError(UserException):
         )
 
         super(DeployBucketRequiredError, self).__init__(message=message_fmt)
+
+class DeployEnviromentVariablesFailedError(UserException):
+    def __init__(self, stack_name, msg):
+        self.stack_name = stack_name
+        self.msg = msg
+
+        message_fmt = "Failed to save environment variables from stack: {stack_name}, {msg}"
+
+        super(DeployEnviromentVariablesFailedError, self).__init__(
+            message=message_fmt.format(stack_name=self.stack_name, msg=msg)
+        )
