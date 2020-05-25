@@ -127,6 +127,12 @@ LOG = logging.getLogger(__name__)
     help="Indicates whether to use JSON as the format for "
     "the output AWS CloudFormation template. YAML is used by default.",
 )
+@click.option(
+    "--save-env-vars",
+    required=False,
+    is_flag=True,
+    help="Indicates whether to create a JSON file containing the environment variables"
+)
 @metadata_override_option
 @notification_arns_override_option
 @tags_override_option
@@ -151,6 +157,7 @@ def cli(
     notification_arns,
     fail_on_empty_changeset,
     use_json,
+    save_env_vars,
     tags,
     metadata,
     guided,
@@ -172,6 +179,7 @@ def cli(
         notification_arns,
         fail_on_empty_changeset,
         use_json,
+        save_env_vars,
         tags,
         metadata,
         guided,
@@ -195,6 +203,7 @@ def do_cli(
     notification_arns,
     fail_on_empty_changeset,
     use_json,
+    save_env_vars,
     tags,
     metadata,
     guided,
@@ -263,6 +272,7 @@ def do_cli(
             role_arn=role_arn,
             notification_arns=notification_arns,
             fail_on_empty_changeset=fail_on_empty_changeset,
+            save_env_vars=save_env_vars,
             tags=tags,
             region=guided_context.guided_region if guided else region,
             profile=profile,
