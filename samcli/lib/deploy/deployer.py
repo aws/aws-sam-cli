@@ -486,6 +486,7 @@ class Deployer:
                         )
                     except KeyError:
                         continue
+                # if a nested stack is found repeat the process
                 if resource["ResourceType"] == "AWS::CloudFormation::Stack":
                     self.get_lambda_environment_variables(
                         stack_name=resource["PhysicalResourceId"], lambda_client=lambda_client
