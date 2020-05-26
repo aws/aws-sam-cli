@@ -698,3 +698,96 @@ class TestDeployer(TestCase):
         self.deployer.get_stack_outputs = MagicMock(return_value=outputs["Stacks"][0]["Outputs"])
         self.deployer.wait_for_execute("test", "CREATE")
         self.assertEqual(self.deployer._display_stack_outputs.call_count, 1)
+
+    def test_get_lambda_environment_variables(self):
+        environment_variables = {
+            "Function1": {"variable1": "value1", "variable2": "value2",},
+        }
+
+        stack_resources = {
+            "StackResources": [
+                {
+                    "LogicalResourceId": "Function1",
+                    "PhysicalResourceId": "test-function1-id",
+                    "ResourceType": "AWS::Lambda::Function",
+                    "ResourceStatus": "CREATE_COMPLETE",
+                },
+                {
+                    "LogicalResourceId": "Function1Role",
+                    "PhysicalResourceId": "function1-role-id",
+                    "ResourceType": "AWS::IAM::Role",
+                    "ResourceStatus": "CREATE_COMPLETE",
+                },
+                {
+                    "LogicalResourceId": "S3Bucket",
+                    "PhysicalResourceId": "test-s3bucket-id",
+                    "ResourceType": "AWS::S3::Bucket",
+                    "ResourceStatus": "CREATE_COMPLETE",
+                },
+            ],
+        }
+        lambda_client = MagicMock()
+        lambda_client.get_function_configuration.return_value = {
+            "FunctionName": "test-function1-id",
+            "FunctionArn": "arn:aws:lambda:region:accountid:function:test-function1-id",
+            "Environment": {"Variables": {"variable1": "value1", "variable2": "value2",}},
+        }
+
+        self.deployer._client.describe_stack_resources = MagicMock(return_value=stack_resources)
+        self.assertEqual(
+            environment_variables,
+            self.deployer.get_lambda_environment_variables(stack_name="test", lambda_client=lambda_client),
+        )
+
+    def test_get_lambda_environment_variables_nested_stacks(self):
+        environment_variables = {
+            "Function1": {"variable1": "value1", "variable2": "value2",},
+            "Function2": {"variable3": "value3", "variable4": "value4",},
+        }
+
+        stack1_resources = {
+            "StackResources": [
+                {
+                    "LogicalResourceId": "Function1",
+                    "PhysicalResourceId": "test-function1-id",
+                    "ResourceType": "AWS::Lambda::Function",
+                    "ResourceStatus": "CREATE_COMPLETE",
+                },
+                {
+                    "LogicalResourceId": "Stack2",
+                    "PhysicalResourceId": "test-stack2-id",
+                    "ResourceType": "AWS::CloudFormation::Stack",
+                    "ResourceStatus": "CREATE_COMPLETE",
+                },
+            ],
+        }
+        stack2_resources = {
+            "StackResources": [
+                {
+                    "LogicalResourceId": "Function2",
+                    "PhysicalResourceId": "test-function2-id",
+                    "ResourceType": "AWS::Lambda::Function",
+                    "ResourceStatus": "CREATE_COMPLETE",
+                },
+            ],
+        }
+        lambda_client = MagicMock()
+        lambda_client.get_function_configuration.side_effect = [
+            {
+                "FunctionName": "test-function1-id",
+                "FunctionArn": "arn:aws:lambda:region:accountid:function:test-function1-id",
+                "Environment": {"Variables": {"variable1": "value1", "variable2": "value2",}},
+            },
+            {
+                "FunctionName": "test-function2-id",
+                "FunctionArn": "arn:aws:lambda:region:accountid:function:test-function2-id",
+                "Environment": {"Variables": {"variable3": "value3", "variable4": "value4",}},
+            },
+        ]
+
+        self.deployer._client.describe_stack_resources = MagicMock()
+        self.deployer._client.describe_stack_resources.side_effect = [stack1_resources, stack2_resources]
+        self.assertEqual(
+            environment_variables,
+            self.deployer.get_lambda_environment_variables(stack_name="test", lambda_client=lambda_client),
+        )
