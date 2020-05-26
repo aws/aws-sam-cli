@@ -122,7 +122,8 @@ class ApplicationBuilder:
                     f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
             result[layer.name] = self._build_layer(layer.name,
                                                    layer.codeuri,
-                                                   layer.build_method)
+                                                   layer.build_method,
+                                                   layer.compatible_runtimes)
 
         return result
 
@@ -172,13 +173,13 @@ class ApplicationBuilder:
 
         return template_dict
 
-    def _build_layer(self, layer_name, codeuri, runtime):
+    def _build_layer(self, layer_name, codeuri, specified_workflow, compatible_runtimes):
         # Create the arguments to pass to the builder
         # Code is always relative to the given base directory.
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
-        config = get_workflow_config(runtime, code_dir, self._base_dir)
-        subfolder = get_layer_subfolder(runtime)
+        config = get_workflow_config(None, code_dir, self._base_dir, specified_workflow)
+        subfolder = get_layer_subfolder(specified_workflow)
 
         # artifacts directory will be created by the builder
         artifacts_dir = str(pathlib.Path(self._build_dir, layer_name, subfolder))
@@ -187,17 +188,24 @@ class ApplicationBuilder:
             manifest_path = self._manifest_path_override or os.path.join(code_dir, config.manifest_name)
 
             # By default prefer to build in-process for speed
+            build_runtime = specified_workflow
             build_method = self._build_function_in_process
             if self._container_manager:
-                build_method = self._build_function_on_container
+                build_method = self._build_function_in_process
+                if config.language == "provided":
+                    LOG.warning(
+                        "For container layer build, first compatible runtime is chosen as build target for container.")
+                    # Only set to this value if specified workflow is makefile which will result in config language as provided
+                    build_runtime = compatible_runtimes[0]
+            options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
             build_method(config,
                          code_dir,
                          artifacts_dir,
                          scratch_dir,
                          manifest_path,
-                         runtime,
-                         None)
+                         build_runtime,
+                         options)
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
