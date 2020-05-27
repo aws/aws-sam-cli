@@ -37,12 +37,14 @@ from samcli.commands._utils.resources import (
     AWS_APPSYNC_FUNCTIONCONFIGURATION,
     AWS_LAMBDA_FUNCTION,
     AWS_APIGATEWAY_RESTAPI,
+    AWS_SERVERLESS_STATEMACHINE,
     AWS_ELASTICBEANSTALK_APPLICATIONVERSION,
     AWS_CLOUDFORMATION_STACK,
     AWS_SERVERLESS_APPLICATION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_LAYERVERSION,
     AWS_GLUE_JOB,
+    AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 
 from samcli.commands._utils.template import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
@@ -327,6 +329,15 @@ class ServerlessApiResource(Resource):
     PACKAGE_NULL_PROPERTY = False
 
 
+class ServerlessStateMachineResource(ResourceWithS3UrlDict):
+    RESOURCE_TYPE = AWS_SERVERLESS_STATEMACHINE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    PACKAGE_NULL_PROPERTY = False
+    BUCKET_NAME_PROPERTY = "Bucket"
+    OBJECT_KEY_PROPERTY = "Key"
+    VERSION_PROPERTY = "Version"
+
+
 class GraphQLSchemaResource(Resource):
     RESOURCE_TYPE = AWS_APPSYNC_GRAPHQLSCHEMA
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -374,6 +385,15 @@ class LambdaFunctionResource(ResourceWithS3UrlDict):
     OBJECT_KEY_PROPERTY = "S3Key"
     VERSION_PROPERTY = "S3ObjectVersion"
     FORCE_ZIP = True
+
+
+class StepFunctionsStateMachineResource(ResourceWithS3UrlDict):
+    RESOURCE_TYPE = AWS_STEPFUNCTIONS_STATEMACHINE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    PACKAGE_NULL_PROPERTY = False
+    BUCKET_NAME_PROPERTY = "Bucket"
+    OBJECT_KEY_PROPERTY = "Key"
+    VERSION_PROPERTY = "Version"
 
 
 class ApiGatewayRestApiResource(ResourceWithS3UrlDict):
@@ -492,12 +512,14 @@ class GlueJobCommandScriptLocationResource(Resource):
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessApiResource,
+    ServerlessStateMachineResource,
     GraphQLSchemaResource,
     AppSyncResolverRequestTemplateResource,
     AppSyncResolverResponseTemplateResource,
     AppSyncFunctionConfigurationRequestTemplateResource,
     AppSyncFunctionConfigurationResponseTemplateResource,
     ApiGatewayRestApiResource,
+    StepFunctionsStateMachineResource,
     LambdaFunctionResource,
     ElasticBeanstalkApplicationVersion,
     CloudFormationStackResource,
