@@ -38,6 +38,8 @@ Function = namedtuple(
         "layers",
         # Event
         "events",
+        # Metadata
+        "metadata",
     ],
 )
 
@@ -80,7 +82,7 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
-    def __init__(self, arn, codeuri, metadata=None):
+    def __init__(self, arn, codeuri, compatible_runtimes=None, metadata=None):
         """
         Parameters
         ----------
@@ -89,6 +91,8 @@ class LayerVersion:
         codeuri str
             CodeURI of the layer. This should contain the path to the layer code
         """
+        if compatible_runtimes is None:
+            compatible_runtimes = []
         if metadata is None:
             metadata = {}
         if not isinstance(arn, str):
@@ -100,6 +104,7 @@ class LayerVersion:
         self._name = LayerVersion._compute_layer_name(self.is_defined_within_template, arn)
         self._version = LayerVersion._compute_layer_version(self.is_defined_within_template, arn)
         self._build_method = metadata.get("BuildMethod", None)
+        self._compatible_runtimes = compatible_runtimes
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template, arn):
@@ -206,10 +211,13 @@ class LayerVersion:
     def build_method(self):
         return self._build_method
 
+    @property
+    def compatible_runtimes(self):
+        return self._compatible_runtimes
+
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
-
         return False
 
 

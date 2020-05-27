@@ -10,6 +10,8 @@ Parameteres:
     Type: String
   LayerContentUri:
     Type: String
+  LayerMakeContentUri:
+    Type: String
   LayerBuildMethod:
     Type: String
 
@@ -42,3 +44,13 @@ Resources:
       ContentUri: !Ref LayerContentUri
       CompatibleRuntimes:
         - python3.7
+
+  LayerWithMakefile:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Layer three
+      ContentUri: !Ref LayerMakeContentUri
+      CompatibleRuntimes:
+        - python3.7
+    Metadata:
+      BuildMethod: !Ref LayerBuildMethod
