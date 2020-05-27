@@ -22,7 +22,7 @@ Then you can add in those flags that you wish to customize using\n
 $ sam local generate-event s3 [put/delete] --bucket <bucket> --key <key>\n
 \b
 After you generate a sample event, you can use it to test your Lambda function locally
-$ sam local generate-event s3 [put/delete] --bucket <bucket> --key <key> | sam local invoke <function logical id>
+$ sam local generate-event s3 [put/delete] --bucket <bucket> --key <key> | sam local invoke -e - <function logical id>
 """
 
 
