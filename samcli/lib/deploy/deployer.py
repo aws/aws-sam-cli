@@ -21,7 +21,6 @@ from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
-from functools import reduce
 
 import botocore
 
@@ -31,7 +30,7 @@ from samcli.commands.deploy.exceptions import (
     ChangeSetError,
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
-    DeployEnviromentVariablesFailedError,
+    DeploySaveEnviromentVariablesError,
 )
 from samcli.commands._utils.table_print import pprint_column_names, pprint_columns, newline_per_item, MIN_OFFSET
 from samcli.commands.deploy import exceptions as deploy_exceptions
@@ -495,4 +494,4 @@ class Deployer:
             return self.lambda_environment_variables
 
         except botocore.exceptions.ClientError as ex:
-            raise DeployEnviromentVariablesFailedError(stack_name=stack_name, msg=str(ex))
+            raise DeploySaveEnviromentVariablesError(stack_name=stack_name, msg=str(ex))
