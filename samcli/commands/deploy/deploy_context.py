@@ -188,7 +188,10 @@ class DeployContext:
             self.deployer.execute_changeset(result["Id"], stack_name)
             self.deployer.wait_for_execute(stack_name, changeset_type)
             if save_env_vars:
-                lambda_client = boto3.client("lambda")
+                boto_config = get_boto_config_with_user_agent()
+                lambda_client = boto3.client(
+                    "lambda", region_name=self.region if self.region else None, config=boto_config
+                )
                 environment_variables = self.deployer.get_lambda_environment_variables(stack_name, lambda_client)
                 with open(save_env_vars, "w+") as file:
                     json.dump(environment_variables, file, indent=4)
