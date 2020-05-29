@@ -116,3 +116,35 @@ class TestAuthUtils(TestCase):
         _auth_per_resource = auth_per_resource({}, self.template_dict)
 
         self.assertEqual(_auth_per_resource, [("HelloWorldFunction", True)])
+
+    def test_auth_supplied_via_definition_body_uri_instrinsics_involved_unable_to_determine(self):
+        self.template_dict["Resources"]["HelloWorldApi"] = OrderedDict(
+            [
+                ("Type", "AWS::Serverless::Api"),
+                (
+                    "Properties",
+                    OrderedDict(
+                        [
+                            ("StageName", "Prod"),
+                            (
+                                "DefinitionBody",
+                                {
+                                    "swagger": "2.0",
+                                    "info": {"version": "1.0", "title": "local"},
+                                    "paths": {
+                                        "/hello": {"Fn::If": ["Condition", {"get": {}}, {"Ref": "AWS::NoValue"}]}
+                                    },
+                                },
+                            ),
+                        ]
+                    ),
+                ),
+            ]
+        )
+        # setup the lambda function with a restapiId which has definitionBody defined with auth on the route.
+        self.template_dict["Resources"]["HelloWorldFunction"]["Properties"]["Events"]["HelloWorld"]["Properties"][
+            "RestApiId"
+        ] = {"Ref": "HelloWorldApi"}
+        _auth_per_resource = auth_per_resource({}, self.template_dict)
+
+        self.assertEqual(_auth_per_resource, [("HelloWorldFunction", False)])

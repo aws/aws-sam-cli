@@ -77,12 +77,24 @@ class TestSamLayerProvider(TestCase):
 
     @parameterized.expand(
         [
-            ("ServerlessLayer", LayerVersion("ServerlessLayer", "PyLayer/", {"BuildMethod": "python3.8"})),
-            ("LambdaLayer", LayerVersion("LambdaLayer", "PyLayer/", {"BuildMethod": "python3.8"})),
-            ("ServerlessLayerNoBuild", LayerVersion("ServerlessLayerNoBuild", "PyLayer/", None)),
-            ("LambdaLayerNoBuild", LayerVersion("LambdaLayerNoBuild", "PyLayer/", None)),
-            ("ServerlessLayerS3Content", LayerVersion("ServerlessLayerS3Content", ".", None)),
-            ("LambdaLayerS3Content", LayerVersion("LambdaLayerS3Content", ".", None)),
+            (
+                "ServerlessLayer",
+                LayerVersion("ServerlessLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),
+            ),
+            (
+                "LambdaLayer",
+                LayerVersion("LambdaLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),
+            ),
+            (
+                "ServerlessLayerNoBuild",
+                LayerVersion("ServerlessLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None),
+            ),
+            ("LambdaLayerNoBuild", LayerVersion("LambdaLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None)),
+            (
+                "ServerlessLayerS3Content",
+                LayerVersion("ServerlessLayerS3Content", ".", ["python3.8", "python3.6"], None),
+            ),
+            ("LambdaLayerS3Content", LayerVersion("LambdaLayerS3Content", ".", ["python3.8", "python3.6"], None)),
         ]
     )
     def test_get_must_return_each_layer(self, name, expected_output):
