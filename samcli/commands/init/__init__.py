@@ -48,10 +48,6 @@ Common usage:
     $ sam init --location /path/to/template.zip
     \b
     $ sam init --location https://example.com/path/to/template.zip
-    \b
-    Initializes a new SAM project using custom template in a local path
-    \b
-    $ sam init --location /path/to/template/folder
 """
 
 
