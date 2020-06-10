@@ -2,4 +2,4 @@ image:
   file: .gitpod.Dockerfile
 
 tasks:
-  - init: make init && make pr
+  - init: make pr
