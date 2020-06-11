@@ -359,7 +359,7 @@ GitHub.sublime-settings
 !.vscode/extensions.json
 .history
 
-### Theis editor (GitPod)
+### Theia editor (GitPod)
 .theia
 
 ### Windows ###
