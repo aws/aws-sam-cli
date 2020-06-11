@@ -1,7 +1,7 @@
 version: 1.0.{build}
 image: 
-  - Previous Ubuntu
-  - Previous Visual Studio 2017
+  - Ubuntu
+  - Visual Studio 2017
 
 environment:
   AWS_DEFAULT_REGION: us-east-1
@@ -42,7 +42,7 @@ for:
   - 
     matrix:
       only:
-        - image: Previous Visual Studio 2017
+        - image: Visual Studio 2017
 
     install:
       - "SET PATH=%PYTHON_HOME%;%PATH%"
@@ -54,6 +54,7 @@ for:
       - "echo %PYTHON_HOME%"
       - "echo %PATH%"
       - "python -m pip install --upgrade setuptools wheel virtualenv"
+      - "docker info"
 
       # Install AWS CLI Globally outside of a venv.
       - "pip install awscli"
@@ -80,7 +81,10 @@ for:
   - 
     matrix:
       only:
-        - image: Previous Ubuntu
+        - image: Ubuntu
+
+    init:
+      - sh: "sudo modprobe -r overlay && sudo modprobe overlay redirect_dir=off"
 
     install:
       - sh: "gvm use go1.13"
@@ -90,6 +94,7 @@ for:
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
+      - sh: "docker info"
 
       # Install latest gradle 
       - sh: "sudo apt-get -y remove gradle"
