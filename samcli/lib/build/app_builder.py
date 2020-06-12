@@ -108,13 +108,6 @@ class ApplicationBuilder:
 
         result = {}
 
-        for function in self._resources_to_build.functions:
-            LOG.info("Building function '%s'", function.name)
-            result[function.name] = self._build_function(function.name,
-                                                         function.codeuri,
-                                                         function.runtime,
-                                                         function.handler,
-                                                         function.metadata)
         for layer in self._resources_to_build.layers:
             LOG.info("Building layer '%s'", layer.name)
             if layer.build_method is None:
@@ -124,6 +117,14 @@ class ApplicationBuilder:
                                                    layer.codeuri,
                                                    layer.build_method,
                                                    layer.compatible_runtimes)
+
+        for function in self._resources_to_build.functions:
+            LOG.info("Building function '%s'", function.name)
+            result[function.name] = self._build_function(function.name,
+                                                         function.codeuri,
+                                                         function.runtime,
+                                                         function.handler,
+                                                         function.metadata)
 
         return result
 

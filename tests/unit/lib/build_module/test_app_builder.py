@@ -41,10 +41,10 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(
             result,
             {
-                self.func1.name: build_function_mock.return_value,
-                self.func2.name: build_function_mock.return_value,
                 self.layer1.name: build_layer_mock.return_value,
                 self.layer2.name: build_layer_mock.return_value,
+                self.func1.name: build_function_mock.return_value,
+                self.func2.name: build_function_mock.return_value,
             },
         )
 
@@ -55,6 +55,33 @@ class TestApplicationBuilder_build(TestCase):
             ],
             any_order=False,
         )
+
+        build_layer_mock.assert_has_calls(
+            [
+                call(self.layer1.name, self.layer1.codeuri, self.layer1.build_method, self.layer1.compatible_runtimes),
+                call(self.layer2.name, self.layer2.codeuri, self.layer2.build_method, self.layer2.compatible_runtimes),
+            ],
+            any_order=False,
+        )
+
+    def test_must_build_layers_before_functions(self):
+        build_function_mock = Mock()
+        build_layer_mock = Mock()
+
+        expected_order = {
+            self.layer1.name: build_layer_mock.return_value,
+            self.layer2.name: build_layer_mock.return_value,
+            self.func1.name: build_function_mock.return_value,
+            self.func2.name: build_function_mock.return_value,
+        }
+
+        self.builder._build_function = build_function_mock
+        self.builder._build_layer = build_layer_mock
+
+        result = self.builder.build()
+
+        for i, j in zip(result.items(), expected_order.items()):
+            self.assertEqual(i, j)
 
 
 class TestApplicationBuilderForLayerBuild(TestCase):
