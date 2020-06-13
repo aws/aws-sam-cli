@@ -54,6 +54,7 @@ for:
       - "echo %PYTHON_HOME%"
       - "echo %PATH%"
       - "python -m pip install --upgrade setuptools wheel virtualenv"
+      - "docker info"
 
       # Install AWS CLI Globally outside of a venv.
       - "pip install awscli"
@@ -82,6 +83,9 @@ for:
       only:
         - image: Ubuntu
 
+    init:
+      - sh: "sudo modprobe -r overlay && sudo modprobe overlay redirect_dir=off"
+
     install:
       - sh: "gvm use go1.13"
       - sh: "echo $PATH"
@@ -90,6 +94,7 @@ for:
       - sh: "PATH=$JAVA_HOME/bin:$PATH"
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
+      - sh: "docker info"
 
       # Install latest gradle 
       - sh: "sudo apt-get -y remove gradle"
