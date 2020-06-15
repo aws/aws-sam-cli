@@ -110,6 +110,9 @@ class LocalApigwService(BaseLocalService):
             static_folder=self.static_dir,  # Serve static files from this directory
         )
 
+        # Prevent the dev server from emitting headers that will make the browser cache response by default
+        self._app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+
         # This will normalize all endpoints and strip any trailing '/'
         self._app.url_map.strict_slashes = False
 
