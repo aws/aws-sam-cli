@@ -471,7 +471,6 @@ class LocalApigwService(BaseLocalService):
         """
         # pylint: disable-msg=too-many-locals
 
-        endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
         method = flask_request.method
 
         request_data = flask_request.get_data()
