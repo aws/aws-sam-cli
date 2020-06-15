@@ -16,12 +16,12 @@ Environment Setup
 
 ### 1. Install Python Versions
 
-We support Python 2.7, 3.6 and 3.7 versions. Follow the idioms from this
-[excellent cheatsheet](http://python-future.org/compatible_idioms.html)
-to make sure your code is compatible with both Python versions. Our
-CI/CD pipeline is setup to run unit tests against both Python versions.
-So make sure you test it with both versions before sending a Pull
-Request. [pyenv](https://github.com/pyenv/pyenv) is a great tool to
+We support 3.6 and 3.7 versions. Our CI/CD pipeline is setup to run
+unit tests against both Python versions. So make sure you test it
+with both versions before sending a Pull Request.
+See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions).
+
+[pyenv](https://github.com/pyenv/pyenv) is a great tool to
 easily setup multiple Python versions.
 
 > Note: For Windows, type
@@ -30,11 +30,10 @@ easily setup multiple Python versions.
 
 1.  Install PyEnv -
     `curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash`
-2.  `pyenv install 2.7.14`
-3.  `pyenv install 3.6.8`
-4.  `pyenv install 3.7.2`
-5.  Make Python versions available in the project:
-    `pyenv local 3.6.8 2.7.14 3.7.2`
+2.  `pyenv install 3.6.8`
+3.  `pyenv install 3.7.2`
+4.  Make Python versions available in the project:
+    `pyenv local 3.6.8 3.7.2`
 
 ### 2. Install Additional Tooling
 #### Black
