@@ -83,9 +83,6 @@ for:
       only:
         - image: Ubuntu
 
-    init:
-      - sh: "sudo modprobe -r overlay && sudo modprobe overlay redirect_dir=off"
-
     install:
       - sh: "gvm use go1.13"
       - sh: "echo $PATH"
