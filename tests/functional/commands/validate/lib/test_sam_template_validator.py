@@ -135,6 +135,7 @@ class TestValidate(TestCase):
         ("tests/functional/commands/validate/lib/models/function_with_event_dest_basic.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_event_dest_conditional.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_event_source_mapping.yaml"),
+        ("tests/functional/commands/validate/lib/models/function_with_file_system_config.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_global_layers.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_kmskeyarn.yaml"),
         ("tests/functional/commands/validate/lib/models/function_with_layers.yaml"),
