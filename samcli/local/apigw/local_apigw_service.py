@@ -214,8 +214,8 @@ class LocalApigwService(BaseLocalService):
             (status_code, headers, body) = self._parse_lambda_output(
                 lambda_response, self.api.binary_media_types, request
             )
-        except LambdaResponseParseException:
-            LOG.error(str(LambdaResponseParseException))
+        except LambdaResponseParseException as ex:
+            LOG.error("Invalid lambda response received: %s", ex)
             return ServiceErrorResponses.lambda_failure_response()
 
         return self.service_response(body, headers, status_code)
@@ -287,25 +287,21 @@ class LocalApigwService(BaseLocalService):
             if status_code <= 0:
                 raise ValueError
         except ValueError:
-            message = "statusCode must be a positive int"
-            LOG.error(message)
-            raise LambdaResponseParseException(message)
+            raise LambdaResponseParseException("statusCode must be a positive int")
 
         try:
             if body:
                 body = str(body)
         except ValueError:
-            message = "Non null response bodies should be able to convert to string: {}".format(body)
-            LOG.error(message)
-            raise LambdaResponseParseException(message)
+            raise LambdaResponseParseException(f"Non null response bodies should be able to convert to string: {body}")
 
         # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
         # a response shape.
         invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
         if bool(invalid_keys):
-            msg = "Invalid API Gateway Response Keys: " + str(invalid_keys) + " in " + str(json_output)
-            LOG.error(msg)
-            raise LambdaResponseParseException(msg)
+            raise LambdaResponseParseException(
+                f"Invalid API Gateway Response Keys: {str(invalid_keys)} in {str(json_output)}"
+            )
 
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
