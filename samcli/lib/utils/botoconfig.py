@@ -14,5 +14,4 @@ def get_boto_config_with_user_agent(**kwargs):
         if gc.telemetry_enabled
         else f"aws-sam-cli/{__version__}",
         **kwargs,
-        retries={"max_attempts": 3, "mode": "adaptive"},
     )
