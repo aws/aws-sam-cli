@@ -2,7 +2,7 @@
 
 import logging
 
-from six import string_types
+from six import string_types, integer_types
 
 from samcli.lib.providers.provider import Cors
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
@@ -119,7 +119,7 @@ class SamApiProvider(CfnBaseApiProvider):
         properties = api_resource.get("Properties", {})
         body = properties.get("DefinitionBody")
         uri = properties.get("DefinitionUri")
-        cors = self.extract_cors(properties.get("CorsConfiguration", {}))
+        cors = self.extract_cors_http(properties.get("CorsConfiguration", {}))
         stage_name = properties.get("StageName")
         stage_variables = properties.get("StageVariables")
         if not body and not uri:
@@ -204,6 +204,72 @@ class SamApiProvider(CfnBaseApiProvider):
             prop = prop.strip("'")
         return prop
 
+    def extract_cors_http(self, cors_prop):
+        """
+        Extract Cors property from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents. The result
+        is added to the HttpApi.
+
+        Parameters
+        ----------
+        cors_prop : dict
+            Resource properties for CorsConfiguration
+        """
+        cors = None
+        if cors_prop and isinstance(cors_prop, dict):
+            allow_methods = self._get_cors_prop_http(cors_prop, "AllowMethods", list)
+            if isinstance(allow_methods, list):
+                allow_methods = self.normalize_cors_allow_methods(allow_methods)
+            else:
+                allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
+
+            allow_origins = self._get_cors_prop_http(cors_prop, "AllowOrigins", list)
+            if isinstance(allow_origins, list):
+                allow_origins = ",".join(allow_origins)
+            allow_headers = self._get_cors_prop_http(cors_prop, "AllowHeaders", list)
+            if isinstance(allow_headers, list):
+                allow_headers = ",".join(allow_headers)
+            max_age = self._get_cors_prop_http(cors_prop, "MaxAge", integer_types)
+
+            cors = Cors(
+                allow_origin=allow_origins, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
+            )
+        elif cors_prop and isinstance(cors_prop, bool) and cors_prop:
+            cors = Cors(
+                allow_origin="*",
+                allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
+                allow_headers=None,
+                max_age=None,
+            )
+        return cors
+
+    @staticmethod
+    def _get_cors_prop_http(cors_dict, prop_name, expect_type):
+        """
+        Extract cors properties from dictionary.
+
+        Parameters
+        ----------
+        cors_dict : dict
+            Resource properties for Cors
+        prop_name : str
+            Property name
+        expect_type : type
+            Expect property type
+
+        Return
+        ------
+        Value with matching type
+        """
+        prop = cors_dict.get(prop_name)
+        if prop:
+            if not isinstance(prop, expect_type):
+                LOG.warning(
+                    "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",
+                    prop_name,
+                )
+                return None
+        return prop
+
     @staticmethod
     def normalize_cors_allow_methods(allow_methods):
         """
@@ -218,9 +284,12 @@ class SamApiProvider(CfnBaseApiProvider):
         -------
         A string with normalized route
         """
-        if allow_methods == "*":
+        if allow_methods == "*" or (isinstance(allow_methods, list) and "*" in allow_methods):
             return ",".join(sorted(Route.ANY_HTTP_METHODS))
-        methods = allow_methods.split(",")
+        if isinstance(allow_methods, list):
+            methods = allow_methods
+        else:
+            methods = allow_methods.split(",")
         normalized_methods = []
         for method in methods:
             normalized_method = method.strip().upper()
