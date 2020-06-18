@@ -10,7 +10,7 @@ import pytest
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from pathlib import Path
 
-TIMEOUT = 300
+TIMEOUT = 600
 
 
 class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
@@ -29,7 +29,7 @@ class TestWithDifferentLambdaRuntimeZips(InvokeIntegBase):
     def tearDown(self):
         os.remove(self.events_file_path)
 
-    @pytest.mark.timeout(timeout=300, method="thread")
+    @pytest.mark.timeout(timeout=600, method="thread")
     @parameterized.expand([param("Go1xFunction"), param("Java8Function")])
     def test_runtime_zip(self, function_name):
         command_list = self.get_command_list(
