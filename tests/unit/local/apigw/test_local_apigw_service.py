@@ -662,7 +662,11 @@ class TestService_should_base64_encode(TestCase):
 class TestServiceCorsToHeaders(TestCase):
     def test_basic_conversion(self):
         cors = Cors(
-            allow_origin="*", allow_methods=",".join(["POST", "OPTIONS"]), allow_headers="UPGRADE-HEADER", max_age=6
+            allow_origin="*",
+            allow_methods=",".join(["POST", "OPTIONS"]),
+            allow_headers="UPGRADE-HEADER",
+            allow_credentials="true",
+            max_age=6,
         )
         headers = Cors.cors_to_headers(cors)
 
@@ -672,6 +676,28 @@ class TestServiceCorsToHeaders(TestCase):
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "POST,OPTIONS",
                 "Access-Control-Allow-Headers": "UPGRADE-HEADER",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Max-Age": 6,
+            },
+        )
+
+    def test_basic_conversion_allowcredentials_boolean(self):
+        cors = Cors(
+            allow_origin="*",
+            allow_methods=",".join(["POST", "OPTIONS"]),
+            allow_headers="UPGRADE-HEADER",
+            allow_credentials=True,
+            max_age=6,
+        )
+        headers = Cors.cors_to_headers(cors)
+
+        self.assertEqual(
+            headers,
+            {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST,OPTIONS",
+                "Access-Control-Allow-Headers": "UPGRADE-HEADER",
+                "Access-Control-Allow-Credentials": True,
                 "Access-Control-Max-Age": 6,
             },
         )
