@@ -470,7 +470,6 @@ class LocalApigwService(BaseLocalService):
         :return: String representing the event
         """
         # pylint: disable-msg=too-many-locals
-
         method = flask_request.method
 
         request_data = flask_request.get_data()

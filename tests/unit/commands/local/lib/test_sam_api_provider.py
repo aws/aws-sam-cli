@@ -116,23 +116,6 @@ class TestSamApiProviderWithImplicitApis(TestCase):
         provider = ApiProvider(template)
 
         self.assertEqual(provider.routes, [])
-        template1 = {
-            "Resources": {
-                "Go1xFunction": {
-                    "Type": "AWS::Serverless::Function",
-                    "Properties": {
-                        "CodeUri": "./go1.x/main.zip",
-                        "Runtime": "go1.x",
-                        "Handler": "main",
-                        "Timeout": 300
-                    },
-                }
-            }
-        }
-
-        provider1 = ApiProvider(template1)
-
-        self.assertEqual(provider1.routes, [])
 
     def test_provider_with_no_serverless_function(self):
         template = {
@@ -825,7 +808,7 @@ class TestSamStageValues(TestCase):
 
 
 class TestSamCors(TestCase):
-    def test_parse_cors_with_unresolved_intrinsic(self):
+    def test_provider_parse_cors_with_unresolved_intrinsic(self):
         template = {
             "Resources": {
                 "TestApi": {
@@ -1000,7 +983,7 @@ class TestSamCors(TestCase):
         self.assertIn(route2, routes)
         self.assertEqual(provider.api.cors, cors)
 
-    def test_parse_cors_dict_star_allow(self):
+    def test_provider_parse_cors_dict_star_allow(self):
         template = {
             "Resources": {
                 "TestApi": {
@@ -1063,7 +1046,7 @@ class TestSamCors(TestCase):
         self.assertIn(route2, routes)
         self.assertEqual(provider.api.cors, cors)
 
-    def test_cors_allowmethods_not_single_quoted(self):
+    def test_raises_error_when_cors_allowmethods_not_single_quoted(self):
         template = {
             "Resources": {
                 "TestApi": {
