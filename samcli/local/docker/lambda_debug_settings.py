@@ -39,26 +39,18 @@ class LambdaDebugSettings:
 
         """
 
+        entry = "/var/rapid/init"
+
         entrypoint_mapping = {
             Runtime.java8.value: DebugSettings(
-                entrypoint=["/usr/bin/java"]
-                + debug_args_list
-                + [
-                    "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=" + str(debug_port),
-                    "-XX:MaxHeapSize=2834432k",
-                    "-XX:MaxMetaspaceSize=163840k",
-                    "-XX:ReservedCodeCacheSize=81920k",
-                    "-XX:+UseSerialGC",
-                    # "-Xshare:on", doesn't work in conjunction with the debug options
-                    "-XX:-TieredCompilation",
-                    "-Djava.net.preferIPv4Stack=true",
-                    "-jar",
-                    "/var/runtime/lib/LambdaJavaRTEntry-1.0.jar",
-                ],
-                debug_env_vars={},
+                entry,
+                debug_env_vars={
+                    "_JAVA_OPTIONS": f"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address={debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k -XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation -Djava.net.preferIPv4Stack=true -Xshare:off"
+                    + " ".join(debug_args_list)
+                },
             ),
             Runtime.java11.value: DebugSettings(
-                None,
+                entry,
                 debug_env_vars={
                     "_JAVA_OPTIONS": f"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=*:{debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k -XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation -Djava.net.preferIPv4Stack=true"
                     + " ".join(debug_args_list)
@@ -121,10 +113,23 @@ class LambdaDebugSettings:
                 },
             ),
             Runtime.python27.value: DebugSettings(
-                ["/usr/bin/python2.7"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"], debug_env_vars={}
+                [
+                    "/var/rapid/init",
+                    "--bootstrap",
+                    "/usr/bin/python2.7",
+                    "--bootstrap-args",
+                    json.dumps(debug_args_list + ["/var/runtime/awslambda/bootstrap.py"]),
+                ],
+                debug_env_vars={},
             ),
             Runtime.python36.value: DebugSettings(
-                ["/var/lang/bin/python3.6"] + debug_args_list + ["/var/runtime/awslambda/bootstrap.py"],
+                [
+                    "/var/rapid/init",
+                    "--bootstrap",
+                    "/var/lang/bin/python3.6",
+                    "--bootstrap-args",
+                    json.dumps(debug_args_list + ["/var/runtime/awslambda/bootstrap.py"]),
+                ],
                 debug_env_vars={},
             ),
             Runtime.python37.value: DebugSettings(

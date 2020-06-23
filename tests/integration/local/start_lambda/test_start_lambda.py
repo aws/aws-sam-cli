@@ -166,9 +166,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
-    @parameterized.expand(
-        [("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname"),]
-    )
+    @parameterized.expand([("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_function_with_overrode_env_var_and_functionname_defined(self, function_name):
