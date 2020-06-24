@@ -299,9 +299,7 @@ class LocalApigwService(BaseLocalService):
         # a response shape.
         invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
         if bool(invalid_keys):
-            raise LambdaResponseParseException(
-                f"Invalid API Gateway Response Keys: {str(invalid_keys)} in {str(json_output)}"
-            )
+            raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
 
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
