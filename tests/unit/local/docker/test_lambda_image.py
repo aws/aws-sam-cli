@@ -129,7 +129,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock = Mock()
         docker_patch.from_env.return_value = docker_client_mock
 
-        expected_docker_file = "FROM python\nADD --chown=sbx_user1051:495 layer1 /opt\n"
+        expected_docker_file = "FROM python\nADD layer1 /opt\n"
 
         layer_mock = Mock()
         layer_mock.name = "layer1"
