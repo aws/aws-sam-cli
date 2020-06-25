@@ -32,7 +32,7 @@ class Context:
         Initialize the context with default values
         """
         self._debug = False
-        self._aws_region = boto3.session.Session().region_name
+        self._aws_region = None
         self._aws_profile = None
         self._session_id = str(uuid.uuid4())
 

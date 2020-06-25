@@ -222,14 +222,14 @@ def do_cli(
         )
         guided_context.run()
 
-    print_deploy_args(
-        stack_name=guided_context.guided_stack_name if guided else stack_name,
-        s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
-        region=guided_context.guided_region if guided else region,
-        capabilities=guided_context.guided_capabilities if guided else capabilities,
-        parameter_overrides=guided_context.guided_parameter_overrides if guided else parameter_overrides,
-        confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
-    )
+        print_deploy_args(
+            stack_name=guided_context.guided_stack_name,
+            s3_bucket=guided_context.guided_s3_bucket,
+            region=guided_context.guided_region,
+            capabilities=guided_context.guided_capabilities,
+            parameter_overrides=guided_context.guided_parameter_overrides,
+            confirm_changeset=guided_context.confirm_changeset,
+        )
 
     with osutils.tempfile_platform_independent() as output_template_file:
 
