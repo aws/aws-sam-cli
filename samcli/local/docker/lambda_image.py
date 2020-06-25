@@ -218,7 +218,7 @@ class LambdaImage:
         dockerfile_content = "FROM {}\n".format(base_image)
 
         for layer in layers:
-            dockerfile_content = dockerfile_content + "ADD --chown=sbx_user1051:495 {} {}\n".format(
+            dockerfile_content = dockerfile_content + "ADD {} {}\n".format(
                 layer.name, LambdaImage._LAYERS_DIR
             )
         return dockerfile_content
