@@ -143,7 +143,7 @@ class LambdaDebugSettings:
                     "--bootstrap",
                     "/var/lang/bin/python3.8",
                     "--bootstrap-args",
-                    json.dumps(debug_args_list + ["/var/runtime/bootstrap"]),
+                    json.dumps(debug_args_list + ["/var/runtime/bootstrap.py"]),
                 ],
                 debug_env_vars={},
             ),
