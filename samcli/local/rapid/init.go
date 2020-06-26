@@ -541,8 +541,8 @@ func handleErrorRequest(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil || json.Unmarshal(body, lambdaErr) != nil {
-		debug("Could not parse error body as JSON")
-		debug(body)
+		debug(fmt.Sprintf("Could not parse error body as JSON %v", err))
+		debug(string(body))
 		response = &statusResponse{Status: "InvalidErrorShape", HTTPStatusCode: 299}
 		lambdaErr = &lambdaError{Message: "InvalidErrorShape"}
 	}
@@ -759,10 +759,10 @@ func (e *exitError) Error() string {
 }
 
 type lambdaError struct {
-	Type       string       `json:"errorType,omitempty"`
-	Message    string       `json:"errorMessage"`
-	StackTrace []*string    `json:"stackTrace,omitempty"`
-	Cause      *lambdaError `json:"cause,omitempty"`
+	Type       string                `json:"errorType,omitempty"`
+	Message    string                `json:"errorMessage"`
+	StackTrace []*json.RawMessage    `json:"stackTrace,omitempty"`
+	Cause      *lambdaError          `json:"cause,omitempty"`
 }
 
 type mockLambdaContext struct {
