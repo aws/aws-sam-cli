@@ -23,7 +23,7 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.python27.value,
 ]
 
-RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [Runtime.java11.value, Runtime.java8.value]
+RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [Runtime.java11.value, Runtime.java8.value, Runtime.dotnetcore21.value]
 
 RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT
 
@@ -191,7 +191,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         self.assertIsNotNone(debug_env_vars)
 
-    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT)])
+    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT) if not r.startswith("dotnetcore2")])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
         """
         Debug args list is appended starting at second position in the array

@@ -57,10 +57,14 @@ class LambdaDebugSettings:
                 },
             ),
             Runtime.dotnetcore21.value: DebugSettings(
-                ["/var/lang/bin/dotnet"]
-                + debug_args_list
-                + ["/var/runtime/MockBootstraps.dll", "--debugger-spin-wait"],
-                debug_env_vars={},
+                [
+                    "/var/rapid/init",
+                    "--bootstrap",
+                    "/var/runtime/bootstrap",
+                    "--bootstrap-args",
+                    json.dumps(debug_args_list),
+                ],
+                debug_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1"},
             ),
             Runtime.go1x.value: DebugSettings(
                 ["/var/runtime/aws-lambda-go"]
