@@ -56,6 +56,13 @@ $ sam build && sam local invoke
 \b
 To build and package for deployment
 $ sam build && sam package --s3-bucket <bucketname>
+\b
+To build the 'MyFunction' resource, Downstream package and deploy will 
+only deploy the only this recourse. Good for building singular function 
+in template that has multiple functions or building a layer shared by 
+many functions. 
+$ sam build MyFunction
+
 """
 
 
