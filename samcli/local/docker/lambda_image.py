@@ -45,7 +45,7 @@ class Runtime(Enum):
 
 class LambdaImage:
     _LAYERS_DIR = "/opt"
-    _DOCKER_LAMBDA_REPO_NAME = "lambci/lambda"
+    _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
 
     def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None):
@@ -83,7 +83,7 @@ class LambdaImage:
         str
             The image to be used (REPOSITORY:TAG)
         """
-        base_image = "{}:{}".format(self._DOCKER_LAMBDA_REPO_NAME, runtime)
+        base_image = "{}-{}:latest".format(self._INVOKE_REPO_PREFIX, runtime)
 
         # Don't build the image if there are no layers.
         if not layers:
@@ -218,7 +218,5 @@ class LambdaImage:
         dockerfile_content = "FROM {}\n".format(base_image)
 
         for layer in layers:
-            dockerfile_content = dockerfile_content + "ADD --chown=sbx_user1051:495 {} {}\n".format(
-                layer.name, LambdaImage._LAYERS_DIR
-            )
+            dockerfile_content = dockerfile_content + "ADD {} {}\n".format(layer.name, LambdaImage._LAYERS_DIR)
         return dockerfile_content

@@ -33,7 +33,7 @@ class TestLambdaImage(TestCase):
 
         lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
 
-        self.assertEqual(lambda_image.build("python3.6", []), "lambci/lambda:python3.6")
+        self.assertEqual(lambda_image.build("python3.6", []), "amazon/aws-sam-cli-emulation-image-python3.6:latest")
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
@@ -80,7 +80,9 @@ class TestLambdaImage(TestCase):
         layer_downloader_mock.download_all.assert_called_once_with(["layers1"], True)
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
-        build_image_patch.assert_called_once_with("lambci/lambda:python3.6", "samcli/lambda:image-version", ["layers1"])
+        build_image_patch.assert_called_once_with(
+            "amazon/aws-sam-cli-emulation-image-python3.6:latest", "samcli/lambda:image-version", ["layers1"]
+        )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
@@ -103,7 +105,9 @@ class TestLambdaImage(TestCase):
         layer_downloader_mock.download_all.assert_called_once_with(["layers1"], False)
         generate_docker_image_version_patch.assert_called_once_with(["layers1"], "python3.6")
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda:image-version")
-        build_image_patch.assert_called_once_with("lambci/lambda:python3.6", "samcli/lambda:image-version", ["layers1"])
+        build_image_patch.assert_called_once_with(
+            "amazon/aws-sam-cli-emulation-image-python3.6:latest", "samcli/lambda:image-version", ["layers1"]
+        )
 
     @patch("samcli.local.docker.lambda_image.hashlib")
     def test_generate_docker_image_version(self, hashlib_patch):
@@ -125,7 +129,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock = Mock()
         docker_patch.from_env.return_value = docker_client_mock
 
-        expected_docker_file = "FROM python\nADD --chown=sbx_user1051:495 layer1 /opt\n"
+        expected_docker_file = "FROM python\nADD layer1 /opt\n"
 
         layer_mock = Mock()
         layer_mock.name = "layer1"
