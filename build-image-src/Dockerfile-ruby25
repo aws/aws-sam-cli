@@ -1,0 +1,66 @@
+FROM amazon/aws-sam-cli-emulation-image-ruby2.5
+
+# Ruby 2.5 is the default "ruby", and bundler is present - update system gems
+
+RUN gem update --system --no-document
+RUN gem install bundler
+
+# Install build tools
+# The base image essentially corrupts the RPM DB,
+#  so we need to make changes for yum to run successfully.
+RUN chmod 1777 /tmp && \
+  /usr/bin/python3 -c "from configparser import SafeConfigParser; \
+  yum_conf = SafeConfigParser(); \
+  yum_conf.read('/etc/yum.conf'); \
+  yum_conf.has_section('main') or yum_conf.add_section('main'); \
+  yum_conf.set('main', 'plugins', '1'); \
+  f = open('/etc/yum.conf', 'w'); \
+  yum_conf.write(f); \
+  f.close();" && \
+  rpm --rebuilddb && \
+  yum groupinstall -y development && \
+  yum install -d1 -y \
+  tar \
+  gzip \
+  unzip \
+  python3 \
+  grep \
+  curl \
+  make \
+  gcc-c++ \
+  binutils \
+  procps \
+  libgmp3-dev \
+  zlib1g-dev \
+  liblzma-dev \
+  libxslt-devel \
+  libmpc-devel \
+  && yum clean all
+
+# Include build tools for the Function Build image.
+# /opt is used for Lambda Layers. To avoid any potential confusion or
+# conflict in the future, the build tools are installed in /usr/local/opt
+
+# Install AWS CLI
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install && rm awscliv2.zip && rm -rf ./aws
+
+# Install SAM CLI in a dedicated Python virtualenv
+ARG SAM_CLI_VERSION
+RUN curl -Lk "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
+  unzip samcli.zip && python3 -m venv /usr/local/opt/sam-cli && \
+  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install -r ./aws-sam-cli-$SAM_CLI_VERSION/requirements/reproducible-linux.txt && \
+  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION
+
+RUN rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
+
+ENV PATH=$PATH:/usr/local/opt/sam-cli/bin
+
+# Wheel is required by SAM CLI to build libraries like cryptography. It needs to be installed in the system
+# Python for it to be picked up during `sam build`
+RUN pip3 install wheel
+
+ENV LANG=en_US.UTF-8
+
+ENV PATH=/var/lang/bin:$PATH
+
+COPY ATTRIBUTION.txt /
