@@ -16,7 +16,7 @@ from samcli.commands._utils.options import (
     tags_override_option,
     template_click_option,
 )
-from samcli.commands.deploy.utils import print_deploy_args, sanitize_parameter_overrides
+from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metrics import track_command
 from samcli.lib.utils import osutils
 
@@ -221,15 +221,6 @@ def do_cli(
             config_section=CONFIG_SECTION,
         )
         guided_context.run()
-
-        print_deploy_args(
-            stack_name=guided_context.guided_stack_name,
-            s3_bucket=guided_context.guided_s3_bucket,
-            region=guided_context.guided_region,
-            capabilities=guided_context.guided_capabilities,
-            parameter_overrides=guided_context.guided_parameter_overrides,
-            confirm_changeset=guided_context.confirm_changeset,
-        )
 
     with osutils.tempfile_platform_independent() as output_template_file:
 
