@@ -102,6 +102,10 @@ class SamTemplateValidator:
                 if "DefinitionUri" in resource_dict:
                     SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
 
+            if resource_type == "AWS::Serverless::StateMachine":
+                if "DefinitionUri" in resource_dict:
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+
     @staticmethod
     def is_s3_uri(uri):
         """

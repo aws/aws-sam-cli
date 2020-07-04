@@ -12,10 +12,10 @@ attrs==19.3.0 \
     --hash=sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c \
     --hash=sha256:f7b7ce16570fe9965acd6d30101a28f62fb4a7f9e926b3bbc9b61f8b04247e72 \
     # via jsonschema
-aws-sam-translator==1.23.0 \
-    --hash=sha256:0dabd2fd57e63fca1cdd511fa73e9fe4f9ca869f5cbcd5749a0c0c9c532a0b2a \
-    --hash=sha256:6e847b02661247e5d9b99b3bd22351fc6ed614e0f12e0598c0181cb796b3967e \
-    --hash=sha256:75dc45e4d8609696f847369a7497774f04ec992f58c9bc4aae4ead77a46e7991 \
+aws-sam-translator==1.25.0 \
+    --hash=sha256:33c5e9a04584a88b2dc730991f7aea52acc4a077a194444e16728dd2be997dc0 \
+    --hash=sha256:5b31769d271fa6c7e87cde076ce819f9f9c7da324b3880f2cd0f5f5aa837e520 \
+    --hash=sha256:f2d0585fc7dd071f136b543e9a614945cb80bbd3113a25f260797c126456dd25 \
     # via aws-sam-cli (setup.py)
 aws_lambda_builders==0.9.0 \
     --hash=sha256:036cabf8aae2482aca4b37e4f6c36a2dd1df65b05eed6de605410c30ca3e4a63 \

@@ -149,6 +149,7 @@ class TestApiGatewayService(TestCase):
     @patch("samcli.local.apigw.local_apigw_service.Flask")
     def test_create_creates_flask_app_with_url_rules(self, flask):
         app_mock = Mock()
+        app_mock.config = {}
         flask.return_value = app_mock
 
         self.service._construct_error_handling = Mock()
