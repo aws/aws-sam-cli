@@ -37,17 +37,12 @@ class MountedFileProvider:
         Path(go_bootstrap_basedir).mkdir(mode=0o700, parents=True, exist_ok=True)
 
         rapid_dest = "{}/init".format(rapid_basedir)
-        LOG.debug("Copying RAPID stub server from {} to {}.".format(str(MountedFileProvider._RAPID_SOURCE), rapid_dest))
+        LOG.debug("Copying RAPID stub server from %s to %s.", str(MountedFileProvider._RAPID_SOURCE), rapid_dest)
         copyfile(MountedFileProvider._RAPID_SOURCE, rapid_dest)
         rapid_st = os.stat(MountedFileProvider._RAPID_SOURCE)
         os.chmod(rapid_dest, rapid_st.st_mode)
 
         go_bootstrap_dest = "{}/aws-lambda-go".format(go_bootstrap_basedir)
-        LOG.debug(
-            "Copying Go debug bootstrap from {} to {}.".format(
-                str(MountedFileProvider._GO_BOOTSTRAP_SOURCE), go_bootstrap_dest
-            )
-        )
         copyfile(MountedFileProvider._GO_BOOTSTRAP_SOURCE, go_bootstrap_dest)
         go_bootstrap_st = os.stat(MountedFileProvider._GO_BOOTSTRAP_SOURCE)
         os.chmod(go_bootstrap_dest, go_bootstrap_st.st_mode)

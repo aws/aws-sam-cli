@@ -29,10 +29,6 @@ RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BO
 
 ALL_RUNTIMES = [r.value for r in Runtime]
 
-RAPID_PATH = Path(__file__).parent.joinpath("..", "..", "..", "..", "samcli", "local", "rapid").resolve()
-GO_BOOTSTRAP_PATH = Path(__file__).parent.joinpath("..", "..", "..", "..", "samcli", "local", "go-bootstrap").resolve()
-
-
 class TestLambdaContainer_init(TestCase):
     def setUp(self):
         self.runtime = "nodejs12.x"
@@ -71,6 +67,7 @@ class TestLambdaContainer_init(TestCase):
         expected_env_vars = {**self.env_var, **debug_settings[1]}
 
         image_builder_mock = Mock()
+        mounted_file_provider_mock = Mock()
 
         container = LambdaContainer(
             self.runtime,
@@ -78,6 +75,7 @@ class TestLambdaContainer_init(TestCase):
             self.code_dir,
             layers=[],
             image_builder=image_builder_mock,
+            mounted_file_provider=mounted_file_provider_mock,
             env_vars=self.env_var,
             memory_mb=self.memory_mb,
             debug_options=self.debug_options,
@@ -96,16 +94,17 @@ class TestLambdaContainer_init(TestCase):
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options, mounted_file_provider_mock)
 
     def test_must_fail_for_unsupported_runtime(self):
 
         runtime = "foo"
 
         image_builder_mock = Mock()
+        mounted_file_provider_mock = Mock()
 
         with self.assertRaises(ValueError) as context:
-            LambdaContainer(runtime, self.handler, self.code_dir, [], image_builder_mock)
+            LambdaContainer(runtime, self.handler, self.code_dir, [], image_builder_mock, mounted_file_provider_mock)
 
         self.assertEqual(str(context.exception), "Unsupported Lambda runtime foo")
 
@@ -179,7 +178,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         elif runtime in RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY:
             result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-            self.assertEquals("/var/rapid/init", result, "{} runtime must not override entrypoint".format(runtime))
+            self.assertEqual("/var/rapid/init", result, "{} runtime must not override entrypoint".format(runtime))
 
         else:
             with self.assertRaises(DebuggingNotSupported):
@@ -248,32 +247,43 @@ class TestLambdaContainer_get_additional_options(TestCase):
 class TestLambdaContainer_get_additional_volumes(TestCase):
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_no_additional_volumes_when_debug_options_is_none(self, runtime):
-        expected = {RAPID_PATH: {"bind": "/var/rapid", "mode": "ro"}}
+        stub_rapid_path = "/Users/testuser/.aws-sam/rapid"
+        expected = {stub_rapid_path: {"bind": "/var/rapid", "mode": "ro"}}
 
         debug_options = DebugContext(debug_ports=None)
+        mounted_file_provider = Mock()
+        mounted_file_provider.rapid_basedir = stub_rapid_path
 
-        result = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        result = LambdaContainer._get_additional_volumes(runtime, debug_options, mounted_file_provider)
         self.assertEqual(result, expected)
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_no_additional_volumes_when_debuggr_path_is_none(self, runtime):
-        expected = {RAPID_PATH: {"bind": "/var/rapid", "mode": "ro"}}
+        stub_rapid_path = "/Users/testuser/.aws-sam/rapid"
+        expected = {stub_rapid_path: {"bind": "/var/rapid", "mode": "ro"}}
         debug_options = DebugContext(debug_ports=[1234])
+        mounted_file_provider = Mock()
+        mounted_file_provider.rapid_basedir = stub_rapid_path
 
-        result = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        result = LambdaContainer._get_additional_volumes(runtime, debug_options, mounted_file_provider)
 
         self.assertEqual(result, expected)
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_additional_volumes_returns_volume_with_debugger_path_is_set(self, runtime):
+        stub_rapid_path = "/Users/testuser/.aws-sam/rapid"
+        stub_go_bootstrap_path = "/Users/testuser/.aws-sam/aws-lambda-go"
         expected = {
-            RAPID_PATH: {"bind": "/var/rapid", "mode": "ro"},
+            stub_rapid_path: {"bind": "/var/rapid", "mode": "ro"},
             "/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"},
-            GO_BOOTSTRAP_PATH: {"bind": "/var/runtime", "mode": "ro"},
+            stub_go_bootstrap_path: {"bind": "/var/runtime", "mode": "ro"},
         }
 
         debug_options = DebugContext(debug_ports=[1234], debugger_path="/somepath")
+        mounted_file_provider = Mock()
+        mounted_file_provider.rapid_basedir = stub_rapid_path
+        mounted_file_provider.go_bootstrap_basedir = stub_go_bootstrap_path
 
-        result = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        result = LambdaContainer._get_additional_volumes(runtime, debug_options, mounted_file_provider)
         print(result)
         self.assertEqual(result, expected)

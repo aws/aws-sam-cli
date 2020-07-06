@@ -29,6 +29,8 @@ class TestCli(TestCase):
         self.skip_pull_image = True
         self.parameter_overrides = {}
         self.layer_cache_basedir = "/some/layers/path"
+        self.rapid_basedir = "/some/rapid"
+        self.go_bootstrap_basedir = "/some/aws-lambda-go"
         self.force_image_build = True
         self.region_name = "region"
         self.profile = "profile"
@@ -66,6 +68,8 @@ class TestCli(TestCase):
             debugger_path=self.debugger_path,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
+            rapid_basedir=self.rapid_basedir,
+            go_bootstrap_basedir=self.go_bootstrap_basedir,
             force_image_build=self.force_image_build,
             aws_region=self.region_name,
             aws_profile=self.profile,
@@ -148,5 +152,7 @@ class TestCli(TestCase):
             skip_pull_image=self.skip_pull_image,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
+            rapid_basedir=self.rapid_basedir,
+            go_bootstrap_basedir=self.go_bootstrap_basedir,
             force_image_build=self.force_image_build,
         )

@@ -227,13 +227,14 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             aws_region="region",
         )
 
+    @patch("samcli.commands.local.cli_common.invoke_context.MountedFileProvider")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_create_runner(
-        self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch
+            self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch, mounted_file_provider_patch
     ):
 
         runtime_mock = Mock()
@@ -247,6 +248,9 @@ class TestInvokeContext_local_lambda_runner(TestCase):
 
         image_mock = Mock()
         lambda_image_patch.return_value = image_mock
+
+        mounting_mock = Mock()
+        mounted_file_provider_patch.return_value = mounting_mock
 
         cwd = "cwd"
         self.context.get_cwd = Mock()
@@ -265,7 +269,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             result = self.context.local_lambda_runner
             self.assertEqual(result, runner_mock)
 
-            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock)
+            LambdaRuntimeMock.assert_called_with(container_manager_mock, image_mock, mounting_mock)
             lambda_image_patch.assert_called_once_with(download_mock, True, True)
             LocalLambdaMock.assert_called_with(
                 local_runtime=runtime_mock,
