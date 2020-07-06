@@ -16,6 +16,7 @@ from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException, TemplateFailedParsingException
 from samcli.local.layers.layer_downloader import LayerDownloader
+from samcli.local.mount.mounted_file_provider import MountedFileProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from .user_exceptions import InvokeContextException, DebugContextException
 
@@ -50,6 +51,8 @@ class InvokeContext:
         debugger_path=None,
         parameter_overrides=None,
         layer_cache_basedir=None,
+        rapid_basedir=None,
+        go_bootstrap_basedir=None,
         force_image_build=None,
         aws_region=None,
         aws_profile=None,
@@ -86,6 +89,10 @@ class InvokeContext:
             Values for the template parameters
         layer_cache_basedir str
             String representing the path to the layer cache directory
+        rapid_basedir str
+            String representing the path to the RAPID server directory
+        go_bootstrap_basedir str
+            String representing the path to the Go bootstrap directory
         force_image_build bool
             Whether or not to force build the image
         aws_region str
@@ -103,6 +110,8 @@ class InvokeContext:
         self._debugger_path = debugger_path
         self._parameter_overrides = parameter_overrides or {}
         self._layer_cache_basedir = layer_cache_basedir
+        self._rapid_basedir = rapid_basedir
+        self._go_bootstrap_basedir = go_bootstrap_basedir
         self._force_image_build = force_image_build
         self._aws_region = aws_region
         self._aws_profile = aws_profile
@@ -184,10 +193,11 @@ class InvokeContext:
             locally
         """
 
+        mounted_file_provider = MountedFileProvider(self._rapid_basedir, self._go_bootstrap_basedir)
         layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
         image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
 
-        lambda_runtime = LambdaRuntime(self._container_manager, image_builder)
+        lambda_runtime = LambdaRuntime(self._container_manager, image_builder, mounted_file_provider)
         return LocalLambdaRunner(
             local_runtime=lambda_runtime,
             function_provider=self._function_provider,

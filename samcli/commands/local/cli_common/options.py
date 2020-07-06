@@ -34,6 +34,34 @@ def get_default_layer_cache_dir():
     return str(layer_cache_dir)
 
 
+def get_default_rapid_dir():
+    """
+    Default stubbed RAPID server directory
+
+    Returns
+    -------
+    str
+        String representing the RAPID server directory
+    """
+    rapid_dir = get_application_dir().joinpath("rapid")
+
+    return str(rapid_dir)
+
+
+def get_default_go_bootstrap_dir():
+    """
+    Default Go debug bootstrap directory
+
+    Returns
+    -------
+    str
+        String representing the Go debug bootstrap directory
+    """
+    go_bootstrap_dir = get_application_dir().joinpath("go-bootstrap")
+
+    return str(go_bootstrap_dir)
+
+
 def service_common_options(port):
     def construct_options(f):
         """
@@ -116,6 +144,20 @@ def invoke_common_options(f):
                 envvar="SAM_LAYER_CACHE_BASEDIR",
                 help="Specifies the location basedir where the Layers your template uses will be downloaded to.",
                 default=get_default_layer_cache_dir(),
+            ),
+            click.option(
+                "--rapid-basedir",
+                type=click.Path(exists=False, file_okay=False),
+                envvar="SAM_RAPID_BASEDIR",
+                help="Specifies the location basedir where the stub RAPID server is present.",
+                default=get_default_rapid_dir(),
+            ),
+            click.option(
+                "--go-bootstrap-basedir",
+                type=click.Path(exists=False, file_okay=False),
+                envvar="SAM_GO_BOOTSTRAP_BASEDIR",
+                help="Specifies the location basedir where the debug Go bootstrap file is present.",
+                default=get_default_go_bootstrap_dir(),
             ),
         ]
         + docker_click_options()

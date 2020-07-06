@@ -25,7 +25,7 @@ class LambdaRuntime:
 
     SUPPORTED_ARCHIVE_EXTENSIONS = (".zip", ".jar", ".ZIP", ".JAR")
 
-    def __init__(self, container_manager, image_builder):
+    def __init__(self, container_manager, image_builder, mounted_file_provider):
         """
         Initialize the Local Lambda runtime
 
@@ -38,6 +38,7 @@ class LambdaRuntime:
         """
         self._container_manager = container_manager
         self._image_builder = image_builder
+        self._mounted_file_provider = mounted_file_provider
 
     def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
         """
@@ -72,6 +73,7 @@ class LambdaRuntime:
                 code_dir,
                 function_config.layers,
                 self._image_builder,
+                self._mounted_file_provider,
                 memory_mb=function_config.memory,
                 env_vars=env_vars,
                 debug_options=debug_context,

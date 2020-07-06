@@ -24,9 +24,7 @@ class LambdaContainer(Container):
     # The Volume Mount path for debug files in docker
     _DEBUGGER_VOLUME_MOUNT_PATH = "/tmp/lambci_debug_files"
     _DEFAULT_CONTAINER_DBG_GO_PATH = _DEBUGGER_VOLUME_MOUNT_PATH + "/dlv"
-    _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
     _RAPID_DESTINATION_MOUNT = {"bind": "/var/rapid", "mode": "ro"}
-    _GO_BOOTSTRAP_SOURCE_PATH = Path(__file__).parent.joinpath("..", "go-bootstrap").resolve()
     _GO_BOOTSTRAP_DESTINATION_MOUNT = {"bind": "/var/runtime", "mode": "ro"}
 
     # Options for selecting debug entry point
@@ -42,6 +40,7 @@ class LambdaContainer(Container):
         code_dir,
         layers,
         image_builder,
+        mounted_file_provider,
         memory_mb=128,
         env_vars=None,
         debug_options=None,
@@ -62,6 +61,8 @@ class LambdaContainer(Container):
             List of layers
         image_builder samcli.local.docker.lambda_image.LambdaImage
             LambdaImage that can be used to build the image needed for starting the container
+        mounted_file_provider samcli.local.mount.mounted_file_provider
+            MountedFileProvider provides the path to local source files that need to be mounted
         memory_mb int
             Optional. Max limit of memory in MegaBytes this Lambda function can use.
         env_vars dict
@@ -77,7 +78,7 @@ class LambdaContainer(Container):
         ports = LambdaContainer._get_exposed_ports(debug_options)
         entry, debug_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
-        additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options, mounted_file_provider)
         cmd = [handler]
 
         if not env_vars:
@@ -143,20 +144,20 @@ class LambdaContainer(Container):
         return opts
 
     @staticmethod
-    def _get_additional_volumes(runtime, debug_options):
+    def _get_additional_volumes(runtime, debug_options, mounted_file_provider):
         """
         Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
         debugger executable into the container.
         :param DebugContext debug_options: DebugContext for the runtime of the container.
         :return dict: Dictionary containing volume map passed to container creation.
         """
-        volumes = {LambdaContainer._RAPID_SOURCE_PATH: LambdaContainer._RAPID_DESTINATION_MOUNT}
+        volumes = {mounted_file_provider.rapid_basedir: LambdaContainer._RAPID_DESTINATION_MOUNT}
 
         if debug_options and debug_options.debugger_path:
             volumes[debug_options.debugger_path] = LambdaContainer._DEBUGGER_VOLUME_MOUNT
             # Only add bootstrap if debugging go project.
             if runtime == Runtime.go1x.value:
-                volumes[LambdaContainer._GO_BOOTSTRAP_SOURCE_PATH] = LambdaContainer._GO_BOOTSTRAP_DESTINATION_MOUNT
+                volumes[mounted_file_provider.go_bootstrap_basedir] = LambdaContainer._GO_BOOTSTRAP_DESTINATION_MOUNT
 
         return volumes
 
