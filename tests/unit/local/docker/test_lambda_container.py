@@ -29,6 +29,7 @@ RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BO
 
 ALL_RUNTIMES = [r.value for r in Runtime]
 
+
 class TestLambdaContainer_init(TestCase):
     def setUp(self):
         self.runtime = "nodejs12.x"

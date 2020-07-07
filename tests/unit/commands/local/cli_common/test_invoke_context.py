@@ -234,7 +234,13 @@ class TestInvokeContext_local_lambda_runner(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     def test_must_create_runner(
-            self, SamFunctionProviderMock, LocalLambdaMock, LambdaRuntimeMock, download_layers_mock, lambda_image_patch, mounted_file_provider_patch
+        self,
+        SamFunctionProviderMock,
+        LocalLambdaMock,
+        LambdaRuntimeMock,
+        download_layers_mock,
+        lambda_image_patch,
+        mounted_file_provider_patch,
     ):
 
         runtime_mock = Mock()
