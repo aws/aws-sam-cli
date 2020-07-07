@@ -67,6 +67,8 @@ install:
     - "echo %PATH%"
 
 test_script:
+    - "SET SAM_RAPID_BASEDIR=D:\\source\\rapid"
+    - "SET SAM_GO_BOOTSTRAP_BASEDIR=D:\\source\\go-bootstrap"
     # Reactivate virtualenv before running tests
     - "venv\\Scripts\\activate"
     - "docker system prune -a -f"
