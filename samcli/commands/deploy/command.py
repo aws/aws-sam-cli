@@ -127,6 +127,13 @@ LOG = logging.getLogger(__name__)
     help="Indicates whether to use JSON as the format for "
     "the output AWS CloudFormation template. YAML is used by default.",
 )
+@click.option(
+    "--resolve-s3",
+    required=False,
+    is_flag=True,
+    help="Automatically resolve s3 bucket for non-guided deployments."
+    "Do not use --s3-guided parameter with this option.",
+)
 @metadata_override_option
 @notification_arns_override_option
 @tags_override_option
@@ -155,6 +162,7 @@ def cli(
     metadata,
     guided,
     confirm_changeset,
+    resolve_s3,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -178,6 +186,7 @@ def cli(
         confirm_changeset,
         ctx.region,
         ctx.profile,
+        resolve_s3,
     )  # pragma: no cover
 
 
@@ -201,10 +210,13 @@ def do_cli(
     confirm_changeset,
     region,
     profile,
+    resolve_s3,
 ):
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.deploy.guided_context import GuidedContext
+    from samcli.lib.bootstrap.bootstrap import manage_stack
+    from samcli.commands.deploy import exceptions as deploy_exceptions
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.
@@ -221,6 +233,14 @@ def do_cli(
             config_section=CONFIG_SECTION,
         )
         guided_context.run()
+
+    if resolve_s3:
+        if s3_bucket or guided:
+            raise deploy_exceptions.DeployResolveS3AndS3Error()
+
+        s3_bucket = manage_stack(profile=profile, region=region)
+        click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+        click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
 
     with osutils.tempfile_platform_independent() as output_template_file:
 

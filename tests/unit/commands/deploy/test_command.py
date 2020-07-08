@@ -39,6 +39,7 @@ class TestDeployCliCommand(TestCase):
         self.metadata = {}
         self.guided = False
         self.confirm_changeset = False
+        self.resolve_s3 = False
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -70,6 +71,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
+            resolve_s3=self.resolve_s3,
         )
 
         mock_deploy_context.assert_called_with(
@@ -156,6 +158,7 @@ class TestDeployCliCommand(TestCase):
                     metadata=self.metadata,
                     guided=True,
                     confirm_changeset=True,
+                    resolve_s3=self.resolve_s3,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -219,6 +222,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                resolve_s3=self.resolve_s3,
             )
 
             mock_deploy_context.assert_called_with(
@@ -328,6 +332,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            resolve_s3=self.resolve_s3,
         )
 
         mock_deploy_context.assert_called_with(
@@ -441,6 +446,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            resolve_s3=self.resolve_s3,
         )
 
         mock_deploy_context.assert_called_with(
@@ -538,6 +544,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                resolve_s3=self.resolve_s3,
             )
 
             mock_deploy_context.assert_called_with(

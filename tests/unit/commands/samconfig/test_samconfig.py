@@ -398,6 +398,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                False,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -458,6 +459,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                False,
             )
 
     @patch("samcli.commands.logs.command.do_cli")
