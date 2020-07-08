@@ -163,6 +163,8 @@ class GuidedContext:
         guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
         guided_config.read_config_showcase()
 
+        self.guided_prompts(_parameter_override_keys)
+
         print_deploy_args(
             stack_name=self.guided_stack_name,
             s3_bucket=self.guided_s3_bucket,
@@ -171,8 +173,6 @@ class GuidedContext:
             parameter_overrides=self._parameter_overrides,
             confirm_changeset=self.confirm_changeset,
         )
-
-        self.guided_prompts(_parameter_override_keys)
 
         if self.save_to_config:
             guided_config.save_config(
