@@ -220,7 +220,7 @@ class LambdaImage:
             String representing the Dockerfile contents for the image
 
         """
-        dockerfile_content = f"FROM {base_image}\nADD init /var/rapid\n"
+        dockerfile_content = f"FROM {base_image}\nADD init /var/rapid\nRUN chmod +x /var/rapid/init\n"
         for layer in layers:
             dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
         return dockerfile_content
