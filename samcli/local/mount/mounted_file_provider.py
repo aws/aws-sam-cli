@@ -33,7 +33,6 @@ class MountedFileProvider:
 
     @staticmethod
     def _copy_to_basedir(source, basedir, dest_filename):
-        import pdb; pdb.set_trace()
         Path(basedir).mkdir(mode=0o700, parents=True, exist_ok=True)
         dest = Path("{}/{}".format(basedir, dest_filename))
         LOG.debug("Copying from %s to %s.", str(source), str(dest))
