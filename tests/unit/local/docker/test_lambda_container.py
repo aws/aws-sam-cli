@@ -29,8 +29,6 @@ RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BO
 
 ALL_RUNTIMES = [r.value for r in Runtime]
 
-GO_BOOTSTRAP_PATH = Path(__file__).parent.joinpath("..", "..", "..", "..", "samcli", "local", "go-bootstrap").resolve()
-
 
 class TestLambdaContainer_init(TestCase):
     def setUp(self):
@@ -91,7 +89,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(expected_env_vars, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, [])
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, [], self.debug_options)
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -146,14 +144,29 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
 
 
 class TestLambdaContainer_get_image(TestCase):
-    def test_must_return_lambci_image(self):
+    def test_must_return_lambci_image_with_debug(self):
+        debug_options = DebugContext(debug_ports=[1235], debugger_path="a", debug_args="a=b c=d e=f")
 
         expected = "lambci/lambda:foo"
 
         image_builder = Mock()
         image_builder.build.return_value = expected
 
-        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", []), expected)
+        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", [], debug_options), expected)
+
+        image_builder.build.assert_called_with("foo", [], True)
+
+    def test_must_return_lambci_image_without_debug(self):
+        debug_options = DebugContext()
+
+        expected = "lambci/lambda:foo"
+
+        image_builder = Mock()
+        image_builder.build.return_value = expected
+
+        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", [], debug_options), expected)
+
+        image_builder.build.assert_called_with("foo", [], False)
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):
@@ -267,7 +280,6 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
     def test_additional_volumes_returns_volume_with_debugger_path_is_set(self, runtime):
         expected = {
             "/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"},
-            GO_BOOTSTRAP_PATH: {"bind": "/var/runtime", "mode": "ro"},
         }
 
         debug_options = DebugContext(debug_ports=[1234], debugger_path="/somepath")

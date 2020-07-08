@@ -24,8 +24,6 @@ class LambdaContainer(Container):
     # The Volume Mount path for debug files in docker
     _DEBUGGER_VOLUME_MOUNT_PATH = "/tmp/lambci_debug_files"
     _DEFAULT_CONTAINER_DBG_GO_PATH = _DEBUGGER_VOLUME_MOUNT_PATH + "/dlv"
-    _GO_BOOTSTRAP_SOURCE_PATH = Path(__file__).parent.joinpath("..", "go-bootstrap").resolve()
-    _GO_BOOTSTRAP_DESTINATION_MOUNT = {"bind": "/var/runtime", "mode": "ro"}
 
     # Options for selecting debug entry point
     _DEBUG_ENTRYPOINT_OPTIONS = {"delvePath": _DEFAULT_CONTAINER_DBG_GO_PATH}
@@ -71,7 +69,7 @@ class LambdaContainer(Container):
         if not Runtime.has_value(runtime):
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
-        image = LambdaContainer._get_image(image_builder, runtime, layers)
+        image = LambdaContainer._get_image(image_builder, runtime, layers, debug_options)
         ports = LambdaContainer._get_exposed_ports(debug_options)
         entry, debug_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
@@ -152,14 +150,11 @@ class LambdaContainer(Container):
 
         if debug_options and debug_options.debugger_path:
             volumes[debug_options.debugger_path] = LambdaContainer._DEBUGGER_VOLUME_MOUNT
-            # Only add bootstrap if debugging go project.
-            if runtime == Runtime.go1x.value:
-                volumes[LambdaContainer._GO_BOOTSTRAP_SOURCE_PATH] = LambdaContainer._GO_BOOTSTRAP_DESTINATION_MOUNT
 
         return volumes
 
     @staticmethod
-    def _get_image(image_builder, runtime, layers):
+    def _get_image(image_builder, runtime, layers, debug_options):
         """
         Returns the name of Docker Image for the given runtime
 
@@ -177,7 +172,8 @@ class LambdaContainer(Container):
         str
             Name of Docker Image for the given runtime
         """
-        return image_builder.build(runtime, layers)
+        is_debug = bool(debug_options and debug_options.debugger_path)
+        return image_builder.build(runtime, layers, is_debug)
 
     @staticmethod
     def _get_debug_settings(runtime, debug_options=None):  # pylint: disable=too-many-branches
