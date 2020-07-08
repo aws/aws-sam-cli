@@ -18,7 +18,8 @@ class MountedFileProvider:
 
     def __init__(self, rapid_basedir, go_bootstrap_basedir):
         # need to copy files over if not already done
-        MountedFileProvider._copy_source_files(rapid_basedir, go_bootstrap_basedir)
+        MountedFileProvider._copy_to_basedir(MountedFileProvider._RAPID_SOURCE, rapid_basedir, "init")
+        MountedFileProvider._copy_to_basedir(MountedFileProvider._GO_BOOTSTRAP_SOURCE, go_bootstrap_basedir, "aws-lambda-go")
         self._rapid_basedir = rapid_basedir
         self._go_bootstrap_basedir = go_bootstrap_basedir
 
@@ -31,18 +32,11 @@ class MountedFileProvider:
         return self._go_bootstrap_basedir
 
     @staticmethod
-    def _copy_source_files(rapid_basedir, go_bootstrap_basedir):
-        LOG.debug("Creating basedirs if they do not yet exist.")
-        Path(rapid_basedir).mkdir(mode=0o700, parents=True, exist_ok=True)
-        Path(go_bootstrap_basedir).mkdir(mode=0o700, parents=True, exist_ok=True)
-
-        rapid_dest = "{}/init".format(rapid_basedir)
-        LOG.debug("Copying RAPID stub server from %s to %s.", str(MountedFileProvider._RAPID_SOURCE), rapid_dest)
-        copyfile(MountedFileProvider._RAPID_SOURCE, rapid_dest)
-        rapid_st = os.stat(MountedFileProvider._RAPID_SOURCE)
-        os.chmod(rapid_dest, rapid_st.st_mode)
-
-        go_bootstrap_dest = "{}/aws-lambda-go".format(go_bootstrap_basedir)
-        copyfile(MountedFileProvider._GO_BOOTSTRAP_SOURCE, go_bootstrap_dest)
-        go_bootstrap_st = os.stat(MountedFileProvider._GO_BOOTSTRAP_SOURCE)
-        os.chmod(go_bootstrap_dest, go_bootstrap_st.st_mode)
+    def _copy_to_basedir(source, basedir, dest_filename):
+        import pdb; pdb.set_trace()
+        Path(basedir).mkdir(mode=0o700, parents=True, exist_ok=True)
+        dest = Path("{}/{}".format(basedir, dest_filename))
+        LOG.debug("Copying from %s to %s.", str(source), str(dest))
+        copyfile(source, str(dest))
+        st = os.stat(source)
+        os.chmod(dest, st.st_mode)

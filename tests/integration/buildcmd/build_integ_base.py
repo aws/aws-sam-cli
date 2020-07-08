@@ -127,7 +127,7 @@ class BuildIntegBase(TestCase):
             "--no-event",
             "--parameter-overrides",
             overrides,
-            "--debug" # we want to see extended output when failures occur
+            "--debug",  # we want to see extended output when failures occur
         ]
 
         process_execute = run_command(cmdlist)

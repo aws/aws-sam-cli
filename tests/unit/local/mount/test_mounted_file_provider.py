@@ -18,10 +18,6 @@ class TestMountedFileProvider(TestCase):
         mfp = MountedFileProvider(rapid_basedir, go_bootstrap_basedir)
 
         rapid_path_mock.mkdir.assert_called_with(mode=0o700, parents=True, exist_ok=True)
-        copyfile_mock.assert_any_call(MountedFileProvider._RAPID_SOURCE, "{}/init".format(rapid_basedir))
-        copyfile_mock.assert_called_with(
-            MountedFileProvider._GO_BOOTSTRAP_SOURCE, "{}/aws-lambda-go".format(go_bootstrap_basedir)
-        )
 
         self.assertEqual(mfp.rapid_basedir, rapid_basedir)
         self.assertEqual(mfp.go_bootstrap_basedir, go_bootstrap_basedir)
