@@ -19,7 +19,9 @@ class MountedFileProvider:
     def __init__(self, rapid_basedir, go_bootstrap_basedir):
         # need to copy files over if not already done
         MountedFileProvider._copy_to_basedir(MountedFileProvider._RAPID_SOURCE, rapid_basedir, "init")
-        MountedFileProvider._copy_to_basedir(MountedFileProvider._GO_BOOTSTRAP_SOURCE, go_bootstrap_basedir, "aws-lambda-go")
+        MountedFileProvider._copy_to_basedir(
+            MountedFileProvider._GO_BOOTSTRAP_SOURCE, go_bootstrap_basedir, "aws-lambda-go"
+        )
         self._rapid_basedir = rapid_basedir
         self._go_bootstrap_basedir = go_bootstrap_basedir
 
