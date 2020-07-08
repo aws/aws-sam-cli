@@ -47,6 +47,7 @@ class LambdaImage:
     _LAYERS_DIR = "/opt"
     _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
+    _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
 
     def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None):
         """
@@ -85,15 +86,15 @@ class LambdaImage:
         """
         base_image = "{}-{}:latest".format(self._INVOKE_REPO_PREFIX, runtime)
 
-        # Don't build the image if there are no layers.
-        if not layers:
-            LOG.debug("Skipping building an image since no layers were defined")
-            return base_image
+        # Default image tag to be the base image with a tag of 'rapid' instead of latest
+        image_tag = "{}-{}:rapid".format(self._INVOKE_REPO_PREFIX, runtime)
+        downloaded_layers = []
 
-        downloaded_layers = self.layer_downloader.download_all(layers, self.force_image_build)
+        if layers:
+            downloaded_layers = self.layer_downloader.download_all(layers, self.force_image_build)
 
-        docker_image_version = self._generate_docker_image_version(downloaded_layers, runtime)
-        image_tag = "{}:{}".format(self._SAM_CLI_REPO_NAME, docker_image_version)
+            docker_image_version = self._generate_docker_image_version(downloaded_layers, runtime)
+            image_tag = "{}:{}".format(self._SAM_CLI_REPO_NAME, docker_image_version)
 
         image_not_found = False
 
@@ -173,7 +174,9 @@ class LambdaImage:
             with open(str(full_dockerfile_path), "w") as dockerfile:
                 dockerfile.write(dockerfile_content)
 
-            tar_paths = {str(full_dockerfile_path): "Dockerfile"}
+            # add dockerfile and rapid source paths
+            tar_paths = {str(full_dockerfile_path): "Dockerfile", self._RAPID_SOURCE_PATH: "/init"}
+
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
 
@@ -196,10 +199,12 @@ class LambdaImage:
 
         A generated Dockerfile will look like the following:
         ```
-        FROM lambci/lambda:python3.6
+        FROM amazon/aws-sam-cli-emulation-image-python3.6:latest
 
-        ADD --chown=sbx_user1051:495 layer1 /opt
-        ADD --chown=sbx_user1051:495 layer2 /opt
+        ADD init /var/rapid
+
+        ADD layer1 /opt
+        ADD layer2 /opt
         ```
 
         Parameters
@@ -215,8 +220,7 @@ class LambdaImage:
             String representing the Dockerfile contents for the image
 
         """
-        dockerfile_content = "FROM {}\n".format(base_image)
-
+        dockerfile_content = f"FROM {base_image}\nADD init /var/rapid\n"
         for layer in layers:
-            dockerfile_content = dockerfile_content + "ADD {} {}\n".format(layer.name, LambdaImage._LAYERS_DIR)
+            dockerfile_content = dockerfile_content + f"ADD {layer.name} {LambdaImage._LAYERS_DIR}\n"
         return dockerfile_content

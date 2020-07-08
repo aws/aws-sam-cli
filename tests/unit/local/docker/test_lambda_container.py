@@ -29,7 +29,6 @@ RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BO
 
 ALL_RUNTIMES = [r.value for r in Runtime]
 
-RAPID_PATH = Path(__file__).parent.joinpath("..", "..", "..", "..", "samcli", "local", "rapid").resolve()
 GO_BOOTSTRAP_PATH = Path(__file__).parent.joinpath("..", "..", "..", "..", "samcli", "local", "go-bootstrap").resolve()
 
 
@@ -248,7 +247,7 @@ class TestLambdaContainer_get_additional_options(TestCase):
 class TestLambdaContainer_get_additional_volumes(TestCase):
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_no_additional_volumes_when_debug_options_is_none(self, runtime):
-        expected = {RAPID_PATH: {"bind": "/var/rapid", "mode": "ro"}}
+        expected = {}
 
         debug_options = DebugContext(debug_ports=None)
 
@@ -257,7 +256,7 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
 
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_no_additional_volumes_when_debuggr_path_is_none(self, runtime):
-        expected = {RAPID_PATH: {"bind": "/var/rapid", "mode": "ro"}}
+        expected = {}
         debug_options = DebugContext(debug_ports=[1234])
 
         result = LambdaContainer._get_additional_volumes(runtime, debug_options)
@@ -267,7 +266,6 @@ class TestLambdaContainer_get_additional_volumes(TestCase):
     @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
     def test_additional_volumes_returns_volume_with_debugger_path_is_set(self, runtime):
         expected = {
-            RAPID_PATH: {"bind": "/var/rapid", "mode": "ro"},
             "/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"},
             GO_BOOTSTRAP_PATH: {"bind": "/var/runtime", "mode": "ro"},
         }

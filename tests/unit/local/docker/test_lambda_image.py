@@ -33,7 +33,7 @@ class TestLambdaImage(TestCase):
 
         lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
 
-        self.assertEqual(lambda_image.build("python3.6", []), "amazon/aws-sam-cli-emulation-image-python3.6:latest")
+        self.assertEqual(lambda_image.build("python3.6", []), "amazon/aws-sam-cli-emulation-image-python3.6:rapid")
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
@@ -129,7 +129,7 @@ class TestLambdaImage(TestCase):
         docker_client_mock = Mock()
         docker_patch.from_env.return_value = docker_client_mock
 
-        expected_docker_file = "FROM python\nADD layer1 /opt\n"
+        expected_docker_file = "FROM python\nADD init /var/rapid\nADD layer1 /opt\n"
 
         layer_mock = Mock()
         layer_mock.name = "layer1"
