@@ -338,6 +338,7 @@ class TestSamConfigForAllCommands(TestCase):
                 {"m1": "value1", "m2": "value2"},
                 "myregion",
                 None,
+                False,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")

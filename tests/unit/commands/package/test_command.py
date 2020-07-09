@@ -17,6 +17,7 @@ class TestPackageCliCommand(TestCase):
         self.metadata = {"abc": "def"}
         self.region = None
         self.profile = None
+        self.resolve_s3 = False
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -36,6 +37,7 @@ class TestPackageCliCommand(TestCase):
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
+            resolve_s3=self.resolve_s3,
         )
 
         package_command_context.assert_called_with(

@@ -233,14 +233,14 @@ def do_cli(
             config_section=CONFIG_SECTION,
         )
         guided_context.run()
-
-    if resolve_s3:
-        if s3_bucket or guided:
+    elif resolve_s3:
+        if s3_bucket:
             raise deploy_exceptions.DeployResolveS3AndS3Error()
 
         s3_bucket = manage_stack(profile=profile, region=region)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
         click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+        click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
     with osutils.tempfile_platform_independent() as output_template_file:
 

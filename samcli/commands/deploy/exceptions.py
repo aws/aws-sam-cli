@@ -71,8 +71,6 @@ class DeployBucketRequiredError(UserException):
 
 class DeployResolveS3AndS3Error(UserException):
     def __init__(self):
-        message_fmt = (
-            "Cannot use both --deploy-s3 and guided or --s3-bucket parameter simultaneously." "Please use either one."
-        )
+        message_fmt = "Cannot use both --deploy-s3 and --s3-bucket parameter simultaneously." "Please use either one."
 
         super(DeployResolveS3AndS3Error, self).__init__(message=message_fmt)
