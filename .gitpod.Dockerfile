@@ -6,5 +6,5 @@ FROM gitpod/workspace-full
 #
 # More information: https://www.gitpod.io/docs/config-docker/
 RUN pyenv install 3.7.2
-RUN pyenv local 3.7.2
+RUN pyenv global 3.7.2
 RUN pip install black
