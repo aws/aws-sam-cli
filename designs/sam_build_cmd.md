@@ -330,15 +330,11 @@ Install dependencies specified by `package.json` and copy source files
 
 **Files Excluded From Copy Source**: `node_modules/*`
 
-  ----------------------------------------------------
-  Action        Command
-  ------------- --------------------------------------
-  Resolve       `npm install`
-
-  Compile       No Op
-
-  Copy Source   Copy files and exclude node\_modules
-  ----------------------------------------------------
+| Action      | Command                               |
+| ----------- | ------------------------------------- |
+| Resolve     | `npm install`                         |
+| Compile     | No Op                                 |
+| Copy Source | Copy files and exclude `node_modules` |
 
 #### Java using Maven
 
