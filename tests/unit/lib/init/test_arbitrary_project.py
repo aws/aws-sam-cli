@@ -46,6 +46,7 @@ class TestGenerateNonCookieCutterProject(TestCase):
             clone_mock.assert_called_with(repo_url=location, no_input=True, clone_to_dir=ANY)
 
             osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir, ignore=ANY)
+            osutils_mock.mkdir_temp.assert_called_with(ignore_errors=True)
 
     def test_must_fail_on_local_folders(self):
         location = str(Path("my", "folder"))
