@@ -19,6 +19,7 @@ class TestLocalApiService_start(TestCase):
         self.port = 123
         self.host = "abc"
         self.static_dir = "static"
+        self.use_stdin = False
         self.cwd = "cwd"
         self.template = {"hello": "world"}
 
@@ -48,7 +49,9 @@ class TestLocalApiService_start(TestCase):
         ApiGwServiceMock.return_value = self.apigw_service
 
         # Now start the service
-        local_service = LocalApiService(self.lambda_invoke_context_mock, self.port, self.host, self.static_dir)
+        local_service = LocalApiService(
+            self.lambda_invoke_context_mock, self.port, self.host, self.static_dir, self.use_stdin
+        )
         local_service.api_provider.api.routes = routing_list
         local_service.start()
 
@@ -66,6 +69,7 @@ class TestLocalApiService_start(TestCase):
             port=self.port,
             host=self.host,
             stderr=self.stderr_mock,
+            use_stdin=self.use_stdin,
         )
 
         self.apigw_service.create.assert_called_with()
@@ -87,7 +91,9 @@ class TestLocalApiService_start(TestCase):
         ApiGwServiceMock.return_value = self.apigw_service
 
         # Now start the service
-        local_service = LocalApiService(self.lambda_invoke_context_mock, self.port, self.host, self.static_dir)
+        local_service = LocalApiService(
+            self.lambda_invoke_context_mock, self.port, self.host, self.static_dir, self.use_stdin
+        )
         local_service.api_provider.api.routes = routing_list
         with self.assertRaises(NoApisDefined):
             local_service.start()

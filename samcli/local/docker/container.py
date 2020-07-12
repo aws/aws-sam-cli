@@ -7,6 +7,7 @@ import tarfile
 import tempfile
 import threading
 import socket
+import os
 
 import docker
 import requests
@@ -100,7 +101,7 @@ class Container:
             self.rapid_port_host = self._socket.getsockname()[1]
             self._socket.close()
 
-    def create(self):
+    def create(self, stdin=False):
         """
         Calls Docker API to creates the Docker container instance. Creating the container does *not* run the container.
         Use ``start`` method to run the container
@@ -130,6 +131,7 @@ class Container:
             "tty": False,
             # Set proxy configuration from global Docker config file
             "use_config_proxy": True,
+            "stdin_open": stdin,
         }
 
         if self._container_opts:
@@ -206,9 +208,6 @@ class Container:
             Optional. Input data sent to the container through container's stdin.
         """
 
-        if input_data:
-            raise ValueError("Passing input through container's stdin is not supported")
-
         if not self.is_created():
             raise RuntimeError("Container does not exist. Cannot start this container")
 
@@ -217,6 +216,11 @@ class Container:
 
         # Start the container
         real_container.start()
+
+        # Send input data if exists
+        if input_data:
+            stdin_socket = real_container.attach_socket(params={"stdin": 1, "stream": 1})
+            self._write_stdin(stdin_socket, input_data.encode("utf-8"))
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
     def wait_for_http_response(self, name, event, stdout):
@@ -273,6 +277,22 @@ class Container:
 
             with tarfile.open(fileobj=fp, mode="r") as tar:
                 tar.extractall(path=to_host_path)
+
+    @staticmethod
+    def _write_stdin(sock, data):
+        while data:
+            written = Container._write_stdin_some(sock, data)
+            data = data[written:]
+        os.close(sock.fileno())
+        sock.close()
+
+    @staticmethod
+    def _write_stdin_some(sock, data):
+        if hasattr(sock, "send"):
+            written = sock.send(data)
+        else:
+            written = os.write(sock.fileno(), data)
+        return written
 
     @staticmethod
     def _write_container_output(output_itr, stdout=None, stderr=None):

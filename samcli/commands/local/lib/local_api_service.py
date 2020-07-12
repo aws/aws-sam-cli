@@ -18,7 +18,7 @@ class LocalApiService:
     Lambda function.
     """
 
-    def __init__(self, lambda_invoke_context, port, host, static_dir):
+    def __init__(self, lambda_invoke_context, port, host, static_dir, use_stdin):
         """
         Initialize the local API service.
 
@@ -39,6 +39,8 @@ class LocalApiService:
         )
         self.lambda_runner = lambda_invoke_context.local_lambda_runner
         self.stderr_stream = lambda_invoke_context.stderr
+
+        self.use_stdin = use_stdin
 
     def start(self):
         """
@@ -65,6 +67,7 @@ class LocalApiService:
             port=self.port,
             host=self.host,
             stderr=self.stderr_stream,
+            use_stdin=self.use_stdin,
         )
 
         service.create()

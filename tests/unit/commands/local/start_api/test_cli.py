@@ -40,6 +40,7 @@ class TestCli(TestCase):
         self.host = "host"
         self.port = 123
         self.static_dir = "staticdir"
+        self.use_stdin = False
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
@@ -72,7 +73,11 @@ class TestCli(TestCase):
         )
 
         local_api_service_mock.assert_called_with(
-            lambda_invoke_context=context_mock, port=self.port, host=self.host, static_dir=self.static_dir
+            lambda_invoke_context=context_mock,
+            port=self.port,
+            host=self.host,
+            static_dir=self.static_dir,
+            use_stdin=self.use_stdin,
         )
 
         service_mock.start.assert_called_with()
@@ -137,6 +142,7 @@ class TestCli(TestCase):
             host=self.host,
             port=self.port,
             static_dir=self.static_dir,
+            use_stdin=self.use_stdin,
             template=self.template,
             env_vars=self.env_vars,
             debug_port=self.debug_ports,

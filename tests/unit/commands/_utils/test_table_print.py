@@ -26,7 +26,6 @@ class TestTablePrint(TestCase):
             "------------------------------------------------------------------------------------------------\n"
             "------------------------------------------------------------------------------------------------\n"
         )
-
         self.assertEqual(output, self.redirect_out.getvalue())
 
     def test_pprint_column_names_and_text(self):

@@ -69,7 +69,7 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.networks = Mock()
         self.mock_docker_client.networks.get = Mock()
 
-    def test_must_create_container_with_required_values(self):
+    def test_must_create_container_with_required_values_no_stdin(self):
         """
         Create a container with only required values. Optional values are not provided
         :return:
@@ -91,6 +91,38 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
             command=self.cmd,
+            stdin_open=False,
+            working_dir=self.working_dir,
+            volumes=expected_volumes,
+            ports={},
+            tty=False,
+            use_config_proxy=True,
+        )
+        self.mock_docker_client.networks.get.assert_not_called()
+
+    def test_must_create_container_with_required_values_stdin(self):
+        """
+        Create a container with only required values. Optional values are not provided
+        :return:
+        """
+
+        expected_volumes = {self.host_dir: {"bind": self.working_dir, "mode": "ro,delegated"}}
+        generated_id = "fooobar"
+        self.mock_docker_client.containers.create.return_value = Mock()
+        self.mock_docker_client.containers.create.return_value.id = generated_id
+
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+
+        container_id = container.create(True)
+        self.assertEqual(container_id, generated_id)
+        self.assertEqual(container.id, generated_id)
+
+        self.mock_docker_client.containers.create.assert_called_with(
+            self.image,
+            command=self.cmd,
+            stdin_open=True,
             working_dir=self.working_dir,
             volumes=expected_volumes,
             ports={},
@@ -124,6 +156,7 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
             command=self.cmd,
+            stdin_open=False,
             working_dir=self.working_dir,
             volumes=expected_volumes,
             ports={Container.RAPID_PORT_CONTAINER: ANY},
@@ -178,6 +211,7 @@ class TestContainer_create(TestCase):
             entrypoint=self.entrypoint,
             mem_limit=expected_memory,
             container="opts",
+            stdin_open=False,
         )
         self.mock_docker_client.networks.get.assert_not_called()
 
@@ -221,6 +255,7 @@ class TestContainer_create(TestCase):
         self.mock_docker_client.containers.create.assert_called_with(
             self.image,
             command=self.cmd,
+            stdin_open=False,
             working_dir=self.working_dir,
             volumes=expected_volumes,
             tty=False,
@@ -284,6 +319,7 @@ class TestContainer_create(TestCase):
             use_config_proxy=True,
             environment=self.env_vars,
             ports=self.exposed_ports,
+            stdin_open=False,
             entrypoint=self.entrypoint,
             mem_limit=expected_memory,
             container="opts",
@@ -323,6 +359,7 @@ class TestContainer_create(TestCase):
             tty=False,
             use_config_proxy=True,
             volumes=expected_volumes,
+            stdin_open=False,
         )
 
         self.mock_docker_client.networks.get.assert_called_with(network_id)
@@ -362,6 +399,7 @@ class TestContainer_create(TestCase):
             use_config_proxy=True,
             volumes=expected_volumes,
             network_mode="host",
+            stdin_open=False,
         )
 
         self.mock_docker_client.networks.get.assert_not_called()
@@ -478,6 +516,7 @@ class TestContainer_start(TestCase):
         self.container.id = "someid"
 
         self.container.is_created = Mock()
+        self.container._write_stdin = Mock()
 
     def test_must_start_container(self):
 
@@ -499,12 +538,18 @@ class TestContainer_start(TestCase):
         with self.assertRaises(RuntimeError):
             self.container.start()
 
-    def test_must_not_support_input_data(self):
+    def test_must_support_input_data(self):
 
         self.container.is_created.return_value = True
 
-        with self.assertRaises(ValueError):
-            self.container.start(input_data="some input data")
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start = Mock()
+
+        self.container.start(input_data="some input data")
+
+        self.mock_docker_client.containers.get.assert_called_with(self.container.id)
+        container_mock.start.assert_called_with()
 
 
 class TestContainer_wait_for_result(TestCase):

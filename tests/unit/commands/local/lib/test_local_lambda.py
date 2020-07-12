@@ -459,7 +459,7 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr
+            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, use_stdin=False
         )
 
     def test_must_raise_if_function_not_found(self):

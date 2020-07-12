@@ -236,6 +236,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "127.0.0.1",
                 12345,
                 "static_dir",
+                False,
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "envvar.json",
                 (1, 2, 3),

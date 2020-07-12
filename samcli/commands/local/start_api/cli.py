@@ -40,6 +40,13 @@ and point SAM to the directory or file containing build artifacts.
     default="public",
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
+@click.option(
+    "--use-stdin",
+    "-i",
+    default=False,
+    is_flag=True,
+    help="Use stdin to pass data to lambda function",
+)
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
@@ -51,6 +58,7 @@ def cli(
     host,
     port,
     static_dir,
+    use_stdin,
     # Common Options for Lambda Invoke
     template_file,
     env_vars,
@@ -74,6 +82,7 @@ def cli(
         host,
         port,
         static_dir,
+        use_stdin,
         template_file,
         env_vars,
         debug_port,
@@ -94,6 +103,7 @@ def do_cli(  # pylint: disable=R0914
     host,
     port,
     static_dir,
+    use_stdin,
     template,
     env_vars,
     debug_port,
@@ -144,7 +154,9 @@ def do_cli(  # pylint: disable=R0914
             aws_profile=ctx.profile,
         ) as invoke_context:
 
-            service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)
+            service = LocalApiService(
+                lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir, use_stdin=use_stdin
+            )
             service.start()
 
     except NoApisDefined as ex:

@@ -78,7 +78,7 @@ class LambdaRuntime_invoke(TestCase):
         )
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, None)
         self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_logs.assert_called_with(stdout=stdout, stderr=stderr)
 
@@ -135,7 +135,7 @@ class LambdaRuntime_invoke(TestCase):
         )
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, None)
         self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
         container.wait_for_result.assert_called_with(name=self.name, event=event, stdout=stdout, stderr=stderr)
 
@@ -169,7 +169,7 @@ class LambdaRuntime_invoke(TestCase):
             self.runtime.invoke(self.func_config, event, debug_context=None, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, None)
 
         self.runtime._configure_interrupt.assert_not_called()
 
@@ -206,7 +206,7 @@ class LambdaRuntime_invoke(TestCase):
             self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, None)
 
         self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
 
@@ -245,7 +245,7 @@ class LambdaRuntime_invoke(TestCase):
             self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, None)
 
         self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
 
@@ -278,7 +278,7 @@ class LambdaRuntime_invoke(TestCase):
         self.runtime.invoke(self.func_config, event, stdout=stdout, stderr=stderr)
 
         # Run the container and get results
-        self.manager_mock.run.assert_called_with(container)
+        self.manager_mock.run.assert_called_with(container, None)
 
         self.runtime._configure_interrupt.assert_not_called()
 

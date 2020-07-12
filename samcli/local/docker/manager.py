@@ -105,7 +105,7 @@ class ContainerManager:
             # Create the container first before running.
             # Create the container in appropriate Docker network
             container.network_id = self.docker_network_id
-            container.create()
+            container.create(bool(input_data))
 
         container.start(input_data=input_data)
 

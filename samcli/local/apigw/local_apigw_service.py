@@ -95,7 +95,7 @@ class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = "127.0.0.1"
 
-    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
+    def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None, use_stdin=False):
         """
         Creates an ApiGatewayService
 
@@ -122,6 +122,7 @@ class LocalApigwService(BaseLocalService):
         self.static_dir = static_dir
         self._dict_of_routes = {}
         self.stderr = stderr
+        self.use_stdin = use_stdin
 
     def create(self):
         """
@@ -283,7 +284,9 @@ class LocalApigwService(BaseLocalService):
         stdout_stream_writer = StreamWriter(stdout_stream, self.is_debugging)
 
         try:
-            self.lambda_runner.invoke(route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr)
+            self.lambda_runner.invoke(
+                route.function_name, event, stdout=stdout_stream_writer, stderr=self.stderr, use_stdin=self.use_stdin
+            )
         except FunctionNotFound:
             return ServiceErrorResponses.lambda_not_found_response()
 

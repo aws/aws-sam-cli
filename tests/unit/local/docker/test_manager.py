@@ -160,7 +160,7 @@ class TestContainerManager_run(TestCase):
         self.manager.pull_image.assert_called_with(self.image_name)
         self.container_mock.start.assert_called_with(input_data=input_data)
 
-    def test_must_create_container_if_not_exists(self):
+    def test_must_create_container_if_not_exists_input_data(self):
         input_data = "input data"
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()
@@ -171,7 +171,20 @@ class TestContainerManager_run(TestCase):
         self.manager.run(self.container_mock, input_data)
 
         # Container should be created
-        self.container_mock.create.assert_called_with()
+        self.container_mock.create.assert_called_with(True)
+
+    def test_must_create_container_if_not_exists_no_input_data(self):
+        input_data = None
+        self.manager.has_image = Mock()
+        self.manager.pull_image = Mock()
+
+        # Assume container does NOT exist
+        self.container_mock.is_created.return_value = False
+
+        self.manager.run(self.container_mock, input_data)
+
+        # Container should be created
+        self.container_mock.create.assert_called_with(False)
 
     def test_must_not_create_container_if_it_already_exists(self):
         input_data = "input data"

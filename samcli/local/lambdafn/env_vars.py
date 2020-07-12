@@ -111,6 +111,12 @@ class EnvironmentVariables:
         """
         self.variables["AWS_LAMBDA_EVENT_BODY"] = value
 
+    def set_use_stdin(self):
+        """
+        Sets the DOCKER_LAMBDA_USE_STDIN environment variable to 1.
+        """
+        self.variables["DOCKER_LAMBDA_USE_STDIN"] = 1
+
     @property
     def timeout(self):
         return self._function["timeout"]

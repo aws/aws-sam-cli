@@ -40,7 +40,7 @@ class LambdaRuntime:
         self._container_manager = container_manager
         self._image_builder = image_builder
 
-    def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
+    def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None, use_stdin=False):
         """
         Invoke the given Lambda function locally.
 
@@ -62,7 +62,11 @@ class LambdaRuntime:
 
         # Update with event input
         environ = function_config.env_vars
-        environ.add_lambda_event_body(event)
+        # Select the way to send event into lambda container
+        if use_stdin:
+            environ.set_use_stdin()
+        else:
+            environ.add_lambda_event_body(event)
         # Generate a dictionary of environment variable key:values
         env_vars = environ.resolve()
 
@@ -81,7 +85,7 @@ class LambdaRuntime:
             try:
 
                 # Start the container. This call returns immediately after the container starts
-                self._container_manager.run(container)
+                self._container_manager.run(container, event if use_stdin else None)
 
                 # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing.
                 #

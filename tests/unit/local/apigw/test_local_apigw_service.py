@@ -85,7 +85,7 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, use_stdin=False)
         self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -113,7 +113,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, use_stdin=False)
         self.http_service._construct_v_2_0_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -141,7 +141,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, use_stdin=False)
         self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -169,7 +169,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, use_stdin=False)
         self.http_service._construct_v_2_0_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -194,7 +194,7 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, use_stdin=False)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_options_request_must_invoke_lambda(self, request_mock):
@@ -218,7 +218,7 @@ class TestApiGatewayService(TestCase):
         result = self.http_service._request_handler()
 
         self.assertEqual(result, make_response_mock)
-        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, use_stdin=False)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.LambdaOutputParser")

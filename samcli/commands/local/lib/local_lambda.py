@@ -58,7 +58,7 @@ class LocalLambdaRunner:
         self._boto3_session_creds = None
         self._boto3_region = None
 
-    def invoke(self, function_name, event, stdout=None, stderr=None):
+    def invoke(self, function_name, event, stdout=None, stderr=None, use_stdin=False):
         """
         Find the Lambda function with given name and invoke it. Pass the given event to the function and return
         response through the given streams.
@@ -100,7 +100,9 @@ class LocalLambdaRunner:
 
         # Invoke the function
         try:
-            self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+            self.local_runtime.invoke(
+                config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr, use_stdin=use_stdin
+            )
         except ContainerResponseException as ex:
             raise InvokeContextException(
                 f"No response from invoke container for {function.name}", wrapped_from=ex.__class__.__name__
