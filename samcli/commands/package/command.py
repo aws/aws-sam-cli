@@ -40,7 +40,7 @@ The following resources and their property locations are supported.
 @template_click_option(include_build=True)
 @click.option(
     "--s3-bucket",
-    required=True,
+    required=False,
     help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
 )
 @click.option(
@@ -135,12 +135,12 @@ def do_cli(
 ):
     from samcli.commands.package.package_context import PackageContext
     from samcli.lib.bootstrap.bootstrap import manage_stack
-    from samcli.commands.deploy import exceptions as deploy_exceptions
+    from samcli.commands.exceptions import DeployResolveS3AndS3Error
+
+    if not resolve_s3 ^ bool(s3_bucket):
+        raise DeployResolveS3AndS3Error()
 
     if resolve_s3:
-        if s3_bucket:
-            raise deploy_exceptions.DeployResolveS3AndS3Error()
-
         s3_bucket = manage_stack(profile=profile, region=region)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
         click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")

@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 
 from samcli.commands.package.command import do_cli
+from samcli.commands.exceptions import DeployResolveS3AndS3Error
 
 
 class TestPackageCliCommand(TestCase):
@@ -55,3 +56,35 @@ class TestPackageCliCommand(TestCase):
 
         context_mock.run.assert_called_with()
         self.assertEqual(context_mock.run.call_count, 1)
+
+    def test_resolve_s3_and_s3_bucket_both_set(self):
+        with self.assertRaises(DeployResolveS3AndS3Error):
+            do_cli(
+                template_file=self.template_file,
+                s3_bucket=self.s3_bucket,
+                s3_prefix=self.s3_prefix,
+                kms_key_id=self.kms_key_id,
+                output_template_file=self.output_template_file,
+                use_json=self.use_json,
+                force_upload=self.force_upload,
+                metadata=self.metadata,
+                region=self.region,
+                profile=self.profile,
+                resolve_s3=True,
+            )
+
+    def test_resolve_s3_and_s3_bucket_both_not_set(self):
+        with self.assertRaises(DeployResolveS3AndS3Error):
+            do_cli(
+                template_file=self.template_file,
+                s3_bucket=None,
+                s3_prefix=self.s3_prefix,
+                kms_key_id=self.kms_key_id,
+                output_template_file=self.output_template_file,
+                use_json=self.use_json,
+                force_upload=self.force_upload,
+                metadata=self.metadata,
+                region=self.region,
+                profile=self.profile,
+                resolve_s3=False,
+            )

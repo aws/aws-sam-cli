@@ -47,3 +47,14 @@ class AppTemplateUpdateException(UserException):
     """
     Exception class when updates to app templates for init enters an unstable state.
     """
+
+
+class DeployResolveS3AndS3Error(UserException):
+    def __init__(self):
+        message_fmt = (
+            "Cannot use or skip both --resolve-s3 and --s3-bucket parameters simultaneously "
+            "in non-guided deployments or package."
+            "Please use either one."
+        )
+
+        super(DeployResolveS3AndS3Error, self).__init__(message=message_fmt)
