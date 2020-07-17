@@ -200,7 +200,7 @@ class LambdaImage:
                     resp_stream = self.docker_client.api.build(
                         fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
                     )
-                    for line in resp_stream:
+                    for _ in resp_stream:
                         stream_writer.write(".")
                         stream_writer.flush()
                     stream_writer.write("\n")
