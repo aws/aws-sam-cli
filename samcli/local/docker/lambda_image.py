@@ -7,9 +7,11 @@ import hashlib
 from enum import Enum
 from pathlib import Path
 
+import sys
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli import __version__ as version
 
@@ -70,7 +72,7 @@ class LambdaImage:
         self.force_image_build = force_image_build
         self.docker_client = docker_client or docker.from_env()
 
-    def build(self, runtime, layers, is_debug):
+    def build(self, runtime, layers, is_debug, stream=None):
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -115,8 +117,10 @@ class LambdaImage:
             or image_not_found
             or any(layer.is_defined_within_template for layer in downloaded_layers)
         ):
-            LOG.info("Building image...")
-            self._build_image(base_image, image_tag, downloaded_layers, is_debug_go)
+            stream_writer = stream or StreamWriter(sys.stderr)
+            stream_writer.write("Building image...")
+            stream_writer.flush()
+            self._build_image(base_image, image_tag, downloaded_layers, is_debug_go, stream=stream_writer)
 
         return image_tag
 
@@ -148,7 +152,7 @@ class LambdaImage:
             runtime + "-" + hashlib.sha256("-".join([layer.name for layer in layers]).encode("utf-8")).hexdigest()[0:25]
         )
 
-    def _build_image(self, base_image, docker_tag, layers, is_debug_go):
+    def _build_image(self, base_image, docker_tag, layers, is_debug_go, stream=None):
         """
         Builds the image
 
@@ -175,6 +179,7 @@ class LambdaImage:
         # Create dockerfile in the same directory of the layer cache
         dockerfile_name = "dockerfile_" + str(uuid.uuid4())
         full_dockerfile_path = Path(self.layer_downloader.layer_cache, dockerfile_name)
+        stream_writer = stream or StreamWriter(sys.stderr)
 
         try:
             with open(str(full_dockerfile_path), "w") as dockerfile:
@@ -192,10 +197,15 @@ class LambdaImage:
 
             with create_tarball(tar_paths) as tarballfile:
                 try:
-                    self.docker_client.images.build(
+                    resp_stream = self.docker_client.api.build(
                         fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
                     )
+                    for line in resp_stream:
+                        stream_writer.write(".")
+                        stream_writer.flush()
+                    stream_writer.write("\n")
                 except (docker.errors.BuildError, docker.errors.APIError):
+                    stream_writer.write("\n")
                     LOG.exception("Failed to build Docker Image")
                     raise ImageBuildException("Building Image failed.")
         finally:
