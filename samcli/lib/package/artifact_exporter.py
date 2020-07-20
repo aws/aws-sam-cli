@@ -32,6 +32,7 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_API,
+    AWS_SERVERLESS_HTTPAPI,
     AWS_APPSYNC_GRAPHQLSCHEMA,
     AWS_APPSYNC_RESOLVER,
     AWS_APPSYNC_FUNCTIONCONFIGURATION,
@@ -329,6 +330,14 @@ class ServerlessApiResource(Resource):
     PACKAGE_NULL_PROPERTY = False
 
 
+class ServerlessHttpApiResource(Resource):
+    RESOURCE_TYPE = AWS_SERVERLESS_HTTPAPI
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    # Don't package the directory if DefinitionUri is omitted.
+    # Necessary to support DefinitionBody
+    PACKAGE_NULL_PROPERTY = False
+
+
 class ServerlessStateMachineResource(ResourceWithS3UrlDict):
     RESOURCE_TYPE = AWS_SERVERLESS_STATEMACHINE
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -512,6 +521,7 @@ class GlueJobCommandScriptLocationResource(Resource):
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessApiResource,
+    ServerlessHttpApiResource,
     ServerlessStateMachineResource,
     GraphQLSchemaResource,
     AppSyncResolverRequestTemplateResource,
