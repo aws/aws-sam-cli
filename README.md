@@ -12,6 +12,8 @@ With just a few lines of configuration, you can define the application you want 
 
 [![Getting Started with AWS SAM](./media/get-started-youtube.png)](https://www.youtube.com/watch?v=1dzihtC5LJ0)
 
+![AWS SAM CLI help menu](https://user-images.githubusercontent.com/3770774/87969094-59d05a80-ca76-11ea-9c23-76306fa8592b.png)
+
 ## Get Started
 
 To get started with building SAM-based applications, use the SAM CLI. SAM CLI provides a Lambda-like execution 
