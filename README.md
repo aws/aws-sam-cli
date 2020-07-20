@@ -1,7 +1,7 @@
 <p align="center">
 </p>
 
-# AWS SAM (Beta)
+# AWS SAM
 
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
 ![SAM CLI Version](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?label=CLI%20Version)
