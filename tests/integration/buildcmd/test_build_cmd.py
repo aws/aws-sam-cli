@@ -141,12 +141,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
 
     @parameterized.expand(
-        [
-            ("nodejs10.x", False),
-            ("nodejs12.x", False),
-            ("nodejs10.x", "use_container"),
-            ("nodejs12.x", "use_container"),
-        ]
+        [("nodejs10.x", False), ("nodejs12.x", False), ("nodejs10.x", "use_container"), ("nodejs12.x", "use_container")]
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_package_json(self, runtime, use_container):
@@ -703,17 +698,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
-    EXPECTED_FILES_PROJECT_MANIFEST = {
-        "__init__.py",
-        "main.py",
-        "requirements.txt",
-    }
-    EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {
-        "__init__.py",
-        "layer.py",
-        "numpy",
-        "requirements.txt",
-    }
+    EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
+    EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
     @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
     def test_build_single_layer(self, runtime, use_container, layer_identifier):
@@ -864,18 +850,11 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # if the makefile is present.
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
-    EXPECTED_FILES_PROJECT_MANIFEST = {
-        "__init__.py",
-        "main.py",
-        "requests",
-        "requirements.txt",
-    }
+    EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand(
-        [("provided", False, None), ("provided", "use_container", "Makefile-container"),]
-    )
+    @parameterized.expand([("provided", False, None), ("provided", "use_container", "Makefile-container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_Makefile(self, runtime, use_container, manifest):
         overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler"}
@@ -934,18 +913,11 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     template = "custom-build-function.yaml"
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
-    EXPECTED_FILES_PROJECT_MANIFEST = {
-        "__init__.py",
-        "main.py",
-        "requests",
-        "requirements.txt",
-    }
+    EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand(
-        [(False, None, "makefile"), ("use_container", "Makefile-container", "makefile"),]
-    )
+    @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")])
     @pytest.mark.flaky(reruns=3)
     def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
         # runtime is chosen based off current python version.
@@ -975,9 +947,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
         )
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand(
-        [(False,), ("use_container"),]
-    )
+    @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_native_builder_specified_python_runtime(self, use_container):
         # runtime is chosen based off current python version.
@@ -1007,9 +977,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
         )
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand(
-        [(False,), ("use_container"),]
-    )
+    @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_wrong_builder_specified_python_runtime(self, use_container):
         # runtime is chosen based off current python version.

@@ -166,9 +166,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
-    @parameterized.expand(
-        [("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname"),]
-    )
+    @parameterized.expand([("EchoCustomEnvVarWithFunctionNameDefinedFunction"), ("customname")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_function_with_overrode_env_var_and_functionname_defined(self, function_name):
@@ -192,7 +190,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
                 "errorMessage": "Lambda is raising an exception",
                 "errorType": "Exception",
                 "stackTrace": [
-                    '  File "/var/task/main.py", line 51, in raise_exception\n    raise Exception("Lambda is raising an exception")\n'
+                    ["/var/task/main.py", 51, "raise_exception", 'raise Exception("Lambda is raising an exception")']
                 ],
             },
         )
