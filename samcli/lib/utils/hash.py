@@ -57,7 +57,7 @@ def dir_checksum(directory, followlinks=True):
         for filepath in [os.path.join(dirpath, filename) for filename in filenames]:
             # Look at filename and contents.
             # Encode file's checksum to be utf-8 and bytes.
-            md5_dir.update(filepath.encode("utf-8"))
+            md5_dir.update(os.path.relpath(filepath, directory).encode("utf-8"))
             filepath_checksum = file_checksum(filepath)
             md5_dir.update(filepath_checksum.encode("utf-8"))
     return md5_dir.hexdigest()

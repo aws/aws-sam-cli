@@ -13,6 +13,18 @@ class TestHash(TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
+    def test_dir_hash_independent_of_location(self):
+        temp_dir1 = os.path.join(self.temp_dir, "temp-dir-1")
+        os.mkdir(temp_dir1)
+        with open(os.path.join(temp_dir1, "test-file"), "w+") as f:
+            f.write("Testfile")
+        checksum1 = dir_checksum(temp_dir1)
+
+        temp_dir2 = shutil.move(temp_dir1, os.path.join(self.temp_dir, "temp-dir-2"))
+        checksum2 = dir_checksum(temp_dir2)
+
+        self.assertEqual(checksum1, checksum2)
+
     def test_dir_hash_same_contents_diff_file_per_directory(self):
         _file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir)
         _file.write(b"Testfile")
