@@ -5,6 +5,7 @@ Enums for Resources and thier Location Properties, along with utlity functions
 AWS_SERVERLESSREPO_APPLICATION = "AWS::ServerlessRepo::Application"
 AWS_SERVERLESS_FUNCTION = "AWS::Serverless::Function"
 AWS_SERVERLESS_API = "AWS::Serverless::Api"
+AWS_SERVERLESS_HTTPAPI = "AWS::Serverless::HttpApi"
 AWS_APPSYNC_GRAPHQLSCHEMA = "AWS::AppSync::GraphQLSchema"
 AWS_APPSYNC_RESOLVER = "AWS::AppSync::Resolver"
 AWS_APPSYNC_FUNCTIONCONFIGURATION = "AWS::AppSync::FunctionConfiguration"
@@ -24,6 +25,7 @@ METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "Rea
 RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_FUNCTION: ["CodeUri"],
     AWS_SERVERLESS_API: ["DefinitionUri"],
+    AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
     AWS_APPSYNC_GRAPHQLSCHEMA: ["DefinitionS3Location"],
     AWS_APPSYNC_RESOLVER: ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location"],

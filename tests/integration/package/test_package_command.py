@@ -40,6 +40,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -85,6 +86,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -124,6 +126,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -175,6 +178,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -227,6 +231,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -281,6 +286,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -333,6 +339,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",

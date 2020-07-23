@@ -516,7 +516,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         # Set no for Allow SAM CLI IAM role creation, but allow default of ["CAPABILITY_IAM"] by just hitting the return key.
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\nSuppliedParameter\n\nn\n\n\n\n".format(stack_name).encode(),
+            deploy_command_list, "{}\n\nSuppliedParameter\n\nn\n\n\n\n".format(stack_name).encode()
         )
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
