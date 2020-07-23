@@ -6,9 +6,8 @@ import itertools
 import os
 import pathlib
 
-_init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
-_templates = os.path.join(_init_path, "init", "templates")
-
+_init_path = str(pathlib.Path(os.path.dirname(__file__)).parents[1])
+_templates = os.path.join(_init_path, "lib", "init", "templates")
 
 # Note(TheSriram): The ordering of the runtimes list per language is based on the latest to oldest.
 RUNTIME_DEP_TEMPLATE_MAPPING = {
