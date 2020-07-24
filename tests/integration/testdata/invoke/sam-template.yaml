@@ -10,3 +10,4 @@ Resources:
       Runtime: python3.6
       CodeUri: .
       Timeout: 600
+# 😃 UTF-8 Decoding Test
