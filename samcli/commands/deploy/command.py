@@ -19,6 +19,7 @@ from samcli.commands._utils.options import (
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metrics import track_command
 from samcli.lib.utils import osutils
+from samcli.lib.bootstrap.bootstrap import manage_stack
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -215,8 +216,7 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.deploy.guided_context import GuidedContext
-    from samcli.lib.bootstrap.bootstrap import manage_stack
-    from samcli.commands.exceptions import DeployResolveS3AndS3Error
+    from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError, DeployResolveS3AndS3NotSetError
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.
@@ -233,10 +233,12 @@ def do_cli(
             config_section=CONFIG_SECTION,
         )
         guided_context.run()
-    elif not resolve_s3 ^ bool(s3_bucket):
-        raise DeployResolveS3AndS3Error()
+    elif resolve_s3 and bool(s3_bucket):
+        raise DeployResolveS3AndS3SetError()
+    elif not resolve_s3 and not bool(s3_bucket):
+        raise DeployResolveS3AndS3NotSetError()
 
-    elif resolve_s3:
+    if resolve_s3:
         s3_bucket = manage_stack(profile=profile, region=region)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
         click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")

@@ -90,3 +90,17 @@ class BucketNotSpecifiedError(UserException):
         message_fmt = "\nS3 Bucket not specified, use --s3-bucket to specify a bucket name or run sam deploy --guided"
 
         super(BucketNotSpecifiedError, self).__init__(message=message_fmt.format(**self.kwargs))
+
+
+class PackageResolveS3AndS3SetError(UserException):
+    def __init__(self):
+        message_fmt = "Cannot use both --resolve-s3 and --s3-bucket parameters." "Please use only one."
+
+        super(PackageResolveS3AndS3SetError, self).__init__(message=message_fmt)
+
+
+class PackageResolveS3AndS3NotSetError(UserException):
+    def __init__(self):
+        message_fmt = "Cannot skip both --resolve-s3 and --s3-bucket parameters." "Please use only one."
+
+        super(PackageResolveS3AndS3NotSetError, self).__init__(message=message_fmt)
