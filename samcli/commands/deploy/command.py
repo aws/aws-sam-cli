@@ -237,8 +237,7 @@ def do_cli(
         raise DeployResolveS3AndS3SetError()
     elif not resolve_s3 and not bool(s3_bucket):
         raise DeployResolveS3AndS3NotSetError()
-
-    if resolve_s3:
+    elif resolve_s3:
         s3_bucket = manage_stack(profile=profile, region=region)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
         click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")

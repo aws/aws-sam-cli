@@ -6,26 +6,24 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 from parameterized import parameterized, param
 
+from pathlib import Path
+
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.docker.lambda_container import LambdaContainer, Runtime
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
-RUNTIMES_WITH_ENTRYPOINT = [
-    Runtime.java8.value,
-    Runtime.dotnetcore21.value,
-    Runtime.go1x.value,
-    Runtime.python36.value,
-    Runtime.python27.value,
-]
+RUNTIMES_WITH_ENTRYPOINT = [Runtime.dotnetcore21.value, Runtime.go1x.value]
 
 RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.nodejs10x.value,
     Runtime.nodejs12x.value,
     Runtime.python37.value,
     Runtime.python38.value,
+    Runtime.python36.value,
+    Runtime.python27.value,
 ]
 
-RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [Runtime.java11.value]
+RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [Runtime.java11.value, Runtime.java8.value, Runtime.dotnetcore21.value]
 
 RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT
 
@@ -91,11 +89,11 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(expected_env_vars, container._env_vars)
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
-        get_image_mock.assert_called_with(image_builder_mock, self.runtime, [])
+        get_image_mock.assert_called_with(image_builder_mock, self.runtime, [], self.debug_options)
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
-        get_additional_volumes_mock.assert_called_with(self.debug_options)
+        get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
     def test_must_fail_for_unsupported_runtime(self):
 
@@ -146,14 +144,29 @@ class TestLambdaContainer_get_exposed_ports(TestCase):
 
 
 class TestLambdaContainer_get_image(TestCase):
-    def test_must_return_lambci_image(self):
+    def test_must_return_lambci_image_with_debug(self):
+        debug_options = DebugContext(debug_ports=[1235], debugger_path="a", debug_args="a=b c=d e=f")
 
         expected = "lambci/lambda:foo"
 
         image_builder = Mock()
         image_builder.build.return_value = expected
 
-        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", []), expected)
+        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", [], debug_options), expected)
+
+        image_builder.build.assert_called_with("foo", [], True)
+
+    def test_must_return_lambci_image_without_debug(self):
+        debug_options = DebugContext()
+
+        expected = "lambci/lambda:foo"
+
+        image_builder = Mock()
+        image_builder.build.return_value = expected
+
+        self.assertEqual(LambdaContainer._get_image(image_builder, "foo", [], debug_options), expected)
+
+        image_builder.build.assert_called_with("foo", [], False)
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):
@@ -165,7 +178,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
     def test_must_skip_if_debug_port_is_not_specified(self):
         self.assertEqual(
-            (None, {}),
+            ("/var/rapid/init", {}),
             LambdaContainer._get_debug_settings("runtime", None),
             "Must not provide entrypoint if debug port is not given",
         )
@@ -178,7 +191,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         elif runtime in RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY:
             result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-            self.assertIsNone(result, "{} runtime must not override entrypoint".format(runtime))
+            self.assertEquals("/var/rapid/init", result, "{} runtime must not override entrypoint".format(runtime))
 
         else:
             with self.assertRaises(DebuggingNotSupported):
@@ -190,7 +203,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         self.assertIsNotNone(debug_env_vars)
 
-    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT)])
+    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_ENTRYPOINT) if not r.startswith("dotnetcore2")])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_entrypoint(self, runtime):
         """
         Debug args list is appended starting at second position in the array
@@ -245,22 +258,32 @@ class TestLambdaContainer_get_additional_options(TestCase):
 
 
 class TestLambdaContainer_get_additional_volumes(TestCase):
-    def test_no_additional_volumes_when_debug_options_is_none(self):
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
+    def test_no_additional_volumes_when_debug_options_is_none(self, runtime):
+        expected = {}
+
         debug_options = DebugContext(debug_ports=None)
 
-        result = LambdaContainer._get_additional_volumes(debug_options)
-        self.assertIsNone(result)
+        result = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        self.assertEqual(result, expected)
 
-    def test_no_additional_volumes_when_debuggr_path_is_none(self):
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
+    def test_no_additional_volumes_when_debuggr_path_is_none(self, runtime):
+        expected = {}
         debug_options = DebugContext(debug_ports=[1234])
 
-        result = LambdaContainer._get_additional_volumes(debug_options)
-        self.assertIsNone(result)
+        result = LambdaContainer._get_additional_volumes(runtime, debug_options)
 
-    def test_additional_volumes_returns_volume_with_debugger_path_is_set(self):
-        expected = {"/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"}}
+        self.assertEqual(result, expected)
+
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_ENTRYPOINT if r.startswith("go")])
+    def test_additional_volumes_returns_volume_with_debugger_path_is_set(self, runtime):
+        expected = {
+            "/somepath": {"bind": "/tmp/lambci_debug_files", "mode": "ro"},
+        }
 
         debug_options = DebugContext(debug_ports=[1234], debugger_path="/somepath")
 
-        result = LambdaContainer._get_additional_volumes(debug_options)
+        result = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        print(result)
         self.assertEqual(result, expected)
