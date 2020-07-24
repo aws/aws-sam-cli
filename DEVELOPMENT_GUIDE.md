@@ -11,7 +11,7 @@ inaccurate, update this guide and send a Pull Request.
 **Note**: `pyenv` currently only supports macOS and Linux. If you are a
 Windows users, consider using [pipenv](https://docs.pipenv.org/).
 
-1-Click ready to hack IDE
+1-Click Ready to Hack IDE
 -------------------------
 For setting up a local development environment, we recommend using Gitpod - a service that allows you to spin up an in-browser Visual Studio Code-compatible editor, with everything set up and ready to go for development on this project. Just click the button below to create your private workspace:
 
