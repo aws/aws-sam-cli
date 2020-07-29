@@ -161,7 +161,7 @@ class ApplicationBuilder:
             store_path = str(artifact_dir)
 
             # In Windows, if template and artifacts are in two different drives, relpath will fail
-            if(original_dir.drive == artifact_dir.drive):
+            if original_dir.drive == artifact_dir.drive:
             # Artifacts are written relative  the template because it makes the template portable
                 #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
                 #   package stage running on a different machine
@@ -178,7 +178,7 @@ class ApplicationBuilder:
 
             if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
                 properties["ContentUri"] = store_path
-                
+
         return template_dict
 
     def _build_layer(self, layer_name, codeuri, specified_workflow, compatible_runtimes):
