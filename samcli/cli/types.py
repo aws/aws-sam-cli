@@ -8,7 +8,7 @@ from json import JSONDecodeError
 
 import click
 
-PARAM_AND_METADATA_KEY_REGEX = '([A-Za-z0-9\\"]+)'
+PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 
 
 def _generate_match_regex(match_pattern, delim):
@@ -29,7 +29,11 @@ def _generate_match_regex(match_pattern, delim):
     """
 
     # Non capturing groups reduces duplicates in groups, but does not reduce matches.
-    return f'(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)'
+    return (
+        f"""(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|"""
+        + f"""\'(?:\\\\{match_pattern}|[^\'\\\\]+)*\'|"""
+        + f"""(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)"""
+    )
 
 
 def _unquote_wrapped_quotes(value):
@@ -55,10 +59,13 @@ def _unquote_wrapped_quotes(value):
     Unquoted string
     """
     if value and (value[0] == value[-1] == '"'):
-        # Remove quotes only if the string is wrapped in quotes
+        # Remove double quotes only if the string is wrapped in double quotes
         value = value.strip('"')
+    elif value and (value[0] == value[-1] == "'"):
+        # Remove single quotes only if the string is wrapped in single quotes
+        value = value.strip("'")
 
-    return value.replace("\\ ", " ").replace('\\"', '"')
+    return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
 
 class CfnParameterOverridesType(click.ParamType):

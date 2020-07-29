@@ -56,9 +56,14 @@ class TestCfnParameterOverridesType(TestCase):
             (("KeyPairName=MyKey InstanceType=t1.micro",), {"KeyPairName": "MyKey", "InstanceType": "t1.micro"}),
             (("KeyPairName=MyKey, InstanceType=t1.micro,",), {"KeyPairName": "MyKey,", "InstanceType": "t1.micro,"}),
             (('ParameterKey="Ke y",ParameterValue=Value',), {"ParameterKey": "Ke y"}),
+            (("ParameterKey='Ke y',ParameterValue=Value",), {"ParameterKey": "Ke y"}),
             ((("ParameterKey=Key,ParameterValue="),), {"ParameterKey": "Key,ParameterValue="}),
             (('ParameterKey="Key",ParameterValue=Val\\ ue',), {"Key": "Val ue"}),
             (('ParameterKey="Key",ParameterValue="Val\\"ue"',), {"Key": 'Val"ue'}),
+            (("ParameterKey='Key',ParameterValue='Val ue'",), {"Key": "Val ue"}),
+            (('ParameterKey="Key",ParameterValue=Val\'ue',), {"Key": "Val'ue"}),
+            (("ParameterKey='Key',ParameterValue='Val\"ue'",), {"Key": 'Val"ue'}),
+            (("""ParameterKey='Key',ParameterValue='Val"ue'""",), {"Key": 'Val"ue'}),
             (("ParameterKey=Key,ParameterValue=Value",), {"Key": "Value"}),
             (('ParameterKey=Key,ParameterValue=""',), {"Key": ""}),
             (
@@ -67,14 +72,24 @@ class TestCfnParameterOverridesType(TestCase):
                 {"Key": "Value", "Key2": "Value2"},
             ),
             (
-                # Quotes at the end
+                # Double quotes at the end
                 ('ParameterKey=Key,ParameterValue=Value\\"',),
                 {"Key": 'Value"'},
             ),
             (
-                # Quotes at the start
+                # Single quotes at the end
+                ("ParameterKey=Key,ParameterValue=Value'",),
+                {"Key": "Value'"},
+            ),
+            (
+                # Double quotes at the start
                 ('ParameterKey=Key,ParameterValue=\\"Value',),
                 {"Key": '"Value'},
+            ),
+            (
+                # Single quotes at the start
+                ("ParameterKey=Key,ParameterValue='Value",),
+                {"Key": "'Value"},
             ),
             (
                 # Value is spacial characters
@@ -83,6 +98,7 @@ class TestCfnParameterOverridesType(TestCase):
             ),
             (('ParameterKey=Key1230,ParameterValue="{\\"a\\":\\"b\\"}"',), {"Key1230": '{"a":"b"}'}),
             (('Key=Key1230 Value="{\\"a\\":\\"b\\"}"',), {"Key": "Key1230", "Value": '{"a":"b"}'}),
+            (("""Key=Key1230 Value='{"a":"b"}'""",), {"Key": "Key1230", "Value": '{"a":"b"}'}),
             (
                 (
                     'Key=Key1230 Value="{\\"a\\":\\"b\\"}" '
