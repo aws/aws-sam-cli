@@ -26,13 +26,13 @@ binaryornot==0.4.4 \
     --hash=sha256:359501dfc9d40632edc9fac890e19542db1a287bbcfa58175b66658392018061 \
     --hash=sha256:b8b71173c917bddcd2c16070412e369c3ed7f0528926f70cac18a6c97fd563e4 \
     # via cookiecutter
-boto3==1.13.7 \
-    --hash=sha256:9b5d0d3e2a0374fa6786d7e42f42c25b69695b449b816823be46875af9c32e05 \
-    --hash=sha256:a9518f580f18b9ca5638be0d7eb90651cceb0fff3524739488763f6dcade1caf \
+boto3==1.14.27 \
+    --hash=sha256:65c131b72c2a75e3cc6044e5fd6426719051b9b1f28bd026b4a5490648d13019 \
+    --hash=sha256:e1e09587763671cc07c9e6d349d93bf53a140f83947cb6cf1ec4cb9f07b0ff95 \
     # via aws-sam-cli (setup.py), aws-sam-translator, serverlessrepo
-botocore==1.16.7 \
-    --hash=sha256:48f68a27825632b5567796f5e6f46889971d9e48908ba9fdfc319cf78ffe1e91 \
-    --hash=sha256:7cd876e6186e845c3667fdcbfd73756f09761c2d5695dfba64b00a08195e7c1f \
+botocore==1.17.27 \
+    --hash=sha256:994a9f50e0e770c0f9ea74659f501848f7d12b22186026c219cde8a481ede298 \
+    --hash=sha256:acd955f0315b5d17e3e8ddc2ef74d7f03c4ef37f0ceb042058637f7edfbbad4e \
     # via boto3, s3transfer
 certifi==2020.4.5.1 \
     --hash=sha256:1d987a998c75633c40847cc966fcf5904906c920a7f17ef374f5aa4282abd304 \
