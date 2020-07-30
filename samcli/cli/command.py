@@ -57,7 +57,7 @@ class BaseCommand(click.MultiCommand):
         """
 
         # alias -h to --help for all commands
-        kwargs['context_settings'] = dict(help_option_names=['-h', '--help'])
+        kwargs["context_settings"] = dict(help_option_names=["-h", "--help"])
         super(BaseCommand, self).__init__(*args, **kwargs)
 
         if not cmd_packages:
