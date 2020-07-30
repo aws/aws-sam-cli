@@ -39,7 +39,7 @@ def get_template_data(template_file):
     if not pathlib.Path(template_file).exists():
         raise TemplateNotFoundException("Template file not found at {}".format(template_file))
 
-    with open(template_file, "r", encoding="UTF-8") as fp:
+    with open(template_file, "r", encoding="utf-8") as fp:
         try:
             return yaml_parse(fp.read())
         except (ValueError, yaml.YAMLError) as ex:

@@ -48,7 +48,7 @@ class Test_get_template_data(TestCase):
 
             self.assertEqual(result, parse_result)
 
-        m.assert_called_with(filename, "r", encoding="UTF-8")
+        m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
 
     @patch("samcli.commands._utils.template.yaml_parse")
@@ -68,7 +68,7 @@ class Test_get_template_data(TestCase):
 
             self.assertEqual(result, {"Myparameter": "String"})
 
-        m.assert_called_with(filename, "r", encoding="UTF-8")
+        m.assert_called_with(filename, "r", encoding="uft-8")
         yaml_parse_mock.assert_called_with(file_data)
 
     @parameterized.expand([param(ValueError()), param(yaml.YAMLError())])
