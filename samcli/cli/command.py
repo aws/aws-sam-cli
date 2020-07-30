@@ -75,6 +75,8 @@ class BaseCommand(click.MultiCommand):
 
         commands = OrderedDict()
 
+        print(commands) # debug
+
         for pkg_name in package_names:
             cmd_name = pkg_name.split(".")[-1]
             commands[cmd_name] = pkg_name
