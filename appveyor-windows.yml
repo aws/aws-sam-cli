@@ -87,6 +87,8 @@ test_script:
     - ps: Start-Sleep -s 10
     - ps: "Restart-Computer -Force"
     - ps: Start-Sleep -s 10
+    - "venv\\Scripts\\activate"
+    - "docker system prune -a -f"
     - "pytest -vv tests/integration"
 
 # Uncomment for RDP
