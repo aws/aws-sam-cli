@@ -80,6 +80,11 @@ test_script:
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
     - "pytest -vv tests/regression"
+    
+    # Change encoding to cp932
+    - ps: "Set-WinSystemLocale -SystemLocale ja-JP"
+    - ps: "Restart-Computer"
+    - "pytest -vv tests/integration"
 
 # Uncomment for RDP
 # on_finish:
