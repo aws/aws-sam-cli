@@ -83,7 +83,10 @@ test_script:
     
     # Change encoding to cp932
     - ps: "Set-WinSystemLocale -SystemLocale ja-JP"
-    - ps: "Restart-Computer"
+    # Add sleep to let build agent persist the state
+    - ps: Start-Sleep -s 10
+    - ps: "Restart-Computer -Force"
+    - ps: Start-Sleep -s 10
     - "pytest -vv tests/integration"
 
 # Uncomment for RDP
