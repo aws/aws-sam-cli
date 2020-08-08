@@ -606,7 +606,7 @@ us-east-1
     @patch("samcli.commands.init.interactive_event_bridge_flow.SchemasApiCaller")
     @patch("samcli.commands.init.interactive_event_bridge_flow.get_schemas_client")
     def test_init_cli_int_with_event_bridge_app_template_and_aws_configuration_with_wrong_region_name(
-        self, get_schemas_client_mock, schemas_api_caller_mock, session_mock, init_options_from_manifest_mock,
+        self, get_schemas_client_mock, schemas_api_caller_mock, session_mock, init_options_from_manifest_mock
     ):
         init_options_from_manifest_mock.return_value = [
             {
