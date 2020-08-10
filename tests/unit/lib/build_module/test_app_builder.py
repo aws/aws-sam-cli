@@ -154,8 +154,7 @@ class TestApplicationBuilder_update_template(TestCase):
 
         actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
         self.assertEqual(actual, expected_result)
-    
-    
+        
     # This test should run only on Windows since
     # os.path.relpath handles Windows path in Linux as a Linux path
     # Also building in Linux with Windows path does not happen
