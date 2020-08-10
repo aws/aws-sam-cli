@@ -154,11 +154,11 @@ class TestApplicationBuilder_update_template(TestCase):
 
         actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
         self.assertEqual(actual, expected_result)
-        
+
     # This test should run only on Windows since
     # os.path.relpath handles Windows path in Linux as a Linux path
     # Also building in Linux with Windows path does not happen
-    @skipUnless(os.name == 'nt', "requires Windows")
+    @skipUnless(os.name == "nt", "requires Windows")
     def test_must_write_absolute_path_for_different_drives(self):
         original_template_path = "C:\\path\\to\\template.txt"
         function_1_path = "D:\\path\\to\\build\\MyFunction1"
@@ -167,10 +167,7 @@ class TestApplicationBuilder_update_template(TestCase):
 
         expected_result = {
             "Resources": {
-                "MyFunction1": {
-                    "Type": "AWS::Serverless::Function",
-                    "Properties": {"CodeUri": function_1_path},
-                },
+                "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": function_1_path},},
                 "MyFunction2": {
                     "Type": "AWS::Lambda::Function",
                     "Properties": {"Code": "..\\..\\path2\\to\\build\\MyFunction2"},
