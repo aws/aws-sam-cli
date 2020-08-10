@@ -39,7 +39,8 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
-
+    - "docker version"
+    
     # setup make
     - "choco install make"
 
