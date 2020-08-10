@@ -17,6 +17,7 @@ environment:
 
 install:
     - "docker version"
+    
     # setup Java, Maven and Gradle
     - "refreshenv"
     - "choco install maven -y --force"
@@ -46,6 +47,10 @@ install:
 
     # Actually install SAM CLI's dependencies
     - "pip install -e \".[dev]\""
+
+    # Switch to Docker Linux containers
+    - ps: Switch-DockerLinux
+    - "docker version"
 
 test_script:
     # Reactivate virtualenv before running tests
