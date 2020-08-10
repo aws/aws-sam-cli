@@ -93,6 +93,10 @@ class TestRequestContext(TestCase):
             identity_mock,
             "extended_request_id",
             "path",
+            "protocol",
+            "domain_name",
+            "request_time_epoch",
+            "request_time",
         )
 
         self.assertEqual(request_context.resource_id, "resource_id")
@@ -105,6 +109,10 @@ class TestRequestContext(TestCase):
         self.assertEqual(request_context.identity, identity_mock)
         self.assertEqual(request_context.extended_request_id, "extended_request_id")
         self.assertEqual(request_context.path, "path")
+        self.assertEqual(request_context.protocol, "protocol")
+        self.assertEqual(request_context.domain_name, "domain_name")
+        self.assertEqual(request_context.request_time_epoch, "request_time_epoch")
+        self.assertEqual(request_context.request_time, "request_time")
 
     def test_to_dict(self):
         identity_mock = Mock()
@@ -121,6 +129,10 @@ class TestRequestContext(TestCase):
             identity_mock,
             "extended_request_id",
             "path",
+            "protocol",
+            "domain_name",
+            "request_time_epoch",
+            "request_time",
         )
 
         expected = {
@@ -134,12 +146,16 @@ class TestRequestContext(TestCase):
             "identity": {"identity": "the identity"},
             "extendedRequestId": "extended_request_id",
             "path": "path",
+            "protocol": "protocol",
+            "domainName": "domain_name",
+            "requestTimeEpoch": "request_time_epoch",
+            "requestTime": "request_time",
         }
 
         self.assertEqual(request_context.to_dict(), expected)
 
     def test_to_dict_with_defaults(self):
-        request_context = RequestContext()
+        request_context = RequestContext(request_time="request_time", request_time_epoch="request_time_epoch")
 
         expected = {
             "resourceId": "123456",
@@ -152,6 +168,10 @@ class TestRequestContext(TestCase):
             "identity": {},
             "extendedRequestId": None,
             "path": None,
+            "protocol": None,
+            "domainName": None,
+            "requestTimeEpoch": "request_time_epoch",
+            "requestTime": "request_time",
         }
 
         self.assertEqual(request_context.to_dict(), expected)
