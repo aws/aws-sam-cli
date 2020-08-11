@@ -140,6 +140,7 @@ def get_layer_subfolder(build_workflow):
         "ruby2.7": "ruby/lib",
         "java8": "java",
         "java11": "java",
+        "java8.al2": "java",
         # User is responsible for creating subfolder in these workflows
         "makefile": "",
     }
@@ -210,7 +211,14 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
             JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
             JAVA_MAVEN_CONFIG
         ]),
-        "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)
+        "java8.al2": ManifestWorkflowSelector([
+            # Gradle builder needs custom executable paths to find `gradlew` binary
+            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+            JAVA_MAVEN_CONFIG
+        ]),
+        "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
+        "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)
     }
     # First check if the runtime is present and is buildable, if not raise an UnsupportedRuntimeException Error.
     # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime so in that case
