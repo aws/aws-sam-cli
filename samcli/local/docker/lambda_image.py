@@ -195,7 +195,13 @@ class LambdaImage:
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
 
-            with create_tarball(tar_paths) as tarballfile:
+            # Set tar file permission to 777
+            # This is need for systems without unix like permission bits(Windows) while creating a unix image
+            def set_item_permission(tar_info):
+                tar_info.mode = 777
+                return tar_info
+
+            with create_tarball(tar_paths, filter=set_item_permission) as tarballfile:
                 try:
                     resp_stream = self.docker_client.api.build(
                         fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
