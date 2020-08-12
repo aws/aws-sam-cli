@@ -117,6 +117,8 @@ class LambdaBuildContainer(Container):
         mode,
     ):
 
+        runtime = runtime.replace(".al2", "")
+
         return json.dumps(
             {
                 "jsonschema": "2.0",

@@ -29,11 +29,13 @@ class Runtime(Enum):
     ruby25 = "ruby2.5"
     ruby27 = "ruby2.7"
     java8 = "java8"
+    java8al2 = "java8.al2"
     java11 = "java11"
     go1x = "go1.x"
     dotnetcore21 = "dotnetcore2.1"
     dotnetcore31 = "dotnetcore3.1"
     provided = "provided"
+    providedal2 = "provided.al2"
 
     @classmethod
     def has_value(cls, value):

@@ -18,7 +18,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 12: Java runtime
+        # 13: Java runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -28,7 +28,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
 
         user_input = """
 1
-12
+13
 1
 eb-app-maven
 3
@@ -52,7 +52,7 @@ Y
         # setup schema data
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 12: Java Runtime
+        # 13: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -62,7 +62,7 @@ Y
 
         user_input = """
 1
-12
+13
 1
 eb-app-maven
 3
@@ -97,7 +97,7 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 12: Java Runtime
+        # 13: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -109,7 +109,7 @@ Y
 
         user_input = """
 1
-12
+13
 1
 eb-app-maven
 3
@@ -135,7 +135,7 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 12: Java Runtime
+        # 13: Java Runtime
         # 1: dependency manager maven
         # eb-app-maven: response to name
         # 3: select event-bridge app from scratch
@@ -145,7 +145,7 @@ P
 
         user_input = """
 1
-12
+13
 1
 eb-app-maven
 3
