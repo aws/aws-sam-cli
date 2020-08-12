@@ -98,7 +98,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.guided_context.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -114,7 +113,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -162,7 +160,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.guided_context.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -178,7 +175,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -261,7 +257,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.guided_context.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
@@ -281,7 +276,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_data,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -380,7 +374,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.guided_context.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -404,7 +397,6 @@ class TestDeployCliCommand(TestCase):
         mock_managed_stack,
         mock_get_template_data,
         mockauth_per_resource,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -484,7 +476,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.guided_context.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
@@ -500,7 +491,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_data,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
