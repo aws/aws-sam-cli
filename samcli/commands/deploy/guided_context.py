@@ -14,7 +14,7 @@ from samcli.commands._utils.template import get_template_parameters, get_templat
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.auth_utils import auth_per_resource
-from samcli.commands.deploy.utils import sanitize_parameter_overrides, print_deploy_args
+from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.colors import Colored
 
@@ -164,15 +164,6 @@ class GuidedContext:
         guided_config.read_config_showcase()
 
         self.guided_prompts(_parameter_override_keys)
-
-        print_deploy_args(
-            stack_name=self.guided_stack_name,
-            s3_bucket=self.guided_s3_bucket,
-            region=self.guided_region,
-            capabilities=self._capabilities,
-            parameter_overrides=self._parameter_overrides,
-            confirm_changeset=self.confirm_changeset,
-        )
 
         if self.save_to_config:
             guided_config.save_config(
