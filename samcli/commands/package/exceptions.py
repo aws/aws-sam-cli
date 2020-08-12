@@ -94,13 +94,13 @@ class BucketNotSpecifiedError(UserException):
 
 class PackageResolveS3AndS3SetError(UserException):
     def __init__(self):
-        message_fmt = "Cannot use both --resolve-s3 and --s3-bucket parameters." "Please use only one."
+        message_fmt = "Cannot use both --resolve-s3 and --s3-bucket parameters. Please use only one."
 
         super(PackageResolveS3AndS3SetError, self).__init__(message=message_fmt)
 
 
 class PackageResolveS3AndS3NotSetError(UserException):
     def __init__(self):
-        message_fmt = "Cannot skip both --resolve-s3 and --s3-bucket parameters." "Please use only one."
+        message_fmt = "Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments."
 
         super(PackageResolveS3AndS3NotSetError, self).__init__(message=message_fmt)

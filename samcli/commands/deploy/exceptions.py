@@ -73,7 +73,7 @@ class DeployResolveS3AndS3SetError(UserException):
     def __init__(self):
         message_fmt = (
             "Cannot use both --resolve-s3 and --s3-bucket parameters in non-guided deployments."
-            "Please use only one or use the --guided option for a guided deployment."
+            " Please use only one or use the --guided option for a guided deployment."
         )
 
         super(DeployResolveS3AndS3SetError, self).__init__(message=message_fmt)
@@ -83,7 +83,7 @@ class DeployResolveS3AndS3NotSetError(UserException):
     def __init__(self):
         message_fmt = (
             "Cannot skip both --resolve-s3 and --s3-bucket parameters in non-guided deployments."
-            "Please use only one or use the --guided option for a guided deployment."
+            " Please use only one or use the --guided option for a guided deployment."
         )
 
         super(DeployResolveS3AndS3NotSetError, self).__init__(message=message_fmt)
