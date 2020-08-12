@@ -12,10 +12,10 @@ attrs==19.3.0 \
     --hash=sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c \
     --hash=sha256:f7b7ce16570fe9965acd6d30101a28f62fb4a7f9e926b3bbc9b61f8b04247e72 \
     # via jsonschema
-aws-sam-translator==1.25.0 \
-    --hash=sha256:33c5e9a04584a88b2dc730991f7aea52acc4a077a194444e16728dd2be997dc0 \
-    --hash=sha256:5b31769d271fa6c7e87cde076ce819f9f9c7da324b3880f2cd0f5f5aa837e520 \
-    --hash=sha256:f2d0585fc7dd071f136b543e9a614945cb80bbd3113a25f260797c126456dd25 \
+aws-sam-translator==1.26.0 \
+    --hash=sha256:1a3fd8e48a745967e8457b9cefdc3ad0f139ac4a25af4db9c13a9e1c19ea6910 \
+    --hash=sha256:3a200e6475f11726732b9b9c070ca4d58d2fe5ecc40e8fb629b09a053fba5640 \
+    --hash=sha256:de2f1b4efd83347639eb19fea37989e9da9a3c59da277320cf1e58a2f0ff6dd0 \
     # via aws-sam-cli (setup.py)
 aws_lambda_builders==1.0.0 \
     --hash=sha256:757ed604e5d0948e0a3d0e444b24f5f4fff1016d82c5d02158ffacc5554acabd \
@@ -58,9 +58,9 @@ dateparser==0.7.4 \
     --hash=sha256:1b1f0e3034f82d1f92b45fa445826da6a36d67af8a1169e04869685594276011 \
     --hash=sha256:fb5bfde4795fa4b179fe05c2c25b3981f785de26bec37e247dee1079c63d5689 \
     # via aws-sam-cli (setup.py)
-docker==4.2.0 \
-    --hash=sha256:1c2ddb7a047b2599d1faec00889561316c674f7099427b9c51e8cb804114b553 \
-    --hash=sha256:ddae66620ab5f4bce769f64bcd7934f880c8abe6aa50986298db56735d0f722e \
+docker==4.2.2 \
+    --hash=sha256:03a46400c4080cb6f7aa997f881ddd84fef855499ece219d75fbdb53289c17ab \
+    --hash=sha256:26eebadce7e298f55b76a88c4f8802476c5eaddbdbe38dbc6cce8781c47c9b54 \
     # via aws-sam-cli (setup.py)
 docutils==0.15.2 \
     --hash=sha256:6c4f696463b79f1fb8ba0c594b63840ebd41f059e92b31957c46b74a4599b6d0 \
@@ -200,9 +200,9 @@ serverlessrepo==0.1.9 \
     --hash=sha256:0c340d0e4437b5043eed2f2aafcb8fd6b16ab3d62ace19e70186542f4f7ac0f5 \
     --hash=sha256:7b58bd86f4ef1d0189fdaee17b7a322c59ef5bbf5373a3d2ceaf440886e35236 \
     # via aws-sam-cli (setup.py)
-six==1.14.0 \
-    --hash=sha256:236bdbdce46e6e6a3d61a337c0f8b763ca1e8717c03b369e87a7ec7ce1319c0a \
-    --hash=sha256:8f3cd2e254d8f793e7f3d6d9df77b92252b52637291d0f0da013c76ea2724b6c \
+six==1.15.0 \
+    --hash=sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259 \
+    --hash=sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced \
     # via aws-lambda-builders, aws-sam-translator, docker, jsonschema, pyrsistent, python-dateutil, serverlessrepo, websocket-client
 tomlkit==0.5.8 \
     --hash=sha256:32c10cc16ded7e4101c79f269910658cc2a0be5913f1252121c3cd603051c269 \

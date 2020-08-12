@@ -306,6 +306,8 @@ class ApplicationBuilder:
                                 dependency_manager=config.dependency_manager,
                                 application_framework=config.application_framework)
 
+        runtime = runtime.replace(".al2", "")
+
         try:
             builder.build(source_dir,
                           artifacts_dir,
