@@ -66,9 +66,10 @@ class SamTemplateValidator:
 
     def _replace_local_codeuri(self):
         """
-        Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api to a fake
-        S3 Uri. This is to support running the SAM Translator with valid values for these fields. If this in not done,
-        the template is invalid in the eyes of SAM Translator (the translator does not support local paths)
+        Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
+        AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM Translator with
+        valid values for these fields. If this in not done, the template is invalid in the eyes of SAM
+        Translator (the translator does not support local paths)
         """
 
         all_resources = self.sam_template.get("Resources", {})
@@ -94,6 +95,14 @@ class SamTemplateValidator:
                 SamTemplateValidator._update_to_s3_uri("ContentUri", resource_dict)
 
             if resource_type == "AWS::Serverless::Api":
+                if "DefinitionUri" in resource_dict:
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+
+            if resource_type == "AWS::Serverless::HttpApi":
+                if "DefinitionUri" in resource_dict:
+                    SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
+
+            if resource_type == "AWS::Serverless::StateMachine":
                 if "DefinitionUri" in resource_dict:
                     SamTemplateValidator._update_to_s3_uri("DefinitionUri", resource_dict)
 

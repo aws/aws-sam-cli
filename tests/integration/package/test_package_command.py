@@ -40,6 +40,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -52,6 +53,8 @@ class TestPackage(PackageIntegBase):
             "aws-serverless-layerversion.yaml",
             "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
         ]
     )
     def test_package_barebones(self, template_file):
@@ -83,6 +86,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -95,6 +99,8 @@ class TestPackage(PackageIntegBase):
             "aws-serverless-layerversion.yaml",
             "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
         ]
     )
     def test_package_with_prefix(self, template_file):
@@ -120,6 +126,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -132,6 +139,8 @@ class TestPackage(PackageIntegBase):
             "aws-serverless-layerversion.yaml",
             "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
         ]
     )
     def test_package_with_output_template_file(self, template_file):
@@ -169,6 +178,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -181,6 +191,8 @@ class TestPackage(PackageIntegBase):
             "aws-serverless-layerversion.yaml",
             "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
         ]
     )
     def test_package_with_json(self, template_file):
@@ -219,6 +231,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -231,6 +244,8 @@ class TestPackage(PackageIntegBase):
             "aws-serverless-layerversion.yaml",
             "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
         ]
     )
     def test_package_with_force_upload(self, template_file):
@@ -271,6 +286,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -283,6 +299,8 @@ class TestPackage(PackageIntegBase):
             "aws-serverless-layerversion.yaml",
             "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
         ]
     )
     def test_package_with_kms_key(self, template_file):
@@ -321,6 +339,7 @@ class TestPackage(PackageIntegBase):
         [
             "aws-serverless-function.yaml",
             "aws-serverless-api.yaml",
+            "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
@@ -333,6 +352,8 @@ class TestPackage(PackageIntegBase):
             "aws-serverless-layerversion.yaml",
             "aws-glue-job.yaml",
             "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
         ]
     )
     def test_package_with_metadata(self, template_file):

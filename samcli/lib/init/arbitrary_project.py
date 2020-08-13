@@ -103,7 +103,7 @@ def _download_and_copy(download_fn, output_dir):
     output_dir
     """
 
-    with osutils.mkdir_temp() as tempdir:
+    with osutils.mkdir_temp(ignore_errors=True) as tempdir:
         downloaded_dir = download_fn(clone_to_dir=tempdir)
         osutils.copytree(downloaded_dir, output_dir, ignore=shutil.ignore_patterns("*.git"))
 
