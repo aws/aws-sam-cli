@@ -41,7 +41,7 @@ class TestTar(TestCase):
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
 
         def tar_filter(tar_info):
-            tar_info.mode = 0o777
+            tar_info.mode = 0o500
             return tar_info
 
         with create_tarball(

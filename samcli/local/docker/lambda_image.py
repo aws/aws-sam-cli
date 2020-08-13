@@ -198,12 +198,14 @@ class LambdaImage:
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
 
-            # Set tar file permission to 777
+            # Set permission for all the files in the tarball to 500(Read and Execute Only)
             # This is need for systems without unix like permission bits(Windows) while creating a unix image
+            # Without setting this explicitly, tar will default the permission to 666 which gives no execute permission
             def set_item_permission(tar_info):
-                tar_info.mode = 0o777
+                tar_info.mode = 0o500
                 return tar_info
 
+            # Set only on Windows, unix systems will preserve the host permission into the tarball
             tar_filter = set_item_permission if platform.system().lower() == "windows" else None
 
             with create_tarball(tar_paths, tar_filter=tar_filter) as tarballfile:
