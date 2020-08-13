@@ -19,7 +19,7 @@ class TestTar(TestCase):
 
         tarfile_file_mock.add.assert_called()
         tarfile_file_mock.add.assert_has_calls(
-            [call("/some/path", arcname="/layer1"), call("/some/dockerfile/path", arcname="/Dockerfile")],
+            [call("/some/path", arcname="/layer1", filter=None), call("/some/dockerfile/path", arcname="/Dockerfile", filter=None)],
             any_order=True,
         )
 

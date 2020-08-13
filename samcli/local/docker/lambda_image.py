@@ -201,7 +201,7 @@ class LambdaImage:
                 tar_info.mode = 777
                 return tar_info
 
-            with create_tarball(tar_paths, filter=set_item_permission) as tarballfile:
+            with create_tarball(tar_paths, tar_filter=set_item_permission) as tarballfile:
                 try:
                     resp_stream = self.docker_client.api.build(
                         fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
