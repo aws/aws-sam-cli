@@ -201,7 +201,7 @@ class LambdaImage:
             # Set tar file permission to 777
             # This is need for systems without unix like permission bits(Windows) while creating a unix image
             def set_item_permission(tar_info):
-                tar_info.mode = 777
+                tar_info.mode = 0o777
                 return tar_info
 
             tar_filter = set_item_permission if platform.system().lower() == "windows" else None
