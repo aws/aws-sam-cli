@@ -2,7 +2,6 @@ from unittest import TestCase
 from unittest.mock import Mock, patch, call
 
 from samcli.lib.utils.tar import create_tarball
-from tests.testing_utils import IS_WINDOWS
 
 
 class TestTar(TestCase):
