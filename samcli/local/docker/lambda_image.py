@@ -8,6 +8,7 @@ from enum import Enum
 from pathlib import Path
 
 import sys
+import platform
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
@@ -203,7 +204,9 @@ class LambdaImage:
                 tar_info.mode = 777
                 return tar_info
 
-            with create_tarball(tar_paths, tar_filter=set_item_permission) as tarballfile:
+            tar_filter = set_item_permission if platform.system().lower() == "windows" else None
+
+            with create_tarball(tar_paths, tar_filter=tar_filter) as tarballfile:
                 try:
                     resp_stream = self.docker_client.api.build(
                         fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image
