@@ -16,6 +16,7 @@ environment:
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 install:
+
     # setup Java, Maven and Gradle
     - "refreshenv"
     - "choco install maven -y --force"

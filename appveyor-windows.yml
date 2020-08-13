@@ -39,6 +39,7 @@ cache:
   - C:\ProgramData\chocolatey\lib -> appveyor.yml
 
 install:
+
     # setup make
     - "choco install make"
 
