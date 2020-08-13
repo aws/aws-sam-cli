@@ -16,6 +16,8 @@ from samcli.lib.build.app_builder import (
     BuildInsideContainerError,
 )
 
+from tests.testing_utils import IS_WINDOWS
+
 
 class TestApplicationBuilder_build(TestCase):
     def setUp(self):
@@ -158,7 +160,7 @@ class TestApplicationBuilder_update_template(TestCase):
     # This test should run only on Windows since
     # os.path.relpath handles Windows path in Linux as a Linux path
     # Also building in Linux with Windows path does not happen
-    @skipUnless(os.name == "nt", "requires Windows")
+    @skipUnless(IS_WINDOWS, "Requires Windows")
     def test_must_write_absolute_path_for_different_drives(self):
         original_template_path = "C:\\path\\to\\template.txt"
         function_1_path = "D:\\path\\to\\build\\MyFunction1"
