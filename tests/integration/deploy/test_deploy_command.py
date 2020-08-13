@@ -381,7 +381,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         }
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(**kwargs)
-
+        print("######################################")
+        print(deploy_command_list)
+        print("######################################")
         deploy_process_execute = run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -543,6 +545,28 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.stack_names.append(SAM_CLI_STACK_NAME)
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_with_no_s3_bucket_set_resolve_s3(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            resolve_s3=True,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
