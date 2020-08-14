@@ -218,6 +218,8 @@ class LocalApigwService(BaseLocalService):
             LOG.error("Invalid lambda response received: %s", ex)
             return ServiceErrorResponses.lambda_failure_response()
 
+        # set the http header server field as 'does not exist' to avoid exposing local server info to public
+        headers.set("server", "does not exist")
         return self.service_response(body, headers, status_code)
 
     def _get_current_route(self, flask_request):
