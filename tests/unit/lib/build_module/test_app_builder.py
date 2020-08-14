@@ -1,4 +1,5 @@
 import os
+import sys
 import docker
 import json
 
@@ -157,6 +158,31 @@ class TestApplicationBuilder_update_template(TestCase):
         actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
         self.assertEqual(actual, expected_result)
 
+    def test_must_skip_if_no_artifacts(self):
+        built_artifacts = {}
+        actual = self.builder.update_template(self.template_dict, "/foo/bar/template.txt", built_artifacts)
+
+        self.assertEqual(actual, self.template_dict)
+
+
+class TestApplicationBuilder_update_template_windows(TestCase):
+    def setUp(self):
+        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir")
+
+        self.template_dict = {
+            "Resources": {
+                "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
+                "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
+                "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+            }
+        }
+
+        # Force os.path to be ntpath instead of posixpath on unix systems
+        import ntpath
+        self.saved_os_path_module = sys.modules["os.path"]
+        os.path = sys.modules["ntpath"]
+
     def test_must_write_absolute_path_for_different_drives(self):
         def mock_new(cls, *args, **kwargs):
             cls = WindowsPath
@@ -164,7 +190,7 @@ class TestApplicationBuilder_update_template(TestCase):
             self._init()
             return self
 
-        with patch('pathlib.Path.__new__', new=mock_new):
+        with patch("pathlib.Path.__new__", new=mock_new):
             original_template_path = "C:\\path\\to\\template.txt"
             function_1_path = "D:\\path\\to\\build\\MyFunction1"
             function_2_path = "C:\\path2\\to\\build\\MyFunction2"
@@ -177,7 +203,10 @@ class TestApplicationBuilder_update_template(TestCase):
                         "Type": "AWS::Lambda::Function",
                         "Properties": {"Code": "..\\..\\path2\\to\\build\\MyFunction2"},
                     },
-                    "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
+                    "GlueResource": {
+                        "Type": "AWS::Glue::Job",
+                        "Properties": {"Command": {"ScriptLocation": "something"}},
+                    },
                     "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
                 }
             }
@@ -185,11 +214,8 @@ class TestApplicationBuilder_update_template(TestCase):
             actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
             self.assertEqual(actual, expected_result)
 
-    def test_must_skip_if_no_artifacts(self):
-        built_artifacts = {}
-        actual = self.builder.update_template(self.template_dict, "/foo/bar/template.txt", built_artifacts)
-
-        self.assertEqual(actual, self.template_dict)
+    def tearDown(self):
+        os.path = self.saved_os_path_module
 
 
 class TestApplicationBuilder_build_function(TestCase):
