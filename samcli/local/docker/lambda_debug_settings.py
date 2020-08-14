@@ -49,6 +49,13 @@ class LambdaDebugSettings:
                     + " ".join(debug_args_list)
                 },
             ),
+            Runtime.java8al2.value: DebugSettings(
+                entry,
+                debug_env_vars={
+                    "_JAVA_OPTIONS": f"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address={debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k -XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation -Djava.net.preferIPv4Stack=true -Xshare:off"
+                    + " ".join(debug_args_list)
+                },
+            ),
             Runtime.java11.value: DebugSettings(
                 entry,
                 debug_env_vars={
