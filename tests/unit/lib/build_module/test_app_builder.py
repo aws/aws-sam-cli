@@ -180,6 +180,7 @@ class TestApplicationBuilder_update_template_windows(TestCase):
 
         # Force os.path to be ntpath instead of posixpath on unix systems
         import ntpath
+
         self.saved_os_path_module = sys.modules["os.path"]
         os.path = sys.modules["ntpath"]
 
@@ -202,7 +203,10 @@ class TestApplicationBuilder_update_template_windows(TestCase):
 
                 expected_result = {
                     "Resources": {
-                        "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": function_1_path},},
+                        "MyFunction1": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": function_1_path},
+                        },
                         "MyFunction2": {
                             "Type": "AWS::Lambda::Function",
                             "Properties": {"Code": "..\\..\\path2\\to\\build\\MyFunction2"},
