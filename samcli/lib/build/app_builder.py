@@ -147,7 +147,7 @@ class ApplicationBuilder:
             Updated template
         """
 
-        original_dir = pathlib.Path(os.path.dirname(original_template_path))
+        original_dir = pathlib.Path(original_template_path).parent.resolve()
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
@@ -155,14 +155,14 @@ class ApplicationBuilder:
                 # this resource was not built. So skip it
                 continue
 
-            artifact_dir = pathlib.Path(built_artifacts[logical_id])
+            artifact_dir = pathlib.Path(built_artifacts[logical_id]).resolve()
 
             # Default path to absolute path of the artifact
             store_path = str(artifact_dir)
 
             # In Windows, if template and artifacts are in two different drives, relpath will fail
             if original_dir.drive == artifact_dir.drive:
-            # Artifacts are written relative  the template because it makes the template portable
+                # Artifacts are written relative  the template because it makes the template portable
                 #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
                 #   package stage running on a different machine
                 store_path = os.path.relpath(artifact_dir, original_dir)
