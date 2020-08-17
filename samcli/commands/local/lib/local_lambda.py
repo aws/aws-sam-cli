@@ -100,6 +100,7 @@ class LocalLambdaRunner:
         try:
             self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
         except OSError as os_error:
+            # pylint: disable=no-member
             if hasattr(os_error, "winerror") and os_error.winerror == 1314:
                 raise NoPrivilegeException(
                     "Administrator, Windows Developer Mode, or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
