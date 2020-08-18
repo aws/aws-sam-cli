@@ -108,6 +108,8 @@ class LocalLambdaRunner:
                     )
                 )
 
+            raise
+
     def is_debugging(self):
         """
         Are we debugging the invoke?
