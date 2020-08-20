@@ -8,6 +8,7 @@ import sys
 import docker
 import requests
 
+from samcli import __version__ as SAM_CLI_VERSION
 from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
@@ -71,10 +72,14 @@ class ContainerManager:
 
         is_image_local = self.has_image(image_name)
 
-        # Skip Pulling a new image if: a) Image name is samcli/lambda OR b) Image is available AND
-        # c) We are asked to skip pulling the image
-        if (is_image_local and self.skip_pull_image) or image_name.startswith("samcli/lambda"):
+        # Skip Pulling a new image if:
+        # a) Image is available AND we are asked to skip pulling the image
+        # OR b) Image name is samcli/lambda
+        # OR c) Image is available AND image name ends with "rapid-${SAM_CLI_VERSION}"
+        if is_image_local and self.skip_pull_image:
             LOG.info("Requested to skip pulling images ...\n")
+        elif image_name.startswith("samcli/lambda") or (is_image_local and self._is_rapid_image(image_name)):
+            LOG.info("Skip pulling image % and use local image.\n", image_name)
         else:
             try:
                 self.pull_image(image_name)
@@ -151,6 +156,21 @@ class ContainerManager:
             return True
         except docker.errors.ImageNotFound:
             return False
+
+    def _is_rapid_image(self, image_name):
+        """
+        Is the image tagged as a RAPID clone?
+
+        : param string image_name: Name of the image
+        : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
+        """
+
+        rapid_suffix = f"rapid-{SAM_CLI_VERSION}"
+        image_suffix = image_name.split(":")[-1]
+
+        if (image_suffix != image_name) and (image_suffix == rapid_suffix):
+            return True
+        return False
 
 
 class DockerImagePullFailedException(Exception):
