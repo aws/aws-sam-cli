@@ -9,7 +9,6 @@ import requests
 
 from unittest.mock import Mock
 from docker.errors import APIError, ImageNotFound
-from samcli import __version__ as SAM_CLI_VERSION
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 
 
@@ -90,7 +89,7 @@ class TestContainerManager_run(TestCase):
 
     def test_must_not_pull_image_if_image_is_rapid_image(self):
         input_data = "input data"
-        rapid_image_name = f"Mock_image_name:rapid-{SAM_CLI_VERSION}"
+        rapid_image_name = "Mock_image_name:rapid-1.0.0"
 
         self.manager.has_image = Mock()
         self.manager.pull_image = Mock()

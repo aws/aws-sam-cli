@@ -5,10 +5,10 @@ Provides classes that interface with Docker to create, execute and manage contai
 import logging
 
 import sys
+import re
 import docker
 import requests
 
-from samcli import __version__ as SAM_CLI_VERSION
 from samcli.lib.utils.stream_writer import StreamWriter
 
 LOG = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class ContainerManager:
         if is_image_local and self.skip_pull_image:
             LOG.info("Requested to skip pulling images ...\n")
         elif image_name.startswith("samcli/lambda") or (is_image_local and self._is_rapid_image(image_name)):
-            LOG.info("Skip pulling image % and use local image.\n", image_name)
+            LOG.info("Skip pulling image and use local one: %s.\n", image_name)
         else:
             try:
                 self.pull_image(image_name)
@@ -165,12 +165,9 @@ class ContainerManager:
         : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
         """
 
-        rapid_suffix = f"rapid-{SAM_CLI_VERSION}"
-        image_suffix = image_name.split(":")[-1]
-
-        if (image_suffix != image_name) and (image_suffix == rapid_suffix):
-            return True
-        return False
+        if not re.search(r"rapid-\d+\.\d+.\d+$", image_name):
+            return False
+        return True
 
 
 class DockerImagePullFailedException(Exception):
