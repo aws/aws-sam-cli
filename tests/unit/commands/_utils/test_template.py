@@ -103,6 +103,7 @@ class Test_get_template_data(TestCase):
 
         yaml_parse_mock.return_value = parse_result
 
+        # mock open with a different default encoding
         def mock_encoding_open(
             file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None
         ):
