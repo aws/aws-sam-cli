@@ -80,17 +80,6 @@ test_script:
     - "docker system prune -a -f"
     - "pytest -vv tests/integration"
     - "pytest -vv tests/regression"
-    
-    # Change encoding to cp932
-    - ps: "Set-WinSystemLocale -SystemLocale ja-JP"
-    # Add sleep to let build agent persist the state
-    - ps: Start-Sleep -s 10
-    - ps: "Restart-Computer -Force"
-    - ps: Start-Sleep -s 10
-    - ps: Switch-DockerLinux
-    - "venv\\Scripts\\activate"
-    - "docker system prune -a -f"
-    - "pytest -vv tests/integration/local/invoke/test_integrations_cli.py"
 
 # Uncomment for RDP
 # on_finish:
