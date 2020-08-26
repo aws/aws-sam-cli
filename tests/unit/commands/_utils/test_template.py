@@ -103,12 +103,16 @@ class Test_get_template_data(TestCase):
 
         yaml_parse_mock.return_value = parse_result
 
-        def mock_encoding_open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None):
+        def mock_encoding_open(
+            file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None
+        ):
             if encoding is None:
                 encoding = default_locale_encoding
             mock_file = MagicMock()
+
             def mock_read():
                 return file_data.encode("utf-8").decode(encoding)
+
             # __enter__ is used for with open(...) PEP343
             mock_file.__enter__.return_value = mock_file
             mock_file.read = mock_read
