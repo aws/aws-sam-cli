@@ -13,6 +13,7 @@ from samcli.commands._utils.options import (
     metadata_override_option,
     notification_arns_override_option,
     parameter_override_option,
+    no_progressbar_option,
     tags_override_option,
     template_click_option,
 )
@@ -139,6 +140,7 @@ LOG = logging.getLogger(__name__)
 @notification_arns_override_option
 @tags_override_option
 @parameter_override_option
+@no_progressbar_option
 @capabilities_override_option
 @aws_creds_options
 @common_options
@@ -150,6 +152,7 @@ def cli(
     stack_name,
     s3_bucket,
     force_upload,
+    no_progressbar,
     s3_prefix,
     kms_key_id,
     parameter_overrides,
@@ -172,6 +175,7 @@ def cli(
         stack_name,
         s3_bucket,
         force_upload,
+        no_progressbar,
         s3_prefix,
         kms_key_id,
         parameter_overrides,
@@ -196,6 +200,7 @@ def do_cli(
     stack_name,
     s3_bucket,
     force_upload,
+    no_progressbar,
     s3_prefix,
     kms_key_id,
     parameter_overrides,
@@ -253,6 +258,7 @@ def do_cli(
             kms_key_id=kms_key_id,
             use_json=use_json,
             force_upload=force_upload,
+            no_progressbar=no_progressbar,
             metadata=metadata,
             on_deploy=True,
             region=guided_context.guided_region if guided else region,
@@ -265,6 +271,7 @@ def do_cli(
             stack_name=guided_context.guided_stack_name if guided else stack_name,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
             force_upload=force_upload,
+            no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
             parameter_overrides=sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
