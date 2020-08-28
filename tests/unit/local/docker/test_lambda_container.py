@@ -197,8 +197,7 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         elif runtime in RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY:
             result, _ = LambdaContainer._get_debug_settings(runtime, self.debug_options)
-            self.assertEquals("/var/rapid/init", result, "{} runtime must not override entrypoint".format(runtime))
-
+            self.assertEqual("/var/rapid/init", result, "{} runtime must not override entrypoint".format(runtime))
         else:
             with self.assertRaises(DebuggingNotSupported):
                 LambdaContainer._get_debug_settings(runtime, self.debug_options)

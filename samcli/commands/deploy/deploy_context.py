@@ -61,6 +61,7 @@ class DeployContext:
         region,
         profile,
         confirm_changeset,
+        signing_profiles,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -81,6 +82,7 @@ class DeployContext:
         self.s3_uploader = None
         self.deployer = None
         self.confirm_changeset = confirm_changeset
+        self.signing_profiles = signing_profiles
 
     def __enter__(self):
         return self
@@ -129,6 +131,7 @@ class DeployContext:
             self.capabilities,
             self.parameter_overrides,
             self.confirm_changeset,
+            self.signing_profiles,
         )
         return self.deploy(
             self.stack_name,

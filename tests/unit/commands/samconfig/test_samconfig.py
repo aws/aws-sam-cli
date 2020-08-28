@@ -316,6 +316,7 @@ class TestSamConfigForAllCommands(TestCase):
             "metadata": '{"m1": "value1", "m2": "value2"}',
             "region": "myregion",
             "output_template_file": "output.yaml",
+            "signing_profiles": {"function": {"profile_name": "profile", "profile_owner": "owner"}},
         }
 
         with samconfig_parameters(["package"], self.scratch_dir, **config_values) as config_path:
@@ -342,6 +343,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 False,
                 {"m1": "value1", "m2": "value2"},
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
                 "myregion",
                 None,
                 False,
@@ -369,6 +371,7 @@ class TestSamConfigForAllCommands(TestCase):
             "guided": True,
             "confirm_changeset": True,
             "region": "myregion",
+            "signing_profiles": {"function": {"profile_name": "profile", "profile_owner": "owner"}},
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -409,6 +412,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "samconfig.toml",
                 "default",
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -433,6 +437,7 @@ class TestSamConfigForAllCommands(TestCase):
             "guided": True,
             "confirm_changeset": True,
             "region": "myregion",
+            "signing_profiles": {"function": {"profile_name": "profile", "profile_owner": "owner"}},
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -473,6 +478,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "samconfig.toml",
                 "default",
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
             )
 
     @patch("samcli.commands.logs.command.do_cli")

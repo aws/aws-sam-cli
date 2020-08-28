@@ -6,7 +6,9 @@ import json
 import click
 
 
-def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_overrides, confirm_changeset):
+def print_deploy_args(
+    stack_name, s3_bucket, region, capabilities, parameter_overrides, confirm_changeset, signing_profiles
+):
     """
     Print a table of the values that are used during a sam deploy
 
@@ -20,6 +22,7 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
         Deployment s3 bucket       : aws-sam-cli-managed-default-samclisourcebucket-abcdef
         Capabilities               : ["CAPABILITY_IAM"]
         Parameter overrides        : {'MyParamater': '***', 'Parameter2': 'dd'}
+        Code sign configurations   : {'MyFunction': 'ProfileName:ProfileOwner'}
 
     :param stack_name: Name of the stack used during sam deploy
     :param s3_bucket: Name of s3 bucket used for packaging code artifacts
@@ -37,6 +40,11 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
 
     capabilities_string = json.dumps(capabilities)
 
+    _signing_profiles = {}
+    if signing_profiles:
+        for key, value in signing_profiles.items():
+            _signing_profiles[key] = f"{value['profile_name']}:{value['profile_owner']}"
+
     click.secho("\n\tDeploying with following values\n\t===============================", fg="yellow")
     click.echo(f"\tStack name                 : {stack_name}")
     click.echo(f"\tRegion                     : {region}")
@@ -44,6 +52,7 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
     click.echo(f"\tDeployment s3 bucket       : {s3_bucket}")
     click.echo(f"\tCapabilities               : {capabilities_string}")
     click.echo(f"\tParameter overrides        : {_parameters}")
+    click.echo(f"\tSigning Profiles           : {signing_profiles}")
 
     click.secho("\nInitiating deployment\n=====================", fg="yellow")
 

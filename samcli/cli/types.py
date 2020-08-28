@@ -12,7 +12,6 @@ PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 
 
 def _generate_match_regex(match_pattern, delim):
-
     """
     Creates a regex string based on a match pattern (also a regex) that is to be
     run on a string (which may contain escaped quotes) that is separated by delimiters.
@@ -272,3 +271,82 @@ class CfnTags(click.ParamType):
                 return False, None
             tags_dict = {**tags_dict, **parsed_tag}
         return True, tags_dict
+
+
+class SigningProfilesOptionType(click.ParamType):
+    """
+    Custom parameter type to parse Signing Profile options
+    Example options could be;
+    - MyFunctionOrLayerToBeSigned=MySigningProfile
+    - MyFunctionOrLayerToBeSigned=MySigningProfile:MyProfileOwner
+
+    See convert function docs for details
+    """
+
+    # Note: this is required, otherwise it is failing when running help
+    name = ""
+
+    def convert(self, value, param, ctx):
+        """
+        Converts given Signing Profile options to a dictionary where Function or Layer name would be key,
+        and signing profile details would be the value.
+
+        Since this method is also been used when we are reading the config details from samconfig.toml,
+        If value is already a dictionary, don't need to do anything, just return it.
+        If value is an array, then each value will correspond to a function or layer config, and here it is parsed
+        and converted into a dictionary
+        """
+        result = {}
+
+        # Empty tuple
+        if value == ("",):
+            return result
+
+        # if it is coming from config file, it should be a dictionary, and not need to parse it
+        if isinstance(value, dict):
+            return value
+
+        # otherwise type should be array, which is coming from command line
+        # each element inside array corresponds to Function or Layer code sign option
+        for val in value:
+            (function_name, signing_profiles) = self._split_function_and_code_sign_params(val)
+
+            if not function_name:
+                return self.fail(
+                    f"{val} is not a valid code sign config, it should look like this 'MyFunction=SigningProfile'",
+                    param,
+                    ctx,
+                )
+
+            (signer_profile_name, signer_profile_owner) = self._split_signer_profile_name_owner(signing_profiles)
+
+            if not signer_profile_name:
+                return self.fail(
+                    f"Signer profile option has invalid format, it should look like this MyFunction=MySigningProfile "
+                    f"or MyFunction=MySigningProfile:MySigningProfileOwner",
+                    param,
+                    ctx,
+                )
+
+            result[function_name] = {"profile_name": signer_profile_name, "profile_owner": signer_profile_owner}
+
+        return result
+
+    @staticmethod
+    def _split_function_and_code_sign_params(param_value):
+        equals_count = param_value.count("=")
+
+        if equals_count != 1:
+            return None, None
+
+        return param_value.split("=")
+
+    @staticmethod
+    def _split_signer_profile_name_owner(signing_profile):
+        equals_count = signing_profile.count(":")
+
+        if equals_count > 1:
+            return None, None
+        if equals_count == 1:
+            return signing_profile.split(":")
+        return signing_profile, ""

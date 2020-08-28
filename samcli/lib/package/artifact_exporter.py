@@ -171,7 +171,7 @@ def resource_not_packageable(resource_dict):
 
 def zip_and_upload(local_path, uploader):
     with zip_folder(local_path) as (zip_file, md5_hash):
-        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash)
+        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash, extension="zip")
 
 
 @contextmanager
@@ -257,8 +257,9 @@ class Resource:
     # up the file before uploading This is useful for Lambda functions.
     FORCE_ZIP = False
 
-    def __init__(self, uploader):
+    def __init__(self, uploader, code_signer):
         self.uploader = uploader
+        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -299,8 +300,14 @@ class Resource:
         """
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
+        If code signing configuration is provided for function/layer, uploaded artifact
+        will be replaced by signed artifact location
         """
         uploaded_url = upload_local_artifacts(resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader)
+        if self.code_signer.should_sign_package(resource_id):
+            uploaded_url = self.code_signer.sign_package(
+                resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
+            )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
@@ -499,7 +506,7 @@ class CloudFormationStackResource(Resource):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(template_path, parent_dir, self.uploader).export()
+        exported_template_dict = Template(template_path, parent_dir, self.uploader, self.code_signer).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -593,6 +600,7 @@ class Template:
         template_path,
         parent_dir,
         uploader,
+        code_signer,
         resources_to_export=frozenset(RESOURCES_EXPORT_LIST),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
     ):
@@ -613,6 +621,7 @@ class Template:
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploader = uploader
+        self.code_signer = code_signer
 
     def export_global_artifacts(self, template_dict):
         """
@@ -703,7 +712,7 @@ class Template:
                     continue
 
                 # Export code resources
-                exporter = exporter_class(self.uploader)
+                exporter = exporter_class(self.uploader, self.code_signer)
                 exporter.export(resource_id, resource_dict, self.template_dir)
 
         return self.template_dict
