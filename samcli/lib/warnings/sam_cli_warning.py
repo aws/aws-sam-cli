@@ -10,6 +10,7 @@ class TemplateWarning:
     """
     Top level class which all warnings should extend from.
     """
+
     def check(self, template_dict):
         raise Exception("NotImplementedException")
 

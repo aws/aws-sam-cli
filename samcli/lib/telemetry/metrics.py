@@ -15,7 +15,6 @@ from .telemetry import Telemetry
 
 LOG = logging.getLogger(__name__)
 
-
 WARNING_ANNOUNCEMENT = "WARNING: {}"
 
 
@@ -49,6 +48,7 @@ def track_template_warnings(warning_names):
             telemetry = Telemetry()
             template_warning_checker = TemplateWarningsChecker()
             ctx = Context.get_current_context()
+
             try:
                 ctx.template_dict
             except AttributeError:
@@ -56,14 +56,8 @@ def track_template_warnings(warning_names):
                 return func(*args, **kwargs)
             for warning_name in warning_names:
                 warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
-                metric = {
-                    "awsProfileProvided": bool(ctx.profile),
-                    "debugFlagProvided": bool(ctx.debug),
-                    "region": ctx.region or "",
-                    "warningName": warning_name,  # Full command path. ex: sam local start-api
-                    "warningCount": 1 if warning_message else 0,  # 1-True or 0-False
-                }
-                telemetry.emit("templateWarning", metric)
+                telemetry.emit("templateWarning", _build_warning_metric(ctx, warning_name, warning_message))
+
                 if warning_message:
                     click.secho(WARNING_ANNOUNCEMENT.format(warning_message), fg="yellow")
 
@@ -72,6 +66,16 @@ def track_template_warnings(warning_names):
         return wrapped
 
     return decorator
+
+
+def _build_warning_metric(ctx, warning_name, warning_message):
+    return {
+        "awsProfileProvided": bool(ctx.profile),
+        "debugFlagProvided": bool(ctx.debug),
+        "region": ctx.region or "",
+        "warningName": warning_name,  # Full command path. ex: sam local start-api
+        "warningCount": 1 if warning_message else 0,  # 1-True or 0-False
+    }
 
 
 def track_command(func):
