@@ -49,6 +49,19 @@ Resources:
         Event: 'some-event'
 """
 
+NO_DEPLOYMENT_PREFERENCES = """
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+        Random: Property
+
+  preTrafficHook:
+    Type: AWS::Serverless::Function
+    Properties:
+        Random: Property
+"""
+
 
 class TestWarnings(TestCase):
     def setUp(self):
@@ -60,10 +73,15 @@ class TestWarnings(TestCase):
             param(FAULTY_TEMPLATE, CodeDeployWarning.WARNING_MESSAGE, True),
             param(ALL_DISABLED_TEMPLATE, CodeDeployWarning.WARNING_MESSAGE, False),
             param(ALL_ENABLED_TEMPLATE, CodeDeployWarning.WARNING_MESSAGE, False),
+            param(NO_DEPLOYMENT_PREFERENCES, CodeDeployWarning.WARNING_MESSAGE, False),
+            param(None, CodeDeployWarning.WARNING_MESSAGE, False),
         ]
     )
     def test_warning_check(self, template_txt, expected_warning_msg, message_present):
-        template_dict = yaml_parse(template_txt)
+        if template_txt:
+            template_dict = yaml_parse(template_txt)
+        else:
+            template_dict = None
         current_warning_checker = TemplateWarningsChecker()
         actual_warning_msg = current_warning_checker.check_template_for_warning(
             CodeDeployWarning.__name__, template_dict
@@ -72,6 +90,12 @@ class TestWarnings(TestCase):
             self.assertIsNone(actual_warning_msg)
         else:
             self.assertEqual(expected_warning_msg, actual_warning_msg)
+
+    def test_warning_check_invalid_warning_name(self):
+        template_dict = yaml_parse(ALL_ENABLED_TEMPLATE)
+        current_warning_checker = TemplateWarningsChecker()
+        actual_warning_msg = current_warning_checker.check_template_for_warning("SomeRandomName", template_dict)
+        self.assertIsNone(actual_warning_msg)
 
 
 class TestCodeDeployWarning(TestCase):

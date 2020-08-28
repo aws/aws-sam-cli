@@ -101,6 +101,32 @@ class TestTrackWarning(TestCase):
         self.telemetry_instance.emit.assert_has_calls([call("templateWarning", expected_attrs)])
         secho_mock.assert_not_called()
 
+    @patch("samcli.lib.telemetry.metrics.Context")
+    @patch("samcli.lib.telemetry.metrics.TemplateWarningsChecker")
+    @patch("click.secho")
+    def test_must_not_emit_warning_metric_when_telemetry_disabled(
+        self, secho_mock, TemplateWarningsCheckerMock, ContextMock
+    ):
+        self.gc_instance_mock.telemetry_enabled = False
+        ContextMock.get_current_context.return_value = self.context_mock
+        template_warnings_checker_mock = TemplateWarningsCheckerMock.return_value = Mock()
+        template_warnings_checker_mock.check_template_for_warning.return_value = None
+
+        def real_fn():
+            return False, ""
+
+        track_template_warnings(["DummyWarningName"])(real_fn)()
+
+        expected_attrs = {
+            "awsProfileProvided": False,
+            "debugFlagProvided": False,
+            "region": "myregion",
+            "warningName": "DummyWarningName",
+            "warningCount": 0,
+        }
+        self.telemetry_instance.emit.assert_not_called()
+        secho_mock.assert_not_called()
+
 
 class TestTrackCommand(TestCase):
     def setUp(self):

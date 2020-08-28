@@ -43,8 +43,6 @@ def track_template_warnings(warning_names):
         """
 
         def wrapped(*args, **kwargs):
-            if not _telemetry_enabled():
-                return func(*args, **kwargs)
             telemetry = Telemetry()
             template_warning_checker = TemplateWarningsChecker()
             ctx = Context.get_current_context()
@@ -56,7 +54,8 @@ def track_template_warnings(warning_names):
                 return func(*args, **kwargs)
             for warning_name in warning_names:
                 warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
-                telemetry.emit("templateWarning", _build_warning_metric(ctx, warning_name, warning_message))
+                if _telemetry_enabled():
+                    telemetry.emit("templateWarning", _build_warning_metric(ctx, warning_name, warning_message))
 
                 if warning_message:
                     click.secho(WARNING_ANNOUNCEMENT.format(warning_message), fg="yellow")

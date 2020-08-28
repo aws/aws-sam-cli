@@ -41,7 +41,7 @@ class TemplateWarningsChecker:
         """
         if not template_dict:
             return None
-        warning = self.all_warnings[warning_name]
+        warning = self.all_warnings.get(warning_name, None)
         if not warning:
             LOG.error("UnknownWarning name found: %s", warning_name)
             return None
