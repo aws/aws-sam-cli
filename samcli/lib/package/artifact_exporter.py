@@ -27,6 +27,7 @@ from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
 import jmespath
+import platform
 
 from samcli.commands._utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
@@ -203,7 +204,19 @@ def make_zip(file_name, source_root):
                 for filename in files:
                     full_path = os.path.join(root, filename)
                     relative_path = os.path.relpath(full_path, source_root)
-                    zf.write(full_path, relative_path)
+                    if platform.system().lower() == "windows":
+                        with open(full_path, "rb") as data:
+                            file_bytes = data.read()
+                            info = zipfile.ZipInfo(relative_path)
+                            # Clear external attr set for Windows
+                            info.external_attr = 0
+                            # Set external attr with Unix 0755 permission
+                            info.external_attr = 0o100755 << 16
+                            # Set host OS to Unix
+                            info.create_system = 3
+                            zf.writestr(info, file_bytes)
+                    else:
+                        zf.write(full_path, relative_path)
 
     return zipfile_name
 
