@@ -92,32 +92,27 @@ for:
       - sh: "source ${HOME}/venv${PYTHON_VERSION}/bin/activate"
       - sh: "rvm use 2.5"
       - sh: "docker info"
-      - sh: "date +\"%T\""
 
       # Install latest gradle 
       - sh: "sudo apt-get -y remove gradle"
       - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
-      - sh: "date +\"%T\""
 
       # Install black
       - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
       - sh: "chmod +x /tmp/black"
       - sh: "/tmp/black --version"
-      - sh: "date +\"%T\""
 
       # Install AWS CLI
       - sh: "virtualenv aws_cli"
       - sh: "./aws_cli/bin/python -m pip install awscli"
       - sh: "PATH=$(echo $PWD'/aws_cli/bin'):$PATH"
-      - sh: "date +\"%T\""
 
       - sh: "sudo apt-get -y install python3.6"
       - sh: "sudo apt-get -y install python2.7"
       - sh: "sudo apt-get -y install python3.7"
       - sh: "sudo apt-get -y install python3.8"
-      - sh: "date +\"%T\""
 
       - sh: "which python3.8"
       - sh: "which python3.6"
@@ -126,34 +121,25 @@ for:
 
       - sh: "PATH=$PATH:/usr/bin/python3.8:/usr/bin/python3.7"
       - sh: "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
-      - sh: "date +\"%T\""
 
       - sh: "sudo apt-get -y install python3-distutils"
       - ps: "If ($env:INSTALL_PY_38_PIP) {python3.8 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_37_PIP) {python3.7 get-pip.py --user}"
       - ps: "If ($env:INSTALL_PY_36_PIP) {python3.6 get-pip.py --user}"
-      - sh: "date +\"%T\""
 
     build_script:
       - "python -c \"import sys; print(sys.executable)\""
       - "pip install -e \".[dev]\""
-      - sh: "date +\"%T\""
 
     test_script:
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
-      - sh: "date +\"%T\""
       - "pylint --rcfile .pylintrc samcli"
-      - sh: "date +\"%T\""
       - "pytest -n 4 tests/functional"
-      - sh: "date +\"%T\""
 
       # Runs only in Linux
       - sh: "pytest -vv tests/integration"
-      - sh: "date +\"%T\""
       - sh: "pytest -vv tests/regression"
-      - sh: "date +\"%T\""
       - sh: "/tmp/black --check setup.py tests samcli"
-      - sh: "date +\"%T\""
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
