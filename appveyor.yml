@@ -148,7 +148,7 @@ for:
       - sh: "date +\"%T\""
 
       # Runs only in Linux
-      - sh: "pytest -vv --durations=0 tests/integration"
+      - sh: "pytest -vv tests/integration"
       - sh: "date +\"%T\""
       - sh: "pytest -vv tests/regression"
       - sh: "date +\"%T\""
