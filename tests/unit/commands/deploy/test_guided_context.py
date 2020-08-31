@@ -84,14 +84,7 @@ class TestGuidedContext(TestCase):
         [
             param((("CAPABILITY_IAM",),)),
             param((("CAPABILITY_AUTO_EXPAND",),)),
-            param(
-                (
-                    (
-                        "CAPABILITY_AUTO_EXPAND",
-                        "CAPABILITY_IAM",
-                    ),
-                )
-            ),
+            param((("CAPABILITY_AUTO_EXPAND", "CAPABILITY_IAM",),)),
         ]
     )
     @patch("samcli.commands.deploy.guided_context.prompt")
