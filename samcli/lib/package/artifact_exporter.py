@@ -18,6 +18,7 @@ Logic for uploading to S3 per Cloudformation Specific Resource
 
 import logging
 import os
+import platform
 import tempfile
 import zipfile
 import contextlib
@@ -27,7 +28,6 @@ from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
 import jmespath
-import platform
 
 from samcli.commands._utils.resources import (
     AWS_SERVERLESSREPO_APPLICATION,
