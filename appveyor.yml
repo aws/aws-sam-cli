@@ -137,13 +137,13 @@ for:
       - "pytest -n 4 tests/functional"
 
       # Runs only in Linux
-      - sh: "pytest -vv tests/integration"
+      - sh: "pytest -vv --durations=0 tests/integration"
       - sh: "pytest -vv tests/regression"
       - sh: "/tmp/black --check setup.py tests samcli"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"
-      - sh: "pytest -vv --durations=0 tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
+      - sh: "pytest -vv tests/integration/buildcmd/test_build_cmd.py -k test_building_java11_in_process"
 
       # Smoke tests run in parallel - it runs on both Linux & Windows
       # Presence of the RUN_SMOKE envvar will run the smoke tests
