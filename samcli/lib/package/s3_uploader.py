@@ -92,13 +92,11 @@ class S3Uploader:
             if self.artifact_metadata:
                 additional_args["Metadata"] = self.artifact_metadata
 
-            if not self.no_progressbar:
-                print_progress_callback = ProgressPercentage(file_name, remote_path)
-
             if not self.bucket_name:
                 raise BucketNotSpecifiedError()
 
             if not self.no_progressbar:
+                print_progress_callback = ProgressPercentage(file_name, remote_path)
                 future = self.transfer_manager.upload(
                     file_name, self.bucket_name, remote_path, additional_args, [print_progress_callback]
                 )

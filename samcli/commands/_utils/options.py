@@ -168,9 +168,7 @@ def no_progressbar_click_option():
         default=False,
         required=False,
         is_flag=True,
-        help="Indicates whether to simplify the logging "
-        "output. Specify this flag to prevent S3Uploader from "
-        "printing upload details.",
+        help="Does not showcase a progress bar when uploading artifacts to s3 ",
     )
 
 
