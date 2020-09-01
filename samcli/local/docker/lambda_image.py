@@ -8,6 +8,7 @@ from enum import Enum
 from pathlib import Path
 
 import sys
+import platform
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
@@ -197,7 +198,17 @@ class LambdaImage:
             for layer in layers:
                 tar_paths[layer.codeuri] = "/" + layer.name
 
-            with create_tarball(tar_paths) as tarballfile:
+            # Set permission for all the files in the tarball to 500(Read and Execute Only)
+            # This is need for systems without unix like permission bits(Windows) while creating a unix image
+            # Without setting this explicitly, tar will default the permission to 666 which gives no execute permission
+            def set_item_permission(tar_info):
+                tar_info.mode = 0o500
+                return tar_info
+
+            # Set only on Windows, unix systems will preserve the host permission into the tarball
+            tar_filter = set_item_permission if platform.system().lower() == "windows" else None
+
+            with create_tarball(tar_paths, tar_filter=tar_filter) as tarballfile:
                 try:
                     resp_stream = self.docker_client.api.build(
                         fileobj=tarballfile, custom_context=True, rm=True, tag=docker_tag, pull=not self.skip_pull_image

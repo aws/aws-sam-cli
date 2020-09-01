@@ -398,8 +398,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stderr = stderr.strip()
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
+    # For Windows, this test must run with administrator privilege
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
-    @skipIf(IS_WINDOWS, "This test fails on windows due to unix permissions not set properly on unzipped binary")
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_results_from_git_function(self):
         command_list = self.get_command_list(
@@ -416,8 +416,8 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
         process_stdout = stdout.strip()
         self.assertEqual(process_stdout.decode("utf-8"), '"git init passed"')
 
+    # For Windows, this test must run with administrator privilege
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
-    @skipIf(IS_WINDOWS, "This test fails on windows due to unix permissions not set properly on unzipped binary")
     @pytest.mark.flaky(reruns=3)
     def test_invoke_returns_expected_results_from_git_function_with_parameters(self):
         command_list = self.get_command_list(
