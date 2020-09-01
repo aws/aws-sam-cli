@@ -84,6 +84,9 @@ for:
         - image: Ubuntu
 
     install:
+      - sh: "date +\"%T\""
+      - sh: "docker pull amazon/aws-sam-cli-build-image-provided.al2"
+      - sh: "date +\"%T\""
       - sh: "gvm use go1.13"
       - sh: "echo $PATH"
       - sh: "ls /usr/"
