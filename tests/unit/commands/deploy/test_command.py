@@ -4,7 +4,7 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 from samcli.commands.deploy.command import do_cli
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError, DeployResolveS3AndS3NotSetError
+from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
 from tests.unit.cli.test_cli_config_file import MockContext
 
 
@@ -659,6 +659,7 @@ class TestDeployCliCommand(TestCase):
                 resolve_s3=True,
             )
 
+
     def test_resolve_s3_and_s3_bucket_both_not_set(self):
         with self.assertRaises(DeployResolveS3AndS3NotSetError):
             do_cli(
@@ -684,3 +685,4 @@ class TestDeployCliCommand(TestCase):
                 confirm_changeset=True,
                 resolve_s3=False,
             )
+

@@ -221,7 +221,7 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.deploy.guided_context import GuidedContext
-    from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError, DeployResolveS3AndS3NotSetError
+    from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.
@@ -240,8 +240,6 @@ def do_cli(
         guided_context.run()
     elif resolve_s3 and bool(s3_bucket):
         raise DeployResolveS3AndS3SetError()
-    elif not resolve_s3 and not bool(s3_bucket):
-        raise DeployResolveS3AndS3NotSetError()
     elif resolve_s3:
         s3_bucket = manage_stack(profile=profile, region=region)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
