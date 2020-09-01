@@ -658,31 +658,3 @@ class TestDeployCliCommand(TestCase):
                 confirm_changeset=True,
                 resolve_s3=True,
             )
-
-
-    def test_resolve_s3_and_s3_bucket_both_not_set(self):
-        with self.assertRaises(DeployResolveS3AndS3NotSetError):
-            do_cli(
-                template_file=self.template_file,
-                stack_name=self.stack_name,
-                s3_bucket=None,
-                force_upload=self.force_upload,
-                no_progressbar=self.no_progressbar,
-                s3_prefix=self.s3_prefix,
-                kms_key_id=self.kms_key_id,
-                parameter_overrides=self.parameter_overrides,
-                capabilities=self.capabilities,
-                no_execute_changeset=self.no_execute_changeset,
-                role_arn=self.role_arn,
-                notification_arns=self.notification_arns,
-                fail_on_empty_changeset=self.fail_on_empty_changset,
-                tags=self.tags,
-                region=self.region,
-                profile=self.profile,
-                use_json=self.use_json,
-                metadata=self.metadata,
-                guided=False,
-                confirm_changeset=True,
-                resolve_s3=False,
-            )
-
