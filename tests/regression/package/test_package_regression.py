@@ -26,6 +26,7 @@ class TestPackageRegression(PackageRegressionBase):
             "aws-appsync-graphqlschema.yaml",
             "aws-appsync-resolver.yaml",
             "aws-appsync-functionconfiguration.yaml",
+            "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
             "aws-serverlessrepo-application.yaml",
         ]

@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "test-deploy-guided-set-parameter-0-aws-serverless-function-yaml-0-0-0"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1cpdkf5zlchut"
+s3_prefix = "test-deploy-guided-set-parameter-0-aws-serverless-function-yaml-0-0-0"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Parameter=\"SuppliedParameter\""
