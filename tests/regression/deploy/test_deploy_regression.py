@@ -150,7 +150,6 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
             "capabilities": "CAPABILITY_IAM",
             "sam_stack_name": stack_name,
             "aws_stack_name": stack_name,
-            "s3_bucket": self.s3_bucket.name,
             "s3_prefix": "regress_deploy",
             "force_upload": True,
             "notification_arns": self.sns_arn,

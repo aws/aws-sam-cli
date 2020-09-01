@@ -28,6 +28,7 @@ class TestPackageRegression(PackageRegressionBase):
             "aws-appsync-functionconfiguration.yaml",
             "aws-apigateway-restapi.yaml",
             "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
             "aws-serverlessrepo-application.yaml",
         ]
     )
