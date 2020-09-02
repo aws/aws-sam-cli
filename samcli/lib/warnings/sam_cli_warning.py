@@ -20,7 +20,7 @@ def _get_deployment_preferences_status(function):
     Takes a AWS::Serverless::Function resource and checks if resource have a deployment preferences applied
     to it. If DeploymentPreference found then it returns its status if it is enabled or not.
     """
-    deployment_preference = function["Properties"].get("DeploymentPreference", None)
+    deployment_preference = function.get("Properties", {}).get("DeploymentPreference", None)
     if not deployment_preference:
         # Missing deployment preferences treated as not enabled.
         return False

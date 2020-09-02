@@ -19,6 +19,15 @@ Resources:
         Enabled: false
 """
 
+NO_PROPERTY_TEMPLATE = """
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+
+  preTrafficHook:
+    Type: AWS::Serverless::Function
+"""
+
 ALL_DISABLED_TEMPLATE = """
 Resources:
   Function:
@@ -104,7 +113,12 @@ class TestCodeDeployWarning(TestCase):
         os.environ["SAM_CLI_TELEMETRY"] = "0"
 
     @parameterized.expand(
-        [param(FAULTY_TEMPLATE, True), param(ALL_DISABLED_TEMPLATE, False), param(ALL_ENABLED_TEMPLATE, False)]
+        [
+            param(FAULTY_TEMPLATE, True),
+            param(ALL_DISABLED_TEMPLATE, False),
+            param(ALL_ENABLED_TEMPLATE, False),
+            param(NO_PROPERTY_TEMPLATE, False),
+        ]
     )
     def test_code_deploy_warning(self, template, expected):
         code_deploy_warning = CodeDeployWarning()
