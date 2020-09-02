@@ -54,6 +54,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         # to be .aws-sam/build/
         setattr(ctx, "samconfig_dir", os.path.dirname(original_template_path))
         try:
+            # FIX-ME: figure out a way to insert this directly to sam-cli context and not use click context.
             template_data = get_template_data(result)
             setattr(ctx, "template_dict", template_data)
         except TemplateNotFoundException:
