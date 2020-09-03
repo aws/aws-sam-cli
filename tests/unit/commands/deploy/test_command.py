@@ -41,6 +41,8 @@ class TestDeployCliCommand(TestCase):
         self.guided = False
         self.confirm_changeset = False
         self.resolve_s3 = False
+        self.config_env = "mock-default-env"
+        self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -73,6 +75,8 @@ class TestDeployCliCommand(TestCase):
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
             resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -126,7 +130,15 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, True, True, False]
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            ("CAPABILITY_IAM",),
+            "test-env",
+            "testconfig.toml",
+        ]
 
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -158,6 +170,8 @@ class TestDeployCliCommand(TestCase):
                     guided=True,
                     confirm_changeset=True,
                     resolve_s3=self.resolve_s3,
+                    config_env=self.config_env,
+                    config_file=self.config_file,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -189,7 +203,15 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, False, True, True]
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            ("CAPABILITY_IAM",),
+            "test-env",
+            "testconfig.toml",
+        ]
 
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -220,6 +242,8 @@ class TestDeployCliCommand(TestCase):
                 guided=True,
                 confirm_changeset=True,
                 resolve_s3=self.resolve_s3,
+                config_env=self.config_env,
+                config_file=self.config_file,
             )
 
             mock_deploy_context.assert_called_with(
@@ -247,6 +271,8 @@ class TestDeployCliCommand(TestCase):
                     "Myparameter": {"Value": "guidedParameter", "Hidden": False},
                     "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
                 },
+                "test-env",
+                "testconfig.toml",
                 capabilities=("CAPABILITY_IAM",),
                 confirm_changeset=True,
                 profile=self.profile,
@@ -328,6 +354,8 @@ class TestDeployCliCommand(TestCase):
             guided=True,
             confirm_changeset=True,
             resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -414,7 +442,7 @@ class TestDeployCliCommand(TestCase):
 
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",), "test-env", "testconfig.toml"]
         mock_confirm.side_effect = [True, False, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -440,6 +468,8 @@ class TestDeployCliCommand(TestCase):
             guided=True,
             confirm_changeset=True,
             resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -459,6 +489,8 @@ class TestDeployCliCommand(TestCase):
             region="us-east-1",
             profile=self.profile,
             confirm_changeset=True,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         context_mock.run.assert_called_with()
@@ -469,13 +501,15 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
-                call(["deploy"], "parameters", "stack_name", "sam-app"),
+                call(["deploy"], "parameters", "stack_name", "sam-app", "test-env", "testconfig.toml"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
-                call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
-                call(["deploy"], "parameters", "confirm_changeset", True),
-                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
-                call(["deploy"], "parameters", "parameter_overrides", 'a="b"'),
+                "test-env",
+                "testconfig.toml",
+                call(["deploy"], "parameters", "s3_prefix", "sam-app", "test-env", "testconfig.toml"),
+                call(["deploy"], "parameters", "region", "us-east-1", "test-env", "testconfig.toml"),
+                call(["deploy"], "parameters", "confirm_changeset", True, "test-env", "testconfig.toml"),
+                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", "test-env", "testconfig.toml"),
+                call(["deploy"], "parameters", "parameter_overrides", 'a="b"', "test-env", "testconfig.toml"),
             ],
         )
 

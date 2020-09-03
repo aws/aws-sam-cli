@@ -42,7 +42,9 @@ LOG = logging.getLogger(__name__)
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
+@configuration_option(
+    enable_custom_config_file=True, enable_custom_config_env=True, provider=TomlProvider(section=CONFIG_SECTION),
+)
 @click.option(
     "--guided",
     "-g",
@@ -164,6 +166,8 @@ def cli(
     guided,
     confirm_changeset,
     resolve_s3,
+    config_file,
+    config_env,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -188,6 +192,8 @@ def cli(
         ctx.region,
         ctx.profile,
         resolve_s3,
+        config_file,
+        config_env,
     )  # pragma: no cover
 
 
@@ -212,6 +218,8 @@ def do_cli(
     region,
     profile,
     resolve_s3,
+    config_file,
+    config_env,
 ):
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -231,6 +239,8 @@ def do_cli(
             capabilities=capabilities,
             parameter_overrides=parameter_overrides,
             config_section=CONFIG_SECTION,
+            config_env=config_env,
+            config_file=config_file,
         )
         guided_context.run()
     elif resolve_s3 and bool(s3_bucket):
