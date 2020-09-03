@@ -58,8 +58,8 @@
   },
   "prev": null,
   "info": {
-    "selectionSetList": ["id", "python", "echo"],
-    "selectionSetGraphQL": "{\n  id\n  python\n  echo\n}",
+    "selectionSetList": ["id", "field1", "field2"],
+    "selectionSetGraphQL": "{\n  id\n  field1\n  field2\n}",
     "parentTypeName": "Mutation",
     "fieldName": "createSomething",
     "variables": {}
