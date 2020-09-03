@@ -1,28 +1,80 @@
 """
 Provides methods to generate and send metrics
 """
-
+from timeit import default_timer
 
 import platform
 import logging
+import click
 
-from timeit import default_timer
-
+from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.cli.context import Context
 from samcli.commands.exceptions import UserException
 from samcli.cli.global_config import GlobalConfig
 from .telemetry import Telemetry
 
-
 LOG = logging.getLogger(__name__)
+
+WARNING_ANNOUNCEMENT = "WARNING: {}"
 
 
 def send_installed_metric():
-
     LOG.debug("Sending Installed Metric")
 
     telemetry = Telemetry()
     telemetry.emit("installed", {"osPlatform": platform.system(), "telemetryEnabled": _telemetry_enabled()})
+
+
+def track_template_warnings(warning_names):
+    """
+    Decorator to track when a warning is emitted. This method accepts name of warning and executes the function,
+    gathers all relevant metrics, reports the metrics and returns.
+
+    On your warning check method use as follows
+
+        @track_warning(['Warning1', 'Warning2'])
+        def check():
+            return True, 'Warning applicable'
+    """
+
+    def decorator(func):
+        """
+        Actual decorator method with warning names
+        """
+
+        def wrapped(*args, **kwargs):
+            telemetry = Telemetry()
+            template_warning_checker = TemplateWarningsChecker()
+            ctx = Context.get_current_context()
+
+            try:
+                ctx.template_dict
+            except AttributeError:
+                LOG.debug("Ignoring warning check as template is not provided in context.")
+                return func(*args, **kwargs)
+            for warning_name in warning_names:
+                warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
+                if _telemetry_enabled():
+                    telemetry.emit("templateWarning", _build_warning_metric(ctx, warning_name, warning_message))
+
+                if warning_message:
+                    click.secho(WARNING_ANNOUNCEMENT.format(warning_message), fg="yellow")
+
+            return func(*args, **kwargs)
+
+        return wrapped
+
+    return decorator
+
+
+def _build_warning_metric(ctx, warning_name, warning_message):
+    return {
+        "awsProfileProvided": bool(ctx.profile),
+        "debugFlagProvided": bool(ctx.debug),
+        "region": ctx.region or "",
+        "warningName": warning_name,  # Full command path. ex: sam local start-api
+        "warningCount": 1 if warning_message else 0,  # 1-True or 0-False
+    }
 
 
 def track_command(func):
