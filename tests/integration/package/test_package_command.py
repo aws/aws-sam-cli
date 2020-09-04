@@ -438,3 +438,36 @@ class TestPackage(PackageIntegBase):
                 ),
                 process_stdout,
             )
+
+    @parameterized.expand(["1", "0"])
+    def test_package_with_no_progressbar(self, no_progressbar):
+        template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
+        s3_prefix = "integ_test_prefix"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+            command_list = self.get_command_list(
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                output_template_file=output_template.name,
+                force_upload=True,
+                no_progressbar=bool(int(no_progressbar)),
+                resolve_s3=True,
+            )
+
+            process = Popen(command_list, stdout=PIPE)
+            try:
+                stdout, _ = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stdout = stdout.strip()
+
+            upload_message = bytes("Uploading to", encoding="utf-8")
+            if no_progressbar:
+                self.assertNotIn(
+                    upload_message, process_stdout,
+                )
+            else:
+                self.assertIn(
+                    upload_message, process_stdout,
+                )
