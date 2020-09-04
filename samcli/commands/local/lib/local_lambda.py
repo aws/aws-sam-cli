@@ -10,7 +10,7 @@ from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
 
 LOG = logging.getLogger(__name__)
 
@@ -97,7 +97,18 @@ class LocalLambdaRunner:
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        try:
+            self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        except OSError as os_error:
+            # pylint: disable=no-member
+            if hasattr(os_error, "winerror") and os_error.winerror == 1314:
+                raise NoPrivilegeException(
+                    "Administrator, Windows Developer Mode, or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
+                        os_error.filename, os_error.filename2
+                    )
+                )
+
+            raise
 
     def is_debugging(self):
         """

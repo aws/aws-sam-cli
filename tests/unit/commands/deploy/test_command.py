@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 from samcli.commands.deploy.command import do_cli
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
+from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
 from tests.unit.cli.test_cli_config_file import MockContext
 
 
@@ -39,6 +40,7 @@ class TestDeployCliCommand(TestCase):
         self.metadata = {}
         self.guided = False
         self.confirm_changeset = False
+        self.resolve_s3 = False
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -70,6 +72,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
+            resolve_s3=self.resolve_s3,
         )
 
         mock_deploy_context.assert_called_with(
@@ -154,6 +157,7 @@ class TestDeployCliCommand(TestCase):
                     metadata=self.metadata,
                     guided=True,
                     confirm_changeset=True,
+                    resolve_s3=self.resolve_s3,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -215,6 +219,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                resolve_s3=self.resolve_s3,
             )
 
             mock_deploy_context.assert_called_with(
@@ -322,6 +327,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            resolve_s3=self.resolve_s3,
         )
 
         mock_deploy_context.assert_called_with(
@@ -433,6 +439,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            resolve_s3=self.resolve_s3,
         )
 
         mock_deploy_context.assert_called_with(
@@ -528,6 +535,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                resolve_s3=self.resolve_s3,
             )
 
             mock_deploy_context.assert_called_with(
@@ -553,3 +561,85 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(mock_save_config.call_count, 0)
             mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.click")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.manage_stack")
+    def test_all_args_resolve_s3(
+        self, mock_manage_stack, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click
+    ):
+        context_mock = Mock()
+        mock_deploy_context.return_value.__enter__.return_value = context_mock
+        mock_manage_stack.return_value = "managed-s3-bucket"
+
+        do_cli(
+            template_file=self.template_file,
+            stack_name=self.stack_name,
+            s3_bucket=None,
+            force_upload=self.force_upload,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            use_json=self.use_json,
+            metadata=self.metadata,
+            guided=self.guided,
+            confirm_changeset=self.confirm_changeset,
+            resolve_s3=True,
+        )
+
+        mock_deploy_context.assert_called_with(
+            template_file=ANY,
+            stack_name=self.stack_name,
+            s3_bucket="managed-s3-bucket",
+            force_upload=self.force_upload,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            confirm_changeset=self.confirm_changeset,
+        )
+
+        context_mock.run.assert_called_with()
+        self.assertEqual(context_mock.run.call_count, 1)
+
+    def test_resolve_s3_and_s3_bucket_both_set(self):
+        with self.assertRaises(DeployResolveS3AndS3SetError):
+            do_cli(
+                template_file=self.template_file,
+                stack_name=self.stack_name,
+                s3_bucket="managed-s3-bucket",
+                force_upload=self.force_upload,
+                s3_prefix=self.s3_prefix,
+                kms_key_id=self.kms_key_id,
+                parameter_overrides=self.parameter_overrides,
+                capabilities=self.capabilities,
+                no_execute_changeset=self.no_execute_changeset,
+                role_arn=self.role_arn,
+                notification_arns=self.notification_arns,
+                fail_on_empty_changeset=self.fail_on_empty_changset,
+                tags=self.tags,
+                region=self.region,
+                profile=self.profile,
+                use_json=self.use_json,
+                metadata=self.metadata,
+                guided=False,
+                confirm_changeset=True,
+                resolve_s3=True,
+            )

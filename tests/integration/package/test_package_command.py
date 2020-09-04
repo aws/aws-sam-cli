@@ -4,6 +4,7 @@ import tempfile
 from unittest import skipIf
 from parameterized import parameterized
 
+from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning
 from .package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
@@ -387,3 +388,71 @@ class TestPackage(PackageIntegBase):
                 ),
                 process_stdout,
             )
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function.yaml",
+            "aws-serverless-api.yaml",
+            "aws-appsync-graphqlschema.yaml",
+            "aws-appsync-resolver.yaml",
+            "aws-appsync-functionconfiguration.yaml",
+            "aws-lambda-function.yaml",
+            "aws-apigateway-restapi.yaml",
+            "aws-elasticbeanstalk-applicationversion.yaml",
+            "aws-cloudformation-stack.yaml",
+            "aws-serverless-application.yaml",
+            "aws-lambda-layerversion.yaml",
+            "aws-serverless-layerversion.yaml",
+            "aws-glue-job.yaml",
+            "aws-serverlessrepo-application.yaml",
+            "aws-serverless-statemachine.yaml",
+            "aws-stepfunctions-statemachine.yaml",
+        ]
+    )
+    def test_package_with_resolve_s3(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        s3_prefix = "integ_test_prefix"
+
+        with tempfile.NamedTemporaryFile(delete=False) as output_template:
+            command_list = self.get_command_list(
+                template_file=template_path,
+                s3_prefix=s3_prefix,
+                output_template_file=output_template.name,
+                force_upload=True,
+                resolve_s3=True,
+            )
+
+            process = Popen(command_list, stdout=PIPE)
+            try:
+                stdout, _ = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+            process_stdout = stdout.strip()
+
+            self.assertIn(
+                bytes(
+                    "Successfully packaged artifacts and wrote output template to file {output_template_file}".format(
+                        output_template_file=str(output_template.name)
+                    ),
+                    encoding="utf-8",
+                ),
+                process_stdout,
+            )
+
+    @parameterized.expand(["aws-serverless-function-codedeploy-warning.yaml"])
+    def test_package_with_warning_template(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(s3_bucket=self.s3_bucket.name, template=template_path)
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stdout = stdout.strip().decode("utf-8")
+
+        # Not comparing with full warning message because of line ending mismatch on
+        # windows and non-windows
+        self.assertIn("CodeDeploy", process_stdout)

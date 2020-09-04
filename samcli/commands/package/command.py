@@ -3,12 +3,13 @@ CLI command for "package" command
 """
 import click
 
-
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
 from samcli.commands._utils.options import metadata_override_option, template_click_option
 from samcli.commands._utils.resources import resources_generator
-from samcli.lib.telemetry.metrics import track_command
+from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.telemetry.metrics import track_command, track_template_warnings
+from samcli.lib.warnings.sam_cli_warning import CodeDeployWarning
 
 SHORT_HELP = "Package an AWS SAM application."
 
@@ -40,7 +41,7 @@ The following resources and their property locations are supported.
 @template_click_option(include_build=True)
 @click.option(
     "--s3-bucket",
-    required=True,
+    required=False,
     help="The name of the S3 bucket where this command uploads the artifacts that are referenced in your template.",
 )
 @click.option(
@@ -78,12 +79,31 @@ The following resources and their property locations are supported.
     "in the S3 bucket. Specify this flag to upload artifacts even if they "
     "match existing artifacts in the S3 bucket.",
 )
+@click.option(
+    "--resolve-s3",
+    required=False,
+    is_flag=True,
+    help="Automatically resolve s3 bucket for non-guided deployments."
+    "Do not use --s3-guided parameter with this option.",
+)
 @metadata_override_option
 @common_options
 @aws_creds_options
 @pass_context
 @track_command
-def cli(ctx, template_file, s3_bucket, s3_prefix, kms_key_id, output_template_file, use_json, force_upload, metadata):
+@track_template_warnings([CodeDeployWarning.__name__])
+def cli(
+    ctx,
+    template_file,
+    s3_bucket,
+    s3_prefix,
+    kms_key_id,
+    output_template_file,
+    use_json,
+    force_upload,
+    metadata,
+    resolve_s3,
+):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
@@ -98,6 +118,7 @@ def cli(ctx, template_file, s3_bucket, s3_prefix, kms_key_id, output_template_fi
         metadata,
         ctx.region,
         ctx.profile,
+        resolve_s3,
     )  # pragma: no cover
 
 
@@ -112,8 +133,22 @@ def do_cli(
     metadata,
     region,
     profile,
+    resolve_s3,
 ):
     from samcli.commands.package.package_context import PackageContext
+    from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
+
+    if resolve_s3 and bool(s3_bucket):
+        raise PackageResolveS3AndS3SetError()
+
+    if not resolve_s3 and not bool(s3_bucket):
+        raise PackageResolveS3AndS3NotSetError()
+
+    if resolve_s3:
+        s3_bucket = manage_stack(profile=profile, region=region)
+        click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+        click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+        click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
     with PackageContext(
         template_file=template_file,

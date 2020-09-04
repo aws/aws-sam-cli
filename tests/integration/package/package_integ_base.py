@@ -71,6 +71,7 @@ class PackageIntegBase(TestCase):
         force_upload=False,
         kms_key_id=None,
         metadata=None,
+        resolve_s3=False,
     ):
         command_list = [self.base_command(), "package"]
 
@@ -94,5 +95,6 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--force-upload"]
         if metadata:
             command_list = command_list + ["--metadata", json.dumps(metadata)]
-
+        if resolve_s3:
+            command_list = command_list + ["--resolve-s3"]
         return command_list

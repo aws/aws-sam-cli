@@ -23,7 +23,12 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.python27.value,
 ]
 
-RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [Runtime.java11.value, Runtime.java8.value, Runtime.dotnetcore21.value]
+RUNTIMES_WITH_DEBUG_ENV_VARS_ONLY = [
+    Runtime.java11.value,
+    Runtime.java8.value,
+    Runtime.java8al2.value,
+    Runtime.dotnetcore21.value,
+]
 
 RUNTIMES_WITH_ENTRYPOINT_OVERRIDES = RUNTIMES_WITH_ENTRYPOINT + RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT
 
