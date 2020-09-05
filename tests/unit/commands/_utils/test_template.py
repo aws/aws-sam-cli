@@ -6,7 +6,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from unittest import TestCase
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, MagicMock
 from parameterized import parameterized, param
 
 from samcli.commands._utils.template import (
@@ -48,7 +48,7 @@ class Test_get_template_data(TestCase):
 
             self.assertEqual(result, parse_result)
 
-        m.assert_called_with(filename, "r")
+        m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
 
     @patch("samcli.commands._utils.template.yaml_parse")
@@ -68,7 +68,7 @@ class Test_get_template_data(TestCase):
 
             self.assertEqual(result, {"Myparameter": "String"})
 
-        m.assert_called_with(filename, "r")
+        m.assert_called_with(filename, "r", encoding="utf-8")
         yaml_parse_mock.assert_called_with(file_data)
 
     @parameterized.expand([param(ValueError()), param(yaml.YAMLError())])
@@ -90,6 +90,40 @@ class Test_get_template_data(TestCase):
 
             actual_exception = ex_ctx.exception
             self.assertTrue(str(actual_exception).startswith("Failed to parse template: "))
+
+    @patch("samcli.commands._utils.template.yaml_parse")
+    @patch("samcli.commands._utils.template.pathlib")
+    def test_must_read_file_with_non_utf8_encoding(self, pathlib_mock, yaml_parse_mock):
+        filename = "filename"
+        file_data = "utf-8 😐"
+        parse_result = "parse result"
+        default_locale_encoding = "cp932"
+
+        pathlib_mock.Path.return_value.exists.return_value = True  # Fake that the file exists
+
+        yaml_parse_mock.return_value = parse_result
+
+        # mock open with a different default encoding
+        def mock_encoding_open(
+            file, mode="r", buffering=-1, encoding=None, errors=None, newline=None, closefd=True, opener=None
+        ):
+            if encoding is None:
+                encoding = default_locale_encoding
+            mock_file = MagicMock()
+
+            def mock_read():
+                return file_data.encode("utf-8").decode(encoding)
+
+            # __enter__ is used for with open(...) PEP343
+            mock_file.__enter__.return_value = mock_file
+            mock_file.read = mock_read
+            return mock_file
+
+        with patch("samcli.commands._utils.template.open", mock_encoding_open):
+            result = get_template_data(filename)
+            self.assertEqual(result, parse_result)
+
+        yaml_parse_mock.assert_called_with(file_data)
 
 
 class Test_update_relative_paths(TestCase):
