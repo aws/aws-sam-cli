@@ -154,14 +154,6 @@ class LambdaRuntime:
         LOG.debug("Resetting SIGTERM interrupt handler")
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
-    def _reset_interrupt(self):
-        LOG.debug("Resetting SIGTERM interrupt handler")
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-
-    def _reset_interrupt(self):
-        LOG.debug("Resetting SIGTERM interrupt handler")
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-
     @contextmanager
     def _get_code_dir(self, code_path):
         """
