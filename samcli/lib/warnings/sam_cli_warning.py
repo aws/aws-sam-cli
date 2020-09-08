@@ -72,7 +72,7 @@ mitigate it, please read these docs[1]
         functions = [
             resource
             for (_, resource) in template_dict.get("Resources", {}).items()
-            if resource["Type"] == "AWS::Serverless::Function"
+            if resource.get("Type", "") == "AWS::Serverless::Function"
         ]
         deployment_features_enabled_count = sum(
             1 for function in functions if _get_deployment_preferences_status(function)
