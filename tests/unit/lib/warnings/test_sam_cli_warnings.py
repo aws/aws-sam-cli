@@ -71,6 +71,14 @@ Resources:
         Random: Property
 """
 
+NO_TYPE_RESOURCE = """
+Resources:
+  Fn::Transform:
+    Name: AWS::Include
+    Parameters:
+      Location: ./deploy/queries.yaml
+"""
+
 
 class TestWarnings(TestCase):
     def setUp(self):
@@ -118,6 +126,7 @@ class TestCodeDeployWarning(TestCase):
             param(ALL_DISABLED_TEMPLATE, False),
             param(ALL_ENABLED_TEMPLATE, False),
             param(NO_PROPERTY_TEMPLATE, False),
+            param(NO_TYPE_RESOURCE, False),
         ]
     )
     def test_code_deploy_warning(self, template, expected):
