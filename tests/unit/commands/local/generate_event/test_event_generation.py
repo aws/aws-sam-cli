@@ -32,13 +32,8 @@ class TestEvents(TestCase):
         result = events.Events().hash("md5", "hello, world!")
         self.assertEqual(result, "3adbbad1791fbae3ec908894c4963870")
 
-    def test_if_hashing_is_none(self):
-        result = events.Events().hash(None, "hello, world!")
-        self.assertEqual(result, "hello, world!")
-
-    def test_if_hashing_is_other(self):
-        result = events.Events().hash("other", "hello, world!")
-        self.assertEqual(result, "hello, world!")
+    def test_if_hashing_is_not_supported(self):
+        self.assertRaises(ValueError, events.Events().hash, "unsupported", "hello, world!")
 
     def test_transform_val_encoding(self):
         properties = {"encoding": "base64"}

@@ -131,8 +131,8 @@ class Events:
         if hashing_scheme == "md5":
             return str_checksum(val)
 
-        # returns original val if hashing_scheme not recognized
-        return val
+        # raise exception if hashing_scheme is unsupported
+        raise ValueError("Hashing_scheme {} is not supported.".format(hashing_scheme))
 
     def generate_event(self, service_name, event_type, values_to_sub):
         """
