@@ -67,3 +67,20 @@ def dir_checksum(directory, followlinks=True):
         md5_dir.update(filepath_checksum.encode("utf-8"))
 
     return md5_dir.hexdigest()
+
+
+def str_checksum(content):
+    """
+    return a md5 checksum of a given string
+
+    Parameters
+    ----------
+    content: string
+        the string to be hashed
+    Returns
+    -------
+    md5 checksum of content
+    """
+    md5 = hashlib.md5()
+    md5.update(content.encode("utf-8"))
+    return md5.hexdigest()

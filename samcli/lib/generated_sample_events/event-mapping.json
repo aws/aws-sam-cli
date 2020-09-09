@@ -971,12 +971,12 @@
         },
         "body": {
           "default": "Hello from SQS!",
-          "children": [{
-            "md5-of-body": {
+          "children": {
+            "md5_of_body": {
               "type": "string",
-              "hash": "md5"
+              "hashing": "md5"
             }
-          }]
+          }
         }
       }
     }

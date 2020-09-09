@@ -4,7 +4,7 @@ import tempfile
 from unittest import TestCase
 from unittest.mock import patch
 
-from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.hash import dir_checksum, str_checksum
 
 
 class TestHash(TestCase):
@@ -72,3 +72,7 @@ class TestHash(TestCase):
         with self.assertRaises(OSError) as ex:
             dir_checksum(os.path.dirname(_file.name))
             self.assertIn("Too many levels of symbolic links", ex.message)
+
+    def test_str_checksum(self):
+        checksum = str_checksum("Hello, World!")
+        self.assertEqual(checksum, "65a8e27d8879283831b664bd8b7f0ad4")
