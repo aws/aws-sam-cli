@@ -237,9 +237,9 @@ class TestDeployer(TestCase):
             changes,
             {
                 "Add": [
-                    {"LogicalResourceId": "resource_id1", "ResourceType": "s3"},
-                    {"LogicalResourceId": "resource_id2", "ResourceType": "kms"},
-                    {"LogicalResourceId": "resource_id3", "ResourceType": "lambda"},
+                    {"LogicalResourceId": "resource_id1", "ResourceType": "s3", "Replacement": "N/A"},
+                    {"LogicalResourceId": "resource_id2", "ResourceType": "kms", "Replacement": "N/A"},
+                    {"LogicalResourceId": "resource_id3", "ResourceType": "lambda", "Replacement": "N/A"},
                 ],
                 "Modify": [],
                 "Remove": [],
