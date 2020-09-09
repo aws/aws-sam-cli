@@ -106,6 +106,22 @@ class Context:
 
         return None
 
+    @property
+    def template_dict(self):
+        """
+        Returns the template_dictionary from click context.
+        Returns
+        -------
+        dict
+            Template as dictionary
+
+        """
+        click_core_ctx = click.get_current_context()
+        if click_core_ctx:
+            return click_core_ctx.template_dict
+
+        return None
+
     @staticmethod
     def get_current_context():
         """
