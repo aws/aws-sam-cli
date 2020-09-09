@@ -12,5 +12,5 @@ Metadata:
     ReadmeUrl: ./README.md
     Labels: ['tests']
     HomePageUrl: https://github.com/user1/my-app-project
-    SemanticVersion: 0.0.1
+    SemanticVersion: 1.0.1
     SourceCodeUrl: https://github.com/user1/my-app-project
