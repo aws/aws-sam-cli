@@ -1,3 +1,4 @@
+import os
 import tempfile
 
 from pathlib import Path
@@ -6,7 +7,7 @@ from unittest.mock import MagicMock
 
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import TomlProvider, configuration_option, configuration_callback, get_ctx_defaults
-from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 
 
 class MockContext:
@@ -75,6 +76,7 @@ class TestCliConfiguration(TestCase):
         mock_context3 = MockContext(info_name="start-api", parent=mock_context2)
         self.ctx.parent = mock_context3
         self.ctx.info_name = "test_info"
+        self.ctx.params = {}
         configuration_callback(
             cmd_name=self.cmd_name,
             option_name=self.option_name,
@@ -94,10 +96,10 @@ class TestCliConfiguration(TestCase):
         click_option = configuration_option(provider=toml_provider)
         clc = click_option(self.Dummy())
         self.assertEqual(clc.__click_params__[0].is_eager, True)
-        self.assertEqual(clc.__click_params__[0].help, "Read configurations from Configuration File.")
+        self.assertEqual(clc.__click_params__[0].help, "***ADD COMMENT HERE***")
         self.assertEqual(clc.__click_params__[0].hidden, True)
         self.assertEqual(clc.__click_params__[0].expose_value, False)
-        self.assertEqual(clc.__click_params__[0].callback.args, (None, "--read_config", "default", None, toml_provider))
+        self.assertEqual(clc.__click_params__[0].callback.args, (None, None, None, toml_provider))
 
     def test_get_ctx_defaults_non_nested(self):
         provider = MagicMock()
@@ -117,6 +119,9 @@ class TestCliConfiguration(TestCase):
         mock_context2 = MockContext(info_name="local", parent=mock_context1)
         mock_context3 = MockContext(info_name="generate-event", parent=mock_context2)
         mock_context4 = MockContext(info_name="alexa-skills-kit", parent=mock_context3)
+
+        expected_path = os.path.join(os.getcwd(), DEFAULT_CONFIG_FILE_NAME)
+
 
         get_ctx_defaults("intent-answer", provider, mock_context4, "default")
 

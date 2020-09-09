@@ -150,7 +150,6 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file_name=
     return provider(config_file, config_env_name, get_cmd_names(cmd_name, ctx))
 
 
-# pylint: disable=too-many-statements
 def configuration_option(*param_decls, **attrs):
     """
     Adds configuration file support to a click application.
@@ -168,50 +167,29 @@ def configuration_option(*param_decls, **attrs):
     By default, this will create a hidden click option whose callback function loads configuration parameters from
     default configuration environment [default] in default configuration file [samconfig.toml] in the template file
     directory.
-    :param enable_custom_config_file: If this is True, an additional click option of type `STRING` expecting the
-     customized configuration file name as '--config_file' will be enabled.
-    :param enable_custom_config_env: If this is True, an additional click option of type `STRING` expecting the
-     customized configuration environment as '--config_env' will be enabled.
+    :param preconfig_decorator_list: ***ADD COMMENT HERE***
     :param provider: A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
         `provider(file_path, config_env, cmd_name)
     """
-    enable_custom_config_file = attrs.pop("enable_custom_config_file", False)
-    enable_custom_config_env = attrs.pop("enable_custom_config_env", False)
 
-    def decorator_customize_config_file(f):
-        config_file_attrs = {}
-        config_file_param_decls = ("--config-file",)
-        config_file_attrs["help"] = "Read config-file from Configuration File."
-        config_file_attrs["default"] = "samconfig.toml"
-        config_file_attrs["is_eager"] = True
-        config_file_attrs["required"] = False
-        config_file_attrs["type"] = click.STRING
-        return click.option(*config_file_param_decls, **config_file_attrs)(f)
-
-    def decorator_customize_config_env(f):
-        config_env_attrs = {}
-        config_env_param_decls = ("--config-env",)
-        config_env_attrs["help"] = "Read config-file from Configuration File."
-        config_env_attrs["default"] = "default"
-        config_env_attrs["is_eager"] = True
-        config_env_attrs["required"] = False
-        config_env_attrs["type"] = click.STRING
-        return click.option(*config_env_param_decls, **config_env_attrs)(f)
-
-    def decorator_read_configs(f):
-        read_config_attrs = {}
-        read_config_param_decls = ("--read_config",)
-        read_config_attrs["help"] = "Read configurations from Configuration File."
-        read_config_attrs["is_eager"] = True
-        read_config_attrs["expose_value"] = False
-        read_config_attrs["hidden"] = True
-        read_config_attrs["type"] = click.STRING
+    # Try only use the callback without option,
+    # Leave this hidden without name
+    # Better name this one to
+    # Pass in other decorators, only keep this one inside.
+    def decorator_configuration_setup(f):
+        configuration_setup_param_devls = ()
+        configuration_setup_attrs = {}
+        configuration_setup_attrs["help"] = "***ADD COMMENT HERE***"
+        configuration_setup_attrs["is_eager"] = True
+        configuration_setup_attrs["expose_value"] = False
+        configuration_setup_attrs["hidden"] = True
+        configuration_setup_attrs["type"] = click.STRING
         provider = attrs.pop("provider")
         saved_callback = attrs.pop("callback", None)
         partial_callback = functools.partial(configuration_callback, None, None, saved_callback, provider)
-        read_config_attrs["callback"] = partial_callback
-        return click.option(*read_config_param_decls, **read_config_attrs)(f)
+        configuration_setup_attrs["callback"] = partial_callback
+        return click.option(*configuration_setup_param_devls, **configuration_setup_attrs)(f)
 
     def composed_decorator(decorators):
         def decorator(f):
@@ -221,14 +199,34 @@ def configuration_option(*param_decls, **attrs):
 
         return decorator
 
-    # Compose decorators here to make sure the context parameters are updated before callback function of option
-    # "--read_config" is evaluated.
-    decorator_list = [decorator_read_configs]
-    if enable_custom_config_file:
-        decorator_list.append(decorator_customize_config_file)
-    if enable_custom_config_env:
-        decorator_list.append(decorator_customize_config_env)
+    # Compose decorators here to make sure the context parameters are updated before callback function
+    decorator_list = [decorator_configuration_setup]
+    pre_config_decorators = attrs.pop("preconfig_decorator_list", [])
+    for decorator in pre_config_decorators:
+        decorator_list.append(decorator)
     return composed_decorator(decorator_list)
+
+
+def decorator_customize_config_file(f):
+    config_file_attrs = {}
+    config_file_param_decls = ("--config-file",)
+    config_file_attrs["help"] = "***ADD COMMENT HERE***"
+    config_file_attrs["default"] = "samconfig.toml"
+    config_file_attrs["is_eager"] = True
+    config_file_attrs["required"] = False
+    config_file_attrs["type"] = click.STRING
+    return click.option(*config_file_param_decls, **config_file_attrs)(f)
+
+
+def decorator_customize_config_env(f):
+    config_env_attrs = {}
+    config_env_param_decls = ("--config-env",)
+    config_env_attrs["help"] = "***ADD COMMENT HERE***"
+    config_env_attrs["default"] = "default"
+    config_env_attrs["is_eager"] = True
+    config_env_attrs["required"] = False
+    config_env_attrs["type"] = click.STRING
+    return click.option(*config_env_param_decls, **config_env_attrs)(f)
 
 
 # End section copied from [[click_config_file][https://github.com/phha/click_config_file/blob/master/click_config_file.py]
