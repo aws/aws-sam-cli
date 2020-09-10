@@ -440,7 +440,7 @@ class TestPackage(PackageIntegBase):
                 process_stdout,
             )
 
-    @parameterized.expand(["1", "0"])
+    @parameterized.expand([(True,), (False,)])
     def test_package_with_no_progressbar(self, no_progressbar):
         template_path = self.test_data_path.joinpath("aws-serverless-function.yaml")
         s3_prefix = "integ_test_prefix"
@@ -451,7 +451,7 @@ class TestPackage(PackageIntegBase):
                 s3_prefix=s3_prefix,
                 output_template_file=output_template.name,
                 force_upload=True,
-                no_progressbar=bool(int(no_progressbar)),
+                no_progressbar=no_progressbar,
                 resolve_s3=True,
             )
 
