@@ -4,10 +4,9 @@ Tests container manager
 
 import io
 from unittest import TestCase
+from unittest.mock import Mock, MagicMock, patch
 
 import requests
-
-from unittest.mock import Mock
 from docker.errors import APIError, ImageNotFound
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 
@@ -229,7 +228,17 @@ class TestContainerManager_is_docker_reachable(TestCase):
         docker_client_mock = Mock()
         docker_client_mock.ping = self.ping_mock
 
+        windows_modules = {
+            "pywintypes": MagicMock(),
+            "pywintypes.error": MagicMock(),
+        }
+        self.windows_module_patcher = patch.dict("sys.modules", windows_modules)
+        self.windows_module_patcher.start()
+
         self.manager = ContainerManager(docker_client=docker_client_mock)
+
+    def tearDown(self):
+        self.windows_module_patcher.stop()
 
     def test_must_use_docker_client_ping(self):
         self.manager.is_docker_reachable
@@ -254,6 +263,17 @@ class TestContainerManager_is_docker_reachable(TestCase):
         is_reachable = self.manager.is_docker_reachable
 
         self.assertFalse(is_reachable)
+
+    def test_must_return_false_if_ping_raises_pywintypes_error(self):
+        with patch("platform.system") as system:
+            system.return_value = "Windows"
+            import pywintypes
+
+            self.ping_mock.side_effect = pywintypes.error;
+
+            is_reachable = self.manager.is_docker_reachable
+
+            self.assertFalse(is_reachable)
 
 
 class TestContainerManager_has_image(TestCase):
