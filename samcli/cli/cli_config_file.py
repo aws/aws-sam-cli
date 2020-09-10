@@ -165,20 +165,24 @@ def configuration_option(*param_decls, **attrs):
     By default, this will create a hidden click option whose callback function loads configuration parameters from
     default configuration environment [default] in default configuration file [samconfig.toml] in the template file
     directory.
-    :param preconfig_decorator_list: ***ADD COMMENT HERE***
+    :param preconfig_decorator_list: A list of click option decorator which need to place before this function. For
+        exmple, if we want to add option "--config-file" and "--config-env" to allow customized configuration file
+        and configuration environment, we will use configuration_option as below:
+        @configuration_option(
+            preconfig_decorator_list=[decorator_customize_config_file, decorator_customize_config_env],
+            provider=TomlProvider(section=CONFIG_SECTION),
+        )
     :param provider: A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
         `provider(file_path, config_env, cmd_name)
     """
 
-    # Try only use the callback without option,
-    # Leave this hidden without name
-    # Better name this one to
-    # Pass in other decorators, only keep this one inside.
     def decorator_configuration_setup(f):
         configuration_setup_param_devls = ()
         configuration_setup_attrs = {}
-        configuration_setup_attrs["help"] = "***ADD COMMENT HERE***"
+        configuration_setup_attrs[
+            "help"
+        ] = "This is a hidden click option whose callback function loads configuration parameters."
         configuration_setup_attrs["is_eager"] = True
         configuration_setup_attrs["expose_value"] = False
         configuration_setup_attrs["hidden"] = True
@@ -208,7 +212,7 @@ def configuration_option(*param_decls, **attrs):
 def decorator_customize_config_file(f):
     config_file_attrs = {}
     config_file_param_decls = ("--config-file",)
-    config_file_attrs["help"] = "***ADD COMMENT HERE***"
+    config_file_attrs["help"] = "Name of configuration file. By default, it is samconfig.toml in the workspace folder."
     config_file_attrs["default"] = "samconfig.toml"
     config_file_attrs["is_eager"] = True
     config_file_attrs["required"] = False
@@ -219,7 +223,7 @@ def decorator_customize_config_file(f):
 def decorator_customize_config_env(f):
     config_env_attrs = {}
     config_env_param_decls = ("--config-env",)
-    config_env_attrs["help"] = "***ADD COMMENT HERE***"
+    config_env_attrs["help"] = "Name of configuration environment. By default, its name is 'default'."
     config_env_attrs["default"] = "default"
     config_env_attrs["is_eager"] = True
     config_env_attrs["required"] = False

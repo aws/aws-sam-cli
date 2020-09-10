@@ -97,7 +97,10 @@ class TestCliConfiguration(TestCase):
         click_option = configuration_option(provider=toml_provider)
         clc = click_option(self.Dummy())
         self.assertEqual(clc.__click_params__[0].is_eager, True)
-        self.assertEqual(clc.__click_params__[0].help, "***ADD COMMENT HERE***")
+        self.assertEqual(
+            clc.__click_params__[0].help,
+            "This is a hidden click option whose callback function loads configuration parameters.",
+        )
         self.assertEqual(clc.__click_params__[0].hidden, True)
         self.assertEqual(clc.__click_params__[0].expose_value, False)
         self.assertEqual(clc.__click_params__[0].callback.args, (None, None, None, toml_provider))
