@@ -2,6 +2,14 @@
 # Of course, you can also run a single one of these commands manually.
 # If you use this script, ensure that you run with --skip-pull-image, else the remote image may be used.
 
+if [ -z ${SAM_CLI_VERSION+x} ];
+then
+    echo "Must set SAM_CLI_VERSION to run this script."
+    exit -1;
+else
+    echo "SAM CLI VERSION: $SAM_CLI_VERSION";
+fi
+
 docker build -f Dockerfile-nodejs10x -t amazon/aws-sam-cli-build-image-nodejs10.x --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
 docker build -f Dockerfile-nodejs12x -t amazon/aws-sam-cli-build-image-nodejs12.x --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
 docker build -f Dockerfile-java11 -t amazon/aws-sam-cli-build-image-java11 --build-arg SAM_CLI_VERSION=$SAM_CLI_VERSION .
