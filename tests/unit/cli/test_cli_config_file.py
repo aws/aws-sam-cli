@@ -27,25 +27,25 @@ class TestTomlProvider(TestCase):
 
     def test_toml_valid_with_section(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
         self.assertEqual(
-            TomlProvider(section=self.parameters)(config_dir, self.config_env, [self.cmd_name]), {"word": "clarity"}
+            TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name]), {"word": "clarity"}
         )
 
     def test_toml_valid_with_no_version(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("[config_env.topic.parameters]\nword='clarity'\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("[config_env.topic.parameters]\nword='clarity'\n")
         with self.assertRaises(ConfigException):
-            TomlProvider(section=self.parameters)(config_dir, self.config_env, [self.cmd_name])
+            TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_valid_with_invalid_version(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("version='abc'\n[config_env.topic.parameters]\nword='clarity'\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("version='abc'\n[config_env.topic.parameters]\nword='clarity'\n")
         with self.assertRaises(ConfigException):
-            TomlProvider(section=self.parameters)(config_dir, self.config_env, [self.cmd_name])
+            TomlProvider(section=self.parameters)(config_path, self.config_env, [self.cmd_name])
 
     def test_toml_invalid_empty_dict(self):
         config_dir = tempfile.gettempdir()
@@ -77,6 +77,7 @@ class TestCliConfiguration(TestCase):
         self.ctx.parent = mock_context3
         self.ctx.info_name = "test_info"
         self.ctx.params = {}
+        setattr(self.ctx, "samconfig_dir", None)
         configuration_callback(
             cmd_name=self.cmd_name,
             option_name=self.option_name,
@@ -110,7 +111,7 @@ class TestCliConfiguration(TestCase):
 
         get_ctx_defaults("start-api", provider, mock_context3, "default")
 
-        provider.assert_called_with(SamConfig.config_dir(), "default", ["local", "start-api"])
+        provider.assert_called_with(None, "default", ["local", "start-api"])
 
     def test_get_ctx_defaults_nested(self):
         provider = MagicMock()
@@ -120,11 +121,6 @@ class TestCliConfiguration(TestCase):
         mock_context3 = MockContext(info_name="generate-event", parent=mock_context2)
         mock_context4 = MockContext(info_name="alexa-skills-kit", parent=mock_context3)
 
-        expected_path = os.path.join(os.getcwd(), DEFAULT_CONFIG_FILE_NAME)
-
-
         get_ctx_defaults("intent-answer", provider, mock_context4, "default")
 
-        provider.assert_called_with(
-            SamConfig.config_dir(), "default", ["local", "generate-event", "alexa-skills-kit", "intent-answer"]
-        )
+        provider.assert_called_with(None, "default", ["local", "generate-event", "alexa-skills-kit", "intent-answer"])

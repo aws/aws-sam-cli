@@ -77,8 +77,6 @@ def guided_deploy_stack_name(ctx, param, provided_value):
     guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
 
     if not guided and not provided_value:
-        config_file = ctx.params.get("config_file")
-        config_env = ctx.params.get("config_env")
         raise click.BadOptionUsage(
             option_name=param.name,
             ctx=ctx,

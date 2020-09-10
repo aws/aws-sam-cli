@@ -27,7 +27,9 @@ class TestGuidedContext(TestCase):
         self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
     ):
         # Series of inputs to confirmations so that full range of questions are asked.
-        patchedauth_per_resource.return_value = [("HelloWorldFunction", True)]
+        patchedauth_per_resource.return_value = [
+            ("HelloWorldFunction", True),
+        ]
         patched_confirm.side_effect = [True, False, "", True]
         patched_manage_stack.return_value = "managed_s3_stack"
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -35,7 +37,7 @@ class TestGuidedContext(TestCase):
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
-            call(f"\t{self.gc.start_bold}Save arguments to samconfig.toml{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -68,7 +70,7 @@ class TestGuidedContext(TestCase):
                 f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
                 default=False,
             ),
-            call(f"\t{self.gc.start_bold}Save arguments to samconfig.toml{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -109,7 +111,7 @@ class TestGuidedContext(TestCase):
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
-            call(f"\t{self.gc.start_bold}Save arguments to samconfig.toml{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 

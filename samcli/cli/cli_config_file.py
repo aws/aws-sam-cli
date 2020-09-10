@@ -48,9 +48,9 @@ class TomlProvider:
         # Use default sam config file name if config_path only contain the directory
 
         samconfig = (
-            SamConfig(config_path)
-            if os.path.isdir(config_path)
-            else SamConfig(os.path.split(config_path)[0], os.path.split(config_path)[1])
+            SamConfig(os.path.split(config_path)[0], os.path.split(config_path)[1])
+            if config_path
+            else SamConfig(os.getcwd())
         )
         LOG.debug("Config file location: %s", samconfig.path())
 
@@ -118,16 +118,17 @@ def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx,
     cmd_name = cmd_name or ctx.info_name
     param.default = None
     config_env_name = ctx.params.get("config_env") or DEFAULT_ENV
-    config_file_name = ctx.params.get("config_file") or DEFAULT_CONFIG_FILE_NAME
-    config = get_ctx_defaults(
-        cmd_name, provider, ctx, config_env_name=config_env_name, config_file_name=config_file_name
-    )
+    config_file = ctx.params.get("config_file") or DEFAULT_CONFIG_FILE_NAME
+    config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
+    # If --config-file is an absolute path, use it, if not, start from config_dir
+    config_file_name = config_file if os.path.isabs(config_file) else os.path.join(config_dir, config_file)
+    config = get_ctx_defaults(cmd_name, provider, ctx, config_env_name=config_env_name, config_file=config_file_name,)
     ctx.default_map.update(config)
 
     return saved_callback(ctx, param, config_env_name) if saved_callback else config_env_name
 
 
-def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file_name=DEFAULT_CONFIG_FILE_NAME):
+def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file=None):
     """
     Get the set of the parameters that are needed to be set into the click command.
     This function also figures out the command name by looking up current click context's parent
@@ -143,9 +144,6 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file_name=
     :param config_file: configuration file name
     :return: dictionary of defaults for parameters
     """
-
-    config_path = getattr(ctx, "samconfig_dir", None) or os.getcwd()
-    config_file = os.path.join(config_path, config_file_name)
 
     return provider(config_file, config_env_name, get_cmd_names(cmd_name, ctx))
 

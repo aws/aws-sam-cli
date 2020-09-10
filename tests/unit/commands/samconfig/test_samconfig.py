@@ -400,6 +400,8 @@ class TestSamConfigForAllCommands(TestCase):
                 "myregion",
                 None,
                 False,
+                "samconfig.toml",
+                "default",
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -461,8 +463,8 @@ class TestSamConfigForAllCommands(TestCase):
                 "myregion",
                 None,
                 False,
-                "default",
                 "samconfig.toml",
+                "default",
             )
 
     @patch("samcli.commands.logs.command.do_cli")

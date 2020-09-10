@@ -80,6 +80,7 @@ class GuidedContext:
         default_config_file = self.config_file or DEFAULT_CONFIG_FILE_NAME
         input_capabilities = None
         config_env = None
+        config_file = None
 
         click.echo(
             self.color.yellow(
