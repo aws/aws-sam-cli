@@ -6,6 +6,7 @@ import logging
 
 import sys
 import re
+import platform
 import docker
 import requests
 
@@ -44,13 +45,21 @@ class ContainerManager:
         bool
             True, if Docker is available, False otherwise
         """
+        errors = (
+            docker.errors.APIError,
+            requests.exceptions.ConnectionError,
+        )
+        if platform.system() == "Windows":
+            import pywintypes
+            errors += (pywintypes.error, )
+
         try:
             self.docker_client.ping()
-
             return True
 
         # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-        except (docker.errors.APIError, requests.exceptions.ConnectionError):
+        # and also windows-specific errors
+        except errors:
             LOG.debug("Docker is not reachable", exc_info=True)
             return False
 
