@@ -50,8 +50,9 @@ class ContainerManager:
             requests.exceptions.ConnectionError,
         )
         if platform.system() == "Windows":
-            import pywintypes # pylint: disable=import-error
-            errors += (pywintypes.error, )
+            import pywintypes  # pylint: disable=import-error
+
+            errors += (pywintypes.error,)
 
         try:
             self.docker_client.ping()
