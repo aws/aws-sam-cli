@@ -5,7 +5,7 @@ Tests container manager
 import io
 import importlib
 from unittest import TestCase
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 
 import requests
 from docker.errors import APIError, ImageNotFound
