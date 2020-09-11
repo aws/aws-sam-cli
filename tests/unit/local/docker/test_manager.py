@@ -3,6 +3,7 @@ Tests container manager
 """
 
 import io
+import importlib
 from unittest import TestCase
 from unittest.mock import Mock, MagicMock, patch
 
@@ -225,20 +226,10 @@ class TestContainerManager_is_docker_reachable(TestCase):
     def setUp(self):
         self.ping_mock = Mock()
 
-        docker_client_mock = Mock()
-        docker_client_mock.ping = self.ping_mock
+        self.docker_client_mock = Mock()
+        self.docker_client_mock.ping = self.ping_mock
 
-        windows_modules = {
-            "pywintypes": MagicMock(),
-            "pywintypes.error": MagicMock(),
-        }
-        self.windows_module_patcher = patch.dict("sys.modules", windows_modules)
-        self.windows_module_patcher.start()
-
-        self.manager = ContainerManager(docker_client=docker_client_mock)
-
-    def tearDown(self):
-        self.windows_module_patcher.stop()
+        self.manager = ContainerManager(docker_client=self.docker_client_mock)
 
     def test_must_use_docker_client_ping(self):
         self.manager.is_docker_reachable
@@ -265,15 +256,33 @@ class TestContainerManager_is_docker_reachable(TestCase):
         self.assertFalse(is_reachable)
 
     def test_must_return_false_if_ping_raises_pywintypes_error(self):
-        with patch("platform.system") as system:
-            system.return_value = "Windows"
-            import pywintypes
+        # pywintypes is not available non-Windows OS,
+        # we need to make up an Exception for this
+        class MockPywintypesError(Exception):
+            pass
 
-            self.ping_mock.side_effect = pywintypes.error;
+        # Mock these modules to simulate a Windows environment
+        platform_mock = Mock()
+        platform_mock.system.return_value = "Windows"
+        pywintypes_mock = Mock()
+        pywintypes_mock.error = MockPywintypesError
+        modules = {
+            "platform": platform_mock,
+            "pywintypes": pywintypes_mock,
+        }
+        with patch.dict("sys.modules", modules):
+            import samcli.local.docker.manager as manager_module
 
-            is_reachable = self.manager.is_docker_reachable
+            importlib.reload(manager_module)
+            manager = manager_module.ContainerManager(docker_client=self.docker_client_mock)
+            import pywintypes  # pylint: disable=import-error
 
+            self.ping_mock.side_effect = pywintypes.error("pywintypes.error")
+            is_reachable = manager.is_docker_reachable
             self.assertFalse(is_reachable)
+
+        # reload modules to ensure platform.system() is unpatched
+        importlib.reload(manager_module)
 
 
 class TestContainerManager_has_image(TestCase):

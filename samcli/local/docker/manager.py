@@ -50,7 +50,7 @@ class ContainerManager:
             requests.exceptions.ConnectionError,
         )
         if platform.system() == "Windows":
-            import pywintypes
+            import pywintypes # pylint: disable=import-error
             errors += (pywintypes.error, )
 
         try:
