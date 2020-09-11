@@ -52,7 +52,7 @@ class ContainerManager:
         if platform.system() == "Windows":
             import pywintypes  # pylint: disable=import-error
 
-            errors += (pywintypes.error,)
+            errors += (pywintypes.error,)  # pylint: disable=no-member
 
         try:
             self.docker_client.ping()
