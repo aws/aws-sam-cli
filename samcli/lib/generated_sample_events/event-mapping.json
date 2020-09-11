@@ -968,6 +968,15 @@
         },
         "queue-name": {
           "default": "MyQueue"
+        },
+        "body": {
+          "default": "Hello from SQS!",
+          "children": {
+            "md5_of_body": {
+              "type": "string",
+              "hashing": "md5"
+            }
+          }
         }
       }
     }
