@@ -6,7 +6,9 @@ import json
 import click
 
 
-def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_overrides, confirm_changeset):
+def print_deploy_args(
+    stack_name, s3_bucket, region, capabilities, template_params, parameter_overrides, confirm_changeset
+):
     """
     Print a table of the values that are used during a sam deploy
 
@@ -25,6 +27,7 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
     :param s3_bucket: Name of s3 bucket used for packaging code artifacts
     :param region: Name of region to which the current sam/cloudformation stack will be deployed to.
     :param capabilities: Corresponding IAM capabilities to be used during the stack deploy.
+    :param template_params: Parameters from template, need to hide "NoEcho" paramters
     :param parameter_overrides: Cloudformation parameter overrides to be supplied based on the stack's template
     :param confirm_changeset: Prompt for changeset to be confirmed before going ahead with the deploy.
     :return:
@@ -32,8 +35,9 @@ def print_deploy_args(stack_name, s3_bucket, region, capabilities, parameter_ove
 
     _parameters = parameter_overrides.copy()
     for key, value in _parameters.items():
-        if isinstance(value, dict):
-            _parameters[key] = value.get("Value", value) if not value.get("Hidden") else "*" * len(value.get("Value"))
+        if template_params and isinstance(template_params.get(key, None), dict):
+            is_hidden = template_params.get(key).get("NoEcho", False)
+            _parameters[key] = value if not is_hidden else "*" * len(value)
 
     capabilities_string = json.dumps(capabilities)
 

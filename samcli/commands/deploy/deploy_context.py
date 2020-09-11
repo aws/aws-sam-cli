@@ -123,6 +123,7 @@ class DeployContext:
             self.s3_bucket,
             region,
             self.capabilities,
+            template_dict.get("Parameters", None),
             self.parameter_overrides,
             self.confirm_changeset,
         )
