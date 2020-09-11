@@ -16,9 +16,10 @@ from samcli.commands._utils.options import (
     tags_override_option,
     template_click_option,
 )
-from samcli.commands.deploy.utils import print_deploy_args, sanitize_parameter_overrides
+from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metrics import track_command
 from samcli.lib.utils import osutils
+from samcli.lib.bootstrap.bootstrap import manage_stack
 
 SHORT_HELP = "Deploy an AWS SAM application."
 
@@ -127,6 +128,13 @@ LOG = logging.getLogger(__name__)
     help="Indicates whether to use JSON as the format for "
     "the output AWS CloudFormation template. YAML is used by default.",
 )
+@click.option(
+    "--resolve-s3",
+    required=False,
+    is_flag=True,
+    help="Automatically resolve s3 bucket for non-guided deployments."
+    "Do not use --s3-guided parameter with this option.",
+)
 @metadata_override_option
 @notification_arns_override_option
 @tags_override_option
@@ -155,6 +163,7 @@ def cli(
     metadata,
     guided,
     confirm_changeset,
+    resolve_s3,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -178,6 +187,7 @@ def cli(
         confirm_changeset,
         ctx.region,
         ctx.profile,
+        resolve_s3,
     )  # pragma: no cover
 
 
@@ -201,10 +211,12 @@ def do_cli(
     confirm_changeset,
     region,
     profile,
+    resolve_s3,
 ):
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.deploy.guided_context import GuidedContext
+    from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.
@@ -221,15 +233,13 @@ def do_cli(
             config_section=CONFIG_SECTION,
         )
         guided_context.run()
-
-    print_deploy_args(
-        stack_name=guided_context.guided_stack_name if guided else stack_name,
-        s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
-        region=guided_context.guided_region if guided else region,
-        capabilities=guided_context.guided_capabilities if guided else capabilities,
-        parameter_overrides=guided_context.guided_parameter_overrides if guided else parameter_overrides,
-        confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
-    )
+    elif resolve_s3 and bool(s3_bucket):
+        raise DeployResolveS3AndS3SetError()
+    elif resolve_s3:
+        s3_bucket = manage_stack(profile=profile, region=region)
+        click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
+        click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+        click.echo("\t\tOr by specifying --s3-bucket explicitly.")
 
     with osutils.tempfile_platform_independent() as output_template_file:
 

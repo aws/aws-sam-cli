@@ -52,9 +52,14 @@ DESCRIBE_STACK_EVENTS_DEFAULT_ARGS = OrderedDict(
 
 DESCRIBE_STACK_EVENTS_TABLE_HEADER_NAME = "CloudFormation events from changeset"
 
-DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}}"
+DESCRIBE_CHANGESET_FORMAT_STRING = "{Operation:<{0}} {LogicalResourceId:<{1}} {ResourceType:<{2}} {Replacement:<{3}}"
 DESCRIBE_CHANGESET_DEFAULT_ARGS = OrderedDict(
-    {"Operation": "Operation", "LogicalResourceId": "LogicalResourceId", "ResourceType": "ResourceType"}
+    {
+        "Operation": "Operation",
+        "LogicalResourceId": "LogicalResourceId",
+        "ResourceType": "ResourceType",
+        "Replacement": "Replacement",
+    }
 )
 
 DESCRIBE_CHANGESET_TABLE_HEADER_NAME = "CloudFormation stack changeset"
@@ -222,6 +227,9 @@ class Deployer:
                     {
                         "LogicalResourceId": resource_props.get("LogicalResourceId"),
                         "ResourceType": resource_props.get("ResourceType"),
+                        "Replacement": "N/A"
+                        if resource_props.get("Replacement") is None
+                        else resource_props.get("Replacement"),
                     }
                 )
 
@@ -229,7 +237,12 @@ class Deployer:
             for value in v:
                 row_color = self.deploy_color.get_changeset_action_color(action=k)
                 pprint_columns(
-                    columns=[changes_showcase.get(k, k), value["LogicalResourceId"], value["ResourceType"]],
+                    columns=[
+                        changes_showcase.get(k, k),
+                        value["LogicalResourceId"],
+                        value["ResourceType"],
+                        value["Replacement"],
+                    ],
                     width=kwargs["width"],
                     margin=kwargs["margin"],
                     format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
@@ -242,7 +255,7 @@ class Deployer:
             # There can be cases where there are no changes,
             # but could be an an addition of a SNS notification topic.
             pprint_columns(
-                columns=["-", "-", "-"],
+                columns=["-", "-", "-", "-"],
                 width=kwargs["width"],
                 margin=kwargs["margin"],
                 format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
@@ -401,9 +414,9 @@ class Deployer:
         else:
             raise RuntimeError("Invalid changeset type {0}".format(changeset_type))
 
-        # Poll every 5 seconds. Optimizing for the case when the stack has only
-        # minimal changes, such the Code for Lambda Function
-        waiter_config = {"Delay": 5, "MaxAttempts": 720}
+        # Poll every 30 seconds. Polling too frequently risks hitting rate limits
+        # on CloudFormation's DescribeStacks API
+        waiter_config = {"Delay": 30, "MaxAttempts": 120}
 
         try:
             waiter.wait(StackName=stack_name, WaiterConfig=waiter_config)
