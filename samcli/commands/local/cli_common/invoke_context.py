@@ -135,7 +135,8 @@ class InvokeContext:
 
         if not self._container_manager.is_docker_reachable:
             raise InvokeContextException(
-                "Running AWS SAM projects locally requires Docker. Have you got it installed and running?")
+                "Running AWS SAM projects locally requires Docker. Have you got it installed and running?"
+            )
 
         return self
 
