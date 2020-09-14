@@ -49,10 +49,18 @@ class TestTomlProvider(TestCase):
 
     def test_toml_invalid_empty_dict(self):
         config_dir = tempfile.gettempdir()
-        configpath = Path(config_dir, "samconfig.toml")
-        configpath.write_text("[topic]\nword=clarity\n")
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("[topic]\nword=clarity\n")
 
         self.assertEqual(self.toml_provider(config_dir, self.config_env, [self.cmd_name]), {})
+
+    def test_toml_invalid_file_name(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "mysamconfig.toml")
+        config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
+        config_path_invalid = Path(config_dir, "samconfig.toml")
+
+        self.assertEqual(self.toml_provider(config_path_invalid, self.config_env, [self.cmd_name]), {})
 
 
 class TestCliConfiguration(TestCase):
