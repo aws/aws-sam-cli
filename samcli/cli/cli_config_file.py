@@ -78,10 +78,10 @@ class TomlProvider:
             LOG.debug(
                 "Error reading configuration from [%s.%s.%s] (env.command_name.section) "
                 "in configuration file at '%s' with : %s",
-                samconfig.path(),
                 config_env,
                 cmd_names,
                 self.section,
+                samconfig.path(),
                 str(ex),
             )
 
@@ -139,8 +139,8 @@ def get_ctx_defaults(cmd_name, provider, ctx, config_env_name, config_file=None)
     :param cmd_name: `sam` command name
     :param provider: provider to be called for reading configuration file
     :param ctx: Click context
-    :param config_env_name: config-env within configuration file, sam configuration file should always be relative
-                            to the supplied original template
+    :param config_env_name: config-env within configuration file, sam configuration file will be relative to the
+                            supplied original template if its path is not specified
     :param config_file: configuration file name
     :return: dictionary of defaults for parameters
     """
@@ -172,6 +172,7 @@ def configuration_option(*param_decls, **attrs):
             preconfig_decorator_list=[decorator_customize_config_file, decorator_customize_config_env],
             provider=TomlProvider(section=CONFIG_SECTION),
         )
+        By default, we enable these two options.
     :param provider: A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
         `provider(file_path, config_env, cmd_name)
@@ -203,16 +204,24 @@ def configuration_option(*param_decls, **attrs):
 
     # Compose decorators here to make sure the context parameters are updated before callback function
     decorator_list = [decorator_configuration_setup]
-    pre_config_decorators = attrs.pop("preconfig_decorator_list", [])
+    pre_config_decorators = attrs.pop(
+        "preconfig_decorator_list", [decorator_customize_config_file, decorator_customize_config_env]
+    )
     for decorator in pre_config_decorators:
         decorator_list.append(decorator)
     return composed_decorator(decorator_list)
 
 
 def decorator_customize_config_file(f):
+    """
+    CLI option to customize configuration file name. By default it is 'samconfig.toml' in project directory.
+    Ex: --config-file samconfig.toml
+    :param f: Callback function passed by Click
+    :return: Callback function
+    """
     config_file_attrs = {}
     config_file_param_decls = ("--config-file",)
-    config_file_attrs["help"] = "Name of configuration file. By default, it is samconfig.toml in the workspace folder."
+    config_file_attrs["help"] = "Name of configuration file. By default, it is samconfig.toml in project directory."
     config_file_attrs["default"] = "samconfig.toml"
     config_file_attrs["is_eager"] = True
     config_file_attrs["required"] = False
@@ -221,6 +230,12 @@ def decorator_customize_config_file(f):
 
 
 def decorator_customize_config_env(f):
+    """
+    CLI option to customize configuration environment name. By default it is 'default'.
+    Ex: --config-env default
+    :param f: Callback function passed by Click
+    :return: Callback function
+    """
     config_env_attrs = {}
     config_env_param_decls = ("--config-env",)
     config_env_attrs["help"] = "Name of configuration environment. By default, its name is 'default'."

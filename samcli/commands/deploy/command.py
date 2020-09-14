@@ -5,12 +5,7 @@ import logging
 
 import click
 
-from samcli.cli.cli_config_file import (
-    TomlProvider,
-    configuration_option,
-    decorator_customize_config_file,
-    decorator_customize_config_env,
-)
+from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context
 from samcli.commands._utils.options import (
     capabilities_override_option,
@@ -47,10 +42,7 @@ LOG = logging.getLogger(__name__)
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@configuration_option(
-    preconfig_decorator_list=[decorator_customize_config_file, decorator_customize_config_env],
-    provider=TomlProvider(section=CONFIG_SECTION),
-)
+@configuration_option(provider=TomlProvider(section=CONFIG_SECTION),)
 @click.option(
     "--guided",
     "-g",

@@ -103,6 +103,8 @@ def cli(
     force_upload,
     metadata,
     resolve_s3,
+    config_file,
+    config_env,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing

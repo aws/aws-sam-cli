@@ -20,7 +20,9 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 @cli_framework_options
 @pass_context
 @track_command
-def cli(ctx, template_file):
+def cli(
+    ctx, template_file, config_file, config_env,
+):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
