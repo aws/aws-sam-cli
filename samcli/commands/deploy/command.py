@@ -42,7 +42,7 @@ LOG = logging.getLogger(__name__)
     context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
 )
-@configuration_option(provider=TomlProvider(section=CONFIG_SECTION),)
+@configuration_option(provider=TomlProvider(section=CONFIG_SECTION))
 @click.option(
     "--guided",
     "-g",

@@ -129,7 +129,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
-    def test_guided_prompts_check_defaults_public_resources(
+    def test_guided_prompts_check_configuration_file_prompt_calls(
         self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
     ):
         # Series of inputs to confirmations so that full range of questions are asked.

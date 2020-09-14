@@ -51,9 +51,10 @@ class TomlProvider:
             if config_path
             else SamConfig(os.getcwd())
         )
+
         # Enable debug level logging by environment variable "SAM_DEBUG"
         if os.environ.get("SAM_DEBUG", "").lower() == "true":
-            LOG.setLevel(10)
+            LOG.setLevel(logging.DEBUG)
 
         LOG.debug("Config file location: %s", samconfig.path())
 
@@ -182,7 +183,7 @@ def configuration_option(*param_decls, **attrs):
     """
 
     def decorator_configuration_setup(f):
-        configuration_setup_param_devls = ()
+        configuration_setup_params = ()
         configuration_setup_attrs = {}
         configuration_setup_attrs[
             "help"
@@ -195,7 +196,7 @@ def configuration_option(*param_decls, **attrs):
         saved_callback = attrs.pop("callback", None)
         partial_callback = functools.partial(configuration_callback, None, None, saved_callback, provider)
         configuration_setup_attrs["callback"] = partial_callback
-        return click.option(*configuration_setup_param_devls, **configuration_setup_attrs)(f)
+        return click.option(*configuration_setup_params, **configuration_setup_attrs)(f)
 
     def composed_decorator(decorators):
         def decorator(f):
