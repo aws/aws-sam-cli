@@ -89,22 +89,6 @@ class TestSamConfig(TestCase):
         )
 
     def test_add_params_from_different_sections(self):
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="testKey1", value=True, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
-        self.assertEqual(
-            {"testKey1": True}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv")
-        )
-        self.samconfig.document = {}
-        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="testKey2", value=False, env="myEnv")
-        self.samconfig.flush()
-        self._check_config_file()
-        self.assertEqual(
-            {"testKey1": True, "testKey2": False},
-            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
-        )
-
-    def test_add_params_from_different_keys(self):
         self.samconfig.put(cmd_names=["myCommand"], section="mySection1", key="testKey1", value=True, env="myEnv")
         self.samconfig.flush()
         self._check_config_file()
@@ -115,11 +99,27 @@ class TestSamConfig(TestCase):
         self.samconfig.put(cmd_names=["myCommand"], section="mySection2", key="testKey2", value=False, env="myEnv")
         self.samconfig.flush()
         self._check_config_file()
-        self.assertEqual(Ø
-            {"testKey1": True}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection1", env="myEnv")
+        self.assertEqual(
+            {"testKey1": True}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection1", env="myEnv"),
         )
         self.assertEqual(
-            {"testKey2": False}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection2", env="myEnv")
+            {"testKey2": False}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection2", env="myEnv"),
+        )
+
+    def test_add_params_from_different_keys(self):
+        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="testKey1", value=True, env="myEnv")
+        self.samconfig.flush()
+        self._check_config_file()
+        self.assertEqual(
+            {"testKey1": True}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv")
+        )
+        self.samconfig.document = {}
+        self.samconfig.put(cmd_names=["myCommand"], section="mySection", key="testKey2", value=321, env="myEnv")
+        self.samconfig.flush()
+        self._check_config_file()
+        self.assertEqual(
+            {"testKey1": True, "testKey2": 321},
+            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection", env="myEnv"),
         )
 
     def test_check_config_get(self):

@@ -46,12 +46,15 @@ class TomlProvider:
         resolved_config = {}
 
         # Use default sam config file name if config_path only contain the directory
-
         samconfig = (
             SamConfig(os.path.split(config_path)[0], os.path.split(config_path)[1])
             if config_path
             else SamConfig(os.getcwd())
         )
+        # Enable debug level logging by environment variable "SAM_DEBUG"
+        if os.environ.get("SAM_DEBUG", "").lower() == "true":
+            LOG.setLevel(10)
+
         LOG.debug("Config file location: %s", samconfig.path())
 
         if not samconfig.exists():
@@ -90,7 +93,7 @@ class TomlProvider:
             raise ConfigException(f"Syntax invalid in samconfig.toml: {str(ex)}")
 
         except Exception as ex:
-            LOG.info("Error reading configuration file: %s %s", samconfig.path(), str(ex))
+            LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))
 
         return resolved_config
 

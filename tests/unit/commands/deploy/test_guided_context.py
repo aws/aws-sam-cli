@@ -130,8 +130,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
     def test_guided_prompts_check_defaults_public_resources(
-        self,
-        patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
+        self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
     ):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
@@ -154,7 +153,15 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
             call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
-            call(f"\t{self.gc.start_bold}SAM configuration file{self.gc.end_bold}", default="samconfig.toml", type=click.STRING,),
-            call(f"\t{self.gc.start_bold}SAM configuration environment{self.gc.end_bold}",default="default",type=click.STRING,)
+            call(
+                f"\t{self.gc.start_bold}SAM configuration file{self.gc.end_bold}",
+                default="samconfig.toml",
+                type=click.STRING,
+            ),
+            call(
+                f"\t{self.gc.start_bold}SAM configuration environment{self.gc.end_bold}",
+                default="default",
+                type=click.STRING,
+            ),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
