@@ -18,6 +18,7 @@ from samcli.lib.utils.colors import Colored
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from .build_graph import BuildGraph, BuildDefinition
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
 LOG = logging.getLogger(__name__)
@@ -126,6 +127,17 @@ class ApplicationBuilder:
                                                    layer.compatible_runtimes)
 
         return result
+
+    def _get_build_graph(self):
+        build_graph = BuildGraph(self._base_dir)
+        functions = self._resources_to_build.functions
+        for function in functions:
+            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)
+            build_graph.put_build_definition(build_details, function)
+
+        build_graph.remove_deleted_ones_and_update()
+
+        return build_graph
 
     def update_template(self, template_dict, original_template_path, built_artifacts):
         """
@@ -332,7 +344,8 @@ class ApplicationBuilder:
                                      options):
 
         if not self._container_manager.is_docker_reachable:
-            raise BuildInsideContainerError("Docker is unreachable. Docker needs to be running to build inside a container.")
+            raise BuildInsideContainerError(
+                "Docker is unreachable. Docker needs to be running to build inside a container.")
 
         container_build_supported, reason = supports_build_in_container(config)
         if not container_build_supported:

@@ -1,0 +1,202 @@
+"""
+Holds classes and utility methods related to build graph
+"""
+
+import logging
+from pathlib import Path
+from uuid import uuid4
+
+import tomlkit
+
+LOG = logging.getLogger(__name__)
+
+DEFAULT_BUILD_GRAPH_FILE_NAME = ".aws-sam/build.toml"
+
+# filed names for the toml table
+CODE_URI_FIELD = "codeuri"
+RUNTIME_FIELD = "runtime"
+METADATA_FIELD = "metadata"
+FUNCTIONS_FIELD = "functions"
+
+
+def _build_definition_to_toml_table(build_definition):
+    """
+    Converts given build_definition into toml table representation
+
+    :param build_definition: BuildDefinition
+    :return: toml table of BuildDefinition
+    """
+    toml_table = tomlkit.table()
+    toml_table[CODE_URI_FIELD] = build_definition.codeuri
+    toml_table[RUNTIME_FIELD] = build_definition.runtime
+    toml_table[FUNCTIONS_FIELD] = \
+        list(map(lambda f: f.functionname, build_definition.functions))
+
+    if build_definition.metadata:
+        toml_table[METADATA_FIELD] = build_definition.metadata
+
+    return toml_table
+
+
+def _toml_table_to_build_definition(uuid, toml_table):
+    """
+    Converts given toml table into BuildDefinition instance
+
+    :param uuid: key of the toml_table instance
+    :param toml_table: build definition as toml table
+    :return: BuildDefinition of given toml table
+    """
+    build_definition = BuildDefinition(toml_table[RUNTIME_FIELD],
+                                       toml_table[CODE_URI_FIELD],
+                                       toml_table.get(METADATA_FIELD, None))
+    build_definition.uuid = uuid
+    return build_definition
+
+
+class BuildGraph:
+    """
+    Contains list of build definitions, with ability to read and write them into build.toml file
+    """
+
+    # global table build definitions key
+    BUILD_DEFINITIONS = "build_definitions"
+
+    def __init__(self, base_dir):
+        self.filepath = Path(base_dir, DEFAULT_BUILD_GRAPH_FILE_NAME)
+        self.build_definitions = None
+        self._read()
+
+    def __iter__(self):
+        """
+        Overrides __iter__ for easily iterating over self.build_definitions
+        """
+        return self.build_definitions.__iter__()
+
+    def put_build_definition(self, build_definition, function):
+        """
+        Puts the newly read build definition into existing build graph.
+        If graph already contains a build definition which is same as the newly passed one, then it will add
+        the function to the existing one, discarding the new one
+
+        If graph doesn't contain such unique build definition, it will be added to the current build graph
+
+        :param build_definition: build definition which is newly read from template.yaml file
+        :param function: function details for this build definition
+        """
+        if build_definition in self.build_definitions:
+            previous_build_definition = self.build_definitions[self.build_definitions.index(build_definition)]
+            LOG.debug("Same build definition found, adding function (Previous: %s, Current: %s, Function: %s)",
+                      previous_build_definition, build_definition, function)
+            previous_build_definition.functions.append(function)
+        else:
+            LOG.debug("Unique build definition found, adding as new (Build Definition: %s, Function: %s)",
+                      build_definition, function)
+            build_definition.functions.append(function)
+            self.build_definitions.append(build_definition)
+
+    def remove_deleted_ones_and_update(self):
+        """
+        Removes build definitions which doesn't have any function in it, which means these build definitions
+        are no longer used, and they can be deleted
+
+        After cleaning up these definitions, build graph is written to .aws-sam/build.toml file
+        """
+        self.build_definitions[:] = [bd for bd in self.build_definitions if len(bd.functions) > 0]
+        self._write()
+
+    def _read(self):
+        """
+        Reads build.toml file into array of build definition
+        Each build definition will have empty function list, which will be populated from the current template.yaml file
+        """
+        if not self.build_definitions:
+            LOG.debug("Instantiating build definitions")
+            self.build_definitions = []
+            document = {}
+            try:
+                txt = self.filepath.read_text()
+                document = tomlkit.loads(txt)
+            except OSError:
+                LOG.debug("No previous build graph found, generating new one")
+            build_definitions_table = document.get(BuildGraph.BUILD_DEFINITIONS, [])
+            for build_definition_key in build_definitions_table:
+                build_definition = _toml_table_to_build_definition(build_definition_key,
+                                                                   build_definitions_table[build_definition_key])
+                self.build_definitions.append(build_definition)
+
+        return self.build_definitions
+
+    def _write(self):
+        """
+        Writes build definition details into build.toml file, which would be used by the next build.
+        build.toml file will contain the same information as build graph,
+        function details will only be preserved as function names
+        """
+        # convert build definition list into toml table
+        build_definitions_table = tomlkit.table()
+        for build_definition in self.build_definitions:
+            build_definition_as_table = _build_definition_to_toml_table(build_definition)
+            build_definitions_table.add(build_definition.uuid, build_definition_as_table)
+
+        # create toml document and add build definitions
+        document = tomlkit.document()
+        document.add(BuildGraph.BUILD_DEFINITIONS, build_definitions_table)
+
+        if not self.filepath.exists():
+            open(self.filepath, "a+").close()
+
+        self.filepath.write_text(tomlkit.dumps(document))
+
+
+class BuildDefinition:
+    """
+    Build definition holds information about each unique build
+    """
+
+    # following runtimes, does not share their same build
+    NON_DEDUP_RUNTIMES = ['provided', 'go1.x']
+
+    def __init__(self, runtime, codeuri, metadata):
+        self.runtime = runtime
+        self.codeuri = codeuri
+        self.metadata = metadata
+        self.uuid = str(uuid4())
+        self.functions = []
+
+    def add_function(self, function):
+        self.functions.append(function)
+
+    def is_nondedup(self):
+        """
+        Checks whether current build definition is a non-dedup definition
+        :return: True if runtime is in NON_DEDUP_RUNTIMES, False otherwise
+        """
+        return self.runtime in BuildDefinition.NON_DEDUP_RUNTIMES
+
+    def get_function_name(self):
+        if self.is_nondedup():
+            return self.functions[0].name
+        return None
+
+    def get_handler_name(self):
+        if self.is_nondedup():
+            return self.functions[0].handler
+        return None
+
+    def __str__(self):
+        return f"BuildDefinition({self.runtime}, {self.codeuri}, {self.uuid}, {self.metadata}, " \
+               f"{[f.functionname for f in self.functions]})"
+
+    def __eq__(self, other):
+        """
+        Checks uniqueness of the build definition
+
+        :param other: other build definition to compare
+        :return: True if both build definitions has same following properties, False otherwise
+        """
+        if not isinstance(other, BuildDefinition):
+            return False
+
+        return self.runtime == other.runtime \
+               and self.codeuri == other.codeuri \
+               and self.metadata == other.metadata
