@@ -9,6 +9,7 @@ import os
 import functools
 import logging
 
+from pathlib import Path
 import click
 
 from samcli.commands.exceptions import ConfigException
@@ -46,11 +47,13 @@ class TomlProvider:
         resolved_config = {}
 
         # Use default sam config file name if config_path only contain the directory
-        samconfig = (
-            SamConfig(os.path.split(config_path)[0], os.path.split(config_path)[1])
-            if config_path
-            else SamConfig(os.getcwd())
+        config_file_path = (
+            Path(os.path.abspath(config_path)) if config_path else Path(os.getcwd(), DEFAULT_CONFIG_FILE_NAME)
         )
+        config_file_name = config_file_path.name
+        config_file_dir = config_file_path.parents[0]
+
+        samconfig = SamConfig(config_file_dir, config_file_name)
 
         # Enable debug level logging by environment variable "SAM_DEBUG"
         if os.environ.get("SAM_DEBUG", "").lower() == "true":
