@@ -1,0 +1,39 @@
+version: 2.1
+
+executors:
+  docker-cimg:
+    docker:
+      - image: circleci/python:3.6-jessie
+  # macos-11-4:
+  #   macos:
+  #     xcode: 11.4.0
+  # machine-16:
+  #   machine:
+  #     image: ubuntu-1604:201903-01
+
+
+jobs:
+  build-sam-package:
+    # executor: <<parameters.executor>>
+    executor: docker-cimg
+    steps:
+      - checkout
+      - run:
+          name: install pyinstaller
+          command: |
+            sudo pip install pyinstaller
+      - run:
+          name: install dependencies and run pyinstaller
+          command: |
+            sudo pip install -r requirements/base.txt
+            pyinstaller sam.spec --onefile
+      - run:
+          name: test sam
+          command: ./dist/sam --version
+      # need to publish the 'dist/sam' file
+
+
+workflows:
+  pyinstaller:
+    jobs:
+      - build-sam-package
