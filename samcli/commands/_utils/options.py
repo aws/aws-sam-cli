@@ -39,14 +39,20 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
 
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
-        # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
-        # .yml is the default, even if it does not exist.
-        provided_value = "template.yml"
+        # "--template" is an alias of "--template-file", however, only the first option name "--template-file" in
+        # ctx.default_map is used as default value of provided value. Here we add "--template"'s value as second
+        # default value in this option, so that the command line paramerters from config file can load it.
+        if ctx.default_map.get("template", None):
+            provided_value = ctx.default_map.get("template")
+        else:
+            # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
+            # .yml is the default, even if it does not exist.
+            provided_value = "template.yml"
 
-        for option in search_paths:
-            if os.path.exists(option):
-                provided_value = option
-                break
+            for option in search_paths:
+                if os.path.exists(option):
+                    provided_value = option
+                    break
     result = os.path.abspath(provided_value)
 
     if ctx:
