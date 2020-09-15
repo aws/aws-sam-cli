@@ -42,7 +42,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         # "--template" is an alias of "--template-file", however, only the first option name "--template-file" in
         # ctx.default_map is used as default value of provided value. Here we add "--template"'s value as second
         # default value in this option, so that the command line paramerters from config file can load it.
-        if ctx.default_map.get("template", None):
+        if ctx and ctx.default_map.get("template", None):
             provided_value = ctx.default_map.get("template")
         else:
             # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists

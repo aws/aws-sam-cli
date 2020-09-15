@@ -169,8 +169,8 @@ def configuration_option(*param_decls, **attrs):
             def hello(name):
                 print("Hello " + name)
 
-    By default, this will create a hidden click option whose callback function loads configuration parameters from
-    default configuration environment [default] in default configuration file [samconfig.toml] in the template file
+    This will create a hidden click option whose callback function loads configuration parameters from default
+    configuration environment [default] in default configuration file [samconfig.toml] in the template file
     directory.
     :param preconfig_decorator_list: A list of click option decorator which need to place before this function. For
         exmple, if we want to add option "--config-file" and "--config-env" to allow customized configuration file

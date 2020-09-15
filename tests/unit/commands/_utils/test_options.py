@@ -68,6 +68,7 @@ class TestGetOrDefaultTemplateFileName(TestCase):
     def test_verify_ctx(self, get_template_data_mock, os_mock):
 
         ctx = Mock()
+        ctx.default_map = {}
 
         expected = os.path.join(".aws-sam", "build", "template.yaml")
 
