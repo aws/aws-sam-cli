@@ -60,11 +60,11 @@ def do_cli(ctx, template):
 
 def _read_sam_file(template):
     """
-        Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
+    Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
 
-        :param str template: Path to the template file
-        :return dict: Dictionary representing the SAM Template
-        :raises: SamTemplateNotFoundException when the template file does not exist
+    :param str template: Path to the template file
+    :return dict: Dictionary representing the SAM Template
+    :raises: SamTemplateNotFoundException when the template file does not exist
     """
 
     from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException

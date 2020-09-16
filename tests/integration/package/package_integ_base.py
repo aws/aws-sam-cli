@@ -69,6 +69,7 @@ class PackageIntegBase(TestCase):
         output_template_file=None,
         use_json=False,
         force_upload=False,
+        no_progressbar=False,
         kms_key_id=None,
         metadata=None,
         resolve_s3=False,
@@ -93,6 +94,8 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--use-json"]
         if force_upload:
             command_list = command_list + ["--force-upload"]
+        if no_progressbar:
+            command_list = command_list + ["--no-progressbar"]
         if metadata:
             command_list = command_list + ["--metadata", json.dumps(metadata)]
         if resolve_s3:

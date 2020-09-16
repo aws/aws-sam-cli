@@ -175,6 +175,20 @@ def parameter_override_option(f):
     return parameter_override_click_option()(f)
 
 
+def no_progressbar_click_option():
+    return click.option(
+        "--no-progressbar",
+        default=False,
+        required=False,
+        is_flag=True,
+        help="Does not showcase a progress bar when uploading artifacts to s3 ",
+    )
+
+
+def no_progressbar_option(f):
+    return no_progressbar_click_option()(f)
+
+
 def metadata_click_option():
     return click.option(
         "--metadata",
