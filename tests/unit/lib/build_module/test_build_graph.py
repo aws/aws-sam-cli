@@ -1,19 +1,48 @@
+import os
 from unittest import TestCase
 from uuid import uuid4
+from pathlib import Path
 
 import tomlkit
+from parameterized import parameterized
 
-from samcli.lib.build.build_graph import BuildDefinition, _build_definition_to_toml_table, CODE_URI_FIELD, \
-    RUNTIME_FIELD, METADATA_FIELD, FUNCTIONS_FIELD, _toml_table_to_build_definition
+from samcli.lib.build.build_graph import (
+    BuildDefinition,
+    _build_definition_to_toml_table,
+    CODE_URI_FIELD,
+    RUNTIME_FIELD,
+    METADATA_FIELD,
+    FUNCTIONS_FIELD,
+    _toml_table_to_build_definition,
+    BuildGraph,
+)
 from samcli.lib.providers.provider import Function
+from samcli.lib.utils import osutils
+
+
+def generate_function(
+    name="name",
+    function_name="function_name",
+    runtime="runtime",
+    memory="memory",
+    timeout="timeout",
+    handler="handler",
+    codeuri="codeuri",
+    environment="environment",
+    rolearn="rolearn",
+    layers="layers",
+    events="events",
+    metadata={},
+):
+    return Function(
+        name, function_name, runtime, memory, timeout, handler, codeuri, environment, rolearn, layers, events, metadata
+    )
 
 
 class TestConversionFunctions(TestCase):
-
     def test_build_definition_to_toml_table(self):
         build_definition = BuildDefinition("runtime", "codeuri", {"key": "value"})
-        build_definition.add_function(Function("name", "function_name", "runtime", "memory", "timeout", "handler",
-                                               "codeuri", "environment", "rolearn", "layers", "events", "metadata"))
+        build_definition.add_function(generate_function())
 
         toml_table = _build_definition_to_toml_table(build_definition)
 
@@ -38,10 +67,150 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.uuid, uuid)
         self.assertEqual(build_definition.functions, [])
 
+
 class TestBuildGraph(TestCase):
-    # will be updated within next task
-    pass
+    CODEURI = "hello_world_python/"
+    RUNTIME = "python3.8"
+    METADATA = {"Test": "hello", "Test2": "world"}
+    UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
+
+    BUILD_GRAPH_CONTENTS = f"""
+    [build_definitions]
+    [build_definitions.{UUID}]
+    codeuri = "{CODEURI}"
+    runtime = "{RUNTIME}"
+    functions = ["HelloWorldPython", "HelloWorldPython2"]
+    [build_definitions.{UUID}.metadata]
+    Test = "{METADATA['Test']}"
+    Test2 = "{METADATA['Test2']}"
+    """
+
+    def test_should_instantiate_first_time(self):
+        with osutils.mkdir_temp() as temp_base_dir:
+            os.mkdir(f"{temp_base_dir}/.aws-sam")
+            build_graph1 = BuildGraph(temp_base_dir)
+            build_graph1.remove_deleted_ones_and_update()
+
+            build_graph2 = BuildGraph(temp_base_dir)
+
+            self.assertEqual(build_graph1.get_build_definitions(), build_graph2.get_build_definitions())
+
+    def test_should_instantiate_first_time_and_update(self):
+        with osutils.mkdir_temp() as temp_base_dir:
+            os.mkdir(f"{temp_base_dir}/.aws-sam")
+
+            # create a build graph and persist it
+            build_graph1 = BuildGraph(temp_base_dir)
+            build_definition1 = BuildDefinition(TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA)
+            function1 = generate_function(
+                runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
+            )
+            build_graph1.put_build_definition(build_definition1, function1)
+            build_graph1.remove_deleted_ones_and_update()
+
+            # read previously persisted graph and compare
+            build_graph2 = BuildGraph(temp_base_dir)
+            self.assertEqual(len(build_graph1.get_build_definitions()), len(build_graph2.get_build_definitions()))
+            self.assertEqual(
+                list(build_graph1.get_build_definitions())[0], list(build_graph2.get_build_definitions())[0]
+            )
+
+    def test_should_read_existing_build_graph(self):
+        with osutils.mkdir_temp() as temp_base_dir:
+            os.mkdir(f"{temp_base_dir}/.aws-sam")
+
+            build_graph_path = Path(temp_base_dir, ".aws-sam", "build.toml")
+            build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
+
+            build_graph = BuildGraph(temp_base_dir)
+            for build_definition in build_graph.get_build_definitions():
+                self.assertEqual(build_definition.codeuri, TestBuildGraph.CODEURI)
+                self.assertEqual(build_definition.runtime, TestBuildGraph.RUNTIME)
+                self.assertEqual(build_definition.metadata, TestBuildGraph.METADATA)
+
+    def test_functions_should_be_added_existing_build_graph(self):
+        with osutils.mkdir_temp() as temp_base_dir:
+            os.mkdir(f"{temp_base_dir}/.aws-sam")
+
+            build_graph_path = Path(temp_base_dir, ".aws-sam", "build.toml")
+            build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
+
+            build_graph = BuildGraph(temp_base_dir)
+
+            build_definition1 = BuildDefinition(TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA)
+            function1 = generate_function(
+                runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
+            )
+            build_graph.put_build_definition(build_definition1, function1)
+
+            self.assertTrue(len(build_graph.get_build_definitions()), 1)
+            for build_definition in build_graph.get_build_definitions():
+                self.assertTrue(len(build_definition.functions), 1)
+                self.assertTrue(build_definition.functions[0], function1)
+                self.assertEqual(build_definition.uuid, TestBuildGraph.UUID)
+
+            build_definition2 = BuildDefinition("another_runtime", "another_codeuri", None)
+            function2 = generate_function(name="another_function")
+            build_graph.put_build_definition(build_definition2, function2)
+            self.assertTrue(len(build_graph.get_build_definitions()), 2)
+
 
 class TestBuildDefinition(TestCase):
-    # will be updated within next task
-    pass
+    @parameterized.expand(["provided", "go1.x"])
+    def test_nondedup_runtimes_should_return_function_and_handler_name(self, runtime):
+        build_definition = BuildDefinition(runtime, "codeuri", "metadata")
+        build_definition.add_function(generate_function(runtime=runtime))
+
+        self.assertEqual(build_definition.get_handler_name(), "handler")
+        self.assertEqual(build_definition.get_function_name(), "name")
+
+    @parameterized.expand(
+        [
+            "python3.8",
+            "ruby2.7",
+            "java11",
+            "dotnetcore3.1",
+            "nodejs10.x",
+            "python3.7",
+            "python3.6",
+            "ruby2.5",
+            "java8.al2",
+            "java8",
+            "dotnetcore2.1",
+        ]
+    )
+    def test_nondedup_runtimes_should_return_none_function_and_handler_name(self, runtime):
+        build_definition = BuildDefinition(runtime, "codeuri", "metadata")
+        build_definition.add_function(generate_function(runtime=runtime))
+
+        self.assertIsNone(build_definition.get_handler_name())
+        self.assertIsNone(build_definition.get_function_name())
+
+    def test_same_runtime_codeuri_metadata_should_reflect_as_same_object(self):
+        build_definition1 = BuildDefinition("runtime", "codeuri", {"key": "value"})
+        build_definition2 = BuildDefinition("runtime", "codeuri", {"key": "value"})
+
+        self.assertEqual(build_definition1, build_definition2)
+
+    @parameterized.expand(
+        [
+            ("runtime", "codeuri", ({"key", "value"}), "runtime", "codeuri", ({"key", "value1"})),
+            ("runtime", "codeuri", ({"key", "value"}), "runtime1", "codeuri", ({"key", "value"})),
+            ("runtime", "codeuri", ({"key", "value"}), "runtime", "codeuri1", ({"key", "value"})),
+        ]
+    )
+    def test_different_runtime_codeuri_metadata_should_not_reflect_as_same_object(
+        self, runtime1, codeuri1, metadata1, runtime2, codeuri2, metadata2
+    ):
+        build_definition1 = BuildDefinition(runtime1, codeuri1, metadata1)
+        build_definition2 = BuildDefinition(runtime2, codeuri2, metadata2)
+
+        self.assertNotEqual(build_definition1, build_definition2)
+
+    def test_euqality_with_another_object(self):
+        build_definition = BuildDefinition("runtime", "codeuri", None)
+        self.assertNotEqual(build_definition, {})
+
+    def test_str_representation(self):
+        build_definition = BuildDefinition("runtime", "codeuri", None)
+        self.assertEqual(str(build_definition), f"BuildDefinition(runtime, codeuri, {build_definition.uuid}, None, [])")

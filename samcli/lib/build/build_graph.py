@@ -62,15 +62,12 @@ class BuildGraph:
     BUILD_DEFINITIONS = "build_definitions"
 
     def __init__(self, base_dir):
-        self.filepath = Path(base_dir, DEFAULT_BUILD_GRAPH_FILE_NAME)
-        self.build_definitions = None
+        self._filepath = Path(base_dir, DEFAULT_BUILD_GRAPH_FILE_NAME)
+        self._build_definitions = None
         self._read()
 
-    def __iter__(self):
-        """
-        Overrides __iter__ for easily iterating over self.build_definitions
-        """
-        return self.build_definitions.__iter__()
+    def get_build_definitions(self):
+        return tuple(self._build_definitions)
 
     def put_build_definition(self, build_definition, function):
         """
@@ -83,8 +80,8 @@ class BuildGraph:
         :param build_definition: build definition which is newly read from template.yaml file
         :param function: function details for this build definition
         """
-        if build_definition in self.build_definitions:
-            previous_build_definition = self.build_definitions[self.build_definitions.index(build_definition)]
+        if build_definition in self._build_definitions:
+            previous_build_definition = self._build_definitions[self._build_definitions.index(build_definition)]
             LOG.debug("Same build definition found, adding function (Previous: %s, Current: %s, Function: %s)",
                       previous_build_definition, build_definition, function)
             previous_build_definition.functions.append(function)
@@ -92,7 +89,7 @@ class BuildGraph:
             LOG.debug("Unique build definition found, adding as new (Build Definition: %s, Function: %s)",
                       build_definition, function)
             build_definition.functions.append(function)
-            self.build_definitions.append(build_definition)
+            self._build_definitions.append(build_definition)
 
     def remove_deleted_ones_and_update(self):
         """
@@ -101,7 +98,7 @@ class BuildGraph:
 
         After cleaning up these definitions, build graph is written to .aws-sam/build.toml file
         """
-        self.build_definitions[:] = [bd for bd in self.build_definitions if len(bd.functions) > 0]
+        self._build_definitions[:] = [bd for bd in self._build_definitions if len(bd.functions) > 0]
         self._write()
 
     def _read(self):
@@ -109,12 +106,12 @@ class BuildGraph:
         Reads build.toml file into array of build definition
         Each build definition will have empty function list, which will be populated from the current template.yaml file
         """
-        if not self.build_definitions:
+        if not self._build_definitions:
             LOG.debug("Instantiating build definitions")
-            self.build_definitions = []
+            self._build_definitions = []
             document = {}
             try:
-                txt = self.filepath.read_text()
+                txt = self._filepath.read_text()
                 document = tomlkit.loads(txt)
             except OSError:
                 LOG.debug("No previous build graph found, generating new one")
@@ -122,9 +119,9 @@ class BuildGraph:
             for build_definition_key in build_definitions_table:
                 build_definition = _toml_table_to_build_definition(build_definition_key,
                                                                    build_definitions_table[build_definition_key])
-                self.build_definitions.append(build_definition)
+                self._build_definitions.append(build_definition)
 
-        return self.build_definitions
+        return self._build_definitions
 
     def _write(self):
         """
@@ -134,7 +131,7 @@ class BuildGraph:
         """
         # convert build definition list into toml table
         build_definitions_table = tomlkit.table()
-        for build_definition in self.build_definitions:
+        for build_definition in self._build_definitions:
             build_definition_as_table = _build_definition_to_toml_table(build_definition)
             build_definitions_table.add(build_definition.uuid, build_definition_as_table)
 
@@ -142,10 +139,10 @@ class BuildGraph:
         document = tomlkit.document()
         document.add(BuildGraph.BUILD_DEFINITIONS, build_definitions_table)
 
-        if not self.filepath.exists():
-            open(self.filepath, "a+").close()
+        if not self._filepath.exists():
+            open(self._filepath, "a+").close()
 
-        self.filepath.write_text(tomlkit.dumps(document))
+        self._filepath.write_text(tomlkit.dumps(document))
 
 
 class BuildDefinition:
@@ -166,7 +163,7 @@ class BuildDefinition:
     def add_function(self, function):
         self.functions.append(function)
 
-    def is_nondedup(self):
+    def _is_nondedup(self):
         """
         Checks whether current build definition is a non-dedup definition
         :return: True if runtime is in NON_DEDUP_RUNTIMES, False otherwise
@@ -174,12 +171,12 @@ class BuildDefinition:
         return self.runtime in BuildDefinition.NON_DEDUP_RUNTIMES
 
     def get_function_name(self):
-        if self.is_nondedup():
+        if self._is_nondedup():
             return self.functions[0].name
         return None
 
     def get_handler_name(self):
-        if self.is_nondedup():
+        if self._is_nondedup():
             return self.functions[0].handler
         return None
 
