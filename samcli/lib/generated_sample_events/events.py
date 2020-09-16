@@ -5,9 +5,9 @@ Methods to expose the event types and generate the event jsons for use in SAM CL
 import os
 import json
 import base64
-from requests.utils import quote
-
+from requests.utils import quote as url_quote
 from chevron import renderer
+from samcli.lib.utils.hash import str_checksum
 
 
 class Events:
@@ -33,63 +33,106 @@ class Events:
         with open(file_name) as f:
             self.event_mapping = json.load(f)
 
-    def encode(self, tags, encoding, values_to_sub):
+    def transform(self, tags, values_to_sub):
         """
-        reads the encoding type from the event-mapping.json
-        and determines whether a value needs encoding
+        transform (if needed) values_to_sub with given tags
 
         Parameters
         ----------
         tags: dict
             the values of a particular event that can be substituted
             within the event json
-        encoding: string
-            string that helps navigate to the encoding field of the json
         values_to_sub: dict
             key/value pairs that will be substituted into the json
         Returns
         -------
-        values_to_sub: dict
-            the encoded (if need be) values to substitute into the json.
+        transformed_values_to_sub: dict
+            the transformed (if needed) values to substitute into the json.
         """
-
-        for tag in tags:
-            if tags[tag].get(encoding) != "None":
-                if tags[tag].get(encoding) == "url":
-                    values_to_sub[tag] = self.url_encode(values_to_sub[tag])
-                if tags[tag].get(encoding) == "base64":
-                    values_to_sub[tag] = self.base64_utf_encode(values_to_sub[tag])
+        for tag, properties in tags.items():
+            val = values_to_sub.get(tag)
+            values_to_sub[tag] = self.transform_val(properties, val)
+            if properties.get("children") is not None:
+                children = properties.get("children")
+                for child_tag, child_properties in children.items():
+                    child_val = self.transform_val(child_properties, val)
+                    values_to_sub[child_tag] = child_val
         return values_to_sub
 
-    def url_encode(self, value):
+    def transform_val(self, properties, val):
         """
-        url encodes the value passed in
+        transform (if needed) given val with given properties
 
         Parameters
         ----------
-        value: string
-            the value that needs to be encoded in the json
+        properties: dict
+            set of properties to be used for transformation
+        val: string
+            the value to undergo transformation
         Returns
         -------
-        string: the url encoded value
+        transformed
+            the transformed value
         """
+        transformed = val
 
-        return quote(value)
+        # encode if needed
+        encoding = properties.get("encoding")
+        if encoding is not None:
+            transformed = self.encode(encoding, transformed)
 
-    def base64_utf_encode(self, value):
+        # hash if needed
+        hashing = properties.get("hashing")
+        if hashing is not None:
+            transformed = self.hash(hashing, transformed)
+
+        return transformed
+
+    def encode(self, encoding_scheme, val):
         """
-        base64 utf8 encodes the value passed in
+        encodes a given val with given encoding scheme
 
         Parameters
         ----------
-        value: string
-            value that needs to be encoded in the json
+        encoding_scheme: string
+            the encoding scheme
+        val: string
+            the value to be encoded
         Returns
         -------
-        string: the base64_utf encoded value
+        encoded: string
+            the encoded value
         """
+        if encoding_scheme == "url":
+            return url_quote(val)
 
-        return base64.b64encode(value.encode("utf8")).decode("utf-8")
+        # base64 utf8
+        if encoding_scheme == "base64":
+            return base64.b64encode(val.encode("utf8")).decode("utf-8")
+
+        # returns original val if encoding_scheme not recognized
+        return val
+
+    def hash(self, hashing_scheme, val):
+        """
+        hashes a given val using given hashing_scheme
+
+        Parameters
+        ----------
+        hashing_scheme: string
+            the hashing scheme
+        val: string
+            the value to be hashed
+        Returns
+        -------
+        hashed: string
+            the hashed value
+        """
+        if hashing_scheme == "md5":
+            return str_checksum(val)
+
+        # raise exception if hashing_scheme is unsupported
+        raise ValueError("Hashing_scheme {} is not supported.".format(hashing_scheme))
 
     def generate_event(self, service_name, event_type, values_to_sub):
         """
@@ -112,7 +155,7 @@ class Events:
 
         # set variables for easy calling
         tags = self.event_mapping[service_name][event_type]["tags"]
-        values_to_sub = self.encode(tags, "encoding", values_to_sub)
+        values_to_sub = self.transform(tags, values_to_sub)
 
         # construct the path to the Events json file
         this_folder = os.path.dirname(os.path.abspath(__file__))
