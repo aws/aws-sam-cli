@@ -101,7 +101,6 @@ class S3Uploader:
                     file_name, self.bucket_name, remote_path, additional_args, [print_progress_callback]
                 )
             else:
-                sys.stderr.flush()
                 future = self.transfer_manager.upload(file_name, self.bucket_name, remote_path, additional_args)
             future.result()
 
