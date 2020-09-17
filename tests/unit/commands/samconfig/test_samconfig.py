@@ -335,9 +335,11 @@ class TestSamConfigForAllCommands(TestCase):
                 "output.yaml",
                 True,
                 True,
+                False,
                 {"m1": "value1", "m2": "value2"},
                 "myregion",
                 None,
+                False,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -383,6 +385,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "mybucket",
                 True,
+                False,
                 "myprefix",
                 "mykms",
                 {"Key": "Value"},
@@ -398,6 +401,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                False,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -443,6 +447,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "mybucket",
                 True,
+                False,
                 "myprefix",
                 "mykms",
                 {"Key1": "Value1", "Key2": "Multiple spaces in the value"},
@@ -458,6 +463,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                False,
             )
 
     @patch("samcli.commands.logs.command.do_cli")

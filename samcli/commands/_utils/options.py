@@ -8,13 +8,13 @@ from functools import partial
 
 import click
 from click.types import FuncParamType
+
+from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
-
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 DEFAULT_STACK_NAME = "sam-app"
-
 
 LOG = logging.getLogger(__name__)
 
@@ -53,6 +53,14 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         # sam configuration file should always be relative to the supplied original template and should not to be set
         # to be .aws-sam/build/
         setattr(ctx, "samconfig_dir", os.path.dirname(original_template_path))
+        try:
+            # FIX-ME: figure out a way to insert this directly to sam-cli context and not use click context.
+            template_data = get_template_data(result)
+            setattr(ctx, "template_dict", template_data)
+        except TemplateNotFoundException:
+            # Ignoring because there are certain cases where template file will not be available, eg: --help
+            pass
+
     LOG.debug("Using SAM Template at %s", result)
     return result
 
@@ -127,7 +135,6 @@ def docker_common_options(f):
 
 
 def docker_click_options():
-
     return [
         click.option(
             "--skip-pull-image",
@@ -160,6 +167,20 @@ def parameter_override_click_option():
 
 def parameter_override_option(f):
     return parameter_override_click_option()(f)
+
+
+def no_progressbar_click_option():
+    return click.option(
+        "--no-progressbar",
+        default=False,
+        required=False,
+        is_flag=True,
+        help="Does not showcase a progress bar when uploading artifacts to s3 ",
+    )
+
+
+def no_progressbar_option(f):
+    return no_progressbar_click_option()(f)
 
 
 def metadata_click_option():

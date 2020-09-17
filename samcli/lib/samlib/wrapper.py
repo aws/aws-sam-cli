@@ -145,7 +145,7 @@ class _SamParserReimplemented:
             raise InvalidDocumentException(document_errors)
 
     def _validate(self, sam_template):
-        """ Validates the template and parameter values and raises exceptions if there's an issue
+        """Validates the template and parameter values and raises exceptions if there's an issue
 
         :param dict sam_template: SAM template
         """

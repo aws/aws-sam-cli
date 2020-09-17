@@ -393,6 +393,8 @@ class LocalApigwService(BaseLocalService):
 
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
         method = flask_request.method
+        protocol = flask_request.environ.get("SERVER_PROTOCOL", "HTTP/1.1")
+        host = flask_request.host
 
         request_data = flask_request.get_data()
 
@@ -409,7 +411,13 @@ class LocalApigwService(BaseLocalService):
             request_data = request_data.decode("utf-8")
 
         context = RequestContext(
-            resource_path=endpoint, http_method=method, stage=stage_name, identity=identity, path=endpoint
+            resource_path=endpoint,
+            http_method=method,
+            stage=stage_name,
+            identity=identity,
+            path=endpoint,
+            protocol=protocol,
+            domain_name=host,
         )
 
         headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)
