@@ -455,22 +455,22 @@ class TestPackage(PackageIntegBase):
                 resolve_s3=True,
             )
 
-            process = Popen(command_list, stdout=PIPE)
+            process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:
-                stdout, _ = process.communicate(timeout=TIMEOUT)
+                _, stderr = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
                 process.kill()
                 raise
-            process_stdout = stdout.strip()
+            process_stderr = stderr.strip()
 
             upload_message = bytes("Uploading to", encoding="utf-8")
             if no_progressbar:
                 self.assertNotIn(
-                    upload_message, process_stdout,
+                    upload_message, process_stderr,
                 )
             else:
                 self.assertIn(
-                    upload_message, process_stdout,
+                    upload_message, process_stderr,
                 )
 
     @parameterized.expand(
