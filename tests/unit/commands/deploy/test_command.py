@@ -42,6 +42,8 @@ class TestDeployCliCommand(TestCase):
         self.guided = False
         self.confirm_changeset = False
         self.resolve_s3 = False
+        self.config_env = "mock-default-env"
+        self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -75,6 +77,8 @@ class TestDeployCliCommand(TestCase):
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
             resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -129,7 +133,15 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, True, True, False]
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
+        ]
 
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -162,6 +174,8 @@ class TestDeployCliCommand(TestCase):
                     guided=True,
                     confirm_changeset=True,
                     resolve_s3=self.resolve_s3,
+                    config_env=self.config_env,
+                    config_file=self.config_file,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -193,7 +207,15 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, False, True, True]
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
+        ]
 
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -225,6 +247,8 @@ class TestDeployCliCommand(TestCase):
                 guided=True,
                 confirm_changeset=True,
                 resolve_s3=self.resolve_s3,
+                config_env=self.config_env,
+                config_file=self.config_file,
             )
 
             mock_deploy_context.assert_called_with(
@@ -253,6 +277,8 @@ class TestDeployCliCommand(TestCase):
                     "Myparameter": {"Value": "guidedParameter", "Hidden": False},
                     "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
                 },
+                "test-env",
+                "testconfig.toml",
                 capabilities=("CAPABILITY_IAM",),
                 confirm_changeset=True,
                 profile=self.profile,
@@ -308,6 +334,8 @@ class TestDeployCliCommand(TestCase):
             "guided parameter with spaces",
             "secure",
             ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
         ]
         mock_confirm.side_effect = [True, False, True, True]
 
@@ -335,6 +363,8 @@ class TestDeployCliCommand(TestCase):
             guided=True,
             confirm_changeset=True,
             resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -369,17 +399,18 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
-                call(["deploy"], "parameters", "stack_name", "sam-app"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
-                call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
-                call(["deploy"], "parameters", "confirm_changeset", True),
-                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
+                call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
+                call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
+                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
                 call(
                     ["deploy"],
                     "parameters",
                     "parameter_overrides",
                     'Myparameter="guidedParameter" MyParameterSpaces="guided parameter with spaces"',
+                    env="test-env",
                 ),
             ],
         )
@@ -422,7 +453,7 @@ class TestDeployCliCommand(TestCase):
 
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",), "testconfig.toml", "test-env"]
         mock_confirm.side_effect = [True, False, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -449,6 +480,8 @@ class TestDeployCliCommand(TestCase):
             guided=True,
             confirm_changeset=True,
             resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -479,13 +512,13 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
-                call(["deploy"], "parameters", "stack_name", "sam-app"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
-                call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
-                call(["deploy"], "parameters", "confirm_changeset", True),
-                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
-                call(["deploy"], "parameters", "parameter_overrides", 'a="b"'),
+                call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
+                call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
+                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
+                call(["deploy"], "parameters", "parameter_overrides", 'a="b"', env="test-env"),
             ],
         )
 
@@ -547,6 +580,8 @@ class TestDeployCliCommand(TestCase):
                 guided=True,
                 confirm_changeset=True,
                 resolve_s3=self.resolve_s3,
+                config_file=self.config_file,
+                config_env=self.config_env,
             )
 
             mock_deploy_context.assert_called_with(
@@ -608,6 +643,8 @@ class TestDeployCliCommand(TestCase):
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
             resolve_s3=True,
+            config_file=self.config_file,
+            config_env=self.config_env,
         )
 
         mock_deploy_context.assert_called_with(
@@ -657,4 +694,6 @@ class TestDeployCliCommand(TestCase):
                 guided=False,
                 confirm_changeset=True,
                 resolve_s3=True,
+                config_file=self.config_file,
+                config_env=self.config_env,
             )

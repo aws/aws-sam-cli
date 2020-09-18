@@ -15,6 +15,7 @@ from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.auth_utils import auth_per_resource
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
+from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.utils.colors import Colored
 
@@ -35,6 +36,8 @@ class GuidedContext:
         parameter_overrides=None,
         save_to_config=True,
         config_section=None,
+        config_env=None,
+        config_file=None,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -47,6 +50,8 @@ class GuidedContext:
         self.parameter_overrides = parameter_overrides
         self.save_to_config = save_to_config
         self.config_section = config_section
+        self.config_env = config_env
+        self.config_file = config_file
         self.guided_stack_name = None
         self.guided_s3_bucket = None
         self.guided_s3_prefix = None
@@ -66,11 +71,16 @@ class GuidedContext:
     def guided_parameter_overrides(self):
         return self._parameter_overrides
 
+    # pylint: disable=too-many-statements
     def guided_prompts(self, parameter_override_keys):
         default_stack_name = self.stack_name or "sam-app"
         default_region = self.region or "us-east-1"
         default_capabilities = self.capabilities[0] or ("CAPABILITY_IAM",)
+        default_config_env = self.config_env or DEFAULT_ENV
+        default_config_file = self.config_file or DEFAULT_CONFIG_FILE_NAME
         input_capabilities = None
+        config_env = None
+        config_file = None
 
         click.echo(
             self.color.yellow(
@@ -102,7 +112,20 @@ class GuidedContext:
 
         self.prompt_authorization(sanitize_parameter_overrides(input_parameter_overrides))
 
-        save_to_config = confirm(f"\t{self.start_bold}Save arguments to samconfig.toml{self.end_bold}", default=True)
+        save_to_config = confirm(
+            f"\t{self.start_bold}Save arguments to configuration file{self.end_bold}", default=True
+        )
+        if save_to_config:
+            config_file = prompt(
+                f"\t{self.start_bold}SAM configuration file{self.end_bold}",
+                default=default_config_file,
+                type=click.STRING,
+            )
+            config_env = prompt(
+                f"\t{self.start_bold}SAM configuration environment{self.end_bold}",
+                default=default_config_env,
+                type=click.STRING,
+            )
 
         s3_bucket = manage_stack(profile=self.profile, region=region)
         click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
@@ -116,6 +139,8 @@ class GuidedContext:
         self._capabilities = input_capabilities if input_capabilities else default_capabilities
         self._parameter_overrides = input_parameter_overrides if input_parameter_overrides else self.parameter_overrides
         self.save_to_config = save_to_config
+        self.config_env = config_env if config_env else default_config_env
+        self.config_file = config_file if config_file else default_config_file
         self.confirm_changeset = confirm_changeset
 
     def prompt_authorization(self, parameter_overrides):
@@ -161,13 +186,15 @@ class GuidedContext:
             raise GuidedDeployFailedError(str(ex))
 
         guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
-        guided_config.read_config_showcase()
+        guided_config.read_config_showcase(self.config_file or DEFAULT_CONFIG_FILE_NAME,)
 
         self.guided_prompts(_parameter_override_keys)
 
         if self.save_to_config:
             guided_config.save_config(
                 self._parameter_overrides,
+                self.config_env or DEFAULT_ENV,
+                self.config_file or DEFAULT_CONFIG_FILE_NAME,
                 stack_name=self.guided_stack_name,
                 s3_bucket=self.guided_s3_bucket,
                 s3_prefix=self.guided_s3_prefix,
