@@ -20,7 +20,9 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 @cli_framework_options
 @pass_context
 @track_command
-def cli(ctx, template_file):
+def cli(
+    ctx, template_file, config_file, config_env,
+):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
@@ -58,11 +60,11 @@ def do_cli(ctx, template):
 
 def _read_sam_file(template):
     """
-        Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
+    Reads the file (json and yaml supported) provided and returns the dictionary representation of the file.
 
-        :param str template: Path to the template file
-        :return dict: Dictionary representing the SAM Template
-        :raises: SamTemplateNotFoundException when the template file does not exist
+    :param str template: Path to the template file
+    :return dict: Dictionary representing the SAM Template
+    :raises: SamTemplateNotFoundException when the template file does not exist
     """
 
     from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
