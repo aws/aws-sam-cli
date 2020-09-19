@@ -89,7 +89,7 @@ class TestBuildGraph(TestCase):
         with osutils.mkdir_temp() as temp_base_dir:
             os.mkdir(f"{temp_base_dir}/.aws-sam")
             build_graph1 = BuildGraph(temp_base_dir)
-            build_graph1.remove_deleted_ones_and_update()
+            build_graph1.clean_redundant_functions_and_update(True)
 
             build_graph2 = BuildGraph(temp_base_dir)
 
@@ -106,7 +106,7 @@ class TestBuildGraph(TestCase):
                 runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
             )
             build_graph1.put_build_definition(build_definition1, function1)
-            build_graph1.remove_deleted_ones_and_update()
+            build_graph1.clean_redundant_functions_and_update(True)
 
             # read previously persisted graph and compare
             build_graph2 = BuildGraph(temp_base_dir)
@@ -213,4 +213,4 @@ class TestBuildDefinition(TestCase):
 
     def test_str_representation(self):
         build_definition = BuildDefinition("runtime", "codeuri", None)
-        self.assertEqual(str(build_definition), f"BuildDefinition(runtime, codeuri, {build_definition.uuid}, None, [])")
+        self.assertEqual(str(build_definition), f"BuildDefinition(runtime, codeuri, {build_definition.uuid}, {{}}, [])")

@@ -183,6 +183,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 ctx.resources_to_build,
                 ctx.build_dir,
                 ctx.base_dir,
+                ctx.is_specific_resource,
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
