@@ -172,12 +172,11 @@ class GuidedContext:
                     )
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
                 else:
-                    # Make sure the default is casted to a string.
                     parameter = prompt(
                         f"\t{start_bold}Parameter {parameter_key}{end_bold}",
                         default=_prompted_param_overrides.get(
                             parameter_key,
-                            self._get_parameter_default_value(
+                            self._get_parameter_value(
                                 parameter_key, parameter_properties, parameter_override_from_cmdline
                             ),
                         ),
@@ -213,11 +212,11 @@ class GuidedContext:
                 capabilities=self._capabilities,
             )
 
-    def _get_parameter_default_value(self, parameter_key, parameter_properties, parameter_override_from_cmdline):
+    def _get_parameter_value(self, parameter_key, parameter_properties, parameter_override_from_cmdline):
         """
-        This function provide the default value of a parameter. If the command line/config file have override_parameter
-        whose key exist in the template file parameters, it will use the corresponding value. Otherwise, it will use
-        its default value in template file.
+        This function provide the value of a parameter. If the command line/config file have "override_parameter"
+        whose key exist in the template file parameters, it will use the corresponding value.
+        Otherwise, it will use its default value in template file.
 
         :param parameter_key: key of parameter
         :param parameter_properties: properties of that parameters from template file
@@ -225,4 +224,5 @@ class GuidedContext:
         """
         if parameter_override_from_cmdline and parameter_override_from_cmdline.get(parameter_key, None):
             return parameter_override_from_cmdline[parameter_key]
+        # Make sure the default is casted to a string.
         return str(parameter_properties.get("Default", ""))
