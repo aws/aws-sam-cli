@@ -48,8 +48,8 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(
             result,
             {
-                self.func1.name: f"{os.path.join('builddir', self.func1.name)}",
-                self.func2.name: f"{os.path.join('builddir', self.func2.name)}",
+                self.func1.name: os.path.join("builddir", self.func1.name),
+                self.func2.name: os.path.join("builddir", self.func2.name),
                 self.layer1.name: build_layer_mock.return_value,
                 self.layer2.name: build_layer_mock.return_value,
             },
@@ -57,8 +57,22 @@ class TestApplicationBuilder_build(TestCase):
 
         build_function_mock.assert_has_calls(
             [
-                call(None, self.func1.codeuri, self.func1.runtime, None, ANY, self.func1.metadata),
-                call(None, self.func2.codeuri, self.func2.runtime, None, ANY, self.func2.metadata),
+                call(
+                    self.func1.name,
+                    self.func1.codeuri,
+                    self.func1.runtime,
+                    self.func1.handler,
+                    ANY,
+                    self.func1.metadata,
+                ),
+                call(
+                    self.func2.name,
+                    self.func2.codeuri,
+                    self.func2.runtime,
+                    self.func2.handler,
+                    ANY,
+                    self.func2.metadata,
+                ),
             ],
             any_order=False,
         )
@@ -101,17 +115,26 @@ class TestApplicationBuilder_build(TestCase):
             self.assertEqual(
                 result,
                 {
-                    function1_1.name: f"{str(Path(build_dir, function1_1.name))}",
-                    function1_2.name: f"{str(Path(build_dir, function1_2.name))}",
-                    function2.name: f"{str(Path(build_dir, function2.name))}",
+                    function1_1.name: os.path.join(build_dir, function1_1.name),
+                    function1_2.name: os.path.join(build_dir, function1_2.name),
+                    function2.name: os.path.join(build_dir, function2.name),
                 },
             )
 
             # actual build should only be called twice since only 2 of the functions have unique build
             build_function_mock.assert_has_calls(
                 [
-                    call(None, function1_1.codeuri, function1_1.runtime, None, ANY, function1_1.metadata),
-                    call(None, function2.codeuri, function2.runtime, None, ANY, function2.metadata),
+                    call(
+                        function1_1.name,
+                        function1_1.codeuri,
+                        function1_1.runtime,
+                        function1_1.handler,
+                        ANY,
+                        function1_1.metadata,
+                    ),
+                    call(
+                        function2.name, function2.codeuri, function2.runtime, function2.handler, ANY, function2.metadata
+                    ),
                 ],
                 any_order=True,
             )

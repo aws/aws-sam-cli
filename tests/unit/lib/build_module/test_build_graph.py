@@ -167,28 +167,6 @@ class TestBuildDefinition(TestCase):
         self.assertEqual(build_definition.get_handler_name(), "handler")
         self.assertEqual(build_definition.get_function_name(), "name")
 
-    @parameterized.expand(
-        [
-            "python3.8",
-            "ruby2.7",
-            "java11",
-            "dotnetcore3.1",
-            "nodejs10.x",
-            "python3.7",
-            "python3.6",
-            "ruby2.5",
-            "java8.al2",
-            "java8",
-            "dotnetcore2.1",
-        ]
-    )
-    def test_nondedup_runtimes_should_return_none_function_and_handler_name(self, runtime):
-        build_definition = BuildDefinition(runtime, "codeuri", "metadata")
-        build_definition.add_function(generate_function(runtime=runtime))
-
-        self.assertIsNone(build_definition.get_handler_name())
-        self.assertIsNone(build_definition.get_function_name())
-
     def test_same_runtime_codeuri_metadata_should_reflect_as_same_object(self):
         build_definition1 = BuildDefinition("runtime", "codeuri", {"key": "value"})
         build_definition2 = BuildDefinition("runtime", "codeuri", {"key": "value"})
