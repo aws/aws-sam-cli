@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Simple AWS Step Functions State Machine
+
+Resources:
+  MyStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionS3Location: ./state_machine_definition.asl.json
+      RoleArn: arn:aws:iam::012345678901:role/statemachine_basic_execution

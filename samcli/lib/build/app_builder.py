@@ -191,7 +191,7 @@ class ApplicationBuilder:
             build_runtime = specified_workflow
             build_method = self._build_function_in_process
             if self._container_manager:
-                build_method = self._build_function_in_process
+                build_method = self._build_function_on_container
                 if config.language == "provided":
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container.")
@@ -305,6 +305,8 @@ class ApplicationBuilder:
         builder = LambdaBuilder(language=config.language,
                                 dependency_manager=config.dependency_manager,
                                 application_framework=config.application_framework)
+
+        runtime = runtime.replace(".al2", "")
 
         try:
             builder.build(source_dir,

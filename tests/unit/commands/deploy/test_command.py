@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 from samcli.commands.deploy.command import do_cli
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
+from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
 from tests.unit.cli.test_cli_config_file import MockContext
 
 
@@ -32,6 +33,7 @@ class TestDeployCliCommand(TestCase):
         self.fail_on_empty_changset = True
         self.role_arn = "role_arn"
         self.force_upload = False
+        self.no_progressbar = False
         self.metadata = {"abc": "def"}
         self.region = None
         self.profile = None
@@ -41,6 +43,9 @@ class TestDeployCliCommand(TestCase):
         self.confirm_changeset = False
         self.save_env_vars = False
         self.env_vars_filename = None
+        self.resolve_s3 = False
+        self.config_env = "mock-default-env"
+        self.config_file = "mock-default-filename"
         MOCK_SAM_CONFIG.reset_mock()
 
     @patch("samcli.commands.package.command.click")
@@ -57,6 +62,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=self.s3_bucket,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
             parameter_overrides=self.parameter_overrides,
@@ -74,6 +80,9 @@ class TestDeployCliCommand(TestCase):
             confirm_changeset=self.confirm_changeset,
             save_env_vars=self.save_env_vars,
             env_vars_filename=self.env_vars_filename,
+            resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -81,6 +90,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=self.s3_bucket,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
             parameter_overrides=self.parameter_overrides,
@@ -103,7 +113,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.command.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -119,7 +128,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -130,7 +138,15 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, True, True, False]
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
+        ]
 
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -146,6 +162,7 @@ class TestDeployCliCommand(TestCase):
                     stack_name=self.stack_name,
                     s3_bucket=None,
                     force_upload=self.force_upload,
+                    no_progressbar=self.no_progressbar,
                     s3_prefix=self.s3_prefix,
                     kms_key_id=self.kms_key_id,
                     parameter_overrides=self.parameter_overrides,
@@ -163,13 +180,15 @@ class TestDeployCliCommand(TestCase):
                     confirm_changeset=True,
                     save_env_vars=self.save_env_vars,
                     env_vars_filename=self.env_vars_filename,
+                    resolve_s3=self.resolve_s3,
+                    config_env=self.config_env,
+                    config_file=self.config_file,
                 )
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.command.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -185,7 +204,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_parameters,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -196,7 +214,15 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
         mock_confirm.side_effect = [True, False, True, True]
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "guidedParameter", "secure", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
+        ]
 
         mock_get_template_parameters.return_value = {
             "Myparameter": {"Type": "String"},
@@ -211,6 +237,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name=self.stack_name,
                 s3_bucket=None,
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
                 kms_key_id=self.kms_key_id,
                 parameter_overrides=self.parameter_overrides,
@@ -228,6 +255,9 @@ class TestDeployCliCommand(TestCase):
                 confirm_changeset=True,
                 save_env_vars=self.save_env_vars,
                 env_vars_filename=self.env_vars_filename,
+                resolve_s3=self.resolve_s3,
+                config_env=self.config_env,
+                config_file=self.config_file,
             )
 
             mock_deploy_context.assert_called_with(
@@ -235,6 +265,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name="sam-app",
                 s3_bucket="managed-s3-bucket",
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
                 kms_key_id=self.kms_key_id,
                 parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
@@ -256,6 +287,8 @@ class TestDeployCliCommand(TestCase):
                     "Myparameter": {"Value": "guidedParameter", "Hidden": False},
                     "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
                 },
+                "test-env",
+                "testconfig.toml",
                 capabilities=("CAPABILITY_IAM",),
                 confirm_changeset=True,
                 profile=self.profile,
@@ -271,7 +304,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.command.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
@@ -291,7 +323,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_data,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -313,6 +344,8 @@ class TestDeployCliCommand(TestCase):
             "guided parameter with spaces",
             "secure",
             ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
         ]
         mock_confirm.side_effect = [True, False, True, True]
 
@@ -323,6 +356,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=None,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
             parameter_overrides=self.parameter_overrides,
@@ -340,6 +374,9 @@ class TestDeployCliCommand(TestCase):
             confirm_changeset=True,
             save_env_vars=self.save_env_vars,
             env_vars_filename=self.env_vars_filename,
+            resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -347,6 +384,7 @@ class TestDeployCliCommand(TestCase):
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
             parameter_overrides={
@@ -374,17 +412,18 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
-                call(["deploy"], "parameters", "stack_name", "sam-app"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
-                call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
-                call(["deploy"], "parameters", "confirm_changeset", True),
-                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
+                call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
+                call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
+                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
                 call(
                     ["deploy"],
                     "parameters",
                     "parameter_overrides",
                     'Myparameter="guidedParameter" MyParameterSpaces="guided parameter with spaces"',
+                    env="test-env",
                 ),
             ],
         )
@@ -393,7 +432,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.command.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -417,7 +455,6 @@ class TestDeployCliCommand(TestCase):
         mock_managed_stack,
         mock_get_template_data,
         mockauth_per_resource,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -429,7 +466,7 @@ class TestDeployCliCommand(TestCase):
 
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",), "testconfig.toml", "test-env"]
         mock_confirm.side_effect = [True, False, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -439,6 +476,7 @@ class TestDeployCliCommand(TestCase):
             stack_name=self.stack_name,
             s3_bucket=None,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             s3_prefix=self.s3_prefix,
             kms_key_id=self.kms_key_id,
             parameter_overrides=self.parameter_overrides,
@@ -456,6 +494,9 @@ class TestDeployCliCommand(TestCase):
             confirm_changeset=True,
             save_env_vars=self.save_env_vars,
             env_vars_filename=self.env_vars_filename,
+            resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
         )
 
         mock_deploy_context.assert_called_with(
@@ -463,6 +504,7 @@ class TestDeployCliCommand(TestCase):
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
             kms_key_id=self.kms_key_id,
             parameter_overrides=self.parameter_overrides,
@@ -486,13 +528,13 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
-                call(["deploy"], "parameters", "stack_name", "sam-app"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
-                call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
-                call(["deploy"], "parameters", "confirm_changeset", True),
-                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
-                call(["deploy"], "parameters", "parameter_overrides", 'a="b"'),
+                call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
+                call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
+                call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
+                call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
+                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
+                call(["deploy"], "parameters", "parameter_overrides", 'a="b"', env="test-env"),
             ],
         )
 
@@ -500,7 +542,6 @@ class TestDeployCliCommand(TestCase):
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.command.print_deploy_args")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
@@ -516,7 +557,6 @@ class TestDeployCliCommand(TestCase):
         mock_get_template_data,
         mockauth_per_resource,
         mock_managed_stack,
-        mock_print_deploy_args,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -539,6 +579,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name=self.stack_name,
                 s3_bucket=None,
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 s3_prefix=self.s3_prefix,
                 kms_key_id=self.kms_key_id,
                 parameter_overrides=self.parameter_overrides,
@@ -556,6 +597,9 @@ class TestDeployCliCommand(TestCase):
                 confirm_changeset=True,
                 save_env_vars=self.save_env_vars,
                 env_vars_filename=self.env_vars_filename,
+                resolve_s3=self.resolve_s3,
+                config_file=self.config_file,
+                config_env=self.config_env,
             )
 
             mock_deploy_context.assert_called_with(
@@ -563,6 +607,7 @@ class TestDeployCliCommand(TestCase):
                 stack_name="sam-app",
                 s3_bucket="managed-s3-bucket",
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
                 kms_key_id=self.kms_key_id,
                 parameter_overrides=self.parameter_overrides,
@@ -582,3 +627,97 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(mock_save_config.call_count, 0)
             mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.click")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.manage_stack")
+    def test_all_args_resolve_s3(
+        self, mock_manage_stack, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click
+    ):
+        context_mock = Mock()
+        mock_deploy_context.return_value.__enter__.return_value = context_mock
+        mock_manage_stack.return_value = "managed-s3-bucket"
+
+        do_cli(
+            template_file=self.template_file,
+            stack_name=self.stack_name,
+            s3_bucket=None,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            use_json=self.use_json,
+            metadata=self.metadata,
+            guided=self.guided,
+            confirm_changeset=self.confirm_changeset,
+            save_env_vars=self.save_env_vars,
+            env_vars_filename=self.env_vars_filename,
+            resolve_s3=True,
+            config_file=self.config_file,
+            config_env=self.config_env,
+        )
+
+        mock_deploy_context.assert_called_with(
+            template_file=ANY,
+            stack_name=self.stack_name,
+            s3_bucket="managed-s3-bucket",
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            confirm_changeset=self.confirm_changeset,
+            save_env_vars=self.save_env_vars,
+        )
+
+        context_mock.run.assert_called_with()
+        self.assertEqual(context_mock.run.call_count, 1)
+
+    def test_resolve_s3_and_s3_bucket_both_set(self):
+        with self.assertRaises(DeployResolveS3AndS3SetError):
+            do_cli(
+                template_file=self.template_file,
+                stack_name=self.stack_name,
+                s3_bucket="managed-s3-bucket",
+                force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
+                s3_prefix=self.s3_prefix,
+                kms_key_id=self.kms_key_id,
+                parameter_overrides=self.parameter_overrides,
+                capabilities=self.capabilities,
+                no_execute_changeset=self.no_execute_changeset,
+                role_arn=self.role_arn,
+                notification_arns=self.notification_arns,
+                fail_on_empty_changeset=self.fail_on_empty_changset,
+                tags=self.tags,
+                region=self.region,
+                profile=self.profile,
+                use_json=self.use_json,
+                metadata=self.metadata,
+                guided=False,
+                confirm_changeset=True,
+                save_env_vars=self.save_env_vars,
+                env_vars_filename=self.env_vars_filename,
+                resolve_s3=True,
+                config_file=self.config_file,
+                config_env=self.config_env,
+            )

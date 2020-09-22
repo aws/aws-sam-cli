@@ -113,6 +113,10 @@ class TestSamTemplateValidator(TestCase):
                     "Properties": {"Handler": "index.handler", "CodeUri": "./", "Runtime": "nodejs6.10", "Timeout": 60},
                 },
                 "ServerlessLayerVersion": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "./"}},
+                "ServerlessStateMachine": {
+                    "Type": "AWS::Serverless::StateMachine",
+                    "Properties": {"DefinitionUri": "./", "Role": "test-role-arn"},
+                },
             },
         }
 
@@ -132,6 +136,9 @@ class TestSamTemplateValidator(TestCase):
         )
         self.assertEqual(
             template_resources.get("ServerlessLayerVersion").get("Properties").get("ContentUri"), "s3://bucket/value"
+        )
+        self.assertEqual(
+            template_resources.get("ServerlessStateMachine").get("Properties").get("DefinitionUri"), "s3://bucket/value"
         )
 
     def test_replace_local_codeuri_when_no_codeuri_given(self):

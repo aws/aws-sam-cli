@@ -11,17 +11,27 @@ inaccurate, update this guide and send a Pull Request.
 **Note**: `pyenv` currently only supports macOS and Linux. If you are a
 Windows users, consider using [pipenv](https://docs.pipenv.org/).
 
+1-Click Ready to Hack IDE
+-------------------------
+For setting up a local development environment, we recommend using Gitpod - a service that allows you to spin up an in-browser Visual Studio Code-compatible editor, with everything set up and ready to go for development on this project. Just click the button below to create your private workspace:
+
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/awslabs/aws-sam-cli)
+
+This will start a new Gitpod workspace, and immediately kick off a build of the code. Once it's done, you can start working.
+
+Gitpod is free for 50 hours per month - make sure to stop your workspace when you're done (you can always resume it later, and it won't need to run the build again).
+
 Environment Setup
 -----------------
 
 ### 1. Install Python Versions
 
-We support Python 2.7, 3.6 and 3.7 versions. Follow the idioms from this
-[excellent cheatsheet](http://python-future.org/compatible_idioms.html)
-to make sure your code is compatible with both Python versions. Our
-CI/CD pipeline is setup to run unit tests against both Python versions.
-So make sure you test it with both versions before sending a Pull
-Request. [pyenv](https://github.com/pyenv/pyenv) is a great tool to
+We support 3.6 and 3.7 versions. Our CI/CD pipeline is setup to run
+unit tests against both Python versions. So make sure you test it
+with both versions before sending a Pull Request.
+See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions).
+
+[pyenv](https://github.com/pyenv/pyenv) is a great tool to
 easily setup multiple Python versions.
 
 > Note: For Windows, type
@@ -30,11 +40,10 @@ easily setup multiple Python versions.
 
 1.  Install PyEnv -
     `curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash`
-2.  `pyenv install 2.7.14`
-3.  `pyenv install 3.6.8`
-4.  `pyenv install 3.7.2`
-5.  Make Python versions available in the project:
-    `pyenv local 3.6.8 2.7.14 3.7.2`
+2.  `pyenv install 3.6.8`
+3.  `pyenv install 3.7.2`
+4.  Make Python versions available in the project:
+    `pyenv local 3.6.8 3.7.2`
 
 ### 2. Install Additional Tooling
 #### Black

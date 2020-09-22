@@ -140,14 +140,14 @@ class ApiCollector:
     @staticmethod
     def dedupe_function_routes(routes):
         """
-        Remove duplicate routes that have the same function_name and method
+         Remove duplicate routes that have the same function_name and method
 
-        route: list(Route)
-            List of Routes
+         route: list(Route)
+             List of Routes
 
-       Return
-       -------
-       A list of routes without duplicate routes with the same function_name and method
+        Return
+        -------
+        A list of routes without duplicate routes with the same function_name and method
         """
         grouped_routes = {}
 
