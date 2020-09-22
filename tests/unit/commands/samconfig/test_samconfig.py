@@ -720,7 +720,7 @@ class TestSamConfigWithOverrides(TestCase):
 
     @patch("samcli.commands.validate.validate.do_cli")
     def test_secondary_option_name_template_validate(self, do_cli_mock):
-        # "--tempalte" is an alias of "--template-file"
+        # "--template" is an alias of "--template-file"
         config_values = {"template": "mytemplate.yaml"}
 
         with samconfig_parameters(["validate"], self.scratch_dir, **config_values) as config_path:

@@ -7,7 +7,7 @@ import functools
 import click
 
 import samcli.lib.generated_sample_events.events as events
-from samcli.cli.cli_config_file import TomlProvider, get_ctx_defaults
+from samcli.cli.cli_config_file import TomlProvider, get_ctx_defaults, configuration_option
 from samcli.cli.options import debug_option
 from samcli.lib.telemetry.metrics import track_command
 import samcli.lib.config.samconfig as samconfig
@@ -154,22 +154,14 @@ class EventTypeSubCommand(click.MultiCommand):
             self.cmd_implementation, self.events_lib, self.top_level_cmd_name, cmd_name
         )
 
-        config = get_ctx_defaults(
-            cmd_name=cmd_name,
-            provider=TomlProvider(section="parameters"),
-            ctx=ctx,
-            config_env_name=samconfig.DEFAULT_ENV,
-        )
-
         cmd = click.Command(
             name=cmd_name,
             short_help=self.subcmd_definition[cmd_name]["help"],
-            context_settings={"default_map": config},
             params=parameters,
             callback=command_callback,
         )
 
-        cmd = debug_option(cmd)
+        cmd = configuration_option(provider=TomlProvider(section="parameters"))(debug_option(cmd))
         return cmd
 
     def list_commands(self, ctx):
