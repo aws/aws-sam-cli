@@ -1,4 +1,3 @@
-import os
 from unittest import TestCase
 from uuid import uuid4
 from pathlib import Path
@@ -87,22 +86,22 @@ class TestBuildGraph(TestCase):
 
     def test_should_instantiate_first_time(self):
         with osutils.mkdir_temp() as temp_base_dir:
-            build_dir = f"{temp_base_dir}/.aws-sam/build"
-            os.makedirs(build_dir)
-            build_graph1 = BuildGraph(build_dir)
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+            build_graph1 = BuildGraph(str(build_dir.resolve()))
             build_graph1.clean_redundant_functions_and_update(True)
 
-            build_graph2 = BuildGraph(build_dir)
+            build_graph2 = BuildGraph(str(build_dir.resolve()))
 
             self.assertEqual(build_graph1.get_build_definitions(), build_graph2.get_build_definitions())
 
     def test_should_instantiate_first_time_and_update(self):
         with osutils.mkdir_temp() as temp_base_dir:
-            build_dir = f"{temp_base_dir}/.aws-sam/build"
-            os.makedirs(build_dir)
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
 
             # create a build graph and persist it
-            build_graph1 = BuildGraph(build_dir)
+            build_graph1 = BuildGraph(str(build_dir))
             build_definition1 = BuildDefinition(TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA)
             function1 = generate_function(
                 runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
@@ -111,7 +110,7 @@ class TestBuildGraph(TestCase):
             build_graph1.clean_redundant_functions_and_update(True)
 
             # read previously persisted graph and compare
-            build_graph2 = BuildGraph(build_dir)
+            build_graph2 = BuildGraph(str(build_dir))
             self.assertEqual(len(build_graph1.get_build_definitions()), len(build_graph2.get_build_definitions()))
             self.assertEqual(
                 list(build_graph1.get_build_definitions())[0], list(build_graph2.get_build_definitions())[0]
@@ -119,13 +118,13 @@ class TestBuildGraph(TestCase):
 
     def test_should_read_existing_build_graph(self):
         with osutils.mkdir_temp() as temp_base_dir:
-            build_dir = f"{temp_base_dir}/.aws-sam/build"
-            os.makedirs(build_dir)
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
 
-            build_graph_path = Path(temp_base_dir, ".aws-sam", "build.toml")
+            build_graph_path = Path(build_dir.parent, "build.toml")
             build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
 
-            build_graph = BuildGraph(build_dir)
+            build_graph = BuildGraph(str(build_dir))
             for build_definition in build_graph.get_build_definitions():
                 self.assertEqual(build_definition.codeuri, TestBuildGraph.CODEURI)
                 self.assertEqual(build_definition.runtime, TestBuildGraph.RUNTIME)
@@ -133,13 +132,13 @@ class TestBuildGraph(TestCase):
 
     def test_functions_should_be_added_existing_build_graph(self):
         with osutils.mkdir_temp() as temp_base_dir:
-            build_dir = f"{temp_base_dir}/.aws-sam/build"
-            os.makedirs(build_dir)
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
 
-            build_graph_path = Path(temp_base_dir, ".aws-sam", "build.toml")
+            build_graph_path = Path(build_dir.parent, "build.toml")
             build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
 
-            build_graph = BuildGraph(build_dir)
+            build_graph = BuildGraph(str(build_dir))
 
             build_definition1 = BuildDefinition(TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA)
             function1 = generate_function(

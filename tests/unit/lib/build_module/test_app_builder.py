@@ -48,8 +48,8 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(
             result,
             {
-                self.func1.name: f"builddir{os.path.sep}{self.func1.name}",
-                self.func2.name: f"builddir{os.path.sep}{self.func2.name}",
+                self.func1.name: f"{os.path.join('builddir', self.func1.name)}",
+                self.func2.name: f"{os.path.join('builddir', self.func2.name)}",
                 self.layer1.name: build_layer_mock.return_value,
                 self.layer2.name: build_layer_mock.return_value,
             },
@@ -88,12 +88,11 @@ class TestApplicationBuilder_build(TestCase):
         resources_to_build_collector.add_functions([function1_1, function1_2, function2])
 
         with osutils.mkdir_temp() as temp_base_dir:
-            tmp_build_dir = f"{temp_base_dir}/.aws-sam/build"
-            os.mkdir(f"{temp_base_dir}/.aws-sam")
-            os.mkdir(tmp_build_dir)
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
 
             # instantiate the builder and run build method
-            builder = ApplicationBuilder(resources_to_build_collector, tmp_build_dir, temp_base_dir)
+            builder = ApplicationBuilder(resources_to_build_collector, str(build_dir), temp_base_dir)
             builder._build_function = build_function_mock
 
             result = builder.build()
@@ -102,9 +101,9 @@ class TestApplicationBuilder_build(TestCase):
             self.assertEqual(
                 result,
                 {
-                    function1_1.name: f"{tmp_build_dir}{os.path.sep}{function1_1.name}",
-                    function1_2.name: f"{tmp_build_dir}{os.path.sep}{function1_2.name}",
-                    function2.name: f"{tmp_build_dir}{os.path.sep}{function2.name}",
+                    function1_1.name: f"{str(Path(build_dir, function1_1.name))}",
+                    function1_2.name: f"{str(Path(build_dir, function1_2.name))}",
+                    function2.name: f"{str(Path(build_dir, function2.name))}",
                 },
             )
 

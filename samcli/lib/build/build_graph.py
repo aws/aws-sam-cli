@@ -174,14 +174,10 @@ class BuildDefinition:
         return self.runtime in BuildDefinition.DEFAULT_UNIQUE_BUILD_RUNTIMES
 
     def get_function_name(self):
-        if self._is_unique_build_runtime():
-            return self.functions[0].name
-        return None
+        return self.functions[0].name
 
     def get_handler_name(self):
-        if self._is_unique_build_runtime():
-            return self.functions[0].handler
-        return None
+        return self.functions[0].handler
 
     def __str__(self):
         return f"BuildDefinition({self.runtime}, {self.codeuri}, {self.uuid}, {self.metadata}, " \
