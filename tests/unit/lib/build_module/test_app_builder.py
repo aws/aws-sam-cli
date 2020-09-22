@@ -102,9 +102,9 @@ class TestApplicationBuilder_build(TestCase):
             self.assertEqual(
                 result,
                 {
-                    function1_1.name: f"{tmp_build_dir}/{function1_1.name}",
-                    function1_2.name: f"{tmp_build_dir}/{function1_2.name}",
-                    function2.name: f"{tmp_build_dir}/{function2.name}",
+                    function1_1.name: f"{tmp_build_dir}{os.path.sep}{function1_1.name}",
+                    function1_2.name: f"{tmp_build_dir}{os.path.sep}{function1_2.name}",
+                    function2.name: f"{tmp_build_dir}{os.path.sep}{function2.name}",
                 },
             )
 
