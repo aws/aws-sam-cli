@@ -48,8 +48,8 @@ class TestApplicationBuilder_build(TestCase):
         self.assertEqual(
             result,
             {
-                self.func1.name: f"builddir/{self.func1.name}",
-                self.func2.name: f"builddir/{self.func2.name}",
+                self.func1.name: f"builddir{os.path.sep}{self.func1.name}",
+                self.func2.name: f"builddir{os.path.sep}{self.func2.name}",
                 self.layer1.name: build_layer_mock.return_value,
                 self.layer2.name: build_layer_mock.return_value,
             },
