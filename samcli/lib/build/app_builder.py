@@ -128,7 +128,7 @@ class ApplicationBuilder:
         Converts list of functions into a build graph, where we can iterate on each unique build and trigger build
         :return: BuildGraph, which represents list of unique build definitions
         """
-        build_graph = BuildGraph(self._base_dir)
+        build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         for function in functions:
             build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)

@@ -10,7 +10,7 @@ import tomlkit
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_BUILD_GRAPH_FILE_NAME = ".aws-sam/build.toml"
+DEFAULT_BUILD_GRAPH_FILE_NAME = "build.toml"
 
 # filed names for the toml table
 CODE_URI_FIELD = "codeuri"
@@ -61,8 +61,9 @@ class BuildGraph:
     # global table build definitions key
     BUILD_DEFINITIONS = "build_definitions"
 
-    def __init__(self, base_dir):
-        self._filepath = Path(base_dir, DEFAULT_BUILD_GRAPH_FILE_NAME)
+    def __init__(self, build_dir):
+        # put build.toml file inside .aws-sam folder
+        self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
         self._build_definitions = None
         self._read()
 
