@@ -134,3 +134,20 @@ class BuildIntegBase(TestCase):
 
         process_stdout = process_execute.stdout.decode("utf-8")
         self.assertEqual(json.loads(process_stdout), expected_result)
+
+
+class DedupBuildIntegBase(BuildIntegBase):
+    def _verify_build_and_invoke_functions(self, expected_messages, runtimes):
+        for runtime in runtimes:
+            for expected_message in expected_messages:
+                expected = f"Hello {expected_message}"
+                function_id = f"Hello{expected_message}{runtime}"
+                self._verify_build_artifact(self.default_build_dir, function_id)
+                self._verify_invoke_built_function(self.built_template, function_id, "", expected)
+
+    def _verify_build_artifact(self, build_dir, function_logical_id):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)

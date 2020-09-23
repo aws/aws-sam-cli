@@ -153,9 +153,6 @@ class BuildDefinition:
     Build definition holds information about each unique build
     """
 
-    # following runtimes, does not share the same build
-    DEFAULT_UNIQUE_BUILD_RUNTIMES = ['provided', 'go1.x']
-
     def __init__(self, runtime, codeuri, metadata):
         self.runtime = runtime
         self.codeuri = codeuri
@@ -165,13 +162,6 @@ class BuildDefinition:
 
     def add_function(self, function):
         self.functions.append(function)
-
-    def _is_unique_build_runtime(self):
-        """
-        Checks whether current build definition is a default unique build definition
-        :return: True if runtime is in DEFAULT_UNIQUE_BUILD_RUNTIMES, False otherwise
-        """
-        return self.runtime in BuildDefinition.DEFAULT_UNIQUE_BUILD_RUNTIMES
 
     def get_function_name(self):
         return self.functions[0].name

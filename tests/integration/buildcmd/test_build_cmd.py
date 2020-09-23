@@ -1,4 +1,3 @@
-import platform
 import sys
 import os
 import logging
@@ -8,7 +7,7 @@ from parameterized import parameterized
 
 import pytest
 
-from .build_integ_base import BuildIntegBase
+from .build_integ_base import BuildIntegBase, DedupBuildIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
 LOG = logging.getLogger(__name__)
@@ -1033,3 +1032,49 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupBuilds(DedupBuildIntegBase):
+    template = "dedup-functions-template.yaml"
+
+    def test_dedup_build(self):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list()
+
+        LOG.info("Running Command: %s", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        run_command(cmdlist, cwd=self.working_dir)
+
+        runtimes = ["Dotnet31", "Java8", "Node", "Python", "Ruby"]
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(expected_messages, runtimes)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupBuildsInContainer(DedupBuildIntegBase):
+    template = "dedup-functions-container-template.yaml"
+
+    def test_dedup_build_in_container(self):
+        """
+        Build template above in the container and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list(use_container=True)
+
+        LOG.info("Running Command: %s", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        run_command(cmdlist, cwd=self.working_dir)
+
+        runtimes = ["Java8", "Node", "Python", "Ruby"]
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(expected_messages, runtimes)

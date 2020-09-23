@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+
+Resources:
+  HelloWorldDotnet31:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Dotnetcore3.1
+      Handler: HelloWorld::HelloWorld.FirstFunction::FunctionHandler
+      Runtime: dotnetcore3.1
+  HelloMarsDotnet31:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Dotnetcore3.1
+      Handler: HelloWorld::HelloWorld.SecondFunction::FunctionHandler
+      Runtime: dotnetcore3.1
+  HelloWorldJava8:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Java/gradlew
+      Handler: aws.example.Hello::myHandler
+      Runtime: java8
+  HelloMarsJava8:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Java/gradlew
+      Handler: aws.example.SecondFunction::myHandler
+      Runtime: java8
+  HelloWorldNode:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Node
+      Handler: main.lambdaHandler
+      Runtime: nodejs12.x
+  HelloMarsNode:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Node
+      Handler: main.secondLambdaHandler
+      Runtime: nodejs12.x
+  HelloWorldPython:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Python
+      Handler: main.first_function_handler
+      Runtime: python3.8
+  HelloMarsPython:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Python
+      Handler: main.second_function_handler
+      Runtime: python3.8
+  HelloWorldRuby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Ruby
+      Handler: app.lambda_handler
+      Runtime: ruby2.5
+  HelloMarsRuby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Ruby
+      Handler: app.second_lambda_handler
+      Runtime: ruby2.5
