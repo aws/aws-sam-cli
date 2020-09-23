@@ -85,17 +85,17 @@ class CfnApiProvider(CfnBaseApiProvider):
     @staticmethod
     def _extract_cloud_formation_stage(resources, stage_resource, collector):
         """
-        Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
-        Parameters
-       ----------
-        resources: dict
-            All Resource definition, including its properties
+         Extract the stage from AWS::ApiGateway::Stage resource by reading and adds it to the collector.
+         Parameters
+        ----------
+         resources: dict
+             All Resource definition, including its properties
 
-        stage_resource : dict
-            Stage Resource definition, including its properties
+         stage_resource : dict
+             Stage Resource definition, including its properties
 
-        collector : ApiCollector
-            Instance of the API collector that where we will save the API information
+         collector : ApiCollector
+             Instance of the API collector that where we will save the API information
         """
         properties = stage_resource.get("Properties", {})
         stage_name = properties.get("StageName")

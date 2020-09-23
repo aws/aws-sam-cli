@@ -75,6 +75,8 @@ def cli(
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    config_file,
+    config_env,
 ):  # pylint: disable=R0914
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 

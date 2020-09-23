@@ -48,7 +48,9 @@ SEMANTIC_VERSION = "SemanticVersion"
 @cli_framework_options
 @pass_context
 @track_command
-def cli(ctx, template_file, semantic_version):
+def cli(
+    ctx, template_file, semantic_version, config_file, config_env,
+):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(ctx, template_file, semantic_version)  # pragma: no cover
