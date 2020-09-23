@@ -103,7 +103,18 @@ Common usage:
 @pass_context
 @track_command
 def cli(
-    ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input, extra_context
+    ctx,
+    no_interactive,
+    location,
+    runtime,
+    dependency_manager,
+    output_dir,
+    name,
+    app_template,
+    no_input,
+    extra_context,
+    config_file,
+    config_env,
 ):
     do_cli(
         ctx,
