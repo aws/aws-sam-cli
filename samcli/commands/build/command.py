@@ -110,6 +110,8 @@ def cli(
     docker_network,
     skip_pull_image,
     parameter_overrides,
+    config_file,
+    config_env,
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 

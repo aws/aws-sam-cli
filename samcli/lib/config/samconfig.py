@@ -106,7 +106,16 @@ class SamConfig:
         if not self.document:
             self._read()
             # Empty document prepare the initial structure.
-            self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
+            # self.document is a nested dict, we need to check each layer and add new tables, otherwise duplicated key
+            # in parent layer will override the whole child layer
+            if self.document.get(env, None):
+                if self.document[env].get(self._to_key(cmd_names), None):
+                    if not self.document[env][self._to_key(cmd_names)].get(section, None):
+                        self.document[env][self._to_key(cmd_names)].update({section: {key: value}})
+                else:
+                    self.document[env].update({self._to_key(cmd_names): {section: {key: value}}})
+            else:
+                self.document.update({env: {self._to_key(cmd_names): {section: {key: value}}}})
         # Only update appropriate key value pairs within a section
         self.document[env][self._to_key(cmd_names)][section].update({key: value})
 

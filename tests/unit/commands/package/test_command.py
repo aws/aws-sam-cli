@@ -15,6 +15,7 @@ class TestPackageCliCommand(TestCase):
         self.output_template_file = "output-template-file"
         self.use_json = True
         self.force_upload = False
+        self.no_progressbar = (False,)
         self.metadata = {"abc": "def"}
         self.region = None
         self.profile = None
@@ -35,6 +36,7 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
@@ -49,6 +51,7 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
@@ -73,6 +76,7 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
@@ -87,6 +91,7 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
@@ -105,6 +110,7 @@ class TestPackageCliCommand(TestCase):
                 output_template_file=self.output_template_file,
                 use_json=self.use_json,
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 metadata=self.metadata,
                 region=self.region,
                 profile=self.profile,
@@ -121,6 +127,7 @@ class TestPackageCliCommand(TestCase):
                 output_template_file=self.output_template_file,
                 use_json=self.use_json,
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 metadata=self.metadata,
                 region=self.region,
                 profile=self.profile,
