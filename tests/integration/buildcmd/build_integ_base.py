@@ -137,7 +137,8 @@ class BuildIntegBase(TestCase):
 
 
 class DedupBuildIntegBase(BuildIntegBase):
-    def _verify_build_and_invoke_functions(self, expected_messages, runtimes):
+    def _verify_build_and_invoke_functions(self, expected_messages, runtimes, command_result):
+        self._verify_process_code_and_output(runtimes, command_result)
         for runtime in runtimes:
             for expected_message in expected_messages:
                 expected = f"Hello {expected_message}"
@@ -151,3 +152,13 @@ class DedupBuildIntegBase(BuildIntegBase):
         build_dir_files = os.listdir(str(build_dir))
         self.assertIn("template.yaml", build_dir_files)
         self.assertIn(function_logical_id, build_dir_files)
+
+    def _verify_process_code_and_output(self, runtimes, command_result):
+        self.assertEqual(command_result.process.returncode, 0)
+        for runtime in runtimes:
+            # check HelloWorld and HelloMars functions are built in the same build
+            self.assertRegex(
+                command_result.stderr.decode("utf-8"),
+                f"Building codeuri: .* runtime: .* metadata: .* functions: "
+                f"\\['HelloWorld{runtime}', 'HelloMars{runtime}'\\]",
+            )

@@ -19,6 +19,12 @@ METADATA_FIELD = "metadata"
 FUNCTIONS_FIELD = "functions"
 
 
+class InvalidBuildGraphException(Exception):
+
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+
+
 def _build_definition_to_toml_table(build_definition):
     """
     Converts given build_definition into toml table representation
@@ -64,7 +70,7 @@ class BuildGraph:
     def __init__(self, build_dir):
         # put build.toml file inside .aws-sam folder
         self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
-        self._build_definitions = None
+        self._build_definitions = []
         self._read()
 
     def get_build_definitions(self):
@@ -85,11 +91,11 @@ class BuildGraph:
             previous_build_definition = self._build_definitions[self._build_definitions.index(build_definition)]
             LOG.debug("Same build definition found, adding function (Previous: %s, Current: %s, Function: %s)",
                       previous_build_definition, build_definition, function)
-            previous_build_definition.functions.append(function)
+            previous_build_definition.add_function(function)
         else:
             LOG.debug("Unique build definition found, adding as new (Build Definition: %s, Function: %s)",
                       build_definition, function)
-            build_definition.functions.append(function)
+            build_definition.add_function(function)
             self._build_definitions.append(build_definition)
 
     def clean_redundant_functions_and_update(self, persist):
@@ -108,20 +114,19 @@ class BuildGraph:
         Reads build.toml file into array of build definition
         Each build definition will have empty function list, which will be populated from the current template.yaml file
         """
-        if not self._build_definitions:
-            LOG.debug("Instantiating build definitions")
-            self._build_definitions = []
-            document = {}
-            try:
-                txt = self._filepath.read_text()
-                document = tomlkit.loads(txt)
-            except OSError:
-                LOG.debug("No previous build graph found, generating new one")
-            build_definitions_table = document.get(BuildGraph.BUILD_DEFINITIONS, [])
-            for build_definition_key in build_definitions_table:
-                build_definition = _toml_table_to_build_definition(build_definition_key,
-                                                                   build_definitions_table[build_definition_key])
-                self._build_definitions.append(build_definition)
+        LOG.debug("Instantiating build definitions")
+        self._build_definitions = []
+        document = {}
+        try:
+            txt = self._filepath.read_text()
+            document = tomlkit.loads(txt)
+        except OSError:
+            LOG.debug("No previous build graph found, generating new one")
+        build_definitions_table = document.get(BuildGraph.BUILD_DEFINITIONS, [])
+        for build_definition_key in build_definitions_table:
+            build_definition = _toml_table_to_build_definition(build_definition_key,
+                                                               build_definitions_table[build_definition_key])
+            self._build_definitions.append(build_definition)
 
         return self._build_definitions
 
@@ -164,10 +169,16 @@ class BuildDefinition:
         self.functions.append(function)
 
     def get_function_name(self):
+        self._validate_functions()
         return self.functions[0].name
 
     def get_handler_name(self):
+        self._validate_functions()
         return self.functions[0].handler
+
+    def _validate_functions(self):
+        if not self.functions:
+            raise InvalidBuildGraphException("Build definition doesn't have any function definition to build")
 
     def __str__(self):
         return f"BuildDefinition({self.runtime}, {self.codeuri}, {self.uuid}, {self.metadata}, " \

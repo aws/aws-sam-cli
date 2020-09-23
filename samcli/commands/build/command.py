@@ -161,6 +161,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     from samcli.lib.build.workflow_config import UnsupportedRuntimeException
     from samcli.local.lambdafn.exceptions import FunctionNotFound
     from samcli.commands._utils.template import move_template
+    from samcli.lib.build.build_graph import InvalidBuildGraphException
 
     LOG.debug("'build' command is called")
 
@@ -226,6 +227,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 BuildInsideContainerError,
                 UnsupportedBuilderLibraryVersionError,
                 ContainerBuildNotSupported,
+                InvalidBuildGraphException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 

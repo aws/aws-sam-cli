@@ -1,3 +1,4 @@
+import re
 import sys
 import os
 import logging
@@ -1041,6 +1042,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 class TestBuildWithDedupBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
 
+    @pytest.mark.flaky(reruns=3)
     def test_dedup_build(self):
         """
         Build template above and verify that each function call returns as expected
@@ -1049,12 +1051,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
 
         runtimes = ["Dotnet31", "Java8", "Node", "Python", "Ruby"]
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(expected_messages, runtimes)
+        self._verify_build_and_invoke_functions(expected_messages, runtimes, command_result)
 
 
 @skipIf(
@@ -1064,6 +1066,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 class TestBuildWithDedupBuildsInContainer(DedupBuildIntegBase):
     template = "dedup-functions-container-template.yaml"
 
+    @pytest.mark.flaky(reruns=3)
     def test_dedup_build_in_container(self):
         """
         Build template above in the container and verify that each function call returns as expected
@@ -1072,9 +1075,9 @@ class TestBuildWithDedupBuildsInContainer(DedupBuildIntegBase):
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
-        run_command(cmdlist, cwd=self.working_dir)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
 
         runtimes = ["Java8", "Node", "Python", "Ruby"]
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(expected_messages, runtimes)
+        self._verify_build_and_invoke_functions(expected_messages, runtimes, command_result)

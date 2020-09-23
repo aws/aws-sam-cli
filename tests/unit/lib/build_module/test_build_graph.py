@@ -14,6 +14,7 @@ from samcli.lib.build.build_graph import (
     FUNCTIONS_FIELD,
     _toml_table_to_build_definition,
     BuildGraph,
+    InvalidBuildGraphException,
 )
 from samcli.lib.providers.provider import Function
 from samcli.lib.utils import osutils
@@ -159,13 +160,18 @@ class TestBuildGraph(TestCase):
 
 
 class TestBuildDefinition(TestCase):
-    @parameterized.expand(["provided", "go1.x"])
-    def test_nondedup_runtimes_should_return_function_and_handler_name(self, runtime):
-        build_definition = BuildDefinition(runtime, "codeuri", "metadata")
-        build_definition.add_function(generate_function(runtime=runtime))
+    def test_single_function_should_return_function_and_handler_name(self):
+        build_definition = BuildDefinition("runtime", "codeuri", "metadata")
+        build_definition.add_function(generate_function())
 
         self.assertEqual(build_definition.get_handler_name(), "handler")
         self.assertEqual(build_definition.get_function_name(), "name")
+
+    def test_no_function_should_raise_exception(self):
+        build_definition = BuildDefinition("runtime", "codeuri", "metadata")
+
+        self.assertRaises(InvalidBuildGraphException, build_definition.get_handler_name)
+        self.assertRaises(InvalidBuildGraphException, build_definition.get_function_name)
 
     def test_same_runtime_codeuri_metadata_should_reflect_as_same_object(self):
         build_definition1 = BuildDefinition("runtime", "codeuri", {"key": "value"})

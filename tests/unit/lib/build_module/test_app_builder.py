@@ -91,7 +91,9 @@ class TestApplicationBuilder_build(TestCase):
         self.assertTrue(self.func1 in all_functions_in_build_graph)
         self.assertTrue(self.func2 in all_functions_in_build_graph)
 
-    def test_should_run_build_for_only_unique_builds(self):
+    @patch("samcli.lib.build.build_graph.BuildGraph._write")
+    @patch("samcli.lib.build.build_graph.BuildGraph._read")
+    def test_should_run_build_for_only_unique_builds(self, persist_mock, read_mock):
         build_function_mock = Mock()
 
         # create 3 function resources where 2 of them would have same codeuri, runtime and metadata
@@ -101,43 +103,39 @@ class TestApplicationBuilder_build(TestCase):
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_functions([function1_1, function1_2, function2])
 
-        with osutils.mkdir_temp() as temp_base_dir:
-            build_dir = Path(temp_base_dir, ".aws-sam", "build")
-            build_dir.mkdir(parents=True)
+        build_dir = "builddir"
 
-            # instantiate the builder and run build method
-            builder = ApplicationBuilder(resources_to_build_collector, str(build_dir), temp_base_dir)
-            builder._build_function = build_function_mock
+        # instantiate the builder and run build method
+        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+        builder._build_function = build_function_mock
 
-            result = builder.build()
+        result = builder.build()
 
-            # result should contain all 3 functions as expected
-            self.assertEqual(
-                result,
-                {
-                    function1_1.name: os.path.join(build_dir, function1_1.name),
-                    function1_2.name: os.path.join(build_dir, function1_2.name),
-                    function2.name: os.path.join(build_dir, function2.name),
-                },
-            )
+        # result should contain all 3 functions as expected
+        self.assertEqual(
+            result,
+            {
+                function1_1.name: os.path.join(build_dir, function1_1.name),
+                function1_2.name: os.path.join(build_dir, function1_2.name),
+                function2.name: os.path.join(build_dir, function2.name),
+            },
+        )
 
-            # actual build should only be called twice since only 2 of the functions have unique build
-            build_function_mock.assert_has_calls(
-                [
-                    call(
-                        function1_1.name,
-                        function1_1.codeuri,
-                        function1_1.runtime,
-                        function1_1.handler,
-                        ANY,
-                        function1_1.metadata,
-                    ),
-                    call(
-                        function2.name, function2.codeuri, function2.runtime, function2.handler, ANY, function2.metadata
-                    ),
-                ],
-                any_order=True,
-            )
+        # actual build should only be called twice since only 2 of the functions have unique build
+        build_function_mock.assert_has_calls(
+            [
+                call(
+                    function1_1.name,
+                    function1_1.codeuri,
+                    function1_1.runtime,
+                    function1_1.handler,
+                    ANY,
+                    function1_1.metadata,
+                ),
+                call(function2.name, function2.codeuri, function2.runtime, function2.handler, ANY, function2.metadata),
+            ],
+            any_order=True,
+        )
 
 
 class TestApplicationBuilderForLayerBuild(TestCase):
