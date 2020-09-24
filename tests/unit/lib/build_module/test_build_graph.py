@@ -181,9 +181,11 @@ class TestBuildDefinition(TestCase):
 
     @parameterized.expand(
         [
-            ("runtime", "codeuri", ({"key", "value"}), "runtime", "codeuri", ({"key", "value1"})),
-            ("runtime", "codeuri", ({"key", "value"}), "runtime1", "codeuri", ({"key", "value"})),
-            ("runtime", "codeuri", ({"key", "value"}), "runtime", "codeuri1", ({"key", "value"})),
+            ("runtime", "codeuri", ({"key": "value"}), "runtime", "codeuri", ({"key": "different_value"})),
+            ("runtime", "codeuri", ({"key": "value"}), "different_runtime", "codeuri", ({"key": "value"})),
+            ("runtime", "codeuri", ({"key": "value"}), "runtime", "different_codeuri", ({"key": "value"})),
+            # custom build method with Makefile definition should always be identified as different
+            ("runtime", "codeuri", ({"BuildMethod": "makefile"}), "runtime", "codeuri", ({"BuildMethod": "makefile"})),
         ]
     )
     def test_different_runtime_codeuri_metadata_should_not_reflect_as_same_object(

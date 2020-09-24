@@ -67,3 +67,19 @@ Resources:
       CodeUri: Ruby
       Handler: app.second_lambda_handler
       Runtime: ruby2.5
+  HelloWorldPythonProvided:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ProvidedWithMultipleFunctions
+      Handler: first_function.handler
+      Runtime: python3.7
+    Metadata:
+      BuildMethod: makefile
+  HelloMarsPythonProvided:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ProvidedWithMultipleFunctions
+      Handler: second_function.handler
+      Runtime: python3.7
+    Metadata:
+      BuildMethod: makefile

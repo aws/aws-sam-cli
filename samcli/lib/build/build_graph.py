@@ -194,6 +194,10 @@ class BuildDefinition:
         if not isinstance(other, BuildDefinition):
             return False
 
+        # each build with custom Makefile definition should be handled separately
+        if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
+            return False
+
         return self.runtime == other.runtime \
                and self.codeuri == other.codeuri \
                and self.metadata == other.metadata

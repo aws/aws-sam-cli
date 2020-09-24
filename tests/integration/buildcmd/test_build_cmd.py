@@ -1053,7 +1053,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
-        runtimes = ["Dotnet31", "Java8", "Node", "Python", "Ruby"]
+        runtimes = ["Dotnet31", "Java8", "Node", "Python", "Ruby", "PythonProvided"]
         expected_messages = ["World", "Mars"]
 
         self._verify_build_and_invoke_functions(expected_messages, runtimes, command_result)
