@@ -228,7 +228,12 @@ def decorator_customize_config_file(f):
     """
     config_file_attrs = {}
     config_file_param_decls = ("--config-file",)
-    config_file_attrs["help"] = "Name of configuration file. By default, it is samconfig.toml in project directory."
+    config_file_attrs["help"] = (
+        "The path and file name of the configuration file containing default parameter values to use. "
+        "Its default value is 'samconfig.toml' in project directory. For more information about configuration files, "
+        "see: "
+        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
+    )
     config_file_attrs["default"] = "samconfig.toml"
     config_file_attrs["is_eager"] = True
     config_file_attrs["required"] = False
@@ -245,7 +250,11 @@ def decorator_customize_config_env(f):
     """
     config_env_attrs = {}
     config_env_param_decls = ("--config-env",)
-    config_env_attrs["help"] = "Name of configuration environment. By default, its name is 'default'."
+    config_env_attrs["help"] = (
+        "The environment name specifying the default parameter values in the configuration file to use. "
+        "Its default value is 'default'. For more information about configuration files, see: "
+        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
+    )
     config_env_attrs["default"] = "default"
     config_env_attrs["is_eager"] = True
     config_env_attrs["required"] = False
