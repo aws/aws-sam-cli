@@ -6,80 +6,26 @@ Globals:
     Timeout: 20
     MemorySize: 512
 
+Parameteres:
+  FunctionCodeUri:
+    Type: String
+  Function1Handler:
+    Type: String
+  Function2Handler:
+    Type: String
+  FunctionRuntime:
+    Type: String
+
 Resources:
-  HelloWorldDotnet31:
+  HelloWorldFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: Dotnetcore3.1
-      Handler: HelloWorld::HelloWorld.FirstFunction::FunctionHandler
-      Runtime: dotnetcore3.1
-  HelloMarsDotnet31:
+      CodeUri: !Ref FunctionCodeUri
+      Handler: !Ref Function1Handler
+      Runtime: !Ref FunctionRuntime
+  HelloMarsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: Dotnetcore3.1
-      Handler: HelloWorld::HelloWorld.SecondFunction::FunctionHandler
-      Runtime: dotnetcore3.1
-  HelloWorldJava8:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Java/gradlew
-      Handler: aws.example.Hello::myHandler
-      Runtime: java8
-  HelloMarsJava8:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Java/gradlew
-      Handler: aws.example.SecondFunction::myHandler
-      Runtime: java8
-  HelloWorldNode:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Node
-      Handler: main.lambdaHandler
-      Runtime: nodejs12.x
-  HelloMarsNode:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Node
-      Handler: main.secondLambdaHandler
-      Runtime: nodejs12.x
-  HelloWorldPython:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Python
-      Handler: main.first_function_handler
-      Runtime: python3.8
-  HelloMarsPython:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Python
-      Handler: main.second_function_handler
-      Runtime: python3.8
-  HelloWorldRuby:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Ruby
-      Handler: app.lambda_handler
-      Runtime: ruby2.5
-  HelloMarsRuby:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: Ruby
-      Handler: app.second_lambda_handler
-      Runtime: ruby2.5
-  HelloWorldPythonProvided:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ProvidedWithMultipleFunctions
-      Handler: first_function.handler
-      Runtime: python3.7
-    Metadata:
-      BuildMethod: makefile
-  HelloMarsPythonProvided:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ProvidedWithMultipleFunctions
-      Handler: second_function.handler
-      Runtime: python3.7
-    Metadata:
-      BuildMethod: makefile
+      CodeUri: !Ref FunctionCodeUri
+      Handler: !Ref Function2Handler
+      Runtime: !Ref FunctionRuntime

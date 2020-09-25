@@ -137,14 +137,13 @@ class BuildIntegBase(TestCase):
 
 
 class DedupBuildIntegBase(BuildIntegBase):
-    def _verify_build_and_invoke_functions(self, expected_messages, runtimes, command_result):
-        self._verify_process_code_and_output(runtimes, command_result)
-        for runtime in runtimes:
-            for expected_message in expected_messages:
-                expected = f"Hello {expected_message}"
-                function_id = f"Hello{expected_message}{runtime}"
-                self._verify_build_artifact(self.default_build_dir, function_id)
-                self._verify_invoke_built_function(self.built_template, function_id, "", expected)
+    def _verify_build_and_invoke_functions(self, expected_messages, command_result, overrides):
+        self._verify_process_code_and_output(command_result)
+        for expected_message in expected_messages:
+            expected = f"Hello {expected_message}"
+            function_id = f"Hello{expected_message}Function"
+            self._verify_build_artifact(self.default_build_dir, function_id)
+            self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
 
     def _verify_build_artifact(self, build_dir, function_logical_id):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -153,12 +152,11 @@ class DedupBuildIntegBase(BuildIntegBase):
         self.assertIn("template.yaml", build_dir_files)
         self.assertIn(function_logical_id, build_dir_files)
 
-    def _verify_process_code_and_output(self, runtimes, command_result):
+    def _verify_process_code_and_output(self, command_result):
         self.assertEqual(command_result.process.returncode, 0)
-        for runtime in runtimes:
-            # check HelloWorld and HelloMars functions are built in the same build
-            self.assertRegex(
-                command_result.stderr.decode("utf-8"),
-                f"Building codeuri: .* runtime: .* metadata: .* functions: "
-                f"\\['HelloWorld{runtime}', 'HelloMars{runtime}'\\]",
-            )
+        # check HelloWorld and HelloMars functions are built in the same build
+        self.assertRegex(
+            command_result.stderr.decode("utf-8"),
+            f"Building codeuri: .* runtime: .* metadata: .* functions: "
+            f"\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
+        )

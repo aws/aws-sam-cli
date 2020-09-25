@@ -1042,10 +1042,52 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 class TestBuildWithDedupBuilds(DedupBuildIntegBase):
     template = "dedup-functions-template.yaml"
 
+    @parameterized.expand(
+        [
+            # in process
+            (False, "Dotnetcore3.1", "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+             "HelloWorld::HelloWorld.SecondFunction::FunctionHandler", "dotnetcore3.1"),
+            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            # container
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self):
+    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
         """
         Build template above and verify that each function call returns as expected
+        """
+        overrides = {"FunctionCodeUri": code_uri, "Function1Handler": function1_handler,
+                     "Function2Handler": function2_handler, "FunctionRuntime": runtime}
+        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
+
+        LOG.info("Running Command: %s", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(expected_messages, command_result,
+                                                self._make_parameter_override_arg(overrides))
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
+    template = "dedup-functions-makefile-template.yaml"
+
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build_makefile(self):
+        """
+        Build template above in the container and verify that each function call returns as expected
         """
         cmdlist = self.get_command_list()
 
@@ -1053,31 +1095,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
-        runtimes = ["Dotnet31", "Java8", "Node", "Python", "Ruby", "PythonProvided"]
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(expected_messages, runtimes, command_result)
+        self._verify_build_and_invoke_functions(expected_messages, command_result, "")
 
-
-@skipIf(
-    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
-    "Skip build tests on windows when running in CI unless overridden",
-)
-class TestBuildWithDedupBuildsInContainer(DedupBuildIntegBase):
-    template = "dedup-functions-container-template.yaml"
-
-    @pytest.mark.flaky(reruns=3)
-    def test_dedup_build_in_container(self):
+    def _verify_process_code_and_output(self, command_result):
         """
-        Build template above in the container and verify that each function call returns as expected
+        Override, because functions should be build individually
         """
-        cmdlist = self.get_command_list(use_container=True)
-
-        LOG.info("Running Command: %s", cmdlist)
-        # Built using `native` python-pip builder for a python project.
-        command_result = run_command(cmdlist, cwd=self.working_dir)
-
-        runtimes = ["Java8", "Node", "Python", "Ruby"]
-        expected_messages = ["World", "Mars"]
-
-        self._verify_build_and_invoke_functions(expected_messages, runtimes, command_result)
+        self.assertEqual(command_result.process.returncode, 0)
