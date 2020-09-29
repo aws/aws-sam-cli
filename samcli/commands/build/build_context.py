@@ -172,7 +172,9 @@ class BuildContext:
     @property
     def is_building_specific_resource(self):
         """
-        Checks whether customer requested to build specific resource
+        Whether customer requested to build a specific resource alone in isolation,
+        by specifying function_identifier to the build command.
+        Ex: sam build MyServerlessFunction
         :return: True if user requested to build specific resource, False otherwise
         """
         return bool(self._resource_identifier)

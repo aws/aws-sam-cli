@@ -58,7 +58,7 @@ class ApplicationBuilder:
                  resources_to_build,
                  build_dir,
                  base_dir,
-                 is_specific_resource=False,
+                 is_building_specific_resource=False,
                  manifest_path_override=None,
                  container_manager=None,
                  parallel=False,
@@ -77,6 +77,11 @@ class ApplicationBuilder:
         base_dir : str
             Path to a folder. Use this folder as the root to resolve relative source code paths against
 
+        is_building_specific_resource : boolean
+            Whether customer requested to build a specific resource alone in isolation,
+            by specifying function_identifier to the build command.
+            Ex: sam build MyServerlessFunction
+
         container_manager : samcli.local.docker.manager.ContainerManager
             Optional. If provided, we will attempt to build inside a Docker Container
 
@@ -90,7 +95,7 @@ class ApplicationBuilder:
         self._build_dir = build_dir
         self._base_dir = base_dir
         self._manifest_path_override = manifest_path_override
-        self._is_specific_resource = is_specific_resource
+        self._is_building_specific_resource = is_building_specific_resource
 
         self._container_manager = container_manager
         self._parallel = parallel
@@ -134,7 +139,7 @@ class ApplicationBuilder:
             build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)
             build_graph.put_build_definition(build_details, function)
 
-        build_graph.clean_redundant_functions_and_update(not self._is_specific_resource)
+        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
         return build_graph
 
     def _build_functions(self):
