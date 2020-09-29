@@ -1045,8 +1045,13 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
     @parameterized.expand(
         [
             # in process
-            (False, "Dotnetcore3.1", "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-             "HelloWorld::HelloWorld.SecondFunction::FunctionHandler", "dotnetcore3.1"),
+            (
+                False,
+                "Dotnetcore3.1",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnetcore3.1",
+            ),
             (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
             (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
             (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
@@ -1063,8 +1068,12 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         """
         Build template above and verify that each function call returns as expected
         """
-        overrides = {"FunctionCodeUri": code_uri, "Function1Handler": function1_handler,
-                     "Function2Handler": function2_handler, "FunctionRuntime": runtime}
+        overrides = {
+            "FunctionCodeUri": code_uri,
+            "Function1Handler": function1_handler,
+            "Function2Handler": function2_handler,
+            "FunctionRuntime": runtime,
+        }
         cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
 
         LOG.info("Running Command: %s", cmdlist)
@@ -1073,8 +1082,9 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(expected_messages, command_result,
-                                                self._make_parameter_override_arg(overrides))
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
 
 
 @skipIf(

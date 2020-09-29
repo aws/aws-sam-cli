@@ -170,7 +170,11 @@ class BuildContext:
         return result
 
     @property
-    def is_specific_resource(self):
+    def is_building_specific_resource(self):
+        """
+        Checks whether customer requested to build specific resource
+        :return: True if user requested to build specific resource, False otherwise
+        """
         return bool(self._resource_identifier)
 
     def _collect_single_function_and_dependent_layers(self, resource_identifier, resource_collector):
