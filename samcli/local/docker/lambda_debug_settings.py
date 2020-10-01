@@ -73,6 +73,16 @@ class LambdaDebugSettings:
                 ],
                 debug_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1"},
             ),
+            Runtime.dotnetcore31.value: DebugSettings(
+                [
+                    "/var/rapid/init",
+                    "--bootstrap",
+                    "/var/runtime/bootstrap",
+                    "--bootstrap-args",
+                    json.dumps(debug_args_list),
+                ],
+                debug_env_vars={"_AWS_LAMBDA_DOTNET_DEBUGGING": "1"},
+            ),
             Runtime.go1x.value: DebugSettings(
                 ["/var/runtime/aws-lambda-go"]
                 + debug_args_list
