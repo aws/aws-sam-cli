@@ -1,3 +1,5 @@
+import re
+
 import boto3
 import logging
 
@@ -5,6 +7,7 @@ from unittest import TestCase
 from unittest.mock import patch, ANY
 
 from samcli.cli.context import Context
+from samcli.lib.utils.sam_logging import SamCliLogger, SAM_CLI_FORMATTER
 
 
 class TestContext(TestCase):
@@ -24,8 +27,28 @@ class TestContext(TestCase):
     def test_must_unset_get_debug_flag(self):
         ctx = Context()
 
+        message_record = logging.makeLogRecord({"msg": "hello world"})
+        timestamp_log_regex = re.compile(r"^[0-9:\- ,]+ \| .*$")
+
+        sam_cli_logger = logging.getLogger("samcli")
+        lambda_builders_logger = logging.getLogger("aws_lambda_builders")
+        SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER, logging.INFO)
+        SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER, logging.INFO)
+
+        handlers = [logging.getLogger("samcli").handlers[0], logging.getLogger("aws_lambda_builders").handlers[0]]
+        # timestamp should not be output
+        for handler in handlers:
+            self.assertNotRegex(handler.formatter.format(message_record), timestamp_log_regex)
+
         ctx.debug = True
         self.assertEqual(ctx.debug, True, "debug must be set to True")
+        # timestamp should be output
+        for handler in handlers:
+            self.assertRegex(
+                handler.formatter.format(message_record),
+                timestamp_log_regex,
+                "debug log record should contain timestamps",
+            )
 
         # Flipping from True to False
         ctx.debug = False

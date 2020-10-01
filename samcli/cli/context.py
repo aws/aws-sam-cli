@@ -12,6 +12,10 @@ from botocore import credentials
 import click
 
 from samcli.commands.exceptions import CredentialsError
+from samcli.lib.utils.sam_logging import (
+    SAM_CLI_FORMATTER_WITH_TIMESTAMP,
+    SamCliLogger,
+)
 
 
 class Context:
@@ -50,9 +54,11 @@ class Context:
         self._debug = value
 
         if self._debug:
-            # Turn on debug logging
-            logging.getLogger("samcli").setLevel(logging.DEBUG)
-            logging.getLogger("aws_lambda_builders").setLevel(logging.DEBUG)
+            # Turn on debug logging and display timestamps
+            sam_cli_logger = logging.getLogger("samcli")
+            lambda_builders_logger = logging.getLogger("aws_lambda_builders")
+            SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
+            SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
 
     @property
     def region(self):
