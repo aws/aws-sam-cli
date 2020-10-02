@@ -165,3 +165,55 @@ class TestGuidedContext(TestCase):
             ),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+
+    @patch("samcli.commands.deploy.guided_context.get_session")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    def test_guided_prompts_check_default_config_region(
+        self,
+        patched_get_template_data,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        patched_get_session,
+    ):
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, True, ""]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        patched_get_session.return_value.get_config_variable.return_value = "default_config_region"
+        # setting the default region to None
+        self.gc.region = None
+        self.gc.guided_prompts(parameter_override_keys=None)
+        # Now to check for all the defaults on confirmations.
+        expected_confirmation_calls = [
+            call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
+            call(
+                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                default=False,
+            ),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+        ]
+        self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
+
+        expected_prompt_calls = [
+            call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
+            call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="default_config_region", type=click.STRING),
+            call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
+            call(
+                f"\t{self.gc.start_bold}SAM configuration file{self.gc.end_bold}",
+                default="samconfig.toml",
+                type=click.STRING,
+            ),
+            call(
+                f"\t{self.gc.start_bold}SAM configuration environment{self.gc.end_bold}",
+                default="default",
+                type=click.STRING,
+            ),
+        ]
+        self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
