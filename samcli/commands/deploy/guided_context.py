@@ -48,7 +48,7 @@ class GuidedContext:
         self.profile = profile
         self.confirm_changeset = confirm_changeset
         self.capabilities = (capabilities,)
-        self.parameter_overrides = parameter_overrides
+        self.parameter_overrides_from_cmdline = parameter_overrides
         self.save_to_config = save_to_config
         self.config_section = config_section
         self.config_env = config_env
@@ -93,7 +93,9 @@ class GuidedContext:
             f"\t{self.start_bold}Stack Name{self.end_bold}", default=default_stack_name, type=click.STRING
         )
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
-        input_parameter_overrides = self.prompt_parameters(parameter_override_keys, self.start_bold, self.end_bold)
+        input_parameter_overrides = self.prompt_parameters(
+            parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
+        )
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
         confirm_changeset = confirm(
@@ -138,7 +140,9 @@ class GuidedContext:
         self.guided_region = region
         self.guided_profile = self.profile
         self._capabilities = input_capabilities if input_capabilities else default_capabilities
-        self._parameter_overrides = input_parameter_overrides if input_parameter_overrides else self.parameter_overrides
+        self._parameter_overrides = (
+            input_parameter_overrides if input_parameter_overrides else self.parameter_overrides_from_cmdline
+        )
         self.save_to_config = save_to_config
         self.config_env = config_env if config_env else default_config_env
         self.config_file = config_file if config_file else default_config_file
@@ -156,10 +160,12 @@ class GuidedContext:
                 if not auth_confirm:
                     raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
 
-    def prompt_parameters(self, parameter_override_keys, start_bold, end_bold):
+    def prompt_parameters(
+        self, parameter_override_from_template, parameter_override_from_cmdline, start_bold, end_bold
+    ):
         _prompted_param_overrides = {}
-        if parameter_override_keys:
-            for parameter_key, parameter_properties in parameter_override_keys.items():
+        if parameter_override_from_template:
+            for parameter_key, parameter_properties in parameter_override_from_template.items():
                 no_echo = parameter_properties.get("NoEcho", False)
                 if no_echo:
                     parameter = prompt(
@@ -167,11 +173,13 @@ class GuidedContext:
                     )
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": True}
                 else:
-                    # Make sure the default is casted to a string.
                     parameter = prompt(
                         f"\t{start_bold}Parameter {parameter_key}{end_bold}",
                         default=_prompted_param_overrides.get(
-                            parameter_key, str(parameter_properties.get("Default", ""))
+                            parameter_key,
+                            self._get_parameter_value(
+                                parameter_key, parameter_properties, parameter_override_from_cmdline
+                            ),
                         ),
                         type=click.STRING,
                     )
@@ -204,3 +212,18 @@ class GuidedContext:
                 confirm_changeset=self.confirm_changeset,
                 capabilities=self._capabilities,
             )
+
+    def _get_parameter_value(self, parameter_key, parameter_properties, parameter_override_from_cmdline):
+        """
+        This function provide the value of a parameter. If the command line/config file have "override_parameter"
+        whose key exist in the template file parameters, it will use the corresponding value.
+        Otherwise, it will use its default value in template file.
+
+        :param parameter_key: key of parameter
+        :param parameter_properties: properties of that parameters from template file
+        :param parameter_override_from_cmdline: parameter_override from command line/config file
+        """
+        if parameter_override_from_cmdline and parameter_override_from_cmdline.get(parameter_key, None):
+            return parameter_override_from_cmdline[parameter_key]
+        # Make sure the default is casted to a string.
+        return str(parameter_properties.get("Default", ""))

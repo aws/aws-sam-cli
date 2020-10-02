@@ -166,6 +166,84 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    def test_guided_prompts_check_parameter_from_template(
+        self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
+    ):
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
+        self.gc.parameter_overrides_from_cmdline = {}
+        self.gc.guided_prompts(parameter_override_keys=parameter_override_from_template)
+        # Now to check for all the defaults on confirmations.
+        expected_confirmation_calls = [
+            call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
+            call(
+                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                default=False,
+            ),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+        ]
+        self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
+
+        expected_prompt_calls = [
+            call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
+            call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
+            call(
+                f"\t{self.gc.start_bold}Parameter MyTestKey{self.gc.end_bold}",
+                default="MyTemplateDefaultVal",
+                type=click.STRING,
+            ),
+            call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
+        ]
+        self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    def test_guided_prompts_check_parameter_from_cmd_or_config(
+        self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
+    ):
+        # Series of inputs to confirmations so that full range of questions are asked.
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, True, False, ""]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
+        self.gc.parameter_overrides_from_cmdline = {"MyTestKey": "OverridedValFromCmdLine", "NotUsedKey": "NotUsedVal"}
+        self.gc.guided_prompts(parameter_override_keys=parameter_override_from_template)
+        # Now to check for all the defaults on confirmations.
+        expected_confirmation_calls = [
+            call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
+            call(
+                f"\t{self.gc.start_bold}HelloWorldFunction may not have authorization defined, Is this okay?{self.gc.end_bold}",
+                default=False,
+            ),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
+        ]
+        self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
+
+        expected_prompt_calls = [
+            call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
+            call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
+            call(
+                f"\t{self.gc.start_bold}Parameter MyTestKey{self.gc.end_bold}",
+                default="OverridedValFromCmdLine",
+                type=click.STRING,
+            ),
+            call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
+        ]
+        self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+
     @patch("samcli.commands.deploy.guided_context.get_session")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
@@ -203,7 +281,11 @@ class TestGuidedContext(TestCase):
 
         expected_prompt_calls = [
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
-            call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="default_config_region", type=click.STRING),
+            call(
+                f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}",
+                default="default_config_region",
+                type=click.STRING,
+            ),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
             call(
                 f"\t{self.gc.start_bold}SAM configuration file{self.gc.end_bold}",
