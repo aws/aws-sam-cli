@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ProvidedWithMultipleFunctions
+      Handler: first_function.handler
+      Runtime: python3.7
+    Metadata:
+      BuildMethod: makefile
+  HelloMarsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ProvidedWithMultipleFunctions
+      Handler: second_function.handler
+      Runtime: python3.7
+    Metadata:
+      BuildMethod: makefile
