@@ -20,8 +20,22 @@ class TestApiGatewayService(TestCase):
         self.http_gateway_route = Route(
             methods=["GET"], function_name=self.function_name, path="/", event_type=Route.HTTP
         )
+        self.http_v1_payload_route = Route(
+            methods=["GET"],
+            function_name=self.function_name,
+            path="/v1",
+            event_type=Route.HTTP,
+            payload_format_version="1.0",
+        )
+        self.http_v2_payload_route = Route(
+            methods=["GET"],
+            function_name=self.function_name,
+            path="/v2",
+            event_type=Route.HTTP,
+            payload_format_version="2.0",
+        )
         self.api_list_of_routes = [self.api_gateway_route]
-        self.http_list_of_routes = [self.http_gateway_route]
+        self.http_list_of_routes = [self.http_gateway_route, self.http_v1_payload_route, self.http_v2_payload_route]
 
         self.lambda_runner = Mock()
         self.lambda_runner.is_debugging.return_value = False
@@ -59,13 +73,43 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.api_service._construct_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_request_must_invoke_lambda(self, request_mock):
         make_response_mock = Mock()
 
         self.http_service.service_response = make_response_mock
-        self.http_service._get_current_route = MagicMock()
+        self.http_service._get_current_route = Mock()
+        self.http_service._get_current_route.return_value = self.http_gateway_route
+        self.http_service._get_current_route.methods = []
+        self.http_service._construct_event = Mock()
+
+        self.http_service._construct_event_http = MagicMock()
+
+        parse_output_mock = Mock()
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        self.http_service._parse_lambda_output = parse_output_mock
+
+        service_response_mock = Mock()
+        service_response_mock.return_value = make_response_mock
+        self.http_service.service_response = service_response_mock
+
+        request_mock.return_value = ("test", "test")
+
+        result = self.http_service._request_handler()
+
+        self.assertEqual(result, make_response_mock)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.http_service._construct_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_http_v1_payload_request_must_invoke_lambda(self, request_mock):
+        make_response_mock = Mock()
+
+        self.http_service.service_response = make_response_mock
+        self.http_service._get_current_route = Mock()
+        self.http_service._get_current_route.return_value = self.http_v1_payload_route
         self.http_service._get_current_route.methods = []
         self.http_service._construct_event = Mock()
 
@@ -83,6 +127,35 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.http_service._construct_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    def test_http_v2_payload_request_must_invoke_lambda(self, request_mock):
+        make_response_mock = Mock()
+
+        self.http_service.service_response = make_response_mock
+        self.http_service._get_current_route = Mock()
+        self.http_service._get_current_route.return_value = self.http_v2_payload_route
+        self.http_service._get_current_route.methods = []
+        self.http_service._construct_event = Mock()
+
+        self.http_service._construct_event_http = MagicMock()
+
+        parse_output_mock = Mock()
+        parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
+        self.http_service._parse_lambda_output = parse_output_mock
+
+        service_response_mock = Mock()
+        service_response_mock.return_value = make_response_mock
+        self.http_service.service_response = service_response_mock
+
+        request_mock.return_value = ("test", "test")
+
+        result = self.http_service._request_handler()
+
+        self.assertEqual(result, make_response_mock)
+        self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
+        self.http_service._construct_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_api_options_request_must_invoke_lambda(self, request_mock):
@@ -580,6 +653,14 @@ class TestServiceParsingLambdaOutput(TestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
         self.assertEqual(body, None)
+
+    def test_cookies_is_not_raise(self):
+        lambda_output = (
+            '{"statusCode": 200, "headers":{}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", '
+            '"isBase64Encoded": false, "cookies":{}}'
+        )
+
+        (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
 
 class TestService_construct_event(TestCase):

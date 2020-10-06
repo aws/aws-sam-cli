@@ -36,18 +36,21 @@ class Route:
     HTTP = "HttpApi"
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
-    def __init__(self, function_name, path, methods, event_type=API):
+    def __init__(self, function_name, path, methods, event_type=API, payload_format_version=None):
         """
         Creates an ApiGatewayRoute
 
         :param list(str) methods: http method
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
+        :param str event_type: Type of the event. "Api" or "HttpApi"
+        :param str payload_format_version: version of payload format
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
         self.path = path
         self.event_type = event_type
+        self.payload_format_version = payload_format_version
 
     def __eq__(self, other):
         return (
@@ -198,7 +201,7 @@ class LocalApigwService(BaseLocalService):
             return self.service_response("", headers, 200)
 
         try:
-            if route.event_type == Route.HTTP:
+            if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
                 event = self._construct_event_http(
                     request,
                     self.port,
@@ -340,7 +343,7 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _invalid_apig_response_keys(output):
-        allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded"}
+        allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded", "cookies"}
         invalid_keys = output.keys() - allowable
         return invalid_keys
 
