@@ -342,14 +342,16 @@ class SamApiProvider(CfnBaseApiProvider):
         for _, event in serverless_function_events.items():
             event_type = event.get(self._EVENT_TYPE)
             if event_type in [self._EVENT_TYPE_API, self._EVENT_TYPE_HTTP_API]:
-                route_resource_id, route = self._convert_event_route(function_logical_id, event.get("Properties"))
+                route_resource_id, route = self._convert_event_route(
+                    function_logical_id, event.get("Properties"), event.get(SamApiProvider._EVENT_TYPE)
+                )
                 collector.add_routes(route_resource_id, [route])
                 count += 1
 
         LOG.debug("Found '%d' API Events in Serverless function with name '%s'", count, function_logical_id)
 
     @staticmethod
-    def _convert_event_route(lambda_logical_id, event_properties):
+    def _convert_event_route(lambda_logical_id, event_properties, event_type):
         """
         Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
 
@@ -359,7 +361,6 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         path = event_properties.get(SamApiProvider._EVENT_PATH)
         method = event_properties.get(SamApiProvider._EVENT_METHOD)
-        event_type = event_properties.get(SamApiProvider._EVENT_TYPE)
 
         # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
         # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
@@ -424,6 +425,12 @@ class SamApiProvider(CfnBaseApiProvider):
             # method on explicit route.
             for normalized_method in config.methods:
                 key = config.path + normalized_method
+                if (
+                    all_routes.get(key)
+                    and all_routes.get(key).payload_format_version
+                    and config.payload_format_version is None
+                ):
+                    config.payload_format_version = all_routes.get(key).payload_format_version
                 all_routes[key] = config
 
         result = set(all_routes.values())  # Assign to a set() to de-dupe
