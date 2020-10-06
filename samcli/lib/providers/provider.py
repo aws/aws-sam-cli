@@ -4,9 +4,14 @@ source
 """
 import hashlib
 import logging
+import os
 from collections import namedtuple
 
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+from samcli.commands.local.cli_common.user_exceptions import (
+    InvalidLayerVersionArn,
+    UnsupportedIntrinsic,
+    InvalidLayerVersionContentUri,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -105,6 +110,8 @@ class LayerVersion:
         self._version = LayerVersion._compute_layer_version(self.is_defined_within_template, arn)
         self._build_method = metadata.get("BuildMethod", None)
         self._compatible_runtimes = compatible_runtimes
+        if self.is_defined_within_template:
+            LayerVersion._verify_code_uri_existence(codeuri)
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template, arn):
@@ -170,6 +177,11 @@ class LayerVersion:
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
         )
+
+    @staticmethod
+    def _verify_code_uri_existence(code_uri):
+        if not os.path.exists(code_uri):
+            raise InvalidLayerVersionContentUri(code_uri + " is an invalid ContentUri, file/directory does not exist.")
 
     @property
     def arn(self):

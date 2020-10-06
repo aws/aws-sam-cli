@@ -3,7 +3,11 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from samcli.lib.providers.provider import LayerVersion
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+from samcli.commands.local.cli_common.user_exceptions import (
+    InvalidLayerVersionArn,
+    UnsupportedIntrinsic,
+    InvalidLayerVersionContentUri,
+)
 
 
 class TestLayerVersion(TestCase):
@@ -58,3 +62,7 @@ class TestLayerVersion(TestCase):
 
         with self.assertRaises(UnsupportedIntrinsic):
             LayerVersion(intrinsic_arn, ".")
+
+    def test_invalid_content_uri(self):
+        with self.assertRaises(InvalidLayerVersionContentUri):
+            LayerVersion("arn:aws:lambda:region:account-id:layer:layer-name:1", "/non-exist-path")

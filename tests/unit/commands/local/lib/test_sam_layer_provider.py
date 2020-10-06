@@ -1,3 +1,4 @@
+import os
 from unittest import TestCase
 
 from parameterized import parameterized
@@ -74,6 +75,7 @@ class TestSamLayerProvider(TestCase):
     def setUp(self):
         self.parameter_overrides = {}
         self.provider = SamLayerProvider(self.TEMPLATE, parameter_overrides=self.parameter_overrides)
+        os.makedirs("PyLayer/")
 
     @parameterized.expand(
         [

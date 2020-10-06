@@ -1,8 +1,8 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from parameterized import parameterized
 
-from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, InvalidLayerVersionContentUri
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -515,6 +515,7 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         ):
             self.assertEqual(actual_layer, expected_layer)
 
+    @patch("os.path.exists", MagicMock(return_value=True))
     def test_layers_created_from_template_resources(self):
         resources = {
             "Layer": {"Type": "AWS::Lambda::LayerVersion", "Properties": {"Content": {"Bucket": "bucket"}}},
@@ -545,6 +546,17 @@ class TestSamFunctionProvider_parse_layer_info(TestCase):
         actual = SamFunctionProvider._parse_layer_info([], resources)
 
         self.assertEqual(actual, [])
+
+    def test_layer_with_invalid_content_uri(self):
+        resources = {
+            "Layer": {"Type": "AWS::Serverless::LayerVersion", "Properties": {"ContentUri": "/non-exist-path"},},
+        }
+        list_of_layers = [
+            {"Ref": "Layer"},
+        ]
+
+        with self.assertRaises(InvalidLayerVersionContentUri):
+            SamFunctionProvider._parse_layer_info(list_of_layers, resources)
 
 
 class TestSamFunctionProvider_get(TestCase):

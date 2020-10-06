@@ -53,6 +53,12 @@ class InvalidLayerVersionArn(UserException):
     """
 
 
+class InvalidLayerVersionContentUri(UserException):
+    """
+    The LayerVersion ContentUri given in the template is Invalid
+    """
+
+
 class UnsupportedIntrinsic(UserException):
     """
     Value from a template has an Intrinsic that is unsupported
