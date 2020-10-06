@@ -1,4 +1,4 @@
-import platform
+import re
 import sys
 import os
 import logging
@@ -8,7 +8,7 @@ from parameterized import parameterized
 
 import pytest
 
-from .build_integ_base import BuildIntegBase
+from .build_integ_base import BuildIntegBase, DedupBuildIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
 LOG = logging.getLogger(__name__)
@@ -1033,3 +1033,84 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupBuilds(DedupBuildIntegBase):
+    template = "dedup-functions-template.yaml"
+
+    @parameterized.expand(
+        [
+            # in process
+            (
+                False,
+                "Dotnetcore3.1",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnetcore3.1",
+            ),
+            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            # container
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "FunctionCodeUri": code_uri,
+            "Function1Handler": function1_handler,
+            "Function2Handler": function2_handler,
+            "FunctionRuntime": runtime,
+        }
+        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
+
+        LOG.info("Running Command: %s", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
+    template = "dedup-functions-makefile-template.yaml"
+
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build_makefile(self):
+        """
+        Build template above in the container and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list()
+
+        LOG.info("Running Command: %s", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(expected_messages, command_result, "")
+
+    def _verify_process_code_and_output(self, command_result):
+        """
+        Override, because functions should be build individually
+        """
+        self.assertEqual(command_result.process.returncode, 0)
