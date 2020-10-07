@@ -134,3 +134,29 @@ class BuildIntegBase(TestCase):
 
         process_stdout = process_execute.stdout.decode("utf-8")
         self.assertEqual(json.loads(process_stdout), expected_result)
+
+
+class DedupBuildIntegBase(BuildIntegBase):
+    def _verify_build_and_invoke_functions(self, expected_messages, command_result, overrides):
+        self._verify_process_code_and_output(command_result)
+        for expected_message in expected_messages:
+            expected = f"Hello {expected_message}"
+            function_id = f"Hello{expected_message}Function"
+            self._verify_build_artifact(self.default_build_dir, function_id)
+            self._verify_invoke_built_function(self.built_template, function_id, overrides, expected)
+
+    def _verify_build_artifact(self, build_dir, function_logical_id):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+    def _verify_process_code_and_output(self, command_result):
+        self.assertEqual(command_result.process.returncode, 0)
+        # check HelloWorld and HelloMars functions are built in the same build
+        self.assertRegex(
+            command_result.stderr.decode("utf-8"),
+            f"Building codeuri: .* runtime: .* metadata: .* functions: "
+            f"\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
+        )
