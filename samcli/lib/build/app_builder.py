@@ -7,6 +7,7 @@ import io
 import json
 import logging
 import pathlib
+import shutil
 
 import docker
 from aws_lambda_builders.builder import LambdaBuilder
@@ -20,6 +21,7 @@ from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.build.build_graph import BuildDefinition, BuildGraph
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
+from ..utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -58,6 +60,8 @@ class ApplicationBuilder:
                  resources_to_build,
                  build_dir,
                  base_dir,
+                 cache_dir,
+                 cached,
                  is_building_specific_resource=False,
                  manifest_path_override=None,
                  container_manager=None,
@@ -94,6 +98,8 @@ class ApplicationBuilder:
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
         self._base_dir = base_dir
+        self._cache_dir = cache_dir
+        self._cached = cached
         self._manifest_path_override = manifest_path_override
         self._is_building_specific_resource = is_building_specific_resource
 
@@ -136,7 +142,9 @@ class ApplicationBuilder:
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         for function in functions:
-            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)
+            code_dir = str(pathlib.Path(self._base_dir, function.codeuri).resolve())
+            checksum = dir_checksum(code_dir)
+            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata, checksum)
             build_graph.put_build_definition(build_details, function)
 
         build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
@@ -146,15 +154,69 @@ class ApplicationBuilder:
         """
         Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
         """
+        if self._cached:
+            return self._build_functions_with_cache()
+        else:
+            return self._build_functions_without_cache()
+
+    def _build_functions_with_cache(self):
         build_graph = self._get_build_graph()
+        build_definitions = build_graph.get_build_definitions()
         function_build_results = {}
 
-        for build_definition in build_graph.get_build_definitions():
+        for build_definition in build_definitions:
             LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
                      build_definition.codeuri, build_definition.runtime, build_definition.metadata,
                      [function.name for function in build_definition.functions])
             with osutils.mkdir_temp() as temporary_build_dir:
                 LOG.debug("Building to following folder %s", temporary_build_dir)
+
+                code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
+                checksum = dir_checksum(code_dir)
+                cache_function_dir = pathlib.Path(self._cache_dir, build_definition.get_uuid())
+                if not cache_function_dir.exists() or build_definition.get_checksum() != checksum:
+                    self._build_function(build_definition.get_function_name(),
+                                         build_definition.codeuri,
+                                         build_definition.runtime,
+                                         build_definition.get_handler_name(),
+                                         temporary_build_dir,
+                                         build_definition.metadata)
+                    if build_definition.get_checksum() != checksum:
+                        shutil.rmtree(str(cache_function_dir))
+                        cache_function_dir = str(pathlib.Path(self._cache_dir, checksum))
+                        build_definition.set_checksum(checksum)
+                        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
+                    osutils.copytree(temporary_build_dir, cache_function_dir)
+
+                for function in build_definition.functions:
+                    # artifacts directory will be created by the builder
+                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                    LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
+                    osutils.copytree(cache_function_dir, artifacts_dir)
+                    function_build_results[function.name] = artifacts_dir
+
+        uuids = set()
+        for build_definition in build_definitions:
+            uuids.add(build_definition.get_uuid())
+
+        for dir in pathlib.Path(self._cache_dir).iterdir():
+            if dir.name not in uuids:
+                shutil.rmtree(pathlib.Path(self._cache_dir, dir.name))
+
+        return function_build_results
+
+    def _build_functions_without_cache(self):
+        build_graph = self._get_build_graph()
+        build_definitions = build_graph.get_build_definitions()
+        function_build_results = {}
+
+        for build_definition in build_definitions:
+            LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
+                     build_definition.codeuri, build_definition.runtime, build_definition.metadata,
+                     [function.name for function in build_definition.functions])
+            with osutils.mkdir_temp() as temporary_build_dir:
+                LOG.debug("Building to following folder %s", temporary_build_dir)
+
                 self._build_function(build_definition.get_function_name(),
                                      build_definition.codeuri,
                                      build_definition.runtime,
