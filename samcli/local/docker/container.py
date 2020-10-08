@@ -5,12 +5,24 @@ Representation of a generic Docker container
 import logging
 import tarfile
 import tempfile
+import threading
+import socket
 
 import docker
+import requests
+
+from samcli.lib.utils.feature_flag import extensions_preview_enabled
+from samcli.lib.utils.retry import retry
 
 from .utils import to_posix_path
 
 LOG = logging.getLogger(__name__)
+
+
+class ContainerResponseException(Exception):
+    """
+    Exception raised when unable to communicate with RAPID APIs on a running container.
+    """
 
 
 class Container:
@@ -26,6 +38,10 @@ class Container:
     # This frame type value is coming directly from Docker Attach Stream API spec
     _STDOUT_FRAME_TYPE = 1
     _STDERR_FRAME_TYPE = 2
+    RAPID_PORT_CONTAINER = "8080"
+    URL = "http://localhost:{port}/2015-03-31/functions/{function_name}/invocations"
+    # NOTE(sriram-mv): 100ms Connection Timeout for http requests talking to local RAPID HTTP APIs
+    RAPID_CONNECTION_TIMEOUT = 0.1
 
     def __init__(
         self,
@@ -73,6 +89,17 @@ class Container:
         # Runtime properties of the container. They won't have value until container is created or started
         self.id = None
 
+        # Check if extensions preview is enabled
+        self._extensions_preview_enabled = extensions_preview_enabled()
+
+        # local RAPID defaults to 8080 as the port, however thats a common port. A port is chosen by
+        # creating a socket and binding to it. This way a port gets chosen on our behalf.
+        if self._extensions_preview_enabled:
+            self._socket = socket.socket()
+            self._socket.bind(("", 0))
+            self.rapid_port_host = self._socket.getsockname()[1]
+            self._socket.close()
+
     def create(self):
         """
         Calls Docker API to creates the Docker container instance. Creating the container does *not* run the container.
@@ -117,8 +144,12 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
+        kwargs["ports"] = {}
+        if self._extensions_preview_enabled:
+            kwargs["ports"] = {self.RAPID_PORT_CONTAINER: self.rapid_port_host}
+
         if self._exposed_ports:
-            kwargs["ports"] = self._exposed_ports
+            kwargs["ports"].update(self._exposed_ports)
 
         if self._entrypoint:
             kwargs["entrypoint"] = self._entrypoint
@@ -186,6 +217,27 @@ class Container:
 
         # Start the container
         real_container.start()
+
+    @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
+    def wait_for_http_response(self, name, event, stdout):
+        # TODO(sriram-mv): local RAPID is in a mode where the function_name is always "function"
+        # NOTE(sriram-mv): There is a connection timeout set on the http call to rapid, however there is not
+        # a read time out for the response received from the server.
+        resp = requests.post(
+            self.URL.format(port=self.rapid_port_host, function_name="function"),
+            data=event,
+            timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
+        )
+        stdout.write(resp.content)
+
+    def wait_for_result(self, name, event, stdout, stderr):
+        # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
+        # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
+        # will be written to stdout.
+        logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
+        logs_thread.start()
+
+        self.wait_for_http_response(name, event, stdout)
 
     def wait_for_logs(self, stdout=None, stderr=None):
 
