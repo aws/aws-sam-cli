@@ -1,8 +1,9 @@
-import os
 from unittest import TestCase
+from unittest.mock import patch, MagicMock
 
 from parameterized import parameterized
 
+from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionContentUri
 from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 
@@ -74,34 +75,26 @@ class TestSamLayerProvider(TestCase):
 
     def setUp(self):
         self.parameter_overrides = {}
-        self.provider = SamLayerProvider(self.TEMPLATE, parameter_overrides=self.parameter_overrides)
-        os.makedirs("PyLayer/")
+        with patch("os.path.exists", MagicMock(return_value=True)):
+            self.provider = SamLayerProvider(self.TEMPLATE, parameter_overrides=self.parameter_overrides)
 
     @parameterized.expand(
         [
             (
                 "ServerlessLayer",
-                LayerVersion("ServerlessLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),
+                ("ServerlessLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),
             ),
-            (
-                "LambdaLayer",
-                LayerVersion("LambdaLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),
-            ),
-            (
-                "ServerlessLayerNoBuild",
-                LayerVersion("ServerlessLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None),
-            ),
-            ("LambdaLayerNoBuild", LayerVersion("LambdaLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None)),
-            (
-                "ServerlessLayerS3Content",
-                LayerVersion("ServerlessLayerS3Content", ".", ["python3.8", "python3.6"], None),
-            ),
-            ("LambdaLayerS3Content", LayerVersion("LambdaLayerS3Content", ".", ["python3.8", "python3.6"], None)),
+            ("LambdaLayer", ("LambdaLayer", "PyLayer/", ["python3.8", "python3.6"], {"BuildMethod": "python3.8"}),),
+            ("ServerlessLayerNoBuild", ("ServerlessLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None),),
+            ("LambdaLayerNoBuild", ("LambdaLayerNoBuild", "PyLayer/", ["python3.8", "python3.6"], None)),
+            ("ServerlessLayerS3Content", ("ServerlessLayerS3Content", ".", ["python3.8", "python3.6"], None),),
+            ("LambdaLayerS3Content", ("LambdaLayerS3Content", ".", ["python3.8", "python3.6"], None)),
         ]
     )
-    def test_get_must_return_each_layer(self, name, expected_output):
+    @patch("os.path.exists", MagicMock(return_value=True))
+    def test_get_must_return_each_layer(self, name, expected_output_layer_args):
         actual = self.provider.get(name)
-        self.assertEqual(actual, expected_output)
+        self.assertEqual(actual, LayerVersion(*expected_output_layer_args))
 
     def test_get_all_must_return_all_layers(self):
         result = [f.arn for f in self.provider.get_all()]
@@ -122,3 +115,8 @@ class TestSamLayerProvider(TestCase):
     def test_fails_with_empty_name(self):
         with self.assertRaises(ValueError):
             self.provider.get("")
+
+    @patch("os.path.exists", MagicMock(return_value=False))
+    def test_fails_with_non_exist_local_layer_directory(self):
+        with self.assertRaises(InvalidLayerVersionContentUri):
+            self.provider = SamLayerProvider(self.TEMPLATE, parameter_overrides=self.parameter_overrides)

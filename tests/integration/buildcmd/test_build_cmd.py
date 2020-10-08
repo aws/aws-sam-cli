@@ -706,14 +706,38 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 )
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
+    local_layer_path = "PyLayer"
+    local_layer_with_make_path = "PyLayerMake"
 
     EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
+    def setUp(self):
+        """Make sure local layer ContentUri exists"""
+        super().setUp()
+        for layer_path in [
+            Path(self.working_dir, layer_dir) for layer_dir in [self.local_layer_path, self.local_layer_with_make_path]
+        ]:
+            LOG.info("Generating directory: %s", layer_path.name)
+            layer_path.mkdir(exist_ok=True)
+
+    def tearDown(self):
+        for layer_path in [
+            Path(self.working_dir, layer_dir) for layer_dir in [self.local_layer_path, self.local_layer_with_make_path]
+        ]:
+            LOG.info("Cleaning up directory: %s", layer_path.name)
+            if layer_path.exists():
+                layer_path.rmdir()
+        super().tearDown()
+
     @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
     def test_build_single_layer(self, runtime, use_container, layer_identifier):
-        overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
+        overrides = {
+            "LayerBuildMethod": runtime,
+            "LayerContentUri": self.local_layer_path,
+            "LayerMakeContentUri": self.local_layer_with_make_path,
+        }
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
@@ -736,7 +760,11 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")]
     )
     def test_build_layer_with_makefile(self, build_method, use_container, layer_identifier):
-        overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake"}
+        overrides = {
+            "LayerBuildMethod": build_method,
+            "LayerContentUri": self.local_layer_path,
+            "LayerMakeContentUri": self.local_layer_with_make_path,
+        }
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
@@ -757,10 +785,17 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
-        overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
+        overrides = {
+            "LayerBuildMethod": runtime,
+            "LayerContentUri": self.local_layer_path,
+            "LayerMakeContentUri": self.local_layer_with_make_path,
+        }
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
+
+        LOG.info("mkdir %s", self.local_layer_path)
+        Path(self.working_dir, self.local_layer_path).mkdir(exist_ok=True)
 
         LOG.info("Running Command:")
         LOG.info(cmdlist)
@@ -769,17 +804,45 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
+    @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
+    def test_build_fails_with_missing_local_layer_path(self, runtime, use_container, layer_identifier):
+        overrides = {
+            "LayerBuildMethod": runtime,
+            "LayerContentUri": self.local_layer_path,
+            "LayerMakeContentUri": self.local_layer_with_make_path,
+        }
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
+        )
+
+        LOG.info("Removing %s", self.local_layer_path)
+        path = Path(self.working_dir, self.local_layer_path)
+        if path.exists():
+            path.rmdir()
+
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
+
+        command = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command.process.returncode, 1)
+        self.assertIn(b"is an invalid ContentUri", command.stderr.strip())
+        self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
+
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
         overrides = {
             "LayerBuildMethod": runtime,
-            "LayerContentUri": "PyLayer",
-            "LayerMakeContentUri": "PyLayerMake",
+            "LayerContentUri": self.local_layer_path,
+            "LayerMakeContentUri": self.local_layer_with_make_path,
             "Runtime": runtime,
             "CodeUri": "PythonWithLayer",
             "Handler": "main.handler",
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("mkdir %s & %s", self.local_layer_path, self.local_layer_with_make_path)
+        Path(self.working_dir, self.local_layer_path).mkdir(exist_ok=True)
+        Path(self.working_dir, self.local_layer_with_make_path).mkdir(exist_ok=True)
 
         LOG.info("Running Command:")
         LOG.info(cmdlist)
@@ -804,7 +867,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
     def test_build_function_with_dependent_layer(self, runtime, use_container):
         overrides = {
             "LayerBuildMethod": runtime,
-            "LayerContentUri": "PyLayer",
+            "LayerContentUri": self.local_layer_path,
+            "LayerMakeContentUri": self.local_layer_with_make_path,
             "Runtime": runtime,
             "CodeUri": "PythonWithLayer",
             "Handler": "main.handler",
@@ -812,6 +876,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionOne"
         )
+
+        LOG.info("mkdir %s", self.local_layer_path)
+        Path(self.working_dir, self.local_layer_path).mkdir(exist_ok=True)
 
         LOG.info("Running Command:")
         LOG.info(cmdlist)
