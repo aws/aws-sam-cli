@@ -224,6 +224,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.local_lambda._make_env_vars(function)
 
         EnvironmentVariablesMock.assert_called_with(
+            function.name,
             function.memory,
             function.timeout,
             function.handler,
@@ -299,6 +300,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.local_lambda._make_env_vars(function)
 
         EnvironmentVariablesMock.assert_called_with(
+            function.name,
             function.memory,
             function.timeout,
             function.handler,
