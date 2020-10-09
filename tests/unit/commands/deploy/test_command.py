@@ -206,12 +206,13 @@ class TestDeployCliCommand(TestCase):
         context_mock = Mock()
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, False, True, True]
+        mock_confirm.side_effect = [True, True, False, True, True]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
             "guidedParameter",
             "secure",
+            "sam-app",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
@@ -333,11 +334,12 @@ class TestDeployCliCommand(TestCase):
             "guidedParameter",
             "guided parameter with spaces",
             "secure",
+            "sam-app",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, True]
+        mock_confirm.side_effect = [True, True, False, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
 
@@ -453,8 +455,15 @@ class TestDeployCliCommand(TestCase):
 
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",), "testconfig.toml", "test-env"]
-        mock_confirm.side_effect = [True, False, True, True]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "sam-app",
+            ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
+        ]
+        mock_confirm.side_effect = [True, True, False, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
 
@@ -551,8 +560,8 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",)]
-        mock_confirm.side_effect = [True, False, True, False]
+        mock_prompt.side_effect = ["sam-app", "us-east-1", "sam-app", ("CAPABILITY_IAM",)]
+        mock_confirm.side_effect = [True, True, False, True, False]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
 
@@ -607,6 +616,119 @@ class TestDeployCliCommand(TestCase):
             context_mock.run.assert_called_with()
             self.assertEqual(mock_save_config.call_count, 0)
             mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
+            self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.click")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch.object(GuidedConfig, "get_config_ctx", MagicMock(return_value=(None, get_mock_sam_config())))
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    def test_all_args_guided_no_managed_s3_bucket(
+        self,
+        mock_confirm,
+        mock_prompt,
+        mock_get_template_data,
+        mock_get_template_parameters,
+        mockauth_per_resource,
+        mock_managed_stack,
+        mock_deploy_context,
+        mock_deploy_click,
+        mock_package_context,
+        mock_package_click,
+    ):
+
+        context_mock = Mock()
+        mockauth_per_resource.return_value = [("HelloWorldResource", False)]
+        mock_deploy_context.return_value.__enter__.return_value = context_mock
+        mock_confirm.side_effect = [False, True, False, True, True]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "guidedParameter",
+            "secure",
+            "non-managed-s3-bucket",
+            "sam-app-s3-prefix",
+            ("CAPABILITY_IAM",),
+            "testconfig.toml",
+            "test-env",
+        ]
+
+        mock_get_template_parameters.return_value = {
+            "Myparameter": {"Type": "String"},
+            "MyNoEchoParameter": {"Type": "String", "NoEcho": True},
+        }
+
+        mock_managed_stack.return_value = "managed-s3-bucket"
+
+        with patch.object(GuidedConfig, "save_config", MagicMock(return_value=True)) as mock_save_config:
+            do_cli(
+                template_file=self.template_file,
+                stack_name=self.stack_name,
+                s3_bucket=None,
+                force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
+                s3_prefix=self.s3_prefix,
+                kms_key_id=self.kms_key_id,
+                parameter_overrides=self.parameter_overrides,
+                capabilities=self.capabilities,
+                no_execute_changeset=self.no_execute_changeset,
+                role_arn=self.role_arn,
+                notification_arns=self.notification_arns,
+                fail_on_empty_changeset=self.fail_on_empty_changset,
+                tags=self.tags,
+                region=self.region,
+                profile=self.profile,
+                use_json=self.use_json,
+                metadata=self.metadata,
+                guided=True,
+                confirm_changeset=True,
+                resolve_s3=self.resolve_s3,
+                config_env=self.config_env,
+                config_file=self.config_file,
+            )
+
+            mock_deploy_context.assert_called_with(
+                template_file=ANY,
+                stack_name="sam-app",
+                s3_bucket="non-managed-s3-bucket",
+                force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
+                s3_prefix="sam-app-s3-prefix",
+                kms_key_id=self.kms_key_id,
+                parameter_overrides={"Myparameter": "guidedParameter", "MyNoEchoParameter": "secure"},
+                capabilities=self.capabilities,
+                no_execute_changeset=self.no_execute_changeset,
+                role_arn=self.role_arn,
+                notification_arns=self.notification_arns,
+                fail_on_empty_changeset=self.fail_on_empty_changset,
+                tags=self.tags,
+                region="us-east-1",
+                profile=self.profile,
+                confirm_changeset=True,
+            )
+
+            context_mock.run.assert_called_with()
+            mock_save_config.assert_called_with(
+                {
+                    "Myparameter": {"Value": "guidedParameter", "Hidden": False},
+                    "MyNoEchoParameter": {"Value": "secure", "Hidden": True},
+                },
+                "test-env",
+                "testconfig.toml",
+                capabilities=("CAPABILITY_IAM",),
+                confirm_changeset=True,
+                profile=self.profile,
+                region="us-east-1",
+                s3_bucket="non-managed-s3-bucket",
+                stack_name="sam-app",
+                s3_prefix="sam-app-s3-prefix",
+            )
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")

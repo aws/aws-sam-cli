@@ -96,6 +96,26 @@ class GuidedContext:
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
 
+        # If s3 bucket is not defined in configuration file, we automatically create one
+        confirm_manage_s3_bucket = False
+        guided_s3_bucket = self.s3_bucket
+        if not self.s3_bucket:
+            confirm_manage_s3_bucket = confirm(
+                f"\t{self.start_bold}No S3 bucket defined, create a new one?{self.end_bold}", default=True
+            )
+            if confirm_manage_s3_bucket:
+                guided_s3_bucket = manage_stack(profile=self.profile, region=region)
+                click.echo(f"\n\t\tManaged S3 bucket: {guided_s3_bucket}")
+                click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
+        if self.s3_bucket or not confirm_manage_s3_bucket:
+            guided_s3_bucket = prompt(
+                f"\t{self.start_bold}S3 bucket{self.end_bold}", default=self.s3_bucket or "", type=click.STRING
+            )
+
+        guided_s3_prefix = prompt(
+            f"\t{self.start_bold}S3 prefix{self.end_bold}", default=self.s3_prefix or stack_name, type=click.STRING
+        )
+
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
         confirm_changeset = confirm(
             f"\t{self.start_bold}Confirm changes before deploy{self.end_bold}", default=self.confirm_changeset
@@ -129,13 +149,9 @@ class GuidedContext:
                 type=click.STRING,
             )
 
-        s3_bucket = manage_stack(profile=self.profile, region=region)
-        click.echo(f"\n\t\tManaged S3 bucket: {s3_bucket}")
-        click.echo("\t\tA different default S3 bucket can be set in samconfig.toml")
-
         self.guided_stack_name = stack_name
-        self.guided_s3_bucket = s3_bucket
-        self.guided_s3_prefix = stack_name
+        self.guided_s3_bucket = guided_s3_bucket
+        self.guided_s3_prefix = guided_s3_prefix
         self.guided_region = region
         self.guided_profile = self.profile
         self._capabilities = input_capabilities if input_capabilities else default_capabilities
