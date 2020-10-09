@@ -121,7 +121,7 @@ class TestEventTypeSubCommand(TestCase):
 
         # Disable telemetry
         self.old_environ = os.environ.copy()
-        os.environ["SAM_CLI_TELEMETRY"] = 0
+        os.environ["SAM_CLI_TELEMETRY"] = "0"
 
     def tearDown(self):
         os.environ = self.old_environ
