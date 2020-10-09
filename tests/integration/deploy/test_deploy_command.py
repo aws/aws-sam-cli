@@ -498,7 +498,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command_with_input(
             deploy_command_list,
-            "{}\n\nSuppliedParameter\n\n\n\n\nn\nCAPABILITY_IAM CAPABILITY_NAMED_IAM\n\n\n\n".format(stack_name).encode(),
+            "{}\n\nSuppliedParameter\n\n\n\n\nn\nCAPABILITY_IAM CAPABILITY_NAMED_IAM\n\n\n\n".format(
+                stack_name
+            ).encode(),
         )
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
