@@ -143,8 +143,8 @@ class ApplicationBuilder:
         functions = self._resources_to_build.functions
         for function in functions:
             code_dir = str(pathlib.Path(self._base_dir, function.codeuri).resolve())
-            checksum = dir_checksum(code_dir)
-            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata, checksum)
+            source_md5 = dir_checksum(code_dir)
+            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata, source_md5)
             build_graph.put_build_definition(build_details, function)
 
         build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
@@ -155,16 +155,19 @@ class ApplicationBuilder:
         Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
         """
         if self._cached:
-            return self._build_functions_with_cache()
+            function_build_results = self._build_functions_with_cache()
         else:
-            return self._build_functions_without_cache()
+            function_build_results = self._build_functions_without_cache()
+        return function_build_results
 
     def _build_functions_with_cache(self):
         build_graph = self._get_build_graph()
         build_definitions = build_graph.get_build_definitions()
         function_build_results = {}
+        uuids = set()
 
         for build_definition in build_definitions:
+            uuids.add(build_definition.get_uuid())
             LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
                      build_definition.codeuri, build_definition.runtime, build_definition.metadata,
                      [function.name for function in build_definition.functions])
@@ -172,19 +175,18 @@ class ApplicationBuilder:
                 LOG.debug("Building to following folder %s", temporary_build_dir)
 
                 code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
-                checksum = dir_checksum(code_dir)
+                source_md5 = dir_checksum(code_dir)
                 cache_function_dir = pathlib.Path(self._cache_dir, build_definition.get_uuid())
-                if not cache_function_dir.exists() or build_definition.get_checksum() != checksum:
+                if not cache_function_dir.exists() or build_definition.get_source_md5() != source_md5:
                     self._build_function(build_definition.get_function_name(),
                                          build_definition.codeuri,
                                          build_definition.runtime,
                                          build_definition.get_handler_name(),
                                          temporary_build_dir,
                                          build_definition.metadata)
-                    if build_definition.get_checksum() != checksum:
+                    if build_definition.get_source_md5() != source_md5:
                         shutil.rmtree(str(cache_function_dir))
-                        cache_function_dir = str(pathlib.Path(self._cache_dir, checksum))
-                        build_definition.set_checksum(checksum)
+                        build_definition.set_source_md5(source_md5)
                         build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
                     osutils.copytree(temporary_build_dir, cache_function_dir)
 
@@ -195,13 +197,9 @@ class ApplicationBuilder:
                     osutils.copytree(cache_function_dir, artifacts_dir)
                     function_build_results[function.name] = artifacts_dir
 
-        uuids = set()
-        for build_definition in build_definitions:
-            uuids.add(build_definition.get_uuid())
-
-        for dir in pathlib.Path(self._cache_dir).iterdir():
-            if dir.name not in uuids:
-                shutil.rmtree(pathlib.Path(self._cache_dir, dir.name))
+        for cache_dir in pathlib.Path(self._cache_dir).iterdir():
+            if cache_dir.name not in uuids:
+                shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
 
         return function_build_results
 

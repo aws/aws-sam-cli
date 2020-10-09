@@ -17,7 +17,7 @@ CODE_URI_FIELD = "codeuri"
 RUNTIME_FIELD = "runtime"
 METADATA_FIELD = "metadata"
 FUNCTIONS_FIELD = "functions"
-CHECKSUM_FIELD = "checksum"
+SOURCE_MD5_FIELD = "source_md5"
 
 
 class InvalidBuildGraphException(Exception):
@@ -36,7 +36,7 @@ def _build_definition_to_toml_table(build_definition):
     toml_table = tomlkit.table()
     toml_table[CODE_URI_FIELD] = build_definition.codeuri
     toml_table[RUNTIME_FIELD] = build_definition.runtime
-    toml_table[CHECKSUM_FIELD] = build_definition.checksum
+    toml_table[SOURCE_MD5_FIELD] = build_definition.source_md5
     toml_table[FUNCTIONS_FIELD] = \
         list(map(lambda f: f.functionname, build_definition.functions))
 
@@ -57,7 +57,7 @@ def _toml_table_to_build_definition(uuid, toml_table):
     build_definition = BuildDefinition(toml_table[RUNTIME_FIELD],
                                        toml_table[CODE_URI_FIELD],
                                        dict(toml_table.get(METADATA_FIELD, {})),
-                                       toml_table[CHECKSUM_FIELD]
+                                       toml_table[SOURCE_MD5_FIELD]
                                        )
     build_definition.uuid = uuid
     return build_definition
@@ -162,12 +162,12 @@ class BuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, runtime, codeuri, metadata, checksum):
+    def __init__(self, runtime, codeuri, metadata, source_md5):
         self.runtime = runtime
         self.codeuri = codeuri
         self.metadata = metadata if metadata else {}
         self.uuid = str(uuid4())
-        self.checksum = checksum
+        self.source_md5 = source_md5
         self.functions = []
 
     def add_function(self, function):
@@ -181,14 +181,14 @@ class BuildDefinition:
         self._validate_functions()
         return self.functions[0].handler
 
-    def set_checksum(self, new_checksum):
-        self.checksum = new_checksum
+    def set_source_md5(self, new_source_md5):
+        self.source_md5 = new_source_md5
 
     def get_uuid(self):
         return self.uuid
 
-    def get_checksum(self):
-        return self.checksum
+    def get_source_md5(self):
+        return self.source_md5
 
     def _validate_functions(self):
         if not self.functions:
