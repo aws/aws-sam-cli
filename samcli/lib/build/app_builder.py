@@ -214,7 +214,6 @@ class ApplicationBuilder:
                      [function.name for function in build_definition.functions])
             with osutils.mkdir_temp() as temporary_build_dir:
                 LOG.debug("Building to following folder %s", temporary_build_dir)
-
                 self._build_function(build_definition.get_function_name(),
                                      build_definition.codeuri,
                                      build_definition.runtime,
