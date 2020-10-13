@@ -7,6 +7,9 @@ import logging
 SAM_CLI_FORMATTER = logging.Formatter("%(message)s")
 SAM_CLI_FORMATTER_WITH_TIMESTAMP = logging.Formatter("%(asctime)s | %(message)s")
 
+SAM_CLI_LOGGER_NAME = "samcli"
+LAMBDA_BULDERS_LOGGER_NAME = "aws_lambda_builders"
+
 
 class SamCliLogger:
     @staticmethod

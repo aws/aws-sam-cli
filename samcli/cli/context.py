@@ -13,8 +13,10 @@ import click
 
 from samcli.commands.exceptions import CredentialsError
 from samcli.lib.utils.sam_logging import (
-    SAM_CLI_FORMATTER_WITH_TIMESTAMP,
+    LAMBDA_BULDERS_LOGGER_NAME,
     SamCliLogger,
+    SAM_CLI_FORMATTER_WITH_TIMESTAMP,
+    SAM_CLI_LOGGER_NAME,
 )
 
 
@@ -55,8 +57,8 @@ class Context:
 
         if self._debug:
             # Turn on debug logging and display timestamps
-            sam_cli_logger = logging.getLogger("samcli")
-            lambda_builders_logger = logging.getLogger("aws_lambda_builders")
+            sam_cli_logger = logging.getLogger(SAM_CLI_LOGGER_NAME)
+            lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
             SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
             SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
 

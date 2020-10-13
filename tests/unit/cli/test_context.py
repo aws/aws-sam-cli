@@ -7,7 +7,12 @@ from unittest import TestCase
 from unittest.mock import patch, ANY
 
 from samcli.cli.context import Context
-from samcli.lib.utils.sam_logging import SamCliLogger, SAM_CLI_FORMATTER
+from samcli.lib.utils.sam_logging import (
+    SamCliLogger,
+    SAM_CLI_FORMATTER,
+    SAM_CLI_LOGGER_NAME,
+    LAMBDA_BULDERS_LOGGER_NAME,
+)
 
 
 class TestContext(TestCase):
@@ -21,8 +26,8 @@ class TestContext(TestCase):
 
         ctx.debug = True
         self.assertEqual(ctx.debug, True, "debug must be set to True")
-        self.assertEqual(logging.getLogger("samcli").getEffectiveLevel(), logging.DEBUG)
-        self.assertEqual(logging.getLogger("aws_lambda_builders").getEffectiveLevel(), logging.DEBUG)
+        self.assertEqual(logging.getLogger(SAM_CLI_LOGGER_NAME).getEffectiveLevel(), logging.DEBUG)
+        self.assertEqual(logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME).getEffectiveLevel(), logging.DEBUG)
 
     def test_must_unset_get_debug_flag(self):
         ctx = Context()
@@ -30,12 +35,15 @@ class TestContext(TestCase):
         message_record = logging.makeLogRecord({"msg": "hello world"})
         timestamp_log_regex = re.compile(r"^[0-9:\- ,]+ \| .*$")
 
-        sam_cli_logger = logging.getLogger("samcli")
-        lambda_builders_logger = logging.getLogger("aws_lambda_builders")
+        sam_cli_logger = logging.getLogger(SAM_CLI_LOGGER_NAME)
+        lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
         SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER, logging.INFO)
         SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER, logging.INFO)
 
-        handlers = [logging.getLogger("samcli").handlers[0], logging.getLogger("aws_lambda_builders").handlers[0]]
+        handlers = [
+            logging.getLogger(SAM_CLI_LOGGER_NAME).handlers[0],
+            logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME).handlers[0],
+        ]
         # timestamp should not be output
         for handler in handlers:
             self.assertNotRegex(handler.formatter.format(message_record), timestamp_log_regex)
