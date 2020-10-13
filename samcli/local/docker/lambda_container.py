@@ -5,6 +5,7 @@ import logging
 
 from pathlib import Path
 
+from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from .container import Container
 from .lambda_image import Runtime
@@ -74,7 +75,9 @@ class LambdaContainer(Container):
         entry, debug_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
         additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)
-        cmd = [handler]
+        cmd = []
+        if not extensions_preview_enabled():
+            cmd = [handler]
 
         if not env_vars:
             env_vars = {}
