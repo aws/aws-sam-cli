@@ -184,10 +184,9 @@ class ApplicationBuilder:
                                          build_definition.get_handler_name(),
                                          temporary_build_dir,
                                          build_definition.metadata)
-                    if build_definition.get_source_md5() != source_md5:
+                    if cache_function_dir.exists():
                         shutil.rmtree(str(cache_function_dir))
-                        build_definition.set_source_md5(source_md5)
-                        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
+                    build_definition.set_source_md5(source_md5)
                     osutils.copytree(temporary_build_dir, cache_function_dir)
 
                 for function in build_definition.functions:
@@ -201,6 +200,7 @@ class ApplicationBuilder:
             if cache_dir.name not in uuids:
                 shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
 
+        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
         return function_build_results
 
     def _build_functions_without_cache(self):
