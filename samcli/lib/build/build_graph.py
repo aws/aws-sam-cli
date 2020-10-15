@@ -195,7 +195,7 @@ class BuildDefinition:
             raise InvalidBuildGraphException("Build definition doesn't have any function definition to build")
 
     def __str__(self):
-        return f"BuildDefinition({self.runtime}, {self.codeuri}, {self.uuid}, {self.metadata}, " \
+        return f"BuildDefinition({self.runtime}, {self.codeuri}, {self.source_md5}, {self.uuid}, {self.metadata}, " \
                f"{[f.functionname for f in self.functions]})"
 
     def __eq__(self, other):
