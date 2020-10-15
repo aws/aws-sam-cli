@@ -1,6 +1,6 @@
 chevron~=0.12
 click~=7.0
-Flask~=1.0.2
+Flask~=1.1.2
 #Need to add Schemas latest SDK.
 boto3~=1.14.0, >=1.14.23
 jmespath~=0.9.5
