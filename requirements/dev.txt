@@ -1,6 +1,6 @@
 coverage==4.5.4
 pytest-cov==2.7.1
-pylint==2.3.1
+pylint~=2.6.0
 
 # Test requirements
 pytest==5.2.1
