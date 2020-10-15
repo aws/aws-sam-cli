@@ -14,6 +14,6 @@ python-dateutil~=2.6, <2.8.1
 requests==2.23.0
 serverlessrepo==0.1.10
 aws_lambda_builders==1.1.0
-tomlkit==0.5.8
+tomlkit==0.7.0
 # TODO: remove six and its usage since we don't support Python 2
 six==1.15.0
