@@ -283,6 +283,8 @@ class SigningProfilesOptionType(click.ParamType):
     See convert function docs for details
     """
 
+    pattern = r"(?:(?: )([A-Za-z0-9\"]+)=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
+
     # Note: this is required, otherwise it is failing when running help
     name = ""
 
@@ -302,44 +304,42 @@ class SigningProfilesOptionType(click.ParamType):
         if value == ("",):
             return result
 
-        # if it is coming from config file, it should be a dictionary, and not need to parse it
-        if isinstance(value, dict):
-            return value
-
-        # otherwise type should be array, which is coming from command line
-        # each element inside array corresponds to Function or Layer code sign option
+        value = (value,) if isinstance(value, str) else value
         for val in value:
-            (function_name, signing_profiles) = self._split_function_and_code_sign_params(val)
+            val.strip()
+            # Add empty string to start of the string to help match `_pattern2`
+            val = " " + val
 
-            if not function_name:
+            signing_profiles = re.findall(self.pattern, val)
+
+            # if no signing profiles found by regex, then fail
+            if not signing_profiles:
                 return self.fail(
-                    f"{val} is not a valid code sign config, it should look like this 'MyFunction=SigningProfile'",
+                    f"{value} is not a valid code sign config, it should look like this 'MyFunction=SigningProfile'",
                     param,
                     ctx,
                 )
 
-            (signer_profile_name, signer_profile_owner) = self._split_signer_profile_name_owner(signing_profiles)
-
-            if not signer_profile_name:
-                return self.fail(
-                    f"Signer profile option has invalid format, it should look like this MyFunction=MySigningProfile "
-                    f"or MyFunction=MySigningProfile:MySigningProfileOwner",
-                    param,
-                    ctx,
+            for function_name, param_value in signing_profiles:
+                (signer_profile_name, signer_profile_owner) = self._split_signer_profile_name_owner(
+                    _unquote_wrapped_quotes(param_value)
                 )
 
-            result[function_name] = {"profile_name": signer_profile_name, "profile_owner": signer_profile_owner}
+                # code signing requires profile name, if it is not present then fail
+                if not signer_profile_name:
+                    return self.fail(
+                        f"Signer profile option has invalid format, it should look like this MyFunction=MySigningProfile "
+                        f"or MyFunction=MySigningProfile:MySigningProfileOwner",
+                        param,
+                        ctx,
+                    )
+
+                result[_unquote_wrapped_quotes(function_name)] = {
+                    "profile_name": signer_profile_name,
+                    "profile_owner": signer_profile_owner,
+                }
 
         return result
-
-    @staticmethod
-    def _split_function_and_code_sign_params(param_value):
-        equals_count = param_value.count("=")
-
-        if equals_count != 1:
-            return None, None
-
-        return param_value.split("=")
 
     @staticmethod
     def _split_signer_profile_name_owner(signing_profile):

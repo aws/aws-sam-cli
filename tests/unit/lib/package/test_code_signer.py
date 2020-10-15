@@ -77,6 +77,34 @@ class TestCodeSigner(TestCase):
         self.signer_client.describe_signing_job.assert_called_with(jobId=given_job_id)
         self.assertEqual(signed_object_location, f"s3://{given_s3_bucket}/{given_signed_object_location}")
 
+    def test_sign_package_should_fail_if_status_not_succeed(self):
+        # prepare code signing config
+        resource_id = "MyFunction"
+        given_profile_name = "MyProfile"
+        signing_profiles = {resource_id: {"profile_name": given_profile_name, "profile_owner": ""}}
+        code_signer = CodeSigner(self.signer_client, signing_profiles)
+
+        # prepare object details that is going to be signed
+        given_s3_bucket = "bucket"
+        given_s3_key = "path/to/unsigned/package"
+        given_s3_url = f"s3://{given_s3_bucket}/{given_s3_key}"
+        given_s3_object_version = "objectVersion"
+        given_signed_object_location = "path/to/signed/object"
+        given_job_id = "signingJobId"
+
+        # prepare method mocks
+        mocked_waiter = MagicMock()
+        self.signer_client.start_signing_job.return_value = {"jobId": given_job_id}
+        self.signer_client.get_waiter.return_value = mocked_waiter
+        self.signer_client.describe_signing_job.return_value = {
+            "status": "Fail",
+            "signedObject": {"s3": {"key": given_signed_object_location}},
+        }
+
+        # make the actual call
+        with self.assertRaises(CodeSigningJobFailureException):
+            code_signer.sign_package(resource_id, given_s3_url, given_s3_object_version)
+
     def test_sign_package_should_fail_if_initiate_signing_fails(self):
         # prepare code signing config
         resource_id = "MyFunction"

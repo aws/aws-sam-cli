@@ -316,7 +316,7 @@ class TestSamConfigForAllCommands(TestCase):
             "metadata": '{"m1": "value1", "m2": "value2"}',
             "region": "myregion",
             "output_template_file": "output.yaml",
-            "signing_profiles": {"function": {"profile_name": "profile", "profile_owner": "owner"}},
+            "signing_profiles": "function=profile:owner",
         }
 
         with samconfig_parameters(["package"], self.scratch_dir, **config_values) as config_path:
@@ -371,7 +371,7 @@ class TestSamConfigForAllCommands(TestCase):
             "guided": True,
             "confirm_changeset": True,
             "region": "myregion",
-            "signing_profiles": {"function": {"profile_name": "profile", "profile_owner": "owner"}},
+            "signing_profiles": "function=profile:owner",
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -437,7 +437,7 @@ class TestSamConfigForAllCommands(TestCase):
             "guided": True,
             "confirm_changeset": True,
             "region": "myregion",
-            "signing_profiles": {"function": {"profile_name": "profile", "profile_owner": "owner"}},
+            "signing_profiles": "function=profile:owner",
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:

@@ -270,12 +270,13 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
-@parameterized.expand(
+    @parameterized.expand(
         [
-            param(({"MyFunction1"}, {})),
-            param(({"MyFunction1", "MyFunction2"}, {})),
-            param(({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}})),
-            param(({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}, "MyLayer2": {"MyFunction1"}})),
+            (False, ({"MyFunction1"}, {})),
+            (True, ({"MyFunction1"}, {})),
+            (True, ({"MyFunction1", "MyFunction2"}, {})),
+            (True, ({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}})),
+            (True, ({"MyFunction1"}, {"MyLayer1": {"MyFunction1"}, "MyLayer2": {"MyFunction1"}})),
         ]
     )
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -287,6 +288,7 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_with_code_signing(
         self,
+        given_sign_packages_flag,
         given_code_signing_configs,
         patched_signer_config_per_function,
         patched_get_template_data,
@@ -298,14 +300,14 @@ class TestGuidedContext(TestCase):
     ):
         patched_signer_config_per_function.return_value = given_code_signing_configs
         # Series of inputs to confirmations so that full range of questions are asked.
-        patched_confirm.side_effect = [True, False, True, "", True]
+        patched_confirm.side_effect = [True, False, given_sign_packages_flag, "", True]
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Do you want to sign your code?{self.gc.end_bold}", default=True,),
-            call(f"\t{self.gc.start_bold}Save arguments to samconfig.toml{self.gc.end_bold}", default=True),
+            call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
 
@@ -317,18 +319,19 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
 
-        # we are going to expect prompts for functions and layers for each one of them,
-        # so multiply the number of prompt calls
-        number_of_functions = len(given_code_signing_configs[0])
-        number_of_layers = len(given_code_signing_configs[1])
-        expected_code_sign_calls = [
-            call(f"\t{self.gc.start_bold}Signing Profile Name{self.gc.end_bold}", default=None, type=click.STRING),
-            call(
-                f"\t{self.gc.start_bold}Signing Profile Owner Account ID (optional){self.gc.end_bold}",
-                default="",
-                type=click.STRING,
-                show_default=False,
-            ),
-        ]
-        expected_code_sign_calls = expected_code_sign_calls * (number_of_functions + number_of_layers)
-        self.assertEqual(expected_code_sign_calls, patched_code_signer_prompt.call_args_list)
+        if given_sign_packages_flag:
+            # we are going to expect prompts for functions and layers for each one of them,
+            # so multiply the number of prompt calls
+            number_of_functions = len(given_code_signing_configs[0])
+            number_of_layers = len(given_code_signing_configs[1])
+            expected_code_sign_calls = [
+                call(f"\t{self.gc.start_bold}Signing Profile Name{self.gc.end_bold}", default=None, type=click.STRING),
+                call(
+                    f"\t{self.gc.start_bold}Signing Profile Owner Account ID (optional){self.gc.end_bold}",
+                    default="",
+                    type=click.STRING,
+                    show_default=False,
+                ),
+            ]
+            expected_code_sign_calls = expected_code_sign_calls * (number_of_functions + number_of_layers)
+            self.assertEqual(expected_code_sign_calls, patched_code_signer_prompt.call_args_list)

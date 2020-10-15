@@ -236,8 +236,6 @@ class TestCodeSignOptionType(TestCase):
             # Just a string
             ("some string"),
             # Wrong notation
-            ("a==b"),
-            ("a=b:"),
             ("a=b::"),
             ("ab::"),
             ("a=b::c"),
@@ -272,6 +270,14 @@ class TestCodeSignOptionType(TestCase):
             (
                 ("a=b:", "d=e"),
                 {"a": {"profile_name": "b", "profile_owner": ""}, "d": {"profile_name": "e", "profile_owner": ""}},
+            ),
+            (
+                "a=b:c d=e",
+                {"a": {"profile_name": "b", "profile_owner": "c"}, "d": {"profile_name": "e", "profile_owner": ""}},
+            ),
+            (
+                'a="b:c" d="e"',
+                {"a": {"profile_name": "b", "profile_owner": "c"}, "d": {"profile_name": "e", "profile_owner": ""}},
             ),
             (("",), {}),
         ]
