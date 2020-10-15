@@ -1,5 +1,5 @@
 coverage==5.3
-pytest-cov==2.7.1
+pytest-cov==2.10.1
 pylint~=2.6.0
 
 # Test requirements
