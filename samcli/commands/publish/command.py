@@ -85,12 +85,12 @@ def do_cli(ctx, template, semantic_version):
             "Your SAM template contains invalid S3 URIs. Please make sure that you have uploaded application "
             "artifacts to S3 by packaging the template. See more details in {}".format(SAM_PACKAGE_DOC),
             wrapped_from=ex.__class__.__name__,
-        )
+        ) from ex
     except ServerlessRepoError as ex:
         click.secho("Publish Failed", fg="red")
         LOG.debug("Failed to publish application to serverlessrepo", exc_info=True)
         error_msg = "{}\nPlease follow the instructions in {}".format(str(ex), SAM_PUBLISH_DOC)
-        raise UserException(error_msg, wrapped_from=ex.__class__.__name__)
+        raise UserException(error_msg, wrapped_from=ex.__class__.__name__) from ex
 
     application_id = publish_output.get("application_id")
     _print_console_link(ctx.region, application_id)

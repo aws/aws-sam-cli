@@ -77,7 +77,7 @@ class TomlProvider:
             # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
             # so that click defaults work out of the box.
             samconfig.sanity_check()
-            resolved_config = {k: v for k, v in samconfig.get_all(cmd_names, self.section, env=config_env).items()}
+            resolved_config = dict(samconfig.get_all(cmd_names, self.section, env=config_env).items())
             LOG.debug("Configuration values successfully loaded.")
             LOG.debug("Configuration values are: %s", resolved_config)
 
@@ -94,7 +94,7 @@ class TomlProvider:
 
         except SamConfigVersionException as ex:
             LOG.debug("%s %s", samconfig.path(), str(ex))
-            raise ConfigException(f"Syntax invalid in samconfig.toml: {str(ex)}")
+            raise ConfigException("Syntax invalid in samconfig.toml") from ex
 
         except Exception as ex:
             LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))

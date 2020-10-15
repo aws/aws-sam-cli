@@ -39,7 +39,7 @@ class ServiceCommand(click.MultiCommand):
             dictionary containing the keys/values used to construct the ServiceCommand
         """
 
-        super(ServiceCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if not events_lib:
             raise ValueError("Events library is necessary to run this command")
 
@@ -115,7 +115,7 @@ class EventTypeSubCommand(click.MultiCommand):
             key/value pairs passed into the constructor
         """
 
-        super(EventTypeSubCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.top_level_cmd_name = top_level_cmd_name
         self.subcmd_definition = subcmd_definition
         self.events_lib = events_lib
@@ -222,4 +222,4 @@ class GenerateEventCommand(ServiceCommand):
         kwargs: dict
             commands, subcommands, and parameters for generate-event
         """
-        super(GenerateEventCommand, self).__init__(events.Events(), *args, **kwargs)
+        super().__init__(events.Events(), *args, **kwargs)

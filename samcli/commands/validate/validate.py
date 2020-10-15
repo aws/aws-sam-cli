@@ -49,11 +49,11 @@ def do_cli(ctx, template):
         validator.is_valid()
     except InvalidSamDocumentException as e:
         click.secho("Template provided at '{}' was invalid SAM Template.".format(template), bg="red")
-        raise InvalidSamTemplateException(str(e))
+        raise InvalidSamTemplateException(str(e)) from e
     except NoCredentialsError as e:
         raise UserException(
             "AWS Credentials are required. Please configure your credentials.", wrapped_from=e.__class__.__name__
-        )
+        ) from e
 
     click.secho("{} is a valid SAM Template".format(template), fg="green")
 

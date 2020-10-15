@@ -180,7 +180,7 @@ class Context:
             ).cache = credentials.JSONFileCache()
 
         except botocore.exceptions.ProfileNotFound as ex:
-            raise CredentialsError(str(ex))
+            raise CredentialsError(str(ex)) from ex
 
 
 def get_cmd_names(cmd_name, ctx):

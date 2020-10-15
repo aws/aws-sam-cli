@@ -107,7 +107,7 @@ class PackageContext:
                 )
                 click.echo(msg)
         except OSError as ex:
-            raise PackageFailedError(template_file=self.template_file, ex=str(ex))
+            raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
         template = Template(template_path, os.getcwd(), self.s3_uploader)
