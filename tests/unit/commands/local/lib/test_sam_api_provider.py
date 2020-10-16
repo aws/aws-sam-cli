@@ -124,7 +124,7 @@ class TestSamApiProviderWithImplicitApis(TestCase):
                         "CodeUri": "./go1.x/main.zip",
                         "Runtime": "go1.x",
                         "Handler": "main",
-                        "Timeout": 300
+                        "Timeout": 300,
                     },
                 }
             }

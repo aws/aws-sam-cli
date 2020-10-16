@@ -15,12 +15,14 @@ Resources:
       StageVariables:
         VarNameHttpApi: varValueV2
       CorsConfiguration:
-        AllowOrigins: "'*''"
+        AllowOrigins:
+          - "*"
         AllowMethods:
           - "GET"
           - "POST"
-        AllowHeaders: "'origin, x-requested-with'"
-        MaxAge: "'42'"
+        AllowHeaders:
+          - "origin"
+        MaxAge: 42
       DefinitionBody:
         swagger: "2.0"
         openapi: "3.0.0"
