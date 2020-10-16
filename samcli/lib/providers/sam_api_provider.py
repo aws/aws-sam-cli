@@ -365,7 +365,9 @@ class SamApiProvider(CfnBaseApiProvider):
         # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
         # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
         # "Ref" of the logicalID
-        api_resource_id = event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
+        api_resource_id = event_properties.get(
+            "RestApiId", event_properties.get("ApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
+        )
         if isinstance(api_resource_id, dict) and "Ref" in api_resource_id:
             api_resource_id = api_resource_id["Ref"]
 
