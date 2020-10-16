@@ -15,12 +15,14 @@ Resources:
       StageVariables:
         VarNameHttpApi: varValueV2
       CorsConfiguration:
-        AllowOrigins: "'*''"
+        AllowOrigins:
+          - "*"
         AllowMethods:
           - "GET"
           - "POST"
-        AllowHeaders: "'origin, x-requested-with'"
-        MaxAge: "'42'"
+        AllowHeaders:
+          - "origin"
+        MaxAge: 42
       DefinitionBody:
         swagger: "2.0"
         openapi: "3.0.0"
@@ -43,7 +45,22 @@ Resources:
                 type: aws_proxy
                 uri:
                   Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
-
+          "/httpapi-payload-format-v1":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: 1.0
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
+          "/httpapi-payload-format-v2":
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                payloadFormatVersion: 2.0
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${EchoEventHandlerHttpApiFunction.Arn}/invocations
           "/httpapi-echobase64eventbody":
             post:
               x-amazon-apigateway-integration:

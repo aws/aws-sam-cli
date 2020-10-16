@@ -179,11 +179,7 @@ class LocalApigwService(BaseLocalService):
         """
 
         self._app.add_url_rule(
-            path,
-            endpoint=path,
-            view_func=self._request_handler,
-            methods=methods,
-            provide_automatic_options=False,
+            path, endpoint=path, view_func=self._request_handler, methods=methods, provide_automatic_options=False,
         )
         for route_key in self._generate_route_keys(methods, path):
             self._dict_of_routes[route_key] = Route(

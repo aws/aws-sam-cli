@@ -85,8 +85,13 @@ class SwaggerParser:
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
                 payload_format_version = self._get_payload_format_version(method_config)
-                route = Route(function_name, full_path, methods=[method], event_type=event_type,
-                              payload_format_version=payload_format_version)
+                route = Route(
+                    function_name,
+                    full_path,
+                    methods=[method],
+                    event_type=event_type,
+                    payload_format_version=payload_format_version,
+                )
                 result.append(route)
         return result
 

@@ -759,11 +759,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
 
     def test_with_quick_create_default_route(self):
         expected_routes = [
-            Route(
-                path="$default",
-                methods=["X-AMAZON-APIGATEWAY-ANY-METHOD"],
-                function_name="SamFunc1",
-            )
+            Route(path="$default", methods=["X-AMAZON-APIGATEWAY-ANY-METHOD"], function_name="SamFunc1",)
         ]
 
         template = {
@@ -783,13 +779,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
         self.assertEqual(expected_routes, provider.routes)
 
     def test_with_quick_create_defined_route(self):
-        expected_routes = [
-            Route(
-                path="/path1",
-                methods=["GET"],
-                function_name="SamFunc1",
-            )
-        ]
+        expected_routes = [Route(path="/path1", methods=["GET"], function_name="SamFunc1",)]
 
         template = {
             "Resources": {
