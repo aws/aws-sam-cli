@@ -210,7 +210,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 ctx.build_dir,
                 ctx.base_dir,
                 ctx.cache_dir,
-                cached,
+                ctx.cached,
                 ctx.is_building_specific_resource,
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,

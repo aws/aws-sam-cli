@@ -57,7 +57,7 @@ def _toml_table_to_build_definition(uuid, toml_table):
     build_definition = BuildDefinition(toml_table[RUNTIME_FIELD],
                                        toml_table[CODE_URI_FIELD],
                                        dict(toml_table.get(METADATA_FIELD, {})),
-                                       toml_table[SOURCE_MD5_FIELD]
+                                       toml_table.get(SOURCE_MD5_FIELD, "")
                                        )
     build_definition.uuid = uuid
     return build_definition
@@ -162,7 +162,7 @@ class BuildDefinition:
     Build definition holds information about each unique build
     """
 
-    def __init__(self, runtime, codeuri, metadata, source_md5):
+    def __init__(self, runtime, codeuri, metadata, source_md5=''):
         self.runtime = runtime
         self.codeuri = codeuri
         self.metadata = metadata if metadata else {}

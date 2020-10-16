@@ -132,6 +132,9 @@ class BuildContext:
     def cache_dir(self):
         return self._cache_dir
 
+    def cached(self):
+        return self._cached
+
     @property
     def use_container(self):
         return self._use_container
