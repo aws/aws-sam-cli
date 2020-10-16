@@ -133,10 +133,10 @@ class ApplicationBuilder:
             if layer.build_method is None:
                 raise MissingBuildMethodException(
                     f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
-            result.update(self._build_layer(layer.name,
+            result[layer.name] = self._build_layer(layer.name,
                                                    layer.codeuri,
                                                    layer.build_method,
-                                                   layer.compatible_runtimes))
+                                                   layer.compatible_runtimes)
 
         if self._cached:
             build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)

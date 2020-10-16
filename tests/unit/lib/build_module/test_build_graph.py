@@ -22,18 +22,18 @@ from samcli.lib.utils import osutils
 
 
 def generate_function(
-        name="name",
-        function_name="function_name",
-        runtime="runtime",
-        memory="memory",
-        timeout="timeout",
-        handler="handler",
-        codeuri="codeuri",
-        environment="environment",
-        rolearn="rolearn",
-        layers="layers",
-        events="events",
-        metadata={},
+    name="name",
+    function_name="function_name",
+    runtime="runtime",
+    memory="memory",
+    timeout="timeout",
+    handler="handler",
+    codeuri="codeuri",
+    environment="environment",
+    rolearn="rolearn",
+    layers="layers",
+    events="events",
+    metadata={},
 ):
     return Function(
         name, function_name, runtime, memory, timeout, handler, codeuri, environment, rolearn, layers, events, metadata
@@ -192,19 +192,51 @@ class TestBuildDefinition(TestCase):
 
     @parameterized.expand(
         [
-            ("runtime", "codeuri", ({"key": "value"}), "source_md5",
-             "runtime", "codeuri", ({"key": "different_value"}), "source_md5"),
-            ("runtime", "codeuri", ({"key": "value"}), "source_md5",
-             "different_runtime", "codeuri", ({"key": "value"}), "source_md5"),
-            ("runtime", "codeuri", ({"key": "value"}), "source_md5",
-             "runtime", "different_codeuri", ({"key": "value"}), "source_md5"),
+            (
+                "runtime",
+                "codeuri",
+                ({"key": "value"}),
+                "source_md5",
+                "runtime",
+                "codeuri",
+                ({"key": "different_value"}),
+                "source_md5",
+            ),
+            (
+                "runtime",
+                "codeuri",
+                ({"key": "value"}),
+                "source_md5",
+                "different_runtime",
+                "codeuri",
+                ({"key": "value"}),
+                "source_md5",
+            ),
+            (
+                "runtime",
+                "codeuri",
+                ({"key": "value"}),
+                "source_md5",
+                "runtime",
+                "different_codeuri",
+                ({"key": "value"}),
+                "source_md5",
+            ),
             # custom build method with Makefile definition should always be identified as different
-            ("runtime", "codeuri", ({"BuildMethod": "makefile"}), "source_md5",
-             "runtime", "codeuri", ({"BuildMethod": "makefile"}), "source_md5"),
+            (
+                "runtime",
+                "codeuri",
+                ({"BuildMethod": "makefile"}),
+                "source_md5",
+                "runtime",
+                "codeuri",
+                ({"BuildMethod": "makefile"}),
+                "source_md5",
+            ),
         ]
     )
     def test_different_runtime_codeuri_metadata_should_not_reflect_as_same_object(
-            self, runtime1, codeuri1, metadata1, source_md5_1, runtime2, codeuri2, metadata2, source_md5_2
+        self, runtime1, codeuri1, metadata1, source_md5_1, runtime2, codeuri2, metadata2, source_md5_2
     ):
         build_definition1 = BuildDefinition(runtime1, codeuri1, metadata1, source_md5_1)
         build_definition2 = BuildDefinition(runtime2, codeuri2, metadata2, source_md5_2)
@@ -217,5 +249,6 @@ class TestBuildDefinition(TestCase):
 
     def test_str_representation(self):
         build_definition = BuildDefinition("runtime", "codeuri", None, "source_md5")
-        self.assertEqual(str(build_definition),
-                         f"BuildDefinition(runtime, codeuri, source_md5, {build_definition.uuid}, {{}}, [])")
+        self.assertEqual(
+            str(build_definition), f"BuildDefinition(runtime, codeuri, source_md5, {build_definition.uuid}, {{}}, [])"
+        )

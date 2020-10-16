@@ -33,7 +33,7 @@ class TestApplicationBuilder_build(TestCase):
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_functions([self.func1, self.func2])
         resources_to_build_collector.add_layers([self.layer1, self.layer2])
-        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
 
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_must_iterate_on_functions_and_layers(self, persist_mock):
@@ -106,7 +106,7 @@ class TestApplicationBuilder_build(TestCase):
         build_dir = "builddir"
 
         # instantiate the builder and run build method
-        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
         builder._build_function = build_function_mock
 
         result = builder.build()
@@ -145,7 +145,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.container_manager = Mock()
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_layers([self.layer1, self.layer2])
-        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -203,7 +203,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
 
 class TestApplicationBuilder_update_template(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir")
+        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
 
         self.template_dict = {
             "Resources": {
@@ -245,7 +245,7 @@ class TestApplicationBuilder_update_template(TestCase):
 
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir")
+        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "cachedir")
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -336,7 +336,7 @@ class TestApplicationBuilder_build_function(TestCase):
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", mode="mode")
+        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode")
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_use_lambda_builder(self, lambda_builder_mock):
@@ -382,7 +382,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
     def setUp(self):
         self.container_manager = Mock()
         self.builder = ApplicationBuilder(
-            Mock(), "/build/dir", "/base/dir", container_manager=self.container_manager, mode="mode"
+            Mock(), "/build/dir", "/base/dir", "/cache/dir", container_manager=self.container_manager, mode="mode"
         )
         self.builder._parse_builder_response = Mock()
 
@@ -487,7 +487,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 class TestApplicationBuilder_parse_builder_response(TestCase):
     def setUp(self):
         self.image_name = "name"
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir")
+        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "/cache/dir")
 
     def test_must_parse_json(self):
         data = {"valid": "json"}
