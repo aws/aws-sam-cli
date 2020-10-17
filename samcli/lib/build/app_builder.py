@@ -153,20 +153,27 @@ class ApplicationBuilder:
             LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
                      build_definition.codeuri, build_definition.runtime, build_definition.metadata,
                      [function.name for function in build_definition.functions])
-            with osutils.mkdir_temp() as temporary_build_dir:
-                LOG.debug("Building to following folder %s", temporary_build_dir)
-                self._build_function(build_definition.get_function_name(),
-                                     build_definition.codeuri,
-                                     build_definition.runtime,
-                                     build_definition.get_handler_name(),
-                                     temporary_build_dir,
-                                     build_definition.metadata)
 
-                for function in build_definition.functions:
+            # build into one of the functions from this build definition
+            single_function_name = build_definition.get_function_name()
+            single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
+
+            LOG.debug("Building to following folder %s", single_build_dir)
+            self._build_function(build_definition.get_function_name(),
+                                 build_definition.codeuri,
+                                 build_definition.runtime,
+                                 build_definition.get_handler_name(),
+                                 single_build_dir,
+                                 build_definition.metadata)
+            function_build_results[single_function_name] = single_build_dir
+
+            # copy results to other functions
+            for function in build_definition.functions:
+                if function.name is not single_function_name:
                     # artifacts directory will be created by the builder
                     artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                    LOG.debug("Copying artifacts from %s to %s", temporary_build_dir, artifacts_dir)
-                    osutils.copytree(temporary_build_dir, artifacts_dir)
+                    LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
+                    osutils.copytree(single_build_dir, artifacts_dir)
                     function_build_results[function.name] = artifacts_dir
 
         return function_build_results
