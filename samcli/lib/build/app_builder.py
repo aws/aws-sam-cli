@@ -82,7 +82,7 @@ class ApplicationBuilder:
             Path to a folder. Use this folder as the root to resolve relative source code paths against
 
         cache_dir : str
-            Optional. Path to a the directory where we will be caching built artifacts
+            Path to a the directory where we will be caching built artifacts
 
         cached:
             Optional. Set to True to build each function with cache to improve performance
@@ -178,13 +178,20 @@ class ApplicationBuilder:
         return function_build_results
 
     def _build_unique_definition_cached(self, build_definition):
+        """
+        If the build for a unique definition was cached before and the source code is not changed, copy the build
+        artifact directly to paths of all resources with the same unique definition
+        Else start a clean build and copy the build artifact directly to all paths with the same unique definition, as
+        well as cache the build
+        """
         code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.get_uuid())
         function_build_results = {}
 
         if not cache_function_dir.exists() or build_definition.get_source_md5() != source_md5:
-            LOG.info("Cache is invalid, running build and copying resources to %s", cache_function_dir)
+            LOG.info("Cache is invalid, running build and copying resources to build definition of %s",
+                     build_definition.get_uuid())
             build_result = self._build_unique_definition(build_definition)
             function_build_results.update(build_result)
 
@@ -196,7 +203,8 @@ class ApplicationBuilder:
                 osutils.copytree(value, cache_function_dir)
                 break
         else:
-            LOG.info("Valid cache found, copying previously built resources from %s", cache_function_dir)
+            LOG.info("Valid cache found, copying previously built resources from build definition of %s",
+                     build_definition.get_uuid())
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
                 artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
@@ -207,6 +215,9 @@ class ApplicationBuilder:
         return function_build_results
 
     def _build_unique_definition(self, build_definition):
+        """
+        Build the unique definition and then copy the artifact to paths of all resources with the same unique definition
+        """
         function_results = {}
         LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
                  build_definition.codeuri, build_definition.runtime, build_definition.metadata,
