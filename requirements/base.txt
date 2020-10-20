@@ -15,3 +15,5 @@ requests==2.23.0
 serverlessrepo==0.1.9
 aws_lambda_builders==1.1.0
 tomlkit==0.5.8
+# TODO: remove six and its usage since we don't support Python 2
+six==1.15.0

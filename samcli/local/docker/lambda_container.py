@@ -84,7 +84,7 @@ class LambdaContainer(Container):
 
         env_vars = {**env_vars, **debug_env_vars}
 
-        super(LambdaContainer, self).__init__(
+        super().__init__(
             image,
             cmd,
             self._WORKING_DIR,
