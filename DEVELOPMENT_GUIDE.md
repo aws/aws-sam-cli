@@ -48,10 +48,9 @@ easily setup multiple Python versions.
 ### 2. Install Additional Tooling
 #### Black
 We format our code using [Black](https://github.com/python/black) and verify the source code is black compliant
-in Appveyor during PRs. You can find installation instructions on [Black's docs](https://black.readthedocs.io/en/stable/installation_and_usage.html).
-Install version 19.10b0 as this is what is currently used in the CI/CD pipeline.
+in Appveyor during PRs. Black will be installed automatically with `make init`.
 
-After installing, you can run our formatting through our Makefile by `make black-format` or integrating Black directly in your favorite IDE (instructions
+After installing, you can run our formatting through our Makefile by `make black` or integrating Black directly in your favorite IDE (instructions
 can be found [here](https://black.readthedocs.io/en/stable/editor_integration.html))
 
 #### Pre-commit
