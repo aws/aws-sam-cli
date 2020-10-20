@@ -192,6 +192,13 @@
       }
     }
   },
+  "appsync": {
+    "error": {
+      "filename": "AppSyncDirectResolver",
+      "help": "Generates an AWS AppSync Event",
+      "tags": {}
+    }
+  },
   "batch": {
     "get-job": {
       "filename": "BatchGetJob",
