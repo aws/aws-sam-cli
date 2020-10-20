@@ -8,10 +8,10 @@ class DeployIntegBase(TestCase):
         pass
 
     def setUp(self):
-        super(DeployIntegBase, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(DeployIntegBase, self).tearDown()
+        super().tearDown()
 
     def base_command(self):
         command = "sam"

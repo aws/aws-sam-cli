@@ -62,7 +62,7 @@ class SamTemplateValidator:
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
-            )
+            ) from e
 
     def _replace_local_codeuri(self):
         """

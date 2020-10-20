@@ -192,7 +192,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 mode=ctx.mode,
             )
         except FunctionNotFound as ex:
-            raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
             artifacts = builder.build()
@@ -222,12 +222,12 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             click.secho(msg, fg="yellow")
 
         except (
-                UnsupportedRuntimeException,
-                BuildError,
-                BuildInsideContainerError,
-                UnsupportedBuilderLibraryVersionError,
-                ContainerBuildNotSupported,
-                InvalidBuildGraphException,
+            UnsupportedRuntimeException,
+            BuildError,
+            BuildInsideContainerError,
+            UnsupportedBuilderLibraryVersionError,
+            ContainerBuildNotSupported,
+            InvalidBuildGraphException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 
@@ -235,7 +235,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             # from deeper than just one level down.
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
-            raise UserException(str(ex), wrapped_from=wrapped_from)
+            raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
 
 def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):
