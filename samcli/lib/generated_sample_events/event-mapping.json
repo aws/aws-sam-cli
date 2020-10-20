@@ -193,7 +193,7 @@
     }
   },
   "appsync": {
-    "error": {
+    "resolver": {
       "filename": "AppSyncDirectResolver",
       "help": "Generates an AWS AppSync Event",
       "tags": {}
