@@ -466,11 +466,13 @@ class TestPackage(PackageIntegBase):
             upload_message = bytes("Uploading to", encoding="utf-8")
             if no_progressbar:
                 self.assertNotIn(
-                    upload_message, process_stderr,
+                    upload_message,
+                    process_stderr,
                 )
             else:
                 self.assertIn(
-                    upload_message, process_stderr,
+                    upload_message,
+                    process_stderr,
                 )
 
     @parameterized.expand(

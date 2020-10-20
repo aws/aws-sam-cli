@@ -163,7 +163,8 @@ class BuildIntegRubyBase(BuildIntegBase):
             "OtherRelativePathResource",
             "BodyS3Location",
             os.path.relpath(
-                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")), str(self.default_build_dir),
+                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                str(self.default_build_dir),
             ),
         )
 
@@ -172,7 +173,8 @@ class BuildIntegRubyBase(BuildIntegBase):
             "GlueResource",
             "Command.ScriptLocation",
             os.path.relpath(
-                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")), str(self.default_build_dir),
+                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                str(self.default_build_dir),
             ),
         )
 

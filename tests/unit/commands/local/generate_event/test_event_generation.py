@@ -159,7 +159,10 @@ class TestEventTypeSubCommand(TestCase):
         s = EventTypeSubCommand(self.events_lib_mock, "hello", all_commands)
         s.get_command(None, "hi")
         click_mock.Command.assert_called_once_with(
-            name="hi", short_help="Generates a hello Event", params=[], callback=callback_object_mock,
+            name="hi",
+            short_help="Generates a hello Event",
+            params=[],
+            callback=callback_object_mock,
         )
 
     def test_subcommand_list_return_value(self):
