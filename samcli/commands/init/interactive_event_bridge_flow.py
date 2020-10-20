@@ -160,8 +160,8 @@ def _fetch_available_registries(schemas_api_caller, registry_pages, next_token):
 
 
 def _construct_cli_page(items, item_per_page):
-    """ Responsible for splitting items into CLI pages. Currently CLI pages are list of dictionary [0:{0:s1, 1:s2: 3:s3}, 1: {4:s4, 5:s5: 6:s6}]
-     We maintain the page detail and item index details. """
+    """Responsible for splitting items into CLI pages. Currently CLI pages are list of dictionary [0:{0:s1, 1:s2: 3:s3}, 1: {4:s4, 5:s5: 6:s6}]
+    We maintain the page detail and item index details."""
     pages = [
         items[i * item_per_page : (i + 1) * item_per_page]
         for i in range((len(items) + item_per_page - 1) // item_per_page)

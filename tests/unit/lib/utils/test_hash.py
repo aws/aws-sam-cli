@@ -4,7 +4,7 @@ import tempfile
 from unittest import TestCase
 from unittest.mock import patch
 
-from samcli.lib.utils.hash import dir_checksum
+from samcli.lib.utils.hash import dir_checksum, str_checksum
 
 
 class TestHash(TestCase):
@@ -38,13 +38,13 @@ class TestHash(TestCase):
         dir_checksums = {}
         with patch("os.walk") as mockwalk:
             mockwalk.return_value = [
-                (self.temp_dir, (), (file1.name, file2.name,)),
+                (self.temp_dir, (), (file1.name, file2.name,),),
             ]
             dir_checksums["first"] = dir_checksum(self.temp_dir)
 
         with patch("os.walk") as mockwalk:
             mockwalk.return_value = [
-                (self.temp_dir, (), (file2.name, file1.name,)),
+                (self.temp_dir, (), (file2.name, file1.name,),),
             ]
             dir_checksums["second"] = dir_checksum(self.temp_dir)
 
@@ -72,3 +72,7 @@ class TestHash(TestCase):
         with self.assertRaises(OSError) as ex:
             dir_checksum(os.path.dirname(_file.name))
             self.assertIn("Too many levels of symbolic links", ex.message)
+
+    def test_str_checksum(self):
+        checksum = str_checksum("Hello, World!")
+        self.assertEqual(checksum, "65a8e27d8879283831b664bd8b7f0ad4")

@@ -12,6 +12,7 @@ import platform
 import docker
 
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
+from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli import __version__ as version
@@ -54,6 +55,7 @@ class LambdaImage:
     _INVOKE_REPO_PREFIX = "amazon/aws-sam-cli-emulation-image"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
+    _RAPID_PREVIEW_SOURCE_PATH = Path(__file__).parent.joinpath("..", "preview-rapid").resolve()
     _GO_BOOTSTRAP_PATH = Path(__file__).parent.joinpath("..", "go-bootstrap").resolve()
 
     def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None):
@@ -74,6 +76,7 @@ class LambdaImage:
         self.skip_pull_image = skip_pull_image
         self.force_image_build = force_image_build
         self.docker_client = docker_client or docker.from_env()
+        self._extensions_preview_enabled = extensions_preview_enabled()
 
     def build(self, runtime, layers, is_debug, stream=None):
         """
@@ -96,6 +99,9 @@ class LambdaImage:
         # Default image tag to be the base image with a tag of 'rapid' instead of latest
         image_tag = f"{self._INVOKE_REPO_PREFIX}-{runtime}:rapid-{version}"
         downloaded_layers = []
+
+        if self._extensions_preview_enabled:
+            image_tag = f"{self._INVOKE_REPO_PREFIX}-{runtime}:preview-rapid-{version}"
 
         if layers:
             downloaded_layers = self.layer_downloader.download_all(layers, self.force_image_build)
@@ -190,6 +196,8 @@ class LambdaImage:
 
             # add dockerfile and rapid source paths
             tar_paths = {str(full_dockerfile_path): "Dockerfile", self._RAPID_SOURCE_PATH: "/init"}
+            if self._extensions_preview_enabled:
+                tar_paths = {str(full_dockerfile_path): "Dockerfile", self._RAPID_PREVIEW_SOURCE_PATH: "/init"}
 
             if is_debug_go:
                 LOG.debug("Adding custom GO Bootstrap to support debugging")
@@ -217,10 +225,10 @@ class LambdaImage:
                         stream_writer.write(".")
                         stream_writer.flush()
                     stream_writer.write("\n")
-                except (docker.errors.BuildError, docker.errors.APIError):
+                except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write("\n")
                     LOG.exception("Failed to build Docker Image")
-                    raise ImageBuildException("Building Image failed.")
+                    raise ImageBuildException("Building Image failed.") from ex
         finally:
             if full_dockerfile_path.exists():
                 full_dockerfile_path.unlink()

@@ -63,6 +63,8 @@ def cli(
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    config_file,
+    config_env,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -154,7 +156,7 @@ def do_cli(  # pylint: disable=R0914
     except FunctionNotFound as ex:
         raise UserException(
             "Function {} not found in template".format(function_identifier), wrapped_from=ex.__class__.__name__
-        )
+        ) from ex
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
@@ -162,9 +164,9 @@ def do_cli(  # pylint: disable=R0914
         DebuggingNotSupported,
         NoPrivilegeException,
     ) as ex:
-        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except DockerImagePullFailedException as ex:
-        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
 
 def _get_event(event_file_name):
