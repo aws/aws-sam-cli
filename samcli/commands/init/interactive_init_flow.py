@@ -139,7 +139,7 @@ def _get_schema_template_details(schemas_api_caller):
     except ClientError as e:
         raise SchemasApiException(
             "Exception occurs while getting Schemas template parameter. %s" % e.response["Error"]["Message"]
-        )
+        ) from e
 
 
 def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, output_dir, name, location):
@@ -150,6 +150,8 @@ def _package_schemas_code(runtime, schemas_api_caller, schema_template_details, 
         do_extract_and_merge_schemas_code(download_location, output_dir, name, location)
         download_location.close()
     except (ClientError, WaiterError) as e:
-        raise SchemasApiException("Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"])
+        raise SchemasApiException(
+            "Exception occurs while packaging Schemas code. %s" % e.response["Error"]["Message"]
+        ) from e
     finally:
         remove(download_location.name)

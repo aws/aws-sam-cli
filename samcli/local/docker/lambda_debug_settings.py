@@ -237,5 +237,5 @@ class LambdaDebugSettings:
             }
         try:
             return entrypoint_mapping[runtime]
-        except KeyError:
-            raise DebuggingNotSupported("Debugging is not currently supported for {}".format(runtime))
+        except KeyError as ex:
+            raise DebuggingNotSupported("Debugging is not currently supported for {}".format(runtime)) from ex

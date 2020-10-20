@@ -77,7 +77,7 @@ class SamTranslatorWrapper:
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
-            )
+            ) from e
 
         return template_copy
 
