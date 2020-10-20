@@ -210,7 +210,6 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-
     @parameterized.expand(["ruby2.5", "ruby2.7"])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_container(self, runtime):
@@ -249,8 +248,10 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
         # copy gemfile to the root of the project
         shutil.copyfile(Path(self.template_path).parent.joinpath("Gemfile"), Path(self.working_dir).joinpath("Gemfile"))
         # copy function source code in its folder
-        osutils.copytree(Path(self.template_path).parent.joinpath("RubyWithRootGemfile"),
-                         Path(self.working_dir).joinpath("RubyWithRootGemfile"))
+        osutils.copytree(
+            Path(self.template_path).parent.joinpath("RubyWithRootGemfile"),
+            Path(self.working_dir).joinpath("RubyWithRootGemfile"),
+        )
         # copy template to the root folder
         shutil.copyfile(Path(self.template_path), Path(self.working_dir).joinpath("template.yaml"))
         # update template path with new location

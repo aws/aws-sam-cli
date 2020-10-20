@@ -153,8 +153,8 @@ class ApplicationBuilder:
 
         for build_definition in build_graph.get_build_definitions():
             LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
-                     build_definition.codeuri, 
-                     build_definition.runtime, 
+                     build_definition.codeuri,
+                     build_definition.runtime,
                      build_definition.metadata,
                      [function.name for function in build_definition.functions])
 
