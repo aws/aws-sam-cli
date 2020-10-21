@@ -14,8 +14,8 @@ Metadata:
     HomePageUrl: https://github.com/test/test
     Labels:
       - test-app
-    Name: <application-name>
     LicenseBody: "license-body"
+    Name: <application-name>
     SemanticVersion: 0.1.0
     SourceCodeUrl: "https://github.com/test/test-new-version"
 Resources:

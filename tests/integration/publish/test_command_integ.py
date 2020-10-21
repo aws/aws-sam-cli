@@ -1,9 +1,7 @@
 import re
 import time
 import json
-import logging
 from subprocess import Popen, PIPE, TimeoutExpired
-from parameterized import parameterized
 
 from unittest import skipIf
 
@@ -16,8 +14,6 @@ from tests.testing_utils import run_command
 # This is to restrict publish tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
 SKIP_PUBLISH_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 TIMEOUT = 300
-
-LOG = logging.getLogger(__name__)
 
 
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
@@ -37,7 +33,7 @@ class TestPublishExistingApp(PublishAppIntegBase):
     def tearDown(self):
         super().tearDown()
         # Delete application for each test
-        # self.sar_client.delete_application(ApplicationId=self.application_id)
+        self.sar_client.delete_application(ApplicationId=self.application_id)
 
     def test_update_application(self):
         template_path = self.temp_dir.joinpath("template_update_app.yaml")
@@ -77,28 +73,20 @@ class TestPublishExistingApp(PublishAppIntegBase):
         app_metadata[SEMANTIC_VERSION] = "0.1.0"
         self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
 
-    @parameterized.expand(
-        [
-            ("template_create_app_with_readme_bodies.yaml", "metadata_create_app_with_readme_bodies.json"),
-            ("template_create_app_with_license_bodies.yaml", "metadata_create_app_with_license_bodies.json"),
-        ]
-    )
-    def test_create_application_version_with_read_and_license_bodies(
-        self, template_filename, expected_template_filename
-    ):
-        template_path = self.temp_dir.joinpath(template_filename)
+    def test_create_application_version_with_read_body(self):
+        template_path = self.temp_dir.joinpath("template_create_app_with_readme_body.yaml")
         command_list = self.get_command_list(
             template_path=template_path, region=self.region_name, semantic_version="0.1.0"
         )
+
         result = run_command(command_list)
         expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
-        result_msg = result.stdout.decode("utf-8")
-        self.assertIn(expected_msg, result_msg)
+        self.assertIn(expected_msg, result.stdout.decode("utf-8"))
 
-        app_metadata_text = self.temp_dir.joinpath(expected_template_filename).read_text()
+        app_metadata_text = self.temp_dir.joinpath("metadata_create_app_with_readme_body.json").read_text()
         app_metadata = json.loads(app_metadata_text)
         app_metadata[SEMANTIC_VERSION] = "0.1.0"
-        self.assert_metadata_details(app_metadata, result_msg)
+        self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
 
 
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
@@ -161,3 +149,14 @@ class TestPublishNewApp(PublishAppIntegBase):
         match = re.search(pattern, result.stdout.decode("utf-8"))
         self.application_id = match.group().replace("~", "/")
         self.assertIn(self.region_name, self.application_id)
+
+    def test_create_application_version_with_license_body(self):
+        template_path = self.temp_dir.joinpath("template_create_app_with_license_body.yaml")
+        command_list = self.get_command_list(
+            template_path=template_path, region=self.region_name, semantic_version="0.1.0"
+        )
+
+        result = run_command(command_list)
+        expected_msg = "Created new application with the following metadata:"
+        self.assertIn(expected_msg, result.stdout.decode("utf-8"))
+        self.assertIn('"LicenseBody": "license-body"', result.stdout.decode("utf-8"))
