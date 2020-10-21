@@ -5,6 +5,8 @@ from subprocess import Popen, PIPE, TimeoutExpired
 
 from unittest import skipIf
 
+from parameterized import parameterized
+
 from samcli.commands.publish.command import SEMANTIC_VERSION
 from .publish_app_integ_base import PublishAppIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
@@ -35,29 +37,25 @@ class TestPublishExistingApp(PublishAppIntegBase):
         # Delete application for each test
         self.sar_client.delete_application(ApplicationId=self.application_id)
 
-    def test_update_application(self):
-        template_path = self.temp_dir.joinpath("template_update_app.yaml")
+    @parameterized.expand(
+        [
+            ("template_update_app.yaml", "metadata_update_app.json"),
+            ("template_create_app_version.yaml", "metadata_create_app_version.json"),
+            ("template_create_app_with_readme_body.yaml", "metadata_create_app_with_readme_body.json"),
+        ]
+    )
+    def test_update_application(self, template_filename, expected_template_filename):
+        template_path = self.temp_dir.joinpath(template_filename)
         command_list = self.get_command_list(template_path=template_path, region=self.region_name)
 
         result = run_command(command_list)
         expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
-        self.assertIn(expected_msg, result.stdout.decode("utf-8"))
+        result_msg = result.stdout.decode("utf-8")
+        self.assertIn(expected_msg, result_msg)
 
-        app_metadata_text = self.temp_dir.joinpath("metadata_update_app.json").read_text()
+        app_metadata_text = self.temp_dir.joinpath(expected_template_filename).read_text()
         app_metadata = json.loads(app_metadata_text)
-        self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
-
-    def test_create_application_version(self):
-        template_path = self.temp_dir.joinpath("template_create_app_version.yaml")
-        command_list = self.get_command_list(template_path=template_path, region=self.region_name)
-        result = run_command(command_list)
-
-        expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
-        self.assertIn(expected_msg, result.stdout.decode("utf-8"))
-
-        app_metadata_text = self.temp_dir.joinpath("metadata_create_app_version.json").read_text()
-        app_metadata = json.loads(app_metadata_text)
-        self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
+        self.assert_metadata_details(app_metadata, result_msg)
 
     def test_create_application_version_with_semantic_version_option(self):
         template_path = self.temp_dir.joinpath("template_create_app_version.yaml")
@@ -69,21 +67,6 @@ class TestPublishExistingApp(PublishAppIntegBase):
         self.assertIn(expected_msg, result.stdout.decode("utf-8"))
 
         app_metadata_text = self.temp_dir.joinpath("metadata_create_app_version.json").read_text()
-        app_metadata = json.loads(app_metadata_text)
-        app_metadata[SEMANTIC_VERSION] = "0.1.0"
-        self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
-
-    def test_create_application_version_with_read_body(self):
-        template_path = self.temp_dir.joinpath("template_create_app_with_readme_body.yaml")
-        command_list = self.get_command_list(
-            template_path=template_path, region=self.region_name, semantic_version="0.1.0"
-        )
-
-        result = run_command(command_list)
-        expected_msg = 'The following metadata of application "{}" has been updated:'.format(self.application_id)
-        self.assertIn(expected_msg, result.stdout.decode("utf-8"))
-
-        app_metadata_text = self.temp_dir.joinpath("metadata_create_app_with_readme_body.json").read_text()
         app_metadata = json.loads(app_metadata_text)
         app_metadata[SEMANTIC_VERSION] = "0.1.0"
         self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
