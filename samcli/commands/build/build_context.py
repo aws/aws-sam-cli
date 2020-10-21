@@ -33,6 +33,7 @@ class BuildContext:
             manifest_path=None,
             clean=False,
             use_container=False,
+            parallel=False,
             parameter_overrides=None,
             docker_network=None,
             skip_pull_image=False,
@@ -45,6 +46,7 @@ class BuildContext:
         self._manifest_path = manifest_path
         self._clean = clean
         self._use_container = use_container
+        self._parallel = parallel
         self._parameter_overrides = parameter_overrides
         self._docker_network = docker_network
         self._skip_pull_image = skip_pull_image
@@ -122,6 +124,10 @@ class BuildContext:
     @property
     def use_container(self):
         return self._use_container
+
+    @property
+    def parallel(self):
+        return self._parallel
 
     @property
     def output_template_path(self):

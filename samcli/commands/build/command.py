@@ -78,6 +78,12 @@ $ sam build && sam package --s3-bucket <bucketname>
     "are resolved with respect to the SAM template's location",
 )
 @click.option(
+    "--parallel",
+    "-p",
+    is_flag=True,
+    help="Set to True to build each function in parallel to improve performance",
+)
+@click.option(
     "--use-container",
     "-u",
     is_flag=True,
@@ -106,6 +112,7 @@ def cli(
     base_dir,
     build_dir,
     use_container,
+    parallel,
     manifest,
     docker_network,
     skip_pull_image,
@@ -124,6 +131,7 @@ def cli(
         build_dir,
         True,
         use_container,
+        parallel,
         manifest,
         docker_network,
         skip_pull_image,
@@ -139,6 +147,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     build_dir,
     clean,
     use_container,
+    parallel,
     manifest_path,
     docker_network,
     skip_pull_image,
@@ -189,6 +198,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 ctx.is_building_specific_resource,
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,
+                parallel=ctx.parallel,
                 mode=ctx.mode,
             )
         except FunctionNotFound as ex:
