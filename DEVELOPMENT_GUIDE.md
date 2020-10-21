@@ -52,6 +52,28 @@ in Appveyor during PRs. Black will be installed automatically with `make init`.
 
 After installing, you can run our formatting through our Makefile by `make black` or integrating Black directly in your favorite IDE (instructions
 can be found [here](https://black.readthedocs.io/en/stable/editor_integration.html))
+ 
+##### (workaround) Integrating Black directly in your favorite IDE
+Since black is installed in virtualenv, when you follow [this intruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
+
+```bash
+(samcli37) $ where black
+/Users/<username>/.pyenv/shims/black
+```
+
+However, IDEs such PyChaim (using FileWatcher) will have a hard time invoking `/Users/<username>/.pyenv/shims/black` 
+and this will happen:
+
+```
+pyenv: black: command not found
+
+The `black' command exists in these Python versions:
+  3.7.2/envs/samcli37
+  samcli37
+``` 
+
+A simple workaround is to use `/Users/<username>/.pyenv/versions/samcli37/bin/black` 
+instead of `/Users/<username>/.pyenv/shims/black`.
 
 #### Pre-commit
 If you don't wish to manually run black on each pr or install black manually, we have integrated black into git hooks through [pre-commit](https://pre-commit.com/).
