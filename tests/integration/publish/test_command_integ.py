@@ -78,7 +78,10 @@ class TestPublishExistingApp(PublishAppIntegBase):
         self.assert_metadata_details(app_metadata, result.stdout.decode("utf-8"))
 
     @parameterized.expand(
-        [("template_create_app_with_readme_bodies.yaml", "metadata_create_app_with_readme_bodies.json")]
+        [
+            ("template_create_app_with_readme_bodies.yaml", "metadata_create_app_with_readme_bodies.json"),
+            ("template_create_app_with_license_bodies.yaml", "metadata_create_app_with_license_bodies.json"),
+        ]
     )
     def test_create_application_version_with_read_and_license_bodies(
         self, template_filename, expected_template_filename
