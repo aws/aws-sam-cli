@@ -49,7 +49,11 @@ SEMANTIC_VERSION = "SemanticVersion"
 @pass_context
 @track_command
 def cli(
-    ctx, template_file, semantic_version, config_file, config_env,
+    ctx,
+    template_file,
+    semantic_version,
+    config_file,
+    config_env,
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 

@@ -38,13 +38,27 @@ class TestHash(TestCase):
         dir_checksums = {}
         with patch("os.walk") as mockwalk:
             mockwalk.return_value = [
-                (self.temp_dir, (), (file1.name, file2.name,),),
+                (
+                    self.temp_dir,
+                    (),
+                    (
+                        file1.name,
+                        file2.name,
+                    ),
+                ),
             ]
             dir_checksums["first"] = dir_checksum(self.temp_dir)
 
         with patch("os.walk") as mockwalk:
             mockwalk.return_value = [
-                (self.temp_dir, (), (file2.name, file1.name,),),
+                (
+                    self.temp_dir,
+                    (),
+                    (
+                        file2.name,
+                        file1.name,
+                    ),
+                ),
             ]
             dir_checksums["second"] = dir_checksum(self.temp_dir)
 

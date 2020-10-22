@@ -194,7 +194,9 @@ class GuidedContext:
             raise GuidedDeployFailedError(str(ex)) from ex
 
         guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
-        guided_config.read_config_showcase(self.config_file or DEFAULT_CONFIG_FILE_NAME,)
+        guided_config.read_config_showcase(
+            self.config_file or DEFAULT_CONFIG_FILE_NAME,
+        )
 
         self.guided_prompts(_parameter_override_keys)
 
