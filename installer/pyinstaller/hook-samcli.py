@@ -11,6 +11,9 @@ hiddenimports = [
     'samcli.commands.deploy',
     'samcli.commands.logs',
     'samcli.commands.publish',
+    # default hidden import 'pkg_resources.py2_warn' is added
+    # since pyInstaller 4.0.
+    'pkg_resources.py2_warn',
 ]
 imports_for_aws_lambda_builders = (hooks.collect_submodules('aws_lambda_builders'))
 hiddenimports += imports_for_aws_lambda_builders
