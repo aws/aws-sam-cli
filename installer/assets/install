@@ -69,18 +69,18 @@ set_global_vars() {
   INSTALLER_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
   INSTALLER_DIST_DIR="$INSTALLER_DIR/dist"
   INSTALLER_EXE="$INSTALLER_DIST_DIR/$EXE_NAME"
-  AWS_EXE_VERSION=$($INSTALLER_EXE --version | cut -d ' ' -f 4)
+  SAM_EXE_VERSION=$($INSTALLER_EXE --version | cut -d ' ' -f 4)
 
-  INSTALL_DIR="$ROOT_INSTALL_DIR/$AWS_EXE_VERSION"
+  INSTALL_DIR="$ROOT_INSTALL_DIR/$SAM_EXE_VERSION"
   INSTALL_DIR="$INSTALL_DIR"
   INSTALL_DIST_DIR="$INSTALL_DIR/dist"
   INSTALL_BIN_DIR="$INSTALL_DIR/bin"
-  INSTALL_AWS_EXE="$INSTALL_BIN_DIR/$EXE_NAME"
+  INSTALL_SAM_EXE="$INSTALL_BIN_DIR/$EXE_NAME"
 
   CURRENT_INSTALL_DIR="$ROOT_INSTALL_DIR/current"
-  CURRENT_AWS_EXE="$CURRENT_INSTALL_DIR/bin/$EXE_NAME"
+  CURRENT_SAM_EXE="$CURRENT_INSTALL_DIR/bin/$EXE_NAME"
 
-  BIN_AWS_EXE="$BIN_DIR/$EXE_NAME"
+  BIN_SAM_EXE="$BIN_DIR/$EXE_NAME"
 }
 
 create_install_dir() {
@@ -113,7 +113,7 @@ setup_install_dist() {
 
 setup_install_bin() {
   mkdir -p "$INSTALL_BIN_DIR"
-  ln -s "../dist/$EXE_NAME" "$INSTALL_AWS_EXE"
+  ln -s "../dist/$EXE_NAME" "$INSTALL_SAM_EXE"
 }
 
 create_current_symlink() {
@@ -122,7 +122,7 @@ create_current_symlink() {
 
 create_bin_symlinks() {
   mkdir -p "$BIN_DIR"
-  ln -sf "$CURRENT_AWS_EXE" "$BIN_AWS_EXE"
+  ln -sf "$CURRENT_SAM_EXE" "$BIN_SAM_EXE"
 }
 
 die() {
@@ -137,7 +137,7 @@ main() {
   check_preexisting_install
   create_install_dir
   create_bin_symlinks
-  echo "You can now run: $BIN_AWS_EXE --version"
+  echo "You can now run: $BIN_SAM_EXE --version"
   exit 0
 }
 
