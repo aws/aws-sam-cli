@@ -18,7 +18,7 @@ import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import BuildDefinition, BuildGraph
+from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 from ..utils.hash import dir_checksum
@@ -127,20 +127,22 @@ class ApplicationBuilder:
         """
         build_graph = self._get_build_graph()
         result = self._build_functions(build_graph)
+        result.update(self._build_layers(build_graph))
 
-        for layer in self._resources_to_build.layers:
-            LOG.info("Building layer '%s'", layer.name)
-            if layer.build_method is None:
-                raise MissingBuildMethodException(
-                    f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
-            result[layer.name] = self._build_layer(layer.name,
-                                                   layer.codeuri,
-                                                   layer.build_method,
-                                                   layer.compatible_runtimes)
+        # for layer in self._resources_to_build.layers:
+        #     LOG.info("Building layer '%s'", layer.name)
+        #     if layer.build_method is None:
+        #         raise MissingBuildMethodException(
+        #             f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
+        #     result[layer.name] = self._build_layer(layer.name,
+        #                                            layer.codeuri,
+        #                                            layer.build_method,
+        #                                            layer.compatible_runtimes)
 
         if self._cached:
             build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
-            uuids = {bd.uuid for bd in build_graph.get_build_definitions()}
+            uuids = {bd.uuid for bd in build_graph.get_function_build_definitions()}
+            uuids.update({ld.uuid for ld in build_graph.get_layer_build_definitions()})
             for cache_dir in pathlib.Path(self._cache_dir).iterdir():
                 if cache_dir.name not in uuids:
                     shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
@@ -154,9 +156,14 @@ class ApplicationBuilder:
         """
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
+        layers = self._resources_to_build.layers
         for function in functions:
-            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)
-            build_graph.put_build_definition(build_details, function)
+            function_build_details = FunctionBuildDefinition(function.runtime, function.codeuri, function.metadata)
+            build_graph.put_function_build_definition(function_build_details, function)
+
+        for layer in layers:
+            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
+            build_graph.put_layer_build_definition(layer_build_details, layer)
 
         build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
         return build_graph
@@ -172,7 +179,7 @@ class ApplicationBuilder:
         else:
             build_function = self._build_unique_definition
 
-        for build_definition in build_graph.get_build_definitions():
+        for build_definition in build_graph.get_function_build_definitions():
             function_build_results.update(build_function(build_definition))
 
         return function_build_results
@@ -238,6 +245,60 @@ class ApplicationBuilder:
                 osutils.copytree(temporary_build_dir, artifacts_dir)
                 function_results[function.name] = artifacts_dir
         return function_results
+
+    def _build_layers(self, build_graph):
+        layer_build_results = {}
+
+        if self._cached:
+            build_layer = self._build_single_layer_definition_cached
+        else:
+            build_layer = self._build_single_layer_definition
+
+        for layer_definition in build_graph.get_layer_build_definitions():
+            layer_build_results.update(build_layer(layer_definition))
+
+        return layer_build_results
+
+    def _build_single_layer_definition_cached(self, layer_definition):
+        code_dir = str(pathlib.Path(self._base_dir, layer_definition.codeuri).resolve())
+        source_md5 = dir_checksum(code_dir)
+        cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.get_uuid())
+        layer_build_result = {}
+
+        if not cache_function_dir.exists() or layer_definition.get_source_md5() != source_md5:
+            LOG.info("Cache is invalid, running build and copying resources to layer build definition of %s",
+                     layer_definition.get_uuid())
+            build_result = self._build_single_layer_definition(layer_definition)
+            layer_build_result.update(build_result)
+
+            if cache_function_dir.exists():
+                shutil.rmtree(str(cache_function_dir))
+
+            layer_definition.set_source_md5(source_md5)
+            for _, value in build_result.items():
+                osutils.copytree(value, cache_function_dir)
+                break
+        else:
+            LOG.info("Valid cache found, copying previously built resources from layer build definition of %s",
+                     layer_definition.get_uuid())
+            # artifacts directory will be created by the builder
+            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.name))
+            LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
+            osutils.copytree(cache_function_dir, artifacts_dir)
+            layer_build_result[layer_definition.layer.name] = artifacts_dir
+
+        return layer_build_result
+
+    def _build_single_layer_definition(self, layer_definition):
+        layer = layer_definition.layer
+        LOG.info("Building layer '%s'", layer.name)
+        if layer.build_method is None:
+            raise MissingBuildMethodException(
+                f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
+        return {layer.name: self._build_layer(layer.name,
+                                               layer.codeuri,
+                                               layer.build_method,
+                                               layer.compatible_runtimes)}
 
     def update_template(self, template_dict, original_template_path, built_artifacts):
         """
