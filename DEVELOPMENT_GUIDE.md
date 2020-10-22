@@ -54,7 +54,7 @@ After installing, you can run our formatting through our Makefile by `make black
 can be found [here](https://black.readthedocs.io/en/stable/editor_integration.html))
  
 ##### (workaround) Integrating Black directly in your favorite IDE
-Since black is installed in virtualenv, when you follow [this intruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
+Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
 
 ```bash
 (samcli37) $ where black
