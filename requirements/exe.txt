@@ -1,0 +1,3 @@
+# Executable binary builder requirements
+# pyinstaller should not update to 4.0 until https://github.com/pyinstaller/pyinstaller/issues/4674 is resolved
+pyinstaller==3.5

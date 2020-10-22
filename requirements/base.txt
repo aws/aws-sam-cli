@@ -17,5 +17,3 @@ aws_lambda_builders==1.1.0
 tomlkit==0.5.8
 # TODO: remove six and its usage since we don't support Python 2
 six==1.15.0
-# pyinstaller should not update to 4.0 until https://github.com/pyinstaller/pyinstaller/issues/4674 is resolved
-pyinstaller==3.5
