@@ -34,7 +34,7 @@ class SwaggerParser:
         """
         return self.swagger.get(self._BINARY_MEDIA_TYPES_EXTENSION_KEY) or []
 
-    def get_routes(self):
+    def get_routes(self, event_type=Route.API):
         """
         Parses a swagger document and returns a list of APIs configured in the document.
 
@@ -85,7 +85,8 @@ class SwaggerParser:
                     # Convert to a more commonly used method notation
                     method = self._ANY_METHOD
                 payload_format_version = self._get_payload_format_version(method_config)
-                route = Route(function_name, full_path, methods=[method], payload_format_version=payload_format_version)
+                route = Route(function_name, full_path, methods=[method], event_type=event_type,
+                              payload_format_version=payload_format_version)
                 result.append(route)
         return result
 

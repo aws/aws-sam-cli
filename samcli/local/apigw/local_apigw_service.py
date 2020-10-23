@@ -6,6 +6,7 @@ import base64
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
+from werkzeug.routing import BaseConverter
 
 from samcli.lib.providers.provider import Cors
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
@@ -80,6 +81,16 @@ class Route:
         return methods
 
 
+class CatchAllPathConverter(BaseConverter):
+    regex = ".+"
+
+    def to_python(self, value):
+        return value
+
+    def to_url(self, value):
+        return value
+
+
 class LocalApigwService(BaseLocalService):
     _DEFAULT_PORT = 3000
     _DEFAULT_HOST = "127.0.0.1"
@@ -123,10 +134,16 @@ class LocalApigwService(BaseLocalService):
             static_folder=self.static_dir,  # Serve static files from this directory
         )
 
+        # add converter to support catch-all route
+        self._app.url_map.converters["path"] = CatchAllPathConverter
+
         # This will normalize all endpoints and strip any trailing '/'
         self._app.url_map.strict_slashes = False
-
+        default_route = None
         for api_gateway_route in self.api.routes:
+            if api_gateway_route.path == "$default":
+                default_route = api_gateway_route
+                continue
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods, path):
                 self._dict_of_routes[route_key] = api_gateway_route
@@ -138,7 +155,44 @@ class LocalApigwService(BaseLocalService):
                 provide_automatic_options=False,
             )
 
+        if default_route:
+            LOG.debug("add catch-all route")
+            try:
+                rule = next(self._app.url_map.iter_rules("/"))
+                self._add_catch_all_path(
+                    [method for method in Route.ANY_HTTP_METHODS if method not in rule.methods], "/", default_route
+                )
+            except KeyError:
+                self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/", default_route)
+
+            self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)
+
         self._construct_error_handling()
+
+    def _add_catch_all_path(self, methods, path, route):
+        """
+        Add the catch all route to the _app and the dictionary of routes.
+
+        :param list(str) methods: List of HTTP Methods
+        :param str path: Path off the base url
+        :param Route route: contains the default route configurations
+        """
+
+        self._app.add_url_rule(
+            path,
+            endpoint=path,
+            view_func=self._request_handler,
+            methods=methods,
+            provide_automatic_options=False,
+        )
+        for route_key in self._generate_route_keys(methods, path):
+            self._dict_of_routes[route_key] = Route(
+                function_name=route.function_name,
+                path=path,
+                methods=methods,
+                event_type=Route.HTTP,
+                payload_format_version=route.payload_format_version,
+            )
 
     def _generate_route_keys(self, methods, path):
         """
