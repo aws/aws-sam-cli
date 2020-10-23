@@ -17,10 +17,10 @@ TIMEOUT = 300
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
 class TestPackage(PackageIntegBase):
     def setUp(self):
-        super(TestPackage, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(TestPackage, self).tearDown()
+        super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_package_template_flag(self, template_file):
@@ -466,11 +466,13 @@ class TestPackage(PackageIntegBase):
             upload_message = bytes("Uploading to", encoding="utf-8")
             if no_progressbar:
                 self.assertNotIn(
-                    upload_message, process_stderr,
+                    upload_message,
+                    process_stderr,
                 )
             else:
                 self.assertIn(
-                    upload_message, process_stderr,
+                    upload_message,
+                    process_stderr,
                 )
 
     @parameterized.expand(

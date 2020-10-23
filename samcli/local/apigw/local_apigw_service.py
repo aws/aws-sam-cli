@@ -105,7 +105,7 @@ class LocalApigwService(BaseLocalService):
         stderr samcli.lib.utils.stream_writer.StreamWriter
             Optional stream writer where the stderr from Docker container should be written to
         """
-        super(LocalApigwService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
+        super().__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.api = api
         self.lambda_runner = lambda_runner
         self.static_dir = static_dir
@@ -291,8 +291,8 @@ class LocalApigwService(BaseLocalService):
         # pylint: disable-msg=too-many-statements
         try:
             json_output = json.loads(lambda_output)
-        except ValueError:
-            raise LambdaResponseParseException(f"Lambda response must be valid json: {lambda_output}")
+        except ValueError as ex:
+            raise LambdaResponseParseException("Lambda response must be valid json") from ex
 
         if not isinstance(json_output, dict):
             raise LambdaResponseParseException(f"Lambda returned {type(json_output)} instead of dict")
@@ -310,14 +310,16 @@ class LocalApigwService(BaseLocalService):
             status_code = int(status_code)
             if status_code <= 0:
                 raise ValueError
-        except ValueError:
-            raise LambdaResponseParseException("statusCode must be a positive int")
+        except ValueError as ex:
+            raise LambdaResponseParseException("statusCode must be a positive int") from ex
 
         try:
             if body:
                 body = str(body)
-        except ValueError:
-            raise LambdaResponseParseException(f"Non null response bodies should be able to convert to string: {body}")
+        except ValueError as ex:
+            raise LambdaResponseParseException(
+                f"Non null response bodies should be able to convert to string: {body}"
+            ) from ex
 
         # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
         # a response shape.

@@ -191,10 +191,12 @@ class GuidedContext:
             _parameter_override_keys = get_template_parameters(template_file=self.template_file)
         except ValueError as ex:
             LOG.debug("Failed to parse SAM template", exc_info=ex)
-            raise GuidedDeployFailedError(str(ex))
+            raise GuidedDeployFailedError(str(ex)) from ex
 
         guided_config = GuidedConfig(template_file=self.template_file, section=self.config_section)
-        guided_config.read_config_showcase(self.config_file or DEFAULT_CONFIG_FILE_NAME,)
+        guided_config.read_config_showcase(
+            self.config_file or DEFAULT_CONFIG_FILE_NAME,
+        )
 
         self.guided_prompts(_parameter_override_keys)
 

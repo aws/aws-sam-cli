@@ -282,7 +282,7 @@ class IntrinsicResolver:
                 else:
                     raise InvalidIntrinsicException(
                         "Exception with property of {}.{}".format(key, resource_type) + ": " + str(e.args)
-                    )
+                    ) from e
         return processed_dict
 
     def handle_fn_join(self, intrinsic_value, ignore_errors):

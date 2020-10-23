@@ -70,14 +70,24 @@ class LambdaDebugSettings:
                     debug_env_vars={},
                 ),
                 Runtime.nodejs10x.value: DebugSettings(
-                    entry + ["/var/lang/bin/node"] + debug_args_list + ["/var/runtime/index.js",],
+                    entry
+                    + ["/var/lang/bin/node"]
+                    + debug_args_list
+                    + [
+                        "/var/runtime/index.js",
+                    ],
                     debug_env_vars={
                         "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node10/node_modules:/var/runtime/node_module",
                         "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --no-lazy --expose-gc --max-http-header-size 81920",
                     },
                 ),
                 Runtime.nodejs12x.value: DebugSettings(
-                    entry + ["/var/lang/bin/node"] + debug_args_list + ["/var/runtime/index.js",],
+                    entry
+                    + ["/var/lang/bin/node"]
+                    + debug_args_list
+                    + [
+                        "/var/runtime/index.js",
+                    ],
                     debug_env_vars={
                         "NODE_PATH": "/opt/nodejs/node_modules:/opt/nodejs/node12/node_modules:/var/runtime/node_module",
                         "NODE_OPTIONS": f"--inspect-brk=0.0.0.0:{str(debug_port)} --no-lazy --expose-gc --max-http-header-size 81920",
@@ -237,5 +247,5 @@ class LambdaDebugSettings:
             }
         try:
             return entrypoint_mapping[runtime]
-        except KeyError:
-            raise DebuggingNotSupported("Debugging is not currently supported for {}".format(runtime))
+        except KeyError as ex:
+            raise DebuggingNotSupported("Debugging is not currently supported for {}".format(runtime)) from ex
