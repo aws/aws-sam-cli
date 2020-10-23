@@ -133,7 +133,7 @@ class ApplicationBuilder:
 
         build_graph = self._get_build_graph()
         result = self._build_functions(async_context, build_graph)
-        result.update(self._build_layers(build_graph))
+        result.update(self._build_layers(async_context, build_graph))
 
         if self._parallel:
             async_results = async_context.run_async()
@@ -176,9 +176,9 @@ class ApplicationBuilder:
         function_build_results = {}
 
         if self._cached:
-            build_function = self._build_unique_definition_cached
+            build_function = self._build_single_function_definition_cached
         else:
-            build_function = self._build_unique_definition
+            build_function = self._build_single_function_definition
 
         for build_definition in build_graph.get_function_build_definitions():
             if self._parallel:
@@ -188,7 +188,7 @@ class ApplicationBuilder:
 
         return function_build_results
 
-    def _build_unique_definition_cached(self, build_definition):
+    def _build_single_function_definition_cached(self, build_definition):
         """
         If the build for a unique definition was cached before and the source code is not changed, copy the build
         artifact directly to paths of all resources with the same unique definition
@@ -203,7 +203,7 @@ class ApplicationBuilder:
         if not cache_function_dir.exists() or build_definition.get_source_md5() != source_md5:
             LOG.info("Cache is invalid, running build and copying resources to build definition of %s",
                      build_definition.get_uuid())
-            build_result = self._build_unique_definition(build_definition)
+            build_result = self._build_single_function_definition(build_definition)
             function_build_results.update(build_result)
 
             if cache_function_dir.exists():
@@ -225,7 +225,7 @@ class ApplicationBuilder:
 
         return function_build_results
 
-    def _build_unique_definition(self, build_definition):
+    def _build_single_function_definition(self, build_definition):
         """
         Build the unique definition and then copy the artifact to paths of all resources with the same unique definition
         """
@@ -250,7 +250,7 @@ class ApplicationBuilder:
                 function_results[function.name] = artifacts_dir
         return function_results
 
-    def _build_layers(self, build_graph):
+    def _build_layers(self, async_context, build_graph):
         layer_build_results = {}
 
         if self._cached:
@@ -259,7 +259,10 @@ class ApplicationBuilder:
             build_layer = self._build_single_layer_definition
 
         for layer_definition in build_graph.get_layer_build_definitions():
-            layer_build_results.update(build_layer(layer_definition))
+            if self._parallel:
+                async_context.add_async_task(build_layer, tuple([layer_definition]))
+            else:
+                layer_build_results.update(build_layer(layer_definition))
 
         return layer_build_results
 

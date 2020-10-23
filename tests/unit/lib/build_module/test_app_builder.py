@@ -8,7 +8,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from pathlib import Path
 
-from samcli.lib.build.build_graph import BuildDefinition
+from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
@@ -42,7 +42,7 @@ class TestApplicationBuilder_build(TestCase):
         build_layer_mock = Mock()
 
         def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes):
-            return {layer_name: f"{layer_name}_location"}
+            return f"{layer_name}_location"
 
         build_layer_mock.side_effect = build_layer_return
 
@@ -87,10 +87,10 @@ class TestApplicationBuilder_build(TestCase):
     def test_should_generate_build_graph(self, persist_mock):
         build_graph = self.builder._get_build_graph()
 
-        self.assertTrue(len(build_graph.get_build_definitions()), 2)
+        self.assertTrue(len(build_graph.get_function_build_definitions()), 2)
 
         all_functions_in_build_graph = []
-        for build_definition in build_graph.get_build_definitions():
+        for build_definition in build_graph.get_function_build_definitions():
             for function in build_definition.functions:
                 all_functions_in_build_graph.append(function)
 
@@ -158,16 +158,20 @@ class TestApplicationBuilder_build(TestCase):
         async_context_mock.return_value.run_async.return_value = mock_return
 
         build_definitions_mock = Mock()
-        build_definitions_mock.get_build_definitions.return_value = [
-            BuildDefinition("runtime", "codeuri", {}),
-            BuildDefinition("runtime", "codeuri", {}),
+        build_definitions_mock.get_function_build_definitions.return_value = [
+            FunctionBuildDefinition("runtime", "codeuri", {}),
+            FunctionBuildDefinition("runtime", "codeuri", {}),
+        ]
+        build_definitions_mock.get_layer_build_definitions.return_value = [
+            LayerBuildDefinition("layer1", "codeuri", "build_method", []),
+            LayerBuildDefinition("layer2", "codeuri", "build_method", []),
         ]
         build_graph_mock = Mock()
         build_graph_mock.return_value = build_definitions_mock
 
         builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir", parallel=True)
         builder._get_build_graph = build_graph_mock
-        builder._build_unique_definition = Mock()
+        builder._build_single_function_definition = Mock()
 
         build_result = builder.build()
 
@@ -179,10 +183,10 @@ class TestApplicationBuilder_build(TestCase):
 
         async_context_mock.return_value.add_async_task.assert_has_calls(
             [
-                call(builder._build_unique_definition, ANY),
-                call(builder._build_unique_definition, ANY),
-                call(builder._build_layer, ANY),
-                call(builder._build_layer, ANY),
+                call(builder._build_single_function_definition, ANY),
+                call(builder._build_single_function_definition, ANY),
+                call(builder._build_single_layer_definition, ANY),
+                call(builder._build_single_layer_definition, ANY),
             ]
         )
 
