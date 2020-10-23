@@ -36,16 +36,29 @@ async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
     async_tasks = []
     results = []
 
+    LOG.debug("Async execution started")
+
     for task in tasks:
         # loop in all tasks and pass them to the executor
+        LOG.debug("Invoking function %s", str(task.function))
         async_tasks.append(event_loop.run_in_executor(None, task.function, *task.args))
+
+    LOG.debug("Waiting for async results")
 
     for result in await asyncio.gather(*async_tasks, return_exceptions=True):
         # for each task, wait for them to complete
         if isinstance(result, Exception):
+            LOG.debug("Exception raised during the execution")
             # if the result is a type of Exception, stop the event loop and raise it back to caller
             raise result
         results.append(result)
+
+    LOG.debug("Async execution completed")
+
+    # flush all loggers which is printed during async execution
+    if logging.root and logging.root.handlers:
+        for handler in logging.root.handlers:
+            handler.flush()
 
     return results
 

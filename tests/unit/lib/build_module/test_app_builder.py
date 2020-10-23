@@ -8,6 +8,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 from pathlib import Path
 
+from samcli.lib.build.build_graph import BuildDefinition
 from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
@@ -40,6 +41,11 @@ class TestApplicationBuilder_build(TestCase):
         build_function_mock = Mock()
         build_layer_mock = Mock()
 
+        def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes):
+            return {layer_name: f"{layer_name}_location"}
+
+        build_layer_mock.side_effect = build_layer_return
+
         self.builder._build_function = build_function_mock
         self.builder._build_layer = build_layer_mock
 
@@ -50,8 +56,8 @@ class TestApplicationBuilder_build(TestCase):
             {
                 self.func1.name: os.path.join("builddir", self.func1.name),
                 self.func2.name: os.path.join("builddir", self.func2.name),
-                self.layer1.name: build_layer_mock.return_value,
-                self.layer2.name: build_layer_mock.return_value,
+                self.layer1.name: f"{self.layer1.name}_location",
+                self.layer2.name: f"{self.layer2.name}_location",
             },
         )
 
@@ -136,6 +142,51 @@ class TestApplicationBuilder_build(TestCase):
             ],
             any_order=True,
         )
+
+    @patch("samcli.lib.build.app_builder.AsyncContext")
+    def test_build_with_parallel(self, async_context_mock):
+        resources_to_build_collector = ResourcesToBuildCollector()
+        resources_to_build_collector.add_functions([Mock(), Mock()])
+        resources_to_build_collector.add_layers([Mock(), Mock()])
+
+        mock_return = [
+            {"function1": "build_location_1"},
+            {"function2": "build_location_2"},
+            {"layer1": "build_location_1"},
+            {"layer2": "build_location_2"},
+        ]
+        async_context_mock.return_value.run_async.return_value = mock_return
+
+        build_definitions_mock = Mock()
+        build_definitions_mock.get_build_definitions.return_value = [
+            BuildDefinition("runtime", "codeuri", {}),
+            BuildDefinition("runtime", "codeuri", {}),
+        ]
+        build_graph_mock = Mock()
+        build_graph_mock.return_value = build_definitions_mock
+
+        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir", parallel=True)
+        builder._get_build_graph = build_graph_mock
+        builder._build_unique_definition = Mock()
+
+        build_result = builder.build()
+
+        expected_result = {}
+        for mock_return_result in mock_return:
+            expected_result.update(mock_return_result)
+
+        self.assertEqual(build_result, expected_result)
+
+        async_context_mock.return_value.add_async_task.assert_has_calls(
+            [
+                call(builder._build_unique_definition, ANY),
+                call(builder._build_unique_definition, ANY),
+                call(builder._build_layer, ANY),
+                call(builder._build_layer, ANY),
+            ]
+        )
+
+        async_context_mock.return_value.run_async.assert_has_calls([call()])
 
 
 class TestApplicationBuilderForLayerBuild(TestCase):

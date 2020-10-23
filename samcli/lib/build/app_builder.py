@@ -20,6 +20,7 @@ from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from samcli.lib.utils.async_utils import AsyncContext
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 from ..utils.hash import dir_checksum
 
@@ -125,19 +126,19 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
+
+        async_context = None
+        if self._parallel:
+            async_context = AsyncContext()
+
         build_graph = self._get_build_graph()
-        result = self._build_functions(build_graph)
+        result = self._build_functions(async_context, build_graph)
         result.update(self._build_layers(build_graph))
 
-        # for layer in self._resources_to_build.layers:
-        #     LOG.info("Building layer '%s'", layer.name)
-        #     if layer.build_method is None:
-        #         raise MissingBuildMethodException(
-        #             f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
-        #     result[layer.name] = self._build_layer(layer.name,
-        #                                            layer.codeuri,
-        #                                            layer.build_method,
-        #                                            layer.compatible_runtimes)
+        if self._parallel:
+            async_results = async_context.run_async()
+            for async_result in async_results:
+                result.update(async_result)
 
         if self._cached:
             build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
@@ -168,7 +169,7 @@ class ApplicationBuilder:
         build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    def _build_functions(self, build_graph):
+    def _build_functions(self, async_context, build_graph):
         """
         Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
         """
@@ -180,7 +181,10 @@ class ApplicationBuilder:
             build_function = self._build_unique_definition
 
         for build_definition in build_graph.get_function_build_definitions():
-            function_build_results.update(build_function(build_definition))
+            if self._parallel:
+                async_context.add_async_task(build_function, tuple([build_definition]))
+            else:
+                function_build_results.update(build_function(build_definition))
 
         return function_build_results
 
