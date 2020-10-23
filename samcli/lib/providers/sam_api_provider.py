@@ -21,6 +21,7 @@ class SamApiProvider(CfnBaseApiProvider):
     _EVENT_METHOD = "Method"
     _EVENT_TYPE = "Type"
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
+    IMPLICIT_HTTP_API_RESOURCE_ID = "ServerlessHttpApi"
 
     def extract_resources(self, resources, collector, cwd=None):
         """
@@ -190,10 +191,15 @@ class SamApiProvider(CfnBaseApiProvider):
         path = event_properties.get(SamApiProvider._EVENT_PATH)
         method = event_properties.get(SamApiProvider._EVENT_METHOD)
 
-        # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
-        # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
-        # "Ref" of the logicalID
-        api_resource_id = event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
+        # An RESTAPI (HTTPAPI) Event, can have RestApiId (ApiId) property which designates the resource that owns this
+        # API. If omitted, the API is owned by Implicit API resource. This could either be a direct resource logical ID
+        # or a "Ref" of the logicalID
+        api_resource_id = (
+            event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
+            if (event_type == SamApiProvider._EVENT_TYPE_API)
+            else event_properties.get("ApiId", SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID)
+        )
+
         if isinstance(api_resource_id, dict) and "Ref" in api_resource_id:
             api_resource_id = api_resource_id["Ref"]
 
@@ -235,7 +241,10 @@ class SamApiProvider(CfnBaseApiProvider):
         # Store implicit and explicit APIs separately in order to merge them later in the correct order
         # Implicit APIs are defined on a resource with logicalID ServerlessRestApi
         for logical_id, apis in collector:
-            if logical_id == SamApiProvider.IMPLICIT_API_RESOURCE_ID:
+            if (
+                logical_id == SamApiProvider.IMPLICIT_API_RESOURCE_ID
+                or logical_id == SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID
+            ):
                 implicit_routes.extend(apis)
             else:
                 explicit_routes.extend(apis)

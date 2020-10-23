@@ -759,7 +759,7 @@ class TestCloudFormationProviderWithApiGatewayV2(TestCase):
 
     def test_with_quick_create_default_route(self):
         expected_routes = [
-            Route(
+           Route(
                 path="$default",
                 methods=["X-AMAZON-APIGATEWAY-ANY-METHOD"],
                 function_name="SamFunc1",
