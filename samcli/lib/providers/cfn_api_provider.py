@@ -327,7 +327,7 @@ class CfnApiProvider(CfnBaseApiProvider):
 
         api_id = properties.get("ApiId")
         if not api_id:
-            raise InvalidSamTemplateException("The AWS::ApiGatewayV2::Stage must have a RestApiId property")
+            raise InvalidSamTemplateException("The AWS::ApiGatewayV2::Stage must have a ApiId property")
         api_resource_type = resources.get(api_id, {}).get("Type")
         if api_resource_type != CfnApiProvider.APIGATEWAY_V2_API:
             raise InvalidSamTemplateException(
