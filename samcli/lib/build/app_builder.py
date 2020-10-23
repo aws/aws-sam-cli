@@ -72,8 +72,8 @@ class ApplicationBuilder:
 
         Parameters
         ----------
-        functions_to_build: Iterator
-            Iterator that can vend out functions available in the SAM template
+        resources_to_build: Iterator
+            Iterator that can vend out resources available in the SAM template
 
         build_dir : str
             Path to the directory where we will be storing built artifacts
@@ -129,18 +129,9 @@ class ApplicationBuilder:
         result = self._build_functions(build_graph)
         result.update(self._build_layers(build_graph))
 
-        # for layer in self._resources_to_build.layers:
-        #     LOG.info("Building layer '%s'", layer.name)
-        #     if layer.build_method is None:
-        #         raise MissingBuildMethodException(
-        #             f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
-        #     result[layer.name] = self._build_layer(layer.name,
-        #                                            layer.codeuri,
-        #                                            layer.build_method,
-        #                                            layer.compatible_runtimes)
-
+        # clean the redundant cached folder
         if self._cached:
-            build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
+            build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
             uuids = {bd.uuid for bd in build_graph.get_function_build_definitions()}
             uuids.update({ld.uuid for ld in build_graph.get_layer_build_definitions()})
             for cache_dir in pathlib.Path(self._cache_dir).iterdir():
@@ -151,7 +142,8 @@ class ApplicationBuilder:
 
     def _get_build_graph(self):
         """
-        Converts list of functions into a build graph, where we can iterate on each unique build and trigger build
+        Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
+        build
         :return: BuildGraph, which represents list of unique build definitions
         """
         build_graph = BuildGraph(self._build_dir)
@@ -165,7 +157,7 @@ class ApplicationBuilder:
             layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
-        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
+        build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
     def _build_functions(self, build_graph):
@@ -187,7 +179,7 @@ class ApplicationBuilder:
     def _build_unique_definition_cached(self, build_definition):
         """
         If the build for a unique definition was cached before and the source code is not changed, copy the build
-        artifact directly to paths of all resources with the same unique definition
+        artifact directly to the corresponding function folders with the same unique definition
         Else start a clean build and copy the build artifact directly to all paths with the same unique definition, as
         well as cache the build
         """
@@ -197,7 +189,7 @@ class ApplicationBuilder:
         function_build_results = {}
 
         if not cache_function_dir.exists() or build_definition.get_source_md5() != source_md5:
-            LOG.info("Cache is invalid, running build and copying resources to build definition of %s",
+            LOG.info("Cache is invalid, running build and copying resources to function build definition of %s",
                      build_definition.get_uuid())
             build_result = self._build_unique_definition(build_definition)
             function_build_results.update(build_result)
@@ -210,7 +202,7 @@ class ApplicationBuilder:
                 osutils.copytree(value, cache_function_dir)
                 break
         else:
-            LOG.info("Valid cache found, copying previously built resources from build definition of %s",
+            LOG.info("Valid cache found, copying previously built resources from function build definition of %s",
                      build_definition.get_uuid())
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
@@ -223,7 +215,7 @@ class ApplicationBuilder:
 
     def _build_unique_definition(self, build_definition):
         """
-        Build the unique definition and then copy the artifact to paths of all resources with the same unique definition
+        Build the unique definition and then copy the artifact to the corresponding function folder
         """
         function_results = {}
         LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
@@ -247,6 +239,9 @@ class ApplicationBuilder:
         return function_results
 
     def _build_layers(self, build_graph):
+        """
+        Iterates through build graph and runs each unique build and copies outcome to the corresponding layer folder
+        """
         layer_build_results = {}
 
         if self._cached:
@@ -260,6 +255,12 @@ class ApplicationBuilder:
         return layer_build_results
 
     def _build_single_layer_definition_cached(self, layer_definition):
+        """
+        If the build for a unique definition was cached before and the source code is not changed, copy the build
+        artifact directly to to the corresponding layer folder with the same unique definition
+        Else start a clean build and copy the build artifact directly to the corresponding layer folder as well as
+        cache the build
+        """
         code_dir = str(pathlib.Path(self._base_dir, layer_definition.codeuri).resolve())
         source_md5 = dir_checksum(code_dir)
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.get_uuid())
@@ -290,6 +291,9 @@ class ApplicationBuilder:
         return layer_build_result
 
     def _build_single_layer_definition(self, layer_definition):
+        """
+        Build the unique definition and then copy the artifact to the corresponding layer folder
+        """
         layer = layer_definition.layer
         LOG.info("Building layer '%s'", layer.name)
         if layer.build_method is None:

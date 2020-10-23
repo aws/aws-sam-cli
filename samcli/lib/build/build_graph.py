@@ -32,10 +32,10 @@ class InvalidBuildGraphException(Exception):
 
 def _function_build_definition_to_toml_table(function_build_definition):
     """
-    Converts given build_definition into toml table representation
+    Converts given function_build_definition into toml table representation
 
-    :param build_definition: BuildDefinition
-    :return: toml table of BuildDefinition
+    :param function_build_definition: FunctionBuildDefinition
+    :return: toml table of FunctionBuildDefinition
     """
     toml_table = tomlkit.table()
     toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
@@ -52,11 +52,11 @@ def _function_build_definition_to_toml_table(function_build_definition):
 
 def _toml_table_to_function_build_definition(uuid, toml_table):
     """
-    Converts given toml table into BuildDefinition instance
+    Converts given toml table into FunctionBuildDefinition instance
 
-    :param uuid: key of the toml_table instance
-    :param toml_table: build definition as toml table
-    :return: BuildDefinition of given toml table
+    :param uuid: key of the function toml_table instance
+    :param toml_table: function build definition as toml table
+    :return: FunctionBuildDefinition of given toml table
     """
     function_build_definition = FunctionBuildDefinition(toml_table[RUNTIME_FIELD],
                                        toml_table[CODE_URI_FIELD],
@@ -69,10 +69,10 @@ def _toml_table_to_function_build_definition(uuid, toml_table):
 
 def _layer_build_definition_to_toml_table(layer_build_definition):
     """
-    Converts given build_definition into toml table representation
+    Converts given layer_build_definition into toml table representation
 
-    :param build_definition: BuildDefinition
-    :return: toml table of BuildDefinition
+    :param layer_build_definition: LayerBuildDefinition
+    :return: toml table of LayerBuildDefinition
     """
     toml_table = tomlkit.table()
     toml_table[LAYER_NAME_FIELD] = layer_build_definition.name
@@ -87,11 +87,11 @@ def _layer_build_definition_to_toml_table(layer_build_definition):
 
 def _toml_table_to_layer_build_definition(uuid, toml_table):
     """
-    Converts given toml table into BuildDefinition instance
+    Converts given toml table into LayerBuildDefinition instance
 
     :param uuid: key of the toml_table instance
-    :param toml_table: build definition as toml table
-    :return: BuildDefinition of given toml table
+    :param toml_table: layer build definition as toml table
+    :return: LayerBuildDefinition of given toml table
     """
     layer_build_definition = LayerBuildDefinition(toml_table[LAYER_NAME_FIELD],
                                        toml_table[CODE_URI_FIELD],
@@ -127,36 +127,49 @@ class BuildGraph:
 
     def put_function_build_definition(self, function_build_definition, function):
         """
-        Puts the newly read build definition into existing build graph.
-        If graph already contains a build definition which is same as the newly passed one, then it will add
+        Puts the newly read function build definition into existing build graph.
+        If graph already contains a function build definition which is same as the newly passed one, then it will add
         the function to the existing one, discarding the new one
 
-        If graph doesn't contain such unique build definition, it will be added to the current build graph
+        If graph doesn't contain such unique function build definition, it will be added to the current build graph
 
-        :param build_definition: build definition which is newly read from template.yaml file
-        :param function: function details for this build definition
+        :param function_build_definition: function build definition which is newly read from template.yaml file
+        :param function: function details for this function build definition
         """
         if function_build_definition in self._function_build_definitions:
             previous_build_definition = self._function_build_definitions[self._function_build_definitions.index(function_build_definition)]
-            LOG.debug("Same build definition found, adding function (Previous: %s, Current: %s, Function: %s)",
+            LOG.debug("Same function build definition found, adding function (Previous: %s, Current: %s, Function: %s)",
                       previous_build_definition, function_build_definition, function)
             previous_build_definition.add_function(function)
         else:
-            LOG.debug("Unique build definition found, adding as new (Build Definition: %s, Function: %s)",
+            LOG.debug("Unique function build definition found, adding as new (Function Build Definition: %s, Function: %s)",
                       function_build_definition, function)
             function_build_definition.add_function(function)
             self._function_build_definitions.append(function_build_definition)
 
     def put_layer_build_definition(self, layer_build_definition, layer):
+        """
+        Puts the newly read layer build definition into existing build graph.
+        If graph already contains a layer build definition which is same as the newly passed one, then it will add
+        the layer to the existing one, discarding the new one
+
+        If graph doesn't contain such unique layer build definition, it will be added to the current build graph
+
+        :param layer_build_definition: layer build definition which is newly read from template.yaml file
+        :param layer: layer details for this layer build definition
+        """
         if layer_build_definition in self._layer_build_definitions:
             previous_build_definition = self._layer_build_definitions[self._layer_build_definitions.index(layer_build_definition)]
+            LOG.debug("Same Layer build definition found, adding layer (Previous: %s, Current: %s, Layer: %s)",
+                      previous_build_definition, layer_build_definition, layer)
             previous_build_definition.layer = layer
         else:
-            LOG.debug("Unique build definition found, adding as new layer build definition")
+            LOG.debug("Unique Layer build definition found, adding as new (Layer Build Definition: %s, Layer: %s)",
+                      layer_build_definition, layer)
             layer_build_definition.layer = layer
             self._layer_build_definitions.append(layer_build_definition)
 
-    def clean_redundant_functions_and_update(self, persist):
+    def clean_redundant_definitions_and_update(self, persist):
         """
         Removes build definitions which doesn't have any function in it, which means these build definitions
         are no longer used, and they can be deleted
@@ -182,19 +195,19 @@ class BuildGraph:
             document = tomlkit.loads(txt)
         except OSError:
             LOG.debug("No previous build graph found, generating new one")
-        build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, [])
-        for build_definition_key in build_definitions_table:
-            build_definition = _toml_table_to_function_build_definition(build_definition_key,
-                                                               build_definitions_table[
-                                                                   build_definition_key])
-            self._function_build_definitions.append(build_definition)
+        function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, [])
+        for function_build_definition_key in function_build_definitions_table:
+            function_build_definition = _toml_table_to_function_build_definition(function_build_definition_key,
+                                                               function_build_definitions_table[
+                                                                   function_build_definition_key])
+            self._function_build_definitions.append(function_build_definition)
 
-        build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, [])
-        for build_definition_key in build_definitions_table:
-            build_definition = _toml_table_to_layer_build_definition(build_definition_key,
-                                                                     build_definitions_table[
-                                                                         build_definition_key])
-            self._layer_build_definitions.append(build_definition)
+        layer_build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, [])
+        for layer_build_definition_key in layer_build_definitions_table:
+            layer_build_definition = _toml_table_to_layer_build_definition(layer_build_definition_key,
+                                                                     layer_build_definitions_table[
+                                                                         layer_build_definition_key])
+            self._layer_build_definitions.append(layer_build_definition)
 
         # return self._build_definitions
 
@@ -203,6 +216,7 @@ class BuildGraph:
         Writes build definition details into build.toml file, which would be used by the next build.
         build.toml file will contain the same information as build graph,
         function details will only be preserved as function names
+        layer details will only be preserved as layer names
         """
         # convert build definition list into toml table
         function_build_definitions_table = tomlkit.table()
@@ -228,6 +242,10 @@ class BuildGraph:
 
 
 class AbstractBuildDefinition:
+    """
+    Abstract class for build definition
+    Build definition holds information about each unique build
+    """
 
     def __init__(self, source_md5):
         self.uuid = str(uuid4())
@@ -244,6 +262,9 @@ class AbstractBuildDefinition:
 
 
 class LayerBuildDefinition(AbstractBuildDefinition):
+    """
+    LayerBuildDefinition holds information about each unique layer build
+    """
     def __init__(self, name, codeuri, build_method, compatible_runtimes, source_md5=''):
         super(LayerBuildDefinition, self).__init__(source_md5)
         self.name = name
@@ -254,9 +275,15 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
     def __str__(self):
         return f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, " \
-               f"{self.build_method}, {self.compatible_runtimes}, {self.layer})"
+               f"{self.build_method}, {self.compatible_runtimes}, {self.layer.name})"
 
     def __eq__(self, other):
+        """
+        Checks uniqueness of the layer build definition
+
+        :param other: other layer build definition to compare
+        :return: True if both layer build definitions has same following properties, False otherwise
+        """
         if not isinstance(other, LayerBuildDefinition):
             return False
 
@@ -268,7 +295,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
 
 class FunctionBuildDefinition(AbstractBuildDefinition):
     """
-    Build definition holds information about each unique build
+    LayerBuildDefinition holds information about each unique function build
     """
 
     def __init__(self, runtime, codeuri, metadata, source_md5=''):
@@ -299,10 +326,10 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
 
     def __eq__(self, other):
         """
-        Checks uniqueness of the build definition
+        Checks uniqueness of the function build definition
 
-        :param other: other build definition to compare
-        :return: True if both build definitions has same following properties, False otherwise
+        :param other: other function build definition to compare
+        :return: True if both function build definitions has same following properties, False otherwise
         """
         if not isinstance(other, FunctionBuildDefinition):
             return False
