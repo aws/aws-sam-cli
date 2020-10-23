@@ -1138,3 +1138,105 @@ class TestUnresolvedCorsIntrinsic(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cfn-quick-created-http-api-with-default-route.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_default_route_is_created_and_api_is_reachable(self):
+        response = requests.patch(self.url + "/anypath/anypath", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_cors_options(self):
+        """
+        This tests that the Cors are added to option requests in the swagger template
+        """
+        response = requests.options(self.url + "/anypath/anypath", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://example.com")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "x-apigateway-header")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
+
+
+class TestCFNTemplateHttpApiWithNormalAndDefaultRoutes(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cfn-http-api-with-normal-and-default-routes.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_default_route_is_created_and_api_is_reachable(self):
+        response = requests.post(self.url + "/anypath/anypath", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_normal_route_is_created_and_api_is_reachable_and_payload_version_is_1(self):
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "1.0")
+        self.assertIsNotNone(response_data.get("multiValueHeaders"))
+        self.assertIsNone(response_data.get("cookies"))
+
+
+class TestCFNTemplateQuickCreatedHttpApiWithOneRoute(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cfn-quick-created-http-api-with-one-route.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_route_is_created_and_api_is_reachable_and_default_payload_version_is_2(self):
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "2.0")
+        self.assertIsNone(response_data.get("multiValueHeaders"))
+        self.assertIsNotNone(response_data.get("cookies"))
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_default_stage_name(self):
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("requestContext", {}).get("stage"), "$default")
+
+
+class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cfn-http-api-with-swagger-body.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_swagger_got_parsed_and_api_is_reachable_and_payload_version_is_2(self):
+        response = requests.get(self.url + "/echoeventbody", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "2.0")
+        self.assertIsNone(response_data.get("multiValueHeaders"))
+        self.assertIsNotNone(response_data.get("cookies"))
+
