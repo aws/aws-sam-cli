@@ -140,15 +140,7 @@ class ApplicationBuilder:
             for async_result in async_results:
                 result.update(async_result)
 
-        # clean the redundant cached folder
-        if self._cached:
-            build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
-            uuids = {bd.uuid for bd in build_graph.get_function_build_definitions()}
-            uuids.update({ld.uuid for ld in build_graph.get_layer_build_definitions()})
-            for cache_dir in pathlib.Path(self._cache_dir).iterdir():
-                if cache_dir.name not in uuids:
-                    shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
-
+        self._clean_redundant_cached(build_graph)
         return result
 
     def _get_build_graph(self):
@@ -170,6 +162,18 @@ class ApplicationBuilder:
 
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
+
+    def _clean_redundant_cached(self, build_graph):
+        """
+        clean the redundant cached folder
+        """
+        if self._cached:
+            build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
+            uuids = {bd.uuid for bd in build_graph.get_function_build_definitions()}
+            uuids.update({ld.uuid for ld in build_graph.get_layer_build_definitions()})
+            for cache_dir in pathlib.Path(self._cache_dir).iterdir():
+                if cache_dir.name not in uuids:
+                    shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
 
     def _build_functions(self, async_context, build_graph):
         """
