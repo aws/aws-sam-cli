@@ -96,7 +96,7 @@ $ sam build && sam package --s3-bucket <bucketname>
     "--parallel",
     "-p",
     is_flag=True,
-    help="Use this flag to run builds of each function/layer in parallel using asyncio",
+    help="Use this flag to run builds of each function/layer in parallel",
 )
 @click.option(
     "--manifest",
