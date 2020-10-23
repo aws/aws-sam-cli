@@ -113,6 +113,8 @@ class TestApiGatewayService(TestCase):
         self.http_service._get_current_route.methods = []
         self.http_service._construct_event = Mock()
 
+        self.http_service._construct_event_http = MagicMock()
+
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
         self.http_service._parse_lambda_output = parse_output_mock
@@ -279,7 +281,7 @@ class TestApiGatewayService(TestCase):
 
     @patch("samcli.local.apigw.local_apigw_service.Flask")
     def test_create_creates_flask_app_with_url_rules(self, flask):
-        app_mock = Mock()
+        app_mock = MagicMock()
         flask.return_value = app_mock
 
         self.api_service._construct_error_handling = Mock()
