@@ -314,6 +314,7 @@ class TestApiGatewayLambdaEvent(TestCase):
         )
 
         expected = {
+            "version": "1.0",
             "httpMethod": "request_method",
             "body": "request_data",
             "resource": "resource",
@@ -334,6 +335,7 @@ class TestApiGatewayLambdaEvent(TestCase):
         event = ApiGatewayLambdaEvent()
 
         expected = {
+            "version": "1.0",
             "httpMethod": None,
             "body": None,
             "resource": None,
