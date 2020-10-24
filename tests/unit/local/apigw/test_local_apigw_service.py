@@ -282,7 +282,7 @@ class TestApiGatewayService(TestCase):
 
     @patch("samcli.local.apigw.local_apigw_service.Flask")
     def test_create_creates_flask_app_with_url_rules(self, flask):
-        app_mock = Mock()
+        app_mock = MagicMock()
         app_mock.config = {}
         flask.return_value = app_mock
 
@@ -726,17 +726,16 @@ class TestService_construct_event(TestCase):
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
-        self.assertEqual(actual_event_json, self.expected_dict)
+        self.assertEqual(actual_event_json["body"], self.expected_dict["body"])
 
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
-        self.expected_dict["body"] = None
 
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
-        self.assertEqual(actual_event_json, self.expected_dict)
+        self.assertEqual(actual_event_json["body"], None)
 
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_encode")
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
@@ -746,15 +745,13 @@ class TestService_construct_event(TestCase):
         base64_body = base64.b64encode(binary_body).decode("utf-8")
 
         self.request_mock.get_data.return_value = binary_body
-        self.expected_dict["body"] = base64_body
-        self.expected_dict["isBase64Encoded"] = True
-        self.maxDiff = None
 
         actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
-        self.assertEqual(actual_event_json, self.expected_dict)
+        self.assertEqual(actual_event_json["body"], base64_body)
+        self.assertEqual(actual_event_json["isBase64Encoded"], True)
 
     def test_event_headers_with_empty_list(self):
         request_mock = Mock()
