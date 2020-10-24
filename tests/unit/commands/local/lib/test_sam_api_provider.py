@@ -117,6 +117,24 @@ class TestSamApiProviderWithImplicitApis(TestCase):
 
         self.assertEqual(provider.routes, [])
 
+        template1 = {
+            "Resources": {
+                "Go1xFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "./go1.x/main.zip",
+                        "Runtime": "go1.x",
+                        "Handler": "main",
+                        "Timeout": 300,
+                    },
+                }
+            }
+        }
+
+        provider1 = ApiProvider(template1)
+
+        self.assertEqual(provider1.routes, [])
+
     def test_provider_with_no_serverless_function(self):
         template = {
             "Resources": {

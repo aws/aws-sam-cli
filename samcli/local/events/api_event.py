@@ -193,6 +193,7 @@ class ApiGatewayLambdaEvent:
         if not isinstance(stage_variables, dict) and stage_variables is not None:
             raise TypeError("'stage_variables' must be of type dict or None")
 
+        self.version = "1.0"
         self.http_method = http_method
         self.body = body
         self.resource = resource
@@ -217,6 +218,7 @@ class ApiGatewayLambdaEvent:
             request_context_dict = self.request_context.to_dict()
 
         json_dict = {
+            "version": self.version,
             "httpMethod": self.http_method,
             "body": self.body if self.body else None,
             "resource": self.resource,

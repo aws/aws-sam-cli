@@ -6,6 +6,7 @@ import base64
 
 from flask import Flask, request
 from werkzeug.datastructures import Headers
+from werkzeug.routing import BaseConverter
 
 from samcli.lib.providers.provider import Cors
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
@@ -36,18 +37,21 @@ class Route:
     HTTP = "HttpApi"
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
-    def __init__(self, function_name, path, methods, event_type=API):
+    def __init__(self, function_name, path, methods, event_type=API, payload_format_version=None):
         """
         Creates an ApiGatewayRoute
 
         :param list(str) methods: http method
         :param function_name: Name of the Lambda function this API is connected to
         :param str path: Path off the base url
+        :param str event_type: Type of the event. "Api" or "HttpApi"
+        :param str payload_format_version: version of payload format
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
         self.path = path
         self.event_type = event_type
+        self.payload_format_version = payload_format_version
 
     def __eq__(self, other):
         return (
@@ -75,6 +79,16 @@ class Route:
         if "ANY" in methods:
             return self.ANY_HTTP_METHODS
         return methods
+
+
+class CatchAllPathConverter(BaseConverter):
+    regex = ".+"
+
+    def to_python(self, value):
+        return value
+
+    def to_url(self, value):
+        return value
 
 
 class LocalApigwService(BaseLocalService):
@@ -120,13 +134,20 @@ class LocalApigwService(BaseLocalService):
             static_folder=self.static_dir,  # Serve static files from this directory
         )
 
+        # add converter to support catch-all route
+        self._app.url_map.converters["path"] = CatchAllPathConverter
+
         # Prevent the dev server from emitting headers that will make the browser cache response by default
         self._app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
+
         # This will normalize all endpoints and strip any trailing '/'
         self._app.url_map.strict_slashes = False
-
+        default_route = None
         for api_gateway_route in self.api.routes:
+            if api_gateway_route.path == "$default":
+                default_route = api_gateway_route
+                continue
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
             for route_key in self._generate_route_keys(api_gateway_route.methods, path):
                 self._dict_of_routes[route_key] = api_gateway_route
@@ -138,7 +159,44 @@ class LocalApigwService(BaseLocalService):
                 provide_automatic_options=False,
             )
 
+        if default_route:
+            LOG.debug("add catch-all route")
+            try:
+                rule = next(self._app.url_map.iter_rules("/"))
+                self._add_catch_all_path(
+                    [method for method in Route.ANY_HTTP_METHODS if method not in rule.methods], "/", default_route
+                )
+            except KeyError:
+                self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/", default_route)
+
+            self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)
+
         self._construct_error_handling()
+
+    def _add_catch_all_path(self, methods, path, route):
+        """
+        Add the catch all route to the _app and the dictionary of routes.
+
+        :param list(str) methods: List of HTTP Methods
+        :param str path: Path off the base url
+        :param Route route: contains the default route configurations
+        """
+
+        self._app.add_url_rule(
+            path,
+            endpoint=path,
+            view_func=self._request_handler,
+            methods=methods,
+            provide_automatic_options=False,
+        )
+        for route_key in self._generate_route_keys(methods, path):
+            self._dict_of_routes[route_key] = Route(
+                function_name=route.function_name,
+                path=path,
+                methods=methods,
+                event_type=Route.HTTP,
+                payload_format_version=route.payload_format_version,
+            )
 
     def _generate_route_keys(self, methods, path):
         """
@@ -201,7 +259,7 @@ class LocalApigwService(BaseLocalService):
             return self.service_response("", headers, 200)
 
         try:
-            if route.event_type == Route.HTTP:
+            if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
                 event = self._construct_event_http(
                     request,
                     self.port,
@@ -339,7 +397,7 @@ class LocalApigwService(BaseLocalService):
 
     @staticmethod
     def _invalid_apig_response_keys(output):
-        allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded"}
+        allowable = {"statusCode", "body", "headers", "multiValueHeaders", "isBase64Encoded", "cookies"}
         invalid_keys = output.keys() - allowable
         return invalid_keys
 

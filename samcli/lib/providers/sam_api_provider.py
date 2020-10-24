@@ -2,9 +2,6 @@
 
 import logging
 
-from six import string_types, integer_types
-
-from samcli.lib.providers.provider import Cors
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.local.apigw.local_apigw_service import Route
@@ -24,6 +21,7 @@ class SamApiProvider(CfnBaseApiProvider):
     _EVENT_METHOD = "Method"
     _EVENT_TYPE = "Type"
     IMPLICIT_API_RESOURCE_ID = "ServerlessRestApi"
+    IMPLICIT_HTTP_API_RESOURCE_ID = "ServerlessHttpApi"
 
     def extract_resources(self, resources, collector, cwd=None):
         """
@@ -133,175 +131,6 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_variables = stage_variables
         collector.cors = cors
 
-    def extract_cors(self, cors_prop):
-        """
-        Extract Cors property from AWS::Serverless::Api resource by reading and parsing Swagger documents. The result
-        is added to the Api.
-
-        Parameters
-        ----------
-        cors_prop : dict
-            Resource properties for Cors
-        """
-        cors = None
-        if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = self._get_cors_prop(cors_prop, "AllowMethods")
-            if allow_methods:
-                allow_methods = self.normalize_cors_allow_methods(allow_methods)
-            else:
-                allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
-
-            allow_origin = self._get_cors_prop(cors_prop, "AllowOrigin")
-            allow_headers = self._get_cors_prop(cors_prop, "AllowHeaders")
-            max_age = self._get_cors_prop(cors_prop, "MaxAge")
-
-            cors = Cors(
-                allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
-            )
-        elif cors_prop and isinstance(cors_prop, string_types):
-            allow_origin = cors_prop
-            if not (allow_origin.startswith("'") and allow_origin.endswith("'")):
-                raise InvalidSamDocumentException(
-                    "Cors Properties must be a quoted string " '(i.e. "\'*\'" is correct, but "*" is not).'
-                )
-            allow_origin = allow_origin.strip("'")
-
-            cors = Cors(
-                allow_origin=allow_origin,
-                allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
-                allow_headers=None,
-                max_age=None,
-            )
-        return cors
-
-    @staticmethod
-    def _get_cors_prop(cors_dict, prop_name):
-        """
-        Extract cors properties from dictionary and remove extra quotes.
-
-        Parameters
-        ----------
-        cors_dict : dict
-            Resource properties for Cors
-
-        Return
-        ------
-        A string with the extra quotes removed
-        """
-        prop = cors_dict.get(prop_name)
-        if prop:
-            if not isinstance(prop, string_types) or prop.startswith("!"):
-                LOG.warning(
-                    "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",
-                    prop_name,
-                )
-                return None
-
-            if not (prop.startswith("'") and prop.endswith("'")):
-                raise InvalidSamDocumentException(
-                    "{} must be a quoted string " '(i.e. "\'value\'" is correct, but "value" is not).'.format(prop_name)
-                )
-            prop = prop.strip("'")
-        return prop
-
-    def extract_cors_http(self, cors_prop):
-        """
-        Extract Cors property from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents. The result
-        is added to the HttpApi.
-
-        Parameters
-        ----------
-        cors_prop : dict
-            Resource properties for CorsConfiguration
-        """
-        cors = None
-        if cors_prop and isinstance(cors_prop, dict):
-            allow_methods = self._get_cors_prop_http(cors_prop, "AllowMethods", list)
-            if isinstance(allow_methods, list):
-                allow_methods = self.normalize_cors_allow_methods(allow_methods)
-            else:
-                allow_methods = ",".join(sorted(Route.ANY_HTTP_METHODS))
-
-            allow_origins = self._get_cors_prop_http(cors_prop, "AllowOrigins", list)
-            if isinstance(allow_origins, list):
-                allow_origins = ",".join(allow_origins)
-            allow_headers = self._get_cors_prop_http(cors_prop, "AllowHeaders", list)
-            if isinstance(allow_headers, list):
-                allow_headers = ",".join(allow_headers)
-            max_age = self._get_cors_prop_http(cors_prop, "MaxAge", integer_types)
-
-            cors = Cors(
-                allow_origin=allow_origins, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
-            )
-        elif cors_prop and isinstance(cors_prop, bool) and cors_prop:
-            cors = Cors(
-                allow_origin="*",
-                allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
-                allow_headers=None,
-                max_age=None,
-            )
-        return cors
-
-    @staticmethod
-    def _get_cors_prop_http(cors_dict, prop_name, expect_type):
-        """
-        Extract cors properties from dictionary.
-
-        Parameters
-        ----------
-        cors_dict : dict
-            Resource properties for Cors
-        prop_name : str
-            Property name
-        expect_type : type
-            Expect property type
-
-        Return
-        ------
-        Value with matching type
-        """
-        prop = cors_dict.get(prop_name)
-        if prop:
-            if not isinstance(prop, expect_type):
-                LOG.warning(
-                    "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",
-                    prop_name,
-                )
-                return None
-        return prop
-
-    @staticmethod
-    def normalize_cors_allow_methods(allow_methods):
-        """
-        Normalize cors AllowMethods and Options to the methods if it's missing.
-
-        Parameters
-        ----------
-        allow_methods : str
-            The allow_methods string provided in the query
-
-        Return
-        -------
-        A string with normalized route
-        """
-        if allow_methods == "*" or (isinstance(allow_methods, list) and "*" in allow_methods):
-            return ",".join(sorted(Route.ANY_HTTP_METHODS))
-        if isinstance(allow_methods, list):
-            methods = allow_methods
-        else:
-            methods = allow_methods.split(",")
-        normalized_methods = []
-        for method in methods:
-            normalized_method = method.strip().upper()
-            if normalized_method not in Route.ANY_HTTP_METHODS:
-                raise InvalidSamDocumentException("The method {} is not a valid CORS method".format(normalized_method))
-            normalized_methods.append(normalized_method)
-
-        if "OPTIONS" not in normalized_methods:
-            normalized_methods.append("OPTIONS")
-
-        return ",".join(sorted(normalized_methods))
-
     def _extract_routes_from_function(self, logical_id, function_resource, collector):
         """
         Fetches a list of routes configured for this SAM Function resource.
@@ -342,14 +171,16 @@ class SamApiProvider(CfnBaseApiProvider):
         for _, event in serverless_function_events.items():
             event_type = event.get(self._EVENT_TYPE)
             if event_type in [self._EVENT_TYPE_API, self._EVENT_TYPE_HTTP_API]:
-                route_resource_id, route = self._convert_event_route(function_logical_id, event.get("Properties"))
+                route_resource_id, route = self._convert_event_route(
+                    function_logical_id, event.get("Properties"), event.get(SamApiProvider._EVENT_TYPE)
+                )
                 collector.add_routes(route_resource_id, [route])
                 count += 1
 
         LOG.debug("Found '%d' API Events in Serverless function with name '%s'", count, function_logical_id)
 
     @staticmethod
-    def _convert_event_route(lambda_logical_id, event_properties):
+    def _convert_event_route(lambda_logical_id, event_properties, event_type):
         """
         Converts a AWS::Serverless::Function's Event Property to an Route configuration usable by the provider.
 
@@ -359,12 +190,16 @@ class SamApiProvider(CfnBaseApiProvider):
         """
         path = event_properties.get(SamApiProvider._EVENT_PATH)
         method = event_properties.get(SamApiProvider._EVENT_METHOD)
-        event_type = event_properties.get(SamApiProvider._EVENT_TYPE)
 
-        # An API Event, can have RestApiId property which designates the resource that owns this API. If omitted,
-        # the API is owned by Implicit API resource. This could either be a direct resource logical ID or a
-        # "Ref" of the logicalID
-        api_resource_id = event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
+        # An RESTAPI (HTTPAPI) Event, can have RestApiId (ApiId) property which designates the resource that owns this
+        # API. If omitted, the API is owned by Implicit API resource. This could either be a direct resource logical ID
+        # or a "Ref" of the logicalID
+        api_resource_id = (
+            event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
+            if (event_type == SamApiProvider._EVENT_TYPE_API)
+            else event_properties.get("ApiId", SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID)
+        )
+
         if isinstance(api_resource_id, dict) and "Ref" in api_resource_id:
             api_resource_id = api_resource_id["Ref"]
 
@@ -406,7 +241,10 @@ class SamApiProvider(CfnBaseApiProvider):
         # Store implicit and explicit APIs separately in order to merge them later in the correct order
         # Implicit APIs are defined on a resource with logicalID ServerlessRestApi
         for logical_id, apis in collector:
-            if logical_id == SamApiProvider.IMPLICIT_API_RESOURCE_ID:
+            if (
+                logical_id == SamApiProvider.IMPLICIT_API_RESOURCE_ID
+                or logical_id == SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID
+            ):
                 implicit_routes.extend(apis)
             else:
                 explicit_routes.extend(apis)
@@ -424,6 +262,12 @@ class SamApiProvider(CfnBaseApiProvider):
             # method on explicit route.
             for normalized_method in config.methods:
                 key = config.path + normalized_method
+                if (
+                    all_routes.get(key)
+                    and all_routes.get(key).payload_format_version
+                    and config.payload_format_version is None
+                ):
+                    config.payload_format_version = all_routes.get(key).payload_format_version
                 all_routes[key] = config
 
         result = set(all_routes.values())  # Assign to a set() to de-dupe
