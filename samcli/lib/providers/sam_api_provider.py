@@ -241,10 +241,7 @@ class SamApiProvider(CfnBaseApiProvider):
         # Store implicit and explicit APIs separately in order to merge them later in the correct order
         # Implicit APIs are defined on a resource with logicalID ServerlessRestApi
         for logical_id, apis in collector:
-            if (
-                logical_id == SamApiProvider.IMPLICIT_API_RESOURCE_ID
-                or logical_id == SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID
-            ):
+            if logical_id in (SamApiProvider.IMPLICIT_API_RESOURCE_ID, SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID):
                 implicit_routes.extend(apis)
             else:
                 explicit_routes.extend(apis)

@@ -1506,5 +1506,3 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("version", {}), "2.0")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
-
-        
