@@ -8,7 +8,7 @@ from json import JSONDecodeError
 
 import click
 
-PARAM_AND_METADATA_KEY_REGEX = '([A-Za-z0-9\\"]+)'
+PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 
 
 def _generate_match_regex(match_pattern, delim):
@@ -29,7 +29,11 @@ def _generate_match_regex(match_pattern, delim):
     """
 
     # Non capturing groups reduces duplicates in groups, but does not reduce matches.
-    return f'(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)'
+    return (
+        f"""(\\"(?:\\\\{match_pattern}|[^\\"\\\\]+)*\\"|"""
+        + f"""\'(?:\\\\{match_pattern}|[^\'\\\\]+)*\'|"""
+        + f"""(?:\\\\{match_pattern}|[^{delim}\\"\\\\]+)+)"""
+    )
 
 
 def _unquote_wrapped_quotes(value):
@@ -55,10 +59,13 @@ def _unquote_wrapped_quotes(value):
     Unquoted string
     """
     if value and (value[0] == value[-1] == '"'):
-        # Remove quotes only if the string is wrapped in quotes
+        # Remove double quotes only if the string is wrapped in double quotes
         value = value.strip('"')
+    elif value and (value[0] == value[-1] == "'"):
+        # Remove single quotes only if the string is wrapped in single quotes
+        value = value.strip("'")
 
-    return value.replace("\\ ", " ").replace('\\"', '"')
+    return value.replace("\\ ", " ").replace('\\"', '"').replace("\\'", "'")
 
 
 class CfnParameterOverridesType(click.ParamType):
@@ -204,14 +211,22 @@ class CfnTags(click.ParamType):
         value = (value,) if not isinstance(value, tuple) else value
 
         for val in value:
-            groups = re.findall(self._pattern, val)
+            # Using standard parser first. We should implement other type parser like JSON and Key=key,Value=val type format.
+            parsed, tags = self._standard_key_value_parser(val)
+            if not parsed:
+                parsed, tags = self._space_separated_key_value_parser(val)
+            if parsed:
+                for k in tags:
+                    result[_unquote_wrapped_quotes(k)] = _unquote_wrapped_quotes(tags[k])
+            else:
+                groups = re.findall(self._pattern, val)
 
-            if not groups:
-                fail = True
-            for group in groups:
-                key, v = group
-                # assign to result['KeyName1'] = string and so on.
-                result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(v)
+                if not groups:
+                    fail = True
+                for group in groups:
+                    key, v = group
+                    # assign to result['KeyName1'] = string and so on.
+                    result[_unquote_wrapped_quotes(key)] = _unquote_wrapped_quotes(v)
 
             if fail:
                 return self.fail(
@@ -221,3 +236,39 @@ class CfnTags(click.ParamType):
                 )
 
         return result
+
+    @staticmethod
+    def _standard_key_value_parser(tag_value):
+        """
+        Method to parse simple `Key=Value` type tags without using regex. This is similar to how aws-cli does this.
+        https://github.com/aws/aws-cli/blob/eff79a263347e8e83c8a2cc07265ab366315a992/awscli/customizations/cloudformation/deploy.py#L361
+        Parameters
+        ----------
+        tag_value
+
+        Returns
+        -------
+
+        """
+        equals_count = tag_value.count("=")
+        if equals_count != 1:
+            return False, None
+
+        splits = tag_value.split("=")
+        return True, {splits[0]: splits[1]}
+
+    @staticmethod
+    def _space_separated_key_value_parser(tag_value):
+        """
+        Method to parse space separated `Key1=Value1 Key2=Value2` type tags without using regex.
+        Parameters
+        ----------
+        tag_value
+        """
+        tags_dict = {}
+        for value in tag_value.split(" "):
+            parsed, parsed_tag = CfnTags._standard_key_value_parser(value)
+            if not parsed:
+                return False, None
+            tags_dict = {**tags_dict, **parsed_tag}
+        return True, tags_dict

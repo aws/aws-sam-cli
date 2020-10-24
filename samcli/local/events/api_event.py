@@ -1,4 +1,6 @@
 """Holds Classes for API Gateway to Lambda Events"""
+from time import time
+from datetime import datetime
 
 
 class ContextIdentity:
@@ -75,6 +77,10 @@ class RequestContext:
         identity=None,
         extended_request_id=None,
         path=None,
+        protocol=None,
+        domain_name=None,
+        request_time_epoch=int(time()),
+        request_time=datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000"),
     ):
         """
         Constructs a RequestContext
@@ -101,6 +107,10 @@ class RequestContext:
         self.identity = identity
         self.extended_request_id = extended_request_id
         self.path = path
+        self.protocol = protocol
+        self.domain_name = domain_name
+        self.request_time_epoch = request_time_epoch
+        self.request_time = request_time
 
     def to_dict(self):
         """
@@ -123,6 +133,10 @@ class RequestContext:
             "identity": identity_dict,
             "extendedRequestId": self.extended_request_id,
             "path": self.path,
+            "protocol": self.protocol,
+            "domainName": self.domain_name,
+            "requestTimeEpoch": self.request_time_epoch,
+            "requestTime": self.request_time,
         }
 
         return json_dict

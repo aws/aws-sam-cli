@@ -38,7 +38,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnetcore3.1", "dotnetcore2.1", "dotnetcore2.0", "dotnetcore1.0"],
+            "runtimes": ["dotnetcore3.1", "dotnetcore2.1"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -54,13 +54,13 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "java": [
         {
-            "runtimes": ["java11", "java8"],
+            "runtimes": ["java11", "java8", "java8.al2"],
             "dependency_manager": "maven",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
             "build": True,
         },
         {
-            "runtimes": ["java11", "java8"],
+            "runtimes": ["java11", "java8", "java8.al2"],
             "dependency_manager": "gradle",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-gradle"),
             "build": True,
@@ -79,11 +79,10 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "nodejs10.x": ["npm"],
     "dotnetcore3.1": ["cli-package"],
     "dotnetcore2.1": ["cli-package"],
-    "dotnetcore2.0": ["cli-package"],
-    "dotnetcore1.0": ["cli-package"],
     "go1.x": ["mod"],
     "java8": ["maven", "gradle"],
     "java11": ["maven", "gradle"],
+    "java8.al2": ["maven", "gradle"],
 }
 
 SUPPORTED_DEP_MANAGERS = {
@@ -115,16 +114,16 @@ INIT_RUNTIMES = [
     # older ruby runtimes
     "ruby2.5",
     # older java runtimes
+    "java8.al2",
     "java8",
     # older dotnetcore runtimes
     "dotnetcore2.1",
-    "dotnetcore2.0",
-    "dotnetcore1.0",
 ]
 
 # Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
 SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java8": "Java8",
+    "java8.al2": "Java8",
     "java11": "Java8",
     "python3.7": "Python36",
     "python3.6": "Python36",

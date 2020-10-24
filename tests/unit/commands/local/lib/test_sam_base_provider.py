@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 
 
 class TestSamBaseProvider_get_template(TestCase):
@@ -19,6 +20,7 @@ class TestSamBaseProvider_get_template(TestCase):
         overrides = {"some": "value"}
 
         SamBaseProvider.get_template(template, overrides)
-
-        SamTranslatorWrapperMock.assert_called_once_with(template)
+        called_parameter_values = IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.copy()
+        called_parameter_values.update(overrides)
+        SamTranslatorWrapperMock.assert_called_once_with(template, parameter_values=called_parameter_values)
         translator_instance.run_plugins.assert_called_once()

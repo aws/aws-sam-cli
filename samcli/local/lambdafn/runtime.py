@@ -10,6 +10,7 @@ import logging
 import threading
 from contextlib import contextmanager
 
+from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.local.docker.lambda_container import LambdaContainer
 from .zip import unzip
 
@@ -94,7 +95,10 @@ class LambdaRuntime:
                 # NOTE: BLOCKING METHOD
                 # Block the thread waiting to fetch logs from the container. This method will return after container
                 # terminates, either successfully or killed by one of the interrupt handlers above.
-                container.wait_for_logs(stdout=stdout, stderr=stderr)
+                if extensions_preview_enabled():
+                    container.wait_for_result(name=function_config.name, event=event, stdout=stdout, stderr=stderr)
+                else:
+                    container.wait_for_logs(stdout=stdout, stderr=stderr)
 
             except KeyboardInterrupt:
                 # When user presses Ctrl+C, we receive a Keyboard Interrupt. This is especially very common when

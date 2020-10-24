@@ -18,7 +18,7 @@ TIMEOUT = 300
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestPublishExistingApp(PublishAppIntegBase):
     def setUp(self):
-        super(TestPublishExistingApp, self).setUp()
+        super().setUp()
         # Create application for each test
         app_metadata_text = self.temp_dir.joinpath("metadata_create_app.json").read_text()
         app_metadata = json.loads(app_metadata_text)
@@ -30,7 +30,7 @@ class TestPublishExistingApp(PublishAppIntegBase):
         time.sleep(2)
 
     def tearDown(self):
-        super(TestPublishExistingApp, self).tearDown()
+        super().tearDown()
         # Delete application for each test
         self.sar_client.delete_application(ApplicationId=self.application_id)
 
@@ -98,13 +98,13 @@ class TestPublishExistingApp(PublishAppIntegBase):
 @skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
 class TestPublishNewApp(PublishAppIntegBase):
     def setUp(self):
-        super(TestPublishNewApp, self).setUp()
+        super().setUp()
         self.application_id = None
         # Sleep for a little bit to make server happy
         time.sleep(2)
 
     def tearDown(self):
-        super(TestPublishNewApp, self).tearDown()
+        super().tearDown()
         # Delete application if exists
         if self.application_id:
             self.sar_client.delete_application(ApplicationId=self.application_id)

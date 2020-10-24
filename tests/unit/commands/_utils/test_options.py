@@ -64,9 +64,11 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         os_mock.path.abspath.assert_called_with(expected)
 
     @patch("samcli.commands._utils.options.os")
-    def test_verify_ctx(self, os_mock):
+    @patch("samcli.commands._utils.options.get_template_data")
+    def test_verify_ctx(self, get_template_data_mock, os_mock):
 
         ctx = Mock()
+        ctx.default_map = {}
 
         expected = os.path.join(".aws-sam", "build", "template.yaml")
 
@@ -74,11 +76,22 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         os_mock.path.join = os.path.join  # Use the real method
         os_mock.path.abspath.return_value = "a/b/c/absPath"
         os_mock.path.dirname.return_value = "a/b/c"
+        get_template_data_mock.return_value = "dummy_template_dict"
 
         result = get_or_default_template_file_name(ctx, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
         self.assertEqual(result, "a/b/c/absPath")
         self.assertEqual(ctx.samconfig_dir, "a/b/c")
+        self.assertEqual(ctx.template_dict, "dummy_template_dict")
         os_mock.path.abspath.assert_called_with(expected)
+
+    def test_verify_ctx_template_file_param(self):
+
+        ctx_mock = Mock()
+        ctx_mock.default_map = {"template": "bar.txt"}
+        expected_result_from_ctx = os.path.abspath("bar.txt")
+
+        result = get_or_default_template_file_name(ctx_mock, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
+        self.assertEqual(result, expected_result_from_ctx)
 
 
 class TestGuidedDeployStackName(TestCase):

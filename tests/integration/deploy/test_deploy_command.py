@@ -30,13 +30,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stack_names = []
         time.sleep(CFN_SLEEP)
-        super(TestDeploy, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack_name in self.stack_names:
             self.cf_client.delete_stack(StackName=stack_name)
-        super(TestDeploy, self).tearDown()
+        super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_package_and_deploy_no_s3_bucket_all_args(self, template_file):
@@ -381,7 +381,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         }
         # Package and Deploy in one go without confirming change set.
         deploy_command_list = self.get_deploy_command_list(**kwargs)
-
+        print("######################################")
+        print(deploy_command_list)
+        print("######################################")
         deploy_process_execute = run_command(deploy_command_list)
         # Deploy should succeed
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -455,7 +457,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\n\n\n\n\n".format(stack_name).encode()
+            deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
         )
 
         # Deploy should succeed with a managed stack
@@ -475,7 +477,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\nSuppliedParameter\n\n\n\n".format(stack_name).encode()
+            deploy_command_list, "{}\n\nSuppliedParameter\n\n\n\n\n\n\n".format(stack_name).encode()
         )
 
         # Deploy should succeed with a managed stack
@@ -496,7 +498,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command_with_input(
             deploy_command_list,
-            "{}\n\nSuppliedParameter\n\nn\nCAPABILITY_IAM CAPABILITY_NAMED_IAM\n\n".format(stack_name).encode(),
+            "{}\n\nSuppliedParameter\n\nn\nCAPABILITY_IAM CAPABILITY_NAMED_IAM\n\n\n\n".format(stack_name).encode(),
         )
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -516,7 +518,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         # Set no for Allow SAM CLI IAM role creation, but allow default of ["CAPABILITY_IAM"] by just hitting the return key.
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\nSuppliedParameter\n\nn\n\n\n\n".format(stack_name).encode()
+            deploy_command_list, "{}\n\nSuppliedParameter\n\nn\n\n\n\n\n\n".format(stack_name).encode()
         )
         # Deploy should succeed with a managed stack
         self.assertEqual(deploy_process_execute.process.returncode, 0)
@@ -535,7 +537,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
 
         deploy_process_execute = run_command_with_input(
-            deploy_command_list, "{}\n\nSuppliedParameter\nY\n\n\nY\n".format(stack_name).encode()
+            deploy_command_list, "{}\n\nSuppliedParameter\nY\n\nY\n\n\n\n".format(stack_name).encode()
         )
 
         # Deploy should succeed with a managed stack
@@ -543,6 +545,28 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.stack_names.append(SAM_CLI_STACK_NAME)
         # Remove samconfig.toml
         os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_with_no_s3_bucket_set_resolve_s3(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            resolve_s3=True,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""

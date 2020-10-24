@@ -1,10 +1,8 @@
 """ configure Schemas client based on AWS configuration provided by user """
 
-import os
 import click
 
 from boto3 import Session
-from samcli.commands.local.cli_common.user_exceptions import NotAvailableInRegion
 from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound
 
 
@@ -20,20 +18,12 @@ def get_aws_configuration_choice():
     message = "\nDo you want to use the default AWS profile [%s] and region [%s]?" % (profile, region)
     choice = click.confirm(message, default=True)
 
-    # TODO: Replce with RIP call once Schemas is updated in RIP
-    # schemas_available_regions_name = session.get_available_regions("schemas")
-    schemas_available_regions_name = ["us-east-1", "us-east-2", "us-west-2", "eu-west-1", "ap-northeast-1"]
-
-    if choice and (region not in schemas_available_regions_name):
-        raise NotAvailableInRegion(
-            "EventBridge Schemas are not yet available in %s. Please select one of %s"
-            % (region, schemas_available_regions_name)
-        )
+    schemas_available_regions_name = session.get_available_regions("schemas")
 
     if not choice:
         available_profiles = session.available_profiles
         profile = _get_aws_profile_choice(available_profiles)
-        region = _get_aws_region_choice(schemas_available_regions_name)
+        region = _get_aws_region_choice(schemas_available_regions_name, region)
     else:
         # session.profile_name will return 'default' if no profile is found,
         # but botocore itself will fail if you pass it in, when one is not configured
@@ -62,24 +52,30 @@ def _get_aws_profile_choice(available_profiles):
     return available_profiles[int(profile_choice) - 1]
 
 
-def _get_aws_region_choice(available_regions_name):
+def _get_aws_region_choice(available_regions_name, region):
     if not available_regions_name:
         raise ResourceNotFound(
             "No AWS region found for AWS schemas service. This should not be possible, please raise an issue."
         )
+    cli_display_regions = dict()
 
-    region_choices = list(map(str, range(1, len(available_regions_name) + 1)))
-    region_choice_num = 1
+    for available_region_name in available_regions_name:
+        region_prefix = available_region_name.rsplit("-", 1)[0]
+        if region_prefix not in cli_display_regions:
+            cli_display_regions[region_prefix] = available_region_name
+        else:
+            cli_display_regions[region_prefix] = cli_display_regions.get(region_prefix) + "," + available_region_name
 
     click.echo("\nWhich region do you want to use for your schema registry?")
+    click.echo("# Partial list of AWS regions")
+    click.echo("#")
 
-    for available_region in available_regions_name:
-        msg = str(region_choice_num) + " - " + available_region
-        click.echo("\t" + msg)
-        region_choice_num = region_choice_num + 1
+    for cli_display_region in cli_display_regions:
+        msg = cli_display_regions[cli_display_region]
+        click.echo("# " + msg)
 
-    region_choice = click.prompt("Region", type=click.Choice(region_choices), show_choices=False)
-    return available_regions_name[int(region_choice) - 1]
+    region_choice = click.prompt("Region " + "[" + region + "]", type=str, show_choices=False)
+    return region_choice
 
 
 def get_schemas_client(profile, region):

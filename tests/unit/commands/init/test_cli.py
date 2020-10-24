@@ -559,7 +559,7 @@ Y
         # 2: select event-bridge app from scratch
         # N: Use default AWS profile
         # 1: Select profile
-        # 2: Select region
+        # us-east-1: Select region
         # 1: select aws.events as registries
         # 1: select schema AWSAPICallViaCloudTrail
         user_input = """
@@ -571,7 +571,7 @@ Y
 2
 N
 1
-1
+us-east-1
 1
 1
 .
@@ -599,6 +599,69 @@ N
         )
         get_schemas_client_mock.assert_called_once_with("default", "us-east-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code("result.zip", ".", "test-project", ANY)
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.lib.schemas.schemas_aws_config.Session")
+    @patch("samcli.commands.init.interactive_event_bridge_flow.SchemasApiCaller")
+    @patch("samcli.commands.init.interactive_event_bridge_flow.get_schemas_client")
+    def test_init_cli_int_with_event_bridge_app_template_and_aws_configuration_with_wrong_region_name(
+        self, get_schemas_client_mock, schemas_api_caller_mock, session_mock, init_options_from_manifest_mock
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
+                "displayName": "Hello World Example: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world",
+            },
+            {
+                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "displayName": "Hello World Schema example Example: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "eventBridge-schema-app",
+                "isDynamicTemplate": "True",
+            },
+        ]
+        session_mock.return_value.profile_name = "default"
+        session_mock.return_value.region_name = "ap-south-1"
+        session_mock.return_value.available_profiles = ["default", "test-profile"]
+        session_mock.return_value.get_available_regions.return_value = ["ap-south-2", "us-east-1"]
+        schemas_api_caller_mock.return_value.list_registries.side_effect = botocore.exceptions.EndpointConnectionError(
+            endpoint_url="Not valid endpoint."
+        )
+        # WHEN the user follows interactive init prompts
+
+        # 1: AWS Quick Start Templates
+        # 5: Java Runtime
+        # 1: dependency manager maven
+        # test-project: response to name
+        # Y: Don't clone/update the source repo
+        # 2: select event-bridge app from scratch
+        # N: Use default AWS profile
+        # 1: Select profile
+        # invalid-region: Select region
+        # 1: select aws.events as registries
+        # 1: select schema AWSAPICallViaCloudTrail
+        user_input = """
+1
+5
+1
+test-project
+Y
+2
+N
+1
+invalid-region
+1
+1
+.
+            """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+
+        self.assertTrue(result.exception)
+        get_schemas_client_mock.assert_called_once_with("default", "invalid-region")
 
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
     @patch("samcli.lib.schemas.schemas_aws_config.Session")

@@ -98,6 +98,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -113,6 +115,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -128,6 +132,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -143,6 +149,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -158,6 +166,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -173,6 +183,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -188,6 +200,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
             (
@@ -203,6 +217,8 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     environment=None,
                     rolearn=None,
                     layers=[],
+                    events=None,
+                    metadata=None,
                 ),
             ),
         ]
@@ -232,31 +248,31 @@ class TestSamFunctionProvider_init(TestCase):
     def setUp(self):
         self.parameter_overrides = {}
 
+    @patch.object(SamFunctionProvider, "get_template")
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.lib.providers.sam_function_provider.SamBaseProvider")
-    def test_must_extract_functions(self, SamBaseProviderMock, extract_mock):
+    def test_must_extract_functions(self, extract_mock, get_template_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
 
         template = {"Resources": {"a": "b"}}
-        SamBaseProviderMock.get_template.return_value = template
+        get_template_mock.return_value = template
         provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
-        extract_mock.assert_called_with({"a": "b"})
-        SamBaseProviderMock.get_template.assert_called_with(template, self.parameter_overrides)
+        extract_mock.assert_called_with({"a": "b"}, False)
+        get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
+    @patch.object(SamFunctionProvider, "get_template")
     @patch.object(SamFunctionProvider, "_extract_functions")
-    @patch("samcli.lib.providers.sam_function_provider.SamBaseProvider")
-    def test_must_default_to_empty_resources(self, SamBaseProviderMock, extract_mock):
+    def test_must_default_to_empty_resources(self, extract_mock, get_template_mock):
         extract_result = {"foo": "bar"}
         extract_mock.return_value = extract_result
 
         template = {"a": "b"}  # Template does *not* have 'Resources' key
-        SamBaseProviderMock.get_template.return_value = template
+        get_template_mock.return_value = template
         provider = SamFunctionProvider(template, parameter_overrides=self.parameter_overrides)
 
-        extract_mock.assert_called_with({})  # Empty Resources value must be passed
+        extract_mock.assert_called_with({}, False)  # Empty Resources value must be passed
         self.assertEqual(provider.functions, extract_result)
         self.assertEqual(provider.resources, {})
 
@@ -273,7 +289,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
 
         result = SamFunctionProvider._extract_functions(resources)
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with("Func1", {"a": "b"}, [])
+        convert_mock.assert_called_with("Func1", {"a": "b"}, [], ignore_code_extraction_warnings=False)
 
     @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
     def test_must_work_with_no_properties(self, convert_mock):
@@ -291,7 +307,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
 
         result = SamFunctionProvider._extract_functions(resources)
         self.assertEqual(expected, result)
-        convert_mock.assert_called_with("Func1", {}, [])
+        convert_mock.assert_called_with("Func1", {}, [], ignore_code_extraction_warnings=False)
 
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
     def test_must_work_for_lambda_function(self, convert_mock):
@@ -341,6 +357,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             environment="myenvironment",
             rolearn="myrole",
             layers=["Layer1", "Layer2"],
+            events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -363,6 +381,8 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             environment=None,
             rolearn=None,
             layers=[],
+            events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
@@ -425,6 +445,8 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             environment="myenvironment",
             rolearn="myrole",
             layers=["Layer1", "Layer2"],
+            events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -447,6 +469,8 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             environment=None,
             rolearn=None,
             layers=[],
+            events=None,
+            metadata=None,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, [])
@@ -544,6 +568,8 @@ class TestSamFunctionProvider_get(TestCase):
             environment=None,
             rolearn=None,
             layers=[],
+            events=None,
+            metadata=None,
         )
         provider.functions = {"func1": function}
 

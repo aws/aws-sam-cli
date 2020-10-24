@@ -17,6 +17,90 @@ class SamBaseProvider:
     Base class for SAM Template providers
     """
 
+    SERVERLESS_FUNCTION = "AWS::Serverless::Function"
+    LAMBDA_FUNCTION = "AWS::Lambda::Function"
+    SERVERLESS_LAYER = "AWS::Serverless::LayerVersion"
+    LAMBDA_LAYER = "AWS::Lambda::LayerVersion"
+    DEFAULT_CODEURI = "."
+
+    def get(self, name):
+        """
+        Given name of the function, this method must return the Function object
+
+        :param string name: Name of the function
+        :return Function: namedtuple containing the Function information
+        """
+        raise NotImplementedError("not implemented")
+
+    def get_all(self):
+        """
+        Yields all the Lambda functions available in the provider.
+
+        :yields Function: namedtuple containing the function information
+        """
+        raise NotImplementedError("not implemented")
+
+    @staticmethod
+    def _extract_lambda_function_code(resource_properties, code_property_key):
+        """
+        Extracts the Lambda Function Code from the Resource Properties
+
+        Parameters
+        ----------
+        resource_properties dict
+            Dictionary representing the Properties of the Resource
+        code_property_key str
+            Property Key of the code on the Resource
+
+        Returns
+        -------
+        str
+            Representing the local code path
+        """
+
+        codeuri = resource_properties.get(code_property_key, SamBaseProvider.DEFAULT_CODEURI)
+
+        if isinstance(codeuri, dict):
+            codeuri = SamBaseProvider.DEFAULT_CODEURI
+
+        return codeuri
+
+    @staticmethod
+    def _extract_sam_function_codeuri(
+        name, resource_properties, code_property_key, ignore_code_extraction_warnings=False
+    ):
+        """
+        Extracts the SAM Function CodeUri from the Resource Properties
+
+        Parameters
+        ----------
+        name str
+            LogicalId of the resource
+        resource_properties dict
+            Dictionary representing the Properties of the Resource
+        code_property_key str
+            Property Key of the code on the Resource
+        ignore_code_extraction_warnings
+            Boolean to ignore log statements on code extraction from Resources.
+
+        Returns
+        -------
+        str
+            Representing the local code path
+        """
+        codeuri = resource_properties.get(code_property_key, SamBaseProvider.DEFAULT_CODEURI)
+        # CodeUri can be a dictionary of S3 Bucket/Key or a S3 URI, neither of which are supported
+        if isinstance(codeuri, dict) or (isinstance(codeuri, str) and codeuri.startswith("s3://")):
+            codeuri = SamBaseProvider.DEFAULT_CODEURI
+            if not ignore_code_extraction_warnings:
+                LOG.warning(
+                    "Lambda function '%s' has specified S3 location for CodeUri which is unsupported. "
+                    "Using default value of '%s' instead",
+                    name,
+                    codeuri,
+                )
+        return codeuri
+
     @staticmethod
     def get_template(template_dict, parameter_overrides=None):
         """
@@ -37,14 +121,14 @@ class SamBaseProvider:
             Processed SAM template
         """
         template_dict = template_dict or {}
+        parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict:
-            template_dict = SamTranslatorWrapper(template_dict).run_plugins()
+            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
         ResourceMetadataNormalizer.normalize(template_dict)
-        logical_id_translator = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
 
         resolver = IntrinsicResolver(
             template=template_dict,
-            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template_dict),
+            symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=parameters_values, template=template_dict),
         )
         template_dict = resolver.resolve_template(ignore_errors=True)
         return template_dict

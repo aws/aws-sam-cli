@@ -37,17 +37,20 @@ class SamTranslatorWrapper:
     _thisdir = os.path.dirname(os.path.abspath(__file__))
     _DEFAULT_MANAGED_POLICIES_FILE = os.path.join(_thisdir, "default_managed_policies.json")
 
-    def __init__(self, sam_template, offline_fallback=True):
+    def __init__(self, sam_template, parameter_values=None, offline_fallback=True):
         """
 
         Parameters
         ----------
         sam_template dict:
             SAM Template dictionary
+        parameter_values dict:
+            SAM Template parameters (must contain psuedo and default parameters)
         offline_fallback bool:
             Set it to True to make the translator work entirely offline, if internet is not available
         """
         self.local_uri_plugin = SupportLocalUriPlugin()
+        self.parameter_values = parameter_values
         self.extra_plugins = [
             # Extra plugin specific to the SAM CLI that will support local paths for CodeUri & DefinitionUri
             self.local_uri_plugin
@@ -65,14 +68,16 @@ class SamTranslatorWrapper:
             additional_plugins.append(self.local_uri_plugin)
 
         parser = _SamParserReimplemented()
-        all_plugins = prepare_plugins(additional_plugins)
+        all_plugins = prepare_plugins(
+            additional_plugins, parameters=self.parameter_values if self.parameter_values else {}
+        )
 
         try:
             parser.parse(template_copy, all_plugins)  # parse() will run all configured plugins
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
-            )
+            ) from e
 
         return template_copy
 
@@ -140,7 +145,7 @@ class _SamParserReimplemented:
             raise InvalidDocumentException(document_errors)
 
     def _validate(self, sam_template):
-        """ Validates the template and parameter values and raises exceptions if there's an issue
+        """Validates the template and parameter values and raises exceptions if there's an issue
 
         :param dict sam_template: SAM template
         """
