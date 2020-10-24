@@ -126,7 +126,7 @@ class SamApiProvider(CfnBaseApiProvider):
                 "Skipping resource '%s'. Swagger document not found in DefinitionBody and DefinitionUri", logical_id
             )
             return
-        self.extract_swagger_route(logical_id, body, uri, None, collector, cwd=cwd)
+        self.extract_swagger_route(logical_id, body, uri, None, collector, cwd=cwd, event_type=Route.HTTP)
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
@@ -194,11 +194,15 @@ class SamApiProvider(CfnBaseApiProvider):
         # An RESTAPI (HTTPAPI) Event, can have RestApiId (ApiId) property which designates the resource that owns this
         # API. If omitted, the API is owned by Implicit API resource. This could either be a direct resource logical ID
         # or a "Ref" of the logicalID
-        api_resource_id = (
-            event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
-            if (event_type == SamApiProvider._EVENT_TYPE_API)
-            else event_properties.get("ApiId", SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID)
-        )
+
+        api_resource_id = None
+        payload_format_version = None
+
+        if event_type == SamApiProvider._EVENT_TYPE_API:
+            api_resource_id = event_properties.get("RestApiId", SamApiProvider.IMPLICIT_API_RESOURCE_ID)
+        else:
+            api_resource_id = event_properties.get("ApiId", SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID)
+            payload_format_version = event_properties.get("PayloadFormatVersion")
 
         if isinstance(api_resource_id, dict) and "Ref" in api_resource_id:
             api_resource_id = api_resource_id["Ref"]
@@ -213,7 +217,13 @@ class SamApiProvider(CfnBaseApiProvider):
 
         return (
             api_resource_id,
-            Route(path=path, methods=[method], function_name=lambda_logical_id, event_type=event_type),
+            Route(
+                path=path,
+                methods=[method],
+                function_name=lambda_logical_id,
+                event_type=event_type,
+                payload_format_version=payload_format_version,
+            ),
         )
 
     @staticmethod
