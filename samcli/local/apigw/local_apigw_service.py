@@ -520,7 +520,7 @@ class LocalApigwService(BaseLocalService):
             stage_variables=stage_variables,
         )
 
-        event_str = json.dumps(event.to_dict())
+        event_str = json.dumps(event.to_dict(), sort_keys=True)
         LOG.debug("Constructed String representation of Event to invoke Lambda. Event: %s", event_str)
         return event_str
 
