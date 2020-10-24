@@ -5,6 +5,8 @@ Provides classes that interface with Docker to create, execute and manage contai
 import logging
 
 import sys
+import re
+import platform
 import docker
 import requests
 
@@ -43,13 +45,22 @@ class ContainerManager:
         bool
             True, if Docker is available, False otherwise
         """
+        errors = (
+            docker.errors.APIError,
+            requests.exceptions.ConnectionError,
+        )
+        if platform.system() == "Windows":
+            import pywintypes  # pylint: disable=import-error, import-outside-toplevel
+
+            errors += (pywintypes.error,)  # pylint: disable=no-member
+
         try:
             self.docker_client.ping()
-
             return True
 
         # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-        except (docker.errors.APIError, requests.exceptions.ConnectionError):
+        # and also windows-specific errors
+        except errors:
             LOG.debug("Docker is not reachable", exc_info=True)
             return False
 
@@ -71,18 +82,22 @@ class ContainerManager:
 
         is_image_local = self.has_image(image_name)
 
-        # Skip Pulling a new image if: a) Image name is samcli/lambda OR b) Image is available AND
-        # c) We are asked to skip pulling the image
-        if (is_image_local and self.skip_pull_image) or image_name.startswith("samcli/lambda"):
+        # Skip Pulling a new image if:
+        # a) Image is available AND we are asked to skip pulling the image
+        # OR b) Image name is samcli/lambda
+        # OR c) Image is available AND image name ends with "rapid-${SAM_CLI_VERSION}"
+        if is_image_local and self.skip_pull_image:
             LOG.info("Requested to skip pulling images ...\n")
+        elif image_name.startswith("samcli/lambda") or (is_image_local and self._is_rapid_image(image_name)):
+            LOG.info("Skip pulling image and use local one: %s.\n", image_name)
         else:
             try:
                 self.pull_image(image_name)
-            except DockerImagePullFailedException:
+            except DockerImagePullFailedException as ex:
                 if not is_image_local:
                     raise DockerImagePullFailedException(
                         "Could not find {} image locally and failed to pull it from docker.".format(image_name)
-                    )
+                    ) from ex
 
                 LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
 
@@ -124,7 +139,7 @@ class ContainerManager:
             result_itr = self.docker_client.api.pull(image_name, stream=True, decode=True)
         except docker.errors.APIError as ex:
             LOG.debug("Failed to download image with name %s", image_name)
-            raise DockerImagePullFailedException(str(ex))
+            raise DockerImagePullFailedException(str(ex)) from ex
 
         # io streams, especially StringIO, work only with unicode strings
         stream_writer.write("\nFetching {} Docker container image...".format(image_name))
@@ -151,6 +166,18 @@ class ContainerManager:
             return True
         except docker.errors.ImageNotFound:
             return False
+
+    def _is_rapid_image(self, image_name):
+        """
+        Is the image tagged as a RAPID clone?
+
+        : param string image_name: Name of the image
+        : return bool: True, if the image name ends with rapid-$SAM_CLI_VERSION. False, otherwise
+        """
+
+        if not re.search(r":rapid-\d+\.\d+.\d+$", image_name):
+            return False
+        return True
 
 
 class DockerImagePullFailedException(Exception):

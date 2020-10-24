@@ -6,7 +6,7 @@ import os
 import tempfile
 import logging
 
-from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=relative-import
+from six.moves.urllib.parse import urlparse, parse_qs
 from six import string_types
 import boto3
 import botocore

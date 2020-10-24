@@ -10,6 +10,10 @@ test:
 	# Fail if coverage falls below 95%
 	pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit
 
+test-cov-report:
+	# Run unit tests with html coverage report
+	pytest --cov samcli --cov-report html --cov-fail-under 95 tests/unit
+
 integ-test:
 	# Integration tests don't need code coverage
 	@echo Telemetry Status: $(SAM_CLI_TELEMETRY)
@@ -36,16 +40,16 @@ lint:
 dev: lint test
 
 black:
-	black samcli/* tests/*
+	black setup.py samcli tests
 
 black-check:
-	black --check samcli/* tests/*
+	black --check setup.py samcli tests
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
 
 update-reproducible-reqs:
-	python3 -m venv venv-update-reproducible-requirements
+	python3.7 -m venv venv-update-reproducible-requirements
 	venv-update-reproducible-requirements/bin/pip install --upgrade pip-tools pip
 	venv-update-reproducible-requirements/bin/pip install -r requirements/base.txt
 	venv-update-reproducible-requirements/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt

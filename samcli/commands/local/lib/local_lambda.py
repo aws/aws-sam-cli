@@ -6,11 +6,13 @@ import os
 import logging
 import boto3
 
+from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
 from samcli.lib.utils.codeuri import resolve_code_path
+from samcli.local.docker.container import ContainerResponseException
 from samcli.local.lambdafn.env_vars import EnvironmentVariables
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, NoPrivilegeException
 
 LOG = logging.getLogger(__name__)
 
@@ -97,7 +99,22 @@ class LocalLambdaRunner:
         config = self._get_invoke_config(function)
 
         # Invoke the function
-        self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        try:
+            self.local_runtime.invoke(config, event, debug_context=self.debug_context, stdout=stdout, stderr=stderr)
+        except ContainerResponseException as ex:
+            raise InvokeContextException(
+                f"No response from invoke container for {function.name}", wrapped_from=ex.__class__.__name__
+            ) from ex
+        except OSError as os_error:
+            # pylint: disable=no-member
+            if hasattr(os_error, "winerror") and os_error.winerror == 1314:
+                raise NoPrivilegeException(
+                    "Administrator, Windows Developer Mode, or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
+                        os_error.filename, os_error.filename2
+                    )
+                ) from os_error
+
+            raise
 
     def is_debugging(self):
         """
@@ -198,6 +215,7 @@ class LocalLambdaRunner:
         aws_creds = self.get_aws_creds()
 
         return EnvironmentVariables(
+            function.name,
             function.memory,
             function.timeout,
             function.handler,

@@ -1,7 +1,7 @@
 <p align="center">
 </p>
 
-# AWS SAM (Beta)
+# AWS SAM
 
 ![Apache-2.0](https://img.shields.io/npm/l/aws-sam-local.svg)
 ![SAM CLI Version](https://img.shields.io/github/release/awslabs/aws-sam-cli.svg?label=CLI%20Version)
@@ -11,6 +11,8 @@ It provides shorthand syntax to express functions, APIs, databases, and event so
 With just a few lines of configuration, you can define the application you want and model it.
 
 [![Getting Started with AWS SAM](./media/get-started-youtube.png)](https://www.youtube.com/watch?v=1dzihtC5LJ0)
+
+![AWS SAM CLI help menu](https://user-images.githubusercontent.com/3770774/87969094-59d05a80-ca76-11ea-9c23-76306fa8592b.png)
 
 ## Get Started
 
@@ -85,7 +87,7 @@ Read the [SAM Documentation Contribution Guide](https://github.com/awsdocs/aws-s
 started. 
 
 ### Join the SAM Community on Slack
-[Join the SAM developers channel (#samdev)](https://join.slack.com/t/awsdevelopers/shared_invite/enQtMzg3NTc5OTM2MzcxLTIxNjc0ZTJkNmYyNWY3OWE4NTFiNzU1ZTM2Y2VkNmFlNjQ2YjI3YTE1ZDA5YjE5NDE2MjVmYWFlYWIxNjE2NjU) on Slack to collaborate with fellow community members and the AWS SAM team.
+[Join the SAM developers channel (#samdev)](https://join.slack.com/t/awsdevelopers/shared_invite/zt-h82odes6-qYN2Cxit7hBGIvC6oMjGpg) on Slack to collaborate with fellow community members and the AWS SAM team.
 
 
 

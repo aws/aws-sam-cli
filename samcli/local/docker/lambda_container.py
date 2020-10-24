@@ -3,10 +3,12 @@ Represents Lambda runtime containers.
 """
 import logging
 
+from pathlib import Path
+
+from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from .container import Container
 from .lambda_image import Runtime
-
 
 LOG = logging.getLogger(__name__)
 
@@ -18,7 +20,6 @@ class LambdaContainer(Container):
     is provided by the base class
     """
 
-    _IMAGE_REPO_NAME = "lambci/lambda"
     _WORKING_DIR = "/var/task"
 
     # The Volume Mount path for debug files in docker
@@ -69,19 +70,21 @@ class LambdaContainer(Container):
         if not Runtime.has_value(runtime):
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
-        image = LambdaContainer._get_image(image_builder, runtime, layers)
+        image = LambdaContainer._get_image(image_builder, runtime, layers, debug_options)
         ports = LambdaContainer._get_exposed_ports(debug_options)
         entry, debug_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
-        additional_volumes = LambdaContainer._get_additional_volumes(debug_options)
-        cmd = [handler]
+        additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        cmd = []
+        if not extensions_preview_enabled():
+            cmd = [handler]
 
         if not env_vars:
             env_vars = {}
 
         env_vars = {**env_vars, **debug_env_vars}
 
-        super(LambdaContainer, self).__init__(
+        super().__init__(
             image,
             cmd,
             self._WORKING_DIR,
@@ -139,20 +142,22 @@ class LambdaContainer(Container):
         return opts
 
     @staticmethod
-    def _get_additional_volumes(debug_options):
+    def _get_additional_volumes(runtime, debug_options):
         """
         Return additional volumes to be mounted in the Docker container. Used by container debug for mapping
         debugger executable into the container.
         :param DebugContext debug_options: DebugContext for the runtime of the container.
         :return dict: Dictionary containing volume map passed to container creation.
         """
-        if not debug_options or not debug_options.debugger_path:
-            return None
+        volumes = {}
 
-        return {debug_options.debugger_path: LambdaContainer._DEBUGGER_VOLUME_MOUNT}
+        if debug_options and debug_options.debugger_path:
+            volumes[debug_options.debugger_path] = LambdaContainer._DEBUGGER_VOLUME_MOUNT
+
+        return volumes
 
     @staticmethod
-    def _get_image(image_builder, runtime, layers):
+    def _get_image(image_builder, runtime, layers, debug_options):
         """
         Returns the name of Docker Image for the given runtime
 
@@ -170,7 +175,8 @@ class LambdaContainer(Container):
         str
             Name of Docker Image for the given runtime
         """
-        return image_builder.build(runtime, layers)
+        is_debug = bool(debug_options and debug_options.debugger_path)
+        return image_builder.build(runtime, layers, is_debug)
 
     @staticmethod
     def _get_debug_settings(runtime, debug_options=None):  # pylint: disable=too-many-branches
@@ -185,12 +191,14 @@ class LambdaContainer(Container):
             ie. if command is ``node index.js arg1 arg2``, then this list will be ["node", "index.js", "arg1", "arg2"]
         """
 
+        entry = "/var/rapid/init"
+
         if not debug_options:
-            return None, {}
+            return entry, {}
 
         debug_ports = debug_options.debug_ports
         if not debug_ports:
-            return None, {}
+            return entry, {}
 
         debug_port = debug_ports[0]
         debug_args_list = []

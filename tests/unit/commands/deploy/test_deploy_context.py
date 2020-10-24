@@ -15,6 +15,7 @@ class TestSamDeployCommand(TestCase):
             stack_name="stack-name",
             s3_bucket="s3-bucket",
             force_upload=True,
+            no_progressbar=False,
             s3_prefix="s3-prefix",
             kms_key_id="kms-key-id",
             parameter_overrides={"a": "b"},
@@ -107,7 +108,6 @@ class TestSamDeployCommand(TestCase):
             self.assertEqual(self.deploy_command_context.deployer.create_and_wait_for_changeset.call_count, 1)
             self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 1)
             self.assertEqual(self.deploy_command_context.deployer.wait_for_execute.call_count, 1)
-            self.assertEqual(self.deploy_command_context.deployer.get_stack_outputs.call_count, 1)
 
     @patch("boto3.Session")
     @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
@@ -126,10 +126,15 @@ class TestSamDeployCommand(TestCase):
             self.assertEqual(self.deploy_command_context.deployer.wait_for_execute.call_count, 0)
 
     @patch("boto3.Session")
+    @patch("samcli.commands.deploy.deploy_context.auth_per_resource")
+    @patch("samcli.commands.deploy.deploy_context.get_template_data")
     @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
     @patch.object(Deployer, "execute_changeset", MagicMock())
     @patch.object(Deployer, "wait_for_execute", MagicMock())
-    def test_template_valid_execute_changeset(self, patched_boto):
+    def test_template_valid_execute_changeset_with_parameters(
+        self, patched_template_data, patched_auth_required, patched_boto
+    ):
+        patched_auth_required.return_value = [("HelloWorldFunction", False)]
         with tempfile.NamedTemporaryFile(delete=False) as template_file:
             template_file.write(b'{"Parameters": {"a":"b","c":"d"}}')
             template_file.flush()

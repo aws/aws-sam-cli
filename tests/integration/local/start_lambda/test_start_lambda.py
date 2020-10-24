@@ -190,7 +190,7 @@ class TestLambdaService(StartLambdaIntegBaseClass):
                 "errorMessage": "Lambda is raising an exception",
                 "errorType": "Exception",
                 "stackTrace": [
-                    '  File "/var/task/main.py", line 49, in raise_exception\n    raise Exception("Lambda is raising an exception")\n'
+                    ["/var/task/main.py", 51, "raise_exception", 'raise Exception("Lambda is raising an exception")']
                 ],
             },
         )

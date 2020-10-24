@@ -3,9 +3,12 @@ A provider class that can parse and return Lambda Functions from a variety of so
 source
 """
 import hashlib
+import logging
 from collections import namedtuple
 
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn, UnsupportedIntrinsic
+
+LOG = logging.getLogger(__name__)
 
 # Named Tuple to representing the properties of a Lambda Function
 Function = namedtuple(
@@ -33,8 +36,43 @@ Function = namedtuple(
         "rolearn",
         # List of Layers
         "layers",
+        # Event
+        "events",
+        # Metadata
+        "metadata",
     ],
 )
+
+
+class ResourcesToBuildCollector:
+    def __init__(self):
+        self.result = {"Function": [], "Layer": []}
+
+    def add_function(self, function):
+        self.result.get("Function").append(function)
+
+    def add_functions(self, functions):
+        self.result.get("Function").extend(functions)
+
+    def add_layer(self, layer):
+        self.result.get("Layer").append(layer)
+
+    def add_layers(self, layers):
+        self.result.get("Layer").extend(layers)
+
+    @property
+    def functions(self):
+        return self.result.get("Function")
+
+    @property
+    def layers(self):
+        return self.result.get("Layer")
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.__dict__ == other.__dict__
+
+        return False
 
 
 class LayerVersion:
@@ -44,9 +82,8 @@ class LayerVersion:
 
     LAYER_NAME_DELIMETER = "-"
 
-    def __init__(self, arn, codeuri):
+    def __init__(self, arn, codeuri, compatible_runtimes=None, metadata=None):
         """
-
         Parameters
         ----------
         name str
@@ -54,6 +91,10 @@ class LayerVersion:
         codeuri str
             CodeURI of the layer. This should contain the path to the layer code
         """
+        if compatible_runtimes is None:
+            compatible_runtimes = []
+        if metadata is None:
+            metadata = {}
         if not isinstance(arn, str):
             raise UnsupportedIntrinsic("{} is an Unsupported Intrinsic".format(arn))
 
@@ -62,6 +103,8 @@ class LayerVersion:
         self.is_defined_within_template = bool(codeuri)
         self._name = LayerVersion._compute_layer_name(self.is_defined_within_template, arn)
         self._version = LayerVersion._compute_layer_version(self.is_defined_within_template, arn)
+        self._build_method = metadata.get("BuildMethod", None)
+        self._compatible_runtimes = compatible_runtimes
 
     @staticmethod
     def _compute_layer_version(is_defined_within_template, arn):
@@ -88,8 +131,8 @@ class LayerVersion:
         try:
             _, layer_version = arn.rsplit(":", 1)
             layer_version = int(layer_version)
-        except ValueError:
-            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.")
+        except ValueError as ex:
+            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex
 
         return layer_version
 
@@ -121,8 +164,8 @@ class LayerVersion:
 
         try:
             _, layer_name, layer_version = arn.rsplit(":", 2)
-        except ValueError:
-            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.")
+        except ValueError as ex:
+            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex
 
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]
@@ -164,34 +207,18 @@ class LayerVersion:
     def codeuri(self, codeuri):
         self._codeuri = codeuri
 
+    @property
+    def build_method(self):
+        return self._build_method
+
+    @property
+    def compatible_runtimes(self):
+        return self._compatible_runtimes
+
     def __eq__(self, other):
         if isinstance(other, type(self)):
             return self.__dict__ == other.__dict__
-
         return False
-
-
-class FunctionProvider:
-    """
-    Abstract base class of the function provider.
-    """
-
-    def get(self, name):
-        """
-        Given name of the function, this method must return the Function object
-
-        :param string name: Name of the function
-        :return Function: namedtuple containing the Function information
-        """
-        raise NotImplementedError("not implemented")
-
-    def get_all(self):
-        """
-        Yields all the Lambda functions available in the provider.
-
-        :yields Function: namedtuple containing the function information
-        """
-        raise NotImplementedError("not implemented")
 
 
 class Api:
@@ -223,7 +250,6 @@ class Api:
 
 
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "max_age"])
-
 
 _CorsTuple.__new__.__defaults__ = (
     None,  # Allow Origin defaults to None

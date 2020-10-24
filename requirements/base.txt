@@ -1,15 +1,19 @@
 chevron~=0.12
 click~=7.0
 Flask~=1.0.2
-boto3~=1.10, >=1.10.29
+#Need to add Schemas latest SDK.
+boto3~=1.14.0, >=1.14.23
 jmespath~=0.9.5
 PyYAML~=5.1
 cookiecutter~=1.6.0
-aws-sam-translator==1.22.0
-docker~=4.0
+aws-sam-translator==1.27.0
+#docker minor version updates can include breaking changes. Auto update micro version only.
+docker~=4.2.0
 dateparser~=0.7
 python-dateutil~=2.6, <2.8.1
 requests==2.23.0
 serverlessrepo==0.1.9
-aws_lambda_builders==0.8.0
+aws_lambda_builders==1.1.0
 tomlkit==0.5.8
+# TODO: remove six and its usage since we don't support Python 2
+six==1.15.0

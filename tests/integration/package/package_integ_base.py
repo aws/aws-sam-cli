@@ -48,10 +48,10 @@ class PackageIntegBase(TestCase):
             time.sleep(S3_SLEEP)
 
     def setUp(self):
-        super(PackageIntegBase, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(PackageIntegBase, self).tearDown()
+        super().tearDown()
 
     def base_command(self):
         command = "sam"
@@ -69,8 +69,10 @@ class PackageIntegBase(TestCase):
         output_template_file=None,
         use_json=False,
         force_upload=False,
+        no_progressbar=False,
         kms_key_id=None,
         metadata=None,
+        resolve_s3=False,
     ):
         command_list = [self.base_command(), "package"]
 
@@ -92,7 +94,10 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--use-json"]
         if force_upload:
             command_list = command_list + ["--force-upload"]
+        if no_progressbar:
+            command_list = command_list + ["--no-progressbar"]
         if metadata:
             command_list = command_list + ["--metadata", json.dumps(metadata)]
-
+        if resolve_s3:
+            command_list = command_list + ["--resolve-s3"]
         return command_list

@@ -215,6 +215,8 @@ class TestLocalLambda_make_env_vars(TestCase):
             environment=self.environ,
             rolearn=None,
             layers=[],
+            events=None,
+            metadata=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -222,6 +224,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.local_lambda._make_env_vars(function)
 
         EnvironmentVariablesMock.assert_called_with(
+            function.name,
             function.memory,
             function.timeout,
             function.handler,
@@ -255,6 +258,8 @@ class TestLocalLambda_make_env_vars(TestCase):
             environment=self.environ,
             rolearn=None,
             layers=[],
+            events=None,
+            metadata=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -286,6 +291,8 @@ class TestLocalLambda_make_env_vars(TestCase):
             environment=environment_variable,
             rolearn=None,
             layers=[],
+            events=None,
+            metadata=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -293,6 +300,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.local_lambda._make_env_vars(function)
 
         EnvironmentVariablesMock.assert_called_with(
+            function.name,
             function.memory,
             function.timeout,
             function.handler,
@@ -347,6 +355,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             environment=None,
             rolearn=None,
             layers=layers,
+            events=None,
+            metadata=None,
         )
 
         config = "someconfig"
@@ -392,6 +402,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             environment=None,
             rolearn=None,
             layers=[],
+            events=None,
+            metadata=None,
         )
 
         config = "someconfig"

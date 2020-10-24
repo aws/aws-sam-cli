@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
-    <TargetFramework>netcoreapp2.0</TargetFramework>
-    {%- elif cookiecutter.runtime == 'dotnetcore2.1' %}
+    {%- if cookiecutter.runtime == 'dotnetcore2.1' %}
     <TargetFramework>netcoreapp2.1</TargetFramework>
     {%- else %}
     <TargetFramework>netcoreapp3.1</TargetFramework>
