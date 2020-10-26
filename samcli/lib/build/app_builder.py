@@ -16,7 +16,7 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import BuildDefinition, BuildGraph
+from samcli.lib.build.build_graph import BuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
@@ -70,8 +70,8 @@ class ApplicationBuilder:
 
         Parameters
         ----------
-        functions_to_build: Iterator
-            Iterator that can vend out functions available in the SAM template
+        resources_to_build: Iterator
+            Iterator that can vend out resources available in the SAM template
 
         build_dir : str
             Path to the directory where we will be storing built artifacts
@@ -140,16 +140,22 @@ class ApplicationBuilder:
 
     def _get_build_graph(self):
         """
-        Converts list of functions into a build graph, where we can iterate on each unique build and trigger build
+        Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
+        build
         :return: BuildGraph, which represents list of unique build definitions
         """
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
+        layers = self._resources_to_build.layers
         for function in functions:
-            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)
-            build_graph.put_build_definition(build_details, function)
+            function_build_details = FunctionBuildDefinition(function.runtime, function.codeuri, function.metadata)
+            build_graph.put_function_build_definition(function_build_details, function)
 
-        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
+        for layer in layers:
+            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
+            build_graph.put_layer_build_definition(layer_build_details, layer)
+
+        build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
     def update_template(self, template_dict, original_template_path, built_artifacts):
