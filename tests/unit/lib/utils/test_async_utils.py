@@ -3,7 +3,7 @@ from time import sleep, time
 
 from parameterized import parameterized
 
-from samcli.lib.utils.async_utils import Task, AsyncContext
+from samcli.lib.utils.async_utils import AsyncContext
 
 
 # List of methods which will be used during the tests
@@ -22,17 +22,6 @@ def raises_exception():
 def wait_for_seconds(seconds_to_wait):
     sleep(seconds_to_wait)
     return "Hello World"
-
-
-class TestTask(TestCase):
-    @parameterized.expand([(hello_world, {}, "Hello World"), (hello_message, {"Mars"}, "Hello Mars")])
-    def test_task_execution(self, function_ref, params, expected):
-        task = Task(function_ref, params)
-        self.assertEqual(task.execute(), expected)
-
-    def test_task_with_exception_should_raise_it(self):
-        task = Task(raises_exception)
-        self.assertRaises(Exception, task.execute)
 
 
 class TestAsyncContext(TestCase):
