@@ -3,6 +3,7 @@ Contains asyncio related methods and helpers
 """
 import asyncio
 import logging
+from functools import partial
 
 LOG = logging.getLogger(__name__)
 
@@ -40,8 +41,8 @@ async def _run_given_tasks_async(tasks, event_loop=asyncio.get_event_loop()):
 
     for task in tasks:
         # loop in all tasks and pass them to the executor
-        LOG.debug("Invoking function %s", str(task.function))
-        async_tasks.append(event_loop.run_in_executor(None, task.function, *task.args))
+        LOG.debug("Invoking function %s", str(task))
+        async_tasks.append(event_loop.run_in_executor(None, task))
 
     LOG.debug("Waiting for async results")
 
@@ -91,7 +92,7 @@ class AsyncContext:
     def __init__(self):
         self._async_tasks = []
 
-    def add_async_task(self, function, args=tuple()):
+    def add_async_task(self, function, *args):
         """
         Add a function definition and its args to the the async context, which will be executed later
 
@@ -101,7 +102,7 @@ class AsyncContext:
 
         args: Parameters of the function which will be executed
         """
-        self._async_tasks.append(Task(function, args))
+        self._async_tasks.append(partial(function, *args))
 
     def run_async(self):
         """
@@ -113,19 +114,3 @@ class AsyncContext:
         """
         event_loop = asyncio.new_event_loop()
         return run_given_tasks_async(self._async_tasks, event_loop)
-
-
-class Task:
-    """
-    This class is used to define a task which consists of a function definition and the parameters
-    """
-
-    def __init__(self, function, args=tuple()):
-        self.function = function
-        self.args = args
-
-    def execute(self):
-        """
-        Executes given function definition with arguments and returns its result
-        """
-        return self.function(*self.args)
