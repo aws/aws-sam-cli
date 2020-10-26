@@ -7,7 +7,6 @@ import io
 import json
 import logging
 import pathlib
-import shutil
 
 import docker
 from aws_lambda_builders.builder import LambdaBuilder
@@ -16,12 +15,11 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
-from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.build.build_graph import BuildDefinition, BuildGraph
+from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
-from ..utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -126,26 +124,19 @@ class ApplicationBuilder:
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
         build_graph = self._get_build_graph()
-        result = self._build_functions(build_graph)
-
-        for layer in self._resources_to_build.layers:
-            LOG.info("Building layer '%s'", layer.name)
-            if layer.build_method is None:
-                raise MissingBuildMethodException(
-                    f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
-            result[layer.name] = self._build_layer(layer.name,
-                                                   layer.codeuri,
-                                                   layer.build_method,
-                                                   layer.compatible_runtimes)
+        build_strategy = DefaultBuildStrategy(
+            build_graph,
+            self._build_dir,
+            self._resources_to_build,
+            self._is_building_specific_resource,
+            self._build_function,
+            self._build_layer,
+        )
 
         if self._cached:
-            build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
-            uuids = {bd.uuid for bd in build_graph.get_build_definitions()}
-            for cache_dir in pathlib.Path(self._cache_dir).iterdir():
-                if cache_dir.name not in uuids:
-                    shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
+            build_strategy = CachedBuildStrategy(build_graph, build_strategy, self._base_dir, self._build_dir, self._cache_dir)
 
-        return result
+        return build_strategy.build()
 
     def _get_build_graph(self):
         """
@@ -160,84 +151,6 @@ class ApplicationBuilder:
 
         build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
         return build_graph
-
-    def _build_functions(self, build_graph):
-        """
-        Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
-        """
-        function_build_results = {}
-
-        if self._cached:
-            build_function = self._build_unique_definition_cached
-        else:
-            build_function = self._build_unique_definition
-
-        for build_definition in build_graph.get_build_definitions():
-            function_build_results.update(build_function(build_definition))
-
-        return function_build_results
-
-    def _build_unique_definition_cached(self, build_definition):
-        """
-        If the build for a unique definition was cached before and the source code is not changed, copy the build
-        artifact directly to paths of all resources with the same unique definition
-        Else start a clean build and copy the build artifact directly to all paths with the same unique definition, as
-        well as cache the build
-        """
-        code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
-        source_md5 = dir_checksum(code_dir)
-        cache_function_dir = pathlib.Path(self._cache_dir, build_definition.get_uuid())
-        function_build_results = {}
-
-        if not cache_function_dir.exists() or build_definition.get_source_md5() != source_md5:
-            LOG.info("Cache is invalid, running build and copying resources to build definition of %s",
-                     build_definition.get_uuid())
-            build_result = self._build_unique_definition(build_definition)
-            function_build_results.update(build_result)
-
-            if cache_function_dir.exists():
-                shutil.rmtree(str(cache_function_dir))
-
-            build_definition.set_source_md5(source_md5)
-            for _, value in build_result.items():
-                osutils.copytree(value, cache_function_dir)
-                break
-        else:
-            LOG.info("Valid cache found, copying previously built resources from build definition of %s",
-                     build_definition.get_uuid())
-            for function in build_definition.functions:
-                # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-                osutils.copytree(cache_function_dir, artifacts_dir)
-                function_build_results[function.name] = artifacts_dir
-
-        return function_build_results
-
-    def _build_unique_definition(self, build_definition):
-        """
-        Build the unique definition and then copy the artifact to paths of all resources with the same unique definition
-        """
-        function_results = {}
-        LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
-                 build_definition.codeuri, build_definition.runtime, build_definition.metadata,
-                 [function.name for function in build_definition.functions])
-        with osutils.mkdir_temp() as temporary_build_dir:
-            LOG.debug("Building to following folder %s", temporary_build_dir)
-            self._build_function(build_definition.get_function_name(),
-                                 build_definition.codeuri,
-                                 build_definition.runtime,
-                                 build_definition.get_handler_name(),
-                                 temporary_build_dir,
-                                 build_definition.metadata)
-
-            for function in build_definition.functions:
-                # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                LOG.debug("Copying artifacts from %s to %s", temporary_build_dir, artifacts_dir)
-                osutils.copytree(temporary_build_dir, artifacts_dir)
-                function_results[function.name] = artifacts_dir
-        return function_results
 
     def update_template(self, template_dict, original_template_path, built_artifacts):
         """
