@@ -9,7 +9,7 @@ from parameterized import parameterized
 
 import pytest
 
-from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase
+from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
 LOG = logging.getLogger(__name__)
