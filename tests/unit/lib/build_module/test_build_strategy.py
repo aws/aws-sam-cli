@@ -289,3 +289,78 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir, True)
             cached_build_strategy._clean_redundant_cached()
             self.assertTrue(not redundant_cache_folder.exists())
+
+
+class ParallelBuildStrategyTest(BuildStrategyBaseTest):
+
+    def test_given_async_context_should_call_expected_methods(self):
+        mock_async_context = Mock()
+        delegate_build_strategy = MagicMock(wraps=BuildStrategy(self.build_graph))
+        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy, mock_async_context)
+
+        given_build_results = [
+            {"function1": "function_location1"},
+            {"function2": "function_location2"},
+            {"layer1": "layer_location1"},
+            {"layer2": "layer_location2"},
+        ]
+        mock_async_context.run_async.return_value = given_build_results
+
+        results = parallel_build_strategy.build()
+
+        expected_results = {}
+        for given_build_result in given_build_results:
+            expected_results.update(given_build_result)
+        self.assertEqual(results, expected_results)
+
+        # assert that result has collected
+        mock_async_context.run_async.assert_has_calls([
+            call()
+        ])
+
+        # assert that delegated function calls have been registered in async context
+        mock_async_context.add_async_task.assert_has_calls([
+            call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
+            call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
+            call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
+            call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+        ])
+
+    def test_given_delegate_strategy_it_should_call_delegated_build_methods(self):
+        # create a mock delegate build strategy
+        delegate_build_strategy = MagicMock(wraps=BuildStrategy(self.build_graph))
+        delegate_build_strategy.build_single_function_definition.return_value = {
+            "function1": "build_location1",
+            "function2": "build_location2"
+        }
+        delegate_build_strategy.build_single_layer_definition.return_value = {
+            "layer1": "build_location1",
+            "layer2": "build_location2"
+        }
+
+        # create expected results
+        expected_result = {}
+        expected_result.update(delegate_build_strategy.build_single_function_definition.return_value)
+        expected_result.update(delegate_build_strategy.build_single_layer_definition.return_value)
+
+        # create build strategy with delegate
+        parallel_build_strategy = ParallelBuildStrategy(self.build_graph, delegate_build_strategy)
+        result = parallel_build_strategy.build()
+
+        self.assertEqual(result, expected_result)
+
+        # assert that delegate build strategy had been used with context
+        delegate_build_strategy.__enter__.assert_called_once()
+        delegate_build_strategy.__exit__.assert_called_once_with(ANY, ANY, ANY)
+
+        # assert that delegate build strategy function methods have been called
+        delegate_build_strategy.build_single_function_definition.assert_has_calls([
+            call(self.function_build_definition1),
+            call(self.function_build_definition2),
+        ])
+
+        # assert that delegate build strategy layer methods have been called
+        delegate_build_strategy.build_single_layer_definition.assert_has_calls([
+            call(self.layer_build_definition1),
+            call(self.layer_build_definition2),
+        ])

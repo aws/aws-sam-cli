@@ -16,9 +16,10 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
+from samcli.lib.build.build_graph import LayerBuildDefinition, BuildGraph, FunctionBuildDefinition
 from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy, ParallelBuildStrategy
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from samcli.lib.utils.async_utils import AsyncContext
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
 LOG = logging.getLogger(__name__)
@@ -158,7 +159,8 @@ class ApplicationBuilder:
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
-            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
+            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method,
+                                                       layer.compatible_runtimes)
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)

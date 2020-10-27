@@ -248,10 +248,10 @@ class ParallelBuildStrategy(BuildStrategy):
     For actual build implementation it calls delegate implementation (could be one of the other Build Strategy)
     """
 
-    def __init__(self, build_graph, delegate_build_strategy):
+    def __init__(self, build_graph, delegate_build_strategy, async_context=AsyncContext()):
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
-        self._async_context = AsyncContext()
+        self._async_context = async_context
 
     def build(self):
         """
