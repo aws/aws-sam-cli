@@ -2,24 +2,23 @@
 Builds the application
 """
 
-import os
 import io
 import json
 import logging
+import os
 import pathlib
 
 import docker
+from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 
 import samcli.lib.utils.osutils as osutils
-from samcli.lib.utils.colors import Colored
-from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import LayerBuildDefinition, BuildGraph, FunctionBuildDefinition
+from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
 from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy, ParallelBuildStrategy
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.utils.colors import Colored
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
-from samcli.lib.utils.async_utils import AsyncContext
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
 LOG = logging.getLogger(__name__)
@@ -131,7 +130,12 @@ class ApplicationBuilder:
             if self._cached:
                 build_strategy = ParallelBuildStrategy(
                     build_graph,
-                    CachedBuildStrategy(build_graph, build_strategy, self._base_dir, self._build_dir, self._cache_dir)
+                    CachedBuildStrategy(build_graph,
+                                        build_strategy,
+                                        self._base_dir,
+                                        self._build_dir,
+                                        self._cache_dir,
+                                        self._is_building_specific_resource)
                 )
             else:
                 build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
@@ -141,7 +145,7 @@ class ApplicationBuilder:
                                                  self._base_dir,
                                                  self._build_dir,
                                                  self._cache_dir,
-                                                 self._is_building_specific_resource)
+                                                 self._is_building_specific_resource,)
 
         return build_strategy.build()
 
