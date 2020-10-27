@@ -1134,6 +1134,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             expected_messages, command_result, self._make_parameter_override_arg(overrides)
         )
 
+
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",

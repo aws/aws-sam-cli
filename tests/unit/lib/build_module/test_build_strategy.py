@@ -3,7 +3,12 @@ from unittest.mock import Mock, patch, MagicMock, call, ANY
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
-from samcli.lib.build.build_strategy import BuildStrategy, DefaultBuildStrategy, CachedBuildStrategy
+from samcli.lib.build.build_strategy import (
+    ParallelBuildStrategy,
+    BuildStrategy,
+    DefaultBuildStrategy,
+    CachedBuildStrategy,
+)
 from samcli.lib.utils import osutils
 from pathlib import Path
 
@@ -292,7 +297,6 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
 
 
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):
-
     def test_given_async_context_should_call_expected_methods(self):
         mock_async_context = Mock()
         delegate_build_strategy = MagicMock(wraps=BuildStrategy(self.build_graph))
@@ -314,28 +318,28 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
         self.assertEqual(results, expected_results)
 
         # assert that result has collected
-        mock_async_context.run_async.assert_has_calls([
-            call()
-        ])
+        mock_async_context.run_async.assert_has_calls([call()])
 
         # assert that delegated function calls have been registered in async context
-        mock_async_context.add_async_task.assert_has_calls([
-            call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
-            call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
-            call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
-            call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
-        ])
+        mock_async_context.add_async_task.assert_has_calls(
+            [
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition1),
+                call(delegate_build_strategy.build_single_function_definition, self.function_build_definition2),
+                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition1),
+                call(delegate_build_strategy.build_single_layer_definition, self.layer_build_definition2),
+            ]
+        )
 
     def test_given_delegate_strategy_it_should_call_delegated_build_methods(self):
         # create a mock delegate build strategy
         delegate_build_strategy = MagicMock(wraps=BuildStrategy(self.build_graph))
         delegate_build_strategy.build_single_function_definition.return_value = {
             "function1": "build_location1",
-            "function2": "build_location2"
+            "function2": "build_location2",
         }
         delegate_build_strategy.build_single_layer_definition.return_value = {
             "layer1": "build_location1",
-            "layer2": "build_location2"
+            "layer2": "build_location2",
         }
 
         # create expected results
@@ -354,13 +358,11 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
         delegate_build_strategy.__exit__.assert_called_once_with(ANY, ANY, ANY)
 
         # assert that delegate build strategy function methods have been called
-        delegate_build_strategy.build_single_function_definition.assert_has_calls([
-            call(self.function_build_definition1),
-            call(self.function_build_definition2),
-        ])
+        delegate_build_strategy.build_single_function_definition.assert_has_calls(
+            [call(self.function_build_definition1), call(self.function_build_definition2),]
+        )
 
         # assert that delegate build strategy layer methods have been called
-        delegate_build_strategy.build_single_layer_definition.assert_has_calls([
-            call(self.layer_build_definition1),
-            call(self.layer_build_definition2),
-        ])
+        delegate_build_strategy.build_single_layer_definition.assert_has_calls(
+            [call(self.layer_build_definition1), call(self.layer_build_definition2),]
+        )
