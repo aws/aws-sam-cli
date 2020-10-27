@@ -58,7 +58,7 @@ class TestApiGatewayService(TestCase):
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
-        self.api_service._construct_event = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -74,7 +74,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.api_service._construct_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_request_must_invoke_lambda(self, request_mock):
@@ -84,9 +84,9 @@ class TestApiGatewayService(TestCase):
         self.http_service._get_current_route = Mock()
         self.http_service._get_current_route.return_value = self.http_gateway_route
         self.http_service._get_current_route.methods = []
-        self.http_service._construct_event = Mock()
+        self.http_service._construct_v_1_0_event = Mock()
 
-        self.http_service._construct_event_http = MagicMock()
+        self.http_service._construct_v_2_0_event_http = MagicMock()
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -102,7 +102,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
+        self.http_service._construct_v_2_0_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v1_payload_request_must_invoke_lambda(self, request_mock):
@@ -112,9 +112,9 @@ class TestApiGatewayService(TestCase):
         self.http_service._get_current_route = Mock()
         self.http_service._get_current_route.return_value = self.http_v1_payload_route
         self.http_service._get_current_route.methods = []
-        self.http_service._construct_event = Mock()
+        self.http_service._construct_v_1_0_event = Mock()
 
-        self.http_service._construct_event_http = MagicMock()
+        self.http_service._construct_v_2_0_event_http = MagicMock()
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -130,7 +130,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v2_payload_request_must_invoke_lambda(self, request_mock):
@@ -140,9 +140,9 @@ class TestApiGatewayService(TestCase):
         self.http_service._get_current_route = Mock()
         self.http_service._get_current_route.return_value = self.http_v2_payload_route
         self.http_service._get_current_route.methods = []
-        self.http_service._construct_event = Mock()
+        self.http_service._construct_v_1_0_event = Mock()
 
-        self.http_service._construct_event_http = MagicMock()
+        self.http_service._construct_v_2_0_event_http = MagicMock()
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -158,7 +158,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
+        self.http_service._construct_v_2_0_event_http.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_api_options_request_must_invoke_lambda(self, request_mock):
@@ -167,7 +167,7 @@ class TestApiGatewayService(TestCase):
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.return_value.methods = ["OPTIONS"]
-        self.api_service._construct_event = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -191,7 +191,7 @@ class TestApiGatewayService(TestCase):
         self.http_service.service_response = make_response_mock
         self.http_service._get_current_route = MagicMock()
         self.http_service._get_current_route.return_value.methods = ["OPTIONS"]
-        self.http_service._construct_event = Mock()
+        self.http_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -217,7 +217,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
 
-        self.api_service._construct_event = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -247,7 +247,7 @@ class TestApiGatewayService(TestCase):
 
         self.api_service.service_response = make_response_mock
         self.api_service._get_current_route = MagicMock()
-        self.api_service._construct_event = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route.methods = []
 
         parse_output_mock = Mock()
@@ -325,7 +325,7 @@ class TestApiGatewayService(TestCase):
     @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
     def test_request_handles_error_when_invoke_cant_find_function(self, service_error_responses_patch, request_mock):
         not_found_response_mock = Mock()
-        self.api_service._construct_event = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
 
@@ -341,7 +341,7 @@ class TestApiGatewayService(TestCase):
     def test_request_throws_when_invoke_fails(self, request_mock):
         self.lambda_runner.invoke.side_effect = Exception()
 
-        self.api_service._construct_event = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route = Mock()
         request_mock.return_value = ("test", "test")
 
@@ -361,7 +361,7 @@ class TestApiGatewayService(TestCase):
 
         service_error_responses_patch.lambda_failure_response.return_value = failure_response_mock
 
-        self.api_service._construct_event = Mock()
+        self.api_service._construct_v_1_0_event = Mock()
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
 
@@ -387,7 +387,7 @@ class TestApiGatewayService(TestCase):
         self.api_service._get_current_route = MagicMock()
         self.api_service._get_current_route.methods = []
 
-        self.api_service._construct_event = _construct_event
+        self.api_service._construct_v_1_0_event = _construct_event
 
         failure_mock = Mock()
         service_error_responses_patch.lambda_failure_response.return_value = failure_mock
@@ -721,7 +721,7 @@ class TestService_construct_event(TestCase):
         self.assertIsInstance(request_time_epoch, int)
 
     def test_construct_event_with_data(self):
-        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_v_1_0_event(self.request_mock, 3000, binary_types=[])
 
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
@@ -731,7 +731,7 @@ class TestService_construct_event(TestCase):
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
 
-        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_v_1_0_event(self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
@@ -746,7 +746,7 @@ class TestService_construct_event(TestCase):
 
         self.request_mock.get_data.return_value = binary_body
 
-        actual_event_str = LocalApigwService._construct_event(self.request_mock, 3000, binary_types=[])
+        actual_event_str = LocalApigwService._construct_v_1_0_event(self.request_mock, 3000, binary_types=[])
         actual_event_json = json.loads(actual_event_str)
         self.validate_request_context_and_remove_request_time_data(actual_event_json)
 
@@ -874,7 +874,7 @@ class TestService_construct_event_http(TestCase):
                     "sourceIp": "190.0.0.0",
                     "userAgent": "Custom User Agent String"
                 },
-                "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+                "requestId": "",
                 "routeKey": "GET /endpoint",
                 "stage": null
             },
@@ -888,21 +888,27 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict = json.loads(expected)
 
     def test_construct_event_with_data(self):
-        actual_event_str = LocalApigwService._construct_event_http(
+        actual_event_str = LocalApigwService._construct_v_2_0_event_http(
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
         print("DEBUG: json.loads(actual_event_str)", json.loads(actual_event_str))
         print("DEBUG: self.expected_dict", self.expected_dict)
-        self.assertEqual(json.loads(actual_event_str), self.expected_dict)
+        actual_event_dict = json.loads(actual_event_str)
+        self.assertEquals(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        actual_event_dict["requestContext"]["requestId"] = ""
+        self.assertEqual(actual_event_dict, self.expected_dict)
 
     def test_construct_event_no_data(self):
         self.request_mock.get_data.return_value = None
         self.expected_dict["body"] = None
 
-        actual_event_str = LocalApigwService._construct_event_http(
+        actual_event_str = LocalApigwService._construct_v_2_0_event_http(
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
-        self.assertEqual(json.loads(actual_event_str), self.expected_dict)
+        actual_event_dict = json.loads(actual_event_str)
+        self.assertEquals(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        actual_event_dict["requestContext"]["requestId"] = ""
+        self.assertEqual(actual_event_dict, self.expected_dict)
 
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_encode")
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
@@ -916,10 +922,13 @@ class TestService_construct_event_http(TestCase):
         self.expected_dict["isBase64Encoded"] = True
         self.maxDiff = None
 
-        actual_event_str = LocalApigwService._construct_event_http(
+        actual_event_str = LocalApigwService._construct_v_2_0_event_http(
             self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
         )
-        self.assertEqual(json.loads(actual_event_str), self.expected_dict)
+        actual_event_dict = json.loads(actual_event_str)
+        self.assertEquals(len(actual_event_dict["requestContext"]["requestId"]), 36)
+        actual_event_dict["requestContext"]["requestId"] = ""
+        self.assertEqual(actual_event_dict, self.expected_dict)
 
     def test_event_headers_with_empty_list(self):
         request_mock = Mock()

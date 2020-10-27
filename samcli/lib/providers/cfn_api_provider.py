@@ -401,7 +401,9 @@ class CfnApiProvider(CfnBaseApiProvider):
     def _parse_route_key(route_key):
         """
         parse the route key, and return the methods && path.
+        route key should be in format "Http_method Path" or to equal "$default"
         if the route key is $default, return 'X-AMAZON-APIGATEWAY-ANY-METHOD' as a method && $default as a path
+        else we will split the route key on space and use the specified method and path
 
         Parameters
         ----------
@@ -417,5 +419,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         if not route_key or route_key == "$default":
             return "X-AMAZON-APIGATEWAY-ANY-METHOD", "$default"
 
+        # whitespace is the default split character as per this documentation
+        # https://docs.python.org/3/library/stdtypes.html#str.split
         [method, path] = route_key.split()
         return method, path
