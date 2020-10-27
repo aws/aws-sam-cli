@@ -1115,12 +1115,14 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
         """
         self.assertEqual(command_result.process.returncode, 0)
 
+
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     template = "dedup-functions-template.yaml"
+
     @parameterized.expand(
         [
             # in process

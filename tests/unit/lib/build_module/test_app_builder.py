@@ -81,10 +81,10 @@ class TestApplicationBuilder_build(TestCase):
     def test_should_generate_build_graph(self, persist_mock):
         build_graph = self.builder._get_build_graph()
 
-        self.assertTrue(len(build_graph.get_build_definitions()), 2)
+        self.assertTrue(len(build_graph.get_function_build_definitions()), 2)
 
         all_functions_in_build_graph = []
-        for build_definition in build_graph.get_build_definitions():
+        for build_definition in build_graph.get_function_build_definitions():
             for function in build_definition.functions:
                 all_functions_in_build_graph.append(function)
 

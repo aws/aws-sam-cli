@@ -16,7 +16,7 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import BuildDefinition, LayerBuildDefinition, BuildGraph
+from samcli.lib.build.build_graph import LayerBuildDefinition, BuildGraph, FunctionBuildDefinition
 from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container

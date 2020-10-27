@@ -1,0 +1,12 @@
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/bin/Release/netcoreapp3.1/linux-x64/HelloWorld.deps.json
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/bin/Release/netcoreapp3.1/linux-x64/HelloWorld.runtimeconfig.json
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/bin/Release/netcoreapp3.1/linux-x64/HelloWorld.runtimeconfig.dev.json
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/bin/Release/netcoreapp3.1/linux-x64/HelloWorld.dll
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/bin/Release/netcoreapp3.1/linux-x64/HelloWorld.pdb
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/Release/netcoreapp3.1/linux-x64/HelloWorld.csprojAssemblyReference.cache
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/Release/netcoreapp3.1/linux-x64/HelloWorld.AssemblyInfoInputs.cache
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/Release/netcoreapp3.1/linux-x64/HelloWorld.AssemblyInfo.cs
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/Release/netcoreapp3.1/linux-x64/HelloWorld.csproj.CoreCompileInputs.cache
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/Release/netcoreapp3.1/linux-x64/HelloWorld.dll
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/Release/netcoreapp3.1/linux-x64/HelloWorld.pdb
+/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/Release/netcoreapp3.1/linux-x64/HelloWorld.genruntimeconfig.cache

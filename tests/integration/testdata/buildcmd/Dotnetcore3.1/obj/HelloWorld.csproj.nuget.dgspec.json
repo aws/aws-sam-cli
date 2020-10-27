@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/HelloWorld.csproj": {}
+  },
+  "projects": {
+    "/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/HelloWorld.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/HelloWorld.csproj",
+        "projectName": "HelloWorld",
+        "projectPath": "/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/HelloWorld.csproj",
+        "packagesPath": "/Users/hmingku/.nuget/packages/",
+        "outputPath": "/Users/hmingku/Documents/GitHub/aws-sam-cli/tests/integration/testdata/buildcmd/Dotnetcore3.1/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/hmingku/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netcoreapp3.1"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "dependencies": {
+            "Amazon.Lambda.APIGatewayEvents": {
+              "target": "Package",
+              "version": "[1.1.3, )"
+            },
+            "Amazon.Lambda.Core": {
+              "target": "Package",
+              "version": "[1.0.0, )"
+            },
+            "Amazon.Lambda.Serialization.Json": {
+              "target": "Package",
+              "version": "[1.4.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[11.0.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/3.1.401/RuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "linux-x64": {
+          "#import": []
+        }
+      }
+    }
+  }
+}
