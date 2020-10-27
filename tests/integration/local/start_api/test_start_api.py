@@ -1496,6 +1496,52 @@ class TestCFNTemplateQuickCreatedHttpApiWithOneRoute(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "$default")
 
 
+class TestServerlessTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-rest-and-http-apis.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_is_reachable(self):
+        response = requests.get(self.url + "/http-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_is_reachable(self):
+        response = requests.get(self.url + "/rest-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_is_reachable(self):
+        response = requests.get(self.url + "/http-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_is_reachable(self):
+        response = requests.get(self.url + "/rest-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
 class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/cfn-http-api-with-swagger-body.yaml"
 
