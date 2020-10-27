@@ -11,7 +11,6 @@ from pathlib import Path
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
 @patch("samcli.lib.build.build_graph.BuildGraph._read")
 class BuildStrategyBaseTest(TestCase):
-
     def setUp(self):
         # create a build graph with 2 function definitions and 2 layer definitions
         self.build_graph = BuildGraph("build_dir")
@@ -34,7 +33,6 @@ class BuildStrategyBaseTest(TestCase):
 
 
 class BuildStrategyTest(BuildStrategyBaseTest):
-
     def test_build_functions_layers(self):
         build_strategy = BuildStrategy(self.build_graph)
 
@@ -75,16 +73,14 @@ class BuildStrategyTest(BuildStrategyBaseTest):
         self.assertEqual(build_result, expected_result)
 
         # assert individual functions builds have been called
-        mock_build_strategy.build_single_function_definition.assert_has_calls([
-            call(self.function_build_definition1),
-            call(self.function_build_definition2),
-        ])
+        mock_build_strategy.build_single_function_definition.assert_has_calls(
+            [call(self.function_build_definition1), call(self.function_build_definition2),]
+        )
 
         # assert individual layer builds have been called
-        mock_build_strategy.build_single_layer_definition.assert_has_calls([
-            call(self.layer_build_definition1),
-            call(self.layer_build_definition2),
-        ])
+        mock_build_strategy.build_single_layer_definition.assert_has_calls(
+            [call(self.layer_build_definition1), call(self.layer_build_definition2),]
+        )
 
 
 @patch("samcli.lib.build.build_strategy.pathlib.Path")
@@ -107,59 +103,65 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_function = Mock()
         given_build_layer = Mock()
         given_build_dir = "build_dir"
-        default_build_strategy = DefaultBuildStrategy(self.build_graph,
-                                                      given_build_dir,
-                                                      given_build_function,
-                                                      given_build_layer)
+        default_build_strategy = DefaultBuildStrategy(
+            self.build_graph, given_build_dir, given_build_function, given_build_layer
+        )
 
         default_build_strategy.build()
 
         # assert that build function has been called
-        given_build_function.assert_has_calls([
-            call(
-                self.function_build_definition1.get_function_name(),
-                self.function_build_definition1.codeuri,
-                self.function_build_definition1.runtime,
-                self.function_build_definition1.get_handler_name(),
-                ANY,
-                self.function_build_definition1.metadata
-            ),
-            call(
-                self.function_build_definition2.get_function_name(),
-                self.function_build_definition2.codeuri,
-                self.function_build_definition2.runtime,
-                self.function_build_definition2.get_handler_name(),
-                ANY,
-                self.function_build_definition2.metadata
-            ),
-        ])
+        given_build_function.assert_has_calls(
+            [
+                call(
+                    self.function_build_definition1.get_function_name(),
+                    self.function_build_definition1.codeuri,
+                    self.function_build_definition1.runtime,
+                    self.function_build_definition1.get_handler_name(),
+                    ANY,
+                    self.function_build_definition1.metadata,
+                ),
+                call(
+                    self.function_build_definition2.get_function_name(),
+                    self.function_build_definition2.codeuri,
+                    self.function_build_definition2.runtime,
+                    self.function_build_definition2.get_handler_name(),
+                    ANY,
+                    self.function_build_definition2.metadata,
+                ),
+            ]
+        )
 
         # assert that layer build function has been called
-        given_build_layer.assert_has_calls([
-            call(
-                self.layer_build_definition1.layer.name,
-                self.layer_build_definition1.layer.codeuri,
-                self.layer_build_definition1.layer.build_method,
-                self.layer_build_definition1.layer.compatible_runtimes,
-            ),
-            call(
-                self.layer_build_definition2.layer.name,
-                self.layer_build_definition2.layer.codeuri,
-                self.layer_build_definition2.layer.build_method,
-                self.layer_build_definition2.layer.compatible_runtimes,
-            ),
-        ])
+        given_build_layer.assert_has_calls(
+            [
+                call(
+                    self.layer_build_definition1.layer.name,
+                    self.layer_build_definition1.layer.codeuri,
+                    self.layer_build_definition1.layer.build_method,
+                    self.layer_build_definition1.layer.compatible_runtimes,
+                ),
+                call(
+                    self.layer_build_definition2.layer.name,
+                    self.layer_build_definition2.layer.codeuri,
+                    self.layer_build_definition2.layer.build_method,
+                    self.layer_build_definition2.layer.compatible_runtimes,
+                ),
+            ]
+        )
 
         # assert that mock path has been called
-        mock_path.assert_has_calls([
-            call(given_build_dir, self.function_build_definition1.get_function_name()),
-            call(given_build_dir, self.function_build_definition2.get_function_name()),
-        ], any_order=True)
+        mock_path.assert_has_calls(
+            [
+                call(given_build_dir, self.function_build_definition1.get_function_name()),
+                call(given_build_dir, self.function_build_definition2.get_function_name()),
+            ],
+            any_order=True,
+        )
 
         # assert that function1_2 artifacts have been copied from already built function1_1
         mock_copy_tree.assert_called_with(
             str(mock_path(given_build_dir, self.function_build_definition1.get_function_name())),
-            str(mock_path(given_build_dir, self.function1_2.name))
+            str(mock_path(given_build_dir, self.function1_2.name)),
         )
 
 
