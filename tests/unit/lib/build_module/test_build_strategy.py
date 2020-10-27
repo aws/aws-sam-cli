@@ -207,7 +207,7 @@ class CachedBuildStrategyTest(TestCase):
             build_graph_path.write_text(CachedBuildStrategyTest.BUILD_GRAPH_CONTENTS)
             build_graph = BuildGraph(str(build_dir))
             cached_build_strategy = CachedBuildStrategy(
-                build_graph, DefaultBuildStrategy, temp_base_dir, build_dir, cache_dir
+                build_graph, DefaultBuildStrategy, temp_base_dir, build_dir, cache_dir, True
             )
             func1 = Mock()
             func1.name = "func1_name"
@@ -239,7 +239,7 @@ class CachedBuildStrategyTest(TestCase):
             build_graph_path.write_text(CachedBuildStrategyTest.BUILD_GRAPH_CONTENTS)
             build_graph = BuildGraph(str(build_dir))
             cached_build_strategy = CachedBuildStrategy(
-                build_graph, DefaultBuildStrategy, temp_base_dir, build_dir, cache_dir
+                build_graph, DefaultBuildStrategy, temp_base_dir, build_dir, cache_dir, True
             )
             cached_build_strategy.build_single_function_definition(build_graph.get_function_build_definitions()[0])
             cached_build_strategy.build_single_layer_definition(build_graph.get_layer_build_definitions()[0])
@@ -257,6 +257,6 @@ class CachedBuildStrategyTest(TestCase):
             redundant_cache_folder = Path(cache_dir, "redundant")
             redundant_cache_folder.mkdir(parents=True)
 
-            cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir)
+            cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir, True)
             cached_build_strategy._clean_redundant_cached()
             self.assertTrue(not redundant_cache_folder.exists())
