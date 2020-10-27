@@ -81,10 +81,10 @@ class TestApplicationBuilder_build(TestCase):
     def test_should_generate_build_graph(self, persist_mock):
         build_graph = self.builder._get_build_graph()
 
-        self.assertTrue(len(build_graph.get_build_definitions()), 2)
+        self.assertTrue(len(build_graph.get_function_build_definitions()), 2)
 
         all_functions_in_build_graph = []
-        for build_definition in build_graph.get_build_definitions():
+        for build_definition in build_graph.get_function_build_definitions():
             for function in build_definition.functions:
                 all_functions_in_build_graph.append(function)
 
@@ -136,6 +136,38 @@ class TestApplicationBuilder_build(TestCase):
             ],
             any_order=True,
         )
+
+    @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
+    def test_default_run_should_pick_default_strategy(self, mock_default_build_strategy_class):
+        mock_default_build_strategy = Mock()
+        mock_default_build_strategy_class.return_value = mock_default_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_default_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_default_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
+    def test_cached_run_should_pick_cached_strategy(self, mock_cached_build_strategy_class):
+        mock_cached_build_strategy = Mock()
+        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", cached=True)
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_cached_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_cached_build_strategy.build())
 
 
 class TestApplicationBuilderForLayerBuild(TestCase):

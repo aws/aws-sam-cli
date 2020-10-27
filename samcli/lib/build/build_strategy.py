@@ -38,12 +38,6 @@ class BuildStrategy:
 
         return result
 
-    def is_building_specific_resource(self):
-        """
-        Returns True if build is called for specific resource (Function or Layer)
-        """
-        return False
-
     def _build_functions(self, build_graph):
         """
         Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
@@ -84,42 +78,46 @@ class DefaultBuildStrategy(BuildStrategy):
     Default build strategy, loops over given build graph for each function and layer, and builds each of them one by one
     """
 
-    def __init__(self, build_graph, build_dir, resources_to_build, is_building_specific_resource, build_function,
-                 build_layer):
+    def __init__(self, build_graph, build_dir, build_function, build_layer):
         super().__init__(build_graph)
         self._build_dir = build_dir
-        self._resources_to_build = resources_to_build
-        self._is_building_specific_resource = is_building_specific_resource
         self._build_function = build_function
         self._build_layer = build_layer
-
-    def is_building_specific_resource(self):
-        return self._is_building_specific_resource
 
     def build_single_function_definition(self, build_definition):
         """
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
-        function_results = {}
+        function_build_results = {}
         LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
-                 build_definition.codeuri, build_definition.runtime, build_definition.metadata,
+                 build_definition.codeuri,
+                 build_definition.runtime,
+                 build_definition.metadata,
                  [function.name for function in build_definition.functions])
-        with osutils.mkdir_temp() as temporary_build_dir:
-            LOG.debug("Building to following folder %s", temporary_build_dir)
-            self._build_function(build_definition.get_function_name(),
-                                 build_definition.codeuri,
-                                 build_definition.runtime,
-                                 build_definition.get_handler_name(),
-                                 temporary_build_dir,
-                                 build_definition.metadata)
 
-            for function in build_definition.functions:
+        # build into one of the functions from this build definition
+        single_function_name = build_definition.get_function_name()
+        single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
+
+        LOG.debug("Building to following folder %s", single_build_dir)
+        self._build_function(build_definition.get_function_name(),
+                             build_definition.codeuri,
+                             build_definition.runtime,
+                             build_definition.get_handler_name(),
+                             single_build_dir,
+                             build_definition.metadata)
+        function_build_results[single_function_name] = single_build_dir
+
+        # copy results to other functions
+        for function in build_definition.functions:
+            if function.name is not single_function_name:
                 # artifacts directory will be created by the builder
                 artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                LOG.debug("Copying artifacts from %s to %s", temporary_build_dir, artifacts_dir)
-                osutils.copytree(temporary_build_dir, artifacts_dir)
-                function_results[function.name] = artifacts_dir
-        return function_results
+                LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
+                osutils.copytree(single_build_dir, artifacts_dir)
+                function_build_results[function.name] = artifacts_dir
+
+        return function_build_results
 
     def build_single_layer_definition(self, layer_definition):
         """
@@ -145,12 +143,14 @@ class CachedBuildStrategy(BuildStrategy):
     For actual building, it uses delegate implementation
     """
 
-    def __init__(self, build_graph, delegate_build_strategy, base_dir, build_dir, cache_dir):
+    def __init__(self, build_graph, delegate_build_strategy, base_dir, build_dir, cache_dir,
+                 is_building_specific_resource):
         super().__init__(build_graph)
         self._delegate_build_strategy = delegate_build_strategy
         self._base_dir = base_dir
         self._build_dir = build_dir
         self._cache_dir = cache_dir
+        self._is_building_specific_resource = is_building_specific_resource
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._clean_redundant_cached()
@@ -232,8 +232,7 @@ class CachedBuildStrategy(BuildStrategy):
         """
         clean the redundant cached folder
         """
-        self._build_graph.clean_redundant_definitions_and_update(
-            not self._delegate_build_strategy.is_building_specific_resource())
+        self._build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         uuids = {bd.uuid for bd in self._build_graph.get_function_build_definitions()}
         uuids.update({ld.uuid for ld in self._build_graph.get_layer_build_definitions()})
         for cache_dir in pathlib.Path(self._cache_dir).iterdir():

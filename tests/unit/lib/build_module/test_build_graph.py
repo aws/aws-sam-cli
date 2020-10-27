@@ -80,13 +80,13 @@ class TestBuildGraph(TestCase):
     SOURCE_MD5 = "cae49aa393d669e850bd49869905099d"
 
     BUILD_GRAPH_CONTENTS = f"""
-    [build_definitions]
-    [build_definitions.{UUID}]
+    [function_build_definitions]
+    [function_build_definitions.{UUID}]
     codeuri = "{CODEURI}"
     runtime = "{RUNTIME}"
     source_md5 = "{SOURCE_MD5}"
     functions = ["HelloWorldPython", "HelloWorldPython2"]
-    [build_definitions.{UUID}.metadata]
+    [function_build_definitions.{UUID}.metadata]
     Test = "{METADATA['Test']}"
     Test2 = "{METADATA['Test2']}"
     """
@@ -96,11 +96,13 @@ class TestBuildGraph(TestCase):
             build_dir = Path(temp_base_dir, ".aws-sam", "build")
             build_dir.mkdir(parents=True)
             build_graph1 = BuildGraph(str(build_dir.resolve()))
-            build_graph1.clean_redundant_functions_and_update(True)
+            build_graph1.clean_redundant_definitions_and_update(True)
 
             build_graph2 = BuildGraph(str(build_dir.resolve()))
 
-            self.assertEqual(build_graph1.get_build_definitions(), build_graph2.get_build_definitions())
+            self.assertEqual(
+                build_graph1.get_function_build_definitions(),
+                build_graph2.get_function_build_definitions())
 
     def test_should_instantiate_first_time_and_update(self):
         with osutils.mkdir_temp() as temp_base_dir:
@@ -115,14 +117,17 @@ class TestBuildGraph(TestCase):
             function1 = generate_function(
                 runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
             )
-            build_graph1.put_build_definition(build_definition1, function1)
-            build_graph1.clean_redundant_functions_and_update(True)
+            build_graph1.put_function_build_definition(build_definition1, function1)
+            build_graph1.clean_redundant_definitions_and_update(True)
 
             # read previously persisted graph and compare
             build_graph2 = BuildGraph(str(build_dir))
-            self.assertEqual(len(build_graph1.get_build_definitions()), len(build_graph2.get_build_definitions()))
             self.assertEqual(
-                list(build_graph1.get_build_definitions())[0], list(build_graph2.get_build_definitions())[0]
+                len(build_graph1.get_function_build_definitions()),
+                len(build_graph2.get_function_build_definitions()))
+            self.assertEqual(
+                list(build_graph1.get_function_build_definitions())[0],
+                list(build_graph2.get_function_build_definitions())[0]
             )
 
     def test_should_read_existing_build_graph(self):
@@ -134,7 +139,7 @@ class TestBuildGraph(TestCase):
             build_graph_path.write_text(TestBuildGraph.BUILD_GRAPH_CONTENTS)
 
             build_graph = BuildGraph(str(build_dir))
-            for build_definition in build_graph.get_build_definitions():
+            for build_definition in build_graph.get_function_build_definitions():
                 self.assertEqual(build_definition.codeuri, TestBuildGraph.CODEURI)
                 self.assertEqual(build_definition.runtime, TestBuildGraph.RUNTIME)
                 self.assertEqual(build_definition.metadata, TestBuildGraph.METADATA)
@@ -156,18 +161,18 @@ class TestBuildGraph(TestCase):
             function1 = generate_function(
                 runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
             )
-            build_graph.put_build_definition(build_definition1, function1)
+            build_graph.put_function_build_definition(build_definition1, function1)
 
-            self.assertTrue(len(build_graph.get_build_definitions()), 1)
-            for build_definition in build_graph.get_build_definitions():
+            self.assertTrue(len(build_graph.get_function_build_definitions()), 1)
+            for build_definition in build_graph.get_function_build_definitions():
                 self.assertTrue(len(build_definition.functions), 1)
                 self.assertTrue(build_definition.functions[0], function1)
                 self.assertEqual(build_definition.uuid, TestBuildGraph.UUID)
 
             build_definition2 = FunctionBuildDefinition("another_runtime", "another_codeuri", None, "another_source_md5")
             function2 = generate_function(name="another_function")
-            build_graph.put_build_definition(build_definition2, function2)
-            self.assertTrue(len(build_graph.get_build_definitions()), 2)
+            build_graph.put_function_build_definition(build_definition2, function2)
+            self.assertTrue(len(build_graph.get_function_build_definitions()), 2)
 
 
 class TestBuildDefinition(TestCase):

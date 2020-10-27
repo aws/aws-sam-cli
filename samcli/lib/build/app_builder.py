@@ -124,17 +124,15 @@ class ApplicationBuilder:
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
         build_graph = self._get_build_graph()
-        build_strategy = DefaultBuildStrategy(
-            build_graph,
-            self._build_dir,
-            self._resources_to_build,
-            self._is_building_specific_resource,
-            self._build_function,
-            self._build_layer,
-        )
+        build_strategy = DefaultBuildStrategy(build_graph, self._build_dir, self._build_function, self._build_layer)
 
         if self._cached:
-            build_strategy = CachedBuildStrategy(build_graph, build_strategy, self._base_dir, self._build_dir, self._cache_dir)
+            build_strategy = CachedBuildStrategy(build_graph,
+                                                 build_strategy,
+                                                 self._base_dir,
+                                                 self._build_dir,
+                                                 self._cache_dir,
+                                                 self._is_building_specific_resource)
 
         return build_strategy.build()
 
