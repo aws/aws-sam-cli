@@ -101,8 +101,8 @@ class TestBuildGraph(TestCase):
             build_graph2 = BuildGraph(str(build_dir.resolve()))
 
             self.assertEqual(
-                build_graph1.get_function_build_definitions(), build_graph2.get_function_build_definitions()
-            )
+                build_graph1.get_function_build_definitions(),
+                build_graph2.get_function_build_definitions())
 
     def test_should_instantiate_first_time_and_update(self):
         with osutils.mkdir_temp() as temp_base_dir:
@@ -123,11 +123,11 @@ class TestBuildGraph(TestCase):
             # read previously persisted graph and compare
             build_graph2 = BuildGraph(str(build_dir))
             self.assertEqual(
-                len(build_graph1.get_function_build_definitions()), len(build_graph2.get_function_build_definitions())
-            )
+                len(build_graph1.get_function_build_definitions()),
+                len(build_graph2.get_function_build_definitions()))
             self.assertEqual(
                 list(build_graph1.get_function_build_definitions())[0],
-                list(build_graph2.get_function_build_definitions())[0],
+                list(build_graph2.get_function_build_definitions())[0]
             )
 
     def test_should_read_existing_build_graph(self):
@@ -169,9 +169,7 @@ class TestBuildGraph(TestCase):
                 self.assertTrue(build_definition.functions[0], function1)
                 self.assertEqual(build_definition.uuid, TestBuildGraph.UUID)
 
-            build_definition2 = FunctionBuildDefinition(
-                "another_runtime", "another_codeuri", None, "another_source_md5"
-            )
+            build_definition2 = FunctionBuildDefinition("another_runtime", "another_codeuri", None, "another_source_md5")
             function2 = generate_function(name="another_function")
             build_graph.put_function_build_definition(build_definition2, function2)
             self.assertTrue(len(build_graph.get_function_build_definitions()), 2)
