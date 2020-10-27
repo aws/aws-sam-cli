@@ -568,6 +568,17 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         deploy_process_execute = run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
+    @parameterized.expand([("aws-serverless-function.yaml", "samconfig-invalid-syntax.toml")])
+    def test_deploy_with_invalid_config(self, template_file, config_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        config_path = self.test_data_path.joinpath(config_file)
+
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, config_file=config_path)
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 1)
+        self.assertIn("Error reading configuration: Unexpected character", str(deploy_process_execute.stderr))
+
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
         method_name = method_name.split(".")[-1]
