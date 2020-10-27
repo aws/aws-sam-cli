@@ -206,7 +206,7 @@ class TestRequestContext(TestCase):
             "apiId": "1234567890",
             "resourcePath": None,
             "httpMethod": None,
-            "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+            "requestId": "",
             "accountId": "123456789012",
             "stage": None,
             "identity": {},
@@ -218,7 +218,10 @@ class TestRequestContext(TestCase):
             "requestTime": "request_time",
         }
 
-        self.assertEqual(request_context.to_dict(), expected)
+        request_context_dict = request_context.to_dict()
+        self.assertEquals(len(request_context_dict["requestId"]), 36)
+        request_context_dict["requestId"] = ""
+        self.assertEqual(request_context_dict, expected)
 
 
 class TestRequestContextV2(TestCase):
@@ -258,12 +261,15 @@ class TestRequestContextV2(TestCase):
             "accountId": "123456789012",
             "apiId": "1234567890",
             "http": {},
-            "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+            "requestId": "",
             "routeKey": None,
             "stage": None,
         }
 
-        self.assertEqual(request_context.to_dict(), expected)
+        request_context_dict = request_context.to_dict()
+        self.assertEquals(len(request_context_dict["requestId"]), 36)
+        request_context_dict["requestId"] = ""
+        self.assertEqual(request_context_dict, expected)
 
 
 class TestApiGatewayLambdaEvent(TestCase):

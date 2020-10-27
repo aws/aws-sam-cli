@@ -1034,25 +1034,31 @@ class TestPayloadVersionWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_swagger_stage_variable_httpapi(self):
+    def test_payload_version_v1_swagger_inline_httpapi(self):
         response = requests.get(self.url + "/httpapi-payload-format-v1", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
-        self.assertEqual(response_data.get("version", {}), "2.0")
-        self.assertIsNone(response_data.get("multiValueHeaders"))
-        self.assertIsNotNone(response_data.get("cookies"))
+        self.assertEqual(response_data.get("version", {}), "1.0")
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
-    def test_swagger_stage_variable_httpapi(self):
+    def test_payload_version_v2_swagger_inline_httpapi(self):
         response = requests.get(self.url + "/httpapi-payload-format-v2", timeout=300)
 
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("version", {}), "2.0")
-        self.assertIsNone(response_data.get("multiValueHeaders"))
-        self.assertIsNotNone(response_data.get("cookies"))
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_payload_version_v1_property_httpapi(self):
+        response = requests.get(self.url + "/httpapi-payload-format-v1-property", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_data = response.json()
+        print(response_data)
+        self.assertEqual(response_data.get("version", {}), "1.0")
 
 
 class TestOptionsHandler(StartApiIntegBaseClass):
@@ -1488,6 +1494,52 @@ class TestCFNTemplateQuickCreatedHttpApiWithOneRoute(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "$default")
+
+
+class TestServerlessTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/template-rest-and-http-apis.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_is_reachable(self):
+        response = requests.get(self.url + "/http-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_is_reachable(self):
+        response = requests.get(self.url + "/rest-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestCFNTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
+    template_path = "/testdata/start_api/cfn-http-api-and-rest-api-gateways.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_http_api_is_reachable(self):
+        response = requests.get(self.url + "/http-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_rest_api_is_reachable(self):
+        response = requests.get(self.url + "/rest-api", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
 
 
 class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
