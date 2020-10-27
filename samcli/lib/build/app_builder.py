@@ -7,7 +7,6 @@ import io
 import json
 import logging
 import pathlib
-import shutil
 
 import docker
 from aws_lambda_builders.builder import LambdaBuilder
@@ -16,13 +15,12 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
-from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
+from samcli.lib.build.build_graph import BuildDefinition, LayerBuildDefinition, BuildGraph
+from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.lib.utils.async_utils import AsyncContext
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
-from ..utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
 
@@ -132,16 +130,19 @@ class ApplicationBuilder:
             async_context = AsyncContext()
 
         build_graph = self._get_build_graph()
-        result = self._build_functions(async_context, build_graph)
-        result.update(self._build_layers(async_context, build_graph))
+        build_strategy = DefaultBuildStrategy(
+            build_graph,
+            self._build_dir,
+            self._resources_to_build,
+            self._is_building_specific_resource,
+            self._build_function,
+            self._build_layer,
+        )
 
-        if self._parallel:
-            async_results = async_context.run_async()
-            for async_result in async_results:
-                result.update(async_result)
+        if self._cached:
+            build_strategy = CachedBuildStrategy(build_graph, build_strategy, self._base_dir, self._build_dir, self._cache_dir)
 
-        self._clean_redundant_cached(build_graph)
-        return result
+        return build_strategy.build()
 
     def _get_build_graph(self):
         """
@@ -162,168 +163,6 @@ class ApplicationBuilder:
 
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
-
-    def _clean_redundant_cached(self, build_graph):
-        """
-        clean the redundant cached folder
-        """
-        if self._cached:
-            build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
-            uuids = {bd.uuid for bd in build_graph.get_function_build_definitions()}
-            uuids.update({ld.uuid for ld in build_graph.get_layer_build_definitions()})
-            for cache_dir in pathlib.Path(self._cache_dir).iterdir():
-                if cache_dir.name not in uuids:
-                    shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
-
-    def _build_functions(self, async_context, build_graph):
-        """
-        Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
-        """
-        function_build_results = {}
-
-        if self._cached:
-            build_function = self._build_single_function_definition_cached
-        else:
-            build_function = self._build_single_function_definition
-
-        for build_definition in build_graph.get_function_build_definitions():
-            if self._parallel:
-                async_context.add_async_task(build_function, tuple([build_definition]))
-            else:
-                function_build_results.update(build_function(build_definition))
-
-        return function_build_results
-
-    def _build_single_function_definition_cached(self, build_definition):
-        """
-        If the build for a unique definition was cached before and the source code is not changed, copy the build
-        artifact directly to the corresponding function folders with the same unique definition
-        Else start a clean build and copy the build artifact directly to all paths with the same unique definition, as
-        well as cache the build
-        """
-        code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
-        source_md5 = dir_checksum(code_dir)
-        cache_function_dir = pathlib.Path(self._cache_dir, build_definition.get_uuid())
-        function_build_results = {}
-
-        if not cache_function_dir.exists() or build_definition.get_source_md5() != source_md5:
-            LOG.info("Cache is invalid, running build and copying resources to function build definition of %s",
-                     build_definition.get_uuid())
-            build_result = self._build_single_function_definition(build_definition)
-            function_build_results.update(build_result)
-
-            if cache_function_dir.exists():
-                shutil.rmtree(str(cache_function_dir))
-
-            build_definition.set_source_md5(source_md5)
-            for _, value in build_result.items():
-                osutils.copytree(value, cache_function_dir)
-                break
-        else:
-            LOG.info("Valid cache found, copying previously built resources from function build definition of %s",
-                     build_definition.get_uuid())
-            for function in build_definition.functions:
-                # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-                osutils.copytree(cache_function_dir, artifacts_dir)
-                function_build_results[function.name] = artifacts_dir
-
-        return function_build_results
-
-    def _build_single_function_definition(self, build_definition):
-        """
-        Build the unique definition and then copy the artifact to the corresponding function folder
-        """
-        function_results = {}
-        LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
-                 build_definition.codeuri, build_definition.runtime, build_definition.metadata,
-                 [function.name for function in build_definition.functions])
-        with osutils.mkdir_temp() as temporary_build_dir:
-            LOG.debug("Building to following folder %s", temporary_build_dir)
-            self._build_function(build_definition.get_function_name(),
-                                 build_definition.codeuri,
-                                 build_definition.runtime,
-                                 build_definition.get_handler_name(),
-                                 temporary_build_dir,
-                                 build_definition.metadata)
-
-            for function in build_definition.functions:
-                # artifacts directory will be created by the builder
-                artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
-                LOG.debug("Copying artifacts from %s to %s", temporary_build_dir, artifacts_dir)
-                osutils.copytree(temporary_build_dir, artifacts_dir)
-                function_results[function.name] = artifacts_dir
-        return function_results
-
-    def _build_layers(self, async_context, build_graph):
-        """
-        Iterates through build graph and runs each unique build and copies outcome to the corresponding layer folder
-        """
-        layer_build_results = {}
-
-        if self._cached:
-            build_layer = self._build_single_layer_definition_cached
-        else:
-            build_layer = self._build_single_layer_definition
-
-        for layer_definition in build_graph.get_layer_build_definitions():
-            if self._parallel:
-                async_context.add_async_task(build_layer, tuple([layer_definition]))
-            else:
-                layer_build_results.update(build_layer(layer_definition))
-
-        return layer_build_results
-
-    def _build_single_layer_definition_cached(self, layer_definition):
-        """
-        If the build for a unique definition was cached before and the source code is not changed, copy the build
-        artifact directly to to the corresponding layer folder with the same unique definition
-        Else start a clean build and copy the build artifact directly to the corresponding layer folder as well as
-        cache the build
-        """
-        code_dir = str(pathlib.Path(self._base_dir, layer_definition.codeuri).resolve())
-        source_md5 = dir_checksum(code_dir)
-        cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.get_uuid())
-        layer_build_result = {}
-
-        if not cache_function_dir.exists() or layer_definition.get_source_md5() != source_md5:
-            LOG.info("Cache is invalid, running build and copying resources to layer build definition of %s",
-                     layer_definition.get_uuid())
-            build_result = self._build_single_layer_definition(layer_definition)
-            layer_build_result.update(build_result)
-
-            if cache_function_dir.exists():
-                shutil.rmtree(str(cache_function_dir))
-
-            layer_definition.set_source_md5(source_md5)
-            for _, value in build_result.items():
-                osutils.copytree(value, cache_function_dir)
-                break
-        else:
-            LOG.info("Valid cache found, copying previously built resources from layer build definition of %s",
-                     layer_definition.get_uuid())
-            # artifacts directory will be created by the builder
-            artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.name))
-            LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
-            osutils.copytree(cache_function_dir, artifacts_dir)
-            layer_build_result[layer_definition.layer.name] = artifacts_dir
-
-        return layer_build_result
-
-    def _build_single_layer_definition(self, layer_definition):
-        """
-        Build the unique definition and then copy the artifact to the corresponding layer folder
-        """
-        layer = layer_definition.layer
-        LOG.info("Building layer '%s'", layer.name)
-        if layer.build_method is None:
-            raise MissingBuildMethodException(
-                f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata.")
-        return {layer.name: self._build_layer(layer.name,
-                                               layer.codeuri,
-                                               layer.build_method,
-                                               layer.compatible_runtimes)}
 
     def update_template(self, template_dict, original_template_path, built_artifacts):
         """
