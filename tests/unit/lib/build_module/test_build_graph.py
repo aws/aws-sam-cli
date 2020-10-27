@@ -101,8 +101,7 @@ class TestBuildGraph(TestCase):
             build_graph2 = BuildGraph(str(build_dir.resolve()))
 
             self.assertEqual(
-                build_graph1.get_function_build_definitions(),
-                build_graph2.get_function_build_definitions()
+                build_graph1.get_function_build_definitions(), build_graph2.get_function_build_definitions()
             )
 
     def test_should_instantiate_first_time_and_update(self):
@@ -124,11 +123,11 @@ class TestBuildGraph(TestCase):
             # read previously persisted graph and compare
             build_graph2 = BuildGraph(str(build_dir))
             self.assertEqual(
-                len(build_graph1.get_function_build_definitions()),
-                len(build_graph2.get_function_build_definitions()))
+                len(build_graph1.get_function_build_definitions()), len(build_graph2.get_function_build_definitions())
+            )
             self.assertEqual(
                 list(build_graph1.get_function_build_definitions())[0],
-                list(build_graph2.get_function_build_definitions())[0]
+                list(build_graph2.get_function_build_definitions())[0],
             )
 
     def test_should_read_existing_build_graph(self):

@@ -175,6 +175,44 @@ class TestApplicationBuilder_build(TestCase):
         mock_cached_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_cached_build_strategy.build())
 
+    @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
+    def test_parallel_run_should_pick_parallel_strategy(self, mock_parallel_build_strategy_class):
+        mock_parallel_build_strategy = Mock()
+        mock_parallel_build_strategy_class.return_value = mock_parallel_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True)
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_parallel_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_parallel_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
+    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
+    def test_parallel_and_cached_run_should_pick_parallel_with_cached_strategy(
+        self, mock_cached_build_strategy_class, mock_parallel_build_strategy_class
+    ):
+        mock_parallel_build_strategy = Mock()
+        mock_parallel_build_strategy_class.return_value = mock_parallel_build_strategy
+
+        mock_cached_build_strategy = Mock()
+        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True)
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_parallel_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_parallel_build_strategy.build())
+
 
 class TestApplicationBuilderForLayerBuild(TestCase):
     def setUp(self):
