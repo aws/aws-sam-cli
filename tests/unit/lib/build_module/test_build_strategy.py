@@ -215,13 +215,15 @@ class CachedBuildStrategyTest(TestCase):
             func1.name = "func1_name"
             func2 = Mock()
             func2.name = "func2_name"
-            build_graph.put_function_build_definition(build_graph.get_function_build_definitions()[0], func1)
-            build_graph.put_function_build_definition(build_graph.get_function_build_definitions()[0], func2)
+            build_definition = build_graph.get_function_build_definitions()[0]
+            layer_definition = build_graph.get_layer_build_definitions()[0]
+            build_graph.put_function_build_definition(build_definition, func1)
+            build_graph.put_function_build_definition(build_definition, func2)
             layer = Mock()
             layer.name = "layer_name"
-            build_graph.put_layer_build_definition(build_graph.get_layer_build_definitions()[0], layer)
-            cached_build_strategy.build_single_function_definition(build_graph.get_function_build_definitions()[0])
-            cached_build_strategy.build_single_layer_definition(build_graph.get_layer_build_definitions()[0])
+            build_graph.put_layer_build_definition(layer_definition, layer)
+            cached_build_strategy.build_single_function_definition(build_definition)
+            cached_build_strategy.build_single_layer_definition(layer_definition)
             self.assertEqual(copytree_mock.call_count, 3)
 
     @patch("samcli.lib.build.build_strategy.osutils.copytree")
