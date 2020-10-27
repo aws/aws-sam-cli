@@ -6,14 +6,14 @@ import tomlkit
 from parameterized import parameterized
 
 from samcli.lib.build.build_graph import (
-    BuildDefinition,
-    _build_definition_to_toml_table,
+    FunctionBuildDefinition,
+    _function_build_definition_to_toml_table,
     CODE_URI_FIELD,
     RUNTIME_FIELD,
     METADATA_FIELD,
     FUNCTIONS_FIELD,
     SOURCE_MD5_FIELD,
-    _toml_table_to_build_definition,
+    _toml_table_to_function_build_definition,
     BuildGraph,
     InvalidBuildGraphException,
 )
@@ -42,10 +42,10 @@ def generate_function(
 
 class TestConversionFunctions(TestCase):
     def test_build_definition_to_toml_table(self):
-        build_definition = BuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
         build_definition.add_function(generate_function())
 
-        toml_table = _build_definition_to_toml_table(build_definition)
+        toml_table = _function_build_definition_to_toml_table(build_definition)
 
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
         self.assertEqual(toml_table[RUNTIME_FIELD], build_definition.runtime)
@@ -62,7 +62,7 @@ class TestConversionFunctions(TestCase):
         toml_table[SOURCE_MD5_FIELD] = "source_md5"
         uuid = str(uuid4())
 
-        build_definition = _toml_table_to_build_definition(uuid, toml_table)
+        build_definition = _toml_table_to_function_build_definition(uuid, toml_table)
 
         self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
         self.assertEqual(build_definition.runtime, toml_table[RUNTIME_FIELD])
@@ -109,7 +109,7 @@ class TestBuildGraph(TestCase):
 
             # create a build graph and persist it
             build_graph1 = BuildGraph(str(build_dir))
-            build_definition1 = BuildDefinition(
+            build_definition1 = FunctionBuildDefinition(
                 TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA, TestBuildGraph.SOURCE_MD5
             )
             function1 = generate_function(
@@ -150,7 +150,7 @@ class TestBuildGraph(TestCase):
 
             build_graph = BuildGraph(str(build_dir))
 
-            build_definition1 = BuildDefinition(
+            build_definition1 = FunctionBuildDefinition(
                 TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA, TestBuildGraph.SOURCE_MD5
             )
             function1 = generate_function(
@@ -164,7 +164,7 @@ class TestBuildGraph(TestCase):
                 self.assertTrue(build_definition.functions[0], function1)
                 self.assertEqual(build_definition.uuid, TestBuildGraph.UUID)
 
-            build_definition2 = BuildDefinition("another_runtime", "another_codeuri", None, "another_source_md5")
+            build_definition2 = FunctionBuildDefinition("another_runtime", "another_codeuri", None, "another_source_md5")
             function2 = generate_function(name="another_function")
             build_graph.put_build_definition(build_definition2, function2)
             self.assertTrue(len(build_graph.get_build_definitions()), 2)
@@ -172,21 +172,21 @@ class TestBuildGraph(TestCase):
 
 class TestBuildDefinition(TestCase):
     def test_single_function_should_return_function_and_handler_name(self):
-        build_definition = BuildDefinition("runtime", "codeuri", "metadata", "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", "metadata", "source_md5")
         build_definition.add_function(generate_function())
 
         self.assertEqual(build_definition.get_handler_name(), "handler")
         self.assertEqual(build_definition.get_function_name(), "name")
 
     def test_no_function_should_raise_exception(self):
-        build_definition = BuildDefinition("runtime", "codeuri", "metadata", "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", "metadata", "source_md5")
 
         self.assertRaises(InvalidBuildGraphException, build_definition.get_handler_name)
         self.assertRaises(InvalidBuildGraphException, build_definition.get_function_name)
 
     def test_same_runtime_codeuri_metadata_should_reflect_as_same_object(self):
-        build_definition1 = BuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
-        build_definition2 = BuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
+        build_definition1 = FunctionBuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
+        build_definition2 = FunctionBuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
 
         self.assertEqual(build_definition1, build_definition2)
 
@@ -238,17 +238,17 @@ class TestBuildDefinition(TestCase):
     def test_different_runtime_codeuri_metadata_should_not_reflect_as_same_object(
         self, runtime1, codeuri1, metadata1, source_md5_1, runtime2, codeuri2, metadata2, source_md5_2
     ):
-        build_definition1 = BuildDefinition(runtime1, codeuri1, metadata1, source_md5_1)
-        build_definition2 = BuildDefinition(runtime2, codeuri2, metadata2, source_md5_2)
+        build_definition1 = FunctionBuildDefinition(runtime1, codeuri1, metadata1, source_md5_1)
+        build_definition2 = FunctionBuildDefinition(runtime2, codeuri2, metadata2, source_md5_2)
 
         self.assertNotEqual(build_definition1, build_definition2)
 
     def test_euqality_with_another_object(self):
-        build_definition = BuildDefinition("runtime", "codeuri", None, "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", None, "source_md5")
         self.assertNotEqual(build_definition, {})
 
     def test_str_representation(self):
-        build_definition = BuildDefinition("runtime", "codeuri", None, "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", None, "source_md5")
         self.assertEqual(
             str(build_definition), f"BuildDefinition(runtime, codeuri, source_md5, {build_definition.uuid}, {{}}, [])"
         )
