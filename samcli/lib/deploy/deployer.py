@@ -116,7 +116,7 @@ class Deployer:
             # catch that and throw a deploy failed error.
 
             LOG.debug("Botocore Exception : %s", str(e))
-            raise DeployFailedError(stack_name=stack_name, msg=str(e))
+            raise DeployFailedError(stack_name=stack_name, msg=str(e)) from e
 
         except Exception as e:
             # We don't know anything about this exception. Don't handle
@@ -192,12 +192,12 @@ class Deployer:
             return resp, changeset_type
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
-                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}")
-            raise ChangeSetError(stack_name=stack_name, msg=str(ex))
+                raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to create changeset", exc_info=ex)
-            raise ChangeSetError(stack_name=stack_name, msg=str(ex))
+            raise ChangeSetError(stack_name=stack_name, msg=str(ex)) from ex
 
     @pprint_column_names(
         format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
@@ -297,7 +297,7 @@ class Deployer:
 
             raise ChangeSetError(
                 stack_name=stack_name, msg="ex: {0} Status: {1}. Reason: {2}".format(ex, status, reason)
-            )
+            ) from ex
 
     def execute_changeset(self, changeset_id, stack_name):
         """
@@ -310,7 +310,7 @@ class Deployer:
         try:
             return self._client.execute_change_set(ChangeSetName=changeset_id, StackName=stack_name)
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex))
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
     def get_last_event_time(self, stack_name):
         """
@@ -440,7 +440,7 @@ class Deployer:
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex))
+            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
     @pprint_column_names(
         format_string=OUTPUTS_FORMAT_STRING, format_kwargs=OUTPUTS_DEFAULTS_ARGS, table_header=OUTPUTS_TABLE_HEADER_NAME
@@ -480,4 +480,4 @@ class Deployer:
                 return None
 
         except botocore.exceptions.ClientError as ex:
-            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex))
+            raise DeployStackOutPutFailedError(stack_name=stack_name, msg=str(ex)) from ex

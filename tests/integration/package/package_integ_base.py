@@ -48,10 +48,10 @@ class PackageIntegBase(TestCase):
             time.sleep(S3_SLEEP)
 
     def setUp(self):
-        super(PackageIntegBase, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(PackageIntegBase, self).tearDown()
+        super().tearDown()
 
     def base_command(self):
         command = "sam"

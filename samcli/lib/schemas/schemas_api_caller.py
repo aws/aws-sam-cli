@@ -50,8 +50,8 @@ class SchemasApiCaller:
                 raise ResourceNotFound("No Registries found. This should not be possible, please raise an issue.")
             next_token = page.get("NextToken", None)
             return {"registries": registries, "next_token": next_token}
-        except EndpointConnectionError:
-            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
+        except EndpointConnectionError as ex:
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR) from ex
 
     def list_schemas(self, registry_name, next_token=None, limit=10):
         """
@@ -85,8 +85,8 @@ class SchemasApiCaller:
                 raise ResourceNotFound("No Schemas found for registry %s" % registry_name)
             next_token = page.get("NextToken", None)
             return {"schemas": schemas, "next_token": next_token}
-        except EndpointConnectionError:
-            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
+        except EndpointConnectionError as ex:
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR) from ex
 
     def get_latest_schema_version(self, registry_name, schema_name):
         """
@@ -119,8 +119,8 @@ class SchemasApiCaller:
                 next_token = page.get("NextToken")
                 if next_token is None:
                     break
-        except EndpointConnectionError:
-            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
+        except EndpointConnectionError as ex:
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR) from ex
         versions.sort()
         return versions[-1]
 
@@ -143,8 +143,8 @@ class SchemasApiCaller:
             describe_schema_response = self._schemas_client.describe_schema(
                 RegistryName=registry_name, SchemaName=schema_name
             )
-        except EndpointConnectionError:
-            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
+        except EndpointConnectionError as ex:
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR) from ex
         try:
             content = json.loads(describe_schema_response["Content"])
             schemas = content["components"]["schemas"]
@@ -168,10 +168,10 @@ class SchemasApiCaller:
                 "schemas_package_hierarchy": schemas_package_hierarchy,
             }
 
-        except JSONDecodeError:
+        except JSONDecodeError as ex:
             raise SchemasApiException(
                 "Parse error reading the content from Schemas response. This should not be possible, please raise an issue."
-            )
+            ) from ex
 
     def download_source_code_binding(self, runtime, registry_name, schema_name, schema_version, download_location):
         """
@@ -194,8 +194,8 @@ class SchemasApiCaller:
             response = self._schemas_client.get_code_binding_source(
                 Language=runtime, RegistryName=registry_name, SchemaName=schema_name, SchemaVersion=schema_version
             )
-        except EndpointConnectionError:
-            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
+        except EndpointConnectionError as ex:
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR) from ex
 
         for data in response["Body"]:
             download_location.write(data)
@@ -219,11 +219,11 @@ class SchemasApiCaller:
             self._schemas_client.put_code_binding(
                 Language=runtime, RegistryName=registry_name, SchemaName=schema_name, SchemaVersion=schema_version
             )
-        except EndpointConnectionError:
+        except EndpointConnectionError as ex:
             raise NotAvailableInRegion(
                 "EventBridge Schemas are not available in provided region. "
                 "Please check AWS doc for Schemas supported regions."
-            )
+            ) from ex
         except ClientError as e:
             if e.response["Error"]["Code"] != "ConflictException":
                 raise e
@@ -251,5 +251,5 @@ class SchemasApiCaller:
                 SchemaName=schema_name,
                 SchemaVersion=schema_version,
             )
-        except EndpointConnectionError:
-            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR)
+        except EndpointConnectionError as ex:
+            raise NotAvailableInRegion(SCHEMAS_NOT_AVAILABLE_IN_REGION_ERROR) from ex

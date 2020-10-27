@@ -14,7 +14,7 @@ class SupportLocalUriPlugin(BasePlugin):
         """
         Initialize the plugin
         """
-        super(SupportLocalUriPlugin, self).__init__(SupportLocalUriPlugin.__name__)
+        super().__init__(SupportLocalUriPlugin.__name__)
 
     def on_before_transform_resource(self, logical_id, resource_type, resource_properties):
 

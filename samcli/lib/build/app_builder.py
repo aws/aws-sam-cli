@@ -25,10 +25,11 @@ LOG = logging.getLogger(__name__)
 
 
 class UnsupportedBuilderLibraryVersionError(Exception):
-
     def __init__(self, container_name, error_msg):
-        msg = "You are running an outdated version of Docker container '{container_name}' that is not compatible with" \
-              "this version of SAM CLI. Please upgrade to continue to continue with build. Reason: '{error_msg}'"
+        msg = (
+            "You are running an outdated version of Docker container '{container_name}' that is not compatible with"
+            "this version of SAM CLI. Please upgrade to continue to continue with build. Reason: '{error_msg}'"
+        )
         Exception.__init__(self, msg.format(container_name=container_name, error_msg=error_msg))
 
 
@@ -37,7 +38,6 @@ class ContainerBuildNotSupported(Exception):
 
 
 class BuildError(Exception):
-
     def __init__(self, wrapped_from, msg):
         self.wrapped_from = wrapped_from
         Exception.__init__(self, msg)
@@ -223,18 +223,13 @@ class ApplicationBuilder:
                 build_method = self._build_function_on_container
                 if config.language == "provided":
                     LOG.warning(
-                        "For container layer build, first compatible runtime is chosen as build target for container.")
+                        "For container layer build, first compatible runtime is chosen as build target for container."
+                    )
                     # Only set to this value if specified workflow is makefile which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
-            build_method(config,
-                         code_dir,
-                         artifacts_dir,
-                         scratch_dir,
-                         manifest_path,
-                         build_runtime,
-                         options)
+            build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, build_runtime, options)
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return str(pathlib.Path(self._build_dir, layer_name))
 
@@ -267,9 +262,11 @@ class ApplicationBuilder:
         """
 
         if runtime in self._deprecated_runtimes:
-            message = f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI " \
-                      f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. " \
-                      f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            message = (
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
+                f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+            )
             LOG.warning(self._colored.yellow(message))
 
         # Create the arguments to pass to the builder
@@ -291,13 +288,7 @@ class ApplicationBuilder:
 
             options = ApplicationBuilder._get_build_options(function_name, config.language, handler)
 
-            return build_method(config,
-                                code_dir,
-                                artifacts_dir,
-                                scratch_dir,
-                                manifest_path,
-                                runtime,
-                                options)
+            return build_method(config, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options)
 
     @staticmethod
     def _get_build_options(function_name, language, handler):
@@ -316,53 +307,52 @@ class ApplicationBuilder:
             Dictionary that represents the options to pass to the builder workflow or None if options are not needed
         """
 
-        _build_options = {
-            'go': {'artifact_executable_name': handler},
-            'provided': {'build_logical_id': function_name}
-        }
+        _build_options = {"go": {"artifact_executable_name": handler}, "provided": {"build_logical_id": function_name}}
         return _build_options.get(language, None)
 
-    def _build_function_in_process(self,
-                                   config,
-                                   source_dir,
-                                   artifacts_dir,
-                                   scratch_dir,
-                                   manifest_path,
-                                   runtime,
-                                   options):
+    def _build_function_in_process(
+        self, config, source_dir, artifacts_dir, scratch_dir, manifest_path, runtime, options
+    ):
 
-        builder = LambdaBuilder(language=config.language,
-                                dependency_manager=config.dependency_manager,
-                                application_framework=config.application_framework)
+        builder = LambdaBuilder(
+            language=config.language,
+            dependency_manager=config.dependency_manager,
+            application_framework=config.application_framework,
+        )
 
         runtime = runtime.replace(".al2", "")
 
         try:
-            builder.build(source_dir,
-                          artifacts_dir,
-                          scratch_dir,
-                          manifest_path,
-                          runtime=runtime,
-                          executable_search_paths=config.executable_search_paths,
-                          mode=self._mode,
-                          options=options)
+            builder.build(
+                source_dir,
+                artifacts_dir,
+                scratch_dir,
+                manifest_path,
+                runtime=runtime,
+                executable_search_paths=config.executable_search_paths,
+                mode=self._mode,
+                options=options,
+            )
         except LambdaBuilderError as ex:
-            raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex))
+            raise BuildError(wrapped_from=ex.__class__.__name__, msg=str(ex)) from ex
 
         return artifacts_dir
 
-    def _build_function_on_container(self,  # pylint: disable=too-many-locals
-                                     config,
-                                     source_dir,
-                                     artifacts_dir,
-                                     scratch_dir,
-                                     manifest_path,
-                                     runtime,
-                                     options):
+    def _build_function_on_container(
+        self,  # pylint: disable=too-many-locals
+        config,
+        source_dir,
+        artifacts_dir,
+        scratch_dir,
+        manifest_path,
+        runtime,
+        options,
+    ):
 
         if not self._container_manager.is_docker_reachable:
             raise BuildInsideContainerError(
-                "Docker is unreachable. Docker needs to be running to build inside a container.")
+                "Docker is unreachable. Docker needs to be running to build inside a container."
+            )
 
         container_build_supported, reason = supports_build_in_container(config)
         if not container_build_supported:
@@ -371,27 +361,29 @@ class ApplicationBuilder:
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()
 
-        container = LambdaBuildContainer(lambda_builders_protocol_version,
-                                         config.language,
-                                         config.dependency_manager,
-                                         config.application_framework,
-                                         source_dir,
-                                         manifest_path,
-                                         runtime,
-                                         log_level=log_level,
-                                         optimizations=None,
-                                         options=options,
-                                         executable_search_paths=config.executable_search_paths,
-                                         mode=self._mode)
+        container = LambdaBuildContainer(
+            lambda_builders_protocol_version,
+            config.language,
+            config.dependency_manager,
+            config.application_framework,
+            source_dir,
+            manifest_path,
+            runtime,
+            log_level=log_level,
+            optimizations=None,
+            options=options,
+            executable_search_paths=config.executable_search_paths,
+            mode=self._mode,
+        )
 
         try:
             try:
                 self._container_manager.run(container)
             except docker.errors.APIError as ex:
                 if "executable file not found in $PATH" in str(ex):
-                    raise UnsupportedBuilderLibraryVersionError(container.image,
-                                                                "{} executable not found in container"
-                                                                .format(container.executable_name))
+                    raise UnsupportedBuilderLibraryVersionError(
+                        container.image, "{} executable not found in container".format(container.executable_name)
+                    ) from ex
 
             # Container's output provides status of whether the build succeeded or failed
             # stdout contains the result of JSON-RPC call
@@ -400,7 +392,7 @@ class ApplicationBuilder:
             stderr_stream = osutils.stderr()
             container.wait_for_logs(stdout=stdout_stream, stderr=stderr_stream)
 
-            stdout_data = stdout_stream.getvalue().decode('utf-8')
+            stdout_data = stdout_stream.getvalue().decode("utf-8")
             LOG.debug("Build inside container returned response %s", stdout_data)
 
             response = self._parse_builder_response(stdout_data, container.image)

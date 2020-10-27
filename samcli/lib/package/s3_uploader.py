@@ -109,7 +109,7 @@ class S3Uploader:
         except botocore.exceptions.ClientError as ex:
             error_code = ex.response["Error"]["Code"]
             if error_code == "NoSuchBucket":
-                raise NoSuchBucketError(bucket_name=self.bucket_name)
+                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
             raise ex
 
     def upload_with_dedup(self, file_name, extension=None, precomputed_md5=None):

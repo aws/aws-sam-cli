@@ -30,13 +30,13 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.sns_arn = os.environ.get("AWS_SNS")
         self.stack_names = []
         time.sleep(CFN_SLEEP)
-        super(TestDeploy, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack_name in self.stack_names:
             self.cf_client.delete_stack(StackName=stack_name)
-        super(TestDeploy, self).tearDown()
+        super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_package_and_deploy_no_s3_bucket_all_args(self, template_file):
