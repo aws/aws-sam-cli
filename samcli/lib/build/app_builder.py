@@ -19,6 +19,7 @@ from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStr
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.utils.colors import Colored
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
+from samcli.lib.utils.async_utils import AsyncContext
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
 LOG = logging.getLogger(__name__)
@@ -123,6 +124,11 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
+
+        async_context = None
+        if self._parallel:
+            async_context = AsyncContext()
+
         build_graph = self._get_build_graph()
         build_strategy = DefaultBuildStrategy(build_graph, self._build_dir, self._build_function, self._build_layer)
 
