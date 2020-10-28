@@ -127,7 +127,7 @@ class TestInvokeContext__enter__(TestCase):
                 invoke_context.__enter__()
 
                 self.assertEqual(
-                    "Running AWS SAM projects locally requires Docker. Have you got it installed?",
+                    "Running AWS SAM projects locally requires Docker. Have you got it installed and running?",
                     str(ex_ctx.exception),
                 )
 

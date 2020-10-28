@@ -192,6 +192,13 @@
       }
     }
   },
+  "appsync": {
+    "resolver": {
+      "filename": "AppSyncDirectResolver",
+      "help": "Generates an AWS AppSync Event",
+      "tags": {}
+    }
+  },
   "batch": {
     "get-job": {
       "filename": "BatchGetJob",
@@ -968,6 +975,15 @@
         },
         "queue-name": {
           "default": "MyQueue"
+        },
+        "body": {
+          "default": "Hello from SQS!",
+          "children": {
+            "md5_of_body": {
+              "type": "string",
+              "hashing": "md5"
+            }
+          }
         }
       }
     }

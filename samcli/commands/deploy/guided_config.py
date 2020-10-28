@@ -6,7 +6,7 @@ import click
 
 from samcli.cli.context import get_cmd_names
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
-from samcli.lib.config.samconfig import SamConfig
+from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 
 
 class GuidedConfig:
@@ -14,17 +14,18 @@ class GuidedConfig:
         self.template_file = template_file
         self.section = section
 
-    def get_config_ctx(self):
+    def get_config_ctx(self, config_file=None):
         ctx = click.get_current_context()
 
         samconfig_dir = getattr(ctx, "samconfig_dir", None)
         samconfig = SamConfig(
-            config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=self.template_file)
+            config_dir=samconfig_dir if samconfig_dir else SamConfig.config_dir(template_file_path=self.template_file),
+            filename=config_file or DEFAULT_CONFIG_FILE_NAME,
         )
         return ctx, samconfig
 
-    def read_config_showcase(self):
-        _, samconfig = self.get_config_ctx()
+    def read_config_showcase(self, config_file=None):
+        _, samconfig = self.get_config_ctx(config_file)
 
         status = "Found" if samconfig.exists() else "Not found"
         msg = (
@@ -33,16 +34,16 @@ class GuidedConfig:
         )
         config_sanity = samconfig.sanity_check()
         click.secho("\nConfiguring SAM deploy\n======================", fg="yellow")
-        click.echo(f"\n\tLooking for samconfig.toml :  {status}")
+        click.echo(f"\n\tLooking for config file [{config_file}] :  {status}")
         if samconfig.exists():
             click.echo("\tReading default arguments  :  {}".format("Success" if config_sanity else "Failure"))
 
         if not config_sanity and samconfig.exists():
             raise GuidedDeployFailedError(msg)
 
-    def save_config(self, parameter_overrides, **kwargs):
+    def save_config(self, parameter_overrides, config_env=DEFAULT_ENV, config_file=None, **kwargs):
 
-        ctx, samconfig = self.get_config_ctx()
+        ctx, samconfig = self.get_config_ctx(config_file)
 
         cmd_names = get_cmd_names(ctx.info_name, ctx)
 
@@ -50,7 +51,7 @@ class GuidedConfig:
             if isinstance(value, (list, tuple)):
                 value = " ".join(val for val in value)
             if value:
-                samconfig.put(cmd_names, self.section, key, value)
+                samconfig.put(cmd_names, self.section, key, value, env=config_env)
 
         if parameter_overrides:
             _params = []
@@ -61,11 +62,11 @@ class GuidedConfig:
                 else:
                     _params.append(f"{key}={self.quote_parameter_values(value)}")
             if _params:
-                samconfig.put(cmd_names, self.section, "parameter_overrides", " ".join(_params))
+                samconfig.put(cmd_names, self.section, "parameter_overrides", " ".join(_params), env=config_env)
 
         samconfig.flush()
 
-        click.echo(f"\n\tSaved arguments to config file")
+        click.echo("\n\tSaved arguments to config file")
         click.echo("\tRunning 'sam deploy' for future deployments will use the parameters saved above.")
         click.echo("\tThe above parameters can be changed by modifying samconfig.toml")
         click.echo(

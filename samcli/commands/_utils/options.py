@@ -8,13 +8,13 @@ from functools import partial
 
 import click
 from click.types import FuncParamType
+
+from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
-
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 DEFAULT_STACK_NAME = "sam-app"
-
 
 LOG = logging.getLogger(__name__)
 
@@ -39,20 +39,34 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
 
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
-        # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
-        # .yml is the default, even if it does not exist.
-        provided_value = "template.yml"
+        # "--template" is an alias of "--template-file", however, only the first option name "--template-file" in
+        # ctx.default_map is used as default value of provided value. Here we add "--template"'s value as second
+        # default value in this option, so that the command line paramerters from config file can load it.
+        if ctx and ctx.default_map.get("template", None):
+            provided_value = ctx.default_map.get("template")
+        else:
+            # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
+            # .yml is the default, even if it does not exist.
+            provided_value = "template.yml"
 
-        for option in search_paths:
-            if os.path.exists(option):
-                provided_value = option
-                break
+            for option in search_paths:
+                if os.path.exists(option):
+                    provided_value = option
+                    break
     result = os.path.abspath(provided_value)
 
     if ctx:
         # sam configuration file should always be relative to the supplied original template and should not to be set
         # to be .aws-sam/build/
         setattr(ctx, "samconfig_dir", os.path.dirname(original_template_path))
+        try:
+            # FIX-ME: figure out a way to insert this directly to sam-cli context and not use click context.
+            template_data = get_template_data(result)
+            setattr(ctx, "template_dict", template_data)
+        except TemplateNotFoundException:
+            # Ignoring because there are certain cases where template file will not be available, eg: --help
+            pass
+
     LOG.debug("Using SAM Template at %s", result)
     return result
 
@@ -127,7 +141,6 @@ def docker_common_options(f):
 
 
 def docker_click_options():
-
     return [
         click.option(
             "--skip-pull-image",
@@ -160,6 +173,20 @@ def parameter_override_click_option():
 
 def parameter_override_option(f):
     return parameter_override_click_option()(f)
+
+
+def no_progressbar_click_option():
+    return click.option(
+        "--no-progressbar",
+        default=False,
+        required=False,
+        is_flag=True,
+        help="Does not showcase a progress bar when uploading artifacts to s3 ",
+    )
+
+
+def no_progressbar_option(f):
+    return no_progressbar_click_option()(f)
 
 
 def metadata_click_option():

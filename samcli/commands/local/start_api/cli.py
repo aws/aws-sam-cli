@@ -64,6 +64,8 @@ def cli(
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    config_file,
+    config_env,
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
@@ -148,11 +150,11 @@ def do_cli(  # pylint: disable=R0914
     except NoApisDefined as ex:
         raise UserException(
             "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__
-        )
+        ) from ex
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
         DebuggingNotSupported,
     ) as ex:
-        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

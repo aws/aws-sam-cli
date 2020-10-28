@@ -140,14 +140,14 @@ class ApiCollector:
     @staticmethod
     def dedupe_function_routes(routes):
         """
-        Remove duplicate routes that have the same function_name and method
+         Remove duplicate routes that have the same function_name and method
 
-        route: list(Route)
-            List of Routes
+         route: list(Route)
+             List of Routes
 
-       Return
-       -------
-       A list of routes without duplicate routes with the same function_name and method
+        Return
+        -------
+        A list of routes without duplicate routes with the same function_name and method
         """
         grouped_routes = {}
 
@@ -158,7 +158,13 @@ class ApiCollector:
             if config:
                 methods += config.methods
             sorted_methods = sorted(methods)
-            grouped_routes[key] = Route(function_name=route.function_name, path=route.path, methods=sorted_methods)
+            grouped_routes[key] = Route(
+                function_name=route.function_name,
+                path=route.path,
+                methods=sorted_methods,
+                event_type=route.event_type,
+                payload_format_version=route.payload_format_version,
+            )
         return list(grouped_routes.values())
 
     def add_binary_media_types(self, logical_id, binary_media_types):
