@@ -1,6 +1,7 @@
 """Holds Classes for API Gateway to Lambda Events"""
 from time import time
 from datetime import datetime
+import uuid
 
 
 class ContextIdentity:
@@ -71,7 +72,7 @@ class RequestContext:
         api_id="1234567890",
         resource_path=None,
         http_method=None,
-        request_id="c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+        request_id=str(uuid.uuid4()),
         account_id="123456789012",
         stage=None,
         identity=None,
@@ -89,7 +90,7 @@ class RequestContext:
         :param str api_id: Api Id for the Request (Default: 1234567890)
         :param str resource_path: Path for the Request
         :param str http_method: HTTPMethod for the request
-        :param str request_id: Request Id for the request (Default: c6af9ac6-7b61-11e6-9a41-93e8deadbeef)
+        :param str request_id: Request Id for the request (Default: generated uuid id)
         :param str account_id: Account Id of the Request (Default: 123456789012)
         :param str stage: Api Gateway Stage
         :param ContextIdentity identity: Identity for the Request
@@ -281,7 +282,7 @@ class RequestContextV2:
         account_id="123456789012",
         api_id="1234567890",
         http=None,
-        request_id="c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+        request_id=str(uuid.uuid4()),
         route_key=None,
         stage=None,
     ):
@@ -291,7 +292,7 @@ class RequestContextV2:
         :param str account_id: Account Id of the Request (Default: 123456789012)
         :param str api_id: Api Id for the Request (Default: 1234567890)
         :param ContextHTTP http: HTTP for the request
-        :param str request_id: Request Id for the request (Default: c6af9ac6-7b61-11e6-9a41-93e8deadbeef)
+        :param str request_id: Request Id for the request (Default: generated uuid id)
         :param str route_key: The route key for the route.
         :param str stage: Api Gateway V2 Stage
         """

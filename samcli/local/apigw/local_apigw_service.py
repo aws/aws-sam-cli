@@ -258,8 +258,11 @@ class LocalApigwService(BaseLocalService):
             return self.service_response("", headers, 200)
 
         try:
+            # the Lambda Event 2.0 is only used for the HTTP API gateway with defined payload format version equal 2.0
+            # or none, as the default value to be used is 2.0
+            # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
-                event = self._construct_event_http(
+                event = self._construct_v_2_0_event_http(
                     request,
                     self.port,
                     self.api.binary_media_types,
@@ -268,7 +271,7 @@ class LocalApigwService(BaseLocalService):
                     route_key,
                 )
             else:
-                event = self._construct_event(
+                event = self._construct_v_1_0_event(
                     request, self.port, self.api.binary_media_types, self.api.stage_name, self.api.stage_variables
                 )
         except UnicodeDecodeError:
@@ -460,7 +463,7 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
+    def _construct_v_1_0_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -524,7 +527,9 @@ class LocalApigwService(BaseLocalService):
         return event_str
 
     @staticmethod
-    def _construct_event_http(flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None):
+    def _construct_v_2_0_event_http(
+        flask_request, port, binary_types, stage_name=None, stage_variables=None, route_key=None
+    ):
         """
         Helper method that constructs the Event 2.0 to be passed to Lambda
 
