@@ -210,7 +210,7 @@ def make_zip(file_name, source_root):
                             info = zipfile.ZipInfo(relative_path)
                             # Clear external attr set for Windows
                             info.external_attr = 0
-                            # Set external attr with Unix 0755 permission
+                            # Set external attr with Unix 0005 permission
                             info.external_attr = 0o100005 << 16
                             # Set host OS to Unix
                             info.create_system = 3
