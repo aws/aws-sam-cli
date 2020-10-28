@@ -50,7 +50,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
         self.assertEqual(toml_table[RUNTIME_FIELD], build_definition.runtime)
         self.assertEqual(toml_table[METADATA_FIELD], build_definition.metadata)
-        self.assertEqual(toml_table[FUNCTIONS_FIELD], [f.functionname for f in build_definition.functions])
+        self.assertEqual(toml_table[FUNCTIONS_FIELD], [f.name for f in build_definition.functions])
         self.assertEqual(toml_table[SOURCE_MD5_FIELD], build_definition.source_md5)
 
     def test_toml_table_to_function_build_definition(self):

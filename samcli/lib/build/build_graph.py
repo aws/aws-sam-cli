@@ -25,7 +25,6 @@ LAYER_FIELD = "layer"
 
 
 class InvalidBuildGraphException(Exception):
-
     def __init__(self, msg):
         Exception.__init__(self, msg)
 
@@ -41,8 +40,7 @@ def _function_build_definition_to_toml_table(function_build_definition):
     toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
     toml_table[RUNTIME_FIELD] = function_build_definition.runtime
     toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
-    toml_table[FUNCTIONS_FIELD] = \
-        list(map(lambda f: f.functionname, function_build_definition.functions))
+    toml_table[FUNCTIONS_FIELD] = list(map(lambda f: f.name, function_build_definition.functions))
 
     if function_build_definition.metadata:
         toml_table[METADATA_FIELD] = function_build_definition.metadata
@@ -58,11 +56,12 @@ def _toml_table_to_function_build_definition(uuid, toml_table):
     :param toml_table: function build definition as toml table
     :return: FunctionBuildDefinition of given toml table
     """
-    function_build_definition = FunctionBuildDefinition(toml_table[RUNTIME_FIELD],
-                                       toml_table[CODE_URI_FIELD],
-                                       dict(toml_table.get(METADATA_FIELD, {})),
-                                       toml_table.get(SOURCE_MD5_FIELD, "")
-                                       )
+    function_build_definition = FunctionBuildDefinition(
+        toml_table[RUNTIME_FIELD],
+        toml_table[CODE_URI_FIELD],
+        dict(toml_table.get(METADATA_FIELD, {})),
+        toml_table.get(SOURCE_MD5_FIELD, ""),
+    )
     function_build_definition.uuid = uuid
     return function_build_definition
 
@@ -93,12 +92,13 @@ def _toml_table_to_layer_build_definition(uuid, toml_table):
     :param toml_table: layer build definition as toml table
     :return: LayerBuildDefinition of given toml table
     """
-    layer_build_definition = LayerBuildDefinition(toml_table[LAYER_NAME_FIELD],
-                                       toml_table[CODE_URI_FIELD],
-                                       toml_table[BUILD_METHOD_FIELD],
-                                       toml_table[COMPATIBLE_RUNTIMES_FIELD],
-                                       toml_table.get(SOURCE_MD5_FIELD, "")
-                                       )
+    layer_build_definition = LayerBuildDefinition(
+        toml_table[LAYER_NAME_FIELD],
+        toml_table[CODE_URI_FIELD],
+        toml_table[BUILD_METHOD_FIELD],
+        toml_table[COMPATIBLE_RUNTIMES_FIELD],
+        toml_table.get(SOURCE_MD5_FIELD, ""),
+    )
     layer_build_definition.uuid = uuid
     return layer_build_definition
 
@@ -137,13 +137,22 @@ class BuildGraph:
         :param function: function details for this function build definition
         """
         if function_build_definition in self._function_build_definitions:
-            previous_build_definition = self._function_build_definitions[self._function_build_definitions.index(function_build_definition)]
-            LOG.debug("Same function build definition found, adding function (Previous: %s, Current: %s, Function: %s)",
-                      previous_build_definition, function_build_definition, function)
+            previous_build_definition = self._function_build_definitions[
+                self._function_build_definitions.index(function_build_definition)
+            ]
+            LOG.debug(
+                "Same function build definition found, adding function (Previous: %s, Current: %s, Function: %s)",
+                previous_build_definition,
+                function_build_definition,
+                function,
+            )
             previous_build_definition.add_function(function)
         else:
-            LOG.debug("Unique function build definition found, adding as new (Function Build Definition: %s, Function: %s)",
-                      function_build_definition, function)
+            LOG.debug(
+                "Unique function build definition found, adding as new (Function Build Definition: %s, Function: %s)",
+                function_build_definition,
+                function,
+            )
             function_build_definition.add_function(function)
             self._function_build_definitions.append(function_build_definition)
 
@@ -159,13 +168,22 @@ class BuildGraph:
         :param layer: layer details for this layer build definition
         """
         if layer_build_definition in self._layer_build_definitions:
-            previous_build_definition = self._layer_build_definitions[self._layer_build_definitions.index(layer_build_definition)]
-            LOG.debug("Same Layer build definition found, adding layer (Previous: %s, Current: %s, Layer: %s)",
-                      previous_build_definition, layer_build_definition, layer)
+            previous_build_definition = self._layer_build_definitions[
+                self._layer_build_definitions.index(layer_build_definition)
+            ]
+            LOG.debug(
+                "Same Layer build definition found, adding layer (Previous: %s, Current: %s, Layer: %s)",
+                previous_build_definition,
+                layer_build_definition,
+                layer,
+            )
             previous_build_definition.layer = layer
         else:
-            LOG.debug("Unique Layer build definition found, adding as new (Layer Build Definition: %s, Layer: %s)",
-                      layer_build_definition, layer)
+            LOG.debug(
+                "Unique Layer build definition found, adding as new (Layer Build Definition: %s, Layer: %s)",
+                layer_build_definition,
+                layer,
+            )
             layer_build_definition.layer = layer
             self._layer_build_definitions.append(layer_build_definition)
 
@@ -176,7 +194,9 @@ class BuildGraph:
 
         If persist parameter is given True, build graph is written to .aws-sam/build.toml file
         """
-        self._function_build_definitions[:] = [fbd for fbd in self._function_build_definitions if len(fbd.functions) > 0]
+        self._function_build_definitions[:] = [
+            fbd for fbd in self._function_build_definitions if len(fbd.functions) > 0
+        ]
         self._layer_build_definitions[:] = [bd for bd in self._layer_build_definitions if bd.layer]
         if persist:
             self._write()
@@ -197,19 +217,17 @@ class BuildGraph:
             LOG.debug("No previous build graph found, generating new one")
         function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, [])
         for function_build_definition_key in function_build_definitions_table:
-            function_build_definition = _toml_table_to_function_build_definition(function_build_definition_key,
-                                                               function_build_definitions_table[
-                                                                   function_build_definition_key])
+            function_build_definition = _toml_table_to_function_build_definition(
+                function_build_definition_key, function_build_definitions_table[function_build_definition_key]
+            )
             self._function_build_definitions.append(function_build_definition)
 
         layer_build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, [])
         for layer_build_definition_key in layer_build_definitions_table:
-            layer_build_definition = _toml_table_to_layer_build_definition(layer_build_definition_key,
-                                                                     layer_build_definitions_table[
-                                                                         layer_build_definition_key])
+            layer_build_definition = _toml_table_to_layer_build_definition(
+                layer_build_definition_key, layer_build_definitions_table[layer_build_definition_key]
+            )
             self._layer_build_definitions.append(layer_build_definition)
-
-        # return self._build_definitions
 
     def _write(self):
         """
@@ -265,7 +283,8 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     """
     LayerBuildDefinition holds information about each unique layer build
     """
-    def __init__(self, name, codeuri, build_method, compatible_runtimes, source_md5=''):
+
+    def __init__(self, name, codeuri, build_method, compatible_runtimes, source_md5=""):
         super().__init__(source_md5)
         self.name = name
         self.codeuri = codeuri
@@ -274,12 +293,14 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         self.layer = None
 
     def __str__(self):
-        return f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, " \
-               f"{self.build_method}, {self.compatible_runtimes}, {self.layer.name})"
+        return (
+            f"LayerBuildDefinition({self.name}, {self.codeuri}, {self.source_md5}, {self.uuid}, "
+            f"{self.build_method}, {self.compatible_runtimes}, {self.layer.name})"
+        )
 
     def __eq__(self, other):
         """
-        Checks uniqueness of the layer build definition
+        Checks equality of the layer build definition
 
         :param other: other layer build definition to compare
         :return: True if both layer build definitions has same following properties, False otherwise
@@ -287,10 +308,12 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         if not isinstance(other, LayerBuildDefinition):
             return False
 
-        return self.name == other.name \
-               and self.codeuri == other.codeuri \
-               and self.build_method == other.build_method \
-               and self.compatible_runtimes == other.compatible_runtimes
+        return (
+            self.name == other.name
+            and self.codeuri == other.codeuri
+            and self.build_method == other.build_method
+            and self.compatible_runtimes == other.compatible_runtimes
+        )
 
 
 class FunctionBuildDefinition(AbstractBuildDefinition):
@@ -298,7 +321,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     LayerBuildDefinition holds information about each unique function build
     """
 
-    def __init__(self, runtime, codeuri, metadata, source_md5=''):
+    def __init__(self, runtime, codeuri, metadata, source_md5=""):
         super().__init__(source_md5)
         self.runtime = runtime
         self.codeuri = codeuri
@@ -321,12 +344,14 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             raise InvalidBuildGraphException("Build definition doesn't have any function definition to build")
 
     def __str__(self):
-        return f"BuildDefinition({self.runtime}, {self.codeuri}, {self.source_md5}, {self.uuid}, {self.metadata}, " \
-               f"{[f.functionname for f in self.functions]})"
+        return (
+            f"BuildDefinition({self.runtime}, {self.codeuri}, {self.source_md5}, {self.uuid}, {self.metadata}, "
+            f"{[f.functionname for f in self.functions]})"
+        )
 
     def __eq__(self, other):
         """
-        Checks uniqueness of the function build definition
+        Checks equality of the function build definition
 
         :param other: other function build definition to compare
         :return: True if both function build definitions has same following properties, False otherwise
@@ -338,6 +363,4 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
 
-        return self.runtime == other.runtime \
-               and self.codeuri == other.codeuri \
-               and self.metadata == other.metadata
+        return self.runtime == other.runtime and self.codeuri == other.codeuri and self.metadata == other.metadata

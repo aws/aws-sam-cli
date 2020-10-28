@@ -74,7 +74,7 @@ class BuildContext:
 
         if self._cached:
             cache_path = pathlib.Path(self._cache_dir)
-            cache_path.mkdir(mode=0o755, parents=True, exist_ok=True)
+            cache_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
             self._cache_dir = str(cache_path.resolve())
 
         if self._use_container:
