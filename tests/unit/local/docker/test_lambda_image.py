@@ -40,6 +40,18 @@ class TestLambdaImage(TestCase):
             lambda_image.build("python3.6", [], False), f"amazon/aws-sam-cli-emulation-image-python3.6:rapid-{version}"
         )
 
+    @patch("samcli.local.docker.lambda_image.extensions_preview_enabled")
+    def test_building_image_with_no_layers_extensions_preview(self, PreviewEnabledMock):
+        docker_client_mock = Mock()
+        PreviewEnabledMock.return_value = True
+
+        lambda_image = LambdaImage("layer_downloader", False, False, docker_client=docker_client_mock)
+
+        self.assertEqual(
+            lambda_image.build("python3.6", [], False),
+            f"amazon/aws-sam-cli-emulation-image-python3.6:preview-rapid-{version}",
+        )
+
     def test_building_image_with_go_debug(self):
         docker_client_mock = Mock()
 

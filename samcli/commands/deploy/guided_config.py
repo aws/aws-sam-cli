@@ -34,7 +34,7 @@ class GuidedConfig:
         )
         config_sanity = samconfig.sanity_check()
         click.secho("\nConfiguring SAM deploy\n======================", fg="yellow")
-        click.echo(f"\n\tLooking for samconfig.toml :  {status}")
+        click.echo(f"\n\tLooking for config file [{config_file}] :  {status}")
         if samconfig.exists():
             click.echo("\tReading default arguments  :  {}".format("Success" if config_sanity else "Failure"))
 
@@ -66,7 +66,7 @@ class GuidedConfig:
 
         samconfig.flush()
 
-        click.echo(f"\n\tSaved arguments to config file")
+        click.echo("\n\tSaved arguments to config file")
         click.echo("\tRunning 'sam deploy' for future deployments will use the parameters saved above.")
         click.echo("\tThe above parameters can be changed by modifying samconfig.toml")
         click.echo(

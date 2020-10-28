@@ -13,7 +13,6 @@ from pathlib import Path
 import click
 
 from samcli.commands.exceptions import ConfigException
-from samcli.lib.config.exceptions import SamConfigVersionException
 from samcli.cli.context import get_cmd_names
 from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 
@@ -76,8 +75,7 @@ class TomlProvider:
 
             # NOTE(TheSriram): change from tomlkit table type to normal dictionary,
             # so that click defaults work out of the box.
-            samconfig.sanity_check()
-            resolved_config = {k: v for k, v in samconfig.get_all(cmd_names, self.section, env=config_env).items()}
+            resolved_config = dict(samconfig.get_all(cmd_names, self.section, env=config_env).items())
             LOG.debug("Configuration values successfully loaded.")
             LOG.debug("Configuration values are: %s", resolved_config)
 
@@ -92,12 +90,9 @@ class TomlProvider:
                 str(ex),
             )
 
-        except SamConfigVersionException as ex:
-            LOG.debug("%s %s", samconfig.path(), str(ex))
-            raise ConfigException(f"Syntax invalid in samconfig.toml: {str(ex)}")
-
         except Exception as ex:
             LOG.debug("Error reading configuration file: %s %s", samconfig.path(), str(ex))
+            raise ConfigException(f"Error reading configuration: {ex}") from ex
 
         return resolved_config
 
@@ -129,7 +124,13 @@ def configuration_callback(cmd_name, option_name, saved_callback, provider, ctx,
     config_dir = getattr(ctx, "samconfig_dir", None) or os.getcwd()
     # If --config-file is an absolute path, use it, if not, start from config_dir
     config_file_name = config_file if os.path.isabs(config_file) else os.path.join(config_dir, config_file)
-    config = get_ctx_defaults(cmd_name, provider, ctx, config_env_name=config_env_name, config_file=config_file_name,)
+    config = get_ctx_defaults(
+        cmd_name,
+        provider,
+        ctx,
+        config_env_name=config_env_name,
+        config_file=config_file_name,
+    )
     ctx.default_map.update(config)
 
     return saved_callback(ctx, param, config_env_name) if saved_callback else config_env_name
@@ -228,7 +229,12 @@ def decorator_customize_config_file(f):
     """
     config_file_attrs = {}
     config_file_param_decls = ("--config-file",)
-    config_file_attrs["help"] = "Name of configuration file. By default, it is samconfig.toml in project directory."
+    config_file_attrs["help"] = (
+        "The path and file name of the configuration file containing default parameter values to use. "
+        "Its default value is 'samconfig.toml' in project directory. For more information about configuration files, "
+        "see: "
+        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
+    )
     config_file_attrs["default"] = "samconfig.toml"
     config_file_attrs["is_eager"] = True
     config_file_attrs["required"] = False
@@ -245,7 +251,11 @@ def decorator_customize_config_env(f):
     """
     config_env_attrs = {}
     config_env_param_decls = ("--config-env",)
-    config_env_attrs["help"] = "Name of configuration environment. By default, its name is 'default'."
+    config_env_attrs["help"] = (
+        "The environment name specifying the default parameter values in the configuration file to use. "
+        "Its default value is 'default'. For more information about configuration files, see: "
+        "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
+    )
     config_env_attrs["default"] = "default"
     config_env_attrs["is_eager"] = True
     config_env_attrs["required"] = False

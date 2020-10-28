@@ -79,9 +79,9 @@ def generate_non_cookiecutter_project(location, output_dir):
 
     try:
         return _download_and_copy(download_fn, output_dir)
-    except exceptions.RepositoryNotFound:
+    except exceptions.RepositoryNotFound as ex:
         # Download failed because the zip or the repository was not found
-        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG)
+        raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG) from ex
 
 
 def _download_and_copy(download_fn, output_dir):

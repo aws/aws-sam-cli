@@ -8,78 +8,91 @@ from collections import namedtuple
 
 LOG = logging.getLogger(__name__)
 
-CONFIG = namedtuple('Capability', ["language", "dependency_manager", "application_framework", "manifest_name",
-                                   "executable_search_paths"])
+CONFIG = namedtuple(
+    "Capability",
+    ["language", "dependency_manager", "application_framework", "manifest_name", "executable_search_paths"],
+)
 
 PYTHON_PIP_CONFIG = CONFIG(
-                language="python",
-                dependency_manager="pip",
-                application_framework=None,
-                manifest_name="requirements.txt",
-                executable_search_paths=None)
+    language="python",
+    dependency_manager="pip",
+    application_framework=None,
+    manifest_name="requirements.txt",
+    executable_search_paths=None,
+)
 
 NODEJS_NPM_CONFIG = CONFIG(
-                language="nodejs",
-                dependency_manager="npm",
-                application_framework=None,
-                manifest_name="package.json",
-                executable_search_paths=None)
+    language="nodejs",
+    dependency_manager="npm",
+    application_framework=None,
+    manifest_name="package.json",
+    executable_search_paths=None,
+)
 
 RUBY_BUNDLER_CONFIG = CONFIG(
-                language="ruby",
-                dependency_manager="bundler",
-                application_framework=None,
-                manifest_name="Gemfile",
-                executable_search_paths=None)
+    language="ruby",
+    dependency_manager="bundler",
+    application_framework=None,
+    manifest_name="Gemfile",
+    executable_search_paths=None,
+)
 
 JAVA_GRADLE_CONFIG = CONFIG(
-                language="java",
-                dependency_manager="gradle",
-                application_framework=None,
-                manifest_name="build.gradle",
-                executable_search_paths=None)
+    language="java",
+    dependency_manager="gradle",
+    application_framework=None,
+    manifest_name="build.gradle",
+    executable_search_paths=None,
+)
 
 JAVA_KOTLIN_GRADLE_CONFIG = CONFIG(
-                language="java",
-                dependency_manager="gradle",
-                application_framework=None,
-                manifest_name="build.gradle.kts",
-                executable_search_paths=None)
+    language="java",
+    dependency_manager="gradle",
+    application_framework=None,
+    manifest_name="build.gradle.kts",
+    executable_search_paths=None,
+)
 
 JAVA_MAVEN_CONFIG = CONFIG(
-                language="java",
-                dependency_manager="maven",
-                application_framework=None,
-                manifest_name="pom.xml",
-                executable_search_paths=None)
+    language="java",
+    dependency_manager="maven",
+    application_framework=None,
+    manifest_name="pom.xml",
+    executable_search_paths=None,
+)
 
 DOTNET_CLIPACKAGE_CONFIG = CONFIG(
-                language="dotnet",
-                dependency_manager="cli-package",
-                application_framework=None,
-                manifest_name=".csproj",
-                executable_search_paths=None)
+    language="dotnet",
+    dependency_manager="cli-package",
+    application_framework=None,
+    manifest_name=".csproj",
+    executable_search_paths=None,
+)
 
 GO_MOD_CONFIG = CONFIG(
     language="go",
     dependency_manager="modules",
     application_framework=None,
     manifest_name="go.mod",
-    executable_search_paths=None)
+    executable_search_paths=None,
+)
 
 PROVIDED_MAKE_CONFIG = CONFIG(
     language="provided",
     dependency_manager=None,
     application_framework=None,
     manifest_name="Makefile",
-    executable_search_paths=None)
+    executable_search_paths=None,
+)
 
 
 class UnsupportedRuntimeException(Exception):
     pass
 
+
 class UnsupportedBuilderException(Exception):
     pass
+
 
 def get_selector(selector_list, identifiers, specified_workflow=None):
     """
@@ -124,6 +137,7 @@ def get_selector(selector_list, identifiers, specified_workflow=None):
         pass
 
     return selector
+
 
 def get_layer_subfolder(build_workflow):
     subfolders_by_runtime = {
@@ -180,9 +194,7 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
         namedtuple that represents the Builder Workflow Config
     """
 
-    selectors_by_build_method = {
-        "makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)
-    }
+    selectors_by_build_method = {"makefile": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)}
 
     selectors_by_runtime = {
         "python2.7": BasicWorkflowSelector(PYTHON_PIP_CONFIG),
@@ -196,29 +208,34 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
         "dotnetcore2.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnetcore3.1": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),
-
         # When Maven builder exists, add to this list so we can automatically choose a builder based on the supported
         # manifest
-        "java8": ManifestWorkflowSelector([
-            # Gradle builder needs custom executable paths to find `gradlew` binary
-            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-            JAVA_MAVEN_CONFIG
-        ]),
-        "java11": ManifestWorkflowSelector([
-            # Gradle builder needs custom executable paths to find `gradlew` binary
-            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-            JAVA_MAVEN_CONFIG
-        ]),
-        "java8.al2": ManifestWorkflowSelector([
-            # Gradle builder needs custom executable paths to find `gradlew` binary
-            JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-            JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
-            JAVA_MAVEN_CONFIG
-        ]),
+        "java8": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
+        "java11": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
+        "java8.al2": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
         "provided": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
-        "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG)
+        "provided.al2": BasicWorkflowSelector(PROVIDED_MAKE_CONFIG),
     }
     # First check if the runtime is present and is buildable, if not raise an UnsupportedRuntimeException Error.
     # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime so in that case
@@ -228,15 +245,20 @@ def get_workflow_config(runtime, code_dir, project_dir, specified_workflow=None)
 
     try:
         # Identify appropriate workflow selector.
-        selector = get_selector(selector_list=[selectors_by_build_method, selectors_by_runtime], identifiers=[specified_workflow, runtime],
-                                specified_workflow=specified_workflow)
+        selector = get_selector(
+            selector_list=[selectors_by_build_method, selectors_by_runtime],
+            identifiers=[specified_workflow, runtime],
+            specified_workflow=specified_workflow,
+        )
 
         # Identify workflow configuration from the workflow selector.
         config = selector.get_config(code_dir, project_dir)
         return config
     except ValueError as ex:
-        raise UnsupportedRuntimeException("Unable to find a supported build workflow for runtime '{}'. Reason: {}"
-                                          .format(runtime, str(ex)))
+        raise UnsupportedRuntimeException(
+            "Unable to find a supported build workflow for runtime '{}'. Reason: {}".format(runtime, str(ex))
+        ) from ex
+
 
 def supports_build_in_container(config):
     """
@@ -263,11 +285,11 @@ def supports_build_in_container(config):
 
     unsupported = {
         _key(DOTNET_CLIPACKAGE_CONFIG): "We do not support building .NET Core Lambda functions within a container. "
-                                        "Try building without the container. Most .NET Core functions will build "
-                                        "successfully.",
+        "Try building without the container. Most .NET Core functions will build "
+        "successfully.",
         _key(GO_MOD_CONFIG): "We do not support building Go Lambda functions within a container. "
-                             "Try building without the container. Most Go functions will build "
-                             "successfully.",
+        "Try building without the container. Most Go functions will build "
+        "successfully.",
     }
 
     thiskey = _key(config)
@@ -326,9 +348,11 @@ class ManifestWorkflowSelector(BasicWorkflowSelector):
             if any([self._has_manifest(config, directory) for directory in search_dirs]):
                 return config
 
-        raise ValueError("None of the supported manifests '{}' were found in the following paths '{}'".format(
-            [config.manifest_name for config in self.configs],
-            search_dirs))
+        raise ValueError(
+            "None of the supported manifests '{}' were found in the following paths '{}'".format(
+                [config.manifest_name for config in self.configs], search_dirs
+            )
+        )
 
     @staticmethod
     def _has_manifest(config, directory):
