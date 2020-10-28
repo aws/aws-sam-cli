@@ -308,6 +308,72 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_valid_v2_lambda_json_response(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/validv2responsehash", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"foo": "bar"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_invalid_v1_lambda_json_response(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/invalidv1responsehash", timeout=300)
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json(), {"message": "Internal server error"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_valid_v2_lambda_string_response(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/validv2responsestring", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, "This is invalid")
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_valid_v2_lambda_integer_response(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/validv2responseinteger", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, "2")
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_invalid_v2_lambda_response(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/invalidv2response", timeout=300)
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json(), {"message": "Internal server error"})
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_invalid_v1_lambda_string_response(self):
+        """
+        Patch Request to a path that was defined as ANY in SAM through AWS::Serverless::Function Events
+        """
+        response = requests.get(self.url + "/invalidv1responsestring", timeout=300)
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.json(), {"message": "Internal server error"})
+
 
 class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
     template_path = "/testdata/start_api/swagger-template.yaml"
