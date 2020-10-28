@@ -17,10 +17,10 @@ TIMEOUT = 300
 @skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
 class TestPackage(PackageIntegBase):
     def setUp(self):
-        super(TestPackage, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(TestPackage, self).tearDown()
+        super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_package_template_flag(self, template_file):
@@ -455,22 +455,24 @@ class TestPackage(PackageIntegBase):
                 resolve_s3=True,
             )
 
-            process = Popen(command_list, stdout=PIPE)
+            process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:
-                stdout, _ = process.communicate(timeout=TIMEOUT)
+                _, stderr = process.communicate(timeout=TIMEOUT)
             except TimeoutExpired:
                 process.kill()
                 raise
-            process_stdout = stdout.strip()
+            process_stderr = stderr.strip()
 
             upload_message = bytes("Uploading to", encoding="utf-8")
             if no_progressbar:
                 self.assertNotIn(
-                    upload_message, process_stdout,
+                    upload_message,
+                    process_stderr,
                 )
             else:
                 self.assertIn(
-                    upload_message, process_stdout,
+                    upload_message,
+                    process_stderr,
                 )
 
     @parameterized.expand(

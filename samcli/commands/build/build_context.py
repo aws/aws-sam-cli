@@ -169,6 +169,16 @@ class BuildContext:
         result.add_layers([l for l in self._layer_provider.get_all() if l.build_method is not None])
         return result
 
+    @property
+    def is_building_specific_resource(self):
+        """
+        Whether customer requested to build a specific resource alone in isolation,
+        by specifying function_identifier to the build command.
+        Ex: sam build MyServerlessFunction
+        :return: True if user requested to build specific resource, False otherwise
+        """
+        return bool(self._resource_identifier)
+
     def _collect_single_function_and_dependent_layers(self, resource_identifier, resource_collector):
         """
         Populate resource_collector with function with provided identifier and all layers that function need to be

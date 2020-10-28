@@ -86,6 +86,63 @@ class LambdaRuntime_invoke(TestCase):
         timer.cancel.assert_called_with()
         self.manager_mock.stop.assert_called_with(container)
 
+    @patch("samcli.local.lambdafn.runtime.extensions_preview_enabled")
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_must_run_container_and_wait_for_result_with_preview(self, LambdaContainerMock, PreviewEnabledMock):
+        event = "event"
+        code_dir = "some code dir"
+        stdout = "stdout"
+        stderr = "stderr"
+        container = Mock()
+        timer = Mock()
+        debug_options = Mock()
+        lambda_image_mock = Mock()
+
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+
+        # Using MagicMock to mock the context manager
+        self.runtime._get_code_dir = MagicMock()
+        self.runtime._get_code_dir(self.code_path).__enter__.return_value = code_dir
+
+        # Configure interrupt handler
+        self.runtime._configure_interrupt = Mock()
+        self.runtime._configure_interrupt.return_value = timer
+
+        PreviewEnabledMock.return_value = True
+        LambdaContainerMock.return_value = container
+
+        self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
+
+        # Verify if Lambda Event data is set
+        self.env_vars.add_lambda_event_body.assert_called_with(event)
+
+        # Make sure env-vars get resolved
+        self.env_vars.resolve.assert_called_with()
+
+        # Make sure the context manager is called to return the code directory
+        self.runtime._get_code_dir.assert_called_with(self.code_path)
+
+        # Make sure the container is created with proper values
+        LambdaContainerMock.assert_called_with(
+            self.lang,
+            self.handler,
+            code_dir,
+            self.layers,
+            lambda_image_mock,
+            memory_mb=self.DEFAULT_MEMORY,
+            env_vars=self.env_var_value,
+            debug_options=debug_options,
+        )
+
+        # Run the container and get results
+        self.manager_mock.run.assert_called_with(container)
+        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
+        container.wait_for_result.assert_called_with(name=self.name, event=event, stdout=stdout, stderr=stderr)
+
+        # Finally block
+        timer.cancel.assert_called_with()
+        self.manager_mock.stop.assert_called_with(container)
+
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_exception_from_run_must_trigger_cleanup(self, LambdaContainerMock):
         event = "event"
@@ -144,6 +201,45 @@ class LambdaRuntime_invoke(TestCase):
         LambdaContainerMock.return_value = container
 
         container.wait_for_logs.side_effect = ValueError("some exception")
+
+        with self.assertRaises(ValueError):
+            self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)
+
+        # Run the container and get results
+        self.manager_mock.run.assert_called_with(container)
+
+        self.runtime._configure_interrupt.assert_called_with(self.name, self.DEFAULT_TIMEOUT, container, True)
+
+        # Finally block must be called
+        # Timer was created. So it must be cancelled
+        timer.cancel.assert_called_with()
+        # In any case, stop the container
+        self.manager_mock.stop.assert_called_with(container)
+
+    @patch("samcli.local.lambdafn.runtime.extensions_preview_enabled")
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_exception_from_wait_for_result_must_trigger_cleanup(self, LambdaContainerMock, PreviewEnabledMock):
+        event = "event"
+        code_dir = "some code dir"
+        stdout = "stdout"
+        stderr = "stderr"
+        container = Mock()
+        timer = Mock()
+        debug_options = Mock()
+        layer_downloader = Mock()
+
+        self.runtime = LambdaRuntime(self.manager_mock, layer_downloader)
+
+        # Using MagicMock to mock the context manager
+        self.runtime._get_code_dir = MagicMock()
+        self.runtime._get_code_dir(self.code_path).__enter__.return_value = code_dir
+        self.runtime._configure_interrupt = Mock()
+        self.runtime._configure_interrupt.return_value = timer
+
+        PreviewEnabledMock.return_value = True
+        LambdaContainerMock.return_value = container
+
+        container.wait_for_result.side_effect = ValueError("some exception")
 
         with self.assertRaises(ValueError):
             self.runtime.invoke(self.func_config, event, debug_context=debug_options, stdout=stdout, stderr=stderr)

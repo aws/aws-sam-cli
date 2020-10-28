@@ -103,7 +103,18 @@ Common usage:
 @pass_context
 @track_command
 def cli(
-    ctx, no_interactive, location, runtime, dependency_manager, output_dir, name, app_template, no_input, extra_context
+    ctx,
+    no_interactive,
+    location,
+    runtime,
+    dependency_manager,
+    output_dir,
+    name,
+    app_template,
+    no_input,
+    extra_context,
+    config_file,
+    config_env,
 ):
     do_cli(
         ctx,
@@ -203,9 +214,9 @@ def _get_cookiecutter_template_context(name, runtime, extra_context):
     if extra_context is not None:
         try:
             extra_context_dict = json.loads(extra_context)
-        except JSONDecodeError:
+        except JSONDecodeError as ex:
             raise click.UsageError(
                 "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
-            )
+            ) from ex
 
     return {**extra_context_dict, **default_context}

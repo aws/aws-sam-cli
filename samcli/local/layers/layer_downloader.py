@@ -136,8 +136,8 @@ class LayerDownloader:
             layer_version_response = self.lambda_client.get_layer_version(
                 LayerName=layer.layer_arn, VersionNumber=layer.version
             )
-        except NoCredentialsError:
-            raise CredentialsRequired("Layers require credentials to download the layers locally.")
+        except NoCredentialsError as ex:
+            raise CredentialsRequired("Layers require credentials to download the layers locally.") from ex
         except ClientError as e:
             error_code = e.response.get("Error").get("Code")
             error_exc = {
