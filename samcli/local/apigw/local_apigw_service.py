@@ -417,17 +417,23 @@ class LocalApigwService(BaseLocalService):
         except ValueError as ex:
             raise LambdaResponseParseException("Lambda response must be valid json") from ex
 
-        if not isinstance(json_output, dict):
-            raise LambdaResponseParseException(f"Lambda returned {type(json_output)} instead of dict")
+        # lambda can return any valid json response in payload format version 2.0.
+        # response can be a simple type like string, or integer
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.response
+        if isinstance(json_output, dict):
+            body = json_output.get("body") if "statusCode" in json_output else json.dumps(json_output)
+        else:
+            body = json_output
+            json_output = {}
+
+        if not body:
+            LOG.warning("Lambda returned empty body!")
 
         status_code = json_output.get("statusCode") or 200
         headers = LocalApigwService._merge_response_headers(
             json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
         )
 
-        body = json_output.get("body") if "statusCode" in json_output else json.dumps(json_output)
-        if not body:
-            LOG.warning("Lambda returned empty body!")
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
         try:
