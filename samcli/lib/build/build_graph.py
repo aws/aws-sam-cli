@@ -266,7 +266,7 @@ class LayerBuildDefinition(AbstractBuildDefinition):
     LayerBuildDefinition holds information about each unique layer build
     """
     def __init__(self, name, codeuri, build_method, compatible_runtimes, source_md5=''):
-        super(LayerBuildDefinition, self).__init__(source_md5)
+        super().__init__(source_md5)
         self.name = name
         self.codeuri = codeuri
         self.build_method = build_method
@@ -299,7 +299,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     """
 
     def __init__(self, runtime, codeuri, metadata, source_md5=''):
-        super(FunctionBuildDefinition, self).__init__(source_md5)
+        super().__init__(source_md5)
         self.runtime = runtime
         self.codeuri = codeuri
         self.metadata = metadata if metadata else {}

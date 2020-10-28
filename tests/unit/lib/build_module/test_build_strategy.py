@@ -74,12 +74,18 @@ class BuildStrategyTest(BuildStrategyBaseTest):
 
         # assert individual functions builds have been called
         mock_build_strategy.build_single_function_definition.assert_has_calls(
-            [call(self.function_build_definition1), call(self.function_build_definition2),]
+            [
+                call(self.function_build_definition1),
+                call(self.function_build_definition2),
+            ]
         )
 
         # assert individual layer builds have been called
         mock_build_strategy.build_single_layer_definition.assert_has_calls(
-            [call(self.layer_build_definition1), call(self.layer_build_definition2),]
+            [
+                call(self.layer_build_definition1),
+                call(self.layer_build_definition2),
+            ]
         )
 
 
