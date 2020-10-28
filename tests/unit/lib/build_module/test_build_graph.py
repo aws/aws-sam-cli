@@ -8,14 +8,21 @@ from parameterized import parameterized
 from samcli.lib.build.build_graph import (
     FunctionBuildDefinition,
     _function_build_definition_to_toml_table,
+    _layer_build_definition_to_toml_table,
     CODE_URI_FIELD,
     RUNTIME_FIELD,
     METADATA_FIELD,
     FUNCTIONS_FIELD,
     SOURCE_MD5_FIELD,
+    LAYER_NAME_FIELD,
+    BUILD_METHOD_FIELD,
+    COMPATIBLE_RUNTIMES_FIELD,
+    LAYER_FIELD,
     _toml_table_to_function_build_definition,
+    _toml_table_to_layer_build_definition,
     BuildGraph,
     InvalidBuildGraphException,
+    LayerBuildDefinition,
 )
 from samcli.lib.providers.provider import Function
 from samcli.lib.utils import osutils
@@ -41,7 +48,7 @@ def generate_function(
 
 
 class TestConversionFunctions(TestCase):
-    def test_build_definition_to_toml_table(self):
+    def test_function_build_definition_to_toml_table(self):
         build_definition = FunctionBuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
         build_definition.add_function(generate_function())
 
@@ -51,6 +58,19 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(toml_table[RUNTIME_FIELD], build_definition.runtime)
         self.assertEqual(toml_table[METADATA_FIELD], build_definition.metadata)
         self.assertEqual(toml_table[FUNCTIONS_FIELD], [f.name for f in build_definition.functions])
+        self.assertEqual(toml_table[SOURCE_MD5_FIELD], build_definition.source_md5)
+
+    def test_layer_build_definition_to_toml_table(self):
+        build_definition = LayerBuildDefinition("name", "codeuri", "method", "runtime")
+        build_definition.layer = generate_function()
+
+        toml_table = _layer_build_definition_to_toml_table(build_definition)
+
+        self.assertEqual(toml_table[LAYER_NAME_FIELD], build_definition.name)
+        self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
+        self.assertEqual(toml_table[BUILD_METHOD_FIELD], build_definition.build_method)
+        self.assertEqual(toml_table[COMPATIBLE_RUNTIMES_FIELD], build_definition.compatible_runtimes)
+        self.assertEqual(toml_table[LAYER_FIELD], build_definition.layer.name)
         self.assertEqual(toml_table[SOURCE_MD5_FIELD], build_definition.source_md5)
 
     def test_toml_table_to_function_build_definition(self):
@@ -71,12 +91,33 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.functions, [])
         self.assertEqual(build_definition.source_md5, toml_table[SOURCE_MD5_FIELD])
 
+    def test_toml_table_to_layer_build_definition(self):
+        toml_table = tomlkit.table()
+        toml_table[LAYER_NAME_FIELD] = "name"
+        toml_table[CODE_URI_FIELD] = "codeuri"
+        toml_table[BUILD_METHOD_FIELD] = "method"
+        toml_table[COMPATIBLE_RUNTIMES_FIELD] = "runtime"
+        toml_table[COMPATIBLE_RUNTIMES_FIELD] = "layer1"
+        toml_table[SOURCE_MD5_FIELD] = "source_md5"
+        uuid = str(uuid4())
+
+        build_definition = _toml_table_to_layer_build_definition(uuid, toml_table)
+
+        self.assertEqual(build_definition.name, toml_table[LAYER_NAME_FIELD])
+        self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
+        self.assertEqual(build_definition.build_method, toml_table[BUILD_METHOD_FIELD])
+        self.assertEqual(build_definition.uuid, uuid)
+        self.assertEqual(build_definition.compatible_runtimes, toml_table[COMPATIBLE_RUNTIMES_FIELD])
+        self.assertEqual(build_definition.layer, None)
+        self.assertEqual(build_definition.source_md5, toml_table[SOURCE_MD5_FIELD])
+
 
 class TestBuildGraph(TestCase):
     CODEURI = "hello_world_python/"
     RUNTIME = "python3.8"
     METADATA = {"Test": "hello", "Test2": "world"}
     UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
+    LAYER_UUID = "7dnc257e-cd4b-4d94-8c74-7ab870b3abc3"
     SOURCE_MD5 = "cae49aa393d669e850bd49869905099d"
 
     BUILD_GRAPH_CONTENTS = f"""
@@ -89,6 +130,15 @@ class TestBuildGraph(TestCase):
     [function_build_definitions.{UUID}.metadata]
     Test = "{METADATA['Test']}"
     Test2 = "{METADATA['Test2']}"
+
+    [layer_build_definitions]
+    [layer_build_definitions.{LAYER_UUID}]
+    layer_name = "SumLayer"
+    codeuri = "sum_layer/"
+    build_method = "nodejs12.x"
+    compatible_runtimes = ["nodejs12.x"]
+    source_md5 = "{SOURCE_MD5}"
+    layer = "SumLayer"
     """
 
     def test_should_instantiate_first_time(self):
