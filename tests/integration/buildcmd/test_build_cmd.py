@@ -9,6 +9,7 @@ from parameterized import parameterized
 
 import pytest
 
+from samcli.lib.utils import osutils
 from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
