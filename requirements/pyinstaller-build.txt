@@ -1,7 +1,4 @@
 # Executable binary builder requirements
-setuptools==44.1.1
-staticx==0.12.0
-# StaticX required tools
-patchelf-wrapper==1.2.0
+setuptools==47.3.2
 # pyinstaller should not update to 4.0 until https://github.com/pyinstaller/pyinstaller/issues/4674 is resolved
 pyinstaller==3.5
