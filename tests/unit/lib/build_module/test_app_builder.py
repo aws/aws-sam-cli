@@ -93,7 +93,7 @@ class TestApplicationBuilder_build(TestCase):
 
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     @patch("samcli.lib.build.build_graph.BuildGraph._read")
-    @patch("samcli.lib.build.app_builder.osutils")
+    @patch("samcli.lib.build.build_strategy.osutils")
     def test_should_run_build_for_only_unique_builds(self, persist_mock, read_mock, osutils_mock):
         build_function_mock = Mock()
 
