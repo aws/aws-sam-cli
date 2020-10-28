@@ -20,8 +20,6 @@ from samcli.lib.build.app_builder import (
 from samcli.lib.utils import osutils
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
-from tests.testing_utils import IS_WINDOWS
-
 
 class TestApplicationBuilder_build(TestCase):
     def setUp(self):
