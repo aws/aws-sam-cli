@@ -666,6 +666,17 @@ class TestServiceParsingLambdaOutput(TestCase):
 
         (_, headers, _) = LocalApigwService._parse_lambda_output(lambda_output, binary_types=[], flask_request=Mock())
 
+    def test_inferring_response_for_format_2(self):
+        lambda_output = '{"message": "Hello from Lambda!"}'
+
+        (status_code, headers, body) = LocalApigwService._parse_lambda_output(
+            lambda_output, binary_types=[], flask_request=Mock()
+        )
+
+        self.assertEqual(status_code, 200)
+        self.assertEqual(headers, Headers({"Content-Type": "application/json"}))
+        self.assertEqual(body, lambda_output)
+
 
 class TestService_construct_event(TestCase):
     def setUp(self):
