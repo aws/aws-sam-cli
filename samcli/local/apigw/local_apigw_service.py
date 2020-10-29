@@ -367,7 +367,7 @@ class LocalApigwService(BaseLocalService):
         )
 
         body = json_output.get("body")
-        if not body:
+        if body is None:
             LOG.warning("Lambda returned empty body!")
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
@@ -387,7 +387,7 @@ class LocalApigwService(BaseLocalService):
             ) from ex
 
         invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
-        if bool(invalid_keys):
+        if invalid_keys:
             raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
 
         # If the customer doesn't define Content-Type default to application/json
@@ -426,13 +426,11 @@ class LocalApigwService(BaseLocalService):
             body = json_output
             json_output = {}
 
-        if not body:
+        if body is None:
             LOG.warning("Lambda returned empty body!")
 
         status_code = json_output.get("statusCode") or 200
-        headers = LocalApigwService._merge_response_headers(
-            json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
-        )
+        headers = Headers(json_output.get("headers") or {})
 
         is_base_64_encoded = json_output.get("isBase64Encoded") or False
 
@@ -455,12 +453,9 @@ class LocalApigwService(BaseLocalService):
         # a response shape.
         # Don't check the response keys when inferring a response, see
         # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.v2.
-        if "statusCode" in json_output:
-            invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
-            if bool(invalid_keys):
-                raise LambdaResponseParseException(
-                    f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}"
-                )
+        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
+        if "statusCode" in json_output and invalid_keys:
+            raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
 
         # If the customer doesn't define Content-Type default to application/json
         if "Content-Type" not in headers:
