@@ -172,7 +172,6 @@ class TestBuildGraph(TestCase):
 
             # read previously persisted graph and compare
             build_graph2 = BuildGraph(str(build_dir))
-            self.assertEqual(len(build_graph1.get_build_definitions()), len(build_graph2.get_build_definitions()))
             self.assertEqual(
                 len(build_graph1.get_function_build_definitions()), len(build_graph2.get_function_build_definitions())
             )
