@@ -171,7 +171,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         )
 
 
-class CachedBuildStrategyTest(TestCase):
+class CachedBuildStrategyTest(BuildStrategyBaseTest):
     CODEURI = "hello_world_python/"
     RUNTIME = "python3.8"
     FUNCTION_UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
@@ -196,6 +196,25 @@ class CachedBuildStrategyTest(TestCase):
     source_md5 = "{SOURCE_MD5}"
     layer = "SumLayer"
     """
+
+    @patch("samcli.lib.build.build_strategy.pathlib.Path")
+    @patch("samcli.lib.build.build_strategy.osutils.copytree")
+    @patch("samcli.lib.build.build_strategy.shutil.rmtree")
+    @patch("samcli.lib.build.build_strategy.DefaultBuildStrategy.build_single_function_definition")
+    @patch("samcli.lib.build.build_strategy.DefaultBuildStrategy.build_single_layer_definition")
+    def test_build_call(self, mock_layer_build, mock_function_build, mock_rmtree, mock_copy_tree, mock_path):
+        given_build_function = Mock()
+        given_build_layer = Mock()
+        given_build_dir = "build_dir"
+        default_build_strategy = DefaultBuildStrategy(
+            self.build_graph, given_build_dir, given_build_function, given_build_layer
+        )
+        cache_build_strategy = CachedBuildStrategy(
+            self.build_graph, default_build_strategy, "base_dir", given_build_dir, "cache_dir", True
+        )
+        cache_build_strategy.build()
+        mock_function_build.assert_called()
+        mock_layer_build.assert_called()
 
     @patch("samcli.lib.build.build_strategy.osutils.copytree")
     @patch("samcli.lib.build.build_strategy.pathlib.Path.exists")
