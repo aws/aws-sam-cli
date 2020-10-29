@@ -8,13 +8,13 @@ import samcli.yamlhelper as yamlhelper
 from samcli.commands.validate.lib.sam_template_validator import SamTemplateValidator
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
+# Out of scope because https://stackoverflow.com/a/47224266
+TEMPLATE_DIR = "tests/functional/commands/validate/lib/models"
+
 
 class TestValidate(TestCase):
 
-    TEMPLATE_DIR = "tests/functional/commands/validate/lib/models"
-    VALID_TEST_TEMPLATES = [
-        os.path.join(TEMPLATE_DIR, filename) for filename in os.listdir(TEMPLATE_DIR)
-    ]
+    VALID_TEST_TEMPLATES = [os.path.join(TEMPLATE_DIR, filename) for filename in os.listdir(TEMPLATE_DIR)]
 
     def test_valid_template(self):
         template = {
