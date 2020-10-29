@@ -160,14 +160,16 @@ class LocalApigwService(BaseLocalService):
 
         if default_route:
             LOG.debug("add catch-all route")
+            all_methods = Route.ANY_HTTP_METHODS
             try:
-                rule = next(self._app.url_map.iter_rules("/"))
-                self._add_catch_all_path(
-                    [method for method in Route.ANY_HTTP_METHODS if method not in rule.methods], "/", default_route
-                )
-            except KeyError:
-                self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/", default_route)
+                rules_iter = self._app.url_map.iter_rules("/")
+                while True:
+                    rule = next(rules_iter)
+                    all_methods = [method for method in all_methods if method not in rule.methods]
+            except (KeyError, StopIteration):
+                pass
 
+            self._add_catch_all_path(all_methods, "/", default_route)
             self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)
 
         self._construct_error_handling()
@@ -292,9 +294,16 @@ class LocalApigwService(BaseLocalService):
             self.stderr.write(lambda_logs)
 
         try:
-            (status_code, headers, body) = self._parse_lambda_output(
-                lambda_response, self.api.binary_media_types, request
-            )
+            if route.event_type == Route.HTTP and (
+                not route.payload_format_version or route.payload_format_version == "2.0"
+            ):
+                (status_code, headers, body) = self._parse_v2_payload_format_lambda_output(
+                    lambda_response, self.api.binary_media_types, request
+                )
+            else:
+                (status_code, headers, body) = self._parse_v1_payload_format_lambda_output(
+                    lambda_response, self.api.binary_media_types, request
+                )
         except LambdaResponseParseException as ex:
             LOG.error("Invalid lambda response received: %s", ex)
             return ServiceErrorResponses.lambda_failure_response()
@@ -338,7 +347,7 @@ class LocalApigwService(BaseLocalService):
 
     # Consider moving this out to its own class. Logic is started to get dense and looks messy @jfuss
     @staticmethod
-    def _parse_lambda_output(lambda_output, binary_types, flask_request):
+    def _parse_v1_payload_format_lambda_output(lambda_output, binary_types, flask_request):
         """
         Parses the output from the Lambda Container
 
@@ -358,6 +367,7 @@ class LocalApigwService(BaseLocalService):
         headers = LocalApigwService._merge_response_headers(
             json_output.get("headers") or {}, json_output.get("multiValueHeaders") or {}
         )
+
         body = json_output.get("body")
         if body is None:
             LOG.warning("Lambda returned empty body!")
@@ -378,10 +388,75 @@ class LocalApigwService(BaseLocalService):
                 f"Non null response bodies should be able to convert to string: {body}"
             ) from ex
 
+        invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
+        if invalid_keys:
+            raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
+
+        # If the customer doesn't define Content-Type default to application/json
+        if "Content-Type" not in headers:
+            LOG.info("No Content-Type given. Defaulting to 'application/json'.")
+            headers["Content-Type"] = "application/json"
+
+        try:
+            if LocalApigwService._should_base64_decode_body(binary_types, flask_request, headers, is_base_64_encoded):
+                body = base64.b64decode(body)
+        except ValueError as ex:
+            LambdaResponseParseException(str(ex))
+
+        return status_code, headers, body
+
+    @staticmethod
+    def _parse_v2_payload_format_lambda_output(lambda_output, binary_types, flask_request):
+        """
+        Parses the output from the Lambda Container
+
+        :param str lambda_output: Output from Lambda Invoke
+        :return: Tuple(int, dict, str, bool)
+        """
+        # pylint: disable-msg=too-many-statements
+        try:
+            json_output = json.loads(lambda_output)
+        except ValueError as ex:
+            raise LambdaResponseParseException("Lambda response must be valid json") from ex
+
+        # lambda can return any valid json response in payload format version 2.0.
+        # response can be a simple type like string, or integer
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.response
+        if isinstance(json_output, dict):
+            body = json_output.get("body") if "statusCode" in json_output else json.dumps(json_output)
+        else:
+            body = json_output
+            json_output = {}
+
+        if body is None:
+            LOG.warning("Lambda returned empty body!")
+
+        status_code = json_output.get("statusCode") or 200
+        headers = Headers(json_output.get("headers") or {})
+
+        is_base_64_encoded = json_output.get("isBase64Encoded") or False
+
+        try:
+            status_code = int(status_code)
+            if status_code <= 0:
+                raise ValueError
+        except ValueError as ex:
+            raise LambdaResponseParseException("statusCode must be a positive int") from ex
+
+        try:
+            if body:
+                body = str(body)
+        except ValueError as ex:
+            raise LambdaResponseParseException(
+                f"Non null response bodies should be able to convert to string: {body}"
+            ) from ex
+
         # API Gateway only accepts statusCode, body, headers, and isBase64Encoded in
         # a response shape.
+        # Don't check the response keys when inferring a response, see
+        # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html#http-api-develop-integrations-lambda.v2.
         invalid_keys = LocalApigwService._invalid_apig_response_keys(json_output)
-        if bool(invalid_keys):
+        if "statusCode" in json_output and invalid_keys:
             raise LambdaResponseParseException(f"Invalid API Gateway Response Keys: {invalid_keys} in {json_output}")
 
         # If the customer doesn't define Content-Type default to application/json
