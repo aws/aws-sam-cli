@@ -33,8 +33,15 @@ def _function_build_definition_to_toml_table(function_build_definition):
     """
     Converts given function_build_definition into toml table representation
 
-    :param function_build_definition: FunctionBuildDefinition
-    :return: toml table of FunctionBuildDefinition
+    Parameters
+    ----------
+    function_build_definition: FunctionBuildDefinition
+        FunctionBuildDefinition which will be converted into toml table
+
+    Returns
+    -------
+    tomlkit.items.Table
+        toml table of FunctionBuildDefinition
     """
     toml_table = tomlkit.table()
     toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
@@ -52,9 +59,17 @@ def _toml_table_to_function_build_definition(uuid, toml_table):
     """
     Converts given toml table into FunctionBuildDefinition instance
 
-    :param uuid: key of the function toml_table instance
-    :param toml_table: function build definition as toml table
-    :return: FunctionBuildDefinition of given toml table
+    Parameters
+    ----------
+    uuid: str
+        key of the function toml_table instance
+    toml_table: tomlkit.items.Table
+        function build definition as toml table
+
+    Returns
+    -------
+    FunctionBuildDefinition
+        FunctionBuildDefinition of given toml table
     """
     function_build_definition = FunctionBuildDefinition(
         toml_table[RUNTIME_FIELD],
@@ -70,8 +85,15 @@ def _layer_build_definition_to_toml_table(layer_build_definition):
     """
     Converts given layer_build_definition into toml table representation
 
-    :param layer_build_definition: LayerBuildDefinition
-    :return: toml table of LayerBuildDefinition
+    Parameters
+    ----------
+    layer_build_definition: LayerBuildDefinition
+        LayerBuildDefinition which will be converted into toml table
+
+    Returns
+    -------
+    tomlkit.items.Table
+        toml table of LayerBuildDefinition
     """
     toml_table = tomlkit.table()
     toml_table[LAYER_NAME_FIELD] = layer_build_definition.name
@@ -88,9 +110,17 @@ def _toml_table_to_layer_build_definition(uuid, toml_table):
     """
     Converts given toml table into LayerBuildDefinition instance
 
-    :param uuid: key of the toml_table instance
-    :param toml_table: layer build definition as toml table
-    :return: LayerBuildDefinition of given toml table
+    Parameters
+    ----------
+    uuid: str
+        key of the toml_table instance
+    toml_table:  tomlkit.items.Table
+        layer build definition as toml table
+
+    Returns
+    -------
+    LayerBuildDefinition
+        LayerBuildDefinition of given toml table
     """
     layer_build_definition = LayerBuildDefinition(
         toml_table[LAYER_NAME_FIELD],
@@ -133,8 +163,12 @@ class BuildGraph:
 
         If graph doesn't contain such unique function build definition, it will be added to the current build graph
 
-        :param function_build_definition: function build definition which is newly read from template.yaml file
-        :param function: function details for this function build definition
+        Parameters
+        ----------
+        function_build_definition: FunctionBuildDefinition
+            function build definition which is newly read from template.yaml file
+        function: Function
+            function details for this function build definition
         """
         if function_build_definition in self._function_build_definitions:
             previous_build_definition = self._function_build_definitions[
@@ -164,8 +198,12 @@ class BuildGraph:
 
         If graph doesn't contain such unique layer build definition, it will be added to the current build graph
 
-        :param layer_build_definition: layer build definition which is newly read from template.yaml file
-        :param layer: layer details for this layer build definition
+        Parameters
+        ----------
+        layer_build_definition: LayerBuildDefinition
+            layer build definition which is newly read from template.yaml file
+        layer: Layer
+            layer details for this layer build definition
         """
         if layer_build_definition in self._layer_build_definitions:
             previous_build_definition = self._layer_build_definitions[
@@ -269,15 +307,6 @@ class AbstractBuildDefinition:
         self.uuid = str(uuid4())
         self.source_md5 = source_md5
 
-    def set_source_md5(self, new_source_md5):
-        self.source_md5 = new_source_md5
-
-    def get_source_md5(self):
-        return self.source_md5
-
-    def get_uuid(self):
-        return self.uuid
-
 
 class LayerBuildDefinition(AbstractBuildDefinition):
     """
@@ -302,8 +331,15 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         """
         Checks equality of the layer build definition
 
-        :param other: other layer build definition to compare
-        :return: True if both layer build definitions has same following properties, False otherwise
+        Parameters
+        ----------
+        other: Any
+            other layer build definition to compare
+
+        Returns
+        -------
+        bool
+            True if both layer build definitions has same following properties, False otherwise
         """
         if not isinstance(other, LayerBuildDefinition):
             return False
@@ -353,8 +389,15 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         """
         Checks equality of the function build definition
 
-        :param other: other function build definition to compare
-        :return: True if both function build definitions has same following properties, False otherwise
+        Parameters
+        ----------
+        other: Any
+            other function build definition to compare
+
+        Returns
+        -------
+        bool
+            True if both function build definitions has same following properties, False otherwise
         """
         if not isinstance(other, FunctionBuildDefinition):
             return False

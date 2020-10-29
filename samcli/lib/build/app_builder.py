@@ -145,7 +145,7 @@ class ApplicationBuilder:
                                                  self._base_dir,
                                                  self._build_dir,
                                                  self._cache_dir,
-                                                 self._is_building_specific_resource,)
+                                                 self._is_building_specific_resource)
 
         return build_strategy.build()
 
@@ -163,8 +163,7 @@ class ApplicationBuilder:
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
-            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method,
-                                                       layer.compatible_runtimes)
+            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)

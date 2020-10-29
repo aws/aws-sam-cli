@@ -168,25 +168,26 @@ class CachedBuildStrategy(BuildStrategy):
         """
         code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
         source_md5 = dir_checksum(code_dir)
-        cache_function_dir = pathlib.Path(self._cache_dir, build_definition.get_uuid())
+        cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
 
-        if not cache_function_dir.exists() or build_definition.get_source_md5() != source_md5:
+        if not cache_function_dir.exists() or build_definition.source_md5 != source_md5:
             LOG.info("Cache is invalid, running build and copying resources to function build definition of %s",
-                     build_definition.get_uuid())
+                     build_definition.uuid)
             build_result = self._delegate_build_strategy.build_single_function_definition(build_definition)
             function_build_results.update(build_result)
 
             if cache_function_dir.exists():
                 shutil.rmtree(str(cache_function_dir))
 
-            build_definition.set_source_md5(source_md5)
+            build_definition.source_md5 = source_md5
+            # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
                 break
         else:
             LOG.info("Valid cache found, copying previously built resources from function build definition of %s",
-                     build_definition.get_uuid())
+                     build_definition.uuid)
             for function in build_definition.functions:
                 # artifacts directory will be created by the builder
                 artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
@@ -202,25 +203,26 @@ class CachedBuildStrategy(BuildStrategy):
         """
         code_dir = str(pathlib.Path(self._base_dir, layer_definition.codeuri).resolve())
         source_md5 = dir_checksum(code_dir)
-        cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.get_uuid())
+        cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
 
-        if not cache_function_dir.exists() or layer_definition.get_source_md5() != source_md5:
+        if not cache_function_dir.exists() or layer_definition.source_md5 != source_md5:
             LOG.info("Cache is invalid, running build and copying resources to layer build definition of %s",
-                     layer_definition.get_uuid())
+                     layer_definition.uuid)
             build_result = self._delegate_build_strategy.build_single_layer_definition(layer_definition)
             layer_build_result.update(build_result)
 
             if cache_function_dir.exists():
                 shutil.rmtree(str(cache_function_dir))
 
-            layer_definition.set_source_md5(source_md5)
+            layer_definition.source_md5 = source_md5
+            # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
                 break
         else:
             LOG.info("Valid cache found, copying previously built resources from layer build definition of %s",
-                     layer_definition.get_uuid())
+                     layer_definition.uuid)
             # artifacts directory will be created by the builder
             artifacts_dir = str(pathlib.Path(self._build_dir, layer_definition.layer.name))
             LOG.debug("Copying artifacts from %s to %s", cache_function_dir, artifacts_dir)
