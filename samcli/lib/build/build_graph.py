@@ -36,7 +36,7 @@ def _build_definition_to_toml_table(build_definition):
     toml_table[CODE_URI_FIELD] = build_definition.codeuri
     toml_table[RUNTIME_FIELD] = build_definition.runtime
     toml_table[FUNCTIONS_FIELD] = \
-        list(map(lambda f: f.functionname, build_definition.functions))
+        list(map(lambda f: f.name, build_definition.functions))
 
     if build_definition.metadata:
         toml_table[METADATA_FIELD] = build_definition.metadata

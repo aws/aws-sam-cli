@@ -225,10 +225,10 @@ class LambdaImage:
                         stream_writer.write(".")
                         stream_writer.flush()
                     stream_writer.write("\n")
-                except (docker.errors.BuildError, docker.errors.APIError):
+                except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write("\n")
                     LOG.exception("Failed to build Docker Image")
-                    raise ImageBuildException("Building Image failed.")
+                    raise ImageBuildException("Building Image failed.") from ex
         finally:
             if full_dockerfile_path.exists():
                 full_dockerfile_path.unlink()

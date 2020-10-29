@@ -76,7 +76,15 @@ $ sam logs -n HelloWorldFunction --stack-name mystack --filter "error" \n
 @pass_context
 @track_command
 def cli(
-    ctx, name, stack_name, filter, tail, start_time, end_time, config_file, config_env,
+    ctx,
+    name,
+    stack_name,
+    filter,
+    tail,
+    start_time,
+    end_time,
+    config_file,
+    config_env,
 ):  # pylint: disable=redefined-builtin
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
