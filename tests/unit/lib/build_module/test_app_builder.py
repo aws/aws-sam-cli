@@ -278,7 +278,7 @@ class TestApplicationBuilder_update_template(TestCase):
 
 class TestApplicationBuilder_update_template_windows(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir")
+        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
 
         self.template_dict = {
             "Resources": {
