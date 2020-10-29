@@ -180,6 +180,7 @@ class CachedBuildStrategy(BuildStrategy):
                 shutil.rmtree(str(cache_function_dir))
 
             build_definition.source_md5 = source_md5
+            # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
                 break
@@ -214,6 +215,7 @@ class CachedBuildStrategy(BuildStrategy):
                 shutil.rmtree(str(cache_function_dir))
 
             layer_definition.source_md5 = source_md5
+            # Since all the build contents are same for a build definition, just copy any one of them into the cache
             for _, value in build_result.items():
                 osutils.copytree(value, cache_function_dir)
                 break
