@@ -1,12 +1,12 @@
 import os
+import sys
 from unittest.mock import ANY
-
 import docker
 import json
 
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 from unittest.mock import Mock, call, patch
-from pathlib import Path
+from pathlib import Path, WindowsPath
 
 from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.build.app_builder import (
@@ -274,6 +274,67 @@ class TestApplicationBuilder_update_template(TestCase):
         actual = self.builder.update_template(self.template_dict, "/foo/bar/template.txt", built_artifacts)
 
         self.assertEqual(actual, self.template_dict)
+
+
+class TestApplicationBuilder_update_template_windows(TestCase):
+    def setUp(self):
+        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir")
+
+        self.template_dict = {
+            "Resources": {
+                "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
+                "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
+                "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+            }
+        }
+
+        # Force os.path to be ntpath instead of posixpath on unix systems
+        import ntpath
+
+        self.saved_os_path_module = sys.modules["os.path"]
+        os.path = sys.modules["ntpath"]
+
+    def test_must_write_absolute_path_for_different_drives(self):
+        def mock_new(cls, *args, **kwargs):
+            cls = WindowsPath
+            self = cls._from_parts(args, init=False)
+            self._init()
+            return self
+
+        def mock_resolve(self):
+            return self
+
+        with patch("pathlib.Path.__new__", new=mock_new):
+            with patch("pathlib.Path.resolve", new=mock_resolve):
+                original_template_path = "C:\\path\\to\\template.txt"
+                function_1_path = "D:\\path\\to\\build\\MyFunction1"
+                function_2_path = "C:\\path2\\to\\build\\MyFunction2"
+                built_artifacts = {"MyFunction1": function_1_path, "MyFunction2": function_2_path}
+
+                expected_result = {
+                    "Resources": {
+                        "MyFunction1": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": function_1_path},
+                        },
+                        "MyFunction2": {
+                            "Type": "AWS::Lambda::Function",
+                            "Properties": {"Code": "..\\..\\path2\\to\\build\\MyFunction2"},
+                        },
+                        "GlueResource": {
+                            "Type": "AWS::Glue::Job",
+                            "Properties": {"Command": {"ScriptLocation": "something"}},
+                        },
+                        "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                    }
+                }
+
+                actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
+                self.assertEqual(actual, expected_result)
+
+    def tearDown(self):
+        os.path = self.saved_os_path_module
 
 
 class TestApplicationBuilder_build_function(TestCase):
