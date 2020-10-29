@@ -359,10 +359,16 @@ class ParallelBuildStrategyTest(BuildStrategyBaseTest):
 
         # assert that delegate build strategy function methods have been called
         delegate_build_strategy.build_single_function_definition.assert_has_calls(
-            [call(self.function_build_definition1), call(self.function_build_definition2),]
+            [
+                call(self.function_build_definition1),
+                call(self.function_build_definition2),
+            ]
         )
 
         # assert that delegate build strategy layer methods have been called
         delegate_build_strategy.build_single_layer_definition.assert_has_calls(
-            [call(self.layer_build_definition1), call(self.layer_build_definition2),]
+            [
+                call(self.layer_build_definition1),
+                call(self.layer_build_definition2),
+            ]
         )
