@@ -161,14 +161,13 @@ class LocalApigwService(BaseLocalService):
         if default_route:
             LOG.debug("add catch-all route")
             all_methods = Route.ANY_HTTP_METHODS
-            done_looping = False
-            rules_iter = self._app.url_map.iter_rules("/")
-            while not done_looping:
-                try:
+            try:
+                rules_iter = self._app.url_map.iter_rules("/")
+                while True:
                     rule = next(rules_iter)
                     all_methods = [method for method in all_methods if method not in rule.methods]
-                except StopIteration:
-                    done_looping = True
+            except (KeyError, StopIteration):
+                pass
 
             self._add_catch_all_path(all_methods, "/", default_route)
             self._add_catch_all_path(Route.ANY_HTTP_METHODS, "/<path:any_path>", default_route)
