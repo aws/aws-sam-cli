@@ -204,21 +204,7 @@ Resources:
             Method: GET
             Path: /writetostdout
 
-  InvalidResponseFromLambdaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: main.invalid_response_returned
-      Runtime: python3.6
-      CodeUri: .
-      Timeout: 600
-      Events:
-        InvalidResponseReturned:
-          Type: HttpApi
-          Properties:
-            Method: GET
-            Path: /invalidresponsereturned
-
-  InvalidResponseHashFromLambdaFunction:
+  ValidV2ResponseHashFromLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: main.invalid_hash_response
@@ -230,7 +216,79 @@ Resources:
           Type: HttpApi
           Properties:
             Method: GET
-            Path: /invalidresponsehash
+            Path: /validv2responsehash
+
+  InValidV1ResponseHashFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_hash_response
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /invalidv1responsehash
+            PayloadFormatVersion: 1.0
+
+  ValidV2StringResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /validv2responsestring
+
+  ValidV2IntegerResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.integer_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /validv2responseinteger
+
+  InValidV2ResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_v2_respose_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /invalidv2response
+
+  InValidV1StringResponseFromLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.invalid_response_returned
+      Runtime: python3.6
+      CodeUri: .
+      Timeout: 600
+      Events:
+        InvalidResponseReturned:
+          Type: HttpApi
+          Properties:
+            Method: GET
+            Path: /invalidv1responsestring
+            PayloadFormatVersion: 1.0
 
   Base64ResponseFunction:
     Type: AWS::Serverless::Function
