@@ -165,7 +165,7 @@ class CfnBaseApiProvider:
             allow_headers = self._get_cors_prop_http(cors_prop, "AllowHeaders", list)
             if isinstance(allow_headers, list):
                 allow_headers = ",".join(allow_headers)
-            max_age = self._get_cors_prop_http(cors_prop, "MaxAge", str)
+            max_age = self._get_cors_prop_http(cors_prop, "MaxAge", int)
 
             cors = Cors(
                 allow_origin=allow_origins, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
