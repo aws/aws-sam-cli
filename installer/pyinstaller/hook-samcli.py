@@ -15,11 +15,9 @@ hiddenimports = [
     # default hidden import 'pkg_resources.py2_warn' is added
     # since pyInstaller 4.0.
     "pkg_resources.py2_warn",
+    "aws_lambda_builders.workflows",
 ]
-imports_for_aws_lambda_builders = hooks.collect_submodules("aws_lambda_builders")
-hiddenimports += imports_for_aws_lambda_builders
 datas = (
     hooks.collect_data_files("samcli")
     + hooks.collect_data_files("samtranslator")
-    + hooks.collect_data_files("aws_lambda_builders")
 )
