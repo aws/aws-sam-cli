@@ -2,22 +2,22 @@
 Builds the application
 """
 
-import os
 import io
 import json
 import logging
+import os
 import pathlib
 
 import docker
+from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
-from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol_version
 
 import samcli.lib.utils.osutils as osutils
-from samcli.lib.utils.colors import Colored
-from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
-from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy
+from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy, ParallelBuildStrategy
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.utils.colors import Colored
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
@@ -126,7 +126,20 @@ class ApplicationBuilder:
         build_graph = self._get_build_graph()
         build_strategy = DefaultBuildStrategy(build_graph, self._build_dir, self._build_function, self._build_layer)
 
-        if self._cached:
+        if self._parallel:
+            if self._cached:
+                build_strategy = ParallelBuildStrategy(
+                    build_graph,
+                    CachedBuildStrategy(build_graph,
+                                        build_strategy,
+                                        self._base_dir,
+                                        self._build_dir,
+                                        self._cache_dir,
+                                        self._is_building_specific_resource)
+                )
+            else:
+                build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
+        elif self._cached:
             build_strategy = CachedBuildStrategy(build_graph,
                                                  build_strategy,
                                                  self._base_dir,

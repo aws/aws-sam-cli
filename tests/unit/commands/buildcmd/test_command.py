@@ -44,6 +44,7 @@ class TestDoCli(TestCase):
             "clean",
             "use_container",
             "cached",
+            "parallel",
             "manifest_path",
             "docker_network",
             "skip_pull",
@@ -61,6 +62,7 @@ class TestDoCli(TestCase):
             manifest_path_override=ctx_mock.manifest_path_override,
             container_manager=ctx_mock.container_manager,
             mode=ctx_mock.mode,
+            parallel="parallel",
         )
         builder_mock.build.assert_called_once()
         builder_mock.update_template.assert_called_once_with(
@@ -103,6 +105,7 @@ class TestDoCli(TestCase):
                 "clean",
                 "use_container",
                 "cached",
+                "parallel",
                 "manifest_path",
                 "docker_network",
                 "skip_pull",
@@ -131,6 +134,7 @@ class TestDoCli(TestCase):
                 "clean",
                 "use_container",
                 "cached",
+                "parallel",
                 "manifest_path",
                 "docker_network",
                 "skip_pull",
