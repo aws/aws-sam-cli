@@ -8,7 +8,7 @@ import samcli.yamlhelper as yamlhelper
 from samcli.commands.validate.lib.sam_template_validator import SamTemplateValidator
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
-# Out of scope because https://stackoverflow.com/a/47224266
+# Out of TestValidate's scope because https://stackoverflow.com/a/47224266
 TEMPLATE_DIR = "tests/functional/commands/validate/lib/models"
 
 
