@@ -20,6 +20,7 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 LOG = logging.getLogger(__name__)
 
 DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
+DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 HELP_TEXT = """
 Use this command to build your AWS Lambda Functions source code to generate artifacts that target AWS Lambda's
@@ -69,6 +70,13 @@ $ sam build && sam package --s3-bucket <bucketname>
     help="Path to a folder where the built artifacts will be stored. This directory will be first removed before starting a build.",
 )
 @click.option(
+    "--cache-dir",
+    "-cd",
+    default=DEFAULT_CACHE_DIR,
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
+    help="Path to a folder where the cache artifacts will be stored.",
+)
+@click.option(
     "--base-dir",
     "-s",
     default=None,
@@ -85,11 +93,23 @@ $ sam build && sam package --s3-bucket <bucketname>
     "to build your function inside an AWS Lambda-like Docker container",
 )
 @click.option(
+    "--parallel",
+    "-p",
+    is_flag=True,
+    help="Use this flag to run builds of each function/layer in parallel",
+)
+@click.option(
     "--manifest",
     "-m",
     default=None,
     type=click.Path(),
     help="Path to a custom dependency manifest (ex: package.json) to use instead of the default one",
+)
+@click.option(
+    "--cached",
+    "-c",
+    is_flag=True,
+    help="Use this flag to enable cached build",
 )
 @template_option_without_build
 @parameter_override_option
@@ -105,7 +125,10 @@ def cli(
     template_file,
     base_dir,
     build_dir,
+    cache_dir,
     use_container,
+    cached,
+    parallel,
     manifest,
     docker_network,
     skip_pull_image,
@@ -122,8 +145,11 @@ def cli(
         template_file,
         base_dir,
         build_dir,
+        cache_dir,
         True,
         use_container,
+        cached,
+        parallel,
         manifest,
         docker_network,
         skip_pull_image,
@@ -137,8 +163,11 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     template,
     base_dir,
     build_dir,
+    cache_dir,
     clean,
     use_container,
+    cached,
+    parallel,
     manifest_path,
     docker_network,
     skip_pull_image,
@@ -164,7 +193,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     from samcli.lib.build.build_graph import InvalidBuildGraphException
 
     LOG.debug("'build' command is called")
-
+    if cached:
+        LOG.info("Starting Build use cache")
     if use_container:
         LOG.info("Starting Build inside a container")
 
@@ -173,6 +203,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         template,
         base_dir,
         build_dir,
+        cache_dir,
+        cached,
         clean=clean,
         manifest_path=manifest_path,
         use_container=use_container,
@@ -186,10 +218,13 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 ctx.resources_to_build,
                 ctx.build_dir,
                 ctx.base_dir,
+                ctx.cache_dir,
+                ctx.cached,
                 ctx.is_building_specific_resource,
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
+                parallel=parallel
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
