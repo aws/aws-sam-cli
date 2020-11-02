@@ -25,14 +25,14 @@ LOG = logging.getLogger(__name__)
 def manage_stack(profile, region):
     try:
         cloudformation_client = boto3.client("cloudformation", config=Config(region_name=region if region else None))
-    except NoCredentialsError:
+    except NoCredentialsError as ex:
         raise CredentialsError(
             "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. Please see their documentation for options to pass in credentials: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
-        )
-    except NoRegionError:
+        ) from ex
+    except NoRegionError as ex:
         raise RegionError(
             "Error Setting Up Managed Stack Client: Unable to resolve a region. Please provide a region via the --region parameter or by the AWS_REGION environment variable."
-        )
+        ) from ex
     return _create_or_get_stack(cloudformation_client)
 
 
@@ -53,17 +53,17 @@ def _create_or_get_stack(cloudformation_client):
         outputs = stack["Outputs"]
         try:
             bucket_name = next(o for o in outputs if o["OutputKey"] == "SourceBucket")["OutputValue"]
-        except StopIteration:
+        except StopIteration as ex:
             msg = (
                 "Stack " + SAM_CLI_STACK_NAME + " exists, but is missing the managed source bucket key. "
                 "Failing as this stack was likely not created by the AWS SAM CLI."
             )
-            raise UserException(msg)
+            raise UserException(msg) from ex
         # This bucket name is what we would write to a config file
         return bucket_name
     except (ClientError, BotoCoreError) as ex:
         LOG.debug("Failed to create managed resources", exc_info=ex)
-        raise ManagedStackError(str(ex))
+        raise ManagedStackError(str(ex)) from ex
 
 
 def _check_sanity_of_stack(stack):
@@ -94,12 +94,12 @@ def _check_sanity_of_stack(stack):
                 "Failing as the stack was likely not created by the AWS SAM CLI."
             )
             raise UserException(msg)
-    except StopIteration:
+    except StopIteration as ex:
         msg = (
             "Stack  " + SAM_CLI_STACK_NAME + " exists, but the ManagedStackSource tag is missing. "
             "Failing as the stack was likely not created by the AWS SAM CLI."
         )
-        raise UserException(msg)
+        raise UserException(msg) from ex
 
 
 def _create_stack(cloudformation_client):

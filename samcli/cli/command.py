@@ -55,7 +55,7 @@ class BaseCommand(click.MultiCommand):
         :param args: Other Arguments passed to super class
         :param kwargs: Other Arguments passed to super class
         """
-        super(BaseCommand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if not cmd_packages:
             cmd_packages = _SAM_CLI_COMMAND_PACKAGES

@@ -43,7 +43,7 @@ def get_template_data(template_file):
         try:
             return yaml_parse(fp.read())
         except (ValueError, yaml.YAMLError) as ex:
-            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex)))
+            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex))) from ex
 
 
 def move_template(src_template_path, dest_template_path, template_dict):

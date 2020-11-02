@@ -1,13 +1,14 @@
 import os
+import sys
 from unittest.mock import ANY
-
 import docker
 import json
 
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 from unittest.mock import Mock, call, patch
-from pathlib import Path
+from pathlib import Path, WindowsPath
 
+from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.providers.provider import ResourcesToBuildCollector
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
@@ -33,12 +34,17 @@ class TestApplicationBuilder_build(TestCase):
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_functions([self.func1, self.func2])
         resources_to_build_collector.add_layers([self.layer1, self.layer2])
-        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
 
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_must_iterate_on_functions_and_layers(self, persist_mock):
         build_function_mock = Mock()
         build_layer_mock = Mock()
+
+        def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes):
+            return f"{layer_name}_location"
+
+        build_layer_mock.side_effect = build_layer_return
 
         self.builder._build_function = build_function_mock
         self.builder._build_layer = build_layer_mock
@@ -50,8 +56,8 @@ class TestApplicationBuilder_build(TestCase):
             {
                 self.func1.name: os.path.join("builddir", self.func1.name),
                 self.func2.name: os.path.join("builddir", self.func2.name),
-                self.layer1.name: build_layer_mock.return_value,
-                self.layer2.name: build_layer_mock.return_value,
+                self.layer1.name: f"{self.layer1.name}_location",
+                self.layer2.name: f"{self.layer2.name}_location",
             },
         )
 
@@ -81,10 +87,10 @@ class TestApplicationBuilder_build(TestCase):
     def test_should_generate_build_graph(self, persist_mock):
         build_graph = self.builder._get_build_graph()
 
-        self.assertTrue(len(build_graph.get_build_definitions()), 2)
+        self.assertTrue(len(build_graph.get_function_build_definitions()), 2)
 
         all_functions_in_build_graph = []
-        for build_definition in build_graph.get_build_definitions():
+        for build_definition in build_graph.get_function_build_definitions():
             for function in build_definition.functions:
                 all_functions_in_build_graph.append(function)
 
@@ -93,7 +99,8 @@ class TestApplicationBuilder_build(TestCase):
 
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     @patch("samcli.lib.build.build_graph.BuildGraph._read")
-    def test_should_run_build_for_only_unique_builds(self, persist_mock, read_mock):
+    @patch("samcli.lib.build.build_strategy.osutils")
+    def test_should_run_build_for_only_unique_builds(self, persist_mock, read_mock, osutils_mock):
         build_function_mock = Mock()
 
         # create 3 function resources where 2 of them would have same codeuri, runtime and metadata
@@ -106,7 +113,7 @@ class TestApplicationBuilder_build(TestCase):
         build_dir = "builddir"
 
         # instantiate the builder and run build method
-        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+        builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
         builder._build_function = build_function_mock
 
         result = builder.build()
@@ -137,6 +144,76 @@ class TestApplicationBuilder_build(TestCase):
             any_order=True,
         )
 
+    @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
+    def test_default_run_should_pick_default_strategy(self, mock_default_build_strategy_class):
+        mock_default_build_strategy = Mock()
+        mock_default_build_strategy_class.return_value = mock_default_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_default_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_default_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
+    def test_cached_run_should_pick_cached_strategy(self, mock_cached_build_strategy_class):
+        mock_cached_build_strategy = Mock()
+        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", cached=True)
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_cached_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_cached_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
+    def test_parallel_run_should_pick_parallel_strategy(self, mock_parallel_build_strategy_class):
+        mock_parallel_build_strategy = Mock()
+        mock_parallel_build_strategy_class.return_value = mock_parallel_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True)
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_parallel_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_parallel_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
+    @patch("samcli.lib.build.app_builder.CachedBuildStrategy")
+    def test_parallel_and_cached_run_should_pick_parallel_with_cached_strategy(
+        self, mock_cached_build_strategy_class, mock_parallel_build_strategy_class
+    ):
+        mock_parallel_build_strategy = Mock()
+        mock_parallel_build_strategy_class.return_value = mock_parallel_build_strategy
+
+        mock_cached_build_strategy = Mock()
+        mock_cached_build_strategy_class.return_value = mock_cached_build_strategy
+
+        build_graph_mock = Mock()
+        get_build_graph_mock = Mock(return_value=build_graph_mock)
+
+        builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir", parallel=True)
+        builder._get_build_graph = get_build_graph_mock
+
+        result = builder.build()
+
+        mock_parallel_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_parallel_build_strategy.build())
+
 
 class TestApplicationBuilderForLayerBuild(TestCase):
     def setUp(self):
@@ -145,7 +222,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.container_manager = Mock()
         resources_to_build_collector = ResourcesToBuildCollector()
         resources_to_build_collector.add_layers([self.layer1, self.layer2])
-        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir")
+        self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -203,7 +280,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
 
 class TestApplicationBuilder_update_template(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir")
+        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
 
         self.template_dict = {
             "Resources": {
@@ -243,9 +320,70 @@ class TestApplicationBuilder_update_template(TestCase):
         self.assertEqual(actual, self.template_dict)
 
 
+class TestApplicationBuilder_update_template_windows(TestCase):
+    def setUp(self):
+        self.builder = ApplicationBuilder(Mock(), "builddir", "basedir", "cachedir")
+
+        self.template_dict = {
+            "Resources": {
+                "MyFunction1": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "oldvalue"}},
+                "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
+                "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
+                "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+            }
+        }
+
+        # Force os.path to be ntpath instead of posixpath on unix systems
+        import ntpath
+
+        self.saved_os_path_module = sys.modules["os.path"]
+        os.path = sys.modules["ntpath"]
+
+    def test_must_write_absolute_path_for_different_drives(self):
+        def mock_new(cls, *args, **kwargs):
+            cls = WindowsPath
+            self = cls._from_parts(args, init=False)
+            self._init()
+            return self
+
+        def mock_resolve(self):
+            return self
+
+        with patch("pathlib.Path.__new__", new=mock_new):
+            with patch("pathlib.Path.resolve", new=mock_resolve):
+                original_template_path = "C:\\path\\to\\template.txt"
+                function_1_path = "D:\\path\\to\\build\\MyFunction1"
+                function_2_path = "C:\\path2\\to\\build\\MyFunction2"
+                built_artifacts = {"MyFunction1": function_1_path, "MyFunction2": function_2_path}
+
+                expected_result = {
+                    "Resources": {
+                        "MyFunction1": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": function_1_path},
+                        },
+                        "MyFunction2": {
+                            "Type": "AWS::Lambda::Function",
+                            "Properties": {"Code": "..\\..\\path2\\to\\build\\MyFunction2"},
+                        },
+                        "GlueResource": {
+                            "Type": "AWS::Glue::Job",
+                            "Properties": {"Command": {"ScriptLocation": "something"}},
+                        },
+                        "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                    }
+                }
+
+                actual = self.builder.update_template(self.template_dict, original_template_path, built_artifacts)
+                self.assertEqual(actual, expected_result)
+
+    def tearDown(self):
+        os.path = self.saved_os_path_module
+
+
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir")
+        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "cachedir")
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -336,7 +474,7 @@ class TestApplicationBuilder_build_function(TestCase):
 
 class TestApplicationBuilder_build_function_in_process(TestCase):
     def setUp(self):
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", mode="mode")
+        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "/cache/dir", mode="mode")
 
     @patch("samcli.lib.build.app_builder.LambdaBuilder")
     def test_must_use_lambda_builder(self, lambda_builder_mock):
@@ -382,7 +520,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
     def setUp(self):
         self.container_manager = Mock()
         self.builder = ApplicationBuilder(
-            Mock(), "/build/dir", "/base/dir", container_manager=self.container_manager, mode="mode"
+            Mock(), "/build/dir", "/base/dir", "/cache/dir", container_manager=self.container_manager, mode="mode"
         )
         self.builder._parse_builder_response = Mock()
 
@@ -487,7 +625,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 class TestApplicationBuilder_parse_builder_response(TestCase):
     def setUp(self):
         self.image_name = "name"
-        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir")
+        self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "/cache/dir")
 
     def test_must_parse_json(self):
         data = {"valid": "json"}

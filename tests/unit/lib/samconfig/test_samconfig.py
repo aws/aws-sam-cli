@@ -100,10 +100,12 @@ class TestSamConfig(TestCase):
         self.samconfig.flush()
         self._check_config_file()
         self.assertEqual(
-            {"testKey1": True}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection1", env="myEnv"),
+            {"testKey1": True},
+            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection1", env="myEnv"),
         )
         self.assertEqual(
-            {"testKey2": False}, self.samconfig.get_all(cmd_names=["myCommand"], section="mySection2", env="myEnv"),
+            {"testKey2": False},
+            self.samconfig.get_all(cmd_names=["myCommand"], section="mySection2", env="myEnv"),
         )
 
     def test_add_params_from_different_keys(self):
