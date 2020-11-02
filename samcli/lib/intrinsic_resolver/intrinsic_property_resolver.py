@@ -8,8 +8,6 @@ import base64
 import re
 from collections import OrderedDict
 
-from six import string_types
-
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
     verify_intrinsic_type_list,
     verify_non_null,
@@ -663,7 +661,7 @@ class IntrinsicResolver:
                 (logical_id, attribute_type) = intrinsic_item, IntrinsicResolver.REF
             return symbol_resolver.resolve_symbols(logical_id, attribute_type, ignore_errors=True)
 
-        if isinstance(intrinsic_value, string_types):
+        if isinstance(intrinsic_value, str):
             intrinsic_value = [intrinsic_value, {}]
 
         verify_intrinsic_type_list(
