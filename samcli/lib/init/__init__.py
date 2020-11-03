@@ -89,4 +89,4 @@ def generate_project(
         generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
 
     except CookiecutterException as e:
-        raise GenerateProjectFailedError(project=name, provider_error=e)
+        raise GenerateProjectFailedError(project=name, provider_error=e) from e
