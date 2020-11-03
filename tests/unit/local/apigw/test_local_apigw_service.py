@@ -1143,6 +1143,14 @@ class TestService_construct_event_http(TestCase):
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
 
+    def test_v2_route_key(self):
+        route_key = LocalApigwService._v2_route_key("GET", "/path", False)
+        self.assertEquals(route_key, "GET /path")
+
+    def test_v2_default_route_key(self):
+        route_key = LocalApigwService._v2_route_key("GET", "/path", True)
+        self.assertEquals(route_key, "$default")
+
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._should_base64_encode")
     def test_construct_event_with_binary_data(self, should_base64_encode_patch):
         should_base64_encode_patch.return_value = True
