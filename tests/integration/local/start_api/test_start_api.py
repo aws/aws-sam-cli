@@ -1491,7 +1491,11 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         response = requests.patch(self.url + "/anypath/anypath", timeout=300)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"hello": "world"})
+        response_data = response.json()
+        self.assertEqual(response_data.get("version", {}), "2.0")
+        self.assertEqual(response_data.get("routeKey", {}), "$default")
+        self.assertIsNone(response_data.get("multiValueHeaders"))
+        self.assertIsNotNone(response_data.get("cookies"))
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1549,6 +1553,7 @@ class TestCFNTemplateQuickCreatedHttpApiWithOneRoute(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("version", {}), "2.0")
+        self.assertEqual(response_data.get("routeKey", {}), "GET /echoeventbody")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
 
