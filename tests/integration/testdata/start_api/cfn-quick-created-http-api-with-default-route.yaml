@@ -7,7 +7,7 @@ Description: 'sam-app
 Resources:
   HelloWorldFunction:
     Properties:
-      Handler: main.handler
+      Handler: main.echo_event_handler
       Code: '.'
       Role:
         Fn::GetAtt:
