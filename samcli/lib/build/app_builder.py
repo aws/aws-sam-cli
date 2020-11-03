@@ -15,9 +15,9 @@ from aws_lambda_builders import RPC_PROTOCOL_VERSION as lambda_builders_protocol
 
 import samcli.lib.utils.osutils as osutils
 from samcli.lib.utils.colors import Colored
+from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
-from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition, BuildGraph
-from samcli.lib.build.build_strategy import DefaultBuildStrategy, CachedBuildStrategy
+from samcli.lib.build.build_graph import BuildDefinition, BuildGraph
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from .workflow_config import get_workflow_config, get_layer_subfolder, supports_build_in_container
 
@@ -54,36 +54,30 @@ class ApplicationBuilder:
     converting source code into artifacts that can be run on AWS Lambda
     """
 
-    def __init__(self,
-                 resources_to_build,
-                 build_dir,
-                 base_dir,
-                 cache_dir,
-                 cached=False,
-                 is_building_specific_resource=False,
-                 manifest_path_override=None,
-                 container_manager=None,
-                 parallel=False,
-                 mode=None):
+    def __init__(
+        self,
+        resources_to_build,
+        build_dir,
+        base_dir,
+        is_building_specific_resource=False,
+        manifest_path_override=None,
+        container_manager=None,
+        parallel=False,
+        mode=None,
+    ):
         """
         Initialize the class
 
         Parameters
         ----------
-        resources_to_build: Iterator
-            Iterator that can vend out resources available in the SAM template
+        functions_to_build: Iterator
+            Iterator that can vend out functions available in the SAM template
 
         build_dir : str
             Path to the directory where we will be storing built artifacts
 
         base_dir : str
             Path to a folder. Use this folder as the root to resolve relative source code paths against
-
-        cache_dir : str
-            Path to a the directory where we will be caching built artifacts
-
-        cached:
-            Optional. Set to True to build each function with cache to improve performance
 
         is_building_specific_resource : boolean
             Whether customer requested to build a specific resource alone in isolation,
@@ -102,8 +96,6 @@ class ApplicationBuilder:
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
         self._base_dir = base_dir
-        self._cache_dir = cache_dir
-        self._cached = cached
         self._manifest_path_override = manifest_path_override
         self._is_building_specific_resource = is_building_specific_resource
 
@@ -123,38 +115,72 @@ class ApplicationBuilder:
         dict
             Returns the path to where each resource was built as a map of resource's LogicalId to the path string
         """
-        build_graph = self._get_build_graph()
-        build_strategy = DefaultBuildStrategy(build_graph, self._build_dir, self._build_function, self._build_layer)
 
-        if self._cached:
-            build_strategy = CachedBuildStrategy(build_graph,
-                                                 build_strategy,
-                                                 self._base_dir,
-                                                 self._build_dir,
-                                                 self._cache_dir,
-                                                 self._is_building_specific_resource)
+        result = self._build_functions()
 
-        return build_strategy.build()
+        for layer in self._resources_to_build.layers:
+            LOG.info("Building layer '%s'", layer.name)
+            if layer.build_method is None:
+                raise MissingBuildMethodException(
+                    f"Layer {layer.name} cannot be build without BuildMethod. Please provide BuildMethod in Metadata."
+                )
+            result[layer.name] = self._build_layer(
+                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes
+            )
+
+        return result
 
     def _get_build_graph(self):
         """
-        Converts list of functions and layers into a build graph, where we can iterate on each unique build and trigger
-        build
+        Converts list of functions into a build graph, where we can iterate on each unique build and trigger build
         :return: BuildGraph, which represents list of unique build definitions
         """
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
-        layers = self._resources_to_build.layers
         for function in functions:
-            function_build_details = FunctionBuildDefinition(function.runtime, function.codeuri, function.metadata)
-            build_graph.put_function_build_definition(function_build_details, function)
+            build_details = BuildDefinition(function.runtime, function.codeuri, function.metadata)
+            build_graph.put_build_definition(build_details, function)
 
-        for layer in layers:
-            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
-            build_graph.put_layer_build_definition(layer_build_details, layer)
-
-        build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
+        build_graph.clean_redundant_functions_and_update(not self._is_building_specific_resource)
         return build_graph
+
+    def _build_functions(self):
+        """
+        Iterates through build graph and runs each unique build and copies outcome to the corresponding function folder
+        """
+        build_graph = self._get_build_graph()
+        function_build_results = {}
+
+        for build_definition in build_graph.get_build_definitions():
+            LOG.info("Building codeuri: %s runtime: %s metadata: %s functions: %s",
+                     build_definition.codeuri,
+                     build_definition.runtime,
+                     build_definition.metadata,
+                     [function.name for function in build_definition.functions])
+
+            # build into one of the functions from this build definition
+            single_function_name = build_definition.get_function_name()
+            single_build_dir = str(pathlib.Path(self._build_dir, single_function_name))
+
+            LOG.debug("Building to following folder %s", single_build_dir)
+            self._build_function(build_definition.get_function_name(),
+                                 build_definition.codeuri,
+                                 build_definition.runtime,
+                                 build_definition.get_handler_name(),
+                                 single_build_dir,
+                                 build_definition.metadata)
+            function_build_results[single_function_name] = single_build_dir
+
+            # copy results to other functions
+            for function in build_definition.functions:
+                if function.name is not single_function_name:
+                    # artifacts directory will be created by the builder
+                    artifacts_dir = str(pathlib.Path(self._build_dir, function.name))
+                    LOG.debug("Copying artifacts from %s to %s", single_build_dir, artifacts_dir)
+                    osutils.copytree(single_build_dir, artifacts_dir)
+                    function_build_results[function.name] = artifacts_dir
+
+        return function_build_results
 
     def update_template(self, template_dict, original_template_path, built_artifacts):
         """

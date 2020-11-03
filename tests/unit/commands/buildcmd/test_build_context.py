@@ -44,8 +44,6 @@ class TestBuildContext__enter__(TestCase):
             parameter_overrides="overrides",
             skip_pull_image=True,
             mode="buildmode",
-            cached=False,
-            cache_dir="cache_dir",
         )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
@@ -110,8 +108,6 @@ class TestBuildContext__enter__(TestCase):
             parameter_overrides="overrides",
             skip_pull_image=True,
             mode="buildmode",
-            cached=False,
-            cache_dir="cache_dir",
         )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
@@ -155,8 +151,6 @@ class TestBuildContext__enter__(TestCase):
             parameter_overrides="overrides",
             skip_pull_image=True,
             mode="buildmode",
-            cached=False,
-            cache_dir="cache_dir",
         )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
@@ -202,8 +196,6 @@ class TestBuildContext__enter__(TestCase):
             parameter_overrides="overrides",
             skip_pull_image=True,
             mode="buildmode",
-            cached=False,
-            cache_dir="cache_dir",
         )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
@@ -249,8 +241,6 @@ class TestBuildContext__enter__(TestCase):
             parameter_overrides="overrides",
             skip_pull_image=True,
             mode="buildmode",
-            cached=False,
-            cache_dir="cache_dir",
         )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
@@ -298,8 +288,6 @@ class TestBuildContext__enter__(TestCase):
             parameter_overrides="overrides",
             skip_pull_image=True,
             mode="buildmode",
-            cached=False,
-            cache_dir="cache_dir",
         )
         setup_build_dir_mock = Mock()
         build_dir_result = setup_build_dir_mock.return_value = "my/new/build/dir"
