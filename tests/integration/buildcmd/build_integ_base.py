@@ -67,7 +67,6 @@ class BuildIntegBase(TestCase):
         debug=False,
         cached=False,
         cache_dir=None,
-        parallel=False,
     ):
 
         command_list = [self.cmd, "build"]
@@ -100,9 +99,6 @@ class BuildIntegBase(TestCase):
 
         if cache_dir:
             command_list += ["-cd", cache_dir]
-
-        if parallel:
-            command_list += ["--parallel"]
 
         return command_list
 

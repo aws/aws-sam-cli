@@ -93,12 +93,6 @@ $ sam build && sam package --s3-bucket <bucketname>
     "to build your function inside an AWS Lambda-like Docker container",
 )
 @click.option(
-    "--parallel",
-    "-p",
-    is_flag=True,
-    help="Use this flag to run builds of each function/layer in parallel",
-)
-@click.option(
     "--manifest",
     "-m",
     default=None,
@@ -128,7 +122,6 @@ def cli(
     cache_dir,
     use_container,
     cached,
-    parallel,
     manifest,
     docker_network,
     skip_pull_image,
@@ -149,7 +142,6 @@ def cli(
         True,
         use_container,
         cached,
-        parallel,
         manifest,
         docker_network,
         skip_pull_image,
@@ -167,7 +159,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     clean,
     use_container,
     cached,
-    parallel,
     manifest_path,
     docker_network,
     skip_pull_image,
@@ -224,7 +215,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
-                parallel=parallel
             )
         except FunctionNotFound as ex:
             raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

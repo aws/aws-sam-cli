@@ -133,7 +133,6 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 False,
-                False,
                 "requirements.txt",
                 "mynetwork",
                 True,

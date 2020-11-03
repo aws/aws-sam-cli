@@ -7,7 +7,6 @@ import shutil
 
 from samcli.commands.build.exceptions import MissingBuildMethodException
 from samcli.lib.utils import osutils
-from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.hash import dir_checksum
 
 LOG = logging.getLogger(__name__)
@@ -241,52 +240,3 @@ class CachedBuildStrategy(BuildStrategy):
         for cache_dir in pathlib.Path(self._cache_dir).iterdir():
             if cache_dir.name not in uuids:
                 shutil.rmtree(pathlib.Path(self._cache_dir, cache_dir.name))
-
-
-class ParallelBuildStrategy(BuildStrategy):
-    """
-    Parallel implementation of Build Strategy
-    This strategy runs each build in parallel.
-    For actual build implementation it calls delegate implementation (could be one of the other Build Strategy)
-    """
-
-    def __init__(self, build_graph, delegate_build_strategy, async_context=AsyncContext()):
-        super().__init__(build_graph)
-        self._delegate_build_strategy = delegate_build_strategy
-        self._async_context = async_context
-
-    def build(self):
-        """
-        Runs all build and collects results from async context
-        """
-        result = {}
-        with self, self._delegate_build_strategy:
-            # ignore result
-            super().build()
-            # wait for other executions to complete
-
-            async_results = self._async_context.run_async()
-            for async_result in async_results:
-                result.update(async_result)
-
-        return result
-
-    def build_single_function_definition(self, build_definition):
-        """
-        Passes single function build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_function_definition,
-            build_definition
-        )
-        return {}
-
-    def build_single_layer_definition(self, layer_definition):
-        """
-        Passes single layer build into async context, no actual result returned from this function
-        """
-        self._async_context.add_async_task(
-            self._delegate_build_strategy.build_single_layer_definition,
-            layer_definition
-        )
-        return {}
