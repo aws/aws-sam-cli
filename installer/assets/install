@@ -85,7 +85,7 @@ set_global_vars() {
 }
 
 create_install_dir() {
-  mkdir -p "$INSTALL_DIR" || exit 1
+  mkdir -p "$INSTALL_DIR"
   {
     setup_install_dist &&
     setup_install_bin &&
@@ -142,4 +142,4 @@ main() {
   exit 0
 }
 
-main "$@" || exit 1
+main "$@"
