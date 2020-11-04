@@ -17,7 +17,10 @@ hiddenimports = [
     "pkg_resources.py2_warn",
     "aws_lambda_builders.workflows",
 ]
+
+# "text_unidecode" data file is newly needed in jinjia2 v11.2
 datas = (
     hooks.collect_data_files("samcli")
     + hooks.collect_data_files("samtranslator")
+    + hooks.collect_data_files("text_unidecode")
 )
