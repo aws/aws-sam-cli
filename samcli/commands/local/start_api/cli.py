@@ -150,11 +150,11 @@ def do_cli(  # pylint: disable=R0914
     except NoApisDefined as ex:
         raise UserException(
             "Template does not have any APIs connected to Lambda functions", wrapped_from=ex.__class__.__name__
-        )
+        ) from ex
     except (
         InvalidSamDocumentException,
         OverridesNotWellDefinedError,
         InvalidLayerReference,
         DebuggingNotSupported,
     ) as ex:
-        raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex

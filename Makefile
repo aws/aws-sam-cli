@@ -40,10 +40,10 @@ lint:
 dev: lint test
 
 black:
-	black samcli/* tests/*
+	black setup.py samcli tests
 
 black-check:
-	black --check samcli/* tests/*
+	black --check setup.py samcli tests
 
 # Verifications to run before sending a pull request
 pr: init dev black-check

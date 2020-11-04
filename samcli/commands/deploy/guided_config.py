@@ -66,7 +66,7 @@ class GuidedConfig:
 
         samconfig.flush()
 
-        click.echo(f"\n\tSaved arguments to config file")
+        click.echo("\n\tSaved arguments to config file")
         click.echo("\tRunning 'sam deploy' for future deployments will use the parameters saved above.")
         click.echo("\tThe above parameters can be changed by modifying samconfig.toml")
         click.echo(

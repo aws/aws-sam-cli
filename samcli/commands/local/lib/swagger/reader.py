@@ -6,8 +6,8 @@ import os
 import tempfile
 import logging
 
-from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=relative-import
-from six import string_types
+from urllib.parse import urlparse, parse_qs
+
 import boto3
 import botocore
 
@@ -162,7 +162,7 @@ class SwaggerReader:
             swagger_str = self._download_from_s3(bucket, key, version)
             return yaml_parse(swagger_str)
 
-        if not isinstance(location, string_types):
+        if not isinstance(location, str):
             # This is not a string and not a S3 Location dictionary. Probably something invalid
             LOG.debug("Unable to download Swagger file. Invalid location: %s", location)
             return None
@@ -262,7 +262,7 @@ class SwaggerReader:
             # this dictionary has none of the fields we expect. Return None if the fields don't exist.
             bucket, key, version = (location.get("Bucket"), location.get("Key"), location.get("Version"))
 
-        elif isinstance(location, string_types) and location.startswith("s3://"):
+        elif isinstance(location, str) and location.startswith("s3://"):
             # This is a S3 URI. Parse it using a standard URI parser to extract the components
 
             parsed = urlparse(location)

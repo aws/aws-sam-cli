@@ -104,7 +104,7 @@ class LocalLambdaRunner:
         except ContainerResponseException as ex:
             raise InvokeContextException(
                 f"No response from invoke container for {function.name}", wrapped_from=ex.__class__.__name__
-            )
+            ) from ex
         except OSError as os_error:
             # pylint: disable=no-member
             if hasattr(os_error, "winerror") and os_error.winerror == 1314:
@@ -112,7 +112,7 @@ class LocalLambdaRunner:
                     "Administrator, Windows Developer Mode, or SeCreateSymbolicLinkPrivilege is required to create symbolic link for files: {}, {}".format(
                         os_error.filename, os_error.filename2
                     )
-                )
+                ) from os_error
 
             raise
 
