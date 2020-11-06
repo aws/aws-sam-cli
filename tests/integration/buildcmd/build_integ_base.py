@@ -65,6 +65,9 @@ class BuildIntegBase(TestCase):
         mode=None,
         function_identifier=None,
         debug=False,
+        cached=False,
+        cache_dir=None,
+        parallel=False,
     ):
 
         command_list = [self.cmd, "build"]
@@ -91,6 +94,15 @@ class BuildIntegBase(TestCase):
 
         if debug:
             command_list += ["--debug"]
+
+        if cached:
+            command_list += ["--cached"]
+
+        if cache_dir:
+            command_list += ["-cd", cache_dir]
+
+        if parallel:
+            command_list += ["--parallel"]
 
         return command_list
 
@@ -242,3 +254,8 @@ class DedupBuildIntegBase(BuildIntegBase):
             f"Building codeuri: .* runtime: .* metadata: .* functions: "
             f"\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
         )
+
+
+class CachedBuildIntegBase(DedupBuildIntegBase):
+    def _verify_cached_artifact(self, cache_dir):
+        self.assertTrue(cache_dir.exists(), "Cache directory should be created")
