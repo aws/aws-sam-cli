@@ -211,7 +211,7 @@ def make_zip(file_name, source_root):
                             # Clear external attr set for Windows
                             info.external_attr = 0
                             # Set external attr with Unix 0005 permission
-                            info.external_attr = 0o100005 << 16
+                            info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
                             zf.writestr(info, file_bytes)
