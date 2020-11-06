@@ -90,10 +90,15 @@ class CfnBaseApiProvider:
 
             allow_origin = self._get_cors_prop(cors_prop, "AllowOrigin")
             allow_headers = self._get_cors_prop(cors_prop, "AllowHeaders")
+            allow_credentials = self._get_cors_prop(cors_prop, "AllowCredentials", True)
             max_age = self._get_cors_prop(cors_prop, "MaxAge")
 
             cors = Cors(
-                allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
+                allow_origin=allow_origin,
+                allow_methods=allow_methods,
+                allow_headers=allow_headers,
+                allow_credentials=allow_credentials,
+                max_age=max_age
             )
         elif cors_prop and isinstance(cors_prop, str):
             allow_origin = cors_prop
@@ -107,12 +112,13 @@ class CfnBaseApiProvider:
                 allow_origin=allow_origin,
                 allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
+                allow_credentials=None,
                 max_age=None,
             )
         return cors
 
     @staticmethod
-    def _get_cors_prop(cors_dict, prop_name):
+    def _get_cors_prop(cors_dict, prop_name, allow_bool=False):
         """
         Extract cors properties from dictionary and remove extra quotes.
 
@@ -120,6 +126,12 @@ class CfnBaseApiProvider:
         ----------
         cors_dict : dict
             Resource properties for Cors
+        
+        prop_name : str
+            Cors property to get the value for
+
+        allow_bool : bool
+            If a boolean value is allowed for this property or not (defaults to false)
 
         Return
         ------
@@ -127,6 +139,11 @@ class CfnBaseApiProvider:
         """
         prop = cors_dict.get(prop_name)
         if prop:
+            if allow_bool and isinstance(prop, bool):
+                # The only boolean header is allow credentials and the only valid value for that is 'true'
+                if prop is False:
+                    return None
+                prop = "'true'"
             if not isinstance(prop, str) or prop.startswith("!"):
                 LOG.warning(
                     "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",
@@ -165,16 +182,26 @@ class CfnBaseApiProvider:
             allow_headers = self._get_cors_prop_http(cors_prop, "AllowHeaders", list)
             if isinstance(allow_headers, list):
                 allow_headers = ",".join(allow_headers)
+            
+            # Read AllowCredentials but only output the header with the case-sensitive value of true
+            # (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials)
+            allow_credentials = 'true' if self._get_cors_prop_http(cors_prop, "AllowCredentials", bool) else None
+            
             max_age = self._get_cors_prop_http(cors_prop, "MaxAge", int)
 
             cors = Cors(
-                allow_origin=allow_origins, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
+                allow_origin=allow_origins,
+                allow_methods=allow_methods,
+                allow_headers=allow_headers,
+                allow_credentials=allow_credentials,
+                max_age=max_age
             )
         elif cors_prop and isinstance(cors_prop, bool) and cors_prop:
             cors = Cors(
                 allow_origin="*",
                 allow_methods=",".join(sorted(Route.ANY_HTTP_METHODS)),
                 allow_headers=None,
+                allow_credentials=None,
                 max_age=None,
             )
         return cors
