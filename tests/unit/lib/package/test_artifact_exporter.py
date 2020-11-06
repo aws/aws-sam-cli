@@ -1140,7 +1140,7 @@ class TestArtifactExporter(unittest.TestCase):
                 for info in zf.infolist():
                     files_in_zip.add(info.filename)
                     permission_bits = (info.external_attr & external_attr_mask) >> 16
-                    self.assertEqual(permission_bits, 0o100005)
+                    self.assertEqual(permission_bits, 0o100755)
 
                 self.assertEqual(files_in_zip, expected_files)
 
