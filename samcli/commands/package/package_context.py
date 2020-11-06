@@ -54,6 +54,7 @@ class PackageContext:
         output_template_file,
         use_json,
         force_upload,
+        no_progressbar,
         metadata,
         region,
         profile,
@@ -66,6 +67,7 @@ class PackageContext:
         self.output_template_file = output_template_file
         self.use_json = use_json
         self.force_upload = force_upload
+        self.no_progressbar = no_progressbar
         self.metadata = metadata
         self.region = region
         self.profile = profile
@@ -87,7 +89,9 @@ class PackageContext:
             ),
         )
 
-        self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
+        self.s3_uploader = S3Uploader(
+            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+        )
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
 
@@ -103,7 +107,7 @@ class PackageContext:
                 )
                 click.echo(msg)
         except OSError as ex:
-            raise PackageFailedError(template_file=self.template_file, ex=str(ex))
+            raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
         template = Template(template_path, os.getcwd(), self.s3_uploader)

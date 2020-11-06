@@ -12,6 +12,12 @@ from botocore import credentials
 import click
 
 from samcli.commands.exceptions import CredentialsError
+from samcli.lib.utils.sam_logging import (
+    LAMBDA_BULDERS_LOGGER_NAME,
+    SamCliLogger,
+    SAM_CLI_FORMATTER_WITH_TIMESTAMP,
+    SAM_CLI_LOGGER_NAME,
+)
 
 
 class Context:
@@ -50,9 +56,11 @@ class Context:
         self._debug = value
 
         if self._debug:
-            # Turn on debug logging
-            logging.getLogger("samcli").setLevel(logging.DEBUG)
-            logging.getLogger("aws_lambda_builders").setLevel(logging.DEBUG)
+            # Turn on debug logging and display timestamps
+            sam_cli_logger = logging.getLogger(SAM_CLI_LOGGER_NAME)
+            lambda_builders_logger = logging.getLogger(LAMBDA_BULDERS_LOGGER_NAME)
+            SamCliLogger.configure_logger(sam_cli_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
+            SamCliLogger.configure_logger(lambda_builders_logger, SAM_CLI_FORMATTER_WITH_TIMESTAMP, logging.DEBUG)
 
     @property
     def region(self):
@@ -106,6 +114,22 @@ class Context:
 
         return None
 
+    @property
+    def template_dict(self):
+        """
+        Returns the template_dictionary from click context.
+        Returns
+        -------
+        dict
+            Template as dictionary
+
+        """
+        click_core_ctx = click.get_current_context()
+        if click_core_ctx:
+            return click_core_ctx.template_dict
+
+        return None
+
     @staticmethod
     def get_current_context():
         """
@@ -156,7 +180,7 @@ class Context:
             ).cache = credentials.JSONFileCache()
 
         except botocore.exceptions.ProfileNotFound as ex:
-            raise CredentialsError(str(ex))
+            raise CredentialsError(str(ex)) from ex
 
 
 def get_cmd_names(cmd_name, ctx):

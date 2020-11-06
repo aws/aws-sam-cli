@@ -1,4 +1,5 @@
-import platform
+import re
+import shutil
 import sys
 import os
 import logging
@@ -8,7 +9,8 @@ from parameterized import parameterized
 
 import pytest
 
-from .build_integ_base import BuildIntegBase
+from samcli.lib.utils import osutils
+from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, BuildIntegRubyBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
 LOG = logging.getLogger(__name__)
@@ -49,8 +51,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -121,7 +122,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command:", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info(cmdlist)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
@@ -148,8 +149,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -207,88 +207,53 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
-class TestBuildCommand_RubyFunctions(BuildIntegBase):
-    EXPECTED_FILES_GLOBAL_MANIFEST = set()
-    EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
-    EXPECTED_RUBY_GEM = "aws-record"
-
-    FUNCTION_LOGICAL_ID = "Function"
-
-    @parameterized.expand([("ruby2.5"), ("ruby2.7")])
+class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
+    @parameterized.expand(["ruby2.5", "ruby2.7"])
     @pytest.mark.flaky(reruns=3)
     def test_building_ruby_in_container(self, runtime):
-        self._test_with_default_gemfile(runtime, "use_container")
+        self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
+
+    @parameterized.expand(["ruby2.5", "ruby2.7"])
+    @pytest.mark.flaky(reruns=3)
+    def test_building_ruby_in_process(self, runtime):
+        self._test_with_default_gemfile(runtime, False, "Ruby", self.test_data_path)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
+    """
+    Tests use case where Gemfile will present in the root of the project folder.
+    This doesn't apply to containerized build, since it copies only the function folder to the container
+    """
 
     @parameterized.expand([("ruby2.5"), ("ruby2.7")])
     @pytest.mark.flaky(reruns=3)
-    def test_building_ruby_in_process(self, runtime):
-        self._test_with_default_gemfile(runtime, False)
+    def test_building_ruby_in_process_with_root_gemfile(self, runtime):
+        self._prepare_application_environment()
+        self._test_with_default_gemfile(runtime, False, "RubyWithRootGemfile", self.working_dir)
 
-    def _test_with_default_gemfile(self, runtime, use_container):
-        overrides = {"Runtime": runtime, "CodeUri": "Ruby", "Handler": "ignored"}
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
-
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
-        run_command(cmdlist, cwd=self.working_dir)
-
-        self._verify_built_artifact(
-            self.default_build_dir,
-            self.FUNCTION_LOGICAL_ID,
-            self.EXPECTED_FILES_PROJECT_MANIFEST,
-            self.EXPECTED_RUBY_GEM,
+    def _prepare_application_environment(self):
+        """
+        Create an application environment where Gemfile will be in the root folder of the app;
+        ├── RubyWithRootGemfile
+        │   └── app.rb
+        ├── Gemfile
+        └── template.yaml
+        """
+        # copy gemfile to the root of the project
+        shutil.copyfile(Path(self.template_path).parent.joinpath("Gemfile"), Path(self.working_dir).joinpath("Gemfile"))
+        # copy function source code in its folder
+        osutils.copytree(
+            Path(self.template_path).parent.joinpath("RubyWithRootGemfile"),
+            Path(self.working_dir).joinpath("RubyWithRootGemfile"),
         )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "OtherRelativePathResource",
-            "BodyS3Location",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        self._verify_resource_property(
-            str(self.built_template),
-            "GlueResource",
-            "Command.ScriptLocation",
-            os.path.relpath(
-                os.path.normpath(os.path.join(str(self.test_data_path), "SomeRelativePath")),
-                str(self.default_build_dir),
-            ),
-        )
-
-        self.verify_docker_container_cleanedup(runtime)
-
-    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
-        self.assertTrue(build_dir.exists(), "Build directory should be created")
-
-        build_dir_files = os.listdir(str(build_dir))
-        self.assertIn("template.yaml", build_dir_files)
-        self.assertIn(function_logical_id, build_dir_files)
-
-        template_path = build_dir.joinpath("template.yaml")
-        resource_artifact_dir = build_dir.joinpath(function_logical_id)
-
-        # Make sure the template has correct CodeUri for resource
-        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
-
-        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
-        actual_files = all_artifacts.intersection(expected_files)
-        self.assertEqual(actual_files, expected_files)
-
-        ruby_version = None
-        ruby_bundled_path = None
-
-        # Walk through ruby version to get to the gem path
-        for dirpath, dirname, _ in os.walk(str(resource_artifact_dir.joinpath("vendor", "bundle", "ruby"))):
-            ruby_version = dirname
-            ruby_bundled_path = Path(dirpath)
-            break
-        gem_path = ruby_bundled_path.joinpath(ruby_version[0], "gems")
-
-        self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
+        # copy template to the root folder
+        shutil.copyfile(Path(self.template_path), Path(self.working_dir).joinpath("template.yaml"))
+        # update template path with new location
+        self.template_path = str(Path(self.working_dir).joinpath("template.yaml"))
 
 
 @skipIf(
@@ -315,6 +280,11 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
             ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
             ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
             ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
             ("java11", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
             ("java11", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
@@ -333,6 +303,11 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java8", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
             ("java8", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
             ("java8", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_GRADLEW_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_GRADLE_KOTLIN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
+            ("java8.al2", USING_MAVEN_PATH, EXPECTED_FILES_PROJECT_MANIFEST_MAVEN),
+            ("java8.al2", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -657,8 +632,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
@@ -708,8 +682,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -731,8 +704,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -752,8 +724,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -771,8 +742,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -803,8 +773,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionOne"
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -854,7 +823,14 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand([("provided", False, None), ("provided", "use_container", "Makefile-container")])
+    @parameterized.expand(
+        [
+            ("provided", False, None),
+            ("provided", "use_container", "Makefile-container"),
+            ("provided.al2", False, None),
+            ("provided.al2", "use_container", "Makefile-container"),
+        ]
+    )
     @pytest.mark.flaky(reruns=3)
     def test_with_Makefile(self, runtime, use_container, manifest):
         overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler"}
@@ -866,7 +842,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -932,7 +908,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -962,7 +938,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -990,7 +966,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # This will error out.
         command = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command.process.returncode, 1)
@@ -1016,3 +992,84 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupBuilds(DedupBuildIntegBase):
+    template = "dedup-functions-template.yaml"
+
+    @parameterized.expand(
+        [
+            # in process
+            (
+                False,
+                "Dotnetcore3.1",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnetcore3.1",
+            ),
+            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            # container
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "FunctionCodeUri": code_uri,
+            "Function1Handler": function1_handler,
+            "Function2Handler": function2_handler,
+            "FunctionRuntime": runtime,
+        }
+        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        # Built using `native` python-pip builder for a python project.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
+    template = "dedup-functions-makefile-template.yaml"
+
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build_makefile(self):
+        """
+        Build template above in the container and verify that each function call returns as expected
+        """
+        cmdlist = self.get_command_list()
+
+        LOG.info("Running Command: {}".format(cmdlist))
+        # Built using `native` python-pip builder for a python project.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(expected_messages, command_result, "")
+
+    def _verify_process_code_and_output(self, command_result):
+        """
+        Override, because functions should be build individually
+        """
+        self.assertEqual(command_result.process.returncode, 0)

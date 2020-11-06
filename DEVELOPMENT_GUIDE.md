@@ -11,6 +11,16 @@ inaccurate, update this guide and send a Pull Request.
 **Note**: `pyenv` currently only supports macOS and Linux. If you are a
 Windows users, consider using [pipenv](https://docs.pipenv.org/).
 
+1-Click Ready to Hack IDE
+-------------------------
+For setting up a local development environment, we recommend using Gitpod - a service that allows you to spin up an in-browser Visual Studio Code-compatible editor, with everything set up and ready to go for development on this project. Just click the button below to create your private workspace:
+
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/awslabs/aws-sam-cli)
+
+This will start a new Gitpod workspace, and immediately kick off a build of the code. Once it's done, you can start working.
+
+Gitpod is free for 50 hours per month - make sure to stop your workspace when you're done (you can always resume it later, and it won't need to run the build again).
+
 Environment Setup
 -----------------
 
@@ -38,11 +48,32 @@ easily setup multiple Python versions.
 ### 2. Install Additional Tooling
 #### Black
 We format our code using [Black](https://github.com/python/black) and verify the source code is black compliant
-in Appveyor during PRs. You can find installation instructions on [Black's docs](https://black.readthedocs.io/en/stable/installation_and_usage.html).
-Install version 19.10b0 as this is what is currently used in the CI/CD pipeline.
+in Appveyor during PRs. Black will be installed automatically with `make init`.
 
-After installing, you can run our formatting through our Makefile by `make black-format` or integrating Black directly in your favorite IDE (instructions
+After installing, you can run our formatting through our Makefile by `make black` or integrating Black directly in your favorite IDE (instructions
 can be found [here](https://black.readthedocs.io/en/stable/editor_integration.html))
+ 
+##### (workaround) Integrating Black directly in your favorite IDE
+Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
+
+```bash
+(samcli37) $ where black
+/Users/<username>/.pyenv/shims/black
+```
+
+However, IDEs such PyChaim (using FileWatcher) will have a hard time invoking `/Users/<username>/.pyenv/shims/black` 
+and this will happen:
+
+```
+pyenv: black: command not found
+
+The `black' command exists in these Python versions:
+  3.7.2/envs/samcli37
+  samcli37
+``` 
+
+A simple workaround is to use `/Users/<username>/.pyenv/versions/samcli37/bin/black` 
+instead of `/Users/<username>/.pyenv/shims/black`.
 
 #### Pre-commit
 If you don't wish to manually run black on each pr or install black manually, we have integrated black into git hooks through [pre-commit](https://pre-commit.com/).

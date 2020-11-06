@@ -8,10 +8,10 @@ class DeployIntegBase(TestCase):
         pass
 
     def setUp(self):
-        super(DeployIntegBase, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(DeployIntegBase, self).tearDown()
+        super().tearDown()
 
     def base_command(self):
         command = "sam"
@@ -40,6 +40,8 @@ class DeployIntegBase(TestCase):
         profile=None,
         region=None,
         guided=False,
+        resolve_s3=False,
+        config_file=None,
     ):
         command_list = [self.base_command(), "deploy"]
 
@@ -83,6 +85,10 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--region", str(region)]
         if profile:
             command_list = command_list + ["--profile", str(profile)]
+        if resolve_s3:
+            command_list = command_list + ["--resolve-s3"]
+        if config_file:
+            command_list = command_list + ["--config-file", str(config_file)]
 
         return command_list
 

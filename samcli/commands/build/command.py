@@ -114,6 +114,8 @@ def cli(
     docker_network,
     skip_pull_image,
     parameter_overrides,
+    config_file,
+    config_env,
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
@@ -163,6 +165,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     from samcli.lib.build.workflow_config import UnsupportedRuntimeException
     from samcli.local.lambdafn.exceptions import FunctionNotFound
     from samcli.commands._utils.template import move_template
+    from samcli.lib.build.build_graph import InvalidBuildGraphException
 
     LOG.debug("'build' command is called")
 
@@ -187,12 +190,13 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 ctx.resources_to_build,
                 ctx.build_dir,
                 ctx.base_dir,
+                ctx.is_building_specific_resource,
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
             )
         except FunctionNotFound as ex:
-            raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
             artifacts = builder.build()
@@ -222,11 +226,12 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             click.secho(msg, fg="yellow")
 
         except (
-                UnsupportedRuntimeException,
-                BuildError,
-                BuildInsideContainerError,
-                UnsupportedBuilderLibraryVersionError,
-                ContainerBuildNotSupported,
+            UnsupportedRuntimeException,
+            BuildError,
+            BuildInsideContainerError,
+            UnsupportedBuilderLibraryVersionError,
+            ContainerBuildNotSupported,
+            InvalidBuildGraphException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 
@@ -234,7 +239,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             # from deeper than just one level down.
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
-            raise UserException(str(ex), wrapped_from=wrapped_from)
+            raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
 
 def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):

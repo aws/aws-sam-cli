@@ -335,9 +335,11 @@ class TestSamConfigForAllCommands(TestCase):
                 "output.yaml",
                 True,
                 True,
+                False,
                 {"m1": "value1", "m2": "value2"},
                 "myregion",
                 None,
+                False,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -383,6 +385,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "mybucket",
                 True,
+                False,
                 "myprefix",
                 "mykms",
                 {"Key": "Value"},
@@ -398,6 +401,9 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                False,
+                "samconfig.toml",
+                "default",
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -443,6 +449,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "mystack",
                 "mybucket",
                 True,
+                False,
                 "myprefix",
                 "mykms",
                 {"Key1": "Value1", "Key2": "Multiple spaces in the value"},
@@ -458,6 +465,9 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                False,
+                "samconfig.toml",
+                "default",
             )
 
     @patch("samcli.commands.logs.command.do_cli")
@@ -707,6 +717,27 @@ class TestSamConfigWithOverrides(TestCase):
                 True,
                 {"A": "123", "C": "D", "E": "F12!", "G": "H"},
             )
+
+    @patch("samcli.commands.validate.validate.do_cli")
+    def test_secondary_option_name_template_validate(self, do_cli_mock):
+        # "--template" is an alias of "--template-file"
+        config_values = {"template": "mytemplate.yaml"}
+
+        with samconfig_parameters(["validate"], self.scratch_dir, **config_values) as config_path:
+
+            from samcli.commands.validate.validate import cli
+
+            LOG.debug(Path(config_path).read_text())
+            runner = CliRunner()
+            result = runner.invoke(cli, [])
+
+            LOG.info(result.output)
+            LOG.info(result.exception)
+            if result.exception:
+                LOG.exception("Command failed", exc_info=result.exc_info)
+            self.assertIsNone(result.exception)
+
+            do_cli_mock.assert_called_with(ANY, str(Path(os.getcwd(), "mytemplate.yaml")))
 
 
 @contextmanager

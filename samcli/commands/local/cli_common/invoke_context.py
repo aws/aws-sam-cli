@@ -134,7 +134,9 @@ class InvokeContext:
         self._container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
 
         if not self._container_manager.is_docker_reachable:
-            raise InvokeContextException("Running AWS SAM projects locally requires Docker. Have you got it installed?")
+            raise InvokeContextException(
+                "Running AWS SAM projects locally requires Docker. Have you got it installed and running?"
+            )
 
         return self
 
@@ -162,7 +164,7 @@ class InvokeContext:
         # Function Identifier is *not* provided. If there is only one function in the template,
         # default to it.
 
-        all_functions = [f for f in self._function_provider.get_all()]
+        all_functions = list(self._function_provider.get_all())
         if len(all_functions) == 1:
             return all_functions[0].functionname
 
@@ -274,7 +276,7 @@ class InvokeContext:
         try:
             return get_template_data(template_file)
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
-            raise InvokeContextException(str(ex))
+            raise InvokeContextException(str(ex)) from ex
 
     @staticmethod
     def _get_env_vars_value(filename):
@@ -298,7 +300,7 @@ class InvokeContext:
         except Exception as ex:
             raise InvokeContextException(
                 "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
-            )
+            ) from ex
 
     @staticmethod
     def _setup_log_file(log_file):
@@ -342,7 +344,7 @@ class InvokeContext:
                 debugger = Path(debugger_path).resolve(strict=True)
             except OSError as error:
                 if error.errno == errno.ENOENT:
-                    raise DebugContextException("'{}' could not be found.".format(debugger_path))
+                    raise DebugContextException("'{}' could not be found.".format(debugger_path)) from error
 
                 raise error
 

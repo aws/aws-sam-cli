@@ -5,6 +5,7 @@ import botocore.session
 
 from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError
 from botocore.stub import Stubber
+from parameterized import parameterized
 
 from samcli.commands.bootstrap.exceptions import ManagedStackError
 from samcli.commands.exceptions import UserException, CredentialsError, RegionError
@@ -199,6 +200,35 @@ class TestBootstrapManagedStack(TestCase):
         )
         stubber.activate()
         with self.assertRaises(ManagedStackError):
+            _create_or_get_stack(stub_cf)
+        stubber.assert_no_pending_responses()
+        stubber.deactivate()
+
+    @parameterized.expand(
+        [
+            ([{"Key": "ManagedStackSource", "Value": "WHY WOULD YOU EVEN DO THIS"}], None),
+            (None, [{"OutputKey": "SourceBucket", "OutputValue": "generated-src-bucket"}]),
+            (None, None),
+        ]
+    )
+    def test_stack_is_invalid_state(self, tags, outputs):
+        stub_cf, stubber = self._stubbed_cf_client()
+        ds_resp = {
+            "Stacks": [{"StackName": SAM_CLI_STACK_NAME, "CreationTime": "2019-11-13", "StackStatus": "CREATE_FAILED"}]
+        }
+
+        # add Tags or Outputs information if it exists
+        # Boto client is missing this information if stack is in invalid state
+        if tags:
+            ds_resp["Stacks"][0]["Tags"] = tags
+
+        if outputs:
+            ds_resp["Stacks"][0]["Outputs"] = outputs
+
+        ds_params = {"StackName": SAM_CLI_STACK_NAME}
+        stubber.add_response("describe_stacks", ds_resp, ds_params)
+        stubber.activate()
+        with self.assertRaises(UserException):
             _create_or_get_stack(stub_cf)
         stubber.assert_no_pending_responses()
         stubber.deactivate()

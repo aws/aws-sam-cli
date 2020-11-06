@@ -88,7 +88,7 @@ class LambdaBuildContainer(Container):
         if log_level:
             env_vars = {"LAMBDA_BUILDERS_LOG_LEVEL": log_level}
 
-        super(LambdaBuildContainer, self).__init__(
+        super().__init__(
             image,
             cmd,
             container_dirs["source_dir"],
@@ -116,6 +116,8 @@ class LambdaBuildContainer(Container):
         executable_search_paths,
         mode,
     ):
+
+        runtime = runtime.replace(".al2", "")
 
         return json.dumps(
             {
