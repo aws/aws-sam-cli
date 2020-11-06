@@ -202,7 +202,7 @@ class ApplicationBuilder:
             Updated template
         """
 
-        original_dir = os.path.dirname(original_template_path)
+        original_dir = pathlib.Path(original_template_path).parent.resolve()
 
         for logical_id, resource in template_dict.get("Resources", {}).items():
 
@@ -210,21 +210,29 @@ class ApplicationBuilder:
                 # this resource was not built. So skip it
                 continue
 
-            # Artifacts are written relative  the template because it makes the template portable
-            #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
-            #   package stage running on a different machine
-            artifact_relative_path = os.path.relpath(built_artifacts[logical_id], original_dir)
+            artifact_dir = pathlib.Path(built_artifacts[logical_id]).resolve()
+
+            # Default path to absolute path of the artifact
+            store_path = str(artifact_dir)
+
+            # In Windows, if template and artifacts are in two different drives, relpath will fail
+            if original_dir.drive == artifact_dir.drive:
+                # Artifacts are written relative  the template because it makes the template portable
+                #   Ex: A CI/CD pipeline build stage could zip the output folder and pass to a
+                #   package stage running on a different machine
+                store_path = os.path.relpath(artifact_dir, original_dir)
+
 
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
             if resource_type == SamBaseProvider.SERVERLESS_FUNCTION:
-                properties["CodeUri"] = artifact_relative_path
+                properties["CodeUri"] = store_path
 
             if resource_type == SamBaseProvider.LAMBDA_FUNCTION:
-                properties["Code"] = artifact_relative_path
+                properties["Code"] = store_path
 
             if resource_type in [SamBaseProvider.SERVERLESS_LAYER, SamBaseProvider.LAMBDA_LAYER]:
-                properties["ContentUri"] = artifact_relative_path
+                properties["ContentUri"] = store_path
 
         return template_dict
 
