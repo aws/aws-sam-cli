@@ -4,8 +4,6 @@ The symbol table that is used in IntrinsicResolver in order to resolve runtime a
 import logging
 import os
 
-from six import string_types
-
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidSymbolException
 
@@ -320,7 +318,7 @@ class IntrinsicsSymbolTable:
 
         """
         logical_id_item = self.logical_id_translator.get(logical_id, {})
-        if any(isinstance(logical_id_item, object_type) for object_type in [string_types, list, bool, int]):
+        if any(isinstance(logical_id_item, object_type) for object_type in [str, list, bool, int]):
             if resource_attributes not in (IntrinsicResolver.REF, ""):
                 return None
             return logical_id_item

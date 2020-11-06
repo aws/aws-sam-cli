@@ -1,8 +1,6 @@
 """
 A list of helper functions that cleanup the processing in IntrinsicResolver and IntrinsicSymbolTable
 """
-from six import string_types
-
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException
 
 
@@ -28,7 +26,7 @@ def verify_intrinsic_type_int(argument, property_type="", message="", position_i
 
 
 def verify_intrinsic_type_str(argument, property_type="", message="", position_in_list=""):
-    verify_intrinsic_type(argument, property_type, message, position_in_list, primitive_type=string_types)
+    verify_intrinsic_type(argument, property_type, message, position_in_list, primitive_type=str)
 
 
 def verify_non_null(argument, property_type="", message="", position_in_list=""):
@@ -39,7 +37,7 @@ def verify_non_null(argument, property_type="", message="", position_in_list="")
         )
 
 
-def verify_intrinsic_type(argument, property_type="", message="", position_in_list="", primitive_type=string_types):
+def verify_intrinsic_type(argument, property_type="", message="", position_in_list="", primitive_type=str):
     verify_non_null(argument, property_type, message, position_in_list)
     if not isinstance(argument, primitive_type):
         raise InvalidIntrinsicException(

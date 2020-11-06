@@ -1,8 +1,6 @@
 """Parses SAM given a template"""
 import logging
 
-from six import string_types
-
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
 from samcli.local.apigw.local_apigw_service import Route
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
@@ -163,7 +161,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         method = properties.get("HttpMethod")
 
         resource_path = "/"
-        if isinstance(resource_id, string_types):  # If the resource_id resolves to a string
+        if isinstance(resource_id, str):  # If the resource_id resolves to a string
             resource = resources.get(resource_id)
 
             if resource:
@@ -392,7 +390,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             properties = integration_resource.get("Properties", {})
             integration_uri = properties.get("IntegrationUri")
             payload_format_version = properties.get("PayloadFormatVersion")
-            if integration_uri and isinstance(integration_uri, string_types):
+            if integration_uri and isinstance(integration_uri, str):
                 return LambdaUri.get_function_name(integration_uri), payload_format_version
 
         return None, None
