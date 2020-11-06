@@ -51,8 +51,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -123,7 +122,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command:", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info(cmdlist)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
@@ -150,8 +149,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -634,8 +632,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
@@ -685,8 +682,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -708,8 +704,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -729,8 +724,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -748,8 +742,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -780,8 +773,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionOne"
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -850,7 +842,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -916,7 +908,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -946,7 +938,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -974,7 +966,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # This will error out.
         command = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command.process.returncode, 1)
@@ -1043,7 +1035,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
 
-        LOG.info("Running Command: %s", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
@@ -1068,7 +1060,7 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
         """
         cmdlist = self.get_command_list()
 
-        LOG.info("Running Command: %s", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
