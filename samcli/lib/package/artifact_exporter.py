@@ -211,6 +211,10 @@ def make_zip(file_name, source_root):
                             # Clear external attr set for Windows
                             info.external_attr = 0
                             # Set external attr with Unix 0755 permission
+                            # Originally set to 0005 in the discussion below
+                            # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
+                            # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
+                            # Mimicking Unix permission bits and recommanded permission bits in the Lambda Trouble Shooting Docs 
                             info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
