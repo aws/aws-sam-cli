@@ -1,4 +1,4 @@
-# Default value for environment variable. Can be overridden by setting the
+# Default value for environment variable. Can be overridden by setting thdd
 # environment variable.
 SAM_CLI_TELEMETRY ?= 0
 
