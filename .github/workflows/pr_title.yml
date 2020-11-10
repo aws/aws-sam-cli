@@ -10,4 +10,7 @@ jobs:
       - name: Check PR title
         run: |
           title=$(jq -r .pull_request.title "$GITHUB_EVENT_PATH")
-          [[ $title =~ ^.*:\ .*$ ]] || exit 1
+          if [[ ! $title =~ ^.*:\ .*$ ]]; then
+            echo "Pull request titles must adhere to Conventional Commits: https://www.conventionalcommits.org"
+            exit 1
+          fi
