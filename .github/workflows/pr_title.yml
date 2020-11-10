@@ -6,7 +6,6 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
       - name: Check PR title
         run: |
           title=$(jq -r .pull_request.title "$GITHUB_EVENT_PATH")
