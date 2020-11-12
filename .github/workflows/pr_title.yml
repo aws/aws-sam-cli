@@ -1,0 +1,15 @@
+name: Check PR title
+on:
+  pull_request:
+    types: [opened, edited]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        run: |
+          title="${{ github.event.pull_request.title }}"
+          if [[ ! $title =~ ^.*:\ .*$ ]]; then
+            echo "Pull request titles must adhere to Conventional Commits: https://www.conventionalcommits.org"
+            exit 1
+          fi
