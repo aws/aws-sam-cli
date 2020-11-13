@@ -29,7 +29,7 @@ def do_paginate_cli(pages, page_to_be_rendered, items_per_page, is_last_page, cl
     # Single page is available no pagination
     if len(pages) == 1 and is_last_page:
         message = str.format(cli_display_message["single_page"])
-    elif page_to_be_rendered == 0:
+    elif not page_to_be_rendered:
         # (multi) First page
         choices = choices + ["N", "n"]
         message = cli_display_message["first_page"]
@@ -55,8 +55,8 @@ def do_paginate_cli(pages, page_to_be_rendered, items_per_page, is_last_page, cl
     # e.g. If user picks choice '11', and we know there are 10 items per page,
     # then we know the user is on page 2
     index = int(choice) % items_per_page
-    if index == 0:
-        index = items_per_page - 1
-    else:
+    if index:
         index = index - 1
+    else:
+        index = items_per_page - 1
     return {"choice": options[index], "page_to_render": None}
