@@ -83,10 +83,6 @@ class ResourceZip(Resource):
     ARTIFACT_TYPE = ZIP
     EXPORT_DESTINATION = "s3"
 
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
-
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
             return
@@ -155,10 +151,6 @@ class ResourceImageDict(Resource):
     EXPORT_DESTINATION = "ecr"
     EXPORT_PROPERTY_CODE_KEY = "ImageUri"
 
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
-
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
             return
@@ -200,10 +192,6 @@ class ResourceImage(Resource):
     FORCE_ZIP = False
     ARTIFACT_TYPE: Optional[str] = IMAGE
     EXPORT_DESTINATION = "ecr"
-
-    def __init__(self, uploader, code_signer):
-        self.uploader = uploader
-        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
