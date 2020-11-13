@@ -87,7 +87,7 @@ class InitTemplates:
         return entry["appTemplate"] == app_template
 
     def init_options(self, package_type, runtime, base_image, dependency_manager):
-        if self.clone_attempted is False:
+        if not self.clone_attempted:
             self._clone_repo()
         if self.repo_path is None:
             return self._init_options_from_bundle(package_type, runtime, dependency_manager)
