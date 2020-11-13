@@ -8,7 +8,7 @@ from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
 
-from samcli.lib.utils.packagetype import ZIP, IMAGE
+from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 

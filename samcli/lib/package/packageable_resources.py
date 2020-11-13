@@ -38,13 +38,11 @@ from samcli.commands._utils.resources import (
     AWS_SERVERLESS_LAYERVERSION,
     AWS_GLUE_JOB,
     AWS_STEPFUNCTIONS_STATEMACHINE,
-)
-
-from samcli.commands._utils.template import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     RESOURCES_WITH_IMAGE_COMPONENT,
 )
+
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)

@@ -17,14 +17,6 @@ Exporting resources defined in the cloudformation template to the cloud.
 # language governing permissions and limitations under the License.
 import os
 
-import platform
-import tempfile
-import zipfile
-import contextlib
-from contextlib import contextmanager
-import uuid
-from urllib.parse import urlparse, parse_qs
-import shutil
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.resources import (

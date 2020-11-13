@@ -68,7 +68,6 @@ disable=
     R0902, # Too many instance attributes (%s/%s)
     R0903, # Too few public methods (%s/%s)
     W0231, # __init__ method from base class %r is not called
-    W0611, # Unused import %s
     R0913, # Too many arguments (%s/%s)
     W0703, # Catching too general exception %s
     C0330, # Wrong %s indentation%s%s.

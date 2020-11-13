@@ -19,7 +19,7 @@ from samcli.commands.exceptions import UserException, AppTemplateUpdateException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.osutils import rmtree_callback
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, get_local_lambda_images_location
-from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.lib.utils.packagetype import IMAGE
 
 LOG = logging.getLogger(__name__)
 

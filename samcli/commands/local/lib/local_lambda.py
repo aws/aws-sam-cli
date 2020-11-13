@@ -6,7 +6,6 @@ import os
 import logging
 import boto3
 
-from samcli.commands.local.cli_common.user_exceptions import InvokeContextException
 from samcli.lib.utils.codeuri import resolve_code_path
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException
