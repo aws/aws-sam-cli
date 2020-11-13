@@ -24,20 +24,20 @@ class BuildContext:
     _BUILD_DIR_PERMISSIONS = 0o755
 
     def __init__(
-            self,
-            resource_identifier,
-            template_file,
-            base_dir,
-            build_dir,
-            cache_dir,
-            cached,
-            mode,
-            manifest_path=None,
-            clean=False,
-            use_container=False,
-            parameter_overrides=None,
-            docker_network=None,
-            skip_pull_image=False,
+        self,
+        resource_identifier,
+        template_file,
+        base_dir,
+        build_dir,
+        cache_dir,
+        cached,
+        mode,
+        manifest_path=None,
+        clean=False,
+        use_container=False,
+        parameter_overrides=None,
+        docker_network=None,
+        skip_pull_image=False,
     ):
 
         self._resource_identifier = resource_identifier
@@ -92,7 +92,12 @@ class BuildContext:
         build_path = pathlib.Path(build_dir)
 
         if os.path.abspath(str(build_path)) == os.path.abspath(str(pathlib.Path.cwd())):
-            exception_message = "Failing build: Running a build with build-dir as current working directory is extremely dangerous since the build-dir contents is first removed. This is no longer supported, please remove the '--build-dir' option from the command to allow the build artifacts to be placed in the directory your template is in."
+            exception_message = (
+                "Failing build: Running a build with build-dir as current working directory "
+                "is extremely dangerous since the build-dir contents is first removed. "
+                "This is no longer supported, please remove the '--build-dir' option from the command "
+                "to allow the build artifacts to be placed in the directory your template is in."
+            )
             raise InvalidBuildDirException(exception_message)
 
         if build_path.exists() and os.listdir(build_dir) and clean:
@@ -177,8 +182,9 @@ class BuildContext:
                 all_resources = [f.name for f in self._function_provider.get_all()]
                 all_resources.extend([l.name for l in self._layer_provider.get_all()])
 
-                available_resource_message = f"{self._resource_identifier} not found. Possible options in your " \
-                                             f"template: {all_resources}"
+                available_resource_message = (
+                    f"{self._resource_identifier} not found. Possible options in your " f"template: {all_resources}"
+                )
                 LOG.info(available_resource_message)
                 raise ResourceNotFound(f"Unable to find a function or layer with name '{self._resource_identifier}'")
             return result

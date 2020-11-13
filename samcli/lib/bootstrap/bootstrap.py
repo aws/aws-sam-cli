@@ -27,11 +27,14 @@ def manage_stack(profile, region):
         cloudformation_client = boto3.client("cloudformation", config=Config(region_name=region if region else None))
     except NoCredentialsError as ex:
         raise CredentialsError(
-            "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. Please see their documentation for options to pass in credentials: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
+            "Error Setting Up Managed Stack Client: Unable to resolve credentials for the AWS SDK for Python client. "
+            "Please see their documentation for options to pass in credentials: "
+            "https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
         ) from ex
     except NoRegionError as ex:
         raise RegionError(
-            "Error Setting Up Managed Stack Client: Unable to resolve a region. Please provide a region via the --region parameter or by the AWS_REGION environment variable."
+            "Error Setting Up Managed Stack Client: Unable to resolve a region. "
+            "Please provide a region via the --region parameter or by the AWS_REGION environment variable."
         ) from ex
     return _create_or_get_stack(cloudformation_client)
 

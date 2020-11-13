@@ -223,7 +223,8 @@ class IntrinsicResolver:
                     ),
                 )
                 sanitized_dict[sanitized_key] = sanitized_val
-            # On any exception, leave the key:val of the orginal intact and continue on. https://github.com/awslabs/aws-sam-cli/issues/1386
+            # On any exception, leave the key:val of the orginal intact and continue on.
+            # https://github.com/awslabs/aws-sam-cli/issues/1386
             except Exception:
                 if ignore_errors:
                     LOG.debug("Unable to resolve property %s: %s. Leaving as is.", key, val)

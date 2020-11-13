@@ -78,9 +78,10 @@ class SamFunctionProvider(SamBaseProvider):
     def _deprecate_notification(self, runtime):
         if runtime in self._deprecated_runtimes:
             message = (
-                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, "
+                "please update to a newer supported runtime. SAM CLI "
                 f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
-                f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
             )
             LOG.warning(self._colored.yellow(message))
 
@@ -260,7 +261,8 @@ class SamFunctionProvider(SamBaseProvider):
             if layer == "arn:aws:lambda:::awslayer:AmazonLinux1703":
                 raise InvalidLayerVersionArn(
                     "Building and invoking locally only supports AmazonLinux1803. See "
-                    "https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ for more detials."
+                    "https://aws.amazon.com/blogs/compute/upcoming-updates-to-the-aws-lambda-execution-environment/ "
+                    "for more detials."
                 )  # noqa: E501
 
             # If the layer is a string, assume it is the arn
