@@ -2,8 +2,9 @@
 CLI configuration decorator to use TOML configuration files for click commands.
 """
 
-## This section contains code copied and modified from [click_config_file][https://github.com/phha/click_config_file/blob/master/click_config_file.py]
-## SPDX-License-Identifier: MIT
+# This section contains code copied and modified from
+# [click_config_file][https://github.com/phha/click_config_file/blob/master/click_config_file.py]
+# SPDX-License-Identifier: MIT
 
 import os
 import functools
@@ -263,4 +264,4 @@ def decorator_customize_config_env(f):
     return click.option(*config_env_param_decls, **config_env_attrs)(f)
 
 
-# End section copied from [[click_config_file][https://github.com/phha/click_config_file/blob/master/click_config_file.py]
+# End section copied from [click_config_file][https://github.com/phha/click_config_file/blob/master/click_config_file.py

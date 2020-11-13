@@ -342,7 +342,8 @@ class ApplicationBuilder:
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
                     )
-                    # Only set to this value if specified workflow is makefile which will result in config language as provided
+                    # Only set to this value if specified workflow is makefile
+                    # which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
@@ -384,9 +385,10 @@ class ApplicationBuilder:
         if packagetype == ZIP:
             if runtime in self._deprecated_runtimes:
                 message = (
-                    f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
+                    f"WARNING: {runtime} is no longer supported by AWS Lambda, "
+                    "please update to a newer supported runtime. SAM CLI "
                     f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
-                    f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
+                    "See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
                 )
                 LOG.warning(self._colored.yellow(message))
 

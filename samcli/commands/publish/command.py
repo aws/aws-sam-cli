@@ -15,8 +15,9 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 
 LOG = logging.getLogger(__name__)
 
-SAM_PUBLISH_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html"  # noqa
-SAM_PACKAGE_DOC = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-package.html"  # noqa
+SAM_DOC_PREFIX = "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide"
+SAM_PUBLISH_DOC = f"{SAM_DOC_PREFIX}/serverless-sam-template-publishing-applications.html"  # noqa
+SAM_PACKAGE_DOC = f"{SAM_DOC_PREFIX}/sam-cli-command-reference-sam-package.html"  # noqa
 HELP_TEXT = """
 Use this command to publish a packaged AWS SAM template to
 the AWS Serverless Application Repository to share within your team,

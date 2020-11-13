@@ -76,7 +76,6 @@ disable=
     R0904, # Too many public methods (%s/%s)
     R0914, # Too many local variables (%s/%s)
     R0915, # Too many statements
-    C0301, # Line too long (%s/%s)
     C0415  # Import outside toplevel (%s) Used when an import statement is used anywhere other than the module toplevel. Move this import to the top of the file.
 
 

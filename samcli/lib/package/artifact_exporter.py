@@ -37,7 +37,7 @@ from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
 
 
-# NOTE: sriram-mv, A cyclic dependecy on `Template` needs to be broken.
+# NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
 
 class CloudFormationStackResource(ResourceZip):
