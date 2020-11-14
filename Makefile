@@ -40,10 +40,11 @@ lint:
 dev: lint test
 
 black:
-	black setup.py samcli tests
+    # command "black <directory>" will skip some files, it is a bug, see https://github.com/psf/black/issues/1820
+	find setup.py samcli tests -type f -name "*.py" | xargs black
 
 black-check:
-	black --check setup.py samcli tests
+	find setup.py samcli tests -type f -name "*.py" | xargs black --check
 
 # Verifications to run before sending a pull request
 pr: init dev black-check
