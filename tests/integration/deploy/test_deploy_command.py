@@ -35,7 +35,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def tearDown(self):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack_name in self.stack_names:
-            self.cf_client.delete_stack(StackName=stack_name)
+            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
+            if stack_name != SAM_CLI_STACK_NAME:
+                self.cf_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])

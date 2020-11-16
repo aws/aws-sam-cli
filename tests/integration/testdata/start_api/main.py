@@ -59,6 +59,11 @@ def write_to_stdout(event, context):
 def invalid_response_returned(event, context):
     return "This is invalid"
 
+def integer_response_returned(event, context):
+    return 2
+
+def invalid_v2_respose_returned(event, context):
+    return {"statusCode": 200, "body": json.dumps({"hello": "world"}), "key": "value"}
 
 def invalid_hash_response(event, context):
     return {"foo": "bar"}

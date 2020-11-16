@@ -1,7 +1,6 @@
 """Class that parses the CloudFormation Api Template"""
 import logging
 
-from six import string_types, integer_types
 from samcli.commands.local.lib.swagger.parser import SwaggerParser
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
 
@@ -96,7 +95,7 @@ class CfnBaseApiProvider:
             cors = Cors(
                 allow_origin=allow_origin, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age
             )
-        elif cors_prop and isinstance(cors_prop, string_types):
+        elif cors_prop and isinstance(cors_prop, str):
             allow_origin = cors_prop
             if not (allow_origin.startswith("'") and allow_origin.endswith("'")):
                 raise InvalidSamDocumentException(
@@ -128,7 +127,7 @@ class CfnBaseApiProvider:
         """
         prop = cors_dict.get(prop_name)
         if prop:
-            if not isinstance(prop, string_types) or prop.startswith("!"):
+            if not isinstance(prop, str) or prop.startswith("!"):
                 LOG.warning(
                     "CORS Property %s was not fully resolved. Will proceed as if the Property was not defined.",
                     prop_name,
@@ -144,8 +143,8 @@ class CfnBaseApiProvider:
 
     def extract_cors_http(self, cors_prop):
         """
-        Extract Cors property from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents. The result
-        is added to the HttpApi.
+        Extract Cors property from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
+        The result is added to the HttpApi.
 
         Parameters
         ----------
@@ -166,7 +165,7 @@ class CfnBaseApiProvider:
             allow_headers = self._get_cors_prop_http(cors_prop, "AllowHeaders", list)
             if isinstance(allow_headers, list):
                 allow_headers = ",".join(allow_headers)
-            max_age = self._get_cors_prop_http(cors_prop, "MaxAge", integer_types)
+            max_age = self._get_cors_prop_http(cors_prop, "MaxAge", int)
 
             cors = Cors(
                 allow_origin=allow_origins, allow_methods=allow_methods, allow_headers=allow_headers, max_age=max_age

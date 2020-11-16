@@ -1113,6 +1113,42 @@ class TestArtifactExporter(unittest.TestCase):
                 os.remove(zipfile_name)
             test_file_creator.remove_all()
 
+    @patch("platform.system")
+    def test_make_zip_windows(self, mock_system):
+        mock_system.return_value = "Windows"
+
+        test_file_creator = FileCreator()
+        test_file_creator.append_file(
+            "index.js", "exports handler = (event, context, callback) => {callback(null, event);}"
+        )
+
+        dirname = test_file_creator.rootdir
+
+        expected_files = {"index.js"}
+
+        random_name = "".join(random.choice(string.ascii_letters) for _ in range(10))
+        outfile = os.path.join(tempfile.gettempdir(), random_name)
+
+        zipfile_name = None
+        try:
+            zipfile_name = make_zip(outfile, dirname)
+
+            test_zip_file = zipfile.ZipFile(zipfile_name, "r")
+            with closing(test_zip_file) as zf:
+                files_in_zip = set()
+                external_attr_mask = 65535 << 16
+                for info in zf.infolist():
+                    files_in_zip.add(info.filename)
+                    permission_bits = (info.external_attr & external_attr_mask) >> 16
+                    self.assertEqual(permission_bits, 0o100755)
+
+                self.assertEqual(files_in_zip, expected_files)
+
+        finally:
+            if zipfile_name:
+                os.remove(zipfile_name)
+            test_file_creator.remove_all()
+
     @patch("shutil.copyfile")
     @patch("tempfile.mkdtemp")
     def test_copy_to_temp_dir(self, mkdtemp_mock, copyfile_mock):

@@ -10,7 +10,7 @@ from parameterized import parameterized
 import pytest
 
 from samcli.lib.utils import osutils
-from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, BuildIntegRubyBase
+from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
 
 LOG = logging.getLogger(__name__)
@@ -51,8 +51,7 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command: ")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -123,7 +122,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
         overrides = {"Runtime": "unsupportedpython", "CodeUri": "Python"}
         cmdlist = self.get_command_list(parameter_overrides=overrides)
 
-        LOG.info("Running Command:", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         LOG.info(cmdlist)
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(1, process_execute.process.returncode)
@@ -150,8 +149,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
@@ -634,8 +632,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
@@ -685,8 +682,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -708,8 +704,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -729,8 +724,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -748,8 +742,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -780,8 +773,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, function_identifier="FunctionOne"
         )
 
-        LOG.info("Running Command:")
-        LOG.info(cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
 
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -850,7 +842,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -916,7 +908,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using Makefile for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -946,7 +938,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
         run_command(cmdlist, cwd=self.working_dir)
 
@@ -974,7 +966,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
         )
 
-        LOG.info("Running Command: {}", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # This will error out.
         command = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command.process.returncode, 1)
@@ -1043,7 +1035,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         }
         cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
 
-        LOG.info("Running Command: %s", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
@@ -1068,7 +1060,7 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
         """
         cmdlist = self.get_command_list()
 
-        LOG.info("Running Command: %s", cmdlist)
+        LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
@@ -1081,3 +1073,107 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
         Override, because functions should be build individually
         """
         self.assertEqual(command_result.process.returncode, 0)
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildWithCacheBuilds(CachedBuildIntegBase):
+    template = "dedup-functions-template.yaml"
+
+    @parameterized.expand(
+        [
+            # in process
+            (
+                False,
+                "Dotnetcore3.1",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnetcore3.1",
+            ),
+            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            # container
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_cache_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "FunctionCodeUri": code_uri,
+            "Function1Handler": function1_handler,
+            "Function2Handler": function2_handler,
+            "FunctionRuntime": runtime,
+        }
+        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides, cached=True)
+
+        LOG.info("Running Command: %s", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestParallelBuilds(DedupBuildIntegBase):
+    template = "dedup-functions-template.yaml"
+
+    @parameterized.expand(
+        [
+            # in process
+            (
+                False,
+                "Dotnetcore3.1",
+                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
+                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
+                "dotnetcore3.1",
+            ),
+            (False, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (False, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (False, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+            # container
+            (True, "Java/gradlew", "aws.example.Hello::myHandler", "aws.example.SecondFunction::myHandler", "java8"),
+            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs12.x"),
+            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.8"),
+            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby2.5"),
+        ]
+    )
+    @pytest.mark.flaky(reruns=3)
+    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+        """
+        Build template above and verify that each function call returns as expected
+        """
+        overrides = {
+            "FunctionCodeUri": code_uri,
+            "Function1Handler": function1_handler,
+            "Function2Handler": function2_handler,
+            "FunctionRuntime": runtime,
+        }
+        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides, parallel=True)
+
+        LOG.info("Running Command: %s", cmdlist)
+        # Built using `native` python-pip builder for a python project.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        expected_messages = ["World", "Mars"]
+
+        self._verify_build_and_invoke_functions(
+            expected_messages, command_result, self._make_parameter_override_arg(overrides)
+        )
