@@ -184,13 +184,28 @@ class TestLambdaService(StartLambdaIntegBaseClass):
 
         print(response_data)
 
+        # determine the line number of the statement that will raise the error
+        statement_raising_exception = 'raise Exception("Lambda is raising an exception")'
+        statement_raising_exception_line_no = 0
+        with open("tests/integration/testdata/invoke/main.py", "r") as f:
+            for i, line in enumerate(f):
+                if line.strip() == statement_raising_exception:
+                    statement_raising_exception_line_no = i + 1
+        if not statement_raising_exception:
+            raise Exception(f'Cannot find statement "{statement_raising_exception}" in invoke/main.py')
+
         self.assertEqual(
             response_data,
             {
                 "errorMessage": "Lambda is raising an exception",
                 "errorType": "Exception",
                 "stackTrace": [
-                    ["/var/task/main.py", 51, "raise_exception", 'raise Exception("Lambda is raising an exception")']
+                    [
+                        "/var/task/main.py",
+                        statement_raising_exception_line_no,
+                        "raise_exception",
+                        statement_raising_exception,
+                    ]
                 ],
             },
         )
