@@ -13,11 +13,9 @@ exclude = '''
     | \.git          # root of the project
     | \.tox
     | \.venv
-    | build
     | dist
     | pip-wheel-metadata
     | samcli/lib/init/templates
-    | tests/integration/testdata
   )/
 )
 '''
