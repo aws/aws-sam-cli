@@ -131,7 +131,8 @@ for:
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 
-      # Runs only in Linux
+      # Runs only in Linux, logging docker hub when running canary
+      - sh: "if [[ -n $BY_CANARY ]]; then echo Log in docker hub as $DOCKER_USER; docker login -u=$DOCKER_USER -p=$DOCKER_PASS; fi"
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
