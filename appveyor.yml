@@ -131,7 +131,9 @@ for:
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 
-      # Runs only in Linux
+      # Runs only in Linux, with docker hub login
+      - sh: "echo $DOCKER_USER"
+      - sh: "docker login -u=$DOCKER_USER -p=$DOCKER_PASS"
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
