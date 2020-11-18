@@ -52,10 +52,10 @@ def generate_project(
     template = None
 
     if runtime:
-        for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
-            if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
-                if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
-                    template = mapping["init_location"]
+        for mapping in list(itertools.chain.from_iterable(RUNTIME_DEP_TEMPLATE_MAPPING.values())):
+            if runtime in mapping.runtimes or any([r.startswith(runtime) for r in mapping.runtimes]):
+                if not dependency_manager or dependency_manager == mapping.dependency_manager:
+                    template = mapping.init_location
                     break
 
         if not template:

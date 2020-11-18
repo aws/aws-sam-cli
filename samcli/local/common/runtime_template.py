@@ -5,67 +5,76 @@ All-in-one metadata about runtimes
 import itertools
 import os
 import pathlib
-from typing import Set
+from dataclasses import dataclass
+from typing import List, Dict
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
 _templates = os.path.join(_init_path, "init", "templates")
 
 
+@dataclass
+class RuntimeDepInfo:
+    runtimes: List[str]
+    dependency_manager: str
+    init_location: str
+    build: bool
+
+
 # Note(TheSriram): The ordering of the runtimes list per language is based on the latest to oldest.
-RUNTIME_DEP_TEMPLATE_MAPPING = {
+RUNTIME_DEP_TEMPLATE_MAPPING: Dict[str, List[RuntimeDepInfo]] = {
     "python": [
-        {
-            "runtimes": ["python3.8", "python3.7", "python3.6", "python2.7"],
-            "dependency_manager": "pip",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
-            "build": True,
-        }
+        RuntimeDepInfo(
+            ["python3.8", "python3.7", "python3.6", "python2.7"],
+            "pip",
+            os.path.join(_templates, "cookiecutter-aws-sam-hello-python"),
+            True,
+        )
     ],
     "ruby": [
-        {
-            "runtimes": ["ruby2.5", "ruby2.7"],
-            "dependency_manager": "bundler",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
-            "build": True,
-        }
+        RuntimeDepInfo(
+            ["ruby2.5", "ruby2.7"],
+            "bundler",
+            os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
+            True,
+        )
     ],
     "nodejs": [
-        {
-            "runtimes": ["nodejs12.x", "nodejs10.x"],
-            "dependency_manager": "npm",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
-            "build": True,
-        }
+        RuntimeDepInfo(
+            ["nodejs12.x", "nodejs10.x"],
+            "npm",
+            os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
+            True,
+        )
     ],
     "dotnet": [
-        {
-            "runtimes": ["dotnetcore3.1", "dotnetcore2.1"],
-            "dependency_manager": "cli-package",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
-            "build": True,
-        }
+        RuntimeDepInfo(
+            ["dotnetcore3.1", "dotnetcore2.1"],
+            "cli-package",
+            os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
+            True,
+        )
     ],
     "go": [
-        {
-            "runtimes": ["go1.x"],
-            "dependency_manager": "mod",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-golang"),
-            "build": False,
-        }
+        RuntimeDepInfo(
+            ["go1.x"],
+            "mod",
+            os.path.join(_templates, "cookiecutter-aws-sam-hello-golang"),
+            False,
+        )
     ],
     "java": [
-        {
-            "runtimes": ["java11", "java8", "java8.al2"],
-            "dependency_manager": "maven",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
-            "build": True,
-        },
-        {
-            "runtimes": ["java11", "java8", "java8.al2"],
-            "dependency_manager": "gradle",
-            "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-gradle"),
-            "build": True,
-        },
+        RuntimeDepInfo(
+            ["java11", "java8", "java8.al2"],
+            "maven",
+            os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
+            True,
+        ),
+        RuntimeDepInfo(
+            ["java11", "java8", "java8.al2"],
+            "gradle",
+            os.path.join(_templates, "cookiecutter-aws-sam-hello-java-gradle"),
+            True,
+        ),
     ],
 }
 
@@ -86,15 +95,16 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "java8.al2": ["maven", "gradle"],
 }
 
-SUPPORTED_DEP_MANAGERS: Set[str] = {
-    c["dependency_manager"]  # type: ignore
-    for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
-    if c["dependency_manager"]
+
+SUPPORTED_DEP_MANAGERS = {
+    c.dependency_manager
+    for c in list(itertools.chain.from_iterable(RUNTIME_DEP_TEMPLATE_MAPPING.values()))
+    if c.dependency_manager
 }
 
-RUNTIMES: Set[str] = set(
-    itertools.chain(
-        *[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))]  # type: ignore
+RUNTIMES = set(
+    itertools.chain.from_iterable(
+        [c.runtimes for c in list(itertools.chain.from_iterable(RUNTIME_DEP_TEMPLATE_MAPPING.values()))]
     )
 )
 

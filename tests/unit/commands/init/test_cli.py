@@ -5,7 +5,7 @@ import botocore.exceptions
 import click
 from click.testing import CliRunner
 
-from samcli.commands.init.init_templates import InitTemplates
+from samcli.commands.init.init_templates import InitTemplates, TemplateOption
 from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
 from samcli.lib.init import GenerateProjectFailedError
@@ -404,19 +404,19 @@ class TestCli(TestCase):
         init_options_from_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
-            {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "hello-world",
-            },
-            {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "eventBridge-schema-app",
-                "isDynamicTemplate": "True",
-            },
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-hello-java-maven",
+                "Hello World Example: Maven",
+                "maven",
+                "hello-world",
+            ),
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "Hello World Schema example Example: Maven",
+                "maven",
+                "eventBridge-schema-app",
+                is_dynamic_template="True",
+            ),
         ]
         session_mock.return_value.profile_name = "test"
         session_mock.return_value.region_name = "ap-northeast-1"
@@ -508,19 +508,19 @@ Y
         init_options_from_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
-            {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "hello-world",
-            },
-            {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "eventBridge-schema-app",
-                "isDynamicTemplate": "True",
-            },
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-hello-java-maven",
+                "Hello World Example: Maven",
+                "maven",
+                "hello-world",
+            ),
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "Hello World Schema example Example: Maven",
+                "maven",
+                "eventBridge-schema-app",
+                is_dynamic_template="True",
+            ),
         ]
         session_mock.return_value.profile_name = "default"
         session_mock.return_value.region_name = "ap-south-1"
@@ -609,19 +609,19 @@ us-east-1
         self, get_schemas_client_mock, schemas_api_caller_mock, session_mock, init_options_from_manifest_mock
     ):
         init_options_from_manifest_mock.return_value = [
-            {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "hello-world",
-            },
-            {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "eventBridge-schema-app",
-                "isDynamicTemplate": "True",
-            },
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-hello-java-maven",
+                "Hello World Example: Maven",
+                "maven",
+                "hello-world",
+            ),
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "Hello World Schema example Example: Maven",
+                "maven",
+                "eventBridge-schema-app",
+                is_dynamic_template="True",
+            ),
         ]
         session_mock.return_value.profile_name = "default"
         session_mock.return_value.region_name = "ap-south-1"
@@ -680,19 +680,19 @@ invalid-region
         init_options_from_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
-            {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "hello-world",
-            },
-            {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "eventBridge-schema-app",
-                "isDynamicTemplate": "True",
-            },
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-hello-java-maven",
+                "Hello World Example: Maven",
+                "maven",
+                "hello-world",
+            ),
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "Hello World Schema example Example: Maven",
+                "maven",
+                "eventBridge-schema-app",
+                is_dynamic_template="True",
+            ),
         ]
         session_mock.return_value.profile_name = "test"
         session_mock.return_value.region_name = "ap-northeast-1"
@@ -786,19 +786,19 @@ Y
         init_options_from_manifest_mock,
     ):
         init_options_from_manifest_mock.return_value = [
-            {
-                "directory": "java8/cookiecutter-aws-sam-hello-java-maven",
-                "displayName": "Hello World Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "hello-world",
-            },
-            {
-                "directory": "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
-                "displayName": "Hello World Schema example Example: Maven",
-                "dependencyManager": "maven",
-                "appTemplate": "eventBridge-schema-app",
-                "isDynamicTemplate": "True",
-            },
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-hello-java-maven",
+                "Hello World Example: Maven",
+                "maven",
+                "hello-world",
+            ),
+            TemplateOption(
+                "java8/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "Hello World Schema example Example: Maven",
+                "maven",
+                "eventBridge-schema-app",
+                is_dynamic_template="True",
+            ),
         ]
         session_mock.return_value.profile_name = "test"
         session_mock.return_value.region_name = "ap-northeast-1"

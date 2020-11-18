@@ -18,7 +18,7 @@ class TestInit(TestCase):
         self.name = "testing project"
         self.no_input = True
         self.extra_context = {"project_name": "testing project", "runtime": self.runtime}
-        self.template = RUNTIME_DEP_TEMPLATE_MAPPING["python"][0]["init_location"]
+        self.template = RUNTIME_DEP_TEMPLATE_MAPPING["python"][0].init_location
 
     @patch("samcli.lib.init.cookiecutter")
     def test_init_successful(self, cookiecutter_patch):

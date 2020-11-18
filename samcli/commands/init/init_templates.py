@@ -9,8 +9,10 @@ import logging
 import platform
 import shutil
 import subprocess
+from dataclasses import dataclass
 
 from pathlib import Path  # must come after Py2.7 deprecation
+from typing import List, Optional
 
 import click
 
@@ -21,6 +23,16 @@ from samcli.lib.utils.osutils import rmtree_callback
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING
 
 LOG = logging.getLogger(__name__)
+
+
+@dataclass
+class TemplateOption:
+    directory: Optional[str]
+    display_name: Optional[str]
+    dependency_manager: str
+    app_template: str
+    init_location: Optional[str] = None
+    is_dynamic_template: Optional[str] = None
 
 
 class InvalidInitTemplateError(UserException):
@@ -46,8 +58,8 @@ class InitTemplates:
             choice_num = 1
             click.echo("\nAWS quick start application templates:")
             for o in options:
-                if o.get("displayName") is not None:
-                    msg = "\t" + str(choice_num) + " - " + o.get("displayName")
+                if o.display_name is not None:
+                    msg = "\t" + str(choice_num) + " - " + o.display_name
                     click.echo(msg)
                 else:
                     msg = (
@@ -62,55 +74,66 @@ class InitTemplates:
                 choice_num = choice_num + 1
             choice = click.prompt("Template selection", type=click.Choice(choices), show_choices=False)
             template_md = options[int(choice) - 1]  # zero index
-        if template_md.get("init_location") is not None:
-            return (template_md["init_location"], "hello-world")
-        if template_md.get("directory") is not None:
-            return (os.path.join(self.repo_path, template_md["directory"]), template_md["appTemplate"])
+        if template_md.init_location is not None:
+            return template_md.init_location, "hello-world"
+        if template_md.directory is not None:
+            return os.path.join(self.repo_path, template_md.directory), template_md.app_template
         raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
 
     def location_from_app_template(self, runtime, dependency_manager, app_template):
         options = self.init_options(runtime, dependency_manager)
         try:
             template = next(item for item in options if self._check_app_template(item, app_template))
-            if template.get("init_location") is not None:
-                return template["init_location"]
-            if template.get("directory") is not None:
-                return os.path.join(self.repo_path, template["directory"])
+            if template.init_location is not None:
+                return template.init_location
+            if template.directory is not None:
+                return os.path.join(self.repo_path, template.directory)
             raise InvalidInitTemplateError("Invalid template. This should not be possible, please raise an issue.")
         except StopIteration as ex:
             msg = "Can't find application template " + app_template + " - check valid values in interactive init."
             raise InvalidInitTemplateError(msg) from ex
 
-    def _check_app_template(self, entry, app_template):
-        return entry["appTemplate"] == app_template
+    def _check_app_template(self, entry: TemplateOption, app_template):
+        return entry.app_template == app_template
 
-    def init_options(self, runtime, dependency_manager):
+    def init_options(self, runtime, dependency_manager) -> List[TemplateOption]:
         if self.clone_attempted is False:  # pylint: disable=compare-to-zero
             self._clone_repo()
         if self.repo_path is None:
             return self._init_options_from_bundle(runtime, dependency_manager)
         return self._init_options_from_manifest(runtime, dependency_manager)
 
-    def _init_options_from_manifest(self, runtime, dependency_manager):
+    def _init_options_from_manifest(self, runtime, dependency_manager) -> List[TemplateOption]:
         manifest_path = os.path.join(self.repo_path, "manifest.json")
         with open(str(manifest_path)) as fp:
             body = fp.read()
             manifest_body = json.loads(body)
-            templates = manifest_body.get(runtime)
-            if templates is None:
+            raw_templates = manifest_body.get(runtime)
+            if raw_templates is None:
                 # Fallback to bundled templates
                 return self._init_options_from_bundle(runtime, dependency_manager)
+            templates = [
+                TemplateOption(
+                    obj.get("directory", None),
+                    obj.get("displayName", None),
+                    obj.get("dependencyManager", None),
+                    obj.get("appTemplate", None),
+                    obj.get("initLocation", None),
+                    obj.get("isDynamicTemplate", None),
+                )
+                for obj in raw_templates
+            ]
             if dependency_manager is not None:
-                templates_by_dep = filter(lambda x: x["dependencyManager"] == dependency_manager, templates)
-                return list(templates_by_dep)
+                return [template for template in templates if template.dependency_manager == dependency_manager]
+
             return templates
 
-    def _init_options_from_bundle(self, runtime, dependency_manager):
-        for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
-            if runtime in mapping["runtimes"] or any([r.startswith(runtime) for r in mapping["runtimes"]]):
-                if not dependency_manager or dependency_manager == mapping["dependency_manager"]:
-                    mapping["appTemplate"] = "hello-world"  # when bundled, use this default template name
-                    return [mapping]
+    def _init_options_from_bundle(self, runtime, dependency_manager) -> List[TemplateOption]:
+        for mapping in list(itertools.chain.from_iterable(RUNTIME_DEP_TEMPLATE_MAPPING.values())):
+            if runtime in mapping.runtimes or any([r.startswith(runtime) for r in mapping.runtimes]):
+                if not dependency_manager or dependency_manager == mapping.dependency_manager:
+                    app_template = "hello-world"  # when bundled, use this default template name
+                    return [TemplateOption(None, None, mapping.dependency_manager, app_template, mapping.init_location)]
         msg = "Lambda Runtime {} and dependency manager {} does not have an available initialization template.".format(
             runtime, dependency_manager
         )
@@ -224,6 +247,6 @@ class InitTemplates:
         """
         options = self.init_options(runtime, dependency_manager)
         for option in options:
-            if option.get("appTemplate") == app_template:
-                return option.get("isDynamicTemplate", False)
+            if option.app_template == app_template:
+                return option.is_dynamic_template
         return False
