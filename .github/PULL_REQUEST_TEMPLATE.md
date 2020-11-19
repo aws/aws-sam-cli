@@ -9,7 +9,7 @@
 
 #### Checklist
 
-- [ ] Add input/output [type hints](https://docs.python.org/3/library/typing.html) to new functions
+- [ ] Add input/output [type hints](https://docs.python.org/3/library/typing.html) to new functions/methods
 - [ ] Write design document ([Do I need to write a design document?](https://github.com/aws/aws-sam-cli/blob/develop/DEVELOPMENT_GUIDE.md#design-document))
 - [ ] Write unit tests
 - [ ] Write/update functional tests
