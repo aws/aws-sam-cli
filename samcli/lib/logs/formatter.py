@@ -6,6 +6,9 @@ import json
 import functools
 
 
+from builtins import map
+
+
 class LogsFormatter:
     """
     Formats log messages returned by CloudWatch Logs service.
