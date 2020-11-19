@@ -1,3 +1,4 @@
+from typing import Optional
 from unittest import TestCase
 import threading
 from subprocess import Popen
@@ -8,8 +9,8 @@ from pathlib import Path
 
 
 class StartApiIntegBaseClass(TestCase):
-    template = None
-    binary_data_file = None
+    template: Optional[str] = None
+    binary_data_file: Optional[str] = None
     integration_dir = str(Path(__file__).resolve().parents[2])
 
     @classmethod
