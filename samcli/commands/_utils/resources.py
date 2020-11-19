@@ -19,6 +19,7 @@ AWS_SERVERLESS_LAYERVERSION = "AWS::Serverless::LayerVersion"
 AWS_GLUE_JOB = "AWS::Glue::Job"
 AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
 AWS_STEPFUNCTIONS_STATEMACHINE = "AWS::StepFunctions::StateMachine"
+AWS_SERVICECATALOG_PRODUCT = "AWS::ServiceCatalog::CloudFormationProduct"
 
 METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "ReadmeUrl"]}
 
@@ -39,6 +40,7 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
     AWS_GLUE_JOB: ["Command.ScriptLocation"],
     AWS_STEPFUNCTIONS_STATEMACHINE: ["DefinitionS3Location"],
+    AWS_SERVICECATALOG_PRODUCT: ["ProvisioningArtifactParameters.Info.LoadTemplateFromURL"],
 }
 
 
