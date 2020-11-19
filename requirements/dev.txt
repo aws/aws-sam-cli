@@ -2,6 +2,10 @@ coverage==5.3
 pytest-cov==2.10.1
 pylint~=2.6.0
 
+# type checking and related stubs
+mypy~=0.790
+boto3-stubs[essential]~=1.14.23 # maintain version consistent with boto3
+
 # Test requirements
 pytest==6.1.1
 parameterized==0.7.4
