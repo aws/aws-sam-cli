@@ -5,8 +5,14 @@ Format log events produced by CloudWatch Logs
 import json
 import functools
 
-
-from builtins import map
+try:
+    # Python2
+    from itertools import imap
+except ImportError:
+    # Python3 already has `map` defined, alias to imap
+    # We do this to prevent accidentally using the built-in ``map`` in Python2. In Python2, ``map`` does a full
+    # evaluation of the iterator whereas imap does a lazy evaluation. For performance reasons, we need to use ``imap``.
+    from builtins import map as imap
 
 
 class LogsFormatter:
@@ -100,7 +106,7 @@ class LogsFormatter:
 
             # Make sure the operation has access to certain basic objects like colored
             partial_op = functools.partial(operation, colored=self.colored)
-            event_iterable = map(partial_op, event_iterable)
+            event_iterable = imap(partial_op, event_iterable)
 
         return event_iterable
 
