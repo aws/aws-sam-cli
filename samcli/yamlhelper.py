@@ -21,7 +21,10 @@ import json
 from botocore.compat import OrderedDict
 
 import yaml
-from yaml.resolver import ScalarNode, SequenceNode
+
+# ScalarNode and SequenceNode are not declared in __all__,
+# TODO: we need to double check whether they are public and stable
+from yaml.resolver import ScalarNode, SequenceNode  # type: ignore
 
 TAG_STR = "tag:yaml.org,2002:str"
 

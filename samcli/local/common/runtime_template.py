@@ -5,6 +5,7 @@ All-in-one metadata about runtimes
 import itertools
 import os
 import pathlib
+from typing import Set
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
 _templates = os.path.join(_init_path, "init", "templates")
@@ -85,14 +86,16 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "java8.al2": ["maven", "gradle"],
 }
 
-SUPPORTED_DEP_MANAGERS = {
-    c["dependency_manager"]
+SUPPORTED_DEP_MANAGERS: Set[str] = {
+    c["dependency_manager"]  # type: ignore
     for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
     if c["dependency_manager"]
 }
 
-RUNTIMES = set(
-    itertools.chain(*[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))])
+RUNTIMES: Set[str] = set(
+    itertools.chain(
+        *[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))]  # type: ignore
+    )
 )
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
