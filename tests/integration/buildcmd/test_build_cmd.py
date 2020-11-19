@@ -11,7 +11,11 @@ import pytest
 
 from samcli.lib.utils import osutils
 from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command
+from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command, RUN_BY_CANARY
+
+# Tests require docker suffers from Docker Hub request limit
+SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
+SKIP_DOCKER_MESSAGE = "The test which sends requests to docker hub is likely to fail due to request limit"
 
 LOG = logging.getLogger(__name__)
 
@@ -47,6 +51,9 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_requirements(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
@@ -144,6 +151,9 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_default_package_json(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Node", "Handler": "ignored"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
@@ -208,6 +218,7 @@ class TestBuildCommand_NodeFunctions(BuildIntegBase):
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand(["ruby2.5", "ruby2.7"])
     @pytest.mark.flaky(reruns=3)
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     def test_building_ruby_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
@@ -290,6 +301,7 @@ class TestBuildCommand_Java(BuildIntegBase):
             ("java11", USING_GRADLE_PATH, EXPECTED_FILES_PROJECT_MANIFEST_GRADLE),
         ]
     )
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_building_java_in_container(self, runtime, code_path, expected_files):
         self._test_with_building_java(runtime, code_path, expected_files, "use_container")
@@ -326,6 +338,9 @@ class TestBuildCommand_Java(BuildIntegBase):
         self._test_with_building_java(runtime, code_path, expected_files, False)
 
     def _test_with_building_java(self, runtime, code_path, expected_files, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": code_path, "Handler": "aws.example.Hello::myHandler"}
         cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
         cmdlist += ["--skip-pull-image"]
@@ -474,6 +489,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):
         use_container = True
@@ -559,6 +575,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("go1.x", "Go")])
+    @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_go_must_fail_with_container(self, runtime, code_uri):
         use_container = True
@@ -624,6 +641,9 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_build_single_function(self, runtime, use_container, function_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Python", "Handler": "main.handler"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=function_identifier
@@ -673,6 +693,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.7", False, "LayerOne"), ("python3.7", "use_container", "LayerOne")])
     def test_build_single_layer(self, runtime, use_container, layer_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -695,6 +718,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")]
     )
     def test_build_layer_with_makefile(self, build_method, use_container, layer_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"LayerBuildMethod": build_method, "LayerMakeContentUri": "PyLayerMake"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -715,6 +741,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.7", False, "LayerTwo"), ("python3.7", "use_container", "LayerTwo")])
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -728,6 +757,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_and_layer(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {
             "LayerBuildMethod": runtime,
             "LayerContentUri": "PyLayer",
@@ -758,6 +790,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
     def test_build_function_with_dependent_layer(self, runtime, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {
             "LayerBuildMethod": runtime,
             "LayerContentUri": "PyLayer",
@@ -828,6 +863,9 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     )
     @pytest.mark.flaky(reruns=3)
     def test_with_Makefile(self, runtime, use_container, manifest):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {"Runtime": runtime, "CodeUri": "Provided", "Handler": "main.handler"}
         manifest_path = None
         if manifest:
@@ -890,6 +928,9 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")])
     @pytest.mark.flaky(reruns=3)
     def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
         # Codeuri is still Provided, since that directory has the makefile.
@@ -920,6 +961,9 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_native_builder_specified_python_runtime(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
         # Codeuri is still Provided, since that directory has the makefile, but it also has the
@@ -950,6 +994,9 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     @parameterized.expand([(False,), ("use_container")])
     @pytest.mark.flaky(reruns=3)
     def test_with_wrong_builder_specified_python_runtime(self, use_container):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         # runtime is chosen based off current python version.
         runtime = self._get_python_version()
         # BuildMethod is set to the ruby2.7, this should cause failure.
@@ -1017,7 +1064,10 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+    def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1027,7 +1077,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         LOG.info("Running Command: {}".format(cmdlist))
         # Built using `native` python-pip builder for a python project.
@@ -1098,7 +1148,10 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_cache_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+    def test_cache_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1108,7 +1161,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides, cached=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, cached=True)
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
@@ -1150,17 +1203,20 @@ class TestParallelBuilds(DedupBuildIntegBase):
         ]
     )
     @pytest.mark.flaky(reruns=3)
-    def test_dedup_build(self, use_continer, code_uri, function1_handler, function2_handler, runtime):
+    def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         """
         Build template above and verify that each function call returns as expected
         """
+        if use_container and SKIP_DOCKER_TESTS:
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
         overrides = {
             "FunctionCodeUri": code_uri,
             "Function1Handler": function1_handler,
             "Function2Handler": function2_handler,
             "FunctionRuntime": runtime,
         }
-        cmdlist = self.get_command_list(use_container=use_continer, parameter_overrides=overrides, parallel=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, parallel=True)
 
         LOG.info("Running Command: %s", cmdlist)
         # Built using `native` python-pip builder for a python project.
