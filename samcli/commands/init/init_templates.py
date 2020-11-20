@@ -85,7 +85,7 @@ class InitTemplates:
         return entry["appTemplate"] == app_template
 
     def init_options(self, runtime, dependency_manager):
-        if self.clone_attempted is False:
+        if self.clone_attempted is False:  # pylint: disable=compare-to-zero
             self._clone_repo()
         if self.repo_path is None:
             return self._init_options_from_bundle(runtime, dependency_manager)
@@ -169,9 +169,12 @@ class InitTemplates:
             LOG.debug("Copying templates from %s to %s", str(temp_path), str(dest_path))
             shutil.copytree(temp_path, dest_path, ignore=shutil.ignore_patterns("*.git"))
         except (OSError, shutil.Error) as ex:
-            # UNSTABLE STATE - it's difficult to see how this scenario could happen except weird permissions, user will need to debug
+            # UNSTABLE STATE
+            # it's difficult to see how this scenario could happen except weird permissions, user will need to debug
             raise AppTemplateUpdateException(
-                "Unstable state when updating app templates. Check that you have permissions to create/delete files in the AWS SAM shared directory or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
+                "Unstable state when updating app templates. "
+                "Check that you have permissions to create/delete files in the AWS SAM shared directory "
+                "or file an issue at https://github.com/awslabs/aws-sam-cli/issues"
             ) from ex
 
     def _clone_new_app_templates(self, shared_dir, expected_path):
@@ -213,7 +216,7 @@ class InitTemplates:
     def is_dynamic_schemas_template(self, app_template, runtime, dependency_manager):
         """
         Check if provided template is dynamic template e.g: AWS Schemas template.
-        Currently dynamic templates require different handling e.g: for schema download and merge schema code in sam-app.
+        Currently dynamic templates require different handling e.g: for schema download and merge schema code in sam-app
         :param app_template:
         :param runtime:
         :param dependency_manager:

@@ -82,7 +82,8 @@ Common usage:
 @click.option("-n", "--name", help="Name of your project to be generated as a folder")
 @click.option(
     "--app-template",
-    help="Identifier of the managed application template you want to use. If not sure, call 'sam init' without options for an interactive workflow.",
+    help="Identifier of the managed application template you want to use. "
+    "If not sure, call 'sam init' without options for an interactive workflow.",
 )
 @click.option(
     "--no-input",
@@ -194,8 +195,8 @@ def _deprecate_notification(runtime):
     deprecated_runtimes = {"dotnetcore1.0", "dotnetcore2.0"}
     if runtime in deprecated_runtimes:
         message = (
-            f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
-            f"will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
+            f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. "
+            f"SAM CLI will drop support for all deprecated runtimes {deprecated_runtimes} on May 1st. "
             f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
         )
         LOG.warning(Colored().yellow(message))

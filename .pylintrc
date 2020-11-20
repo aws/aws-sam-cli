@@ -17,9 +17,12 @@ persistent=yes
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
 load-plugins=
+    pylint.extensions.check_elif, # Else If Used checker
+    pylint.extensions.emptystring, # compare to empty string
+    pylint.extensions.comparetozero, # compare to 0
 
 # Use multiple processes to speed up Pylint.
-jobs=1
+jobs=4
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
@@ -59,7 +62,17 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=R0201,W0613,W0640,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,R0914,C0301,C0415
+disable=
+    R0201, # Method could be a function
+    W0613, # Unused argument %r
+    W0640, # Cell variable %s defined in loop A variable used in a closure is defined in a loop
+    R0902, # Too many instance attributes (%s/%s)
+    R0903, # Too few public methods (%s/%s)
+    R0913, # Too many arguments (%s/%s)
+    W0703, # Catching too general exception %s
+    R0904, # Too many public methods (%s/%s)
+    R0914, # Too many local variables (%s/%s)
+    C0415  # Import outside toplevel (%s) Used when an import statement is used anywhere other than the module toplevel. Move this import to the top of the file.
 
 
 [REPORTS]

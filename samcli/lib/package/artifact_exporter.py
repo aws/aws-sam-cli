@@ -24,6 +24,7 @@ import zipfile
 import contextlib
 from contextlib import contextmanager
 import uuid
+from typing import Optional
 from urllib.parse import urlparse, parse_qs
 import shutil
 from botocore.utils import set_value_from_jmespath
@@ -214,7 +215,8 @@ def make_zip(file_name, source_root):
                             # Originally set to 0005 in the discussion below
                             # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
                             # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
-                            # Mimicking Unix permission bits and recommanded permission bits in the Lambda Trouble Shooting Docs
+                            # Mimicking Unix permission bits and recommanded permission bits
+                            # in the Lambda Trouble Shooting Docs.
                             info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
@@ -250,8 +252,8 @@ class Resource:
     Base class representing a CloudFormation resource that can be exported
     """
 
-    RESOURCE_TYPE = None
-    PROPERTY_NAME = None
+    RESOURCE_TYPE: Optional[str] = None
+    PROPERTY_NAME: Optional[str] = None
     PACKAGE_NULL_PROPERTY = True
     # Set this property to True in base class if you want the exporter to zip
     # up the file before uploading This is useful for Lambda functions.
@@ -310,9 +312,9 @@ class ResourceWithS3UrlDict(Resource):
     an dict like {Bucket: "", Key: "", Version: ""}
     """
 
-    BUCKET_NAME_PROPERTY = None
-    OBJECT_KEY_PROPERTY = None
-    VERSION_PROPERTY = None
+    BUCKET_NAME_PROPERTY: Optional[str] = None
+    OBJECT_KEY_PROPERTY: Optional[str] = None
+    VERSION_PROPERTY: Optional[str] = None
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """

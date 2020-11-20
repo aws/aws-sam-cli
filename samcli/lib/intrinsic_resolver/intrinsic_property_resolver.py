@@ -223,7 +223,8 @@ class IntrinsicResolver:
                     ),
                 )
                 sanitized_dict[sanitized_key] = sanitized_val
-            # On any exception, leave the key:val of the orginal intact and continue on. https://github.com/awslabs/aws-sam-cli/issues/1386
+            # On any exception, leave the key:val of the orginal intact and continue on.
+            # https://github.com/awslabs/aws-sam-cli/issues/1386
             except Exception:
                 if ignore_errors:
                     LOG.debug("Unable to resolve property %s: %s. Leaving as is.", key, val)
@@ -521,7 +522,7 @@ class IntrinsicResolver:
         )
         verify_intrinsic_type_str(intrinsic_value, IntrinsicResolver.FN_GET_AZS)
 
-        if intrinsic_value == "":
+        if not intrinsic_value:
             intrinsic_value = self._symbol_resolver.handle_pseudo_region()
 
         if intrinsic_value not in self._symbol_resolver.REGIONS:

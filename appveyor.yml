@@ -10,7 +10,7 @@ environment:
   matrix:
 
     - PYTHON_HOME: "C:\\Python36-x64"
-      PYTHON_VERSION: '3.6.10'
+      PYTHON_VERSION: '3.6'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
@@ -19,7 +19,7 @@ environment:
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7.7'
+      PYTHON_VERSION: '3.7'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
@@ -29,7 +29,7 @@ environment:
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python38-x64"
-      PYTHON_VERSION: '3.8.2'
+      PYTHON_VERSION: '3.8'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
@@ -76,6 +76,7 @@ for:
       - "venv\\Scripts\\activate"
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
+      - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
 
   - 
@@ -129,6 +130,7 @@ for:
     test_script:
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
+      - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
 
       # Runs only in Linux

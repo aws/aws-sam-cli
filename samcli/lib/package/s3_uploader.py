@@ -15,7 +15,6 @@ Client for uploading packaged artifacts to s3
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
-import hashlib
 import logging
 import threading
 import os
