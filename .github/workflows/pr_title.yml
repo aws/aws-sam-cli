@@ -8,7 +8,7 @@ jobs:
     steps:
       - name: Check PR title
         run: |
-          title="${{ github.event.pull_request.title }}"
+          title=$(jq -r .pull_request.title "$GITHUB_EVENT_PATH")
           if [[ ! $title =~ ^.*:\ .*$ ]]; then
             echo "Pull request titles must adhere to Conventional Commits: https://www.conventionalcommits.org"
             exit 1
