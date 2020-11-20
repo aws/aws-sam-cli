@@ -3,6 +3,8 @@ Represents Lambda runtime containers.
 """
 import logging
 
+from pathlib import Path
+
 from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
 from .container import Container
