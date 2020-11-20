@@ -110,7 +110,7 @@ def parse_s3_url(url, bucket_name_property="Bucket", object_key_property="Key", 
     raise ValueError("URL given to the parse method is not a valid S3 url " "{0}".format(url))
 
 
-def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader):
+def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader, extension=None):
     """
     Upload local artifacts referenced by the property at given resource and
     return S3 URL of the uploaded object. It is the responsibility of callers
@@ -130,6 +130,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
     :param parent_dir:      Resolve all relative paths with respect to this
                             directory
     :param uploader:        Method to upload files to S3
+    :param extension:       Extension of the uploaded artifact
 
     :return:                S3 URL of the uploaded object
     :raise:                 ValueError if path is not a S3 URL or a local path
@@ -153,7 +154,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
     # Or, pointing to a folder. Zip the folder and upload
     if is_local_folder(local_path):
-        return zip_and_upload(local_path, uploader)
+        return zip_and_upload(local_path, uploader, extension)
 
     # Path could be pointing to a file. Upload the file
     if is_local_file(local_path):
@@ -169,9 +170,9 @@ def resource_not_packageable(resource_dict):
     return False
 
 
-def zip_and_upload(local_path, uploader):
+def zip_and_upload(local_path, uploader, extension):
     with zip_folder(local_path) as (zip_file, md5_hash):
-        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash, extension="zip")
+        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash, extension=extension)
 
 
 @contextmanager
@@ -303,8 +304,14 @@ class Resource:
         If code signing configuration is provided for function/layer, uploaded artifact
         will be replaced by signed artifact location
         """
-        uploaded_url = upload_local_artifacts(resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader)
-        if self.code_signer.should_sign_package(resource_id):
+        # code signer only accepts files which has '.zip' extension in it
+        # so package artifact with '.zip' if it is required to be signed
+        should_sign_package = self.code_signer.should_sign_package(resource_id)
+        artifact_extension = "zip" if should_sign_package else None
+        uploaded_url = upload_local_artifacts(
+            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader, artifact_extension
+        )
+        if should_sign_package:
             uploaded_url = self.code_signer.sign_package(
                 resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
             )

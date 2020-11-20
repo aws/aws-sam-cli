@@ -128,9 +128,19 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource_obj.export(resource_id, resource_dict, parent_dir)
 
-        upload_local_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock
-        )
+        if test_class in (
+            ApiGatewayRestApiResource,
+            LambdaFunctionResource,
+            ElasticBeanstalkApplicationVersion,
+            LambdaLayerVersionResource,
+        ):
+            upload_local_artifacts_mock.assert_called_once_with(
+                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock
+            )
+        else:
+            upload_local_artifacts_mock.assert_called_once_with(
+                resource_id, resource_dict, test_class.PROPERTY_NAME, parent_dir, s3_uploader_mock, None
+            )
         code_signer_mock.sign_package.assert_not_called()
         if "." in test_class.PROPERTY_NAME:
             top_level_property_name = test_class.PROPERTY_NAME.split(".")[0]
@@ -288,7 +298,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             absolute_artifact_path = make_abs_path(parent_dir, artifact_path)
 
-            zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY)
+            zip_and_upload_mock.assert_called_once_with(absolute_artifact_path, mock.ANY, None)
 
     @patch("samcli.lib.package.artifact_exporter.zip_and_upload")
     def test_upload_local_artifacts_no_path(self, zip_and_upload_mock):
@@ -305,7 +315,7 @@ class TestArtifactExporter(unittest.TestCase):
         result = upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, self.s3_uploader_mock)
         self.assertEqual(result, expected_s3_url)
 
-        zip_and_upload_mock.assert_called_once_with(parent_dir, mock.ANY)
+        zip_and_upload_mock.assert_called_once_with(parent_dir, mock.ANY, None)
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
 
     @patch("samcli.lib.package.artifact_exporter.zip_and_upload")
@@ -374,7 +384,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource.export(resource_id, resource_dict, parent_dir)
 
         upload_local_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.s3_uploader_mock
+            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.s3_uploader_mock, None
         )
 
         self.assertEqual(resource_dict[resource.PROPERTY_NAME], s3_url)
@@ -414,7 +424,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             resource.export(resource_id, resource_dict, parent_dir)
 
-            zip_and_upload_mock.assert_called_once_with(tmp_dir, mock.ANY)
+            zip_and_upload_mock.assert_called_once_with(tmp_dir, mock.ANY, None)
             rmtree_mock.assert_called_once_with(tmp_dir)
             is_zipfile_mock.assert_called_once_with(original_path)
             self.code_signer_mock.should_sign_package.assert_called_once_with(resource_id)
@@ -516,7 +526,7 @@ class TestArtifactExporter(unittest.TestCase):
         resource_dict = {}
         resource.export(resource_id, resource_dict, parent_dir)
         upload_local_artifacts_mock.assert_called_once_with(
-            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.s3_uploader_mock
+            resource_id, resource_dict, resource.PROPERTY_NAME, parent_dir, self.s3_uploader_mock, None
         )
         self.code_signer_mock.should_sign_package.assert_called_once_with(resource_id)
         self.code_signer_mock.sign_package.assert_not_called()
