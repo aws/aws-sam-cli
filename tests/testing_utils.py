@@ -12,6 +12,10 @@ RUNNING_TEST_FOR_MASTER_ON_CI = os.environ.get("APPVEYOR_REPO_BRANCH", "master")
 CI_OVERRIDE = os.environ.get("APPVEYOR_CI_OVERRIDE", False)
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 
+# Tests require docker suffers from Docker Hub request limit
+SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
+SKIP_DOCKER_MESSAGE = "The test which sends requests to docker hub is likely to fail due to request limit"
+
 LOG = logging.getLogger(__name__)
 
 CommandResult = namedtuple("CommandResult", "process stdout stderr")
