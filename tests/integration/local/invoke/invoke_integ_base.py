@@ -1,11 +1,10 @@
 import os
-from typing import Optional
 from unittest import TestCase
 from pathlib import Path
 
 
 class InvokeIntegBase(TestCase):
-    template: Optional[Path] = None
+    template = None
 
     @classmethod
     def setUpClass(cls):

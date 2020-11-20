@@ -27,6 +27,7 @@ TIMEOUT = 420  # 7 mins
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_PythonFunctions(BuildIntegBase):
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -141,6 +142,7 @@ class TestBuildCommand_ErrorCases(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 class TestBuildCommand_NodeFunctions(BuildIntegBase):
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"node_modules", "main.js"}
     EXPECTED_NODE_MODULES = {"minimal-request-promise"}
 
@@ -613,6 +615,7 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
 class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     template = "many-functions-template.yaml"
 
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {
         "__init__.py",
         "main.py",
@@ -688,6 +691,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requirements.txt"}
     EXPECTED_LAYERS_FILES_PROJECT_MANIFEST = {"__init__.py", "layer.py", "numpy", "requirements.txt"}
 
@@ -849,6 +853,7 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
     # Test Suite for runtime: provided and where selection of the build workflow is implicitly makefile builder
     # if the makefile is present.
 
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -921,6 +926,7 @@ class TestBuildWithBuildMethod(BuildIntegBase):
     # Test Suite where `BuildMethod` is explicitly specified.
 
     template = "custom-build-function.yaml"
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"__init__.py", "main.py", "requests", "requirements.txt"}
 
     FUNCTION_LOGICAL_ID = "Function"
