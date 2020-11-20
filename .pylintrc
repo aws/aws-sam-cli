@@ -18,8 +18,6 @@ persistent=yes
 # usually to register additional checkers.
 load-plugins=
     pylint.extensions.check_elif, # Else If Used checker
-    pylint.extensions.emptystring, # compare to empty string
-    pylint.extensions.comparetozero, # compare to 0
 
 # Use multiple processes to speed up Pylint.
 jobs=4
