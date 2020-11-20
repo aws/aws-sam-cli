@@ -18,7 +18,7 @@ class CodeSigningInitiationException(UserException):
     def __init__(self, msg):
         self.msg = msg
         message_fmt = f"Failed to initiate signing job: {msg}"
-        super(CodeSigningInitiationException, self).__init__(message=message_fmt)
+        super().__init__(message=message_fmt)
 
 
 class CodeSigningJobFailureException(UserException):
@@ -29,7 +29,7 @@ class CodeSigningJobFailureException(UserException):
     def __init__(self, msg):
         self.msg = msg
         message_fmt = f"Failed to sign package: {msg}"
-        super(CodeSigningJobFailureException, self).__init__(message=message_fmt)
+        super().__init__(message=message_fmt)
 
 
 class CodeSigner:
@@ -85,11 +85,16 @@ class CodeSigner:
             code_sign_job_result = self.signer_client.describe_signing_job(jobId=code_sign_job_id)
         except Exception as e:
             LOG.error("Checking the result of the code signing job failed %s", code_sign_job_id, exc_info=e)
-            raise CodeSigningJobFailureException(f"Signing job has failed status {code_sign_job_id}")
+            raise CodeSigningJobFailureException(f"Signing job has failed status {code_sign_job_id}") from e
 
         # check if code sign job result status is Succeeded, fail otherwise
-        if code_sign_job_result and code_sign_job_result["status"] == "Succeeded":
-            LOG.info("Package has successfully signed into the location %s", code_sign_job_result["signedObject"])
+        if code_sign_job_result and code_sign_job_result.get("status") == "Succeeded":
+            signed_object_result = code_sign_job_result.get("signedObject", {}).get("s3", {})
+            LOG.info(
+                "Package has successfully signed into the location %s/%s",
+                signed_object_result.get("bucketName"),
+                signed_object_result.get("key"),
+            )
             signed_package_location = code_sign_job_result["signedObject"]["s3"]["key"]
             return f"s3://{s3_bucket}/{signed_package_location}"
 
@@ -106,7 +111,7 @@ class CodeSigner:
             waiter.wait(jobId=code_sign_job_id, WaiterConfig={"Delay": 5})
         except Exception as e:
             LOG.error("Checking status of code signing job failed %s", code_sign_job_id, exc_info=e)
-            raise CodeSigningJobFailureException(f"Signing job failed {code_sign_job_id}")
+            raise CodeSigningJobFailureException(f"Signing job failed {code_sign_job_id}") from e
 
     def _initiate_code_signing(self, profile_name, profile_owner, s3_bucket, s3_key, s3_target_prefix, s3_version):
         """
@@ -128,11 +133,14 @@ class CodeSigner:
                 )
             else:
                 sign_response = self.signer_client.start_signing_job(
-                    source=param_source, destination=param_destination, profileName=profile_name,
+                    source=param_source,
+                    destination=param_destination,
+                    profileName=profile_name,
                 )
-            LOG.info("Initiated code signing job %s", sign_response)
-            code_sign_job_id = sign_response["jobId"]
+            signing_job_id = sign_response.get("jobId")
+            LOG.info("Initiated code signing job %s", signing_job_id)
+            code_sign_job_id = signing_job_id
         except Exception as e:
             LOG.error("Initiating job signing job has failed", exc_info=e)
-            raise CodeSigningInitiationException("Initiating job signing job has failed")
+            raise CodeSigningInitiationException("Initiating job signing job has failed") from e
         return code_sign_job_id

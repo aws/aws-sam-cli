@@ -99,7 +99,7 @@ class PackageContext:
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
 
-        code_signer_client = boto3.client("signer", endpoint_url="https://beta.signer.aws.a2z.com")
+        code_signer_client = boto3.client("signer")
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
 
         try:

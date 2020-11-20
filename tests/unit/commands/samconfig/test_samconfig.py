@@ -409,10 +409,10 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
                 False,
                 "samconfig.toml",
                 "default",
-                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -475,10 +475,10 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
                 False,
                 "samconfig.toml",
                 "default",
-                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
             )
 
     @patch("samcli.commands.logs.command.do_cli")

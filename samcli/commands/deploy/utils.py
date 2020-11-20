@@ -22,7 +22,7 @@ def print_deploy_args(
         Deployment s3 bucket       : aws-sam-cli-managed-default-samclisourcebucket-abcdef
         Capabilities               : ["CAPABILITY_IAM"]
         Parameter overrides        : {'MyParamater': '***', 'Parameter2': 'dd'}
-        Code sign configurations   : {'MyFunction': 'ProfileName:ProfileOwner'}
+        Signing Profiles           : {'MyFunction': 'ProfileName:ProfileOwner'}
 
     :param stack_name: Name of the stack used during sam deploy
     :param s3_bucket: Name of s3 bucket used for packaging code artifacts
@@ -30,6 +30,7 @@ def print_deploy_args(
     :param capabilities: Corresponding IAM capabilities to be used during the stack deploy.
     :param parameter_overrides: Cloudformation parameter overrides to be supplied based on the stack's template
     :param confirm_changeset: Prompt for changeset to be confirmed before going ahead with the deploy.
+    :param signing_profiles: Signing profile details which will be used to sign functions/layers
     :return:
     """
 

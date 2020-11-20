@@ -84,6 +84,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             resolve_s3=True,
+            signing_profiles=self.signing_profiles,
         )
 
         package_command_context.assert_called_with(
@@ -98,6 +99,7 @@ class TestPackageCliCommand(TestCase):
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
+            signing_profiles=self.signing_profiles,
         )
 
         context_mock.run.assert_called_with()
@@ -118,6 +120,7 @@ class TestPackageCliCommand(TestCase):
                 region=self.region,
                 profile=self.profile,
                 resolve_s3=True,
+                signing_profiles=self.signing_profiles,
             )
 
     def test_resolve_s3_and_s3_bucket_both_not_set(self):
@@ -135,4 +138,5 @@ class TestPackageCliCommand(TestCase):
                 region=self.region,
                 profile=self.profile,
                 resolve_s3=False,
+                signing_profiles=self.signing_profiles,
             )

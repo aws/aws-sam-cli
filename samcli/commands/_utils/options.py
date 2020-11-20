@@ -87,7 +87,7 @@ def guided_deploy_stack_name(ctx, param, provided_value):
             option_name=param.name,
             ctx=ctx,
             message="Missing option '--stack-name', 'sam deploy --guided' can "
-                    "be used to provide and save needed parameters for future deploys.",
+            "be used to provide and save needed parameters for future deploys.",
         )
 
     return provided_value if provided_value else DEFAULT_STACK_NAME
@@ -153,8 +153,8 @@ def docker_click_options():
             "--docker-network",
             envvar="SAM_DOCKER_NETWORK",
             help="Specifies the name or id of an existing docker network to lambda docker "
-                 "containers should connect to, along with the default bridge network. If not specified, "
-                 "the Lambda containers will only connect to the default bridge docker network.",
+            "containers should connect to, along with the default bridge network. If not specified, "
+            "the Lambda containers will only connect to the default bridge docker network.",
         ),
     ]
 
@@ -166,8 +166,8 @@ def parameter_override_click_option():
         type=CfnParameterOverridesType(),
         default={},
         help="Optional. A string that contains AWS CloudFormation parameter overrides encoded as key=value pairs."
-             "For example, 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
-             "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
+        "For example, 'ParameterKey=KeyPairName,ParameterValue=MyKey ParameterKey=InstanceType,"
+        "ParameterValue=t1.micro' or KeyPairName=MyKey InstanceType=t1.micro",
     )
 
 
@@ -196,9 +196,9 @@ def signing_profiles_click_option():
         type=SigningProfilesOptionType(),
         default={},
         help="Optional. A string that contains Code Sign configuration parameters as "
-             "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
-             "Since signing profile owner is optional, it could also be written as "
-             "FunctionOrLayerNameToSign=SigningProfileName",
+        "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
+        "Since signing profile owner is optional, it could also be written as "
+        "FunctionOrLayerNameToSign=SigningProfileName",
     )
 
 
@@ -225,15 +225,15 @@ def capabilities_click_option():
         required=False,
         type=FuncParamType(func=_space_separated_list_func_type),
         help="A list of  capabilities  that  you  must  specify"
-             "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
-             "plates might include resources that can affect permissions in your  AWS"
-             "account,  for  example, by creating new AWS Identity and Access Manage-"
-             "ment (IAM) users. For those stacks,  you  must  explicitly  acknowledge"
-             "their  capabilities by specifying this parameter. The only valid values"
-             "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources,"
-             "you  can specify either capability. If you have IAM resources with cus-"
-             "tom names, you must specify CAPABILITY_NAMED_IAM. If you don't  specify"
-             "this  parameter, this action returns an InsufficientCapabilities error.",
+        "before  AWS  Cloudformation  can create certain stacks. Some stack tem-"
+        "plates might include resources that can affect permissions in your  AWS"
+        "account,  for  example, by creating new AWS Identity and Access Manage-"
+        "ment (IAM) users. For those stacks,  you  must  explicitly  acknowledge"
+        "their  capabilities by specifying this parameter. The only valid values"
+        "are CAPABILITY_IAM and CAPABILITY_NAMED_IAM. If you have IAM resources,"
+        "you  can specify either capability. If you have IAM resources with cus-"
+        "tom names, you must specify CAPABILITY_NAMED_IAM. If you don't  specify"
+        "this  parameter, this action returns an InsufficientCapabilities error.",
     )
 
 
@@ -248,8 +248,8 @@ def tags_click_option():
         type=CfnTags(),
         required=False,
         help="A list of tags to associate with the stack that is created or updated."
-             "AWS CloudFormation also propagates these tags to resources "
-             "in the stack if the resource supports it.",
+        "AWS CloudFormation also propagates these tags to resources "
+        "in the stack if the resource supports it.",
     )
 
 
@@ -264,8 +264,8 @@ def notification_arns_click_option():
         type=FuncParamType(func=_space_separated_list_func_type),
         required=False,
         help="Amazon  Simple  Notification  Service  topic"
-             "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
-             "the stack.",
+        "Amazon  Resource  Names  (ARNs) that AWS CloudFormation associates with"
+        "the stack.",
     )
 
 

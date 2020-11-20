@@ -180,7 +180,10 @@ class GuidedContext:
             return
 
         click.echo("\n\t#Found code signing configurations in your function definitions")
-        sign_functions = confirm(f"\t{self.start_bold}Do you want to sign your code?{self.end_bold}", default=True,)
+        sign_functions = confirm(
+            f"\t{self.start_bold}Do you want to sign your code?{self.end_bold}",
+            default=True,
+        )
 
         if not sign_functions:
             LOG.debug("User skipped code signing, continuing rest of the process")
@@ -208,7 +211,8 @@ class GuidedContext:
                 layer_name, self.signing_profiles
             )
             click.echo(
-                f"\t#Signing profile details for layer '{layer_name}', which is used by functions {functions_use_this_layer}"
+                f"\t#Signing profile details for layer '{layer_name}', "
+                f"which is used by functions {functions_use_this_layer}"
             )
             profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)
             profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)

@@ -47,7 +47,12 @@ class TestCodeSignerUtils(TestCase):
                                             ("Handler", "app.lambda_handler"),
                                             ("Runtime", "python3.7"),
                                             ("CodeSigningConfigArn", "MyCodeSigningConfigArn"),
-                                            ("Layers", [OrderedDict([("Ref", layer_name)]),]),
+                                            (
+                                                "Layers",
+                                                [
+                                                    OrderedDict([("Ref", layer_name)]),
+                                                ],
+                                            ),
                                         ]
                                     ),
                                 ),
@@ -67,7 +72,12 @@ class TestCodeSignerUtils(TestCase):
                                             ("Handler", "app.lambda_handler2"),
                                             ("Runtime", "python3.7"),
                                             ("CodeSigningConfigArn", "MyCodeSigningConfigArn"),
-                                            ("Layers", [OrderedDict([("Ref", layer_name)]),]),
+                                            (
+                                                "Layers",
+                                                [
+                                                    OrderedDict([("Ref", layer_name)]),
+                                                ],
+                                            ),
                                         ]
                                     ),
                                 ),

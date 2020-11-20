@@ -328,8 +328,8 @@ class SigningProfilesOptionType(click.ParamType):
                 # code signing requires profile name, if it is not present then fail
                 if not signer_profile_name:
                     return self.fail(
-                        f"Signer profile option has invalid format, it should look like this MyFunction=MySigningProfile "
-                        f"or MyFunction=MySigningProfile:MySigningProfileOwner",
+                        "Signer profile option has invalid format, it should look like this "
+                        "MyFunction=MySigningProfile or MyFunction=MySigningProfile:MySigningProfileOwner",
                         param,
                         ctx,
                     )

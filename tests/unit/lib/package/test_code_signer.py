@@ -10,7 +10,10 @@ class TestCodeSigner(TestCase):
         self.signer_client = MagicMock()
 
     @parameterized.expand(
-        [param({}), param({"MyFunction": {"profile_name": "profile1", "profile_owner": ""}}),]
+        [
+            param({}),
+            param({"MyFunction": {"profile_name": "profile1", "profile_owner": ""}}),
+        ]
     )
     def test_should_sign_package(self, signing_profiles):
         code_signer = CodeSigner(self.signer_client, signing_profiles)

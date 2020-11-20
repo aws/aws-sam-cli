@@ -463,115 +463,6 @@ class TestDeployCliCommand(TestCase):
         mock_managed_stack,
         mock_get_template_data,
         mockauth_per_resource,
-        mock_print_deploy_args,
-        mock_deploy_context,
-        mock_deploy_click,
-        mock_package_context,
-        mock_package_click,
-    ):
-
-        context_mock = Mock()
-        mockauth_per_resource.return_value = [("HelloWorldResource", False)]
-
-        mock_get_template_parameters.return_value = {}
-        mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", ("CAPABILITY_IAM",)]
-        mock_confirm.side_effect = [True, False, True, True]
-        mock_get_cmd_names.return_value = ["deploy"]
-        mock_managed_stack.return_value = "managed-s3-bucket"
-        mock_signer_config_per_function.return_value = ({}, {})
-
-        do_cli(
-            template_file=self.template_file,
-            stack_name=self.stack_name,
-            s3_bucket=None,
-            force_upload=self.force_upload,
-            s3_prefix=self.s3_prefix,
-            kms_key_id=self.kms_key_id,
-            parameter_overrides=self.parameter_overrides,
-            capabilities=self.capabilities,
-            no_execute_changeset=self.no_execute_changeset,
-            role_arn=self.role_arn,
-            notification_arns=self.notification_arns,
-            fail_on_empty_changeset=self.fail_on_empty_changset,
-            tags=self.tags,
-            region=self.region,
-            profile=self.profile,
-            use_json=self.use_json,
-            metadata=self.metadata,
-            guided=True,
-            confirm_changeset=True,
-            signing_profiles=self.signing_profiles,
-        )
-
-        mock_deploy_context.assert_called_with(
-            template_file=ANY,
-            stack_name="sam-app",
-            s3_bucket="managed-s3-bucket",
-            force_upload=self.force_upload,
-            s3_prefix="sam-app",
-            kms_key_id=self.kms_key_id,
-            parameter_overrides=self.parameter_overrides,
-            capabilities=self.capabilities,
-            no_execute_changeset=self.no_execute_changeset,
-            role_arn=self.role_arn,
-            notification_arns=self.notification_arns,
-            fail_on_empty_changeset=self.fail_on_empty_changset,
-            tags=self.tags,
-            region="us-east-1",
-            profile=self.profile,
-            confirm_changeset=True,
-            signing_profiles=self.signing_profiles,
-        )
-
-        context_mock.run.assert_called_with()
-        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
-        self.assertEqual(context_mock.run.call_count, 1)
-
-        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 7)
-        self.assertEqual(
-            MOCK_SAM_CONFIG.put.call_args_list,
-            [
-                call(["deploy"], "parameters", "stack_name", "sam-app"),
-                call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket"),
-                call(["deploy"], "parameters", "s3_prefix", "sam-app"),
-                call(["deploy"], "parameters", "region", "us-east-1"),
-                call(["deploy"], "parameters", "confirm_changeset", True),
-                call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM"),
-                call(["deploy"], "parameters", "parameter_overrides", 'a="b"'),
-            ],
-        )
-
-    @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
-    @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
-    @patch("samcli.commands.deploy.guided_context.print_deploy_args")
-    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
-    @patch("samcli.commands.deploy.guided_context.get_template_data")
-    @patch("samcli.commands.deploy.guided_context.manage_stack")
-    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
-    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
-    @patch.object(
-        GuidedConfig,
-        "get_config_ctx",
-        MagicMock(return_value=(MockContext(info_name="deploy", parent=None), MOCK_SAM_CONFIG)),
-    )
-    @patch("samcli.commands.deploy.guided_context.prompt")
-    @patch("samcli.commands.deploy.guided_context.confirm")
-    @patch("samcli.commands.deploy.guided_config.SamConfig")
-    @patch("samcli.commands.deploy.guided_config.get_cmd_names")
-    def test_all_args_guided_no_params_save_config(
-        self,
-        mock_get_cmd_names,
-        mock_sam_config,
-        mock_confirm,
-        mock_prompt,
-        mock_signer_config_per_function,
-        mock_get_template_parameters,
-        mock_managed_stack,
-        mock_get_template_data,
-        mockauth_per_resource,
         mock_deploy_context,
         mock_deploy_click,
         mock_package_context,
@@ -782,6 +673,7 @@ class TestDeployCliCommand(TestCase):
             resolve_s3=True,
             config_file=self.config_file,
             config_env=self.config_env,
+            signing_profiles=self.signing_profiles,
         )
 
         mock_deploy_context.assert_called_with(
@@ -802,6 +694,7 @@ class TestDeployCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             confirm_changeset=self.confirm_changeset,
+            signing_profiles=self.signing_profiles,
         )
 
         context_mock.run.assert_called_with()
@@ -833,4 +726,5 @@ class TestDeployCliCommand(TestCase):
                 resolve_s3=True,
                 config_file=self.config_file,
                 config_env=self.config_env,
+                signing_profiles=self.signing_profiles,
             )

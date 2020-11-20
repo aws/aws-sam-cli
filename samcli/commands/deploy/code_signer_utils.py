@@ -23,7 +23,7 @@ def prompt_profile_owner(profile_owner, start_bold, end_bold):
         f"\t{start_bold}Signing Profile Owner Account ID (optional){end_bold}",
         type=STRING,
         default=profile_owner,
-        show_default=profile_owner != "",
+        show_default=len(profile_owner) > 0,
     )
 
     return profile_owner

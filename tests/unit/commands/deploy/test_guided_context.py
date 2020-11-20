@@ -155,13 +155,21 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_configuration_file_prompt_calls(
-        self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
+        self,
+        patched_signer_config_per_function,
+        patched_get_template_data,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
     ):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, True, True, ""]
         patched_manage_stack.return_value = "managed_s3_stack"
+        patched_signer_config_per_function.return_value = ({}, {})
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
@@ -197,13 +205,21 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_parameter_from_template(
-        self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
+        self,
+        patched_signer_config_per_function,
+        patched_get_template_data,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
     ):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, True, False, ""]
         patched_manage_stack.return_value = "managed_s3_stack"
+        patched_signer_config_per_function.return_value = ({}, {})
         parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
         self.gc.parameter_overrides_from_cmdline = {}
         self.gc.guided_prompts(parameter_override_keys=parameter_override_from_template)
@@ -236,13 +252,21 @@ class TestGuidedContext(TestCase):
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_data")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
     def test_guided_prompts_check_parameter_from_cmd_or_config(
-        self, patched_get_template_data, patchedauth_per_resource, patched_manage_stack, patched_confirm, patched_prompt
+        self,
+        patched_signer_config_per_function,
+        patched_get_template_data,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
     ):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_confirm.side_effect = [True, False, True, False, ""]
         patched_manage_stack.return_value = "managed_s3_stack"
+        patched_signer_config_per_function.return_value = ({}, {})
         parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
         self.gc.parameter_overrides_from_cmdline = {"MyTestKey": "OverridedValFromCmdLine", "NotUsedKey": "NotUsedVal"}
         self.gc.guided_prompts(parameter_override_keys=parameter_override_from_template)
@@ -306,7 +330,10 @@ class TestGuidedContext(TestCase):
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
-            call(f"\t{self.gc.start_bold}Do you want to sign your code?{self.gc.end_bold}", default=True,),
+            call(
+                f"\t{self.gc.start_bold}Do you want to sign your code?{self.gc.end_bold}",
+                default=True,
+            ),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
         ]
         self.assertEqual(expected_confirmation_calls, patched_confirm.call_args_list)
