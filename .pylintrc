@@ -59,27 +59,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=
-    R0201, # Method could be a function
-    W0613, # Unused argument %r
-    W0640, # Cell variable %s defined in loop A variable used in a closure is defined in a loop
-    I0021, # Useless suppression of %s
-    I0020, # Suppressed %s (from line %d)
-    W1618, # import missing `from __future__ import absolute_import` Used when an import is not accompanied by from __future__ import absolute_import (default behaviour in Python 3) This message can’t be emitted when using Python >= 3.0.
-    W1619, # division w/o __future__ statement Used for non-floor division w/o a float literal or from __future__ import division (Python 3 returns a float for int division unconditionally) This message can’t be emitted when using Python >= 3.0.
-    R0902, # Too many instance attributes (%s/%s)
-    R0903, # Too few public methods (%s/%s)
-    W0231, # __init__ method from base class %r is not called
-    W0611, # Unused import %s
-    R0913, # Too many arguments (%s/%s)
-    W0703, # Catching too general exception %s
-    C0330, # Wrong %s indentation%s%s.
-    R0204, # Redefinition of %s type from %s to %s Used when the type of a variable changes inside a method or a function.
-    I0011, # Locally disabling %s
-    R0904, # Too many public methods (%s/%s)
-    R0914, # Too many local variables (%s/%s)
-    C0301, # Line too long (%s/%s)
-    C0415  # Import outside toplevel (%s) Used when an import statement is used anywhere other than the module toplevel. Move this import to the top of the file.
+disable=R0201,W0613,W0640,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,R0914,C0301,C0415
 
 
 [REPORTS]
