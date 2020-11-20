@@ -45,8 +45,8 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         if ctx and ctx.default_map.get("template", None):
             provided_value = ctx.default_map.get("template")
         else:
-            # Default value was used. Value can either be template.yaml or template.yml.
-            # Decide based on which file exists .yml is the default, even if it does not exist.
+            # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
+            # .yml is the default, even if it does not exist.
             provided_value = "template.yml"
 
             for option in search_paths:

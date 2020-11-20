@@ -211,8 +211,7 @@ class CfnTags(click.ParamType):
         value = (value,) if not isinstance(value, tuple) else value
 
         for val in value:
-            # Using standard parser first.
-            # We should implement other type parser like JSON and Key=key,Value=val type format.
+            # Using standard parser first. We should implement other type parser like JSON and Key=key,Value=val type format.
             parsed, tags = self._standard_key_value_parser(val)
             if not parsed:
                 parsed, tags = self._space_separated_key_value_parser(val)
