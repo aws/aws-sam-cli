@@ -875,9 +875,9 @@ class TestArtifactExporter(unittest.TestCase):
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
-            metadata_type1_class.assert_called_once_with(self.s3_uploader_mock)
+            metadata_type1_class.assert_called_once_with(self.s3_uploader_mock, self.code_signer_mock)
             metadata_type1_instance.export.assert_called_once_with("metadata_type1", mock.ANY, template_dir)
-            metadata_type2_class.assert_called_once_with(self.s3_uploader_mock)
+            metadata_type2_class.assert_called_once_with(self.s3_uploader_mock, self.code_signer_mock)
             metadata_type2_instance.export.assert_called_once_with("metadata_type2", mock.ANY, template_dir)
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
