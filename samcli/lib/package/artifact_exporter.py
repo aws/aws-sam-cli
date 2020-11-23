@@ -664,7 +664,7 @@ class Template:
                 if exporter_class.RESOURCE_TYPE != metadata_type:
                     continue
 
-                exporter = exporter_class(self.uploader)
+                exporter = exporter_class(self.uploader, self.code_signer)
                 exporter.export(metadata_type, metadata_dict, self.template_dir)
 
         return template_dict
