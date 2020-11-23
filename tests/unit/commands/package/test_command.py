@@ -20,6 +20,7 @@ class TestPackageCliCommand(TestCase):
         self.region = None
         self.profile = None
         self.resolve_s3 = False
+        self.signing_profiles = {"MyFunction": {"profile_name": "ProfileName", "profile_owner": "Profile Owner"}}
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -41,6 +42,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             resolve_s3=self.resolve_s3,
+            signing_profiles=self.signing_profiles,
         )
 
         package_command_context.assert_called_with(
@@ -55,6 +57,7 @@ class TestPackageCliCommand(TestCase):
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
+            signing_profiles=self.signing_profiles,
         )
 
         context_mock.run.assert_called_with()
@@ -81,6 +84,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             resolve_s3=True,
+            signing_profiles=self.signing_profiles,
         )
 
         package_command_context.assert_called_with(
@@ -95,6 +99,7 @@ class TestPackageCliCommand(TestCase):
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
+            signing_profiles=self.signing_profiles,
         )
 
         context_mock.run.assert_called_with()
@@ -115,6 +120,7 @@ class TestPackageCliCommand(TestCase):
                 region=self.region,
                 profile=self.profile,
                 resolve_s3=True,
+                signing_profiles=self.signing_profiles,
             )
 
     def test_resolve_s3_and_s3_bucket_both_not_set(self):
@@ -132,4 +138,5 @@ class TestPackageCliCommand(TestCase):
                 region=self.region,
                 profile=self.profile,
                 resolve_s3=False,
+                signing_profiles=self.signing_profiles,
             )

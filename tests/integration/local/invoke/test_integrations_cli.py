@@ -439,7 +439,7 @@ class TestSamPython36HelloWorldIntegration(InvokeIntegBase):
 
 
 class TestSamInstrinsicsAndPlugins(InvokeIntegBase):
-    template = Path("template-pseudo-params.yaml")
+    template = "template-pseudo-params.yaml"
 
     @pytest.mark.flaky(reruns=3)
     def test_resolve_instrincs_which_runs_plugins(self):

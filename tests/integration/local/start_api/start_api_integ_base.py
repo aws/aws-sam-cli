@@ -1,5 +1,4 @@
-from typing import Optional
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
 import time
@@ -7,10 +6,13 @@ import os
 import random
 from pathlib import Path
 
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
 
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class StartApiIntegBaseClass(TestCase):
-    template: Optional[str] = None
-    binary_data_file: Optional[str] = None
+    template = None
+    binary_data_file = None
     integration_dir = str(Path(__file__).resolve().parents[2])
 
     @classmethod

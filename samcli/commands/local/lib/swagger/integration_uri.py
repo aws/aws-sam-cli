@@ -19,8 +19,7 @@ class LambdaUri:
     _FN_SUB = "Fn::Sub"
 
     # From an ARN like below, extract just the Lambda Function ARN
-    # arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:\
-    #   function:Calculator:ProdAlias/invocations  # NOQA
+    # arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:Calculator:ProdAlias/invocations  # NOQA
     _REGEX_GET_FUNCTION_ARN = r".*/functions/(.*)/invocations"
 
     # From Lamdba Function ARN like below, extract the function name. Note, the [^:] syntax is to capture only function
@@ -72,8 +71,7 @@ class LambdaUri:
         - String:
             - Fully resolved ARN
             - ARN with Stage Variables:
-              Ex: arn:aws:apigateway:ap-southeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-2:\
-                  123456789012:function:${stageVariables.PostFunctionName}/invocations  # NOQA
+              Ex: arn:aws:apigateway:ap-southeast-2:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-2:123456789012:function:${stageVariables.PostFunctionName}/invocations  # NOQA
 
         - Dictionary: Usually contains intrinsic functions
 
@@ -199,8 +197,7 @@ class LambdaUri:
                 "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
             }
 
-            Output: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:\
-                     LambdaFunction/invocations"  # NOQA
+            Output: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:LambdaFunction/invocations"  # NOQA
 
         Note
         ~~~~

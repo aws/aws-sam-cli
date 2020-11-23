@@ -5,7 +5,6 @@ All-in-one metadata about runtimes
 import itertools
 import os
 import pathlib
-from typing import Set
 
 _init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
 _templates = os.path.join(_init_path, "init", "templates")
@@ -86,16 +85,14 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "java8.al2": ["maven", "gradle"],
 }
 
-SUPPORTED_DEP_MANAGERS: Set[str] = {
-    c["dependency_manager"]  # type: ignore
+SUPPORTED_DEP_MANAGERS = {
+    c["dependency_manager"]
     for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))
     if c["dependency_manager"]
 }
 
-RUNTIMES: Set[str] = set(
-    itertools.chain(
-        *[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))]  # type: ignore
-    )
+RUNTIMES = set(
+    itertools.chain(*[c["runtimes"] for c in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values())))])
 )
 
 # When adding new Lambda runtimes, please update SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING
@@ -123,8 +120,7 @@ INIT_RUNTIMES = [
     "dotnetcore2.1",
 ]
 
-# Schemas Code lang is a MINIMUM supported version
-# this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
+# Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
 SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java8": "Java8",
     "java8.al2": "Java8",

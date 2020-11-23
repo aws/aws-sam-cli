@@ -72,6 +72,16 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Handler": "index.handler",
                 },
             },
+            "LambdaFuncWithCodeSignConfig": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "FunctionName": "LambdaFuncWithCodeSignConfig",
+                    "Code": "./some/path/to/code",
+                    "Runtime": "nodejs4.3",
+                    "Handler": "index.handler",
+                    "CodeSigningConfigArn": "codeSignConfigArn",
+                },
+            },
             "OtherResource": {
                 "Type": "AWS::Serverless::Api",
                 "Properties": {"StageName": "prod", "DefinitionUri": "s3://bucket/key"},
@@ -100,6 +110,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
                 ),
             ),
             (
@@ -117,6 +128,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
                 ),
             ),
             (
@@ -134,6 +146,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
                 ),
             ),
             (
@@ -151,6 +164,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
                 ),
             ),
             (
@@ -168,6 +182,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
                 ),
             ),
             (
@@ -185,6 +200,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
                 ),
             ),
             (
@@ -202,6 +218,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
                 ),
             ),
             (
@@ -219,6 +236,25 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    codesign_config_arn=None,
+                ),
+            ),
+            (
+                "LambdaFuncWithCodeSignConfig",
+                Function(
+                    name="LambdaFuncWithCodeSignConfig",
+                    functionname="LambdaFuncWithCodeSignConfig",
+                    runtime="nodejs4.3",
+                    handler="index.handler",
+                    codeuri="./some/path/to/code",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata=None,
+                    codesign_config_arn="codeSignConfigArn",
                 ),
             ),
         ]
@@ -239,6 +275,7 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "LambdaFunc1",
             "LambdaFuncWithLocalPath",
             "LambdaFuncWithFunctionNameOverride",
+            "LambdaFuncWithCodeSignConfig",
         }
 
         self.assertEqual(result, expected)
@@ -359,6 +396,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             layers=["Layer1", "Layer2"],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -383,6 +421,7 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
@@ -447,6 +486,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             layers=["Layer1", "Layer2"],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, ["Layer1", "Layer2"])
@@ -471,6 +511,7 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         result = SamFunctionProvider._convert_lambda_function_resource(name, properties, [])
@@ -570,6 +611,7 @@ class TestSamFunctionProvider_get(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
         provider.functions = {"func1": function}
 

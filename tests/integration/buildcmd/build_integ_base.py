@@ -149,6 +149,7 @@ class BuildIntegBase(TestCase):
 
 
 class BuildIntegRubyBase(BuildIntegBase):
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
     EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
     EXPECTED_RUBY_GEM = "aws-record"
 

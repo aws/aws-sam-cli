@@ -2,7 +2,7 @@
 
 import click
 
-from boto3.session import Session
+from boto3 import Session
 from samcli.commands.local.cli_common.user_exceptions import ResourceNotFound
 
 
