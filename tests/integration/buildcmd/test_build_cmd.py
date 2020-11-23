@@ -11,11 +11,14 @@ import pytest
 
 from samcli.lib.utils import osutils
 from .build_integ_base import BuildIntegBase, DedupBuildIntegBase, CachedBuildIntegBase, BuildIntegRubyBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE, run_command, RUN_BY_CANARY
-
-# Tests require docker suffers from Docker Hub request limit
-SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
-SKIP_DOCKER_MESSAGE = "The test which sends requests to docker hub is likely to fail due to request limit"
+from tests.testing_utils import (
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+    CI_OVERRIDE,
+    run_command,
+    SKIP_DOCKER_TESTS,
+    SKIP_DOCKER_MESSAGE,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -93,9 +96,10 @@ class TestBuildCommand_PythonFunctions(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
@@ -379,9 +383,13 @@ class TestBuildCommand_Java(BuildIntegBase):
         # If we are testing in the container, invoke the function as well. Otherwise we cannot guarantee docker is on appveyor
         if use_container:
             expected = "Hello World"
-            self._verify_invoke_built_function(
-                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-            )
+            if not SKIP_DOCKER_TESTS:
+                self._verify_invoke_built_function(
+                    self.built_template,
+                    self.FUNCTION_LOGICAL_ID,
+                    self._make_parameter_override_arg(overrides),
+                    expected,
+                )
 
             self.verify_docker_container_cleanedup(runtime)
 
@@ -484,9 +492,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
 
         self.verify_docker_container_cleanedup(runtime)
 
@@ -570,9 +579,10 @@ class TestBuildCommand_Go_Modules(BuildIntegBase):
         )
 
         expected = "{'message': 'Hello World'}"
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
 
         self.verify_docker_container_cleanedup(runtime)
 
@@ -658,9 +668,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         self._verify_built_artifact(self.default_build_dir, function_identifier, self.EXPECTED_FILES_PROJECT_MANIFEST)
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, function_identifier, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, function_identifier, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
@@ -787,9 +798,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([("python3.7", False), ("python3.7", "use_container")])
@@ -821,9 +833,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
         expected = {"pi": "3.14"}
-        self._verify_invoke_built_function(
-            self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, "FunctionOne", self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(
@@ -891,9 +904,10 @@ class TestBuildCommand_ProvidedFunctions(BuildIntegBase):
         expected = "2.23.0"
         # Building was done with a makefile, but invoke should be checked with corresponding python image.
         overrides["Runtime"] = self._get_python_version()
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     def _verify_built_artifact(self, build_dir, function_logical_id, expected_files):
@@ -959,9 +973,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         expected = "2.23.0"
         # Building was done with a makefile, invoke is checked with the same runtime image.
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
@@ -992,9 +1007,10 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
         expected = "2.23.0"
         # Building was done with a `python-pip` builder, invoke is checked with the same runtime image.
-        self._verify_invoke_built_function(
-            self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_invoke_built_function(
+                self.built_template, self.FUNCTION_LOGICAL_ID, self._make_parameter_override_arg(overrides), expected
+            )
         self.verify_docker_container_cleanedup(runtime)
 
     @parameterized.expand([(False,), ("use_container")])
@@ -1091,9 +1107,10 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(
-            expected_messages, command_result, self._make_parameter_override_arg(overrides)
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(
+                expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
 
 
 @skipIf(
@@ -1116,7 +1133,8 @@ class TestBuildWithDedupBuildsMakefile(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(expected_messages, command_result, "")
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(expected_messages, command_result, "")
 
     def _verify_process_code_and_output(self, command_result):
         """
@@ -1175,9 +1193,10 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(
-            expected_messages, command_result, self._make_parameter_override_arg(overrides)
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(
+                expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
 
 
 @skipIf(
@@ -1230,6 +1249,7 @@ class TestParallelBuilds(DedupBuildIntegBase):
 
         expected_messages = ["World", "Mars"]
 
-        self._verify_build_and_invoke_functions(
-            expected_messages, command_result, self._make_parameter_override_arg(overrides)
-        )
+        if not SKIP_DOCKER_TESTS:
+            self._verify_build_and_invoke_functions(
+                expected_messages, command_result, self._make_parameter_override_arg(overrides)
+            )
