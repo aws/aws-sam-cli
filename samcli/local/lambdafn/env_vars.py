@@ -195,7 +195,7 @@ class EnvironmentVariables:
         # str(True) will output "True". To maintain backwards compatibility we need to output "true" or "false"
         elif value is True:
             result = "true"
-        elif value is False:  # pylint: disable=compare-to-zero
+        elif value is False:
             result = "false"
 
         # value is a scalar type like int, str which can be stringified

@@ -120,8 +120,7 @@ INIT_RUNTIMES = [
     "dotnetcore2.1",
 ]
 
-# Schemas Code lang is a MINIMUM supported version
-# this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
+# Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
 SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java8": "Java8",
     "java8.al2": "Java8",

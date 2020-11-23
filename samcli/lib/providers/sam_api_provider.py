@@ -95,8 +95,8 @@ class SamApiProvider(CfnBaseApiProvider):
 
     def _extract_from_serverless_http(self, logical_id, api_resource, collector, cwd=None):
         """
-        Extract APIs from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents.
-        The result is added to the collector.
+        Extract APIs from AWS::Serverless::HttpApi resource by reading and parsing Swagger documents. The result is added
+        to the collector.
 
         Parameters
         ----------
