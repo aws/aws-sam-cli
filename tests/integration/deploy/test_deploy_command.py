@@ -36,6 +36,23 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         PackageIntegBase.setUpClass()
         DeployIntegBase.setUpClass()
 
+        # create signing profile which will be used for code signing tests
+        signer_client = boto3.client("signer")
+
+        cls.signing_profile_name = str(uuid.uuid4().hex)
+        put_signing_profile_result = signer_client.put_signing_profile(
+            profileName=cls.signing_profile_name, platformId="AWSLambda-SHA384-ECDSA"
+        )
+        cls.signing_profile_version_arn = put_signing_profile_result.get("profileVersionArn")
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+
+        # cancel signing profile after all tests completes
+        signer_client = boto3.client("signer")
+        signer_client.cancel_signing_profile(profileName=cls.signing_profile_name)
+
     def setUp(self):
         self.cf_client = boto3.client("cloudformation")
         self.sns_arn = os.environ.get("AWS_SNS")
@@ -701,7 +718,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             signing_profiles=signing_profiles_param,
             parameter_overrides=f"SigningProfileVersionArn={signing_profile_version_arn} "
-            f"UntrustedArtifactOnDeployment={enforce_param}",
+                                f"UntrustedArtifactOnDeployment={enforce_param}",
         )
 
         deploy_process_execute = run_command(deploy_command_list)
