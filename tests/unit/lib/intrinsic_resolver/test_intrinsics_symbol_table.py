@@ -119,7 +119,7 @@ class TestSymbolResolution(TestCase):
 
     def test_arn_resolver_lambda(self):
         res = IntrinsicsSymbolTable().arn_resolver("test", service_name="lambda")
-        self.assertEquals(res, "arn:aws:lambda:us-east-1:123456789012:function:test")
+        self.assertEqual(res, "arn:aws:lambda:us-east-1:123456789012:function:test")
 
     def test_arn_resolver_sns(self):
         res = IntrinsicsSymbolTable().arn_resolver("test", service_name="sns")
@@ -128,7 +128,7 @@ class TestSymbolResolution(TestCase):
     def test_arn_resolver_lambda_with_function_name(self):
         template = {"Resources": {"LambdaFunction": {"Properties": {"FunctionName": "function-name-override"}}}}
         res = IntrinsicsSymbolTable(template=template).arn_resolver("LambdaFunction", service_name="lambda")
-        self.assertEquals(res, "arn:aws:lambda:us-east-1:123456789012:function:function-name-override")
+        self.assertEqual(res, "arn:aws:lambda:us-east-1:123456789012:function:function-name-override")
 
     def test_resolver_ignore_errors(self):
         resolver = IntrinsicsSymbolTable()

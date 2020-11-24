@@ -110,7 +110,7 @@ def parse_s3_url(url, bucket_name_property="Bucket", object_key_property="Key", 
     raise ValueError("URL given to the parse method is not a valid S3 url " "{0}".format(url))
 
 
-def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader):
+def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir, uploader, extension=None):
     """
     Upload local artifacts referenced by the property at given resource and
     return S3 URL of the uploaded object. It is the responsibility of callers
@@ -130,6 +130,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
     :param parent_dir:      Resolve all relative paths with respect to this
                             directory
     :param uploader:        Method to upload files to S3
+    :param extension:       Extension of the uploaded artifact
 
     :return:                S3 URL of the uploaded object
     :raise:                 ValueError if path is not a S3 URL or a local path
@@ -153,7 +154,7 @@ def upload_local_artifacts(resource_id, resource_dict, property_name, parent_dir
 
     # Or, pointing to a folder. Zip the folder and upload
     if is_local_folder(local_path):
-        return zip_and_upload(local_path, uploader)
+        return zip_and_upload(local_path, uploader, extension)
 
     # Path could be pointing to a file. Upload the file
     if is_local_file(local_path):
@@ -169,9 +170,9 @@ def resource_not_packageable(resource_dict):
     return False
 
 
-def zip_and_upload(local_path, uploader):
+def zip_and_upload(local_path, uploader, extension):
     with zip_folder(local_path) as (zip_file, md5_hash):
-        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash)
+        return uploader.upload_with_dedup(zip_file, precomputed_md5=md5_hash, extension=extension)
 
 
 @contextmanager
@@ -214,8 +215,7 @@ def make_zip(file_name, source_root):
                             # Originally set to 0005 in the discussion below
                             # https://github.com/aws/aws-sam-cli/pull/2193#discussion_r513110608
                             # Changed to 0755 due to a regression in https://github.com/aws/aws-sam-cli/issues/2344
-                            # Mimicking Unix permission bits and recommanded permission bits
-                            # in the Lambda Trouble Shooting Docs.
+                            # Mimicking Unix permission bits and recommanded permission bits in the Lambda Trouble Shooting Docs
                             info.external_attr = 0o100755 << 16
                             # Set host OS to Unix
                             info.create_system = 3
@@ -258,8 +258,9 @@ class Resource:
     # up the file before uploading This is useful for Lambda functions.
     FORCE_ZIP = False
 
-    def __init__(self, uploader):
+    def __init__(self, uploader, code_signer):
         self.uploader = uploader
+        self.code_signer = code_signer
 
     def export(self, resource_id, resource_dict, parent_dir):
         if resource_dict is None:
@@ -300,8 +301,20 @@ class Resource:
         """
         Default export action is to upload artifacts and set the property to
         S3 URL of the uploaded object
+        If code signing configuration is provided for function/layer, uploaded artifact
+        will be replaced by signed artifact location
         """
-        uploaded_url = upload_local_artifacts(resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader)
+        # code signer only accepts files which has '.zip' extension in it
+        # so package artifact with '.zip' if it is required to be signed
+        should_sign_package = self.code_signer.should_sign_package(resource_id)
+        artifact_extension = "zip" if should_sign_package else None
+        uploaded_url = upload_local_artifacts(
+            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader, artifact_extension
+        )
+        if should_sign_package:
+            uploaded_url = self.code_signer.sign_package(
+                resource_id, uploaded_url, self.uploader.get_version_of_artifact(uploaded_url)
+            )
         set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
 
 
@@ -500,7 +513,7 @@ class CloudFormationStackResource(Resource):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(template_path, parent_dir, self.uploader).export()
+        exported_template_dict = Template(template_path, parent_dir, self.uploader, self.code_signer).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -594,6 +607,7 @@ class Template:
         template_path,
         parent_dir,
         uploader,
+        code_signer,
         resources_to_export=frozenset(RESOURCES_EXPORT_LIST),
         metadata_to_export=frozenset(METADATA_EXPORT_LIST),
     ):
@@ -614,6 +628,7 @@ class Template:
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploader = uploader
+        self.code_signer = code_signer
 
     def export_global_artifacts(self, template_dict):
         """
@@ -649,7 +664,7 @@ class Template:
                 if exporter_class.RESOURCE_TYPE != metadata_type:
                     continue
 
-                exporter = exporter_class(self.uploader)
+                exporter = exporter_class(self.uploader, self.code_signer)
                 exporter.export(metadata_type, metadata_dict, self.template_dir)
 
         return template_dict
@@ -704,7 +719,7 @@ class Template:
                     continue
 
                 # Export code resources
-                exporter = exporter_class(self.uploader)
+                exporter = exporter_class(self.uploader, self.code_signer)
                 exporter.export(resource_id, resource_dict, self.template_dir)
 
         return self.template_dict
