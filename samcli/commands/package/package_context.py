@@ -21,9 +21,11 @@ import os
 
 import boto3
 import click
+from botocore.config import Config
 
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
+from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
@@ -58,6 +60,7 @@ class PackageContext:
         region,
         profile,
         on_deploy=False,
+        signing_profiles=None,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -72,6 +75,8 @@ class PackageContext:
         self.profile = profile
         self.on_deploy = on_deploy
         self.s3_uploader = None
+        self.code_signer = None
+        self.signing_profiles = signing_profiles
 
     def __enter__(self):
         return self
@@ -94,6 +99,9 @@ class PackageContext:
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
 
+        code_signer_client = boto3.client("signer")
+        self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
+
         try:
             exported_str = self._export(self.template_file, self.use_json)
 
@@ -109,7 +117,7 @@ class PackageContext:
             raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.s3_uploader)
+        template = Template(template_path, os.getcwd(), self.s3_uploader, self.code_signer)
         exported_template = template.export()
 
         if use_json:

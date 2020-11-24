@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from unittest import TestCase
 
-from boto3.session import Session
+from boto3 import Session
 from botocore.exceptions import ClientError
 from click.testing import CliRunner
 from samcli.commands.init import cli as init_cmd

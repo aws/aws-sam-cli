@@ -76,7 +76,6 @@ for:
       - "venv\\Scripts\\activate"
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
 
   - 
@@ -130,10 +129,13 @@ for:
     test_script:
       - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
-      - "mypy setup.py samcli tests"
       - "pytest -n 4 tests/functional"
 
-      # Runs only in Linux
+      # Runs only in Linux, logging docker hub when running canary and docker cred is available
+      - sh: "
+        if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
+          then echo Log in docker hub as $DOCKER_USER; docker login -u=$DOCKER_USER -p=$DOCKER_PASS;
+        fi"
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
       - sh: "black --check setup.py tests samcli"
