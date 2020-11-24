@@ -718,7 +718,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             signing_profiles=signing_profiles_param,
             parameter_overrides=f"SigningProfileVersionArn={signing_profile_version_arn} "
-                                f"UntrustedArtifactOnDeployment={enforce_param}",
+            f"UntrustedArtifactOnDeployment={enforce_param}",
         )
 
         deploy_process_execute = run_command(deploy_command_list)
