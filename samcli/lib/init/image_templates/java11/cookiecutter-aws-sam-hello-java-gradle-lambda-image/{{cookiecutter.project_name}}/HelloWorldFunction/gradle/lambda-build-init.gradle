@@ -1,0 +1,105 @@
+import groovy.io.FileType
+import java.nio.file.FileAlreadyExistsException
+import java.nio.file.Files
+import java.nio.file.FileVisitOption
+import java.nio.file.FileVisitResult
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.SimpleFileVisitor
+import java.security.MessageDigest
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+import java.util.zip.ZipEntry
+
+gradle.ext.SCRATCH_DIR_PROPERTY = 'software.amazon.aws.lambdabuilders.scratch-dir'
+
+// Called after the project has been evaluated
+gradle.afterProject({p ->
+    def buildDir = buildDirForProject(p)
+    p.buildDir = buildDir
+})
+
+gradle.taskGraph.afterTask{ t ->
+    if (t.name != 'build') {
+        return;
+    }
+
+    def artifactJars = t.project.configurations.archives.artifacts.files.files
+
+    def runtimeCpJars = t.project.configurations.runtimeClasspath.files
+
+    def artifactDir = createArtifactDir(t.project)
+
+    copyToArtifactDir(artifactDir, artifactJars, runtimeCpJars)
+}
+
+def buildDirForProject(p) {
+    def scratchDir = System.properties[SCRATCH_DIR_PROPERTY]
+    if (scratchDir == null) {
+        throw new RuntimeException("Missing '${SCRATCH_DIR_PROPERTY}' value")
+    }
+    return Paths.get(scratchDir, scratchDirForProject(p), 'build')
+}
+
+def scratchDirForProject(p) {
+    def sha1 = MessageDigest.getInstance('SHA-1')
+    return sha1.digest(p.projectDir.toString().getBytes('UTF-8')).encodeHex().toString()
+}
+
+def assertExpectedBuildDir(p) {
+    def expected = buildDirForProject(p)
+    if (!expected.equals(p.buildDir.toPath())) {
+        throw new RuntimeException("Project buildDir was changed by the project build script! Expected $expected but found ${p.buildDir}")
+    }
+}
+
+def createArtifactDir(project) {
+    def distsDir = project.buildDir.toPath().resolve(project.distsDirName).resolve('lambda-build')
+    return makeDirs(distsDir)
+}
+
+def copyToArtifactDir(artifactDir, artifactJars, classPathJars) {
+    artifactJars.each {
+        it.withInputStream({ jis ->
+            def zipIs = new ZipInputStream(jis)
+            for (def e = zipIs.getNextEntry(); e != null; e = zipIs.getNextEntry()) {
+                def entryPath = artifactDir.resolve(e.name)
+                if (e.isDirectory()) {
+                    makeDirs(entryPath)
+                } else {
+                    copyToFile(zipIs, entryPath)
+                }
+                zipIs.closeEntry()
+            }
+            zipIs.close()
+        })
+    }
+
+    def libDir = artifactDir.resolve('lib')
+    makeDirs(libDir)
+    classPathJars.each {
+        def jarPath = libDir.resolve(it.name)
+        it.withInputStream({ jIs ->
+            copyToFile(jIs, jarPath)
+        })
+    }
+}
+
+def makeDirs(p) {
+    try {
+        Files.createDirectories(p)
+    } catch (FileAlreadyExistsException e) {
+        // ignored
+    }
+    return p
+}
+
+def copyToFile(zipIs, path) {
+    path.withOutputStream({ fos ->
+        byte[] buff = new byte[4096]
+        int bytesRead
+        while ((bytesRead = zipIs.read(buff)) != -1) {
+            fos.write(buff, 0, bytesRead)
+        }
+    })
+}
