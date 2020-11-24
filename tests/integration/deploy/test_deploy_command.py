@@ -25,7 +25,6 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 
 @skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
 class TestDeploy(PackageIntegBase, DeployIntegBase):
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -638,7 +637,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             tags="integ=true clarity=yes foo_bar=baz",
             signing_profiles=signing_profiles_param,
             parameter_overrides=f"SigningProfileVersionArn={signing_profile_version_arn} "
-                                f"UntrustedArtifactOnDeployment={enforce_param}",
+            f"UntrustedArtifactOnDeployment={enforce_param}",
         )
 
         deploy_process_execute = run_command(deploy_command_list)
