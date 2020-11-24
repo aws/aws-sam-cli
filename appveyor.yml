@@ -134,7 +134,7 @@ for:
       # Runs only in Linux, logging docker hub when running canary and docker cred is available
       - sh: "
         if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
-          then echo Log in docker hub as $DOCKER_USER; docker login -u=$DOCKER_USER -p=$DOCKER_PASS;
+          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
         fi"
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
