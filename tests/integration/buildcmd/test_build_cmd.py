@@ -485,8 +485,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
         [
             ("dotnetcore2.1", "Dotnetcore2.1", None),
             ("dotnetcore3.1", "Dotnetcore3.1", None),
+            ("dotnet5.0", "Dotnet5.0", None),
             ("dotnetcore2.1", "Dotnetcore2.1", "debug"),
             ("dotnetcore3.1", "Dotnetcore3.1", "debug"),
+            ("dotnet5.0", "Dotnet5.0", "debug"),
         ]
     )
     @pytest.mark.flaky(reruns=3)
@@ -539,7 +541,13 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegBase):
 
         self.verify_docker_container_cleanedup(runtime)
 
-    @parameterized.expand([("dotnetcore2.1", "Dotnetcore2.1"), ("dotnetcore3.1", "Dotnetcore3.1")])
+    @parameterized.expand(
+        [
+            ("dotnetcore2.1", "Dotnetcore2.1"),
+            ("dotnetcore3.1", "Dotnetcore3.1"),
+            ("dotnet5.0", "Dotnet5.0"),
+        ]
+    )
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
     @pytest.mark.flaky(reruns=3)
     def test_must_fail_with_container(self, runtime, code_uri):

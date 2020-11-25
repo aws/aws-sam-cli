@@ -38,7 +38,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "dotnet": [
         {
-            "runtimes": ["dotnetcore3.1", "dotnetcore2.1"],
+            "runtimes": ["dotnet5.0", "dotnetcore3.1", "dotnetcore2.1"],
             "dependency_manager": "cli-package",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-dotnet"),
             "build": True,
@@ -86,6 +86,7 @@ RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "ruby2.7": ["bundler"],
     "nodejs12.x": ["npm"],
     "nodejs10.x": ["npm"],
+    "dotnet5.0": ["cli-package"],
     "dotnetcore3.1": ["cli-package"],
     "dotnetcore2.1": ["cli-package"],
     "go1.x": ["mod"],
@@ -142,6 +143,7 @@ LAMBDA_IMAGES_RUNTIMES = [
     "amazon/java11-base",
     "amazon/java8.al2-base",
     "amazon/java8-base",
+    "amazon/dotnet5.0-base",
     "amazon/dotnetcore3.1-base",
     "amazon/dotnetcore2.1-base",
 ]
