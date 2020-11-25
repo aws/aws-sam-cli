@@ -38,6 +38,7 @@ class TestCli(TestCase):
         self.force_image_build = True
         self.region_name = "region"
         self.profile = "profile"
+        self.shutdown = False
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
@@ -59,6 +60,7 @@ class TestCli(TestCase):
             template=self.template,
             event=self.eventfile,
             no_event=self.no_event,
+            shutdown=self.shutdown,
             env_vars=self.env_vars,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
@@ -91,7 +93,11 @@ class TestCli(TestCase):
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_name, event=event_data, stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_name,
+            event=event_data,
+            stdout=context_mock.stdout,
+            stderr=context_mock.stderr,
+            shutdown=False,
         )
         get_event_mock.assert_called_with(self.eventfile)
 
@@ -113,6 +119,7 @@ class TestCli(TestCase):
             template=self.template,
             event=self.event,
             no_event=self.no_event,
+            shutdown=self.shutdown,
             env_vars=self.env_vars,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
@@ -146,7 +153,11 @@ class TestCli(TestCase):
 
         get_event_mock.assert_not_called()
         context_mock.local_lambda_runner.invoke.assert_called_with(
-            context_mock.function_name, event="{}", stdout=context_mock.stdout, stderr=context_mock.stderr
+            context_mock.function_name,
+            event="{}",
+            stdout=context_mock.stdout,
+            stderr=context_mock.stderr,
+            shutdown=False,
         )
 
     @parameterized.expand(
@@ -181,6 +192,7 @@ class TestCli(TestCase):
                 template=self.template,
                 event=self.eventfile,
                 no_event=self.no_event,
+                shutdown=self.shutdown,
                 env_vars=self.env_vars,
                 debug_port=self.debug_ports,
                 debug_args=self.debug_args,
@@ -229,6 +241,7 @@ class TestCli(TestCase):
                 template=self.template,
                 event=self.eventfile,
                 no_event=self.no_event,
+                shutdown=self.shutdown,
                 env_vars=self.env_vars,
                 debug_port=self.debug_ports,
                 debug_args=self.debug_args,
@@ -265,6 +278,7 @@ class TestCli(TestCase):
                 template=self.template,
                 event=self.eventfile,
                 no_event=self.no_event,
+                shutdown=self.shutdown,
                 env_vars=self.env_vars,
                 debug_port=self.debug_ports,
                 debug_args=self.debug_args,

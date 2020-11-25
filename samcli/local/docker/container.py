@@ -170,6 +170,20 @@ class Container:
 
         return self.id
 
+    def stop(self, time=3):
+        """
+        Stop a container, with a given number of seconds between sending SIGTERM and SIGKILL.
+        """
+        if not self.is_created():
+            LOG.debug("Container was not created. Cannot run stop")
+            return
+
+        try:
+            self.docker_client.containers.get(self.id).stop(timeout=time)
+        except docker.errors.NotFound:
+            # Container is already not there
+            LOG.debug("Container with ID %s does not exist. Cannot stop", self.id)
+
     def delete(self):
         """
         Removes a container that was created earlier.

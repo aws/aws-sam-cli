@@ -9,6 +9,7 @@ import signal
 import logging
 import threading
 from contextlib import contextmanager
+from time import sleep
 
 from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.local.docker.lambda_container import LambdaContainer
@@ -40,7 +41,7 @@ class LambdaRuntime:
         self._container_manager = container_manager
         self._image_builder = image_builder
 
-    def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
+    def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None, shutdown=False):
         """
         Invoke the given Lambda function locally.
 
@@ -56,6 +57,7 @@ class LambdaRuntime:
         :param DebugContext debug_context: Debugging context for the function (includes port, args, and path)
         :param io.IOBase stdout: Optional. IO Stream to that receives stdout text from container.
         :param io.IOBase stderr: Optional. IO Stream that receives stderr text from container
+        :param shutdown: Optional. If True, will send shut down event to the container after invoke completes.
         :raises Keyboard
         """
         timer = None
@@ -113,7 +115,10 @@ class LambdaRuntime:
                 # If we are in debugging mode, timer would not be created. So skip cleanup of the timer
                 if timer:
                     timer.cancel()
-                self._container_manager.stop(container)
+                if extensions_preview_enabled() and shutdown:
+                    self._container_manager.stop(container, do_shutdown_event=True)
+                else:
+                    self._container_manager.stop(container)
 
     def _configure_interrupt(self, function_name, timeout, container, is_debugging):
         """

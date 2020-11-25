@@ -109,12 +109,15 @@ class ContainerManager:
 
         container.start(input_data=input_data)
 
-    def stop(self, container):
+    def stop(self, container, do_shutdown_event=False):
         """
         Stop and delete the container
 
         :param samcli.local.docker.container.Container container: Container to stop
         """
+        if do_shutdown_event:
+            LOG.debug("Sending shutdown event to execution environment!")
+            container.stop()
         container.delete()
 
     def pull_image(self, image_name, stream=None):

@@ -456,6 +456,7 @@ class TestLocalLambda_invoke(TestCase):
         stderr = "stderr"
         function = Mock(functionname="name")
         invoke_config = "config"
+        shutdown = False
 
         self.function_provider_mock.get_all.return_value = [function]
         self.local_lambda._get_invoke_config = Mock()
@@ -464,7 +465,7 @@ class TestLocalLambda_invoke(TestCase):
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
-            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr
+            invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr, shutdown=shutdown
         )
 
     def test_must_raise_if_function_not_found(self):

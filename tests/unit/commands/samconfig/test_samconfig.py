@@ -159,6 +159,7 @@ class TestSamConfigForAllCommands(TestCase):
             "skip_pull_image": True,
             "force_image_build": True,
             "parameter_overrides": "ParameterKey=Key,ParameterValue=Value ParameterKey=Key2,ParameterValue=Value2",
+            "shutdown": False,
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
@@ -181,6 +182,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "foo",
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "event",
+                False,
                 False,
                 "envvar.json",
                 (1, 2, 3),

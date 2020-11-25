@@ -40,6 +40,12 @@ STDIN_FILE_NAME = "-"
     "is not specified, no event is assumed. Pass in the value '-' to input JSON via stdin",
 )
 @click.option("--no-event", is_flag=True, default=True, help="DEPRECATED: By default no event is assumed.", hidden=True)
+@click.option(
+    "--shutdown",
+    is_flag=True,
+    default=False,
+    help="If set, will emulate a shutdown event after the invoke completes, in order to test extension handling of shutdown behavior. Must set ENABLE_LAMBDA_EXTENSIONS_PREVIEW=1 for this to have an effect.",
+)
 @invoke_common_options
 @cli_framework_options
 @aws_creds_options
@@ -52,6 +58,7 @@ def cli(
     template_file,
     event,
     no_event,
+    shutdown,
     env_vars,
     debug_port,
     debug_args,
@@ -75,6 +82,7 @@ def cli(
         template_file,
         event,
         no_event,
+        shutdown,
         env_vars,
         debug_port,
         debug_args,
@@ -95,6 +103,7 @@ def do_cli(  # pylint: disable=R0914
     template,
     event,
     no_event,
+    shutdown,
     env_vars,
     debug_port,
     debug_args,
@@ -150,7 +159,7 @@ def do_cli(  # pylint: disable=R0914
 
             # Invoke the function
             context.local_lambda_runner.invoke(
-                context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr
+                context.function_name, event=event_data, stdout=context.stdout, stderr=context.stderr, shutdown=shutdown
             )
 
     except FunctionNotFound as ex:
