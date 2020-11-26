@@ -121,7 +121,7 @@ class TestEventTypeSubCommand(TestCase):
 
         # Disable telemetry
         self.old_environ = os.environ.copy()
-        os.environ["SAM_CLI_TELEMETRY"] = 0
+        os.environ["SAM_CLI_TELEMETRY"] = "0"
 
     def tearDown(self):
         os.environ = self.old_environ
@@ -163,7 +163,6 @@ class TestEventTypeSubCommand(TestCase):
             short_help="Generates a hello Event",
             params=[],
             callback=callback_object_mock,
-            context_settings={"default_map": {}},
         )
 
     def test_subcommand_list_return_value(self):

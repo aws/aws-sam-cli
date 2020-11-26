@@ -7,7 +7,6 @@ import re
 import logging
 
 from enum import Enum
-from six import string_types
 
 LOG = logging.getLogger(__name__)
 
@@ -113,7 +112,7 @@ class LambdaUri:
             LOG.debug("Resolved Sub intrinsic function: %s", uri_data)
 
         # Even after processing intrinsics, this is not a string. Give up.
-        if not isinstance(uri_data, string_types):
+        if not isinstance(uri_data, str):
             LOG.debug("This Integration URI format is not supported: %s", uri_data)
             return None
 
@@ -233,7 +232,7 @@ class LambdaUri:
             # Get the ARN out of the list
             arn = arn[0]
 
-        if not isinstance(arn, string_types):
+        if not isinstance(arn, str):
             # Even after all the processing, ARN is still not a string. Probably customer provided wrong syntax
             # for Fn::Sub. Let's skip this altogether
             LOG.debug("Unable to resolve Fn::Sub value for integration URI: %s", uri_data)

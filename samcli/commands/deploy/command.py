@@ -13,8 +13,10 @@ from samcli.commands._utils.options import (
     metadata_override_option,
     notification_arns_override_option,
     parameter_override_option,
+    no_progressbar_option,
     tags_override_option,
     template_click_option,
+    signing_profiles_option,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metrics import track_command
@@ -139,6 +141,8 @@ LOG = logging.getLogger(__name__)
 @notification_arns_override_option
 @tags_override_option
 @parameter_override_option
+@signing_profiles_option
+@no_progressbar_option
 @capabilities_override_option
 @aws_creds_options
 @common_options
@@ -150,6 +154,7 @@ def cli(
     stack_name,
     s3_bucket,
     force_upload,
+    no_progressbar,
     s3_prefix,
     kms_key_id,
     parameter_overrides,
@@ -163,7 +168,10 @@ def cli(
     metadata,
     guided,
     confirm_changeset,
+    signing_profiles,
     resolve_s3,
+    config_file,
+    config_env,
 ):
 
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
@@ -172,6 +180,7 @@ def cli(
         stack_name,
         s3_bucket,
         force_upload,
+        no_progressbar,
         s3_prefix,
         kms_key_id,
         parameter_overrides,
@@ -187,7 +196,10 @@ def cli(
         confirm_changeset,
         ctx.region,
         ctx.profile,
+        signing_profiles,
         resolve_s3,
+        config_file,
+        config_env,
     )  # pragma: no cover
 
 
@@ -196,6 +208,7 @@ def do_cli(
     stack_name,
     s3_bucket,
     force_upload,
+    no_progressbar,
     s3_prefix,
     kms_key_id,
     parameter_overrides,
@@ -211,7 +224,10 @@ def do_cli(
     confirm_changeset,
     region,
     profile,
+    signing_profiles,
     resolve_s3,
+    config_file,
+    config_env,
 ):
     from samcli.commands.package.package_context import PackageContext
     from samcli.commands.deploy.deploy_context import DeployContext
@@ -229,8 +245,11 @@ def do_cli(
             profile=profile,
             confirm_changeset=confirm_changeset,
             capabilities=capabilities,
+            signing_profiles=signing_profiles,
             parameter_overrides=parameter_overrides,
             config_section=CONFIG_SECTION,
+            config_env=config_env,
+            config_file=config_file,
         )
         guided_context.run()
     elif resolve_s3 and bool(s3_bucket):
@@ -251,10 +270,12 @@ def do_cli(
             kms_key_id=kms_key_id,
             use_json=use_json,
             force_upload=force_upload,
+            no_progressbar=no_progressbar,
             metadata=metadata,
             on_deploy=True,
             region=guided_context.guided_region if guided else region,
             profile=profile,
+            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
         ) as package_context:
             package_context.run()
 
@@ -263,6 +284,7 @@ def do_cli(
             stack_name=guided_context.guided_stack_name if guided else stack_name,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
             force_upload=force_upload,
+            no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
             kms_key_id=kms_key_id,
             parameter_overrides=sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
@@ -277,5 +299,6 @@ def do_cli(
             region=guided_context.guided_region if guided else region,
             profile=profile,
             confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
+            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
         ) as deploy_context:
             deploy_context.run()

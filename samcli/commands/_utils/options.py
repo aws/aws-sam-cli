@@ -10,7 +10,7 @@ import click
 from click.types import FuncParamType
 
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
+from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
@@ -39,14 +39,20 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
         search_paths.insert(0, os.path.join(".aws-sam", "build", "template.yaml"))
 
     if provided_value == _TEMPLATE_OPTION_DEFAULT_VALUE:
-        # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
-        # .yml is the default, even if it does not exist.
-        provided_value = "template.yml"
+        # "--template" is an alias of "--template-file", however, only the first option name "--template-file" in
+        # ctx.default_map is used as default value of provided value. Here we add "--template"'s value as second
+        # default value in this option, so that the command line paramerters from config file can load it.
+        if ctx and ctx.default_map.get("template", None):
+            provided_value = ctx.default_map.get("template")
+        else:
+            # Default value was used. Value can either be template.yaml or template.yml. Decide based on which file exists
+            # .yml is the default, even if it does not exist.
+            provided_value = "template.yml"
 
-        for option in search_paths:
-            if os.path.exists(option):
-                provided_value = option
-                break
+            for option in search_paths:
+                if os.path.exists(option):
+                    provided_value = option
+                    break
     result = os.path.abspath(provided_value)
 
     if ctx:
@@ -167,6 +173,37 @@ def parameter_override_click_option():
 
 def parameter_override_option(f):
     return parameter_override_click_option()(f)
+
+
+def no_progressbar_click_option():
+    return click.option(
+        "--no-progressbar",
+        default=False,
+        required=False,
+        is_flag=True,
+        help="Does not showcase a progress bar when uploading artifacts to s3 ",
+    )
+
+
+def no_progressbar_option(f):
+    return no_progressbar_click_option()(f)
+
+
+def signing_profiles_click_option():
+    return click.option(
+        "--signing-profiles",
+        cls=OptionNargs,
+        type=SigningProfilesOptionType(),
+        default={},
+        help="Optional. A string that contains Code Sign configuration parameters as "
+        "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
+        "Since signing profile owner is optional, it could also be written as "
+        "FunctionOrLayerNameToSign=SigningProfileName",
+    )
+
+
+def signing_profiles_option(f):
+    return signing_profiles_click_option()(f)
 
 
 def metadata_click_option():

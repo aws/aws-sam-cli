@@ -229,6 +229,7 @@ class SamFunctionProvider(SamBaseProvider):
             events=resource_properties.get("Events"),
             layers=layers,
             metadata=resource_properties.get("Metadata", None),
+            codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
         )
 
     @staticmethod

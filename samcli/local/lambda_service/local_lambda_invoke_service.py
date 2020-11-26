@@ -30,7 +30,7 @@ class LocalLambdaInvokeService(BaseLocalService):
         stderr io.BaseIO
             Optional stream where the stderr from Docker container should be written to
         """
-        super(LocalLambdaInvokeService, self).__init__(lambda_runner.is_debugging(), port=port, host=host)
+        super().__init__(lambda_runner.is_debugging(), port=port, host=host)
         self.lambda_runner = lambda_runner
         self.stderr = stderr
 

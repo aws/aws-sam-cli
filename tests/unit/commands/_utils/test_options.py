@@ -68,6 +68,7 @@ class TestGetOrDefaultTemplateFileName(TestCase):
     def test_verify_ctx(self, get_template_data_mock, os_mock):
 
         ctx = Mock()
+        ctx.default_map = {}
 
         expected = os.path.join(".aws-sam", "build", "template.yaml")
 
@@ -82,6 +83,15 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         self.assertEqual(ctx.samconfig_dir, "a/b/c")
         self.assertEqual(ctx.template_dict, "dummy_template_dict")
         os_mock.path.abspath.assert_called_with(expected)
+
+    def test_verify_ctx_template_file_param(self):
+
+        ctx_mock = Mock()
+        ctx_mock.default_map = {"template": "bar.txt"}
+        expected_result_from_ctx = os.path.abspath("bar.txt")
+
+        result = get_or_default_template_file_name(ctx_mock, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
+        self.assertEqual(result, expected_result_from_ctx)
 
 
 class TestGuidedDeployStackName(TestCase):

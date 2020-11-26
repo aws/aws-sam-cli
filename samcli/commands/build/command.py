@@ -20,6 +20,7 @@ from samcli.cli.cli_config_file import configuration_option, TomlProvider
 LOG = logging.getLogger(__name__)
 
 DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
+DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")
 
 HELP_TEXT = """
 Use this command to build your AWS Lambda Functions source code to generate artifacts that target AWS Lambda's
@@ -56,6 +57,10 @@ $ sam build && sam local invoke
 \b
 To build and package for deployment
 $ sam build && sam package --s3-bucket <bucketname>
+\b
+To build only an individual resource (function or layer) located in the SAM
+template. Downstream SAM package and deploy will deploy only this resource
+$ sam build MyFunction
 """
 
 
@@ -67,6 +72,14 @@ $ sam build && sam package --s3-bucket <bucketname>
     default=DEFAULT_BUILD_DIR,
     type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
     help="Path to a folder where the built artifacts will be stored. This directory will be first removed before starting a build.",
+)
+@click.option(
+    "--cache-dir",
+    "-cd",
+    default=DEFAULT_CACHE_DIR,
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),  # Must be a directory
+    help="The folder where the cache artifacts will be stored when --cached is specified. "
+         "The default cache directory is .aws-sam/cache",
 )
 @click.option(
     "--base-dir",
@@ -85,11 +98,30 @@ $ sam build && sam package --s3-bucket <bucketname>
     "to build your function inside an AWS Lambda-like Docker container",
 )
 @click.option(
+    "--parallel",
+    "-p",
+    is_flag=True,
+    help="Enabled parallel builds. Use this flag to build your AWS SAM template's functions and layers in parallel. "
+         "By default the functions and layers are built in sequence",
+)
+@click.option(
     "--manifest",
     "-m",
     default=None,
     type=click.Path(),
     help="Path to a custom dependency manifest (ex: package.json) to use instead of the default one",
+)
+@click.option(
+    "--cached",
+    "-c",
+    is_flag=True,
+    help="Enable cached builds. Use this flag to reuse build artifacts that have not changed from previous builds. "
+         "AWS SAM evaluates whether you have made any changes to files in your project directory. \n\n"
+         "Note: AWS SAM does not evaluate whether changes have been made to third party modules "
+         "that your project depends on, where you have not provided a specific version. "
+         "For example, if your Python function includes a requirements.txt file with the following entry "
+         "requests=1.x and the latest request module version changes from 1.1 to 1.2, "
+         "SAM will not pull the latest version until you run a non-cached build.",
 )
 @template_option_without_build
 @parameter_override_option
@@ -105,11 +137,16 @@ def cli(
     template_file,
     base_dir,
     build_dir,
+    cache_dir,
     use_container,
+    cached,
+    parallel,
     manifest,
     docker_network,
     skip_pull_image,
     parameter_overrides,
+    config_file,
+    config_env,
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
@@ -120,8 +157,11 @@ def cli(
         template_file,
         base_dir,
         build_dir,
+        cache_dir,
         True,
         use_container,
+        cached,
+        parallel,
         manifest,
         docker_network,
         skip_pull_image,
@@ -135,8 +175,11 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     template,
     base_dir,
     build_dir,
+    cache_dir,
     clean,
     use_container,
+    cached,
+    parallel,
     manifest_path,
     docker_network,
     skip_pull_image,
@@ -159,9 +202,11 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     from samcli.lib.build.workflow_config import UnsupportedRuntimeException
     from samcli.local.lambdafn.exceptions import FunctionNotFound
     from samcli.commands._utils.template import move_template
+    from samcli.lib.build.build_graph import InvalidBuildGraphException
 
     LOG.debug("'build' command is called")
-
+    if cached:
+        LOG.info("Starting Build use cache")
     if use_container:
         LOG.info("Starting Build inside a container")
 
@@ -170,6 +215,8 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         template,
         base_dir,
         build_dir,
+        cache_dir,
+        cached,
         clean=clean,
         manifest_path=manifest_path,
         use_container=use_container,
@@ -183,12 +230,16 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
                 ctx.resources_to_build,
                 ctx.build_dir,
                 ctx.base_dir,
+                ctx.cache_dir,
+                ctx.cached,
+                ctx.is_building_specific_resource,
                 manifest_path_override=ctx.manifest_path_override,
                 container_manager=ctx.container_manager,
                 mode=ctx.mode,
+                parallel=parallel
             )
         except FunctionNotFound as ex:
-            raise UserException(str(ex), wrapped_from=ex.__class__.__name__)
+            raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
         try:
             artifacts = builder.build()
@@ -218,11 +269,12 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             click.secho(msg, fg="yellow")
 
         except (
-                UnsupportedRuntimeException,
-                BuildError,
-                BuildInsideContainerError,
-                UnsupportedBuilderLibraryVersionError,
-                ContainerBuildNotSupported,
+            UnsupportedRuntimeException,
+            BuildError,
+            BuildInsideContainerError,
+            UnsupportedBuilderLibraryVersionError,
+            ContainerBuildNotSupported,
+            InvalidBuildGraphException,
         ) as ex:
             click.secho("\nBuild Failed", fg="red")
 
@@ -230,7 +282,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             # from deeper than just one level down.
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
-            raise UserException(str(ex), wrapped_from=wrapped_from)
+            raise UserException(str(ex), wrapped_from=wrapped_from) from ex
 
 
 def gen_success_msg(artifacts_dir, output_template_path, is_default_build_dir):

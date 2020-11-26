@@ -51,8 +51,8 @@ class FunctionConfig:
             try:
                 self.timeout = int(self.timeout)
 
-            except (ValueError, TypeError):
-                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout))
+            except (ValueError, TypeError) as ex:
+                raise InvalidSamTemplateException("Invalid Number for Timeout: {}".format(self.timeout)) from ex
 
         if not env_vars:
             env_vars = EnvironmentVariables(self.memory, self.timeout, self.handler)

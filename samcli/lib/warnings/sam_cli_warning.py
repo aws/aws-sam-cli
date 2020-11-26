@@ -29,7 +29,10 @@ def _get_deployment_preferences_status(function):
 
 class TemplateWarningsChecker:
     def __init__(self):
-        self.all_warnings = {CodeDeployWarning.__name__: CodeDeployWarning()}
+        self.all_warnings = {
+            CodeDeployWarning.__name__: CodeDeployWarning(),
+            CodeDeployConditionWarning.__name__: CodeDeployConditionWarning(),
+        }
 
     def check_template_for_warning(self, warning_name, template_dict):
         """
@@ -83,3 +86,36 @@ mitigate it, please read these docs[1]
 
         send_warning = deployment_features_enabled_count > 0 and deployment_features_disabled_count > 0
         return (send_warning, self.WARNING_MESSAGE) if send_warning else (send_warning, "")
+
+
+class CodeDeployConditionWarning(TemplateWarning):
+    WARNING_MESSAGE = """Your template includes a deployment configuration with a Condition attached to it. SAM currently has a bug that
+ignores conditions for DeploymentPreference, causing CodeDeploy DeploymentGroups to be created in error.
+After October 23, 2020 the SAM service will fix this bug, causing subsequent deployments to remove these CodeDeploy DeploymentGroups
+if the attached Condition is false. For more information on this issue and how to mitigate it, please read these docs[1]
+
+[1] https://github.com/aws/aws-sam-cli/wiki/08-2020-codeploy-deploymentgroup-condition
+    """
+
+    def check(self, template_dict):
+        """
+        Checking if template dictionary have Function with Condition and DeploymentPreferences which
+        will trigger this warning.
+        """
+        functions = [
+            resource
+            for (_, resource) in template_dict.get("Resources", {}).items()
+            if resource.get("Type", "") == "AWS::Serverless::Function"
+        ]
+        for function in functions:
+            if self._have_condition(function) and self._have_deployment_preferences(function):
+                return (True, self.WARNING_MESSAGE)
+        return (False, "")
+
+    def _have_condition(self, function):
+        condition = function.get("Condition", None)
+        return condition is not None
+
+    def _have_deployment_preferences(self, function):
+        deployment_preference = function.get("Properties", {}).get("DeploymentPreference", None)
+        return deployment_preference is not None

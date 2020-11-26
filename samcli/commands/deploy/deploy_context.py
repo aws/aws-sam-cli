@@ -48,6 +48,7 @@ class DeployContext:
         stack_name,
         s3_bucket,
         force_upload,
+        no_progressbar,
         s3_prefix,
         kms_key_id,
         parameter_overrides,
@@ -60,11 +61,13 @@ class DeployContext:
         region,
         profile,
         confirm_changeset,
+        signing_profiles,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
         self.s3_bucket = s3_bucket
         self.force_upload = force_upload
+        self.no_progressbar = no_progressbar
         self.s3_prefix = s3_prefix
         self.kms_key_id = kms_key_id
         self.parameter_overrides = parameter_overrides
@@ -79,6 +82,7 @@ class DeployContext:
         self.s3_uploader = None
         self.deployer = None
         self.confirm_changeset = confirm_changeset
+        self.signing_profiles = signing_profiles
 
     def __enter__(self):
         return self
@@ -113,7 +117,9 @@ class DeployContext:
         if self.s3_bucket:
             s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
 
-            self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
+            self.s3_uploader = S3Uploader(
+                s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+            )
 
         self.deployer = Deployer(cloudformation_client)
 
@@ -125,6 +131,7 @@ class DeployContext:
             self.capabilities,
             self.parameter_overrides,
             self.confirm_changeset,
+            self.signing_profiles,
         )
         return self.deploy(
             self.stack_name,

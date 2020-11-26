@@ -15,10 +15,12 @@ class TestPackageCliCommand(TestCase):
         self.output_template_file = "output-template-file"
         self.use_json = True
         self.force_upload = False
+        self.no_progressbar = (False,)
         self.metadata = {"abc": "def"}
         self.region = None
         self.profile = None
         self.resolve_s3 = False
+        self.signing_profiles = {"MyFunction": {"profile_name": "ProfileName", "profile_owner": "Profile Owner"}}
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -35,10 +37,12 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
             resolve_s3=self.resolve_s3,
+            signing_profiles=self.signing_profiles,
         )
 
         package_command_context.assert_called_with(
@@ -49,9 +53,11 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
+            signing_profiles=self.signing_profiles,
         )
 
         context_mock.run.assert_called_with()
@@ -73,10 +79,12 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
             resolve_s3=True,
+            signing_profiles=self.signing_profiles,
         )
 
         package_command_context.assert_called_with(
@@ -87,9 +95,11 @@ class TestPackageCliCommand(TestCase):
             output_template_file=self.output_template_file,
             use_json=self.use_json,
             force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
             metadata=self.metadata,
             region=self.region,
             profile=self.profile,
+            signing_profiles=self.signing_profiles,
         )
 
         context_mock.run.assert_called_with()
@@ -105,10 +115,12 @@ class TestPackageCliCommand(TestCase):
                 output_template_file=self.output_template_file,
                 use_json=self.use_json,
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 metadata=self.metadata,
                 region=self.region,
                 profile=self.profile,
                 resolve_s3=True,
+                signing_profiles=self.signing_profiles,
             )
 
     def test_resolve_s3_and_s3_bucket_both_not_set(self):
@@ -121,8 +133,10 @@ class TestPackageCliCommand(TestCase):
                 output_template_file=self.output_template_file,
                 use_json=self.use_json,
                 force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
                 metadata=self.metadata,
                 region=self.region,
                 profile=self.profile,
                 resolve_s3=False,
+                signing_profiles=self.signing_profiles,
             )

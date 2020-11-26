@@ -217,6 +217,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -224,6 +225,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.local_lambda._make_env_vars(function)
 
         EnvironmentVariablesMock.assert_called_with(
+            function.name,
             function.memory,
             function.timeout,
             function.handler,
@@ -259,6 +261,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         self.local_lambda.env_vars_values = env_vars_values
@@ -292,6 +295,7 @@ class TestLocalLambda_make_env_vars(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         self.local_lambda.env_vars_values = {}
@@ -299,6 +303,7 @@ class TestLocalLambda_make_env_vars(TestCase):
         self.local_lambda._make_env_vars(function)
 
         EnvironmentVariablesMock.assert_called_with(
+            function.name,
             function.memory,
             function.timeout,
             function.handler,
@@ -355,6 +360,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             layers=layers,
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         config = "someconfig"
@@ -402,6 +408,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            codesign_config_arn=None,
         )
 
         config = "someconfig"

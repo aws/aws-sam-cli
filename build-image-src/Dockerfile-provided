@@ -40,11 +40,10 @@ RUN chmod 1777 /tmp && \
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install && rm awscliv2.zip && rm -rf ./aws
 
 # Install SAM CLI in a dedicated Python virtualenv
-ENV SAM_CLI_VERSION=0.53.0
+ARG SAM_CLI_VERSION
 RUN curl -Lk "https://github.com/awslabs/aws-sam-cli/archive/v$SAM_CLI_VERSION.zip" -o "samcli.zip" && \
   unzip samcli.zip && python3 -m venv /usr/local/opt/sam-cli && \
-  sed 's/regex==2019.8.19/regex==2020.4.4/' ./aws-sam-cli-$SAM_CLI_VERSION/requirements/isolated.txt > ./aws-sam-cli-$SAM_CLI_VERSION/requirements/isolated.txt && \
-  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install -r ./aws-sam-cli-$SAM_CLI_VERSION/requirements/isolated.txt && \
+  /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install -r ./aws-sam-cli-$SAM_CLI_VERSION/requirements/reproducible-linux.txt && \
   /usr/local/opt/sam-cli/bin/pip3 --no-cache-dir install ./aws-sam-cli-$SAM_CLI_VERSION
 
 RUN rm samcli.zip && rm -rf aws-sam-cli-$SAM_CLI_VERSION
@@ -58,3 +57,5 @@ RUN pip3 install wheel
 ENV LANG=en_US.UTF-8
 
 ENV PATH=/var/lang/bin:$PATH
+
+COPY ATTRIBUTION.txt /

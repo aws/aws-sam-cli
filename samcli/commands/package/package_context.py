@@ -25,6 +25,7 @@ from botocore.config import Config
 
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
+from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
@@ -54,10 +55,12 @@ class PackageContext:
         output_template_file,
         use_json,
         force_upload,
+        no_progressbar,
         metadata,
         region,
         profile,
         on_deploy=False,
+        signing_profiles=None,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -66,11 +69,14 @@ class PackageContext:
         self.output_template_file = output_template_file
         self.use_json = use_json
         self.force_upload = force_upload
+        self.no_progressbar = no_progressbar
         self.metadata = metadata
         self.region = region
         self.profile = profile
         self.on_deploy = on_deploy
         self.s3_uploader = None
+        self.code_signer = None
+        self.signing_profiles = signing_profiles
 
     def __enter__(self):
         return self
@@ -87,9 +93,14 @@ class PackageContext:
             ),
         )
 
-        self.s3_uploader = S3Uploader(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload)
+        self.s3_uploader = S3Uploader(
+            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+        )
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
+
+        code_signer_client = boto3.client("signer")
+        self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
 
         try:
             exported_str = self._export(self.template_file, self.use_json)
@@ -103,10 +114,10 @@ class PackageContext:
                 )
                 click.echo(msg)
         except OSError as ex:
-            raise PackageFailedError(template_file=self.template_file, ex=str(ex))
+            raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.s3_uploader)
+        template = Template(template_path, os.getcwd(), self.s3_uploader, self.code_signer)
         exported_template = template.export()
 
         if use_json:
