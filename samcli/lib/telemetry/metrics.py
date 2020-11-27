@@ -2,6 +2,7 @@
 Provides methods to generate and send metrics
 """
 from timeit import default_timer
+from functools import wraps
 
 import platform
 import logging
@@ -150,6 +151,35 @@ def track_command(func):
         return return_value
 
     return wrapped
+
+def track_function(telemetry_data_key):
+    def wrap(func):
+        @wraps(func)
+        def wrapped_func(*args, **kwargs):
+            # Do before func
+            return_value = func(args, kwargs)
+            # Do after func
+            return return_value
+
+        return wrapped_func
+
+    return wrap
+
+def store_member(telemetry_data_key, member_name):
+    def wrap(func):
+        @wraps(func)
+        def wrapped_func(*args, **kwargs):
+            # Do before func
+            return_value = func(args, kwargs)
+            # Do after func
+            return return_value
+
+        return wrapped_func
+
+    return wrap
+
+def store_return_value(telemetry_data_key):
+    pass
 
 
 def _timer():
