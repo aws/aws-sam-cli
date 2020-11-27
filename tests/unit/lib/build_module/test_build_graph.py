@@ -40,10 +40,23 @@ def generate_function(
     rolearn="rolearn",
     layers="layers",
     events="events",
+    codesign_config_arn="codesign_config_arn",
     metadata={},
 ):
     return Function(
-        name, function_name, runtime, memory, timeout, handler, codeuri, environment, rolearn, layers, events, metadata
+        name,
+        function_name,
+        runtime,
+        memory,
+        timeout,
+        handler,
+        codeuri,
+        environment,
+        rolearn,
+        layers,
+        events,
+        metadata,
+        codesign_config_arn,
     )
 
 

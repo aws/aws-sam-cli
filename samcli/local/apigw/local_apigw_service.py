@@ -37,7 +37,9 @@ class Route:
     HTTP = "HttpApi"
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
-    def __init__(self, function_name, path, methods, event_type=API, payload_format_version=None):
+    def __init__(
+        self, function_name, path, methods, event_type=API, payload_format_version=None, is_default_route=False
+    ):
         """
         Creates an ApiGatewayRoute
 
@@ -46,12 +48,14 @@ class Route:
         :param str path: Path off the base url
         :param str event_type: Type of the event. "Api" or "HttpApi"
         :param str payload_format_version: version of payload format
+        :param bool is_default_route: determines if the default route or not
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
         self.path = path
         self.event_type = event_type
         self.payload_format_version = payload_format_version
+        self.is_default_route = is_default_route
 
     def __eq__(self, other):
         return (
@@ -198,6 +202,7 @@ class LocalApigwService(BaseLocalService):
                 methods=methods,
                 event_type=Route.HTTP,
                 payload_format_version=route.payload_format_version,
+                is_default_route=True,
             )
 
     def _generate_route_keys(self, methods, path):
@@ -211,6 +216,12 @@ class LocalApigwService(BaseLocalService):
         """
         for method in methods:
             yield self._route_key(method, path)
+
+    @staticmethod
+    def _v2_route_key(method, path, is_default_route):
+        if is_default_route:
+            return "$default"
+        return "{} {}".format(method, path)
 
     @staticmethod
     def _route_key(method, path):
@@ -255,7 +266,6 @@ class LocalApigwService(BaseLocalService):
         cors_headers = Cors.cors_to_headers(self.api.cors)
 
         method, endpoint = self.get_request_methods_endpoints(request)
-        route_key = self._route_key(method, endpoint)
         if method == "OPTIONS" and self.api.cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
@@ -265,6 +275,7 @@ class LocalApigwService(BaseLocalService):
             # or none, as the default value to be used is 2.0
             # https://docs.aws.amazon.com/apigatewayv2/latest/api-reference/apis-apiid-integrations.html#apis-apiid-integrations-prop-createintegrationinput-payloadformatversion
             if route.event_type == Route.HTTP and route.payload_format_version in [None, "2.0"]:
+                route_key = self._v2_route_key(method, endpoint, route.is_default_route)
                 event = self._construct_v_2_0_event_http(
                     request,
                     self.port,
