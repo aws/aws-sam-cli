@@ -14,6 +14,7 @@ from samcli.commands._utils.template import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     _update_relative_paths,
+    _transform_dict,
     move_template,
     get_template_parameters,
     TemplateNotFoundException,
@@ -258,3 +259,39 @@ class Test_move_template(TestCase):
         yaml_dump_mock.assert_called_with(modified_template)
         m.assert_called_with(dest, "w")
         m.return_value.write.assert_called_with(dumped_yaml)
+
+
+class Test_dict_transformation(TestCase):
+    def dummy_transformation(self, original_dict, original_path, property_name, value, context):
+        return "foo %s=%s bar" % (property_name, value)
+
+    def test_no_tranformation(self):
+        template_dict = {"a": "b", "c": "d"}
+
+        result = _transform_dict(template_dict, "b", self.dummy_transformation)
+
+        self.assertEqual(result, template_dict)
+
+    def test_non_nested_tranformation(self):
+        template_dict = {"a": "b", "c": "d"}
+        expected_dict = {"a": "foo a=b bar", "c": "d"}
+
+        result = _transform_dict(template_dict, "a", self.dummy_transformation)
+
+        self.assertEqual(result, expected_dict)
+
+    def test_nested_tranformation(self):
+        template_dict = {"a": {"b": "c"}}
+        expected_dict = {"a": {"b": "foo b=c bar"}}
+
+        result = _transform_dict(template_dict, "a.b", self.dummy_transformation)
+
+        self.assertEqual(result, expected_dict)
+
+    def test_list_tranformation(self):
+        template_dict = {"a": {"b": [{"c": "d"}, {"c": "e"}]}}
+        expected_dict = {"a": {"b": [{"c": "foo c=d bar"}, {"c": "foo c=e bar"}]}}
+
+        result = _transform_dict(template_dict, "a.b.c", self.dummy_transformation)
+
+        self.assertEqual(result, expected_dict)

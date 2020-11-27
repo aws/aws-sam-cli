@@ -5,9 +5,7 @@ Utilities to manipulate template
 import os
 import pathlib
 
-import jmespath
 import yaml
-from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
 from samcli.yamlhelper import yaml_parse, yaml_dump
@@ -119,6 +117,10 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
     """
 
+    def transform(original_dict, original_path, property_name, value, context):
+        return _resolve_relative_to(value, original_root, new_root) or value
+
+
     for resource_type, properties in template_dict.get("Metadata", {}).items():
 
         if resource_type not in METADATA_WITH_LOCAL_PATHS:
@@ -143,22 +145,42 @@ def _update_relative_paths(template_dict, original_root, new_root):
             continue
 
         for path_prop_name in RESOURCES_WITH_LOCAL_PATHS[resource_type]:
-            properties = resource.get("Properties", {})
-
-            path = jmespath.search(path_prop_name, properties)
-            updated_path = _resolve_relative_to(path, original_root, new_root)
-
-            if not updated_path:
-                # This path does not need to get updated
+            if "Properties" not in resource:
                 continue
 
-            set_value_from_jmespath(properties, path_prop_name, updated_path)
+            resource["Properties"] = _transform_dict(resource["Properties"], path_prop_name, transform)
 
     # AWS::Includes can be anywhere within the template dictionary. Hence we need to recurse through the
     # dictionary in a separate method to find and update relative paths in there
     template_dict = _update_aws_include_relative_path(template_dict, original_root, new_root)
 
     return template_dict
+
+
+def _transform_dict(template_dict, path, transformation, context=None):
+    def visit(sub_dict, sub_path):
+        # pylint: disable=else-if-used
+        if not sub_path:
+            return sub_dict
+
+        next_prop = sub_path[0]
+        if not next_prop in sub_dict:
+            return sub_dict
+
+        value = sub_dict[next_prop]
+        if len(sub_path) == 1:
+            sub_dict[next_prop] = transformation(template_dict, path, next_prop, value, context)
+        else:
+            if isinstance(value, list):
+                sub_dict[next_prop] = [visit(v, sub_path[1:]) for v in value]
+            elif isinstance(value, dict):
+                sub_dict[next_prop] = visit(value, sub_path[1:])
+            else:
+                raise Exception("Unsupported path '%s' or dict structure '%s'" % path, template_dict)
+
+        return sub_dict
+
+    return visit(template_dict, path.split("."))
 
 
 def _update_aws_include_relative_path(template_dict, original_root, new_root):
