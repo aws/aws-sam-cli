@@ -1,11 +1,13 @@
 import os
-from typing import Optional
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from pathlib import Path
 
+from tests.testing_utils import SKIP_DOCKER_MESSAGE, SKIP_DOCKER_TESTS
 
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class InvokeIntegBase(TestCase):
-    template: Optional[Path] = None
+    template = None
 
     @classmethod
     def setUpClass(cls):

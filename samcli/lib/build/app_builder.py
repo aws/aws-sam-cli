@@ -54,19 +54,17 @@ class ApplicationBuilder:
     converting source code into artifacts that can be run on AWS Lambda
     """
 
-    def __init__(
-        self,
-        resources_to_build,
-        build_dir,
-        base_dir,
-        cache_dir,
-        cached=False,
-        is_building_specific_resource=False,
-        manifest_path_override=None,
-        container_manager=None,
-        parallel=False,
-        mode=None,
-    ):
+    def __init__(self,
+                 resources_to_build,
+                 build_dir,
+                 base_dir,
+                 cache_dir,
+                 cached=False,
+                 is_building_specific_resource=False,
+                 manifest_path_override=None,
+                 container_manager=None,
+                 parallel=False,
+                 mode=None):
         """
         Initialize the class
 
@@ -132,26 +130,22 @@ class ApplicationBuilder:
             if self._cached:
                 build_strategy = ParallelBuildStrategy(
                     build_graph,
-                    CachedBuildStrategy(
-                        build_graph,
-                        build_strategy,
-                        self._base_dir,
-                        self._build_dir,
-                        self._cache_dir,
-                        self._is_building_specific_resource,
-                    ),
+                    CachedBuildStrategy(build_graph,
+                                        build_strategy,
+                                        self._base_dir,
+                                        self._build_dir,
+                                        self._cache_dir,
+                                        self._is_building_specific_resource)
                 )
             else:
                 build_strategy = ParallelBuildStrategy(build_graph, build_strategy)
         elif self._cached:
-            build_strategy = CachedBuildStrategy(
-                build_graph,
-                build_strategy,
-                self._base_dir,
-                self._build_dir,
-                self._cache_dir,
-                self._is_building_specific_resource,
-            )
+            build_strategy = CachedBuildStrategy(build_graph,
+                                                 build_strategy,
+                                                 self._base_dir,
+                                                 self._build_dir,
+                                                 self._cache_dir,
+                                                 self._is_building_specific_resource)
 
         return build_strategy.build()
 
@@ -169,9 +163,7 @@ class ApplicationBuilder:
             build_graph.put_function_build_definition(function_build_details, function)
 
         for layer in layers:
-            layer_build_details = LayerBuildDefinition(
-                layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes
-            )
+            layer_build_details = LayerBuildDefinition(layer.name, layer.codeuri, layer.build_method, layer.compatible_runtimes)
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
@@ -217,6 +209,7 @@ class ApplicationBuilder:
                 #   package stage running on a different machine
                 store_path = os.path.relpath(artifact_dir, original_dir)
 
+
             resource_type = resource.get("Type")
             properties = resource.setdefault("Properties", {})
             if resource_type == SamBaseProvider.SERVERLESS_FUNCTION:
@@ -253,8 +246,7 @@ class ApplicationBuilder:
                     LOG.warning(
                         "For container layer build, first compatible runtime is chosen as build target for container."
                     )
-                    # Only set to this value if specified workflow is makefile
-                    # which will result in config language as provided
+                    # Only set to this value if specified workflow is makefile which will result in config language as provided
                     build_runtime = compatible_runtimes[0]
             options = ApplicationBuilder._get_build_options(layer_name, config.language, None)
 
@@ -292,8 +284,7 @@ class ApplicationBuilder:
 
         if runtime in self._deprecated_runtimes:
             message = (
-                f"WARNING: {runtime} is no longer supported by AWS Lambda, "
-                "please update to a newer supported runtime. SAM CLI "
+                f"WARNING: {runtime} is no longer supported by AWS Lambda, please update to a newer supported runtime. SAM CLI "
                 f"will drop support for all deprecated runtimes {self._deprecated_runtimes} on May 1st. "
                 f"See issue: https://github.com/awslabs/aws-sam-cli/issues/1934 for more details."
             )

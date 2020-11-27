@@ -120,7 +120,6 @@ def _update_relative_paths(template_dict, original_root, new_root):
     def transform(original_dict, original_path, property_name, value, context):
         return _resolve_relative_to(value, original_root, new_root) or value
 
-
     for resource_type, properties in template_dict.get("Metadata", {}).items():
 
         if resource_type not in METADATA_WITH_LOCAL_PATHS:
@@ -159,7 +158,6 @@ def _update_relative_paths(template_dict, original_root, new_root):
 
 def _transform_dict(template_dict, path, transformation, context=None):
     def visit(sub_dict, sub_path):
-        # pylint: disable=else-if-used
         if not sub_path:
             return sub_dict
 
