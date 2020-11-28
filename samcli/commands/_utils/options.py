@@ -10,7 +10,7 @@ import click
 from click.types import FuncParamType
 
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
+from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
@@ -187,6 +187,23 @@ def no_progressbar_click_option():
 
 def no_progressbar_option(f):
     return no_progressbar_click_option()(f)
+
+
+def signing_profiles_click_option():
+    return click.option(
+        "--signing-profiles",
+        cls=OptionNargs,
+        type=SigningProfilesOptionType(),
+        default={},
+        help="Optional. A string that contains Code Sign configuration parameters as "
+        "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
+        "Since signing profile owner is optional, it could also be written as "
+        "FunctionOrLayerNameToSign=SigningProfileName",
+    )
+
+
+def signing_profiles_option(f):
+    return signing_profiles_click_option()(f)
 
 
 def metadata_click_option():

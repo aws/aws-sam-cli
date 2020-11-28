@@ -57,6 +57,10 @@ $ sam build && sam local invoke
 \b
 To build and package for deployment
 $ sam build && sam package --s3-bucket <bucketname>
+\b
+To build only an individual resource (function or layer) located in the SAM
+template. Downstream SAM package and deploy will deploy only this resource
+$ sam build MyFunction
 """
 
 

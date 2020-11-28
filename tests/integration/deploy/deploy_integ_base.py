@@ -42,6 +42,7 @@ class DeployIntegBase(TestCase):
         guided=False,
         resolve_s3=False,
         config_file=None,
+        signing_profiles=None,
     ):
         command_list = [self.base_command(), "deploy"]
 
@@ -89,6 +90,8 @@ class DeployIntegBase(TestCase):
             command_list = command_list + ["--resolve-s3"]
         if config_file:
             command_list = command_list + ["--config-file", str(config_file)]
+        if signing_profiles:
+            command_list = command_list + ["--signing-profiles", str(signing_profiles)]
 
         return command_list
 
