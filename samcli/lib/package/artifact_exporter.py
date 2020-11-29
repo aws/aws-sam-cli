@@ -267,7 +267,6 @@ class Resource:
         context = {"resource_id": resource_id, "parent_dir": parent_dir}
         _transform_dict(resource_dict, self.PROPERTY_NAME, self.parse_property, context)
 
-    #    def parse_property(self, property_name, property_value, resource_id, parent_dir):
     def parse_property(self, original_dict, original_path, property_name, value, context):
         if not value and not self.PACKAGE_NULL_PROPERTY:
             return value
