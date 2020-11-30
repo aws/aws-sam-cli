@@ -98,7 +98,7 @@ class CfnBaseApiProvider:
                 allow_methods=allow_methods,
                 allow_headers=allow_headers,
                 allow_credentials=allow_credentials,
-                max_age=max_age
+                max_age=max_age,
             )
         elif cors_prop and isinstance(cors_prop, str):
             allow_origin = cors_prop
@@ -185,7 +185,7 @@ class CfnBaseApiProvider:
 
             # Read AllowCredentials but only output the header with the case-sensitive value of true
             # (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials)
-            allow_credentials = 'true' if self._get_cors_prop_http(cors_prop, "AllowCredentials", bool) else None
+            allow_credentials = "true" if self._get_cors_prop_http(cors_prop, "AllowCredentials", bool) else None
 
             max_age = self._get_cors_prop_http(cors_prop, "MaxAge", int)
 
@@ -194,7 +194,7 @@ class CfnBaseApiProvider:
                 allow_methods=allow_methods,
                 allow_headers=allow_headers,
                 allow_credentials=allow_credentials,
-                max_age=max_age
+                max_age=max_age,
             )
         elif cors_prop and isinstance(cors_prop, bool) and cors_prop:
             cors = Cors(
