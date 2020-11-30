@@ -22,6 +22,7 @@ Resources:
           - "POST"
         AllowHeaders:
           - "origin"
+        AllowCredentials: true
         MaxAge: 42
       DefinitionBody:
         openapi: '3.0.1'

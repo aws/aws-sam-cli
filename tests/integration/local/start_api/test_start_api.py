@@ -1172,6 +1172,7 @@ class TestServiceCorsSwaggerRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin, x-requested-with")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "510")
 
 
@@ -1198,6 +1199,7 @@ class TestServiceCorsSwaggerRequestsWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "origin")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS,POST")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "42")
 
 
@@ -1223,6 +1225,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), ",".join(sorted(Route.ANY_HTTP_METHODS)))
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
     @pytest.mark.flaky(reruns=3)
@@ -1239,6 +1242,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), None)
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), None)
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), None)
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), None)
 
 
@@ -1510,6 +1514,7 @@ class TestCFNTemplateQuickCreatedHttpApiWithDefaultRoute(StartApiIntegBaseClass)
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "https://example.com")
         self.assertEqual(response.headers.get("Access-Control-Allow-Headers"), "x-apigateway-header")
         self.assertEqual(response.headers.get("Access-Control-Allow-Methods"), "GET,OPTIONS")
+        self.assertEqual(response.headers.get("Access-Control-Allow-Credentials"), "true")
         self.assertEqual(response.headers.get("Access-Control-Max-Age"), "600")
 
 
