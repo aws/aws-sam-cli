@@ -126,7 +126,7 @@ class CfnBaseApiProvider:
         ----------
         cors_dict : dict
             Resource properties for Cors
-        
+
         prop_name : str
             Cors property to get the value for
 
@@ -182,11 +182,11 @@ class CfnBaseApiProvider:
             allow_headers = self._get_cors_prop_http(cors_prop, "AllowHeaders", list)
             if isinstance(allow_headers, list):
                 allow_headers = ",".join(allow_headers)
-            
+
             # Read AllowCredentials but only output the header with the case-sensitive value of true
             # (see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials)
             allow_credentials = 'true' if self._get_cors_prop_http(cors_prop, "AllowCredentials", bool) else None
-            
+
             max_age = self._get_cors_prop_http(cors_prop, "MaxAge", int)
 
             cors = Cors(
