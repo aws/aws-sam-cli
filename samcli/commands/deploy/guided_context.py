@@ -11,6 +11,12 @@ from click import confirm
 
 from samcli.commands._utils.options import _space_separated_list_func_type
 from samcli.commands._utils.template import get_template_parameters, get_template_data
+from samcli.commands.deploy.code_signer_utils import (
+    signer_config_per_function,
+    extract_profile_name_and_owner_from_existing,
+    prompt_profile_name,
+    prompt_profile_owner,
+)
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.auth_utils import auth_per_resource
@@ -33,6 +39,7 @@ class GuidedContext:
         profile=None,
         confirm_changeset=None,
         capabilities=None,
+        signing_profiles=None,
         parameter_overrides=None,
         save_to_config=True,
         config_section=None,
@@ -57,6 +64,7 @@ class GuidedContext:
         self.guided_s3_prefix = None
         self.guided_region = None
         self.guided_profile = None
+        self.signing_profiles = signing_profiles
         self._capabilities = None
         self._parameter_overrides = None
         self.start_bold = "\033[1m"
@@ -112,7 +120,9 @@ class GuidedContext:
                 type=FuncParamType(func=_space_separated_list_func_type),
             )
 
-        self.prompt_authorization(sanitize_parameter_overrides(input_parameter_overrides))
+        sanitized_parameter_overrides = sanitize_parameter_overrides(input_parameter_overrides)
+        self.prompt_authorization(sanitized_parameter_overrides)
+        self.prompt_code_signing_settings(sanitized_parameter_overrides)
 
         save_to_config = confirm(
             f"\t{self.start_bold}Save arguments to configuration file{self.end_bold}", default=True
@@ -158,6 +168,58 @@ class GuidedContext:
                 )
                 if not auth_confirm:
                     raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
+
+    def prompt_code_signing_settings(self, parameter_overrides):
+        (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(
+            parameter_overrides, get_template_data(self.template_file)
+        )
+
+        # if no function or layer definition found with code signing, skip it
+        if not functions_with_code_sign and not layers_with_code_sign:
+            LOG.debug("No function or layer definition found with code sign config, skipping")
+            return
+
+        click.echo("\n\t#Found code signing configurations in your function definitions")
+        sign_functions = confirm(
+            f"\t{self.start_bold}Do you want to sign your code?{self.end_bold}",
+            default=True,
+        )
+
+        if not sign_functions:
+            LOG.debug("User skipped code signing, continuing rest of the process")
+            self.signing_profiles = None
+            return
+
+        if not self.signing_profiles:
+            self.signing_profiles = {}
+
+        click.echo("\t#Please provide signing profile details for the following functions & layers")
+
+        for function_name in functions_with_code_sign:
+            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+                function_name, self.signing_profiles
+            )
+
+            click.echo(f"\t#Signing profile details for function '{function_name}'")
+            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)
+            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)
+            self.signing_profiles[function_name] = {"profile_name": profile_name, "profile_owner": profile_owner}
+            self.signing_profiles[function_name]["profile_owner"] = "" if not profile_owner else profile_owner
+
+        for layer_name, functions_use_this_layer in layers_with_code_sign.items():
+            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+                layer_name, self.signing_profiles
+            )
+            click.echo(
+                f"\t#Signing profile details for layer '{layer_name}', "
+                f"which is used by functions {functions_use_this_layer}"
+            )
+            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)
+            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)
+            self.signing_profiles[layer_name] = {"profile_name": profile_name, "profile_owner": profile_owner}
+            self.signing_profiles[layer_name]["profile_owner"] = "" if not profile_owner else profile_owner
+
+        LOG.debug("Signing profile names and owners %s", self.signing_profiles)
 
     def prompt_parameters(
         self, parameter_override_from_template, parameter_override_from_cmdline, start_bold, end_bold
@@ -212,6 +274,7 @@ class GuidedContext:
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,
                 capabilities=self._capabilities,
+                signing_profiles=self.signing_profiles,
             )
 
     def _get_parameter_value(self, parameter_key, parameter_properties, parameter_override_from_cmdline):

@@ -101,6 +101,8 @@ class TestSamConfigForAllCommands(TestCase):
             "template_file": "mytemplate.yaml",
             "base_dir": "basedir",
             "build_dir": "builddir",
+            "cache_dir": "cachedir",
+            "cache": False,
             "use_container": True,
             "manifest": "requirements.txt",
             "docker_network": "mynetwork",
@@ -127,8 +129,11 @@ class TestSamConfigForAllCommands(TestCase):
                 str(Path(os.getcwd(), "mytemplate.yaml")),
                 "basedir",
                 "builddir",
+                "cachedir",
                 True,
                 True,
+                False,
+                False,
                 "requirements.txt",
                 "mynetwork",
                 True,
@@ -311,6 +316,7 @@ class TestSamConfigForAllCommands(TestCase):
             "metadata": '{"m1": "value1", "m2": "value2"}',
             "region": "myregion",
             "output_template_file": "output.yaml",
+            "signing_profiles": "function=profile:owner",
         }
 
         with samconfig_parameters(["package"], self.scratch_dir, **config_values) as config_path:
@@ -337,6 +343,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 False,
                 {"m1": "value1", "m2": "value2"},
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
                 "myregion",
                 None,
                 False,
@@ -364,6 +371,7 @@ class TestSamConfigForAllCommands(TestCase):
             "guided": True,
             "confirm_changeset": True,
             "region": "myregion",
+            "signing_profiles": "function=profile:owner",
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -401,6 +409,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
                 False,
                 "samconfig.toml",
                 "default",
@@ -428,6 +437,7 @@ class TestSamConfigForAllCommands(TestCase):
             "guided": True,
             "confirm_changeset": True,
             "region": "myregion",
+            "signing_profiles": "function=profile:owner",
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -465,6 +475,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "myregion",
                 None,
+                {"function": {"profile_name": "profile", "profile_owner": "owner"}},
                 False,
                 "samconfig.toml",
                 "default",
