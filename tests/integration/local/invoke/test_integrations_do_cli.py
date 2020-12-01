@@ -47,8 +47,8 @@ class TestSamPython36HelloWorldNonUTF8Integration(InvokeIntegBase):
         ]
     )
     def test_invoke_returns_execpted_results(self, function_name):
-        runner = CliRunner()
+        runner = CliRunner(mix_stderr=False)
         self._caplog.set_level(100000)  # https://github.com/pallets/click/issues/824
         result = runner.invoke(cli, [function_name, "-t", self.template_path, "-e", self.event_path])
-        cli_stdout_lines = result.output.strip().split("\n")
-        self.assertTrue(any(["Hello world" in line for line in cli_stdout_lines]))
+        cli_stdout_lines = result.stdout.strip().split("\n")
+        self.assertIn('"Hello world"', cli_stdout_lines)
