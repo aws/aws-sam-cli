@@ -77,7 +77,7 @@ for:
     test_script:
       # Activate virtualenv again on windows
       - "venv\\Scripts\\activate"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 
@@ -130,7 +130,7 @@ for:
       - "pip install -e \".[dev]\""
 
     test_script:
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 
