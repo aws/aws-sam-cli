@@ -6,6 +6,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersion
 from samcli.lib.providers.provider import Function, LayerVersion
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.exceptions import InvalidLayerReference
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class TestSamFunctionProviderEndToEnd(TestCase):
@@ -42,6 +43,10 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Handler": "index.handler",
                 },
             },
+            "SamFunc4": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo", "PackageType": IMAGE},
+            },
             "SamFuncWithFunctionNameOverride": {
                 "Type": "AWS::Serverless::Function",
                 "Properties": {
@@ -57,6 +62,13 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     "Code": {"S3Bucket": "bucket", "S3Key": "key"},
                     "Runtime": "nodejs4.3",
                     "Handler": "index.handler",
+                },
+            },
+            "LambdaFunc2": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ImageUri": "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo"},
+                    "PackageType": IMAGE,
                 },
             },
             "LambdaFuncWithLocalPath": {
@@ -110,6 +122,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
                     codesign_config_arn=None,
                 ),
             ),
@@ -128,6 +143,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
                     codesign_config_arn=None,
                 ),
             ),
@@ -146,6 +164,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
                     codesign_config_arn=None,
                 ),
             ),
@@ -163,6 +184,30 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     rolearn=None,
                     layers=[],
                     events=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    metadata=None,
+                    codesign_config_arn=None,
+                ),
+            ),
+            (
+                "SamFunc4",
+                Function(
+                    name="SamFunc4",
+                    functionname="SamFunc4",
+                    runtime=None,
+                    handler=None,
+                    codeuri=".",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    imageuri="123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo",
+                    imageconfig=None,
+                    packagetype=IMAGE,
                     metadata=None,
                     codesign_config_arn=None,
                 ),
@@ -182,6 +227,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
                     codesign_config_arn=None,
                 ),
             ),
@@ -200,6 +248,30 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
+                    codesign_config_arn=None,
+                ),
+            ),
+            (
+                "LambdaFunc2",
+                Function(
+                    name="LambdaFunc2",
+                    functionname="LambdaFunc2",
+                    runtime=None,
+                    handler=None,
+                    codeuri=".",
+                    memory=None,
+                    timeout=None,
+                    environment=None,
+                    rolearn=None,
+                    layers=[],
+                    events=None,
+                    metadata=None,
+                    imageuri="123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo",
+                    imageconfig=None,
+                    packagetype=IMAGE,
                     codesign_config_arn=None,
                 ),
             ),
@@ -219,6 +291,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     events=None,
                     metadata=None,
                     codesign_config_arn=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
                 ),
             ),
             (
@@ -236,6 +311,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
                     codesign_config_arn=None,
                 ),
             ),
@@ -254,6 +332,9 @@ class TestSamFunctionProviderEndToEnd(TestCase):
                     layers=[],
                     events=None,
                     metadata=None,
+                    imageuri=None,
+                    imageconfig=None,
+                    packagetype=ZIP,
                     codesign_config_arn="codeSignConfigArn",
                 ),
             ),
@@ -271,8 +352,10 @@ class TestSamFunctionProviderEndToEnd(TestCase):
             "SamFunctions",
             "SamFunc2",
             "SamFunc3",
+            "SamFunc4",
             "SamFuncWithFunctionNameOverride",
             "LambdaFunc1",
+            "LambdaFunc2",
             "LambdaFuncWithLocalPath",
             "LambdaFuncWithFunctionNameOverride",
             "LambdaFuncWithCodeSignConfig",
@@ -369,7 +452,7 @@ class TestSamFunctionProvider_extract_functions(TestCase):
 
 
 class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
-    def test_must_convert(self):
+    def test_must_convert_zip(self):
 
         name = "myname"
         properties = {
@@ -396,10 +479,51 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             layers=["Layer1", "Layer2"],
             events=None,
             metadata=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
             codesign_config_arn=None,
         )
 
         result = SamFunctionProvider._convert_sam_function_resource(name, properties, ["Layer1", "Layer2"])
+
+        self.assertEqual(expected, result)
+
+    def test_must_convert_image(self):
+
+        name = "myname"
+        properties = {
+            "ImageUri": "helloworld:v1",
+            "Runtime": "myruntime",
+            "MemorySize": "mymemorysize",
+            "Timeout": "30",
+            "Handler": "myhandler",
+            "Environment": "myenvironment",
+            "Role": "myrole",
+            "ImageConfig": {"WorkingDirectory": "/var/task", "Command": "/bin/bash", "EntryPoint": "echo Hello!"},
+            "PackageType": IMAGE,
+        }
+
+        expected = Function(
+            name="myname",
+            functionname="myname",
+            runtime="myruntime",
+            memory="mymemorysize",
+            timeout="30",
+            handler="myhandler",
+            codeuri=".",
+            environment="myenvironment",
+            rolearn="myrole",
+            layers=[],
+            events=None,
+            metadata=None,
+            imageuri="helloworld:v1",
+            imageconfig={"WorkingDirectory": "/var/task", "Command": "/bin/bash", "EntryPoint": "echo Hello!"},
+            packagetype=IMAGE,
+            codesign_config_arn=None,
+        )
+
+        result = SamFunctionProvider._convert_sam_function_resource(name, properties, [])
 
         self.assertEqual(expected, result)
 
@@ -421,6 +545,9 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
             codesign_config_arn=None,
         )
 
@@ -486,6 +613,9 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             layers=["Layer1", "Layer2"],
             events=None,
             metadata=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
             codesign_config_arn=None,
         )
 
@@ -511,6 +641,9 @@ class TestSamFunctionProvider_convert_lambda_function_resource(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
             codesign_config_arn=None,
         )
 
@@ -611,6 +744,9 @@ class TestSamFunctionProvider_get(TestCase):
             layers=[],
             events=None,
             metadata=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=None,
             codesign_config_arn=None,
         )
         provider.functions = {"func1": function}

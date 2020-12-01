@@ -10,7 +10,7 @@ from click import prompt
 from click import confirm
 
 from samcli.commands._utils.options import _space_separated_list_func_type
-from samcli.commands._utils.template import get_template_parameters, get_template_data
+from samcli.commands._utils.template import get_template_parameters, get_template_data, get_template_artifacts_format
 from samcli.commands.deploy.code_signer_utils import (
     signer_config_per_function,
     extract_profile_name_and_owner_from_existing,
@@ -19,11 +19,13 @@ from samcli.commands.deploy.code_signer_utils import (
 )
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.auth_utils import auth_per_resource
+from samcli.commands.deploy.auth_utils import auth_per_resource, transform_template
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.package.image_utils import tag_translation, NonLocalImageException
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.packagetype import IMAGE
 
 LOG = logging.getLogger(__name__)
 
@@ -34,6 +36,7 @@ class GuidedContext:
         template_file,
         stack_name,
         s3_bucket,
+        image_repository,
         s3_prefix,
         region=None,
         profile=None,
@@ -49,6 +52,7 @@ class GuidedContext:
         self.template_file = template_file
         self.stack_name = stack_name
         self.s3_bucket = s3_bucket
+        self.image_repository = image_repository
         self.s3_prefix = s3_prefix
         self.region = region
         self.profile = profile
@@ -61,6 +65,7 @@ class GuidedContext:
         self.config_file = config_file
         self.guided_stack_name = None
         self.guided_s3_bucket = None
+        self.guided_image_repository = None
         self.guided_s3_prefix = None
         self.guided_region = None
         self.guided_profile = None
@@ -70,6 +75,7 @@ class GuidedContext:
         self.start_bold = "\033[1m"
         self.end_bold = "\033[0m"
         self.color = Colored()
+        self.transformed_resources = None
 
     @property
     def guided_capabilities(self):
@@ -102,6 +108,9 @@ class GuidedContext:
         region = prompt(f"\t{self.start_bold}AWS Region{self.end_bold}", default=default_region, type=click.STRING)
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
+        )
+        image_repository = self.prompt_image_repository(
+            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
         )
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
@@ -145,6 +154,7 @@ class GuidedContext:
 
         self.guided_stack_name = stack_name
         self.guided_s3_bucket = s3_bucket
+        self.guided_image_repository = image_repository
         self.guided_s3_prefix = stack_name
         self.guided_region = region
         self.guided_profile = self.profile
@@ -247,6 +257,33 @@ class GuidedContext:
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
         return _prompted_param_overrides
 
+    def prompt_image_repository(self, parameter_overrides):
+        image_repository = None
+        artifacts_format = get_template_artifacts_format(template_file=self.template_file)
+        if IMAGE in artifacts_format:
+            self.transformed_resources = transform_template(
+                parameter_overrides=parameter_overrides,
+                template_dict=get_template_data(template_file=self.template_file),
+            )
+            image_repository = prompt(
+                f"\t{self.start_bold}Image Repository{self.end_bold}",
+                type=click.STRING,
+                default=self.image_repository if self.image_repository else "",
+            )
+            for _, function_prop in self.transformed_resources.functions.items():
+                if function_prop.packagetype == IMAGE:
+                    image = function_prop.imageuri
+                    try:
+                        tag = tag_translation(image)
+                    except NonLocalImageException:
+                        pass
+                    else:
+                        click.secho(f"\t{self.start_bold}Images that will be pushed:{self.end_bold}")
+                        click.secho(f"\t  {image} to {image_repository}:{tag}")
+            click.secho(nl=True)
+
+        return image_repository
+
     def run(self):
 
         try:
@@ -270,6 +307,7 @@ class GuidedContext:
                 stack_name=self.guided_stack_name,
                 s3_bucket=self.guided_s3_bucket,
                 s3_prefix=self.guided_s3_prefix,
+                image_repository=self.guided_image_repository,
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,
