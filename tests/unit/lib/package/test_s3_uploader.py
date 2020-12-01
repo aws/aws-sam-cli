@@ -187,3 +187,24 @@ class TestS3Uploader(TestCase):
             self.assertEqual(
                 s3_url, "s3://{0}/{1}/{2}.zip".format(self.bucket_name, self.prefix, file_checksum(f.name))
             )
+
+    def test_get_version_of_artifact(self):
+        s3_uploader = S3Uploader(
+            s3_client=self.s3,
+            bucket_name=self.bucket_name,
+            prefix=self.prefix,
+            kms_key_id=self.kms_key_id,
+            force_upload=self.force_upload,
+        )
+
+        given_version_id = "versionId"
+        given_s3_bucket = "mybucket"
+        given_s3_location = "my/object/location"
+        given_s3_url = f"s3://{given_s3_bucket}/{given_s3_location}"
+
+        self.s3.get_object_tagging.return_value = {"VersionId": given_version_id}
+
+        version_id = s3_uploader.get_version_of_artifact(given_s3_url)
+
+        self.s3.get_object_tagging.assert_called_with(Bucket=given_s3_bucket, Key=given_s3_location)
+        self.assertEqual(version_id, given_version_id)

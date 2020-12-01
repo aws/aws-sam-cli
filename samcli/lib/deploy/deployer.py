@@ -344,8 +344,9 @@ class Deployer:
 
         while stack_change_in_progress and retry_attempts <= self.max_attempts:
             try:
+
                 # Only sleep if there have been no retry_attempts
-                time.sleep(0 if retry_attempts else self.client_sleep)
+                time.sleep(self.client_sleep if retry_attempts == 0 else 0)
                 describe_stacks_resp = self._client.describe_stacks(StackName=stack_name)
                 paginator = self._client.get_paginator("describe_stack_events")
                 response_iterator = paginator.paginate(StackName=stack_name)

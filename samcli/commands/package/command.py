@@ -5,7 +5,12 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
-from samcli.commands._utils.options import metadata_override_option, template_click_option, no_progressbar_option
+from samcli.commands._utils.options import (
+    metadata_override_option,
+    template_click_option,
+    no_progressbar_option,
+    signing_profiles_option,
+)
 from samcli.commands._utils.resources import resources_generator
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.telemetry.metrics import track_command, track_template_warnings
@@ -87,6 +92,7 @@ The following resources and their property locations are supported.
     "Do not use --s3-guided parameter with this option.",
 )
 @metadata_override_option
+@signing_profiles_option
 @no_progressbar_option
 @common_options
 @aws_creds_options
@@ -104,6 +110,7 @@ def cli(
     force_upload,
     no_progressbar,
     metadata,
+    signing_profiles,
     resolve_s3,
     config_file,
     config_env,
@@ -121,6 +128,7 @@ def cli(
         force_upload,
         no_progressbar,
         metadata,
+        signing_profiles,
         ctx.region,
         ctx.profile,
         resolve_s3,
@@ -137,6 +145,7 @@ def do_cli(
     force_upload,
     no_progressbar,
     metadata,
+    signing_profiles,
     region,
     profile,
     resolve_s3,
@@ -168,5 +177,6 @@ def do_cli(
         metadata=metadata,
         region=region,
         profile=profile,
+        signing_profiles=signing_profiles,
     ) as package_context:
         package_context.run()

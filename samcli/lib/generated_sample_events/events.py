@@ -5,8 +5,17 @@ Methods to expose the event types and generate the event jsons for use in SAM CL
 import os
 import json
 import base64
+import warnings
 from requests.utils import quote as url_quote
-from chevron import renderer
+
+with warnings.catch_warnings():
+    # https://github.com/aws/aws-sam-cli/issues/2381
+    # chevron intentionally has a code snippet that could produce a SyntaxWarning
+    # https://github.com/noahmorrison/chevron/blob/a0c11f66c6443ca6387c609b90d014653cd290bd/chevron/renderer.py#L75-L78
+    # here we suppress the warning
+    warnings.simplefilter("ignore")
+    from chevron import renderer
+
 from samcli.lib.utils.hash import str_checksum
 
 
