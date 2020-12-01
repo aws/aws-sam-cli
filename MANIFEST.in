@@ -4,7 +4,6 @@ include requirements/base.txt
 include requirements/dev.txt
 include samcli/local/go-bootstrap/aws-lambda-go
 include samcli/local/rapid/aws-lambda-rie
-recursive-include samcli/lib/init/image_templates *
 recursive-include samcli/lib/init/templates *
 recursive-include samcli/lib *.json
 recursive-include samcli/lib/generated_sample_events *.json
