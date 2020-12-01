@@ -1,11 +1,11 @@
 import os
 import sys
-from unittest.mock import ANY
+
 import docker
 import json
 
 from unittest import TestCase, skipUnless
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call, patch, ANY
 from pathlib import Path, WindowsPath
 
 from samcli.lib.build.build_graph import FunctionBuildDefinition, LayerBuildDefinition
@@ -17,7 +17,11 @@ from samcli.lib.build.app_builder import (
     LambdaBuilderError,
     ContainerBuildNotSupported,
     BuildInsideContainerError,
+    DockerfileOutSideOfContext,
+    DockerBuildFailed,
+    DockerConnectionError,
 )
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils import osutils
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
@@ -25,20 +29,31 @@ from tests.unit.lib.build_module.test_build_graph import generate_function
 class TestApplicationBuilder_build(TestCase):
     def setUp(self):
         self.func1 = Mock()
+        self.func1.packagetype = ZIP
         self.func1.name = "function_name1"
         self.func2 = Mock()
+        self.func2.packagetype = ZIP
         self.func2.name = "function_name2"
+        self.imageFunc1 = Mock()
+        self.imageFunc1.name = "function_name3"
+
         self.layer1 = Mock()
         self.layer2 = Mock()
 
+        self.imageFunc1.packagetype = IMAGE
+        self.layer1.build_method = "build_method"
+        self.layer2.build_method = "build_method"
+
         resources_to_build_collector = ResourcesToBuildCollector()
-        resources_to_build_collector.add_functions([self.func1, self.func2])
+        resources_to_build_collector.add_functions([self.func1, self.func2, self.imageFunc1])
         resources_to_build_collector.add_layers([self.layer1, self.layer2])
         self.builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
 
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     def test_must_iterate_on_functions_and_layers(self, persist_mock):
         build_function_mock = Mock()
+        build_image_function_mock = Mock()
+        build_image_function_mock_return = Mock()
         build_layer_mock = Mock()
 
         def build_layer_return(layer_name, layer_codeuri, layer_build_method, layer_compatible_runtimes):
@@ -47,15 +62,24 @@ class TestApplicationBuilder_build(TestCase):
         build_layer_mock.side_effect = build_layer_return
 
         self.builder._build_function = build_function_mock
+        self.builder._build_lambda_image = build_image_function_mock
         self.builder._build_layer = build_layer_mock
 
+        build_function_mock.side_effect = [
+            os.path.join("builddir", self.func1.name),
+            os.path.join("builddir", self.func2.name),
+            build_image_function_mock_return,
+        ]
+
         result = self.builder.build()
+        self.maxDiff = None
 
         self.assertEqual(
             result,
             {
                 self.func1.name: os.path.join("builddir", self.func1.name),
                 self.func2.name: os.path.join("builddir", self.func2.name),
+                self.imageFunc1.name: build_image_function_mock_return,
                 self.layer1.name: f"{self.layer1.name}_location",
                 self.layer2.name: f"{self.layer2.name}_location",
             },
@@ -66,6 +90,7 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     self.func1.name,
                     self.func1.codeuri,
+                    ZIP,
                     self.func1.runtime,
                     self.func1.handler,
                     ANY,
@@ -74,13 +99,30 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     self.func2.name,
                     self.func2.codeuri,
+                    ZIP,
                     self.func2.runtime,
                     self.func2.handler,
                     ANY,
                     self.func2.metadata,
                 ),
+                call(
+                    self.imageFunc1.name,
+                    self.imageFunc1.codeuri,
+                    IMAGE,
+                    self.imageFunc1.runtime,
+                    self.imageFunc1.handler,
+                    ANY,
+                    self.imageFunc1.metadata,
+                ),
             ],
             any_order=False,
+        )
+
+        build_layer_mock.assert_has_calls(
+            [
+                call(self.layer1.name, self.layer1.codeuri, self.layer1.build_method, self.layer1.compatible_runtimes),
+                call(self.layer2.name, self.layer2.codeuri, self.layer2.build_method, self.layer2.compatible_runtimes),
+            ]
         )
 
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
@@ -115,6 +157,11 @@ class TestApplicationBuilder_build(TestCase):
         # instantiate the builder and run build method
         builder = ApplicationBuilder(resources_to_build_collector, "builddir", "basedir", "cachedir")
         builder._build_function = build_function_mock
+        build_function_mock.side_effect = [
+            os.path.join(build_dir, function1_1.name),
+            os.path.join(build_dir, function1_2.name),
+            os.path.join(build_dir, function1_2.name),
+        ]
 
         result = builder.build()
 
@@ -124,7 +171,7 @@ class TestApplicationBuilder_build(TestCase):
             {
                 function1_1.name: os.path.join(build_dir, function1_1.name),
                 function1_2.name: os.path.join(build_dir, function1_2.name),
-                function2.name: os.path.join(build_dir, function2.name),
+                function2.name: os.path.join(build_dir, function1_2.name),
             },
         )
 
@@ -134,12 +181,21 @@ class TestApplicationBuilder_build(TestCase):
                 call(
                     function1_1.name,
                     function1_1.codeuri,
+                    ZIP,
                     function1_1.runtime,
                     function1_1.handler,
                     ANY,
                     function1_1.metadata,
                 ),
-                call(function2.name, function2.codeuri, function2.runtime, function2.handler, ANY, function2.metadata),
+                call(
+                    function2.name,
+                    function2.codeuri,
+                    ZIP,
+                    function2.runtime,
+                    function2.handler,
+                    ANY,
+                    function2.metadata,
+                ),
             ],
             any_order=True,
         )
@@ -288,12 +344,22 @@ class TestApplicationBuilder_update_template(TestCase):
                 "MyFunction2": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "oldvalue"}},
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                "MyImageFunction1": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"PackageType": "Image"},
+                    "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
+                },
             }
         }
 
-    def test_must_write_relative_build_artifacts_path(self):
+    def test_must_update_resources_with_build_artifacts(self):
+        self.maxDiff = None
         original_template_path = "/path/to/tempate.txt"
-        built_artifacts = {"MyFunction1": "/path/to/build/MyFunction1", "MyFunction2": "/path/to/build/MyFunction2"}
+        built_artifacts = {
+            "MyFunction1": "/path/to/build/MyFunction1",
+            "MyFunction2": "/path/to/build/MyFunction2",
+            "MyImageFunction1": "myimagefunction1:Tag",
+        }
 
         expected_result = {
             "Resources": {
@@ -307,6 +373,11 @@ class TestApplicationBuilder_update_template(TestCase):
                 },
                 "GlueResource": {"Type": "AWS::Glue::Job", "Properties": {"Command": {"ScriptLocation": "something"}}},
                 "OtherResource": {"Type": "AWS::Lambda::Version", "Properties": {"CodeUri": "something"}},
+                "MyImageFunction1": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": "myimagefunction1:Tag", "PackageType": IMAGE},
+                    "Metadata": {"Dockerfile": "Dockerfile", "DockerContext": "DockerContext", "DockerTag": "Tag"},
+                },
             }
         }
 
@@ -381,6 +452,131 @@ class TestApplicationBuilder_update_template_windows(TestCase):
         os.path = self.saved_os_path_module
 
 
+class TestApplicationBuilder_build_lambda_image_function(TestCase):
+    def setUp(self):
+        self.stream_mock = Mock()
+        self.docker_client_mock = Mock()
+        self.builder = ApplicationBuilder(
+            Mock(),
+            "/build/dir",
+            "/base/dir",
+            "/cached/dir",
+            stream_writer=self.stream_mock,
+            docker_client=self.docker_client_mock,
+        )
+
+    def test_docker_build_raises_docker_unavailable(self):
+        with self.assertRaises(DockerConnectionError):
+            metadata = {
+                "Dockerfile": "Dockerfile",
+                "DockerContext": "context",
+                "DockerTag": "Tag",
+                "DockerBuildArgs": {"a": "b"},
+            }
+
+            self.docker_client_mock.ping.side_effect = docker.errors.APIError(message="Mock Error")
+
+            self.builder._build_lambda_image("Name", metadata)
+
+    def test_docker_build_raises_DockerBuildFailed_when_error_in_buildlog_stream(self):
+        with self.assertRaises(DockerBuildFailed):
+            metadata = {
+                "Dockerfile": "Dockerfile",
+                "DockerContext": "context",
+                "DockerTag": "Tag",
+                "DockerBuildArgs": {"a": "b"},
+            }
+
+            self.docker_client_mock.api.build.return_value = [{"error": "Function building failed"}]
+
+            self.builder._build_lambda_image("Name", metadata)
+
+    def test_dockerfile_not_in_dockercontext(self):
+        with self.assertRaises(DockerfileOutSideOfContext):
+            metadata = {
+                "Dockerfile": "Dockerfile",
+                "DockerContext": "context",
+                "DockerTag": "Tag",
+                "DockerBuildArgs": {"a": "b"},
+            }
+
+            response_mock = Mock()
+            response_mock.status_code = 500
+            error_mock = Mock()
+            error_mock.side_effect = docker.errors.APIError(
+                "Bad Request", response=response_mock, explanation="Cannot locate specified Dockerfile"
+            )
+            self.builder._stream_lambda_image_build_logs = error_mock
+            self.docker_client_mock.api.build.return_value = []
+
+            self.builder._build_lambda_image("Name", metadata)
+
+    def test_error_rerasises(self):
+        with self.assertRaises(docker.errors.APIError):
+            metadata = {
+                "Dockerfile": "Dockerfile",
+                "DockerContext": "context",
+                "DockerTag": "Tag",
+                "DockerBuildArgs": {"a": "b"},
+            }
+            error_mock = Mock()
+            error_mock.side_effect = docker.errors.APIError("Bad Request", explanation="Some explanation")
+            self.builder._stream_lambda_image_build_logs = error_mock
+            self.docker_client_mock.api.build.return_value = []
+
+            self.builder._build_lambda_image("Name", metadata)
+
+    def test_can_build_image_function(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+        }
+
+        self.docker_client_mock.api.build.return_value = []
+
+        result = self.builder._build_lambda_image("Name", metadata)
+
+        self.assertEqual(result, "name:Tag")
+
+    def test_can_build_image_function_without_tag(self):
+        metadata = {"Dockerfile": "Dockerfile", "DockerContext": "context", "DockerBuildArgs": {"a": "b"}}
+
+        self.docker_client_mock.api.build.return_value = []
+        result = self.builder._build_lambda_image("Name", metadata)
+
+        self.assertEqual(result, "name:latest")
+
+    @patch("samcli.lib.build.app_builder.os")
+    def test_can_build_image_function_under_debug(self, mock_os):
+        mock_os.environ.get.return_value = "debug"
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+        }
+
+        self.docker_client_mock.api.build.return_value = []
+
+        result = self.builder._build_lambda_image("Name", metadata)
+
+        self.assertEqual(result, "name:Tag-debug")
+        self.builder._build_lambda_image("Name", metadata)
+        self.assertEqual(
+            self.docker_client_mock.api.build.call_args,
+            # NOTE (sriram-mv): path set to ANY to handle platform differences.
+            call(
+                path=ANY,
+                dockerfile="Dockerfile",
+                tag="name:Tag-debug",
+                buildargs={"a": "b", "SAM_BUILD_MODE": "debug"},
+                decode=True,
+            ),
+        )
+
+
 class TestApplicationBuilder_build_function(TestCase):
     def setUp(self):
         self.builder = ApplicationBuilder(Mock(), "/build/dir", "/base/dir", "cachedir")
@@ -390,6 +586,7 @@ class TestApplicationBuilder_build_function(TestCase):
     def test_must_build_in_process(self, osutils_mock, get_workflow_config_mock):
         function_name = "function_name"
         codeuri = "path/to/source"
+        packagetype = ZIP
         runtime = "runtime"
         scratch_dir = "scratch"
         handler = "handler.handle"
@@ -405,7 +602,7 @@ class TestApplicationBuilder_build_function(TestCase):
         artifacts_dir = str(Path("/build/dir/function_name"))
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
-        self.builder._build_function(function_name, codeuri, runtime, handler, artifacts_dir)
+        self.builder._build_function(function_name, codeuri, ZIP, runtime, handler, artifacts_dir)
 
         self.builder._build_function_in_process.assert_called_with(
             config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None
@@ -417,6 +614,7 @@ class TestApplicationBuilder_build_function(TestCase):
         function_name = "function_name"
         codeuri = "path/to/source"
         runtime = "runtime"
+        packagetype = ZIP
         scratch_dir = "scratch"
         handler = "handler.handle"
         config_mock = get_workflow_config_mock.return_value = Mock()
@@ -432,7 +630,7 @@ class TestApplicationBuilder_build_function(TestCase):
         manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
 
         self.builder._build_function(
-            function_name, codeuri, runtime, handler, artifacts_dir, metadata={"BuildMethod": "Workflow"}
+            function_name, codeuri, packagetype, runtime, handler, artifacts_dir, metadata={"BuildMethod": "Workflow"}
         )
 
         get_workflow_config_mock.assert_called_with(
@@ -449,6 +647,7 @@ class TestApplicationBuilder_build_function(TestCase):
         function_name = "function_name"
         codeuri = "path/to/source"
         runtime = "runtime"
+        packagetype = ZIP
         scratch_dir = "scratch"
         handler = "handler.handle"
         config_mock = get_workflow_config_mock.return_value = Mock()
@@ -465,7 +664,7 @@ class TestApplicationBuilder_build_function(TestCase):
 
         # Settting the container manager will make us use the container
         self.builder._container_manager = Mock()
-        self.builder._build_function(function_name, codeuri, runtime, handler, artifacts_dir)
+        self.builder._build_function(function_name, codeuri, packagetype, runtime, handler, artifacts_dir)
 
         self.builder._build_function_on_container.assert_called_with(
             config_mock, code_dir, artifacts_dir, scratch_dir, manifest_path, runtime, None

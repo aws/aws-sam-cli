@@ -11,6 +11,7 @@ from samcli.lib.build.build_graph import (
     _layer_build_definition_to_toml_table,
     CODE_URI_FIELD,
     RUNTIME_FIELD,
+    PACKAGETYPE_FIELD,
     METADATA_FIELD,
     FUNCTIONS_FIELD,
     SOURCE_MD5_FIELD,
@@ -26,6 +27,7 @@ from samcli.lib.build.build_graph import (
 )
 from samcli.lib.providers.provider import Function
 from samcli.lib.utils import osutils
+from samcli.lib.utils.packagetype import ZIP
 
 
 def generate_function(
@@ -35,6 +37,9 @@ def generate_function(
     memory="memory",
     timeout="timeout",
     handler="handler",
+    imageuri="imageuri",
+    packagetype=ZIP,
+    imageconfig="imageconfig",
     codeuri="codeuri",
     environment="environment",
     rolearn="rolearn",
@@ -50,6 +55,9 @@ def generate_function(
         memory,
         timeout,
         handler,
+        imageuri,
+        packagetype,
+        imageconfig,
         codeuri,
         environment,
         rolearn,
@@ -62,12 +70,13 @@ def generate_function(
 
 class TestConversionFunctions(TestCase):
     def test_function_build_definition_to_toml_table(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, {"key": "value"}, "source_md5")
         build_definition.add_function(generate_function())
 
         toml_table = _function_build_definition_to_toml_table(build_definition)
 
         self.assertEqual(toml_table[CODE_URI_FIELD], build_definition.codeuri)
+        self.assertEqual(toml_table[PACKAGETYPE_FIELD], build_definition.packagetype)
         self.assertEqual(toml_table[RUNTIME_FIELD], build_definition.runtime)
         self.assertEqual(toml_table[METADATA_FIELD], build_definition.metadata)
         self.assertEqual(toml_table[FUNCTIONS_FIELD], [f.name for f in build_definition.functions])
@@ -90,6 +99,7 @@ class TestConversionFunctions(TestCase):
         toml_table = tomlkit.table()
         toml_table[CODE_URI_FIELD] = "codeuri"
         toml_table[RUNTIME_FIELD] = "runtime"
+        toml_table[PACKAGETYPE_FIELD] = ZIP
         toml_table[METADATA_FIELD] = {"key": "value"}
         toml_table[FUNCTIONS_FIELD] = ["function1"]
         toml_table[SOURCE_MD5_FIELD] = "source_md5"
@@ -98,6 +108,7 @@ class TestConversionFunctions(TestCase):
         build_definition = _toml_table_to_function_build_definition(uuid, toml_table)
 
         self.assertEqual(build_definition.codeuri, toml_table[CODE_URI_FIELD])
+        self.assertEqual(build_definition.packagetype, toml_table[PACKAGETYPE_FIELD])
         self.assertEqual(build_definition.runtime, toml_table[RUNTIME_FIELD])
         self.assertEqual(build_definition.metadata, toml_table[METADATA_FIELD])
         self.assertEqual(build_definition.uuid, uuid)
@@ -127,6 +138,7 @@ class TestConversionFunctions(TestCase):
 
 class TestBuildGraph(TestCase):
     CODEURI = "hello_world_python/"
+    ZIP = ZIP
     RUNTIME = "python3.8"
     METADATA = {"Test": "hello", "Test2": "world"}
     UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
@@ -139,6 +151,7 @@ class TestBuildGraph(TestCase):
     codeuri = "{CODEURI}"
     runtime = "{RUNTIME}"
     source_md5 = "{SOURCE_MD5}"
+    packagetype = "{ZIP}"
     functions = ["HelloWorldPython", "HelloWorldPython2"]
     [function_build_definitions.{UUID}.metadata]
     Test = "{METADATA['Test']}"
@@ -175,7 +188,11 @@ class TestBuildGraph(TestCase):
             # create a build graph and persist it
             build_graph1 = BuildGraph(str(build_dir))
             build_definition1 = FunctionBuildDefinition(
-                TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA, TestBuildGraph.SOURCE_MD5
+                TestBuildGraph.RUNTIME,
+                TestBuildGraph.CODEURI,
+                TestBuildGraph.ZIP,
+                TestBuildGraph.METADATA,
+                TestBuildGraph.SOURCE_MD5,
             )
             function1 = generate_function(
                 runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
@@ -205,6 +222,7 @@ class TestBuildGraph(TestCase):
             for build_definition in build_graph.get_function_build_definitions():
                 self.assertEqual(build_definition.codeuri, TestBuildGraph.CODEURI)
                 self.assertEqual(build_definition.runtime, TestBuildGraph.RUNTIME)
+                self.assertEqual(build_definition.packagetype, TestBuildGraph.ZIP)
                 self.assertEqual(build_definition.metadata, TestBuildGraph.METADATA)
                 self.assertEqual(build_definition.source_md5, TestBuildGraph.SOURCE_MD5)
 
@@ -219,7 +237,11 @@ class TestBuildGraph(TestCase):
             build_graph = BuildGraph(str(build_dir))
 
             build_definition1 = FunctionBuildDefinition(
-                TestBuildGraph.RUNTIME, TestBuildGraph.CODEURI, TestBuildGraph.METADATA, TestBuildGraph.SOURCE_MD5
+                TestBuildGraph.RUNTIME,
+                TestBuildGraph.CODEURI,
+                TestBuildGraph.ZIP,
+                TestBuildGraph.METADATA,
+                TestBuildGraph.SOURCE_MD5,
             )
             function1 = generate_function(
                 runtime=TestBuildGraph.RUNTIME, codeuri=TestBuildGraph.CODEURI, metadata=TestBuildGraph.METADATA
@@ -233,7 +255,7 @@ class TestBuildGraph(TestCase):
                 self.assertEqual(build_definition.uuid, TestBuildGraph.UUID)
 
             build_definition2 = FunctionBuildDefinition(
-                "another_runtime", "another_codeuri", None, "another_source_md5"
+                "another_runtime", "another_codeuri", TestBuildGraph.ZIP, None, "another_source_md5"
             )
             function2 = generate_function(name="another_function")
             build_graph.put_function_build_definition(build_definition2, function2)
@@ -242,21 +264,21 @@ class TestBuildGraph(TestCase):
 
 class TestBuildDefinition(TestCase):
     def test_single_function_should_return_function_and_handler_name(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", "metadata", "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, "metadata", "source_md5")
         build_definition.add_function(generate_function())
 
         self.assertEqual(build_definition.get_handler_name(), "handler")
         self.assertEqual(build_definition.get_function_name(), "name")
 
     def test_no_function_should_raise_exception(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", "metadata", "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, "metadata", "source_md5")
 
         self.assertRaises(InvalidBuildGraphException, build_definition.get_handler_name)
         self.assertRaises(InvalidBuildGraphException, build_definition.get_function_name)
 
     def test_same_runtime_codeuri_metadata_should_reflect_as_same_object(self):
-        build_definition1 = FunctionBuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
-        build_definition2 = FunctionBuildDefinition("runtime", "codeuri", {"key": "value"}, "source_md5")
+        build_definition1 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {"key": "value"}, "source_md5")
+        build_definition2 = FunctionBuildDefinition("runtime", "codeuri", ZIP, {"key": "value"}, "source_md5")
 
         self.assertEqual(build_definition1, build_definition2)
 
@@ -308,17 +330,18 @@ class TestBuildDefinition(TestCase):
     def test_different_runtime_codeuri_metadata_should_not_reflect_as_same_object(
         self, runtime1, codeuri1, metadata1, source_md5_1, runtime2, codeuri2, metadata2, source_md5_2
     ):
-        build_definition1 = FunctionBuildDefinition(runtime1, codeuri1, metadata1, source_md5_1)
-        build_definition2 = FunctionBuildDefinition(runtime2, codeuri2, metadata2, source_md5_2)
+        build_definition1 = FunctionBuildDefinition(runtime1, codeuri1, ZIP, metadata1, source_md5_1)
+        build_definition2 = FunctionBuildDefinition(runtime2, codeuri2, ZIP, metadata2, source_md5_2)
 
         self.assertNotEqual(build_definition1, build_definition2)
 
     def test_euqality_with_another_object(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", None, "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, None, "source_md5")
         self.assertNotEqual(build_definition, {})
 
     def test_str_representation(self):
-        build_definition = FunctionBuildDefinition("runtime", "codeuri", None, "source_md5")
+        build_definition = FunctionBuildDefinition("runtime", "codeuri", ZIP, None, "source_md5")
         self.assertEqual(
-            str(build_definition), f"BuildDefinition(runtime, codeuri, source_md5, {build_definition.uuid}, {{}}, [])"
+            str(build_definition),
+            f"BuildDefinition(runtime, codeuri, Zip, source_md5, {build_definition.uuid}, {{}}, [])",
         )

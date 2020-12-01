@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    {%- if cookiecutter.runtime == 'dotnetcore2.0' %}
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    {%- else %}
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    {%- endif %}
+  </PropertyGroup>
+
+  <ItemGroup>
+
+    <PackageReference Include="Amazon.Lambda.Core" Version="1.1.0" />
+    <PackageReference Include="Amazon.Lambda.TestUtilities" Version="1.1.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.0.1" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HelloWorld\HelloWorld.csproj" />
+  </ItemGroup>
+
+</Project>

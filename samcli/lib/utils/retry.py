@@ -9,12 +9,14 @@ from functools import wraps
 def retry(exc, attempts=3, delay=0.05, exc_raise=Exception, exc_raise_msg=""):
     """
     Retry decorator which defaults to 3 attempts based on exponential backoff
-    and a delay of 50ms
+    and a delay of 50ms.
     After retries are exhausted, a custom Exception and Error message are raised.
 
     :param exc: Exception to be caught for retry
     :param attempts: number of attempts before exception is allowed to be raised.
-    :param delay: an initial delay which will exponentially increase based on the retry attempt
+    :param delay: an initial delay which will exponentially increase based on the retry attempt.
+    :param exc_raise: Final Exception to raise.
+    :param exc_raise_msg: Final message for the Exception to be raised.
     :return:
     """
 
@@ -23,7 +25,7 @@ def retry(exc, attempts=3, delay=0.05, exc_raise=Exception, exc_raise_msg=""):
         def wrapper(*args, **kwargs):
             remaining_attempts = attempts
             retry_attempt = 1
-            while remaining_attempts > 1:
+            while remaining_attempts >= 1:
                 try:
                     return func(*args, **kwargs)
                 except exc:

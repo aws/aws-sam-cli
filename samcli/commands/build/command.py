@@ -12,7 +12,7 @@ from samcli.commands._utils.options import (
     parameter_override_option,
 )
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.lib.build.app_builder import BuildInsideContainerError
+from samcli.lib.build.exceptions import BuildInsideContainerError
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 

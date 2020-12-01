@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 from parameterized import parameterized
 
+from samcli.lib.utils.packagetype import ZIP
 from samcli.local.lambdafn.config import FunctionConfig
 from samcli.commands.local.cli_common.user_exceptions import InvalidSamTemplateException
 
@@ -16,6 +17,9 @@ class TestFunctionConfig(TestCase):
         self.name = "name"
         self.runtime = "runtime"
         self.handler = "handler"
+        self.imageuri = None
+        self.imageconfig = None
+        self.packagetype = ZIP
         self.code_path = "codepath"
         self.memory = 1234
         self.timeout = 34
@@ -27,6 +31,9 @@ class TestFunctionConfig(TestCase):
             self.name,
             self.runtime,
             self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
             self.code_path,
             self.layers,
             memory=self.memory,
@@ -37,6 +44,9 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(config.name, self.name)
         self.assertEqual(config.runtime, self.runtime)
         self.assertEqual(config.handler, self.handler)
+        self.assertEqual(config.imageuri, self.imageuri)
+        self.assertEqual(config.imageconfig, self.imageconfig)
+        self.assertEqual(config.packagetype, self.packagetype)
         self.assertEqual(config.code_abs_path, self.code_path)
         self.assertEqual(config.layers, self.layers)
         self.assertEqual(config.memory, self.memory)
@@ -48,11 +58,23 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(self.env_vars_mock.timeout, self.timeout)
 
     def test_init_without_optional_values(self):
-        config = FunctionConfig(self.name, self.runtime, self.handler, self.code_path, self.layers)
+        config = FunctionConfig(
+            self.name,
+            self.runtime,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+        )
 
         self.assertEqual(config.name, self.name)
         self.assertEqual(config.runtime, self.runtime)
         self.assertEqual(config.handler, self.handler)
+        self.assertEqual(config.packagetype, self.packagetype)
+        self.assertEqual(config.imageuri, self.imageuri)
+        self.assertEqual(config.imageconfig, self.imageconfig)
         self.assertEqual(config.code_abs_path, self.code_path)
         self.assertEqual(config.layers, self.layers)
         self.assertEqual(config.memory, self.DEFAULT_MEMORY)
@@ -68,6 +90,9 @@ class TestFunctionConfig(TestCase):
             self.name,
             self.runtime,
             self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
             self.code_path,
             self.layers,
             memory=self.memory,
@@ -78,6 +103,9 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(config.name, self.name)
         self.assertEqual(config.runtime, self.runtime)
         self.assertEqual(config.handler, self.handler)
+        self.assertEqual(config.packagetype, self.packagetype)
+        self.assertEqual(config.imageuri, self.imageuri)
+        self.assertEqual(config.imageconfig, self.imageconfig)
         self.assertEqual(config.code_abs_path, self.code_path)
         self.assertEqual(config.layers, self.layers)
         self.assertEqual(config.memory, self.memory)
@@ -94,6 +122,9 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
         self.name = "name"
         self.runtime = "runtime"
         self.handler = "handler"
+        self.imageuri = None
+        self.imageconfig = None
+        self.packagetype = ZIP
         self.code_path = "codepath"
         self.memory = 1234
         self.env_vars_mock = Mock()
@@ -114,7 +145,10 @@ class TestFunctionConfigInvalidTimeouts(TestCase):
             FunctionConfig(
                 self.name,
                 self.runtime,
+                self.imageuri,
                 self.handler,
+                self.packagetype,
+                self.imageconfig,
                 self.code_path,
                 self.layers,
                 memory=self.memory,

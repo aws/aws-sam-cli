@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+from samcli.lib.utils.packagetype import IMAGE
 from samtranslator.public.exceptions import InvalidDocumentException
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -164,6 +165,96 @@ class TestSamTemplateValidator(TestCase):
         tempalte_resources = validator.sam_template.get("Resources")
         self.assertEqual(
             tempalte_resources.get("ServerlessFunction").get("Properties").get("CodeUri"), "s3://bucket/value"
+        )
+
+    def test_dont_replace_local_codeuri_when_no_codeuri_given_packagetype_image(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
+                "ServerlessFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"PackageType": IMAGE, "ImageUri": "myimage:latest", "Timeout": 60},
+                },
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_codeuri()
+
+        # check template
+        template_resources = validator.sam_template.get("Resources")
+        self.assertEqual(
+            template_resources.get("ServerlessFunction").get("Properties").get("CodeUri", "NotPresent"), "NotPresent"
+        )
+
+    def test_dont_replace_codeuri_when_global_code_uri_given_packagetype_image(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Globals": {"Function": {"CodeUri": "globalcodeuri", "Timeout": "3"}},
+            "Resources": {
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
+                "ServerlessFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"PackageType": IMAGE, "ImageUri": "myimage:latest", "Timeout": 60},
+                },
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_codeuri()
+
+        # check template
+        template_resources = validator.sam_template.get("Resources")
+        self.assertEqual(
+            template_resources.get("ServerlessFunction").get("Properties").get("CodeUri", "NotPresent"), "NotPresent"
+        )
+
+    def test_dont_replace_codeuri_when_global_code_uri_given__both_packagetype(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Globals": {
+                "Function": {
+                    "CodeUri": "s3://globalcodeuri",
+                }
+            },
+            "Resources": {
+                "ServerlessApi": {"Type": "AWS::Serverless::Api", "Properties": {"StageName": "Prod"}},
+                "ServerlessFunctionImage": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"PackageType": IMAGE, "ImageUri": "myimage:latest", "Timeout": 60},
+                },
+                "ServerlessFunctionZip": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"Handler": "index.handler", "Runtime": "nodejs6.10", "Timeout": 60},
+                },
+            },
+        }
+
+        managed_policy_mock = Mock()
+
+        validator = SamTemplateValidator(template, managed_policy_mock)
+
+        validator._replace_local_codeuri()
+
+        # check template
+        template_resources = validator.sam_template.get("Resources")
+        self.assertEqual(
+            template_resources.get("ServerlessFunctionImage").get("Properties").get("CodeUri", "NotPresent"),
+            "NotPresent",
+        )
+        # Globals not set since they cant apply to both Zip and Image based packagetypes.
+        self.assertEqual(
+            template_resources.get("ServerlessFunctionZip").get("Properties").get("CodeUri"), "s3://bucket/value"
         )
 
     def test_DefinitionUri_does_not_get_added_to_template_when_DefinitionBody_given(self):

@@ -4,8 +4,6 @@ Supplies the environment variables necessary to set up Local Lambda runtime
 
 import sys
 
-from samcli.lib.utils.feature_flag import extensions_preview_enabled
-
 
 class EnvironmentVariables:
     """
@@ -64,12 +62,12 @@ class EnvironmentVariables:
             environment variables. It should contain "key", "secret", "region" and optional "sessiontoken" keys
         """
 
-        self._extensions_preview_enabled = extensions_preview_enabled()
-
-        self._function = {"memory": function_memory, "timeout": function_timeout, "handler": function_handler}
-
-        if self._extensions_preview_enabled:
-            self._function["name"] = function_name
+        self._function = {
+            "memory": function_memory,
+            "timeout": function_timeout,
+            "handler": function_handler,
+            "name": function_name,
+        }
 
         self.variables = variables or {}
         self.shell_env_values = shell_env_values or {}
@@ -157,20 +155,18 @@ class EnvironmentVariables:
             # Function configuration
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": str(self.memory),
             "AWS_LAMBDA_FUNCTION_TIMEOUT": str(self.timeout),
-            "AWS_LAMBDA_FUNCTION_HANDLER": str(self._function["handler"]),
+            "AWS_LAMBDA_FUNCTION_HANDLER": self._function["handler"],
+            "AWS_LAMBDA_FUNCTION_NAME": str(self.name),
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             # AWS Credentials - Use the input credentials or use the defaults
             "AWS_REGION": self.aws_creds.get("region", self._DEFAULT_AWS_CREDS["region"]),
             "AWS_DEFAULT_REGION": self.aws_creds.get("region", self._DEFAULT_AWS_CREDS["region"]),
             "AWS_ACCESS_KEY_ID": self.aws_creds.get("key", self._DEFAULT_AWS_CREDS["key"]),
             "AWS_SECRET_ACCESS_KEY": self.aws_creds.get("secret", self._DEFAULT_AWS_CREDS["secret"]),
+            "AWS_ACCOUNT_ID": "123456789012",
         }
-
-        if self._extensions_preview_enabled:
-            result["AWS_LAMBDA_FUNCTION_NAME"] = str(self.name)
-            result["AWS_LAMBDA_FUNCTION_VERSION"] = "$LATEST"
-            result["AWS_LAMBDA_LOG_GROUP_NAME"] = f"aws/lambda/{self.name}"
-            result["AWS_LAMBDA_LOG_STREAM_NAME"] = "$LATEST"
-            result["AWS_ACCOUNT_ID"] = "123456789012"
 
         # Session Token should be added **only** if the input creds have a token and the value is not empty.
         if self.aws_creds.get("sessiontoken"):

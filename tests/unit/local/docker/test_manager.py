@@ -12,6 +12,24 @@ from docker.errors import APIError, ImageNotFound
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 
 
+# pywintypes is not available non-Windows OS,
+# we need to make up an Exception for this
+class MockPywintypesError(Exception):
+    pass
+
+
+def patched_modules():
+    # Mock these modules to simulate a Windows environment
+    platform_mock = Mock()
+    platform_mock.system.return_value = "Windows"
+    pywintypes_mock = Mock()
+    pywintypes_mock.error = MockPywintypesError
+    return {
+        "platform": platform_mock,
+        "pywintypes": pywintypes_mock,
+    }
+
+
 class TestContainerManager_init(TestCase):
     def test_must_initialize_with_default_value(self):
 
@@ -232,14 +250,26 @@ class TestContainerManager_is_docker_reachable(TestCase):
         self.manager = ContainerManager(docker_client=self.docker_client_mock)
 
     def test_must_use_docker_client_ping(self):
-        self.manager.is_docker_reachable
+        with patch.dict("sys.modules", patched_modules()):
+            import samcli.local.docker.manager as manager_module
+            import samcli.local.docker.utils as docker_utils
 
-        self.ping_mock.assert_called_once_with()
+            importlib.reload(manager_module)
+            importlib.reload(docker_utils)
+            self.manager.is_docker_reachable
+
+            self.ping_mock.assert_called_once_with()
 
     def test_must_return_true_if_ping_does_not_raise(self):
-        is_reachable = self.manager.is_docker_reachable
+        with patch.dict("sys.modules", patched_modules()):
+            import samcli.local.docker.manager as manager_module
+            import samcli.local.docker.utils as docker_utils
 
-        self.assertTrue(is_reachable)
+            importlib.reload(manager_module)
+            importlib.reload(docker_utils)
+            is_reachable = self.manager.is_docker_reachable
+
+            self.assertTrue(is_reachable)
 
     def test_must_return_false_if_ping_raises_api_error(self):
         self.ping_mock.side_effect = APIError("error")
@@ -256,24 +286,12 @@ class TestContainerManager_is_docker_reachable(TestCase):
         self.assertFalse(is_reachable)
 
     def test_must_return_false_if_ping_raises_pywintypes_error(self):
-        # pywintypes is not available non-Windows OS,
-        # we need to make up an Exception for this
-        class MockPywintypesError(Exception):
-            pass
-
-        # Mock these modules to simulate a Windows environment
-        platform_mock = Mock()
-        platform_mock.system.return_value = "Windows"
-        pywintypes_mock = Mock()
-        pywintypes_mock.error = MockPywintypesError
-        modules = {
-            "platform": platform_mock,
-            "pywintypes": pywintypes_mock,
-        }
-        with patch.dict("sys.modules", modules):
+        with patch.dict("sys.modules", patched_modules()):
             import samcli.local.docker.manager as manager_module
+            import samcli.local.docker.utils as docker_utils
 
             importlib.reload(manager_module)
+            importlib.reload(docker_utils)
             manager = manager_module.ContainerManager(docker_client=self.docker_client_mock)
             import pywintypes  # pylint: disable=import-error
 

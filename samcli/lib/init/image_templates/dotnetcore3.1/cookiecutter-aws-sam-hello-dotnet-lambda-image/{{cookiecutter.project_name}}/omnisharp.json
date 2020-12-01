@@ -1,0 +1,11 @@
+{
+    "fileOptions": {
+      "excludeSearchPatterns": [
+        "**/bin/**/*",
+        "**/obj/**/*"
+      ]
+    },
+    "msbuild": {
+        "Platform": "rhel.7.2-x64"
+    }
+}

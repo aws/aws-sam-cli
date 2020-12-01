@@ -10,7 +10,6 @@ import logging
 import threading
 from contextlib import contextmanager
 
-from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.local.docker.lambda_container import LambdaContainer
 from .zip import unzip
 
@@ -69,7 +68,10 @@ class LambdaRuntime:
         with self._get_code_dir(function_config.code_abs_path) as code_dir:
             container = LambdaContainer(
                 function_config.runtime,
+                function_config.imageuri,
                 function_config.handler,
+                function_config.packagetype,
+                function_config.imageconfig,
                 code_dir,
                 function_config.layers,
                 self._image_builder,
@@ -93,12 +95,10 @@ class LambdaRuntime:
                 )
 
                 # NOTE: BLOCKING METHOD
-                # Block the thread waiting to fetch logs from the container. This method will return after container
-                # terminates, either successfully or killed by one of the interrupt handlers above.
-                if extensions_preview_enabled():
-                    container.wait_for_result(name=function_config.name, event=event, stdout=stdout, stderr=stderr)
-                else:
-                    container.wait_for_logs(stdout=stdout, stderr=stderr)
+                # Block on waiting for result from the init process on the container, below method also
+                # starts another thread to stream logs. This method will terminate
+                # either successfully or be killed by one of the interrupt handlers above.
+                container.wait_for_result(name=function_config.name, event=event, stdout=stdout, stderr=stderr)
 
             except KeyboardInterrupt:
                 # When user presses Ctrl+C, we receive a Keyboard Interrupt. This is especially very common when
@@ -169,7 +169,10 @@ class LambdaRuntime:
         decompressed_dir = None
 
         try:
-            if os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
+            if not code_path:
+                yield code_path
+
+            elif os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
 
                 decompressed_dir = _unzip_file(code_path)
                 yield decompressed_dir

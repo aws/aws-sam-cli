@@ -2,6 +2,8 @@
 Enums for Resources and thier Location Properties, along with utlity functions
 """
 
+from collections import defaultdict
+
 AWS_SERVERLESSREPO_APPLICATION = "AWS::ServerlessRepo::Application"
 AWS_SERVERLESS_FUNCTION = "AWS::Serverless::Function"
 AWS_SERVERLESS_API = "AWS::Serverless::Api"
@@ -41,12 +43,26 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_STEPFUNCTIONS_STATEMACHINE: ["DefinitionS3Location"],
 }
 
+RESOURCES_WITH_IMAGE_COMPONENT = {
+    AWS_SERVERLESS_FUNCTION: ["ImageUri"],
+    AWS_LAMBDA_FUNCTION: ["Code"],
+}
+
 
 def resources_generator():
     """
     Generator to yield set of resources and their locations that are supported for package operations
     :return:
     """
-    for resource, locations in dict({**METADATA_WITH_LOCAL_PATHS, **RESOURCES_WITH_LOCAL_PATHS}).items():
-        for location in locations:
-            yield resource, location
+    _resource_property_dict = defaultdict(list)
+    for _dict in (METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
+        for key, value in _dict.items():
+            # Only add values to the list if they are different, same property name could be used with the resource
+            # to package to different locations.
+            if value not in _resource_property_dict.get(key, []):
+                _resource_property_dict[key].append(value)
+
+    for resource, location_list in _resource_property_dict.items():
+        for locations in location_list:
+            for location in locations:
+                yield resource, location

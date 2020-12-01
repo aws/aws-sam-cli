@@ -26,6 +26,12 @@ Function = namedtuple(
         "timeout",
         # Name of the handler
         "handler",
+        # Image Uri
+        "imageuri",
+        # Package Type
+        "packagetype",
+        # Image Configuration
+        "imageconfig",
         # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
         "codeuri",
         # Environment variables. This is a dictionary with one key called Variables inside it. This contains the definition

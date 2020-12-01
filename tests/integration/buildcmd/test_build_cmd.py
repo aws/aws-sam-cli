@@ -3,6 +3,7 @@ import shutil
 import sys
 import os
 import logging
+import random
 from unittest import skipIf
 from pathlib import Path
 from parameterized import parameterized
@@ -23,6 +24,45 @@ from tests.testing_utils import (
 LOG = logging.getLogger(__name__)
 
 TIMEOUT = 420  # 7 mins
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
+class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
+    template = "template_image.yaml"
+
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+    EXPECTED_FILES_PROJECT_MANIFEST = {
+        "__init__.py",
+        "main.py",
+        "numpy",
+        # 'cryptography',
+        "requirements.txt",
+    }
+
+    FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
+
+    @parameterized.expand([("3.6", False), ("3.7", False), ("3.8", False)])
+    @pytest.mark.flaky(reruns=3)
+    def test_with_default_requirements(self, runtime, use_container):
+        overrides = {
+            "Runtime": runtime,
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile",
+            "Tag": f"{random.randint(1,100)}",
+        }
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command: ")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            self.built_template, self.FUNCTION_LOGICAL_ID_IMAGE, self._make_parameter_override_arg(overrides), expected
+        )
 
 
 @skipIf(

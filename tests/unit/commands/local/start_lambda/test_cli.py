@@ -7,7 +7,8 @@ from samcli.commands.local.start_lambda.cli import do_cli as start_lambda_cli
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.commands.local.cli_common.user_exceptions import UserException
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
+from samcli.local.docker.exceptions import ContainerNotStartableException
+from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, InvalidIntermediateImageError
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
 
@@ -18,6 +19,7 @@ class TestCli(TestCase):
         self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
+        self.container_env_vars = "container-env-vars"
         self.docker_volume_basedir = "basedir"
         self.docker_network = "network"
         self.log_file = "logfile"
@@ -58,6 +60,7 @@ class TestCli(TestCase):
             debug_ports=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            container_env_vars_file=self.container_env_vars,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
@@ -103,6 +106,28 @@ class TestCli(TestCase):
         expected = "bad env vars"
         self.assertEqual(msg, expected)
 
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    def test_must_raise_user_exception_on_invalid_imageuri(self, invoke_context_mock):
+        invoke_context_mock.side_effect = InvalidIntermediateImageError("invalid imageuri")
+
+        with self.assertRaises(UserException) as context:
+            self.call_cli()
+
+        msg = str(context.exception)
+        expected = "invalid imageuri"
+        self.assertEqual(msg, expected)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
+    def test_must_raise_user_exception_on_no_free_ports(self, invoke_context_mock):
+        invoke_context_mock.side_effect = ContainerNotStartableException("no free ports on host to bind with container")
+
+        with self.assertRaises(UserException) as context:
+            self.call_cli()
+
+        msg = str(context.exception)
+        expected = "no free ports on host to bind with container"
+        self.assertEqual(msg, expected)
+
     def call_cli(self):
         start_lambda_cli(
             ctx=self.ctx_mock,
@@ -113,6 +138,7 @@ class TestCli(TestCase):
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            container_env_vars=self.container_env_vars,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,

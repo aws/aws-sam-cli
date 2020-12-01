@@ -102,6 +102,11 @@ def invoke_common_options(f):
                 "--debug-args", help="Additional arguments to be passed to the debugger.", envvar="DEBUGGER_ARGS"
             ),
             click.option(
+                "--container-env-vars",
+                type=click.Path(exists=True),
+                help="JSON file containing environment variables to be set within the container environment",
+            ),
+            click.option(
                 "--docker-volume-basedir",
                 "-v",
                 envvar="SAM_DOCKER_VOLUME_BASEDIR",
