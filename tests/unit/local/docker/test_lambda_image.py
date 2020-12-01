@@ -1,5 +1,4 @@
 import io
-import shutil
 import tempfile
 
 from unittest import TestCase
@@ -11,16 +10,12 @@ from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.commands.local.cli_common.user_exceptions import ImageBuildException
-from samcli.lib.utils.osutils import rmtree_callback
 from samcli import __version__ as version
 
 
 class TestLambdaImage(TestCase):
     def setUp(self):
         self.layer_cache_dir = tempfile.gettempdir()
-
-    def tearDown(self):
-        shutil.rmtree(self.layer_cache_dir, onerror=rmtree_callback)
 
     def test_initialization_without_defaults(self):
         lambda_image = LambdaImage("layer_downloader", False, False, docker_client="docker_client")
