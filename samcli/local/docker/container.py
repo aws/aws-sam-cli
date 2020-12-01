@@ -1,20 +1,18 @@
 """
 Representation of a generic Docker container
 """
-
 import logging
 import tarfile
 import tempfile
 import threading
-import socket
 
 import docker
 import requests
 
-from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.lib.utils.retry import retry
+from .exceptions import ContainerNotStartableException
 
-from .utils import to_posix_path
+from .utils import to_posix_path, find_free_port, NoFreePortsError
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +38,7 @@ class Container:
     _STDERR_FRAME_TYPE = 2
     RAPID_PORT_CONTAINER = "8080"
     URL = "http://localhost:{port}/2015-03-31/functions/{function_name}/invocations"
-    # NOTE(sriram-mv): 100ms Connection Timeout for http requests talking to local RAPID HTTP APIs
+    # NOTE(sriram-mv): 100ms Connection Timeout for http requests talking to `aws-lambda-rie` HTTP APIs
     RAPID_CONNECTION_TIMEOUT = 0.1
 
     def __init__(
@@ -89,16 +87,14 @@ class Container:
         # Runtime properties of the container. They won't have value until container is created or started
         self.id = None
 
-        # Check if extensions preview is enabled
-        self._extensions_preview_enabled = extensions_preview_enabled()
-
-        # local RAPID defaults to 8080 as the port, however thats a common port. A port is chosen by
-        # creating a socket and binding to it. This way a port gets chosen on our behalf.
-        if self._extensions_preview_enabled:
-            self._socket = socket.socket()
-            self._socket.bind(("", 0))
-            self.rapid_port_host = self._socket.getsockname()[1]
-            self._socket.close()
+        # aws-lambda-rie defaults to 8080 as the port, however that's a common port. A port is chosen by
+        # selecting the first free port in a range that's not ephemeral.
+        self._start_port_range = 5000
+        self._end_port_range = 9000
+        try:
+            self.rapid_port_host = find_free_port(start=self._start_port_range, end=self._end_port_range)
+        except NoFreePortsError as ex:
+            raise ContainerNotStartableException(str(ex)) from ex
 
     def create(self):
         """
@@ -112,12 +108,12 @@ class Container:
         if self.is_created():
             raise RuntimeError("This container already exists. Cannot create again.")
 
-        LOG.info("Mounting %s as %s:ro,delegated inside runtime container", self._host_dir, self._working_dir)
+        _volumes = {}
 
-        kwargs = {
-            "command": self._cmd,
-            "working_dir": self._working_dir,
-            "volumes": {
+        if self._host_dir:
+            LOG.info("Mounting %s as %s:ro,delegated inside runtime container", self._host_dir, self._working_dir)
+
+            _volumes = {
                 self._host_dir: {
                     # Mount the host directory as "read only" directory inside container at working_dir
                     # https://docs.docker.com/storage/bind-mounts
@@ -125,7 +121,12 @@ class Container:
                     "bind": self._working_dir,
                     "mode": "ro,delegated",
                 }
-            },
+            }
+
+        kwargs = {
+            "command": self._cmd,
+            "working_dir": self._working_dir,
+            "volumes": _volumes,
             # We are not running an interactive shell here.
             "tty": False,
             # Set proxy configuration from global Docker config file
@@ -144,12 +145,12 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {}
-        if self._extensions_preview_enabled:
-            kwargs["ports"] = {self.RAPID_PORT_CONTAINER: self.rapid_port_host}
+        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: ("127.0.0.1", self.rapid_port_host)}
 
         if self._exposed_ports:
-            kwargs["ports"].update(self._exposed_ports)
+            kwargs["ports"].update(
+                {container_port: ("127.0.0.1", host_port) for container_port, host_port in self._exposed_ports.items()}
+            )
 
         if self._entrypoint:
             kwargs["entrypoint"] = self._entrypoint
@@ -220,8 +221,8 @@ class Container:
 
     @retry(exc=requests.exceptions.RequestException, exc_raise=ContainerResponseException)
     def wait_for_http_response(self, name, event, stdout):
-        # TODO(sriram-mv): local RAPID is in a mode where the function_name is always "function"
-        # NOTE(sriram-mv): There is a connection timeout set on the http call to rapid, however there is not
+        # TODO(sriram-mv): `aws-lambda-rie` is in a mode where the function_name is always "function"
+        # NOTE(sriram-mv): There is a connection timeout set on the http call to `aws-lambda-rie`, however there is not
         # a read time out for the response received from the server.
         resp = requests.post(
             self.URL.format(port=self.rapid_port_host, function_name="function"),

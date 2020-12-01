@@ -14,7 +14,20 @@ class FunctionConfig:
     _DEFAULT_TIMEOUT_SECONDS = 3
     _DEFAULT_MEMORY = 128
 
-    def __init__(self, name, runtime, handler, code_abs_path, layers, memory=None, timeout=None, env_vars=None):
+    def __init__(
+        self,
+        name,
+        runtime,
+        handler,
+        imageuri,
+        imageconfig,
+        packagetype,
+        code_abs_path,
+        layers,
+        memory=None,
+        timeout=None,
+        env_vars=None,
+    ):
         """
         Initialize the class.
 
@@ -40,6 +53,9 @@ class FunctionConfig:
         """
         self.name = name
         self.runtime = runtime
+        self.imageuri = imageuri
+        self.imageconfig = imageconfig
+        self.packagetype = packagetype
         self.handler = handler
         self.code_abs_path = code_abs_path
         self.layers = layers
