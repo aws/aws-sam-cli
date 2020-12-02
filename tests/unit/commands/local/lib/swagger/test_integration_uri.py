@@ -18,6 +18,10 @@ class TestLambdaUri(TestCase):
 
     SUCCESS_CASES = [
         (
+            "URI is a fully resolved ARN",
+            "arn:aws:lambda:us-east-1:123456789012:function:MyCoolFunction",
+        ),
+        (
             "URI is a string with fully resolved ARN",
             "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:MyCoolFunction/invocations",  # NOQA
         ),
