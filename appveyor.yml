@@ -10,32 +10,35 @@ environment:
   matrix:
 
     - PYTHON_HOME: "C:\\Python36-x64"
-      PYTHON_VERSION: '3.6.10'
+      PYTHON_VERSION: '3.6'
       PYTHON_ARCH: '64'
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
       AWS_S3: 'AWS_S3_36'
+      AWS_ECR: 'AWS_ECR_36'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python37-x64"
-      PYTHON_VERSION: '3.7.7'
+      PYTHON_VERSION: '3.7'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       AWS_S3: 'AWS_S3_37'
+      AWS_ECR: 'AWS_ECR_37'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python38-x64"
-      PYTHON_VERSION: '3.8.2'
+      PYTHON_VERSION: '3.8'
       PYTHON_ARCH: '64'
       RUN_SMOKE: 1
       NOSE_PARAMETERIZED_NO_WARN: 1
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       AWS_S3: 'AWS_S3_38'
+      AWS_ECR: 'AWS_ECR_38'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 for:
@@ -74,7 +77,7 @@ for:
     test_script:
       # Activate virtualenv again on windows
       - "venv\\Scripts\\activate"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 
@@ -98,11 +101,6 @@ for:
       - sh: "wget https://services.gradle.org/distributions/gradle-5.5-bin.zip -P /tmp"
       - sh: "sudo unzip -d /opt/gradle /tmp/gradle-*.zip"
       - sh: "PATH=/opt/gradle/gradle-5.5/bin:$PATH"
-
-      # Install black
-      - sh: "wget -O /tmp/black https://github.com/python/black/releases/download/19.10b0/black"
-      - sh: "chmod +x /tmp/black"
-      - sh: "/tmp/black --version"
 
       # Install AWS CLI
       - sh: "virtualenv aws_cli"
@@ -132,14 +130,18 @@ for:
       - "pip install -e \".[dev]\""
 
     test_script:
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 
-      # Runs only in Linux
+      # Runs only in Linux, logging docker hub when running canary and docker cred is available
+      - sh: "
+        if [[ -n $BY_CANARY ]] && [[ -n $DOCKER_USER ]] && [[ -n $DOCKER_PASS ]];
+          then echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
+        fi"
       - sh: "pytest -vv tests/integration"
       - sh: "pytest -vv tests/regression"
-      - sh: "/tmp/black --check setup.py tests samcli"
+      - sh: "black --check setup.py tests samcli"
 
       # Set JAVA_HOME to java11
       - sh: "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64"

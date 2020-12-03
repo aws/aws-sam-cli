@@ -10,8 +10,11 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options
-from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS
+from samcli.local.common.runtime_template import RUNTIMES, SUPPORTED_DEP_MANAGERS, LAMBDA_IMAGES_RUNTIMES
 from samcli.lib.telemetry.metrics import track_command
+from samcli.commands.init.interactive_init_flow import _get_runtime_from_image
+from samcli.commands.local.cli_common.click_mutex import Mutex
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
 
@@ -34,6 +37,8 @@ Common usage:
     \b
     $ sam init --name sam-app --runtime nodejs10.x --dependency-manager npm --app-template hello-world
     \b
+    $ sam init --name sam-app --package-type image --base-image nodejs10.x-base
+    \b
     Initializes a new SAM project using custom template in a Git/Mercurial repository
     \b
     # gh being expanded to github url
@@ -55,6 +60,29 @@ Common usage:
 """
 
 
+class PackageType:
+    """
+    This class has a callback function for the --package-type parameter to handle default value
+    and also store if the --package-type param was passed explicitly
+    """
+
+    explicit = False
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def pt_callback(ctx, param, provided_value):
+        """
+        This function is the callback for the --package-type param. Here we check if --package-type was passed or not.
+        If not, we use the default value of --package-type to be Zip.
+        """
+        if provided_value is None:
+            return ZIP
+        PackageType.explicit = True
+        return provided_value
+
+
 @click.command(
     "init",
     help=HELP_TEXT,
@@ -67,9 +95,46 @@ Common usage:
     is_flag=True,
     default=False,
     help="Disable interactive prompting for init parameters, and fail if any required values are missing.",
+    cls=Mutex,
+    required_params=[
+        ["name", "location"],
+        ["name", "runtime", "dependency_manager", "app_template"],
+        ["name", "package_type", "base_image", "dependency_manager"],
+    ],
 )
-@click.option("-l", "--location", help="Template location (git, mercurial, http(s), zip, path)")
-@click.option("-r", "--runtime", type=click.Choice(RUNTIMES), help="Lambda Runtime of your app")
+@click.option(
+    "-l",
+    "--location",
+    help="Template location (git, mercurial, http(s), zip, path)",
+    cls=Mutex,
+    not_required=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
+)
+@click.option(
+    "-r",
+    "--runtime",
+    type=click.Choice(RUNTIMES),
+    help="Lambda Runtime of your app",
+    cls=Mutex,
+    not_required=["location", "base_image"],
+)
+@click.option(
+    "-p",
+    "--package-type",
+    type=click.Choice([ZIP, IMAGE]),
+    help="Package type for your app",
+    cls=Mutex,
+    callback=PackageType.pt_callback,
+    not_required=["location"],
+)
+@click.option(
+    "-i",
+    "--base-image",
+    type=click.Choice(LAMBDA_IMAGES_RUNTIMES),
+    default=None,
+    help="Lambda Image of your app",
+    cls=Mutex,
+    not_required=["location", "app_template", "runtime"],
+)
 @click.option(
     "-d",
     "--dependency-manager",
@@ -77,12 +142,16 @@ Common usage:
     default=None,
     help="Dependency manager of your Lambda runtime",
     required=False,
+    cls=Mutex,
+    not_required=["location"],
 )
 @click.option("-o", "--output-dir", type=click.Path(), help="Where to output the initialized app into", default=".")
 @click.option("-n", "--name", help="Name of your project to be generated as a folder")
 @click.option(
     "--app-template",
     help="Identifier of the managed application template you want to use. If not sure, call 'sam init' without options for an interactive workflow.",
+    cls=Mutex,
+    not_required=["location", "base_image"],
 )
 @click.option(
     "--no-input",
@@ -106,7 +175,9 @@ def cli(
     ctx,
     no_interactive,
     location,
+    package_type,
     runtime,
+    base_image,
     dependency_manager,
     output_dir,
     name,
@@ -120,7 +191,10 @@ def cli(
         ctx,
         no_interactive,
         location,
+        PackageType.explicit,
+        package_type,
         runtime,
+        base_image,
         dependency_manager,
         output_dir,
         name,
@@ -135,7 +209,10 @@ def do_cli(
     ctx,
     no_interactive,
     location,
+    pt_explicit,
+    package_type,
     runtime,
+    base_image,
     dependency_manager,
     output_dir,
     name,
@@ -144,48 +221,54 @@ def do_cli(
     extra_context,
     auto_clone=True,
 ):
+
     from samcli.commands.init.init_generator import do_generate
     from samcli.commands.init.interactive_init_flow import do_interactive
     from samcli.commands.init.init_templates import InitTemplates
+    from samcli.commands.exceptions import LambdaImagesTemplateException
 
     _deprecate_notification(runtime)
 
-    # check for mutually exclusive parameters
-    if location and app_template:
-        msg = """
-You must not provide both the --location and --app-template parameters.
-
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-    --name and --runtime and --app-template and --dependency-manager
-    --location
-        """
-        raise click.UsageError(msg)
     # check for required parameters
-    if location or (name and runtime and dependency_manager and app_template):
+    zip_bool = name and runtime and dependency_manager and app_template
+    image_bool = name and pt_explicit and base_image and dependency_manager
+    if location or zip_bool or image_bool:
         # need to turn app_template into a location before we generate
-        if app_template:
-            templates = InitTemplates(no_interactive, auto_clone)
-            location = templates.location_from_app_template(runtime, dependency_manager, app_template)
+        templates = InitTemplates(no_interactive, auto_clone)
+        if package_type == IMAGE and image_bool:
+            base_image, runtime = _get_runtime_from_image(base_image)
+            options = templates.init_options(package_type, runtime, base_image, dependency_manager)
+            if len(options) == 1:
+                app_template = options[0].get("appTemplate")
+            elif len(options) > 1:
+                raise LambdaImagesTemplateException(
+                    "Multiple lambda image application templates found. This should not be possible, please raise an issue."
+                )
+
+        if app_template and not location:
+            location = templates.location_from_app_template(
+                package_type, runtime, base_image, dependency_manager, app_template
+            )
             no_input = True
         extra_context = _get_cookiecutter_template_context(name, runtime, extra_context)
 
         if not output_dir:
             output_dir = "."
         do_generate(location, runtime, dependency_manager, output_dir, name, no_input, extra_context)
-    elif no_interactive:
-        error_msg = """
-ERROR: Missing required parameters, with --no-interactive set.
-
-Must provide one of the following required parameter combinations:
-    --name and --runtime and --dependency-manager and --app-template
-    --location
-
-You can also re-run without the --no-interactive flag to be prompted for required values.
-        """
-        raise click.UsageError(error_msg)
     else:
         # proceed to interactive state machine, which will call do_generate
-        do_interactive(location, runtime, dependency_manager, output_dir, name, app_template, no_input)
+        do_interactive(
+            location,
+            pt_explicit,
+            package_type,
+            runtime,
+            base_image,
+            dependency_manager,
+            output_dir,
+            name,
+            app_template,
+            no_input,
+        )
 
 
 def _deprecate_notification(runtime):
@@ -214,9 +297,9 @@ def _get_cookiecutter_template_context(name, runtime, extra_context):
     if extra_context is not None:
         try:
             extra_context_dict = json.loads(extra_context)
-        except JSONDecodeError:
+        except JSONDecodeError as ex:
             raise click.UsageError(
                 "Parse error reading the --extra-context parameter. The value of this parameter must be valid JSON."
-            )
+            ) from ex
 
     return {**extra_context_dict, **default_context}

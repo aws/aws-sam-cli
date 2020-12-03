@@ -11,11 +11,12 @@ from samcli.lib.config.samconfig import SamConfig, DEFAULT_ENV, DEFAULT_CONFIG_F
 
 
 class MockContext:
-    def __init__(self, info_name, parent, params=None, command=None):
+    def __init__(self, info_name, parent, params=None, command=None, default_map=None):
         self.info_name = info_name
         self.parent = parent
         self.params = params
         self.command = command
+        self.default_map = default_map
 
 
 class TestTomlProvider(TestCase):
@@ -60,7 +61,16 @@ class TestTomlProvider(TestCase):
         config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword='clarity'\n")
         config_path_invalid = Path(config_dir, "samconfig.toml")
 
-        self.assertEqual(self.toml_provider(config_path_invalid, self.config_env, [self.cmd_name]), {})
+        with self.assertRaises(ConfigException):
+            self.toml_provider(config_path_invalid, self.config_env, [self.cmd_name])
+
+    def test_toml_invalid_syntax(self):
+        config_dir = tempfile.gettempdir()
+        config_path = Path(config_dir, "samconfig.toml")
+        config_path.write_text("version=0.1\n[config_env.topic.parameters]\nword=_clarity'\n")
+
+        with self.assertRaises(ConfigException):
+            self.toml_provider(config_path, self.config_env, [self.cmd_name])
 
 
 class TestCliConfiguration(TestCase):

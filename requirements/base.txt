@@ -1,17 +1,17 @@
 chevron~=0.12
-click~=7.0
-Flask~=1.0.2
+click~=7.1
+Flask~=1.1.2
 #Need to add Schemas latest SDK.
-boto3~=1.14.0, >=1.14.23
-jmespath~=0.9.5
-PyYAML~=5.1
-cookiecutter~=1.6.0
-aws-sam-translator==1.27.0
+boto3~=1.14.23
+jmespath~=0.10.0
+PyYAML~=5.3
+cookiecutter~=1.7.2
+aws-sam-translator==1.32.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=4.2.0
 dateparser~=0.7
 python-dateutil~=2.6, <2.8.1
 requests==2.23.0
-serverlessrepo==0.1.9
+serverlessrepo==0.1.10
 aws_lambda_builders==1.1.0
-tomlkit==0.5.8
+tomlkit==0.7.0

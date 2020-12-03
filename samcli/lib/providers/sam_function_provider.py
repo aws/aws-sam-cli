@@ -6,6 +6,7 @@ import logging
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.providers.exceptions import InvalidLayerReference
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from .provider import Function, LayerVersion
 from .sam_base_provider import SamBaseProvider
 
@@ -159,18 +160,24 @@ class SamFunctionProvider(SamBaseProvider):
             Function configuration
         """
 
-        codeuri = SamFunctionProvider._extract_sam_function_codeuri(
-            name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
-        )
+        codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        imageuri = None
+        packagetype = resource_properties.get("PackageType", ZIP)
+        if packagetype == ZIP:
+            codeuri = SamFunctionProvider._extract_sam_function_codeuri(
+                name, resource_properties, "CodeUri", ignore_code_extraction_warnings=ignore_code_extraction_warnings
+            )
+            LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
+        elif packagetype == IMAGE:
+            imageuri = SamFunctionProvider._extract_sam_function_imageuri(resource_properties, "ImageUri")
+            LOG.debug("Found Serverless function with name='%s' and ImageUri='%s'", name, imageuri)
 
-        LOG.debug("Found Serverless function with name='%s' and CodeUri='%s'", name, codeuri)
-
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers)
+        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
 
     @staticmethod
     def _convert_lambda_function_resource(name, resource_properties, layers):  # pylint: disable=invalid-name
         """
-        Converts a AWS::Serverless::Function resource to a Function configuration usable by the provider.
+        Converts a AWS::Lambda::Function resource to a Function configuration usable by the provider.
 
         Parameters
         ----------
@@ -189,14 +196,21 @@ class SamFunctionProvider(SamBaseProvider):
 
         # CodeUri is set to "." in order to get code locally from current directory. AWS::Lambda::Function's ``Code``
         # property does not support specifying a local path
-        codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+        codeuri = SamFunctionProvider.DEFAULT_CODEURI
+        imageuri = None
+        packagetype = resource_properties.get("PackageType", ZIP)
 
-        LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
+        if packagetype == ZIP:
+            codeuri = SamFunctionProvider._extract_lambda_function_code(resource_properties, "Code")
+            LOG.debug("Found Lambda function with name='%s' and CodeUri='%s'", name, codeuri)
+        elif packagetype == IMAGE:
+            imageuri = SamFunctionProvider._extract_lambda_function_imageuri(resource_properties, "Code")
+            LOG.debug("Found Lambda function with name='%s' and Imageuri='%s'", name, imageuri)
 
-        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers)
+        return SamFunctionProvider._build_function_configuration(name, codeuri, resource_properties, layers, imageuri)
 
     @staticmethod
-    def _build_function_configuration(name, codeuri, resource_properties, layers):
+    def _build_function_configuration(name, codeuri, resource_properties, layers, imageuri=None):
         """
         Builds a Function configuration usable by the provider.
 
@@ -219,16 +233,20 @@ class SamFunctionProvider(SamBaseProvider):
         return Function(
             name=name,
             functionname=resource_properties.get("FunctionName", name),
+            packagetype=resource_properties.get("PackageType", ZIP),
             runtime=resource_properties.get("Runtime"),
             memory=resource_properties.get("MemorySize"),
             timeout=resource_properties.get("Timeout"),
             handler=resource_properties.get("Handler"),
             codeuri=codeuri,
+            imageuri=imageuri if imageuri else resource_properties.get("ImageUri"),
+            imageconfig=resource_properties.get("ImageConfig"),
             environment=resource_properties.get("Environment"),
             rolearn=resource_properties.get("Role"),
             events=resource_properties.get("Events"),
             layers=layers,
             metadata=resource_properties.get("Metadata", None),
+            codesign_config_arn=resource_properties.get("CodeSigningConfigArn", None),
         )
 
     @staticmethod

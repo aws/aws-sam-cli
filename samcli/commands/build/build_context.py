@@ -29,6 +29,8 @@ class BuildContext:
             template_file,
             base_dir,
             build_dir,
+            cache_dir,
+            cached,
             mode,
             manifest_path=None,
             clean=False,
@@ -42,6 +44,7 @@ class BuildContext:
         self._template_file = template_file
         self._base_dir = base_dir
         self._build_dir = build_dir
+        self._cache_dir = cache_dir
         self._manifest_path = manifest_path
         self._clean = clean
         self._use_container = use_container
@@ -49,6 +52,7 @@ class BuildContext:
         self._docker_network = docker_network
         self._skip_pull_image = skip_pull_image
         self._mode = mode
+        self._cached = cached
 
         self._function_provider = None
         self._layer_provider = None
@@ -67,6 +71,11 @@ class BuildContext:
             self._base_dir = str(pathlib.Path(self._template_file).resolve().parent)
 
         self._build_dir = self._setup_build_dir(self._build_dir, self._clean)
+
+        if self._cached:
+            cache_path = pathlib.Path(self._cache_dir)
+            cache_path.mkdir(mode=self._BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+            self._cache_dir = str(cache_path.resolve())
 
         if self._use_container:
             self._container_manager = ContainerManager(
@@ -118,6 +127,14 @@ class BuildContext:
     @property
     def base_dir(self):
         return self._base_dir
+
+    @property
+    def cache_dir(self):
+        return self._cache_dir
+
+    @property
+    def cached(self):
+        return self._cached
 
     @property
     def use_container(self):

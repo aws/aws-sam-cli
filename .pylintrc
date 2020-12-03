@@ -7,7 +7,7 @@
 # pygtk.require().
 #init-hook=
 
-# Add files or directories to the blacklist. They should be base names, not
+# Add files or directories to the ignore list. They should be base names, not
 # paths.
 ignore=compat.py, __main__.py
 
@@ -59,7 +59,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=R0201,W0613,W0640,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,R0914,C0301
+disable=R0201,W0613,W0640,I0021,I0020,W1618,W1619,R0902,R0903,W0231,W0611,R0913,W0703,C0330,R0204,I0011,R0904,R0914,R0915,C0301,C0415
 
 
 [REPORTS]
@@ -259,7 +259,7 @@ ignore-mixin-members=yes
 # List of module names for which member attributes should not be checked
 # (useful for modules/projects where namespaces are manipulated during runtime
 # and thus existing member attributes cannot be deduced by static analysis
-ignored-modules=six.moves
+ignored-modules=
 
 # List of classes names for which member attributes should not be checked
 # (useful for classes with attributes dynamically set).

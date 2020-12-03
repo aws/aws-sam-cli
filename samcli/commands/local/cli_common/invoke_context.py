@@ -48,6 +48,7 @@ class InvokeContext:
         debug_ports=None,
         debug_args=None,
         debugger_path=None,
+        container_env_vars_file=None,
         parameter_overrides=None,
         layer_cache_basedir=None,
         force_image_build=None,
@@ -101,6 +102,7 @@ class InvokeContext:
         self._debug_ports = debug_ports
         self._debug_args = debug_args
         self._debugger_path = debugger_path
+        self._container_env_vars_file = container_env_vars_file
         self._parameter_overrides = parameter_overrides or {}
         self._layer_cache_basedir = layer_cache_basedir
         self._force_image_build = force_image_build
@@ -110,6 +112,7 @@ class InvokeContext:
         self._template_dict = None
         self._function_provider = None
         self._env_vars_value = None
+        self._container_env_vars_value = None
         self._log_file_handle = None
         self._debug_context = None
         self._layers_downloader = None
@@ -127,9 +130,12 @@ class InvokeContext:
         self._function_provider = SamFunctionProvider(self._template_dict, self.parameter_overrides)
 
         self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
+        self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
 
-        self._debug_context = self._get_debug_context(self._debug_ports, self._debug_args, self._debugger_path)
+        self._debug_context = self._get_debug_context(
+            self._debug_ports, self._debug_args, self._debugger_path, self._container_env_vars_value
+        )
 
         self._container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
 
@@ -164,7 +170,7 @@ class InvokeContext:
         # Function Identifier is *not* provided. If there is only one function in the template,
         # default to it.
 
-        all_functions = [f for f in self._function_provider.get_all()]
+        all_functions = list(self._function_provider.get_all())
         if len(all_functions) == 1:
             return all_functions[0].functionname
 
@@ -276,7 +282,7 @@ class InvokeContext:
         try:
             return get_template_data(template_file)
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
-            raise InvokeContextException(str(ex))
+            raise InvokeContextException(str(ex)) from ex
 
     @staticmethod
     def _get_env_vars_value(filename):
@@ -300,7 +306,7 @@ class InvokeContext:
         except Exception as ex:
             raise InvokeContextException(
                 "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
-            )
+            ) from ex
 
     @staticmethod
     def _setup_log_file(log_file):
@@ -316,7 +322,7 @@ class InvokeContext:
         return open(log_file, "wb")
 
     @staticmethod
-    def _get_debug_context(debug_ports, debug_args, debugger_path):
+    def _get_debug_context(debug_ports, debug_args, debugger_path, container_env_vars):
         """
         Creates a DebugContext if the InvokeContext is in a debugging mode
 
@@ -328,6 +334,8 @@ class InvokeContext:
             Additional arguments passed to the debugger
         debugger_path str
             Path to the directory of the debugger to mount on Docker
+        container_env_vars dict
+            Dictionary containing debugging based environmental variables.
 
         Returns
         -------
@@ -344,7 +352,7 @@ class InvokeContext:
                 debugger = Path(debugger_path).resolve(strict=True)
             except OSError as error:
                 if error.errno == errno.ENOENT:
-                    raise DebugContextException("'{}' could not be found.".format(debugger_path))
+                    raise DebugContextException("'{}' could not be found.".format(debugger_path)) from error
 
                 raise error
 
@@ -352,7 +360,12 @@ class InvokeContext:
                 raise DebugContextException("'{}' should be a directory with the debugger in it.".format(debugger_path))
             debugger_path = str(debugger)
 
-        return DebugContext(debug_ports=debug_ports, debug_args=debug_args, debugger_path=debugger_path)
+        return DebugContext(
+            debug_ports=debug_ports,
+            debug_args=debug_args,
+            debugger_path=debugger_path,
+            container_env_vars=container_env_vars,
+        )
 
     @staticmethod
     def _get_container_manager(docker_network, skip_pull_image):

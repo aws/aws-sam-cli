@@ -8,6 +8,7 @@ from samtranslator.public.exceptions import InvalidDocumentException
 from samtranslator.parser import parser
 from samtranslator.translator.translator import Translator
 
+from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.yamlhelper import yaml_dump
 from .exceptions import InvalidSamDocumentException
 
@@ -62,7 +63,7 @@ class SamTemplateValidator:
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
-            )
+            ) from e
 
     def _replace_local_codeuri(self):
         """
@@ -78,15 +79,21 @@ class SamTemplateValidator:
         for resource_type, properties in global_settings.items():
 
             if resource_type == "Function":
-
-                SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
+                if all(
+                    [
+                        _properties.get("Properties", {}).get("PackageType", ZIP) == ZIP
+                        for _, _properties in all_resources.items()
+                    ]
+                    + [_properties.get("PackageType", ZIP) == ZIP for _, _properties in global_settings.items()]
+                ):
+                    SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
 
         for _, resource in all_resources.items():
 
             resource_type = resource.get("Type")
             resource_dict = resource.get("Properties", {})
 
-            if resource_type == "AWS::Serverless::Function":
+            if resource_type == "AWS::Serverless::Function" and resource_dict.get("PackageType", ZIP) == ZIP:
 
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 

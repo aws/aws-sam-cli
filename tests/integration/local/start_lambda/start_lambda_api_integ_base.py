@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
 import time
@@ -7,7 +7,10 @@ import random
 
 from pathlib import Path
 
+from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE
 
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class StartLambdaIntegBaseClass(TestCase):
     template = None
     binary_data_file = None

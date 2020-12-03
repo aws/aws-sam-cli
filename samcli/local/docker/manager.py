@@ -6,11 +6,10 @@ import logging
 
 import sys
 import re
-import platform
 import docker
-import requests
 
 from samcli.lib.utils.stream_writer import StreamWriter
+from samcli.local.docker import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -45,24 +44,7 @@ class ContainerManager:
         bool
             True, if Docker is available, False otherwise
         """
-        errors = (
-            docker.errors.APIError,
-            requests.exceptions.ConnectionError,
-        )
-        if platform.system() == "Windows":
-            import pywintypes  # pylint: disable=import-error
-
-            errors += (pywintypes.error,)  # pylint: disable=no-member
-
-        try:
-            self.docker_client.ping()
-            return True
-
-        # When Docker is not installed, a request.exceptions.ConnectionError is thrown.
-        # and also windows-specific errors
-        except errors:
-            LOG.debug("Docker is not reachable", exc_info=True)
-            return False
+        return utils.is_docker_reachable(self.docker_client)
 
     def run(self, container, input_data=None, warm=False):
         """
@@ -93,11 +75,11 @@ class ContainerManager:
         else:
             try:
                 self.pull_image(image_name)
-            except DockerImagePullFailedException:
+            except DockerImagePullFailedException as ex:
                 if not is_image_local:
                     raise DockerImagePullFailedException(
                         "Could not find {} image locally and failed to pull it from docker.".format(image_name)
-                    )
+                    ) from ex
 
                 LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
 
@@ -139,7 +121,7 @@ class ContainerManager:
             result_itr = self.docker_client.api.pull(image_name, stream=True, decode=True)
         except docker.errors.APIError as ex:
             LOG.debug("Failed to download image with name %s", image_name)
-            raise DockerImagePullFailedException(str(ex))
+            raise DockerImagePullFailedException(str(ex)) from ex
 
         # io streams, especially StringIO, work only with unicode strings
         stream_writer.write("\nFetching {} Docker container image...".format(image_name))

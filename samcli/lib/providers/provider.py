@@ -26,6 +26,12 @@ Function = namedtuple(
         "timeout",
         # Name of the handler
         "handler",
+        # Image Uri
+        "imageuri",
+        # Package Type
+        "packagetype",
+        # Image Configuration
+        "imageconfig",
         # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
         "codeuri",
         # Environment variables. This is a dictionary with one key called Variables inside it. This contains the definition
@@ -40,6 +46,8 @@ Function = namedtuple(
         "events",
         # Metadata
         "metadata",
+        # Code Signing config ARN
+        "codesign_config_arn",
     ],
 )
 
@@ -131,8 +139,8 @@ class LayerVersion:
         try:
             _, layer_version = arn.rsplit(":", 1)
             layer_version = int(layer_version)
-        except ValueError:
-            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.")
+        except ValueError as ex:
+            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex
 
         return layer_version
 
@@ -164,8 +172,8 @@ class LayerVersion:
 
         try:
             _, layer_name, layer_version = arn.rsplit(":", 2)
-        except ValueError:
-            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.")
+        except ValueError as ex:
+            raise InvalidLayerVersionArn(arn + " is an Invalid Layer Arn.") from ex
 
         return LayerVersion.LAYER_NAME_DELIMETER.join(
             [layer_name, layer_version, hashlib.sha256(arn.encode("utf-8")).hexdigest()[0:10]]

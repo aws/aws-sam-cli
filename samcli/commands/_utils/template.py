@@ -10,8 +10,13 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.utils.packagetype import ZIP
 from samcli.yamlhelper import yaml_parse, yaml_dump
-from samcli.commands._utils.resources import METADATA_WITH_LOCAL_PATHS, RESOURCES_WITH_LOCAL_PATHS
+from samcli.commands._utils.resources import (
+    METADATA_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_LOCAL_PATHS,
+    RESOURCES_WITH_IMAGE_COMPONENT,
+)
 
 
 class TemplateNotFoundException(UserException):
@@ -43,7 +48,7 @@ def get_template_data(template_file):
         try:
             return yaml_parse(fp.read())
         except (ValueError, yaml.YAMLError) as ex:
-            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex)))
+            raise TemplateFailedParsingException("Failed to parse template: {}".format(str(ex))) from ex
 
 
 def move_template(src_template_path, dest_template_path, template_dict):
@@ -240,3 +245,19 @@ def get_template_parameters(template_file):
     """
     template_dict = get_template_data(template_file=template_file)
     return template_dict.get("Parameters", dict())
+
+
+def get_template_artifacts_format(template_file):
+    """
+    Get a list of template artifact formats based on PackageType
+    :param template_file:
+    :return: list of artifact formats
+    """
+
+    template_dict = get_template_data(template_file=template_file)
+    return list(
+        {
+            resource_id: resource.get("Properties", {}).get("PackageType", ZIP)
+            for resource_id, resource in template_dict.get("Resources", {}).items()
+        }.values()
+    )

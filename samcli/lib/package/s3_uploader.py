@@ -28,6 +28,7 @@ import botocore.exceptions
 from boto3.s3 import transfer
 
 from samcli.commands.package.exceptions import NoSuchBucketError, BucketNotSpecifiedError
+from samcli.lib.package.artifact_exporter import parse_s3_url
 from samcli.lib.utils.hash import file_checksum
 
 LOG = logging.getLogger(__name__)
@@ -109,7 +110,7 @@ class S3Uploader:
         except botocore.exceptions.ClientError as ex:
             error_code = ex.response["Error"]["Code"]
             if error_code == "NoSuchBucket":
-                raise NoSuchBucketError(bucket_name=self.bucket_name)
+                raise NoSuchBucketError(bucket_name=self.bucket_name) from ex
             raise ex
 
     def upload_with_dedup(self, file_name, extension=None, precomputed_md5=None):
@@ -168,6 +169,18 @@ class S3Uploader:
             result = "{0}?versionId={1}".format(result, version)
 
         return result
+
+    def get_version_of_artifact(self, s3_url):
+        """
+        Returns version information of the S3 object that is given as S3 URL
+        """
+        parsed_s3_url = parse_s3_url(s3_url)
+        s3_bucket = parsed_s3_url["Bucket"]
+        s3_key = parsed_s3_url["Key"]
+        s3_object_tagging = self.s3.get_object_tagging(Bucket=s3_bucket, Key=s3_key)
+        LOG.debug("S3 Object (%s) tagging information %s", s3_url, s3_object_tagging)
+        s3_object_version_id = s3_object_tagging["VersionId"]
+        return s3_object_version_id
 
 
 class ProgressPercentage:

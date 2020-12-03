@@ -26,6 +26,7 @@ environment:
   HOMEPATH: 'C:\Users\appveyor'
   NOSE_PARAMETERIZED_NO_WARN: 1
   AWS_S3: 'AWS_S3_37_WIN'
+  AWS_ECR: 'AWS_ECR_37'
   APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 init:

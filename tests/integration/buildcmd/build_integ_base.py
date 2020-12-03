@@ -28,7 +28,7 @@ class BuildIntegBase(TestCase):
         cls.template_path = str(Path(cls.test_data_path, cls.template))
 
     def setUp(self):
-        # To invoke a function creaated by the build command, we need the built artifacts to be in a
+        # To invoke a function created by the build command, we need the built artifacts to be in a
         # location that is shared in Docker. Most temp directories are not shared. Therefore we are
         # using a scratch space within the test folder that is .gitignored. Contents of this folder
         # is also deleted after every test run
@@ -65,6 +65,9 @@ class BuildIntegBase(TestCase):
         mode=None,
         function_identifier=None,
         debug=False,
+        cached=False,
+        cache_dir=None,
+        parallel=False,
     ):
 
         command_list = [self.cmd, "build"]
@@ -91,6 +94,15 @@ class BuildIntegBase(TestCase):
 
         if debug:
             command_list += ["--debug"]
+
+        if cached:
+            command_list += ["--cached"]
+
+        if cache_dir:
+            command_list += ["-cd", cache_dir]
+
+        if parallel:
+            command_list += ["--parallel"]
 
         return command_list
 
@@ -136,6 +148,88 @@ class BuildIntegBase(TestCase):
         self.assertEqual(json.loads(process_stdout), expected_result)
 
 
+class BuildIntegRubyBase(BuildIntegBase):
+    EXPECTED_FILES_GLOBAL_MANIFEST = set()
+    EXPECTED_FILES_PROJECT_MANIFEST = {"app.rb"}
+    EXPECTED_RUBY_GEM = "aws-record"
+
+    FUNCTION_LOGICAL_ID = "Function"
+
+    def _test_with_default_gemfile(self, runtime, use_container, code_uri, relative_path):
+        overrides = {"Runtime": runtime, "CodeUri": code_uri, "Handler": "ignored"}
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+
+        LOG.info("Running Command:")
+        LOG.info(cmdlist)
+        run_command(cmdlist, cwd=self.working_dir)
+
+        self._verify_built_artifact(
+            self.default_build_dir,
+            self.FUNCTION_LOGICAL_ID,
+            self.EXPECTED_FILES_PROJECT_MANIFEST,
+            self.EXPECTED_RUBY_GEM,
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "OtherRelativePathResource",
+            "BodyS3Location",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        self._verify_resource_property(
+            str(self.built_template),
+            "GlueResource",
+            "Command.ScriptLocation",
+            os.path.relpath(
+                os.path.normpath(os.path.join(str(relative_path), "SomeRelativePath")),
+                str(self.default_build_dir),
+            ),
+        )
+
+        self.verify_docker_container_cleanedup(runtime)
+
+    def _verify_built_artifact(self, build_dir, function_logical_id, expected_files, expected_modules):
+        self.assertTrue(build_dir.exists(), "Build directory should be created")
+
+        build_dir_files = os.listdir(str(build_dir))
+        self.assertIn("template.yaml", build_dir_files)
+        self.assertIn(function_logical_id, build_dir_files)
+
+        template_path = build_dir.joinpath("template.yaml")
+        resource_artifact_dir = build_dir.joinpath(function_logical_id)
+
+        # Make sure the template has correct CodeUri for resource
+        self._verify_resource_property(str(template_path), function_logical_id, "CodeUri", function_logical_id)
+
+        all_artifacts = set(os.listdir(str(resource_artifact_dir)))
+        actual_files = all_artifacts.intersection(expected_files)
+        self.assertEqual(actual_files, expected_files)
+
+        ruby_version = None
+        ruby_bundled_path = None
+
+        # Walk through ruby version to get to the gem path
+        for dirpath, dirname, _ in os.walk(str(resource_artifact_dir.joinpath("vendor", "bundle", "ruby"))):
+            ruby_version = dirname
+            ruby_bundled_path = Path(dirpath)
+            break
+
+        # If Gemfile is in root folder, vendor folder will also be created there
+        if ruby_version is None:
+            for dirpath, dirname, _ in os.walk(str(Path(self.working_dir).joinpath("vendor", "bundle", "ruby"))):
+                ruby_version = dirname
+                ruby_bundled_path = Path(dirpath)
+                break
+
+        gem_path = ruby_bundled_path.joinpath(ruby_version[0], "gems")
+
+        self.assertTrue(any([True if self.EXPECTED_RUBY_GEM in gem else False for gem in os.listdir(str(gem_path))]))
+
+
 class DedupBuildIntegBase(BuildIntegBase):
     def _verify_build_and_invoke_functions(self, expected_messages, command_result, overrides):
         self._verify_process_code_and_output(command_result)
@@ -160,3 +254,8 @@ class DedupBuildIntegBase(BuildIntegBase):
             f"Building codeuri: .* runtime: .* metadata: .* functions: "
             f"\\['HelloWorldFunction', 'HelloMarsFunction'\\]",
         )
+
+
+class CachedBuildIntegBase(DedupBuildIntegBase):
+    def _verify_cached_artifact(self, cache_dir):
+        self.assertTrue(cache_dir.exists(), "Cache directory should be created")

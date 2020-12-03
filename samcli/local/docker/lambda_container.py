@@ -3,10 +3,8 @@ Represents Lambda runtime containers.
 """
 import logging
 
-from pathlib import Path
-
-from samcli.lib.utils.feature_flag import extensions_preview_enabled
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
+from samcli.lib.utils.packagetype import IMAGE
 from .container import Container
 from .lambda_image import Runtime
 
@@ -21,6 +19,7 @@ class LambdaContainer(Container):
     """
 
     _WORKING_DIR = "/var/task"
+    _DEFAULT_ENTRYPOINT = ["/var/rapid/aws-lambda-rie", "--log-level", "error"]
 
     # The Volume Mount path for debug files in docker
     _DEBUGGER_VOLUME_MOUNT_PATH = "/tmp/lambci_debug_files"
@@ -35,10 +34,13 @@ class LambdaContainer(Container):
     def __init__(
         self,  # pylint: disable=R0914
         runtime,
+        imageuri,
         handler,
+        packagetype,
+        image_config,
         code_dir,
         layers,
-        image_builder,
+        lambda_image,
         memory_mb=128,
         env_vars=None,
         debug_options=None,
@@ -50,14 +52,20 @@ class LambdaContainer(Container):
         ----------
         runtime str
             Name of the Lambda runtime
+        imageuri str
+            Name of the Lambda Image which is of the form {image}:{tag}
         handler str
             Handler of the function to run
+        packagetype str
+            Package type for the lambda function which is either zip or image.
+        image_config dict
+            Image configuration which can be used set to entrypoint, command and working dir for the container.
         code_dir str
             Directory where the Lambda function code is present. This directory will be mounted
             to the container to execute
         layers list(str)
             List of layers
-        image_builder samcli.local.docker.lambda_image.LambdaImage
+        lambda_image samcli.local.docker.lambda_image.LambdaImage
             LambdaImage that can be used to build the image needed for starting the container
         memory_mb int
             Optional. Max limit of memory in MegaBytes this Lambda function can use.
@@ -66,32 +74,46 @@ class LambdaContainer(Container):
         debug_options DebugContext
             Optional. Contains container debugging info (port, debugger path)
         """
-
-        if not Runtime.has_value(runtime):
+        if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise ValueError("Unsupported Lambda runtime {}".format(runtime))
 
-        image = LambdaContainer._get_image(image_builder, runtime, layers, debug_options)
+        image = LambdaContainer._get_image(lambda_image, runtime, packagetype, imageuri, layers, debug_options)
         ports = LambdaContainer._get_exposed_ports(debug_options)
-        entry, debug_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
+        config = LambdaContainer._get_config(lambda_image, image)
+        entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
         additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
         additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)
-        cmd = []
-        if not extensions_preview_enabled():
-            cmd = [handler]
 
+        _work_dir = self._WORKING_DIR
+        _entrypoint = None
+        _command = None
         if not env_vars:
             env_vars = {}
 
-        env_vars = {**env_vars, **debug_env_vars}
+        if packagetype == IMAGE:
+            _command = (image_config.get("Command") if image_config else None) or config.get("Cmd")
+            if not env_vars.get("AWS_LAMBDA_FUNCTION_HANDLER", None):
+                # NOTE(sriram-mv): Set AWS_LAMBDA_FUNCTION_HANDLER to be based of the command for Image based Packagetypes.
+                env_vars["AWS_LAMBDA_FUNCTION_HANDLER"] = _command[0] if isinstance(_command, list) else None
+            _additional_entrypoint_args = (image_config.get("EntryPoint") if image_config else None) or config.get(
+                "Entrypoint"
+            )
+            _entrypoint = entry or self._DEFAULT_ENTRYPOINT
+            # NOTE(sriram-mv): Only add entrypoint specified in the image configuration if the entrypoint
+            # has not changed for debugging.
+            if isinstance(_additional_entrypoint_args, list) and entry == self._DEFAULT_ENTRYPOINT:
+                _entrypoint = _entrypoint + _additional_entrypoint_args
+            _work_dir = (image_config.get("WorkingDirectory") if image_config else None) or config.get("WorkingDir")
 
-        super(LambdaContainer, self).__init__(
+        env_vars = {**env_vars, **container_env_vars}
+        super().__init__(
             image,
-            cmd,
-            self._WORKING_DIR,
+            _command if _command else [],
+            _work_dir,
             code_dir,
             memory_limit_mb=memory_mb,
             exposed_ports=ports,
-            entrypoint=entry,
+            entrypoint=_entrypoint if _entrypoint else entry,
             env_vars=env_vars,
             container_opts=additional_options,
             additional_volumes=additional_volumes,
@@ -157,13 +179,13 @@ class LambdaContainer(Container):
         return volumes
 
     @staticmethod
-    def _get_image(image_builder, runtime, layers, debug_options):
+    def _get_image(lambda_image, runtime, packagetype, image, layers, debug_options):
         """
         Returns the name of Docker Image for the given runtime
 
         Parameters
         ----------
-        image_builder samcli.local.docker.lambda_image.LambdaImage
+        lambda_image samcli.local.docker.lambda_image.LambdaImage
             LambdaImage that can be used to build the image needed for starting the container
         runtime str
             Name of the Lambda runtime
@@ -176,7 +198,11 @@ class LambdaContainer(Container):
             Name of Docker Image for the given runtime
         """
         is_debug = bool(debug_options and debug_options.debugger_path)
-        return image_builder.build(runtime, layers, is_debug)
+        return lambda_image.build(runtime, packagetype, image, layers, is_debug)
+
+    @staticmethod
+    def _get_config(lambda_image, image):
+        return lambda_image.get_config(image)
 
     @staticmethod
     def _get_debug_settings(runtime, debug_options=None):  # pylint: disable=too-many-branches
@@ -191,12 +217,12 @@ class LambdaContainer(Container):
             ie. if command is ``node index.js arg1 arg2``, then this list will be ["node", "index.js", "arg1", "arg2"]
         """
 
-        entry = "/var/rapid/init"
-
+        entry = LambdaContainer._DEFAULT_ENTRYPOINT
         if not debug_options:
             return entry, {}
 
         debug_ports = debug_options.debug_ports
+        container_env_vars = debug_options.container_env_vars
         if not debug_ports:
             return entry, {}
 
@@ -205,12 +231,12 @@ class LambdaContainer(Container):
 
         if debug_options.debug_args:
             debug_args_list = debug_options.debug_args.split(" ")
-
         # configs from: https://github.com/lambci/docker-lambda
         # to which we add the extra debug mode options
         return LambdaDebugSettings.get_debug_settings(
             debug_port=debug_port,
             debug_args_list=debug_args_list,
+            _container_env_vars=container_env_vars,
             runtime=runtime,
             options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,
         )

@@ -21,10 +21,13 @@ import os
 
 import boto3
 import click
+import docker
 from botocore.config import Config
 
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.package.artifact_exporter import Template
+from samcli.lib.package.ecr_uploader import ECRUploader
+from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.botoconfig import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_dump
@@ -49,6 +52,7 @@ class PackageContext:
         self,
         template_file,
         s3_bucket,
+        image_repository,
         s3_prefix,
         kms_key_id,
         output_template_file,
@@ -59,9 +63,11 @@ class PackageContext:
         region,
         profile,
         on_deploy=False,
+        signing_profiles=None,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
+        self.image_repository = image_repository
         self.s3_prefix = s3_prefix
         self.kms_key_id = kms_key_id
         self.output_template_file = output_template_file
@@ -73,6 +79,10 @@ class PackageContext:
         self.profile = profile
         self.on_deploy = on_deploy
         self.s3_uploader = None
+        self.code_signer = None
+        self.signing_profiles = signing_profiles
+        self.ecr_uploader = None
+        self.uploader = {}
 
     def __enter__(self):
         return self
@@ -82,19 +92,28 @@ class PackageContext:
 
     def run(self):
 
+        region_name = self.region if self.region else None
+
         s3_client = boto3.client(
             "s3",
-            config=get_boto_config_with_user_agent(
-                signature_version="s3v4", region_name=self.region if self.region else None
-            ),
+            config=get_boto_config_with_user_agent(signature_version="s3v4", region_name=region_name),
         )
+        ecr_client = boto3.client("ecr", config=get_boto_config_with_user_agent(region_name=region_name))
+
+        docker_client = docker.from_env()
 
         self.s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
         )
         # attach the given metadata to the artifacts to be uploaded
         self.s3_uploader.artifact_metadata = self.metadata
+        self.ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository)
 
+        code_signer_client = boto3.client("signer")
+        self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
+
+        # NOTE(srirammv): move this to its own class.
+        self.uploader = {"s3": self.s3_uploader, "ecr": self.ecr_uploader}
         try:
             exported_str = self._export(self.template_file, self.use_json)
 
@@ -107,10 +126,10 @@ class PackageContext:
                 )
                 click.echo(msg)
         except OSError as ex:
-            raise PackageFailedError(template_file=self.template_file, ex=str(ex))
+            raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        template = Template(template_path, os.getcwd(), self.s3_uploader)
+        template = Template(template_path, os.getcwd(), self.uploader, self.code_signer)
         exported_template = template.export()
 
         if use_json:
