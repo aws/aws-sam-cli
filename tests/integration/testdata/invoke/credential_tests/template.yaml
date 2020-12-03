@@ -27,3 +27,21 @@ Resources:
       CodeUri: ruby
       Handler: app.lambda_handler
       Runtime: ruby2.7
+  NodeStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: nodejs
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x
+  DotnetStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dotnet/STS
+      Handler: STS::STS.Function::FunctionHandler
+      Runtime: dotnetcore2.1
+  GoStsExample:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: golang
+      Handler: golang
+      Runtime: go1.x

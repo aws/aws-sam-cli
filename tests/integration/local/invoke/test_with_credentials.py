@@ -19,6 +19,9 @@ class TestWithCredentials(InvokeIntegBase):
             "JavaStsExample",
             "PythonStsExample",
             "RubyStsExample",
+            "NodeStsExample",
+            "DotnetStsExample",
+            "GoStsExample",
         ]
     )
     def test_build_and_invoke_functions(self, function_name):
@@ -33,12 +36,7 @@ class TestWithCredentials(InvokeIntegBase):
         self.assertEqual(returncode, 0)
 
         # then invoke using temp credentials
-        process_env_vars = {
-            **os.environ,
-            "AWS_ACCESS_KEY": "$AWS_ACCESS_KEY",
-            "AWS_SECRET_ACCESS_KEY": "$AWS_SECRET_ACCESS_KEY",
-        }
         local_invoke_command_list = self.get_command_list(function_to_invoke=function_name)
-        stdout, _, returncode = self.run_command(local_invoke_command_list, env=process_env_vars)
+        stdout, _, returncode = self.run_command(local_invoke_command_list)
         self.assertEqual(returncode, 0)
         self.assertTrue(b'"statusCode":200' in stdout)
