@@ -151,7 +151,9 @@ class Template:
         """
         for key, val in template_dict.items():
             if key in GLOBAL_EXPORT_DICT:
-                template_dict[key] = GLOBAL_EXPORT_DICT[key](val, self.uploader, self.template_dir)
+                template_dict[key] = GLOBAL_EXPORT_DICT[key](
+                    val, self.uploader.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
+                )
             elif isinstance(val, dict):
                 self.export_global_artifacts(val)
             elif isinstance(val, list):

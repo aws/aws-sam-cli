@@ -56,6 +56,7 @@ class TestPackageZip(PackageIntegBase):
             "aws-serverlessrepo-application.yaml",
             "aws-serverless-statemachine.yaml",
             "aws-stepfunctions-statemachine.yaml",
+            "aws-include-transform.yaml",
         ]
     )
     def test_package_barebones(self, template_file):
