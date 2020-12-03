@@ -8,6 +8,7 @@ import click
 
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context
+from samcli.cli.types import ImageRepositoryType
 from samcli.commands._utils.options import (
     capabilities_override_option,
     guided_deploy_stack_name,
@@ -73,6 +74,7 @@ LOG = logging.getLogger(__name__)
 )
 @click.option(
     "--image-repository",
+    type=ImageRepositoryType(),
     required=False,
     help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
 )

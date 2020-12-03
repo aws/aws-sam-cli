@@ -23,7 +23,8 @@ from samcli.commands.deploy.auth_utils import auth_per_resource, transform_templ
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
-from samcli.lib.package.image_utils import tag_translation, NonLocalImageException
+from samcli.lib.package.ecr_utils import is_ecr_url
+from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.packagetype import IMAGE
 
@@ -270,6 +271,9 @@ class GuidedContext:
                 type=click.STRING,
                 default=self.image_repository if self.image_repository else "",
             )
+            if not image_repository or not is_ecr_url(image_repository):
+                raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_repository}")
+
             for _, function_prop in self.transformed_resources.functions.items():
                 if function_prop.packagetype == IMAGE:
                     image = function_prop.imageuri
@@ -277,6 +281,8 @@ class GuidedContext:
                         tag = tag_translation(image)
                     except NonLocalImageException:
                         pass
+                    except NoImageFoundException as ex:
+                        raise GuidedDeployFailedError("No images found to deploy, try sam build") from ex
                     else:
                         click.secho(f"\t{self.start_bold}Images that will be pushed:{self.end_bold}")
                         click.secho(f"\t  {image} to {image_repository}:{tag}")

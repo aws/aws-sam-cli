@@ -7,6 +7,7 @@ import click
 
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
 from samcli.cli.main import pass_context, common_options, aws_creds_options
+from samcli.cli.types import ImageRepositoryType
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.commands._utils.options import (
@@ -59,6 +60,7 @@ The following resources and their property locations are supported.
 @click.option(
     "--image-repository",
     callback=partial(artifact_callback, artifact=IMAGE),
+    type=ImageRepositoryType(),
     required=False,
     help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
 )

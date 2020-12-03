@@ -24,7 +24,7 @@ class TestDeployCliCommand(TestCase):
         self.template_file = "input-template-file"
         self.stack_name = "stack-name"
         self.s3_bucket = "s3-bucket"
-        self.image_repository = "image-repo"
+        self.image_repository = "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"
         self.s3_prefix = "s3-prefix"
         self.kms_key_id = "kms-key-id"
         self.no_execute_changeset = False
@@ -243,7 +243,7 @@ class TestDeployCliCommand(TestCase):
             "us-east-1",
             "guidedParameter",
             "secure",
-            "image-repo",
+            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
@@ -291,7 +291,7 @@ class TestDeployCliCommand(TestCase):
                 template_file=ANY,
                 stack_name="sam-app",
                 s3_bucket="managed-s3-bucket",
-                image_repository="image-repo",
+                image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 force_upload=self.force_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
@@ -322,7 +322,7 @@ class TestDeployCliCommand(TestCase):
                 profile=self.profile,
                 region="us-east-1",
                 s3_bucket="managed-s3-bucket",
-                image_repository="image-repo",
+                image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 stack_name="sam-app",
                 s3_prefix="sam-app",
                 signing_profiles=self.signing_profiles,
@@ -386,7 +386,7 @@ class TestDeployCliCommand(TestCase):
             "guidedParameter",
             "guided parameter with spaces",
             "secure",
-            "image-repo",
+            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
@@ -428,7 +428,7 @@ class TestDeployCliCommand(TestCase):
             template_file=ANY,
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
-            image_repository="image-repo",
+            image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
@@ -461,7 +461,13 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
-                call(["deploy"], "parameters", "image_repository", "image-repo", env="test-env"),
+                call(
+                    ["deploy"],
+                    "parameters",
+                    "image_repository",
+                    "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                    env="test-env",
+                ),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
@@ -529,7 +535,7 @@ class TestDeployCliCommand(TestCase):
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
-            "image-repo",
+            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             ("CAPABILITY_IAM",),
             "testconfig.toml",
             "test-env",
@@ -571,7 +577,7 @@ class TestDeployCliCommand(TestCase):
             template_file=ANY,
             stack_name="sam-app",
             s3_bucket="managed-s3-bucket",
-            image_repository="image-repo",
+            image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             force_upload=self.force_upload,
             no_progressbar=self.no_progressbar,
             s3_prefix="sam-app",
@@ -600,7 +606,13 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "stack_name", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "s3_bucket", "managed-s3-bucket", env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
-                call(["deploy"], "parameters", "image_repository", "image-repo", env="test-env"),
+                call(
+                    ["deploy"],
+                    "parameters",
+                    "image_repository",
+                    "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                    env="test-env",
+                ),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
@@ -650,7 +662,12 @@ class TestDeployCliCommand(TestCase):
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_get_template_parameters.return_value = {}
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_prompt.side_effect = ["sam-app", "us-east-1", "image-repo", ("CAPABILITY_IAM",)]
+        mock_prompt.side_effect = [
+            "sam-app",
+            "us-east-1",
+            "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            ("CAPABILITY_IAM",),
+        ]
         mock_confirm.side_effect = [True, False, True, False]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
@@ -690,7 +707,7 @@ class TestDeployCliCommand(TestCase):
                 template_file=ANY,
                 stack_name="sam-app",
                 s3_bucket="managed-s3-bucket",
-                image_repository="image-repo",
+                image_repository="123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 force_upload=self.force_upload,
                 no_progressbar=self.no_progressbar,
                 s3_prefix="sam-app",
