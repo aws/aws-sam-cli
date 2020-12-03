@@ -136,7 +136,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             kms_key_id=self.kms_key,
             no_execute_changeset=False,
             tags="integ=true clarity=yes foo_bar=baz",
-            confirm_changeset=False
+            confirm_changeset=False,
         )
 
         deploy_process_execute = run_command(deploy_command_list)
