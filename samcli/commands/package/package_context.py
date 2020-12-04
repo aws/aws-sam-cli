@@ -109,7 +109,9 @@ class PackageContext:
         self.s3_uploader.artifact_metadata = self.metadata
         self.ecr_uploader = ECRUploader(docker_client, ecr_client, self.image_repository)
 
-        code_signer_client = boto3.client("signer")
+        code_signer_client = boto3.client(
+            "signer", config=get_boto_config_with_user_agent(region_name=region_name)
+        )
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
 
         # NOTE(srirammv): move this to its own class.
