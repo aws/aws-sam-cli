@@ -66,6 +66,24 @@ class TestPackageImage(PackageIntegBase):
         self.assertEqual(0, process.returncode)
 
     @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
+    def test_package_template_with_non_ecr_repo_uri_image_repository(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = self.get_command_list(
+            image_repository="non-ecr-repo-uri", template=template_path, resolve_s3=True
+        )
+
+        process = Popen(command_list, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+        process_stderr = stderr.strip()
+
+        self.assertEqual(2, process.returncode)
+        self.assertIn("Error: Invalid value for '--image-repository'", process_stderr.decode("utf-8"))
+
+    @parameterized.expand(["aws-serverless-function-image.yaml", "aws-lambda-function-image.yaml"])
     def test_package_template_and_s3_bucket(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
         command_list = self.get_command_list(s3_bucket=self.s3_bucket, template=template_path)
