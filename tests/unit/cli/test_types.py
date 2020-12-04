@@ -298,6 +298,14 @@ class TestImageRepositoryType(TestCase):
         [
             # Just a string
             ("some string"),
+            # Almost an URI, but no dkr
+            ("123456789012.us-east-1.amazonaws.com/test1"),
+            # Almost an URI, but no repo-name
+            ("123456789012.us-east-1.amazonaws.com/"),
+            # Almost an URI, but no region name
+            ("123456789012.dkr.ecr.amazonaws.com/test1"),
+            # Almost an URI, but no service name
+            ("123456789012.dkr.amazonaws.com/test1"),
         ]
     )
     def test_must_fail_on_invalid_format(self, input):
@@ -310,6 +318,10 @@ class TestImageRepositoryType(TestCase):
             (
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            ),
+            (
+                "123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1",
+                "123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1",
             ),
         ]
     )

@@ -271,7 +271,7 @@ class GuidedContext:
                 type=click.STRING,
                 default=self.image_repository if self.image_repository else "",
             )
-            if not image_repository or not is_ecr_url(image_repository):
+            if not is_ecr_url(image_repository):
                 raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_repository}")
 
             for _, function_prop in self.transformed_resources.functions.items():
@@ -282,7 +282,7 @@ class GuidedContext:
                     except NonLocalImageException:
                         pass
                     except NoImageFoundException as ex:
-                        raise GuidedDeployFailedError("No images found to deploy, try sam build") from ex
+                        raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
                     else:
                         click.secho(f"\t{self.start_bold}Images that will be pushed:{self.end_bold}")
                         click.secho(f"\t  {image} to {image_repository}:{tag}")
