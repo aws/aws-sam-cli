@@ -38,7 +38,14 @@ class Route:
     ANY_HTTP_METHODS = ["GET", "DELETE", "PUT", "POST", "HEAD", "OPTIONS", "PATCH"]
 
     def __init__(
-        self, function_name, path, methods, event_type=API, payload_format_version=None, is_default_route=False
+        self,
+        function_name,
+        path,
+        methods,
+        event_type=API,
+        payload_format_version=None,
+        is_default_route=False,
+        operation_name=None,
     ):
         """
         Creates an ApiGatewayRoute
@@ -49,6 +56,7 @@ class Route:
         :param str event_type: Type of the event. "Api" or "HttpApi"
         :param str payload_format_version: version of payload format
         :param bool is_default_route: determines if the default route or not
+        :param string operation_name: Swagger operationId for the route
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
@@ -56,6 +64,7 @@ class Route:
         self.event_type = event_type
         self.payload_format_version = payload_format_version
         self.is_default_route = is_default_route
+        self.operation_name = operation_name
 
     def __eq__(self, other):
         return (
@@ -63,10 +72,11 @@ class Route:
             and sorted(self.methods) == sorted(other.methods)
             and self.function_name == other.function_name
             and self.path == other.path
+            and self.operation_name == other.operation_name
         )
 
     def __hash__(self):
-        route_hash = hash(self.function_name) * hash(self.path)
+        route_hash = hash(self.function_name) * hash(self.path) * hash(self.operation_name)
         for method in sorted(self.methods):
             route_hash *= hash(method)
         return route_hash
@@ -147,6 +157,7 @@ class LocalApigwService(BaseLocalService):
         # This will normalize all endpoints and strip any trailing '/'
         self._app.url_map.strict_slashes = False
         default_route = None
+
         for api_gateway_route in self.api.routes:
             if api_gateway_route.path == "$default":
                 default_route = api_gateway_route
@@ -285,7 +296,12 @@ class LocalApigwService(BaseLocalService):
                 )
             else:
                 event = self._construct_v_1_0_event(
-                    request, self.port, self.api.binary_media_types, self.api.stage_name, self.api.stage_variables
+                    request,
+                    self.port,
+                    self.api.binary_media_types,
+                    self.api.stage_name,
+                    self.api.stage_variables,
+                    route.operation_name,
                 )
         except UnicodeDecodeError:
             return ServiceErrorResponses.lambda_failure_response()
@@ -549,7 +565,9 @@ class LocalApigwService(BaseLocalService):
         return processed_headers
 
     @staticmethod
-    def _construct_v_1_0_event(flask_request, port, binary_types, stage_name=None, stage_variables=None):
+    def _construct_v_1_0_event(
+        flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None
+    ):
         """
         Helper method that constructs the Event to be passed to Lambda
 
@@ -558,6 +576,7 @@ class LocalApigwService(BaseLocalService):
         """
         # pylint: disable-msg=too-many-locals
 
+        print("HERE!! %r" % operation_name)
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
@@ -589,6 +608,7 @@ class LocalApigwService(BaseLocalService):
             path=endpoint,
             protocol=protocol,
             domain_name=host,
+            operation_name=operation_name,
         )
 
         headers_dict, multi_value_headers_dict = LocalApigwService._event_headers(flask_request, port)

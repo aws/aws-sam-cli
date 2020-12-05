@@ -159,6 +159,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         resource_id = properties.get("ResourceId")
         rest_api_id = properties.get("RestApiId")
         method = properties.get("HttpMethod")
+        operation_name = properties.get("OperationName")
 
         resource_path = "/"
         if isinstance(resource_id, str):  # If the resource_id resolves to a string
@@ -179,7 +180,10 @@ class CfnApiProvider(CfnBaseApiProvider):
             collector.add_binary_media_types(logical_id, [content_type])
 
         routes = Route(
-            methods=[method], function_name=self._get_integration_function_name(integration), path=resource_path
+            methods=[method],
+            function_name=self._get_integration_function_name(integration),
+            path=resource_path,
+            operation_name=operation_name,
         )
         collector.add_routes(rest_api_id, [routes])
 
@@ -249,6 +253,7 @@ class CfnApiProvider(CfnBaseApiProvider):
         api_id = properties.get("ApiId")
         route_key = properties.get("RouteKey")
         integration_target = properties.get("Target")
+        operation_name = properties.get("OperationName")
 
         if integration_target:
             function_name, payload_format_version = self._get_route_function_name(resources, integration_target)
@@ -274,6 +279,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             function_name=function_name,
             event_type=Route.HTTP,
             payload_format_version=payload_format_version,
+            operation_name=operation_name,
         )
         collector.add_routes(api_id, [routes])
 

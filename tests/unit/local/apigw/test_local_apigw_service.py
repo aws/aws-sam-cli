@@ -27,6 +27,7 @@ class TestApiGatewayService(TestCase):
             path="/v1",
             event_type=Route.HTTP,
             payload_format_version="1.0",
+            operation_name="getV1",
         )
         self.http_v2_payload_route = Route(
             methods=["GET"],
@@ -34,6 +35,7 @@ class TestApiGatewayService(TestCase):
             path="/v2",
             event_type=Route.HTTP,
             payload_format_version="2.0",
+            operation_name="getV2",
         )
         self.http_v2_default_payload_route = Route(
             methods=["x-amazon-apigateway-any-method"],
@@ -41,6 +43,7 @@ class TestApiGatewayService(TestCase):
             path="$default",
             event_type=Route.HTTP,
             payload_format_version="2.0",
+            # no operation_name for default route
         )
         self.api_list_of_routes = [self.api_gateway_route]
         self.http_list_of_routes = [
@@ -86,7 +89,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.api_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, ANY)
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_request_must_invoke_lambda(self, request_mock):
@@ -142,7 +145,7 @@ class TestApiGatewayService(TestCase):
 
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr)
-        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY)
+        self.http_service._construct_v_1_0_event.assert_called_with(ANY, ANY, ANY, ANY, ANY, "getV1")
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     def test_http_v2_payload_request_must_invoke_lambda(self, request_mock):
