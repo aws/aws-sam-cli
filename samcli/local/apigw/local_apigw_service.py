@@ -576,7 +576,6 @@ class LocalApigwService(BaseLocalService):
         """
         # pylint: disable-msg=too-many-locals
 
-        print("HERE!! %r" % operation_name)
         identity = ContextIdentity(source_ip=flask_request.remote_addr)
 
         endpoint = PathConverter.convert_path_to_api_gateway(flask_request.endpoint)
