@@ -1,10 +1,10 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from docker.errors import APIError
+from docker.errors import APIError, NullResource
 
 from samcli.commands.package.exceptions import DockerGetLocalImageFailedError
-from samcli.lib.package.image_utils import tag_translation, NonLocalImageException
+from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 
 
 class TestImageUtils(TestCase):
@@ -26,6 +26,13 @@ class TestImageUtils(TestCase):
         mock_docker.from_env = MagicMock(side_effect=APIError("mock error"))
         local_image = "helloworld:v1"
         with self.assertRaises(DockerGetLocalImageFailedError):
+            tag_translation(local_image)
+
+    @patch("samcli.lib.package.image_utils.docker")
+    def test_tag_translation_docker_error_non_existent_image_id(self, mock_docker):
+        mock_docker.from_env = MagicMock(side_effect=NullResource("mock error"))
+        local_image = None
+        with self.assertRaises(NoImageFoundException):
             tag_translation(local_image)
 
     def test_tag_translation_for_ecr_image(self):
