@@ -9,10 +9,16 @@ from functools import partial
 import click
 from click.types import FuncParamType
 
-from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
+from samcli.commands._utils.option_validator import Validator
+from samcli.commands._utils.template import (
+    get_template_data,
+    TemplateNotFoundException,
+    get_template_function_resource_ids,
+)
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
+from samcli.lib.utils.packagetype import IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 DEFAULT_STACK_NAME = "sam-app"
@@ -94,6 +100,22 @@ def guided_deploy_stack_name(ctx, param, provided_value):
     return provided_value if provided_value else DEFAULT_STACK_NAME
 
 
+def image_repositories_callback(ctx, param, provided_value):
+    """
+    Create an dictionary of function logical ids to ECR URIs.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, after being processed by ImageRepositoriesType.
+    :return: dictionary of function logic ids to ECR URIs.
+    """
+
+    image_repositories = {}
+    for value in provided_value:
+        image_repositories.update(value)
+
+    return image_repositories if image_repositories else None
+
+
 def artifact_callback(ctx, param, provided_value, artifact):
     """
     Provide an error if there are zip/image artifact based resources, and an destination export destination is not specified.
@@ -107,6 +129,7 @@ def artifact_callback(ctx, param, provided_value, artifact):
     template_file = (
         ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
     )
+    resolve_s3 = ctx.params.get("resolve_s3", False) or ctx.default_map.get("resolve_s3", False)
 
     required = any(
         [
@@ -120,7 +143,7 @@ def artifact_callback(ctx, param, provided_value, artifact):
     # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
     # passed in directly or through configuration file.
     # If passed in through configuration file, default_map is loaded with those values.
-    if param.name == "s3_bucket" and (ctx.params.get("resolve_s3", False) or ctx.default_map.get("resolve_s3", False)):
+    if param.name == "s3_bucket" and resolve_s3:
         pass
     elif required and not provided_value:
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message=f"Missing option '{param.opts[0]}'")

@@ -42,7 +42,13 @@ class GuidedConfig:
             raise GuidedDeployFailedError(msg)
 
     def save_config(
-        self, parameter_overrides, config_env=DEFAULT_ENV, config_file=None, signing_profiles=None, **kwargs
+        self,
+        parameter_overrides,
+        config_env=DEFAULT_ENV,
+        config_file=None,
+        signing_profiles=None,
+        image_repositories=None,
+        **kwargs,
     ):
 
         ctx, samconfig = self.get_config_ctx(config_file)
@@ -56,6 +62,7 @@ class GuidedConfig:
                 samconfig.put(cmd_names, self.section, key, value, env=config_env)
 
         self._save_parameter_overrides(cmd_names, config_env, parameter_overrides, samconfig)
+        self._save_image_repositories(cmd_names, config_env, samconfig, image_repositories)
         self._save_signing_profiles(cmd_names, config_env, samconfig, signing_profiles)
 
         samconfig.flush()
@@ -66,7 +73,7 @@ class GuidedConfig:
         click.echo(
             "\tLearn more about samconfig.toml syntax at "
             "\n\thttps://docs.aws.amazon.com/serverless-application-model/latest/"
-            "developerguide/serverless-sam-cli-config.html"
+            "developerguide/serverless-sam-cli-config.html\n"
         )
 
     def _save_signing_profiles(self, cmd_names, config_env, samconfig, signing_profiles):
@@ -92,6 +99,11 @@ class GuidedConfig:
                     _params.append(f"{key}={self.quote_parameter_values(value)}")
             if _params:
                 samconfig.put(cmd_names, self.section, "parameter_overrides", " ".join(_params), env=config_env)
+
+    def _save_image_repositories(self, cmd_names, config_env, samconfig, image_repositories):
+        if image_repositories:
+            _image_repositories = [f"{key}={value}" for key, value in image_repositories.items()]
+            samconfig.put(cmd_names, self.section, "image_repositories", _image_repositories, env=config_env)
 
     def quote_parameter_values(self, parameter_value):
         return '"{}"'.format(parameter_value)
