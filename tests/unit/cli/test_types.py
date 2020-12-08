@@ -1,8 +1,10 @@
 from unittest import TestCase
 from unittest.mock import Mock, ANY
+
+from click import BadParameter
 from parameterized import parameterized
 
-from samcli.cli.types import CfnParameterOverridesType, CfnTags
+from samcli.cli.types import CfnParameterOverridesType, CfnTags, SigningProfilesOptionType, ImageRepositoryType
 from samcli.cli.types import CfnMetadataType
 
 
@@ -224,4 +226,105 @@ class TestCfnTags(TestCase):
     )
     def test_successful_parsing(self, input, expected):
         result = self.param_type.convert(input, None, None)
+        self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+
+
+class TestCodeSignOptionType(TestCase):
+    def setUp(self):
+        self.param_type = SigningProfilesOptionType()
+
+    @parameterized.expand(
+        [
+            # Just a string
+            ("some string"),
+            # Wrong notation
+            ("a=b::"),
+            ("ab::"),
+            ("a=b::c"),
+            ("=b"),
+            ("=b:c"),
+            ("a=:c"),
+        ]
+    )
+    def test_must_fail_on_invalid_format(self, input):
+        self.param_type.fail = Mock()
+        self.param_type.convert(input, "param", "ctx")
+
+        self.param_type.fail.assert_called_with(ANY, "param", "ctx")
+
+    @parameterized.expand(
+        [
+            (("a=b",), {"a": {"profile_name": "b", "profile_owner": ""}}),
+            (
+                ("a=b", "c=d"),
+                {"a": {"profile_name": "b", "profile_owner": ""}, "c": {"profile_name": "d", "profile_owner": ""}},
+            ),
+            (("a=b:",), {"a": {"profile_name": "b", "profile_owner": ""}}),
+            (("a=b:c",), {"a": {"profile_name": "b", "profile_owner": "c"}}),
+            (
+                ("a=b:c", "d=e:f"),
+                {"a": {"profile_name": "b", "profile_owner": "c"}, "d": {"profile_name": "e", "profile_owner": "f"}},
+            ),
+            (
+                ("a=b:c", "d=e"),
+                {"a": {"profile_name": "b", "profile_owner": "c"}, "d": {"profile_name": "e", "profile_owner": ""}},
+            ),
+            (
+                ("a=b:", "d=e"),
+                {"a": {"profile_name": "b", "profile_owner": ""}, "d": {"profile_name": "e", "profile_owner": ""}},
+            ),
+            (
+                "a=b:c d=e",
+                {"a": {"profile_name": "b", "profile_owner": "c"}, "d": {"profile_name": "e", "profile_owner": ""}},
+            ),
+            (
+                'a="b:c" d="e"',
+                {"a": {"profile_name": "b", "profile_owner": "c"}, "d": {"profile_name": "e", "profile_owner": ""}},
+            ),
+            (("",), {}),
+        ]
+    )
+    def test_successful_parsing(self, input, expected):
+        result = self.param_type.convert(input, None, None)
+        self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+
+
+class TestImageRepositoryType(TestCase):
+    def setUp(self):
+        self.param_type = ImageRepositoryType()
+        self.mock_param = Mock(opts=["--image-repository"])
+
+    @parameterized.expand(
+        [
+            # Just a string
+            ("some string"),
+            # Almost an URI, but no dkr
+            ("123456789012.us-east-1.amazonaws.com/test1"),
+            # Almost an URI, but no repo-name
+            ("123456789012.us-east-1.amazonaws.com/"),
+            # Almost an URI, but no region name
+            ("123456789012.dkr.ecr.amazonaws.com/test1"),
+            # Almost an URI, but no service name
+            ("123456789012.dkr.amazonaws.com/test1"),
+        ]
+    )
+    def test_must_fail_on_invalid_format(self, input):
+        self.param_type.fail = Mock()
+        with self.assertRaises(BadParameter):
+            self.param_type.convert(input, self.mock_param, Mock())
+
+    @parameterized.expand(
+        [
+            (
+                "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+            ),
+            (
+                "123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1",
+                "123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1",
+            ),
+        ]
+    )
+    def test_successful_parsing(self, input, expected):
+        result = self.param_type.convert(input, self.mock_param, Mock())
         self.assertEqual(result, expected, msg="Failed with Input = " + str(input))

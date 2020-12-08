@@ -8,7 +8,7 @@ from samcli.commands.local.cli_common.user_exceptions import InvokeContextExcept
 from samcli.commands.local.cli_common.invoke_context import InvokeContext
 
 from unittest import TestCase
-from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open
+from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open, call
 
 
 class TestInvokeContext__enter__(TestCase):
@@ -20,6 +20,7 @@ class TestInvokeContext__enter__(TestCase):
 
         template_file = "template_file"
         env_vars_file = "env_vars_file"
+        container_env_vars_file = "container_env_vars_file"
         log_file = "log_file"
 
         invoke_context = InvokeContext(
@@ -32,6 +33,7 @@ class TestInvokeContext__enter__(TestCase):
             skip_pull_image=True,
             debug_ports=[1111],
             debugger_path="path-to-debugger",
+            container_env_vars_file=container_env_vars_file,
             debug_args="args",
             parameter_overrides={},
             aws_region="region",
@@ -42,9 +44,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_template_data = Mock()
         invoke_context._get_template_data.return_value = template_dict
 
-        env_vars_value = "env_vars_value"
-        invoke_context._get_env_vars_value = Mock()
-        invoke_context._get_env_vars_value.return_value = env_vars_value
+        invoke_context._get_env_vars_value = Mock(side_effect=["Env var value", "Debug env var value"])
 
         log_file_handle = "handle"
         invoke_context._setup_log_file = Mock()
@@ -64,16 +64,22 @@ class TestInvokeContext__enter__(TestCase):
 
         self.assertEqual(invoke_context._template_dict, template_dict)
         self.assertEqual(invoke_context._function_provider, function_provider)
-        self.assertEqual(invoke_context._env_vars_value, env_vars_value)
+        self.assertEqual(invoke_context._env_vars_value, "Env var value")
+        self.assertEqual(invoke_context._container_env_vars_value, "Debug env var value")
         self.assertEqual(invoke_context._log_file_handle, log_file_handle)
         self.assertEqual(invoke_context._debug_context, debug_context_mock)
         self.assertEqual(invoke_context._container_manager, container_manager_mock)
 
         invoke_context._get_template_data.assert_called_with(template_file)
         SamFunctionProviderMock.assert_called_with(template_dict, {"AWS::Region": "region"})
-        invoke_context._get_env_vars_value.assert_called_with(env_vars_file)
+        self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
+        self.assertEqual(
+            invoke_context._get_env_vars_value.call_args_list, [call("env_vars_file"), call("container_env_vars_file")]
+        )
         invoke_context._setup_log_file.assert_called_with(log_file)
-        invoke_context._get_debug_context.assert_called_once_with([1111], "args", "path-to-debugger")
+        invoke_context._get_debug_context.assert_called_once_with(
+            [1111], "args", "path-to-debugger", "Debug env var value"
+        )
         invoke_context._get_container_manager.assert_called_once_with("network", True)
 
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
@@ -283,9 +289,7 @@ class TestInvokeContext_stdout_property(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.osutils.stdout")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_enable_auto_flush_if_debug(
-        self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock
-    ):
+    def test_enable_auto_flush_if_debug(self, SamFunctionProviderMock, StreamWriterMock, osutils_stdout_mock, ExitMock):
 
         context = InvokeContext(template_file="template", debug_ports=[6000])
 
@@ -571,7 +575,9 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.side_effect = error
 
         with self.assertRaises(DebugContextException):
-            InvokeContext._get_debug_context(debug_ports=[1111], debug_args=None, debugger_path="somepath")
+            InvokeContext._get_debug_context(
+                debug_ports=[1111], debug_args=None, debugger_path="somepath", container_env_vars=None
+            )
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_debugger_path_not_dir(self, pathlib_mock):
@@ -582,44 +588,68 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.return_value = pathlib_path_mock
 
         with self.assertRaises(DebugContextException):
-            InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path="somepath")
+            InvokeContext._get_debug_context(
+                debug_ports=1111, debug_args=None, debugger_path="somepath", container_env_vars=None
+            )
 
     def test_no_debug_port(self):
-        debug_context = InvokeContext._get_debug_context(None, None, None)
+        debug_context = InvokeContext._get_debug_context(None, None, None, {})
 
         self.assertEqual(debug_context.debugger_path, None)
         self.assertEqual(debug_context.debug_ports, None)
         self.assertEqual(debug_context.debug_args, None)
+        self.assertEqual(debug_context.container_env_vars, {})
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_non_path_not_found_oserror_is_thrown(self, pathlib_mock):
         pathlib_mock.side_effect = OSError()
 
         with self.assertRaises(OSError):
-            InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path="somepath")
+            InvokeContext._get_debug_context(
+                debug_ports=1111, debug_args=None, debugger_path="somepath", container_env_vars=None
+            )
 
     @patch("samcli.commands.local.cli_common.invoke_context.DebugContext")
     def test_debug_port_given_without_debugger_path(self, debug_context_mock):
         debug_context_mock.return_value = "I am the DebugContext"
-        debug_context = InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path=None)
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=1111, debug_args=None, debugger_path=None, container_env_vars={"env": "var"}
+        )
 
         self.assertEqual(debug_context, "I am the DebugContext")
-        debug_context_mock.assert_called_once_with(debug_ports=1111, debug_args=None, debugger_path=None)
+        debug_context_mock.assert_called_once_with(
+            debug_ports=1111, debug_args=None, debugger_path=None, container_env_vars={"env": "var"}
+        )
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_debug_port_not_specified(self, pathlib_mock):
         pathlib_path_mock = Mock()
         pathlib_mock.return_value = pathlib_path_mock
 
-        debug_context = InvokeContext._get_debug_context(debug_ports=None, debug_args=None, debugger_path="somepath")
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=None, debug_args=None, debugger_path="somepath", container_env_vars=None
+        )
         self.assertEqual(None, debug_context.debug_ports)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.Path")
+    def test_container_env_vars_specified(self, pathlib_mock):
+        pathlib_path_mock = Mock()
+        pathlib_mock.return_value = pathlib_path_mock
+
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=1111, debug_args=None, debugger_path="somepath", container_env_vars={"env": "var"}
+        )
+        self.assertEqual({"env": "var"}, debug_context.container_env_vars)
+        self.assertEqual(1111, debug_context.debug_ports)
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
     def test_debug_port_single_value_int(self, pathlib_mock):
         pathlib_path_mock = Mock()
         pathlib_mock.return_value = pathlib_path_mock
 
-        debug_context = InvokeContext._get_debug_context(debug_ports=1111, debug_args=None, debugger_path="somepath")
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports=1111, debug_args=None, debugger_path="somepath", container_env_vars={}
+        )
         self.assertEqual(1111, debug_context.debug_ports)
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
@@ -627,7 +657,9 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_path_mock = Mock()
         pathlib_mock.return_value = pathlib_path_mock
 
-        debug_context = InvokeContext._get_debug_context(debug_ports="1111", debug_args=None, debugger_path="somepath")
+        debug_context = InvokeContext._get_debug_context(
+            debug_ports="1111", debug_args=None, debugger_path="somepath", container_env_vars=None
+        )
         self.assertEqual("1111", debug_context.debug_ports)
 
     @patch("samcli.commands.local.cli_common.invoke_context.Path")
@@ -636,7 +668,7 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.return_value = pathlib_path_mock
 
         debug_context = InvokeContext._get_debug_context(
-            debug_ports=["1111", "1112"], debug_args=None, debugger_path="somepath"
+            debug_ports=["1111", "1112"], debug_args=None, debugger_path="somepath", container_env_vars=None
         )
         self.assertEqual(["1111", "1112"], debug_context.debug_ports)
 
@@ -646,7 +678,7 @@ class TestInvokeContext_get_debug_context(TestCase):
         pathlib_mock.return_value = pathlib_path_mock
 
         debug_context = InvokeContext._get_debug_context(
-            debug_ports=[1111, 1112], debug_args=None, debugger_path="somepath"
+            debug_ports=[1111, 1112], debug_args=None, debugger_path="somepath", container_env_vars=None
         )
         self.assertEqual([1111, 1112], debug_context.debug_ports)
 
@@ -663,11 +695,13 @@ class TestInvokeContext_get_debug_context(TestCase):
 
         debug_context_mock.return_value = "I am the DebugContext"
 
-        debug_context = InvokeContext._get_debug_context(1111, "args", "./path")
+        debug_context = InvokeContext._get_debug_context(1111, "args", "./path", None)
 
         self.assertEqual(debug_context, "I am the DebugContext")
 
-        debug_context_mock.assert_called_once_with(debug_ports=1111, debug_args="args", debugger_path="full/path")
+        debug_context_mock.assert_called_once_with(
+            debug_ports=1111, debug_args="args", debugger_path="full/path", container_env_vars=None
+        )
         resolve_path_mock.is_dir.assert_called_once()
         pathlib_path_mock.resolve.assert_called_once_with(strict=True)
         pathlib_mock.assert_called_once_with("./path")

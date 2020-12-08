@@ -26,10 +26,16 @@ Function = namedtuple(
         "timeout",
         # Name of the handler
         "handler",
+        # Image Uri
+        "imageuri",
+        # Package Type
+        "packagetype",
+        # Image Configuration
+        "imageconfig",
         # Path to the code. This could be a S3 URI or local path or a dictionary of S3 Bucket, Key, Version
         "codeuri",
-        # Environment variables. This is a dictionary with one key called Variables inside it.
-        # This contains the definition of environment variables
+        # Environment variables. This is a dictionary with one key called Variables inside it. This contains the definition
+        # of environment variables
         "environment",
         # Lambda Execution IAM Role ARN. In the future, this can be used by Local Lambda runtime to assume the IAM role
         # to get credentials to run the container with. This gives a much higher fidelity simulation of cloud Lambda.
@@ -40,6 +46,8 @@ Function = namedtuple(
         "events",
         # Metadata
         "metadata",
+        # Code Signing config ARN
+        "codesign_config_arn",
     ],
 )
 

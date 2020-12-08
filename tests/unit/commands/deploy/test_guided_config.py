@@ -51,4 +51,8 @@ class TestGuidedConfig(TestCase):
     def test_save_config(self, patched_cmd_names):
         patched_cmd_names.return_value = ["local", "start-api"]
         # Should save with no errors.
-        self.gc.save_config(parameter_overrides={"a": "b"}, port="9090")
+        signing_profiles = {
+            "a": {"profile_name": "profile", "profile_owner": "owner"},
+            "b": {"profile_name": "profile"},
+        }
+        self.gc.save_config(parameter_overrides={"a": "b"}, signing_profiles=signing_profiles, port="9090")

@@ -2,11 +2,13 @@
 CLI command for "deploy" command
 """
 import logging
+from functools import partial
 
 import click
 
 from samcli.cli.cli_config_file import TomlProvider, configuration_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context
+from samcli.cli.types import ImageRepositoryType
 from samcli.commands._utils.options import (
     capabilities_override_option,
     guided_deploy_stack_name,
@@ -16,6 +18,8 @@ from samcli.commands._utils.options import (
     no_progressbar_option,
     tags_override_option,
     template_click_option,
+    artifact_callback,
+    signing_profiles_option,
 )
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.telemetry.metrics import track_command
@@ -67,6 +71,12 @@ LOG = logging.getLogger(__name__)
     help="The name of the S3 bucket where this command uploads your "
     "CloudFormation template. This is required the deployments of "
     "templates sized greater than 51,200 bytes",
+)
+@click.option(
+    "--image-repository",
+    type=ImageRepositoryType(),
+    required=False,
+    help="ECR repo uri where this command uploads the image artifacts that are referenced in your template.",
 )
 @click.option(
     "--force-upload",
@@ -140,6 +150,7 @@ LOG = logging.getLogger(__name__)
 @notification_arns_override_option
 @tags_override_option
 @parameter_override_option
+@signing_profiles_option
 @no_progressbar_option
 @capabilities_override_option
 @aws_creds_options
@@ -151,6 +162,7 @@ def cli(
     template_file,
     stack_name,
     s3_bucket,
+    image_repository,
     force_upload,
     no_progressbar,
     s3_prefix,
@@ -166,6 +178,7 @@ def cli(
     metadata,
     guided,
     confirm_changeset,
+    signing_profiles,
     resolve_s3,
     config_file,
     config_env,
@@ -176,6 +189,7 @@ def cli(
         template_file,
         stack_name,
         s3_bucket,
+        image_repository,
         force_upload,
         no_progressbar,
         s3_prefix,
@@ -193,6 +207,7 @@ def cli(
         confirm_changeset,
         ctx.region,
         ctx.profile,
+        signing_profiles,
         resolve_s3,
         config_file,
         config_env,
@@ -203,6 +218,7 @@ def do_cli(
     template_file,
     stack_name,
     s3_bucket,
+    image_repository,
     force_upload,
     no_progressbar,
     s3_prefix,
@@ -220,6 +236,7 @@ def do_cli(
     confirm_changeset,
     region,
     profile,
+    signing_profiles,
     resolve_s3,
     config_file,
     config_env,
@@ -235,11 +252,13 @@ def do_cli(
             template_file=template_file,
             stack_name=stack_name,
             s3_bucket=s3_bucket,
+            image_repository=image_repository,
             s3_prefix=s3_prefix,
             region=region,
             profile=profile,
             confirm_changeset=confirm_changeset,
             capabilities=capabilities,
+            signing_profiles=signing_profiles,
             parameter_overrides=parameter_overrides,
             config_section=CONFIG_SECTION,
             config_env=config_env,
@@ -260,6 +279,7 @@ def do_cli(
             template_file=template_file,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
+            image_repository=guided_context.guided_image_repository if guided else image_repository,
             output_template_file=output_template_file.name,
             kms_key_id=kms_key_id,
             use_json=use_json,
@@ -269,6 +289,7 @@ def do_cli(
             on_deploy=True,
             region=guided_context.guided_region if guided else region,
             profile=profile,
+            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
         ) as package_context:
             package_context.run()
 
@@ -276,6 +297,7 @@ def do_cli(
             template_file=output_template_file.name,
             stack_name=guided_context.guided_stack_name if guided else stack_name,
             s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
+            image_repository=guided_context.guided_image_repository if guided else image_repository,
             force_upload=force_upload,
             no_progressbar=no_progressbar,
             s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
@@ -292,5 +314,6 @@ def do_cli(
             region=guided_context.guided_region if guided else region,
             profile=profile,
             confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
+            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
         ) as deploy_context:
             deploy_context.run()

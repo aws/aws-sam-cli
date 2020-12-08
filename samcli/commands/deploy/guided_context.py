@@ -10,14 +10,23 @@ from click import prompt
 from click import confirm
 
 from samcli.commands._utils.options import _space_separated_list_func_type
-from samcli.commands._utils.template import get_template_parameters, get_template_data
+from samcli.commands._utils.template import get_template_parameters, get_template_data, get_template_artifacts_format
+from samcli.commands.deploy.code_signer_utils import (
+    signer_config_per_function,
+    extract_profile_name_and_owner_from_existing,
+    prompt_profile_name,
+    prompt_profile_owner,
+)
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
-from samcli.commands.deploy.auth_utils import auth_per_resource
+from samcli.commands.deploy.auth_utils import auth_per_resource, transform_template
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.config.samconfig import DEFAULT_ENV, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.package.ecr_utils import is_ecr_url
+from samcli.lib.package.image_utils import tag_translation, NonLocalImageException, NoImageFoundException
 from samcli.lib.utils.colors import Colored
+from samcli.lib.utils.packagetype import IMAGE
 
 LOG = logging.getLogger(__name__)
 
@@ -28,11 +37,13 @@ class GuidedContext:
         template_file,
         stack_name,
         s3_bucket,
+        image_repository,
         s3_prefix,
         region=None,
         profile=None,
         confirm_changeset=None,
         capabilities=None,
+        signing_profiles=None,
         parameter_overrides=None,
         save_to_config=True,
         config_section=None,
@@ -42,6 +53,7 @@ class GuidedContext:
         self.template_file = template_file
         self.stack_name = stack_name
         self.s3_bucket = s3_bucket
+        self.image_repository = image_repository
         self.s3_prefix = s3_prefix
         self.region = region
         self.profile = profile
@@ -54,14 +66,17 @@ class GuidedContext:
         self.config_file = config_file
         self.guided_stack_name = None
         self.guided_s3_bucket = None
+        self.guided_image_repository = None
         self.guided_s3_prefix = None
         self.guided_region = None
         self.guided_profile = None
+        self.signing_profiles = signing_profiles
         self._capabilities = None
         self._parameter_overrides = None
         self.start_bold = "\033[1m"
         self.end_bold = "\033[0m"
         self.color = Colored()
+        self.transformed_resources = None
 
     @property
     def guided_capabilities(self):
@@ -95,6 +110,9 @@ class GuidedContext:
         input_parameter_overrides = self.prompt_parameters(
             parameter_override_keys, self.parameter_overrides_from_cmdline, self.start_bold, self.end_bold
         )
+        image_repository = self.prompt_image_repository(
+            parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides)
+        )
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
         confirm_changeset = confirm(
@@ -112,7 +130,9 @@ class GuidedContext:
                 type=FuncParamType(func=_space_separated_list_func_type),
             )
 
-        self.prompt_authorization(sanitize_parameter_overrides(input_parameter_overrides))
+        sanitized_parameter_overrides = sanitize_parameter_overrides(input_parameter_overrides)
+        self.prompt_authorization(sanitized_parameter_overrides)
+        self.prompt_code_signing_settings(sanitized_parameter_overrides)
 
         save_to_config = confirm(
             f"\t{self.start_bold}Save arguments to configuration file{self.end_bold}", default=True
@@ -135,6 +155,7 @@ class GuidedContext:
 
         self.guided_stack_name = stack_name
         self.guided_s3_bucket = s3_bucket
+        self.guided_image_repository = image_repository
         self.guided_s3_prefix = stack_name
         self.guided_region = region
         self.guided_profile = self.profile
@@ -158,6 +179,58 @@ class GuidedContext:
                 )
                 if not auth_confirm:
                     raise GuidedDeployFailedError(msg="Security Constraints Not Satisfied!")
+
+    def prompt_code_signing_settings(self, parameter_overrides):
+        (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(
+            parameter_overrides, get_template_data(self.template_file)
+        )
+
+        # if no function or layer definition found with code signing, skip it
+        if not functions_with_code_sign and not layers_with_code_sign:
+            LOG.debug("No function or layer definition found with code sign config, skipping")
+            return
+
+        click.echo("\n\t#Found code signing configurations in your function definitions")
+        sign_functions = confirm(
+            f"\t{self.start_bold}Do you want to sign your code?{self.end_bold}",
+            default=True,
+        )
+
+        if not sign_functions:
+            LOG.debug("User skipped code signing, continuing rest of the process")
+            self.signing_profiles = None
+            return
+
+        if not self.signing_profiles:
+            self.signing_profiles = {}
+
+        click.echo("\t#Please provide signing profile details for the following functions & layers")
+
+        for function_name in functions_with_code_sign:
+            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+                function_name, self.signing_profiles
+            )
+
+            click.echo(f"\t#Signing profile details for function '{function_name}'")
+            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)
+            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)
+            self.signing_profiles[function_name] = {"profile_name": profile_name, "profile_owner": profile_owner}
+            self.signing_profiles[function_name]["profile_owner"] = "" if not profile_owner else profile_owner
+
+        for layer_name, functions_use_this_layer in layers_with_code_sign.items():
+            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+                layer_name, self.signing_profiles
+            )
+            click.echo(
+                f"\t#Signing profile details for layer '{layer_name}', "
+                f"which is used by functions {functions_use_this_layer}"
+            )
+            profile_name = prompt_profile_name(profile_name, self.start_bold, self.end_bold)
+            profile_owner = prompt_profile_owner(profile_owner, self.start_bold, self.end_bold)
+            self.signing_profiles[layer_name] = {"profile_name": profile_name, "profile_owner": profile_owner}
+            self.signing_profiles[layer_name]["profile_owner"] = "" if not profile_owner else profile_owner
+
+        LOG.debug("Signing profile names and owners %s", self.signing_profiles)
 
     def prompt_parameters(
         self, parameter_override_from_template, parameter_override_from_cmdline, start_bold, end_bold
@@ -185,6 +258,38 @@ class GuidedContext:
                     _prompted_param_overrides[parameter_key] = {"Value": parameter, "Hidden": False}
         return _prompted_param_overrides
 
+    def prompt_image_repository(self, parameter_overrides):
+        image_repository = None
+        artifacts_format = get_template_artifacts_format(template_file=self.template_file)
+        if IMAGE in artifacts_format:
+            self.transformed_resources = transform_template(
+                parameter_overrides=parameter_overrides,
+                template_dict=get_template_data(template_file=self.template_file),
+            )
+            image_repository = prompt(
+                f"\t{self.start_bold}Image Repository{self.end_bold}",
+                type=click.STRING,
+                default=self.image_repository if self.image_repository else "",
+            )
+            if not is_ecr_url(image_repository):
+                raise GuidedDeployFailedError(f"Invalid Image Repository ECR URI: {image_repository}")
+
+            for _, function_prop in self.transformed_resources.functions.items():
+                if function_prop.packagetype == IMAGE:
+                    image = function_prop.imageuri
+                    try:
+                        tag = tag_translation(image)
+                    except NonLocalImageException:
+                        pass
+                    except NoImageFoundException as ex:
+                        raise GuidedDeployFailedError("No images found to deploy, try running sam build") from ex
+                    else:
+                        click.secho(f"\t{self.start_bold}Images that will be pushed:{self.end_bold}")
+                        click.secho(f"\t  {image} to {image_repository}:{tag}")
+            click.secho(nl=True)
+
+        return image_repository
+
     def run(self):
 
         try:
@@ -208,10 +313,12 @@ class GuidedContext:
                 stack_name=self.guided_stack_name,
                 s3_bucket=self.guided_s3_bucket,
                 s3_prefix=self.guided_s3_prefix,
+                image_repository=self.guided_image_repository,
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,
                 capabilities=self._capabilities,
+                signing_profiles=self.signing_profiles,
             )
 
     def _get_parameter_value(self, parameter_key, parameter_properties, parameter_override_from_cmdline):
