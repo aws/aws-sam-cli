@@ -2,7 +2,6 @@
 CLI command for "deploy" command
 """
 import logging
-from functools import partial
 
 import click
 
@@ -18,7 +17,6 @@ from samcli.commands._utils.options import (
     no_progressbar_option,
     tags_override_option,
     template_click_option,
-    artifact_callback,
     signing_profiles_option,
     image_repositories_callback,
 )

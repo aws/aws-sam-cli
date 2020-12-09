@@ -126,6 +126,9 @@ def artifact_callback(ctx, param, provided_value, artifact):
     :return: Actual value to be used in the CLI
     """
 
+    # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
+    # passed in directly or through configuration file.
+    # If passed in through configuration file, default_map is loaded with those values.
     template_file = (
         ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
     )
@@ -140,12 +143,9 @@ def artifact_callback(ctx, param, provided_value, artifact):
     # NOTE(sriram-mv): Explicit check for param name being s3_bucket
     # If that is the case, check for another option called resolve_s3 to be defined.
     # resolve_s3 option resolves for the s3 bucket automatically.
-    # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
-    # passed in directly or through configuration file.
-    # If passed in through configuration file, default_map is loaded with those values.
     if param.name == "s3_bucket" and resolve_s3:
         pass
-    elif required and not provided_value:
+    elif required and not provided_value and param.name == "s3_bucket":
         raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message=f"Missing option '{param.opts[0]}'")
 
     return provided_value

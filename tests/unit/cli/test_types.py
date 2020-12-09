@@ -4,7 +4,13 @@ from unittest.mock import Mock, ANY
 from click import BadParameter
 from parameterized import parameterized
 
-from samcli.cli.types import CfnParameterOverridesType, CfnTags, SigningProfilesOptionType, ImageRepositoryType
+from samcli.cli.types import (
+    CfnParameterOverridesType,
+    CfnTags,
+    SigningProfilesOptionType,
+    ImageRepositoryType,
+    ImageRepositoriesType,
+)
 from samcli.cli.types import CfnMetadataType
 
 
@@ -322,6 +328,49 @@ class TestImageRepositoryType(TestCase):
             (
                 "123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1",
                 "123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1",
+            ),
+        ]
+    )
+    def test_successful_parsing(self, input, expected):
+        result = self.param_type.convert(input, self.mock_param, Mock())
+        self.assertEqual(result, expected, msg="Failed with Input = " + str(input))
+
+
+class TestImageRepositoriesType(TestCase):
+    def setUp(self):
+        self.param_type = ImageRepositoriesType()
+        self.mock_param = Mock(opts=["--image-repositories"])
+
+    @parameterized.expand(
+        [
+            # Just a string
+            ("some string"),
+            # Too many equals
+            ("a=b=c=d"),
+            # Almost an URI, but no dkr
+            ("Hello=123456789012.us-east-1.amazonaws.com/test1"),
+            # Almost an URI, but no repo-name
+            ("Hello=123456789012.us-east-1.amazonaws.com/"),
+            # Almost an URI, but no region name
+            ("Hello=123456789012.dkr.ecr.amazonaws.com/test1"),
+            # Almost an URI, but no service name
+            ("Hello=123456789012.dkr.amazonaws.com/test1"),
+        ]
+    )
+    def test_must_fail_on_invalid_format(self, input):
+        self.param_type.fail = Mock()
+        with self.assertRaises(BadParameter):
+            self.param_type.convert(input, self.mock_param, Mock())
+
+    @parameterized.expand(
+        [
+            (
+                "HelloWorld=123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
+                {"HelloWorld": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1"},
+            ),
+            (
+                "HelloWorld=123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1",
+                {"HelloWorld": "123456789012.dkr.ecr.cn-north-1.amazonaws.com.cn/test1"},
             ),
         ]
     )
