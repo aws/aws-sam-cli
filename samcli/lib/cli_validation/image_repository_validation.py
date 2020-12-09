@@ -1,3 +1,7 @@
+"""
+Image Repository Option Validation.
+This is to be run last after all CLI options have been processed.
+"""
 import click
 
 from samcli.commands._utils.option_validator import Validator
@@ -28,8 +32,8 @@ def image_repository_validation(func):
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message=f"Both '--image-repositories' and '--image-repository' cannot be provided. "
-                    f"Do you have both specified in the command or in a configuration file?",
+                    message="Both '--image-repositories' and '--image-repository' cannot be provided. "
+                    "Do you have both specified in the command or in a configuration file?",
                 ),
             ),
             Validator(
@@ -37,7 +41,7 @@ def image_repository_validation(func):
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message=f"Missing option '--image-repository' or '--image-repositories'",
+                    message="Missing option '--image-repository' or '--image-repositories'",
                 ),
             ),
             Validator(
@@ -49,7 +53,7 @@ def image_repository_validation(func):
                 exception=click.BadOptionUsage(
                     option_name="--image-repositories",
                     ctx=ctx,
-                    message=f"Incomplete list of function logical ids specified for '--image-repositories'",
+                    message="Incomplete list of function logical ids specified for '--image-repositories'",
                 ),
             ),
         ]

@@ -405,9 +405,8 @@ class ImageRepositoriesType(click.ParamType):
             raise click.BadParameter(
                 f"{param.opts[0]} is not a valid format, it needs to be of the form function_logical_id=ECR_URI"
             )
-        else:
-            key = key_value_pair[0]
-            _value = key_value_pair[1]
-            if not is_ecr_url(_value):
-                raise click.BadParameter(f"{param.opts[0]} needs to have valid ECR URI as value")
-            return {key: _value}
+        key = key_value_pair[0]
+        _value = key_value_pair[1]
+        if not is_ecr_url(_value):
+            raise click.BadParameter(f"{param.opts[0]} needs to have valid ECR URI as value")
+        return {key: _value}
