@@ -10,6 +10,7 @@ from samcli.commands.init import cli as init_cmd
 from samcli.commands.init import do_cli as init_cli
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.commands.exceptions import UserException
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 
 class MockInitTemplates:
@@ -27,7 +28,10 @@ class TestCli(TestCase):
         self.ctx = None
         self.no_interactive = True
         self.location = None
+        self.pt_explicit = True
+        self.package_type = ZIP
         self.runtime = "python3.6"
+        self.base_image = None
         self.dependency_manager = "pip"
         self.output_dir = "."
         self.name = "testing project"
@@ -45,7 +49,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime=self.runtime,
+            base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=None,
             name=self.name,
@@ -68,6 +75,74 @@ class TestCli(TestCase):
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_image_cli(self, generate_project_patch, sd_mock):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=IMAGE,
+            runtime=None,
+            base_image="amazon/nodejs12.x-base",
+            dependency_manager="npm",
+            output_dir=None,
+            name=self.name,
+            app_template=None,
+            no_input=self.no_input,
+            extra_context=None,
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            ANY,
+            "nodejs12.x",
+            "npm",
+            self.output_dir,
+            self.name,
+            True,
+            {"runtime": "nodejs12.x", "project_name": "testing project"},
+        )
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_image_java_cli(self, generate_project_patch, sd_mock):
+        # GIVEN generate_project successfully created a project
+        # WHEN a project name has been passed
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=IMAGE,
+            runtime=None,
+            base_image="amazon/java11-base",
+            dependency_manager="maven",
+            output_dir=None,
+            name=self.name,
+            app_template=None,
+            no_input=self.no_input,
+            extra_context=None,
+            auto_clone=False,
+        )
+
+        # THEN we should receive no errors
+        generate_project_patch.assert_called_once_with(
+            # need to change the location validation check
+            ANY,
+            "java11",
+            "maven",
+            self.output_dir,
+            self.name,
+            True,
+            {"runtime": "java11", "project_name": "testing project"},
+        )
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
     def test_init_fails_invalid_template(self, sd_mock):
         # WHEN an unknown app template is passed in
         # THEN an exception should be raised
@@ -76,7 +151,10 @@ class TestCli(TestCase):
                 ctx=self.ctx,
                 no_interactive=self.no_interactive,
                 location=self.location,
+                pt_explicit=self.pt_explicit,
+                package_type=self.package_type,
                 runtime=self.runtime,
+                base_image=self.base_image,
                 dependency_manager=self.dependency_manager,
                 output_dir=None,
                 name=self.name,
@@ -95,47 +173,14 @@ class TestCli(TestCase):
                 ctx=self.ctx,
                 no_interactive=self.no_interactive,
                 location=self.location,
+                pt_explicit=self.pt_explicit,
+                package_type=self.package_type,
                 runtime=self.runtime,
+                base_image=self.base_image,
                 dependency_manager="bad-wrong",
                 output_dir=None,
                 name=self.name,
                 app_template=self.app_template,
-                no_input=self.no_input,
-                extra_context=None,
-                auto_clone=False,
-            )
-
-    def test_init_cli_missing_params_fails(self):
-        # WHEN we call init without necessary parameters
-        # THEN we should receive a UserException
-        with self.assertRaises(click.UsageError):
-            init_cli(
-                self.ctx,
-                no_interactive=True,
-                location=None,
-                runtime=None,
-                dependency_manager=None,
-                output_dir=None,
-                name=None,
-                app_template=None,
-                no_input=True,
-                extra_context=None,
-                auto_clone=False,
-            )
-
-    def test_init_cli_mutually_exclusive_params_fails(self):
-        # WHEN we call init without necessary parameters
-        # THEN we should receive a UserException
-        with self.assertRaises(click.UsageError):
-            init_cli(
-                self.ctx,
-                no_interactive=self.no_interactive,
-                location="whatever",
-                runtime=self.runtime,
-                dependency_manager=self.dependency_manager,
-                output_dir=self.output_dir,
-                name=self.name,
-                app_template="fails-anyways",
                 no_input=self.no_input,
                 extra_context=None,
                 auto_clone=False,
@@ -156,8 +201,43 @@ class TestCli(TestCase):
                 self.ctx,
                 no_interactive=self.no_interactive,
                 location="self.location",
+                pt_explicit=self.pt_explicit,
+                package_type=self.package_type,
                 runtime=self.runtime,
+                base_image=self.base_image,
                 dependency_manager=self.dependency_manager,
+                output_dir=self.output_dir,
+                name=self.name,
+                app_template=None,
+                no_input=self.no_input,
+                extra_context=None,
+                auto_clone=False,
+            )
+
+            generate_project_patch.assert_called_with(
+                self.location, self.runtime, self.dependency_manager, self.output_dir, self.name, self.no_input
+            )
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_generate_project_image_fails(self, generate_project_patch, sd_mock):
+        # GIVEN generate_project fails to create a project
+        generate_project_patch.side_effect = GenerateProjectFailedError(
+            project=self.name, provider_error="Something wrong happened"
+        )
+
+        # WHEN generate_project returns an error
+        # THEN we should receive a GenerateProjectFailedError Exception
+        with self.assertRaises(UserException):
+            init_cli(
+                self.ctx,
+                no_interactive=self.no_interactive,
+                location=self.location,
+                pt_explicit=self.pt_explicit,
+                package_type=IMAGE,
+                runtime=None,
+                base_image="python3.6-base",
+                dependency_manager="wrong-dependency-manager",
                 output_dir=self.output_dir,
                 name=self.name,
                 app_template=None,
@@ -178,7 +258,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime=self.runtime,
+            base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
             name=self.name,
@@ -201,7 +284,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime=self.runtime,
+            base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
             name=self.name,
@@ -230,7 +316,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime=self.runtime,
+            base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
             name=self.name,
@@ -259,7 +348,10 @@ class TestCli(TestCase):
                 ctx=self.ctx,
                 no_interactive=self.no_interactive,
                 location=self.location,
+                pt_explicit=self.pt_explicit,
+                package_type=self.package_type,
                 runtime=self.runtime,
+                base_image=self.base_image,
                 dependency_manager=self.dependency_manager,
                 output_dir=self.output_dir,
                 name=self.name,
@@ -277,7 +369,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location="custom location",
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime="java8",
+            base_image=self.base_image,
             dependency_manager=None,
             output_dir=self.output_dir,
             name="test-project",
@@ -306,7 +401,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location="custom location",
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime=None,
+            base_image=self.base_image,
             dependency_manager=None,
             output_dir=self.output_dir,
             name="test-project",
@@ -335,7 +433,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location="custom location",
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime="java8",
+            base_image=self.base_image,
             dependency_manager=None,
             output_dir=self.output_dir,
             name=None,
@@ -364,7 +465,10 @@ class TestCli(TestCase):
             ctx=self.ctx,
             no_interactive=self.no_interactive,
             location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime=self.runtime,
+            base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=self.output_dir,
             name=self.name,
@@ -456,6 +560,7 @@ class TestCli(TestCase):
         # 1: select schema AWSAPICallViaCloudTrail
         user_input = """
 1
+1
 5
 1
 test-project
@@ -489,6 +594,51 @@ Y
         get_schemas_client_mock.assert_called_once_with(None, "ap-northeast-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code_mock(
             "result.zip", ".", "test-project", ANY
+        )
+
+    @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
+    @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_int_with_image_app_template(
+        self,
+        generate_project_patch,
+        init_options_from_manifest_mock,
+    ):
+        init_options_from_manifest_mock.return_value = [
+            {
+                "directory": "java8-base/cookiecutter-aws-sam-hello-java-maven-lambda-image",
+                "displayName": "Hello World Lambda Image Example: Maven",
+                "dependencyManager": "maven",
+                "appTemplate": "hello-world-lambda-image",
+            }
+        ]
+
+        # WHEN the user follows interactive init prompts
+
+        # 1: AWS Quick Start Templates
+        # 2: Package type - Image
+        # 12: Java8 base image
+        # 1: dependency manager maven
+        # test-project: response to name
+
+        user_input = """
+1
+2
+12
+1
+test-project
+            """
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, input=user_input)
+
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            "java8",
+            "maven",
+            ".",
+            "test-project",
+            True,
+            {"project_name": "test-project", "runtime": "java8"},
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -563,6 +713,7 @@ Y
         # 1: select aws.events as registries
         # 1: select schema AWSAPICallViaCloudTrail
         user_input = """
+1
 1
 5
 1
@@ -644,6 +795,7 @@ us-east-1
         # 1: select aws.events as registries
         # 1: select schema AWSAPICallViaCloudTrail
         user_input = """
+1
 1
 5
 1
@@ -733,6 +885,7 @@ invalid-region
         # 1: select aws.events as registries
         # 1: select schema AWSAPICallViaCloudTrail
         user_input = """
+1
 1
 5
 1
@@ -833,6 +986,7 @@ Y
         # 1: select schema AWSAPICallViaCloudTrail
         user_input = """
 1
+1
 5
 1
 test-project
@@ -858,7 +1012,10 @@ Y
             ctx=self.ctx,
             no_interactive=True,
             location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
             runtime=self.runtime,
+            base_image=self.base_image,
             dependency_manager=self.dependency_manager,
             output_dir=None,
             name=self.name,
@@ -905,4 +1062,39 @@ foo
             None,
             False,
             None,
+        )
+
+    @patch("samcli.commands.init.init_templates.InitTemplates._shared_dir_check")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_no_package_type(self, generate_project_patch, sd_mock):
+        # WHEN the user follows interactive init prompts
+
+        # 1: selecting template source
+        # 2s: selecting package type
+        user_input = """
+1
+2
+        """
+        args = [
+            "--no-input",
+            "--name",
+            "untitled6",
+            "--base-image",
+            "amazon/python3.8-base",
+            "--dependency-manager",
+            "pip",
+        ]
+        runner = CliRunner()
+        result = runner.invoke(init_cmd, args=args, input=user_input)
+
+        # THEN we should receive no errors
+        self.assertFalse(result.exception)
+        generate_project_patch.assert_called_once_with(
+            ANY,
+            "python3.8",
+            "pip",
+            ".",
+            "untitled6",
+            True,
+            ANY,
         )

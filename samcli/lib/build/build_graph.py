@@ -8,11 +8,15 @@ from uuid import uuid4
 
 import tomlkit
 
+from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.utils.packagetype import ZIP
+
 LOG = logging.getLogger(__name__)
 
 DEFAULT_BUILD_GRAPH_FILE_NAME = "build.toml"
 
 # filed names for the toml table
+PACKAGETYPE_FIELD = "packagetype"
 CODE_URI_FIELD = "codeuri"
 RUNTIME_FIELD = "runtime"
 METADATA_FIELD = "metadata"
@@ -22,11 +26,6 @@ LAYER_NAME_FIELD = "layer_name"
 BUILD_METHOD_FIELD = "build_method"
 COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
-
-
-class InvalidBuildGraphException(Exception):
-    def __init__(self, msg):
-        Exception.__init__(self, msg)
 
 
 def _function_build_definition_to_toml_table(function_build_definition):
@@ -44,9 +43,11 @@ def _function_build_definition_to_toml_table(function_build_definition):
         toml table of FunctionBuildDefinition
     """
     toml_table = tomlkit.table()
-    toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
-    toml_table[RUNTIME_FIELD] = function_build_definition.runtime
-    toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
+    if function_build_definition.packagetype == ZIP:
+        toml_table[CODE_URI_FIELD] = function_build_definition.codeuri
+        toml_table[RUNTIME_FIELD] = function_build_definition.runtime
+        toml_table[SOURCE_MD5_FIELD] = function_build_definition.source_md5
+    toml_table[PACKAGETYPE_FIELD] = function_build_definition.packagetype
     toml_table[FUNCTIONS_FIELD] = list(map(lambda f: f.name, function_build_definition.functions))
 
     if function_build_definition.metadata:
@@ -72,8 +73,9 @@ def _toml_table_to_function_build_definition(uuid, toml_table):
         FunctionBuildDefinition of given toml table
     """
     function_build_definition = FunctionBuildDefinition(
-        toml_table[RUNTIME_FIELD],
-        toml_table[CODE_URI_FIELD],
+        toml_table.get(RUNTIME_FIELD),
+        toml_table.get(CODE_URI_FIELD),
+        toml_table.get(PACKAGETYPE_FIELD, ZIP),
         dict(toml_table.get(METADATA_FIELD, {})),
         toml_table.get(SOURCE_MD5_FIELD, ""),
     )
@@ -357,10 +359,11 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
     LayerBuildDefinition holds information about each unique function build
     """
 
-    def __init__(self, runtime, codeuri, metadata, source_md5=""):
+    def __init__(self, runtime, codeuri, packagetype, metadata, source_md5=""):
         super().__init__(source_md5)
         self.runtime = runtime
         self.codeuri = codeuri
+        self.packagetype = packagetype
         self.metadata = metadata if metadata else {}
         self.functions = []
 
@@ -381,7 +384,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
 
     def __str__(self):
         return (
-            f"BuildDefinition({self.runtime}, {self.codeuri}, {self.source_md5}, {self.uuid}, {self.metadata}, "
+            f"BuildDefinition({self.runtime}, {self.codeuri}, {self.packagetype}, {self.source_md5}, {self.uuid}, {self.metadata}, "
             f"{[f.functionname for f in self.functions]})"
         )
 
@@ -406,4 +409,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         if self.metadata and self.metadata.get("BuildMethod", None) == "makefile":
             return False
 
-        return self.runtime == other.runtime and self.codeuri == other.codeuri and self.metadata == other.metadata
+        return self.runtime == other.runtime \
+               and self.codeuri == other.codeuri \
+               and self.packagetype == other.packagetype \
+               and self.metadata == other.metadata

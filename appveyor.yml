@@ -16,6 +16,7 @@ environment:
       INSTALL_PY_37_PIP: 1
       INSTALL_PY_38_PIP: 1
       AWS_S3: 'AWS_S3_36'
+      AWS_ECR: 'AWS_ECR_36'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python37-x64"
@@ -26,6 +27,7 @@ environment:
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_38_PIP: 1
       AWS_S3: 'AWS_S3_37'
+      AWS_ECR: 'AWS_ECR_37'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
     - PYTHON_HOME: "C:\\Python38-x64"
@@ -36,6 +38,7 @@ environment:
       INSTALL_PY_36_PIP: 1
       INSTALL_PY_37_PIP: 1
       AWS_S3: 'AWS_S3_38'
+      AWS_ECR: 'AWS_ECR_38'
       APPVEYOR_CONSOLE_DISABLE_PTY: true
 
 for:
@@ -74,7 +77,7 @@ for:
     test_script:
       # Activate virtualenv again on windows
       - "venv\\Scripts\\activate"
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 
@@ -127,7 +130,7 @@ for:
       - "pip install -e \".[dev]\""
 
     test_script:
-      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 95 tests/unit"
+      - "pytest --cov samcli --cov-report term-missing --cov-fail-under 94 tests/unit"
       - "pylint --rcfile .pylintrc samcli"
       - "pytest -n 4 tests/functional"
 

@@ -13,7 +13,11 @@ from samcli.commands._utils.options import (
     get_or_default_template_file_name,
     _TEMPLATE_OPTION_DEFAULT_VALUE,
     guided_deploy_stack_name,
+    artifact_callback,
+    resolve_s3_callback,
 )
+from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from tests.unit.cli.test_cli_config_file import MockContext
 
 
@@ -92,6 +96,260 @@ class TestGetOrDefaultTemplateFileName(TestCase):
 
         result = get_or_default_template_file_name(ctx_mock, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
         self.assertEqual(result, expected_result_from_ctx)
+
+
+class TestArtifactBasedOptionRequired(TestCase):
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_required(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = "mock-bucket"
+        result = artifact_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=s3_bucket,
+            artifact=ZIP,
+        )
+        self.assertEqual(result, s3_bucket)
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_not_required_resolve_s3_option_present(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock(
+            side_effect=[
+                MagicMock(),  # mock_params.get("t")
+                MagicMock(),  # mock_params.get("template-file")
+                MagicMock(),  # mock_params.get("template")
+                True,  # mock_params.get("resolve_s3")
+            ]
+        )
+        s3_bucket = "mock-bucket"
+        result = artifact_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(name="s3_bucket"),
+            provided_value=s3_bucket,
+            artifact=ZIP,
+        )
+        # No Exceptions thrown since resolve_s3 is True
+        self.assertEqual(result, s3_bucket)
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_not_required_resolve_s3_option_present_in_config_file(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock(
+            side_effect=[
+                MagicMock(),  # mock_params.get("t")
+                MagicMock(),  # mock_params.get("template-file")
+                MagicMock(),  # mock_params.get("template")
+                False,  # mock_params.get("resolve_s3")
+            ]
+        )
+        s3_bucket = "mock-bucket"
+        mock_default_map = {"resolve_s3": True}
+        result = artifact_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(name="s3_bucket"),
+            provided_value=s3_bucket,
+            artifact=ZIP,
+        )
+        # No Exceptions thrown since resolve_s3 is True in config file.
+        self.assertEqual(result, s3_bucket)
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_bucket_not_given_error(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        s3_bucket = None
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=s3_bucket,
+                artifact=ZIP,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_image_based_artifact_image_repo(self, template_artifacts_mock):
+        template_artifacts_mock.return_value = [IMAGE]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        image_repository = "123456789.dkr.ecr.us-east-1.amazonaws.com/sam-cli"
+
+        result = artifact_callback(
+            ctx=MockContext(info_name="test", parent=None, params=mock_params),
+            param=MagicMock(),
+            provided_value=image_repository,
+            artifact=IMAGE,
+        )
+        self.assertEqual(result, image_repository)
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_image_based_artifact_image_repo_not_given_error(self, template_artifacts_mock):
+        template_artifacts_mock.return_value = [IMAGE]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock()
+        image_repository = None
+
+        with self.assertRaises(click.BadOptionUsage):
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params),
+                param=MagicMock(),
+                provided_value=image_repository,
+                artifact=IMAGE,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_artifact_different_from_required_option(self, template_artifacts_mock):
+        template_artifacts_mock.return_value = [IMAGE, ZIP]
+        mock_params = MagicMock()
+        mock_params.get = MagicMock(
+            side_effect=[
+                MagicMock(),  # mock_params.get("t")
+                False,  # mock_params.get("resolve_s3")
+            ]
+        )
+        mock_default_map = MagicMock()
+        mock_default_map.get = MagicMock(return_value=False)
+        param = MagicMock()
+        param.name = "s3_bucket"
+        param.opts.__getitem__.return_value = ["--s3-bucket"]
+        image_repository = None
+
+        with self.assertRaises(click.BadOptionUsage) as ex:
+            artifact_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=param,
+                provided_value=image_repository,
+                artifact=ZIP,
+            )
+        self.assertEqual(ex.exception.option_name, "s3_bucket")
+        self.assertEqual(ex.exception.message, "Missing option '['--s3-bucket']'")
+
+
+class TestResolveS3CallBackOption(TestCase):
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_bucket_present_resolve_s3_present(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": True}
+        mock_default_map = {"s3_bucket": False}
+        with self.assertRaises(PackageResolveS3AndS3SetError):
+            resolve_s3_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=MagicMock(),
+                provided_value=True,
+                artifact=ZIP,
+                exc_set=PackageResolveS3AndS3SetError,
+                exc_not_set=PackageResolveS3AndS3NotSetError,
+            )
+
+        # Option is set in the configuration file.
+        mock_default_map["s3_bucket"] = True
+        mock_params["s3_bucket"] = False
+
+        with self.assertRaises(PackageResolveS3AndS3SetError):
+            resolve_s3_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=MagicMock(),
+                provided_value=True,
+                artifact=ZIP,
+                exc_set=PackageResolveS3AndS3SetError,
+                exc_not_set=PackageResolveS3AndS3NotSetError,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_bucket_not_present_resolve_s3_not_present(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": False}
+        mock_default_map = {"s3_bucket": False}
+        with self.assertRaises(PackageResolveS3AndS3NotSetError):
+            resolve_s3_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=MagicMock(),
+                provided_value=False,
+                artifact=ZIP,
+                exc_set=PackageResolveS3AndS3SetError,
+                exc_not_set=PackageResolveS3AndS3NotSetError,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_zip_based_artifact_s3_bucket_not_present_resolve_s3_present(self, template_artifacts_mock):
+        # implicitly artifacts are zips
+        template_artifacts_mock.return_value = [ZIP]
+        mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": False}
+        mock_default_map = {"s3_bucket": False}
+        self.assertEqual(
+            resolve_s3_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=MagicMock(),
+                provided_value=True,
+                artifact=ZIP,
+                exc_set=PackageResolveS3AndS3SetError,
+                exc_not_set=PackageResolveS3AndS3NotSetError,
+            ),
+            True,
+        )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_image_based_artifact_resolve_s3_present(self, template_artifacts_mock):
+        template_artifacts_mock.return_value = [IMAGE]
+        mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": False}
+        mock_default_map = {"s3_bucket": False}
+        # No exception thrown if option is provided or not provided as --s3-bucket or --resolve-s3 is not required.
+        for provided_option_value in [True, False]:
+            self.assertEqual(
+                resolve_s3_callback(
+                    ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                    param=MagicMock(),
+                    provided_value=provided_option_value,
+                    artifact=ZIP,
+                    exc_set=PackageResolveS3AndS3SetError,
+                    exc_not_set=PackageResolveS3AndS3NotSetError,
+                ),
+                provided_option_value,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_image_and_zip_based_artifact_s3_bucket_not_present_resolve_s3_not_present(self, template_artifacts_mock):
+        template_artifacts_mock.return_value = [IMAGE, ZIP]
+        mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": False}
+        mock_default_map = {"s3_bucket": False}
+        with self.assertRaises(PackageResolveS3AndS3NotSetError):
+            resolve_s3_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=MagicMock(),
+                provided_value=False,
+                artifact=ZIP,
+                exc_set=PackageResolveS3AndS3SetError,
+                exc_not_set=PackageResolveS3AndS3NotSetError,
+            )
+
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
+    def test_image_and_zip_based_artifact_s3_bucket_present_resolve_s3_not_present(self, template_artifacts_mock):
+        template_artifacts_mock.return_value = [IMAGE, ZIP]
+        mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": True}
+        mock_default_map = {"s3_bucket": False}
+        # No exception thrown, there is --s3-bucket option set.
+        self.assertEqual(
+            resolve_s3_callback(
+                ctx=MockContext(info_name="test", parent=None, params=mock_params, default_map=mock_default_map),
+                param=MagicMock(),
+                provided_value=False,
+                artifact=ZIP,
+                exc_set=PackageResolveS3AndS3SetError,
+                exc_not_set=PackageResolveS3AndS3NotSetError,
+            ),
+            False,
+        )
 
 
 class TestGuidedDeployStackName(TestCase):

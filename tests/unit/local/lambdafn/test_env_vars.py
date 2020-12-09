@@ -25,12 +25,12 @@ class TestEnvironmentVariables_init(TestCase):
         self.assertEqual(environ.handler, handler)
 
     def test_must_initialize_values_with_required_values(self):
-        name = "name"
         memory = 123
         timeout = 10
         handler = "handler"
-
+        name = "function_name"
         environ = EnvironmentVariables(name, memory, timeout, handler)
+        self.assertEqual(environ.name, name)
         self.assertEqual(environ.memory, memory)
         self.assertEqual(environ.timeout, timeout)
         self.assertEqual(environ.handler, handler)
@@ -40,7 +40,7 @@ class TestEnvironmentVariables_init(TestCase):
         self.assertEqual(environ.aws_creds, {})
 
     def test_must_initialize_with_optional_values(self):
-        name = "name"
+        name = "function_name"
         memory = 123
         timeout = 10
         handler = "handler"
@@ -68,7 +68,7 @@ class TestEnvironmentVariables_init(TestCase):
 
 class TestEnvironmentVariables_resolve(TestCase):
     def setUp(self):
-        self.name = "name"
+        self.name = "function_name"
         self.memory = 1024
         self.timeout = 123
         self.handler = "handler"
@@ -115,43 +115,16 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            "AWS_REGION": "some region",
-            "AWS_DEFAULT_REGION": "some region",
-            "AWS_ACCESS_KEY_ID": "some key",
-            "AWS_SECRET_ACCESS_KEY": "some other secret",
-            "AWS_SESSION_TOKEN": "some other token",
-        }
-
-        environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, aws_creds=self.aws_creds)
-
-        result = environ.resolve()
-
-        # With no additional environment variables, resolve() should just return all AWS variables
-        self.assertEqual(result, expected)
-
-    @patch("samcli.local.lambdafn.env_vars.extensions_preview_enabled")
-    def test_with_no_additional_variables_extensions_preview(self, PreviewEnabledMock):
-        """
-        Test assuming user has *not* passed any environment variables. Only AWS variables should be setup
-        """
-
-        PreviewEnabledMock.return_value = True
-
-        expected = {
-            "AWS_SAM_LOCAL": "true",
-            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
-            "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
-            "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            "AWS_REGION": "some region",
-            "AWS_DEFAULT_REGION": "some region",
-            "AWS_ACCESS_KEY_ID": "some key",
-            "AWS_SECRET_ACCESS_KEY": "some other secret",
-            "AWS_SESSION_TOKEN": "some other token",
-            "AWS_LAMBDA_FUNCTION_NAME": "name",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
             "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_REGION": "some region",
+            "AWS_DEFAULT_REGION": "some region",
+            "AWS_ACCESS_KEY_ID": "some key",
+            "AWS_SECRET_ACCESS_KEY": "some other secret",
+            "AWS_SESSION_TOKEN": "some other token",
         }
 
         environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, aws_creds=self.aws_creds)
@@ -171,45 +144,14 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            "AWS_REGION": "us-east-1",
-            "AWS_ACCESS_KEY_ID": "defaultkey",
-            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
-            # This value is coming from user passed environment variable
-            "AWS_DEFAULT_REGION": "user-specified-region",
-            "variable1": "1",
-            "variable2": "mystring",
-            "list_var": "",
-            "dict_var": "",
-            "none_var": "",
-            "true_var": "true",
-            "false_var": "false",
-        }
-
-        environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler, variables=self.variables)
-
-        self.assertEqual(environ.resolve(), expected)
-
-    @patch("samcli.local.lambdafn.env_vars.extensions_preview_enabled")
-    def test_with_only_default_values_for_variables_extensions_preview(self, PreviewEnabledMock):
-        """
-        Given only environment variable values, without any shell env values or overridden values
-        """
-
-        PreviewEnabledMock.return_value = True
-
-        expected = {
-            "AWS_SAM_LOCAL": "true",
-            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
-            "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
-            "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            "AWS_REGION": "us-east-1",
-            "AWS_ACCESS_KEY_ID": "defaultkey",
-            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
-            "AWS_LAMBDA_FUNCTION_NAME": "name",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
             "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            "AWS_REGION": "us-east-1",
+            "AWS_ACCESS_KEY_ID": "defaultkey",
+            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
             # This value is coming from user passed environment variable
             "AWS_DEFAULT_REGION": "user-specified-region",
             "variable1": "1",
@@ -235,6 +177,11 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
             "AWS_REGION": "us-east-1",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
@@ -271,6 +218,11 @@ class TestEnvironmentVariables_resolve(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
             "AWS_REGION": "us-east-1",
             "AWS_ACCESS_KEY_ID": "defaultkey",
             "AWS_SECRET_ACCESS_KEY": "defaultsecret",
@@ -301,7 +253,7 @@ class TestEnvironmentVariables_resolve(TestCase):
 
 class TestEnvironmentVariables_get_aws_variables(TestCase):
     def setUp(self):
-        self.name = "name"
+        self.name = "function_name"
         self.memory = 1024
         self.timeout = 123
         self.handler = "handler"
@@ -320,10 +272,15 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
             "AWS_REGION": "some region",
             "AWS_DEFAULT_REGION": "some region",
             "AWS_ACCESS_KEY_ID": "some key",
             "AWS_SECRET_ACCESS_KEY": "some other secret",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
             "AWS_SESSION_TOKEN": "some other token",
         }
 
@@ -338,36 +295,16 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            # Default values assigned to these variables
-            "AWS_REGION": "us-east-1",
-            "AWS_DEFAULT_REGION": "us-east-1",
-            "AWS_ACCESS_KEY_ID": "defaultkey",
-            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
-        }
-
-        environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler)
-        self.assertEqual(expected, environ._get_aws_variables())
-
-    @patch("samcli.local.lambdafn.env_vars.extensions_preview_enabled")
-    def test_must_work_without_any_aws_creds_extensions_preview(self, PreviewEnabledMock):
-
-        PreviewEnabledMock.return_value = True
-
-        expected = {
-            "AWS_SAM_LOCAL": "true",
-            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
-            "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
-            "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
-            # Default values assigned to these variables
-            "AWS_REGION": "us-east-1",
-            "AWS_DEFAULT_REGION": "us-east-1",
-            "AWS_ACCESS_KEY_ID": "defaultkey",
-            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
-            "AWS_LAMBDA_FUNCTION_NAME": "name",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
             "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
             "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
             "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
             "AWS_ACCOUNT_ID": "123456789012",
+            # Default values assigned to these variables
+            "AWS_REGION": "us-east-1",
+            "AWS_DEFAULT_REGION": "us-east-1",
+            "AWS_ACCESS_KEY_ID": "defaultkey",
+            "AWS_SECRET_ACCESS_KEY": "defaultsecret",
         }
 
         environ = EnvironmentVariables(self.name, self.memory, self.timeout, self.handler)
@@ -382,6 +319,11 @@ class TestEnvironmentVariables_get_aws_variables(TestCase):
             "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
             "AWS_LAMBDA_FUNCTION_TIMEOUT": "123",
             "AWS_LAMBDA_FUNCTION_HANDLER": "handler",
+            "AWS_LAMBDA_FUNCTION_NAME": self.name,
+            "AWS_LAMBDA_FUNCTION_VERSION": "$LATEST",
+            "AWS_LAMBDA_LOG_GROUP_NAME": f"aws/lambda/{self.name}",
+            "AWS_LAMBDA_LOG_STREAM_NAME": "$LATEST",
+            "AWS_ACCOUNT_ID": "123456789012",
             # Values from the input creds
             "AWS_REGION": "some other region",
             "AWS_DEFAULT_REGION": "some other region",

@@ -1,9 +1,9 @@
 include LICENSE
+include THIRD-PARTY-LICENSES
 include requirements/base.txt
 include requirements/dev.txt
 include samcli/local/go-bootstrap/aws-lambda-go
-include samcli/local/rapid/init
-include samcli/local/preview-rapid/init
+include samcli/local/rapid/aws-lambda-rie
 recursive-include samcli/lib/init/templates *
 recursive-include samcli/lib *.json
 recursive-include samcli/lib/generated_sample_events *.json

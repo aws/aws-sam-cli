@@ -6,9 +6,9 @@ import itertools
 import os
 import pathlib
 
-_init_path = str(pathlib.Path(os.path.dirname(__file__)).parent)
-_templates = os.path.join(_init_path, "init", "templates")
-
+_init_path = str(pathlib.Path(os.path.dirname(__file__)).parent.parent)
+_templates = os.path.join(_init_path, "lib", "init", "templates")
+_lambda_images_templates = os.path.join(_init_path, "lib", "init", "image_templates")
 
 # Note(TheSriram): The ordering of the runtimes list per language is based on the latest to oldest.
 RUNTIME_DEP_TEMPLATE_MAPPING = {
@@ -68,6 +68,15 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
 }
 
+
+def get_local_lambda_images_location(mapping, runtime):
+    dir_name = os.path.basename(mapping["init_location"])
+    if dir_name.endswith("-lambda-image"):
+        return os.path.join(_lambda_images_templates, runtime, dir_name)
+
+    return os.path.join(_lambda_images_templates, runtime, dir_name + "-lambda-image")
+
+
 RUNTIME_TO_DEPENDENCY_MANAGERS = {
     "python3.8": ["pip"],
     "python3.7": ["pip"],
@@ -118,6 +127,23 @@ INIT_RUNTIMES = [
     "java8",
     # older dotnetcore runtimes
     "dotnetcore2.1",
+]
+
+LAMBDA_IMAGES_RUNTIMES = [
+    "amazon/nodejs12.x-base",
+    "amazon/nodejs10.x-base",
+    "amazon/python3.8-base",
+    "amazon/python3.7-base",
+    "amazon/python3.6-base",
+    "amazon/python2.7-base",
+    "amazon/ruby2.7-base",
+    "amazon/ruby2.5-base",
+    "amazon/go1.x-base",
+    "amazon/java11-base",
+    "amazon/java8.al2-base",
+    "amazon/java8-base",
+    "amazon/dotnetcore3.1-base",
+    "amazon/dotnetcore2.1-base",
 ]
 
 # Schemas Code lang is a MINIMUM supported version - this is why later Lambda runtimes can be mapped to earlier Schemas Code Languages
