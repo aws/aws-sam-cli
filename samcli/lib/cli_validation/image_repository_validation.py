@@ -10,6 +10,16 @@ from samcli.lib.utils.packagetype import IMAGE
 
 
 def image_repository_validation(func):
+    """
+    Wrapper Validation function that will run last after the all cli parmaters have been loaded
+    to check for conditions surrounding `--image-repository` and `--image-repositories`. The
+    reason they are done last instead of in callback functions, is because the options depend
+    on each other, and this breaks cyclic dependencies.
+
+    :param func: Click command function
+    :return: Click command function after validation
+    """
+
     def wrapped(*args, **kwargs):
         ctx = click.get_current_context()
         guided = ctx.params.get("guided", False) or ctx.params.get("g", False)
@@ -18,6 +28,9 @@ def image_repository_validation(func):
         template_file = (
             ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
         )
+
+        # Check if `--image-repository` or `--image-repositories` are required by
+        # looking for resources that have an IMAGE based packagetype.
 
         required = any(
             [
@@ -59,6 +72,7 @@ def image_repository_validation(func):
         ]
         for validator in validators:
             validator.validate()
-        func(*args, **kwargs)
+        # Call Original function after validation.
+        return func(*args, **kwargs)
 
     return wrapped

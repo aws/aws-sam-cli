@@ -375,13 +375,11 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
             )
 
-    @patch("samcli.commands._utils.options.get_template_function_resource_ids")
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
     @patch("samcli.commands.package.command.do_cli")
     def test_package_with_image_repository_and_image_repositories(
-        self, do_cli_mock, get_template_artifacts_format_mock, mock_get_template_function_resource_ids
+        self, do_cli_mock, get_template_artifacts_format_mock
     ):
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
 
         get_template_artifacts_format_mock.return_value = [IMAGE]
         config_values = {
@@ -409,11 +407,9 @@ class TestSamConfigForAllCommands(TestCase):
 
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.commands._utils.options.get_template_function_resource_ids")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands.deploy.command.do_cli")
-    def test_deploy(self, do_cli_mock, get_template_artifacts_format_mock, mock_get_template_function_resource_ids):
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
+    def test_deploy(self, do_cli_mock, get_template_artifacts_format_mock):
 
         get_template_artifacts_format_mock.return_value = [ZIP]
         config_values = {
@@ -518,13 +514,9 @@ class TestSamConfigForAllCommands(TestCase):
             result = runner.invoke(cli, [])
             self.assertIsNotNone(result.exception)
 
-    @patch("samcli.commands._utils.options.get_template_function_resource_ids")
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
     @patch("samcli.commands.deploy.command.do_cli")
-    def test_deploy_different_parameter_override_format(
-        self, do_cli_mock, get_template_artifacts_format_mock, mock_get_template_function_resource_ids
-    ):
-        mock_get_template_function_resource_ids.return_value = ["HelloWorldFunction"]
+    def test_deploy_different_parameter_override_format(self, do_cli_mock, get_template_artifacts_format_mock):
 
         get_template_artifacts_format_mock.return_value = [ZIP]
 

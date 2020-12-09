@@ -9,16 +9,10 @@ from functools import partial
 import click
 from click.types import FuncParamType
 
-from samcli.commands._utils.option_validator import Validator
-from samcli.commands._utils.template import (
-    get_template_data,
-    TemplateNotFoundException,
-    get_template_function_resource_ids,
-)
+from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
 from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.template import get_template_artifacts_format
-from samcli.lib.utils.packagetype import IMAGE
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 DEFAULT_STACK_NAME = "sam-app"

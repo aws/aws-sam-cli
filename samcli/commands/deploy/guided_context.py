@@ -278,7 +278,7 @@ class GuidedContext:
             function_resources = get_template_function_resource_ids(template_file=self.template_file, artifact=IMAGE)
             for resource_id in function_resources:
                 image_repositories[resource_id] = prompt(
-                    f"\t{self.start_bold}Image Repository for {resource_id}:{self.end_bold}",
+                    f"\t{self.start_bold}Image Repository for {resource_id}{self.end_bold}",
                     default=self.image_repositories.get(resource_id, "")
                     if isinstance(self.image_repositories, dict)
                     else "" or self.image_repository,

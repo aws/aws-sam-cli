@@ -175,7 +175,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
             call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
             call(
-                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction:{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction{self.gc.end_bold}",
                 default="image-repo",
             ),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
@@ -256,7 +256,7 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Stack Name{self.gc.end_bold}", default="test", type=click.STRING),
             call(f"\t{self.gc.start_bold}AWS Region{self.gc.end_bold}", default="region", type=click.STRING),
             call(
-                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction:{self.gc.end_bold}",
+                f"\t{self.gc.start_bold}Image Repository for HelloWorldFunction{self.gc.end_bold}",
                 default="image-repo",
             ),
             call(f"\t{self.gc.start_bold}Capabilities{self.gc.end_bold}", default=["CAPABILITY_IAM"], type=ANY),
