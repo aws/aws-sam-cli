@@ -6,6 +6,8 @@ import logging
 
 import sys
 import re
+import threading
+
 import docker
 
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -33,6 +35,9 @@ class ContainerManager:
         self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
         self.docker_client = docker_client or docker.from_env()
+
+        self._lock = threading.Lock()
+        self._lock_per_image = {}
 
     @property
     def is_docker_reachable(self):
@@ -115,25 +120,35 @@ class ContainerManager:
         DockerImagePullFailedException
             If the Docker image was not available in the server
         """
-        stream_writer = stream or StreamWriter(sys.stderr)
+        # use a global lock to get the image lock
+        with self._lock:
+            image_lock = self._lock_per_image.get(image_name)
+            if not image_lock:
+                image_lock = threading.Lock()
+                self._lock_per_image[image_name] = image_lock
 
-        try:
-            result_itr = self.docker_client.api.pull(image_name, stream=True, decode=True)
-        except docker.errors.APIError as ex:
-            LOG.debug("Failed to download image with name %s", image_name)
-            raise DockerImagePullFailedException(str(ex)) from ex
+        # with specific image lock, pull this image only once
+        # since there are different locks for each image, different images can be pulled in parallel
+        with image_lock:
+            stream_writer = stream or StreamWriter(sys.stderr)
 
-        # io streams, especially StringIO, work only with unicode strings
-        stream_writer.write("\nFetching {} Docker container image...".format(image_name))
+            try:
+                result_itr = self.docker_client.api.pull(image_name, stream=True, decode=True)
+            except docker.errors.APIError as ex:
+                LOG.debug("Failed to download image with name %s", image_name)
+                raise DockerImagePullFailedException(str(ex)) from ex
 
-        # Each line contains information on progress of the pull. Each line is a JSON string
-        for _ in result_itr:
-            # For every line, print a dot to show progress
-            stream_writer.write(".")
-            stream_writer.flush()
+            # io streams, especially StringIO, work only with unicode strings
+            stream_writer.write("\nFetching {} Docker container image...".format(image_name))
 
-        # We are done. Go to the next line
-        stream_writer.write("\n")
+            # Each line contains information on progress of the pull. Each line is a JSON string
+            for _ in result_itr:
+                # For every line, print a dot to show progress
+                stream_writer.write(".")
+                stream_writer.flush()
+
+            # We are done. Go to the next line
+            stream_writer.write("\n")
 
     def has_image(self, image_name):
         """
