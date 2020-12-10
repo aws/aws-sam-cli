@@ -5,11 +5,10 @@ Tests container manager
 import io
 import importlib
 from unittest import TestCase
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, ANY, call
 
 import requests
 from docker.errors import APIError, ImageNotFound
-from mock import ANY, call
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
 
 
