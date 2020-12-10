@@ -2,12 +2,16 @@
 Provides methods to generate and send metrics
 """
 from timeit import default_timer
-from functools import wraps
+from functools import wraps, reduce
 
+import uuid
 import platform
 import logging
 import click
 
+from samcli import __version__ as samcli_version
+from samcli.cli.context import Context
+from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
 from samcli.cli.context import Context
 from samcli.commands.exceptions import UserException
@@ -18,12 +22,17 @@ LOG = logging.getLogger(__name__)
 
 WARNING_ANNOUNCEMENT = "WARNING: {}"
 
+_METRICS = dict()
+
 
 def send_installed_metric():
     LOG.debug("Sending Installed Metric")
 
     telemetry = Telemetry()
-    telemetry.emit("installed", {"osPlatform": platform.system(), "telemetryEnabled": _telemetry_enabled()})
+    metric = Metric("installed")
+    metric.add_data("osPlatform", platform.system())
+    metric.add_data("telemetryEnabled", _telemetry_enabled())
+    telemetry.emit(metric)
 
 
 def track_template_warnings(warning_names):
@@ -56,7 +65,13 @@ def track_template_warnings(warning_names):
             for warning_name in warning_names:
                 warning_message = template_warning_checker.check_template_for_warning(warning_name, ctx.template_dict)
                 if _telemetry_enabled():
-                    telemetry.emit("templateWarning", _build_warning_metric(ctx, warning_name, warning_message))
+                    metric = Metric("templateWarning")
+                    metric.add_data("awsProfileProvided", bool(ctx.profile))
+                    metric.add_data("debugFlagProvided", bool(ctx.debug))
+                    metric.add_data("region", ctx.region or "")
+                    metric.add_data("warningName", warning_name)
+                    metric.add_data("warningCount", 1 if warning_message else 0) # 1-True or 0-False
+                    telemetry.emit(metric)
 
                 if warning_message:
                     click.secho(WARNING_ANNOUNCEMENT.format(warning_message), fg="yellow")
@@ -66,16 +81,6 @@ def track_template_warnings(warning_names):
         return wrapped
 
     return decorator
-
-
-def _build_warning_metric(ctx, warning_name, warning_message):
-    return {
-        "awsProfileProvided": bool(ctx.profile),
-        "debugFlagProvided": bool(ctx.debug),
-        "region": ctx.region or "",
-        "warningName": warning_name,  # Full command path. ex: sam local start-api
-        "warningCount": 1 if warning_message else 0,  # 1-True or 0-False
-    }
 
 
 def track_command(func):
@@ -101,6 +106,7 @@ def track_command(func):
             return func(*args, **kwargs)
 
         telemetry = Telemetry()
+        metric = Metric("commandRun")
 
         exception = None
         return_value = None
@@ -130,20 +136,15 @@ def track_command(func):
             exit_reason = type(ex).__name__
 
         ctx = Context.get_current_context()
-        telemetry.emit(
-            "commandRun",
-            {
-                # Metric about command's general environment
-                "awsProfileProvided": bool(ctx.profile),
-                "debugFlagProvided": bool(ctx.debug),
-                "region": ctx.region or "",
-                "commandName": ctx.command_path,  # Full command path. ex: sam local start-api
-                # Metric about command's execution characteristics
-                "duration": duration_fn(),
-                "exitReason": exit_reason,
-                "exitCode": exit_code,
-            },
-        )
+        metric.add_data("awsProfileProvided", bool(ctx.profile))
+        metric.add_data("debugFlagProvided", bool(ctx.debug))
+        metric.add_data("region", ctx.region or "")
+        metric.add_data("commandName", ctx.command_path) # Full command path. ex: sam local start-api
+        # Metric about command's execution characteristics
+        metric.add_data("duration", duration_fn())
+        metric.add_data("exitReason", exit_reason)
+        metric.add_data("exitCode", exit_code)
+        telemetry.emit(metric)
 
         if exception:
             raise exception  # pylint: disable=raising-bad-type
@@ -151,35 +152,6 @@ def track_command(func):
         return return_value
 
     return wrapped
-
-def track_function(telemetry_data_key):
-    def wrap(func):
-        @wraps(func)
-        def wrapped_func(*args, **kwargs):
-            # Do before func
-            return_value = func(args, kwargs)
-            # Do after func
-            return return_value
-
-        return wrapped_func
-
-    return wrap
-
-def store_member(telemetry_data_key, member_name):
-    def wrap(func):
-        @wraps(func)
-        def wrapped_func(*args, **kwargs):
-            # Do before func
-            return_value = func(args, kwargs)
-            # Do after func
-            return return_value
-
-        return wrapped_func
-
-    return wrap
-
-def store_return_value(telemetry_data_key):
-    pass
 
 
 def _timer():
@@ -214,3 +186,133 @@ def _timer():
 def _telemetry_enabled():
     gc = GlobalConfig()
     return bool(gc.telemetry_enabled)
+
+def _parse_attr(obj, name):
+    return reduce(getattr, name.split("."), obj)
+
+def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_identifier = None, as_list = False):
+    def wrap(func):
+        @wraps(func)
+        def wrapped_func(*args, **kwargs):
+            return_value = func(*args, **kwargs)
+            if isinstance(parameter_identifier, int):
+                parameter = args[parameter_identifier]
+            elif isinstance(parameter_identifier, str):
+                parameter = kwargs[parameter_identifier]
+            else:
+                return return_value
+
+            if parameter_nested_identifier:
+                parameter = _parse_attr(parameter, parameter_nested_identifier)
+
+            if as_list:
+                add_metric_list_data(metric_name, key, parameter)
+            else:
+                add_metric_data(metric_name, key, parameter)
+            return return_value
+
+        return wrapped_func
+
+    return wrap
+
+def capture_return_value(metric_name, key, as_list=False):
+    def wrap(func):
+        @wraps(func)
+        def wrapped_func(*args, **kwargs):
+            return_value = func(*args, **kwargs)
+            if as_list:
+                add_metric_list_data(metric_name, key, return_value)
+            else:
+                add_metric_data(metric_name, key, return_value)
+            return return_value
+        return wrapped_func
+    return wrap
+
+def add_metric_data(metric_name, key, value):
+    get_metric(metric_name).add_data(key, value)
+
+def add_metric_list_data(metric_name, key, value):
+    get_metric(metric_name).add_list_data(key, value)
+
+def get_metric(metric_name):
+    if metric_name not in _METRICS:
+        _METRICS[metric_name] = Metric(metric_name)
+    return _METRICS[metric_name]
+
+
+def emit_metric(metric_name):
+    if metric_name not in _METRICS:
+        return
+    telemetry = Telemetry()
+    telemetry.emit(get_metric(metric_name))
+    _METRICS.pop(metric_name)
+
+
+def emit_all_metrics():
+    for key in list(_METRICS):
+        emit_metric(key)
+
+class Metric:
+    def __init__(self, metric_name):
+        self._data = dict()
+        self._metric_name = metric_name
+        self._gc = GlobalConfig()
+        self._session_id = self._default_session_id()
+        if not self._session_id:
+            raise RuntimeError("Unable to retrieve session_id from Click Context")
+        self._add_common_metric_attributes()
+
+    def add_list_data(self, key, value):
+        if key not in self._data:
+            self._data[key] = list()
+
+        if not isinstance(self._data[key], list):
+            #raise MetricDataNotList()
+            return
+
+        self._data[key].append(value)
+
+    def add_data(self, key, value):
+        self._data[key] = value
+
+    def get_data(self):
+        return self._data
+
+    def get_metric_name(self):
+        return self._metric_name
+
+    def _add_common_metric_attributes(self):
+        self._data["requestId"] = str(uuid.uuid4())
+        self._data["installationId"] = self._gc.installation_id
+        self._data["sessionId"] = self._session_id
+        self._data["executionEnvironment"] = self._get_execution_environment()
+        self._data["pyversion"] = platform.python_version()
+        self._data["samcliVersion"] = samcli_version
+
+    def _default_session_id(self):
+        """
+        Get the default SessionId from Click Context.
+        """
+        ctx = Context.get_current_context()
+        if ctx:
+            return ctx.session_id
+
+        return None
+
+    def _get_execution_environment(self):
+        """
+        Returns the environment in which SAM CLI is running. Possible options are:
+
+        CLI (default) - SAM CLI was executed from terminal or a script.
+        IDEToolkit    - SAM CLI was executed by IDE Toolkit
+        CodeBuild     - SAM CLI was executed from within CodeBuild
+
+        Returns
+        -------
+        str
+            Name of the environment where SAM CLI is executed in.
+        """
+        return "CLI"
+
+class MetricDataNotList(Exception):
+    pass

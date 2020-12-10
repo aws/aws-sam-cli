@@ -13,6 +13,8 @@ from contextlib import contextmanager
 from samcli.local.docker.lambda_container import LambdaContainer
 from .zip import unzip
 
+from samcli.lib.telemetry.metrics import capture_parameter
+
 LOG = logging.getLogger(__name__)
 
 
@@ -39,6 +41,7 @@ class LambdaRuntime:
         self._container_manager = container_manager
         self._image_builder = image_builder
 
+    @capture_parameter("runtimeMetric", "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)
     def invoke(self, function_config, event, debug_context=None, stdout=None, stderr=None):
         """
         Invoke the given Lambda function locally.
