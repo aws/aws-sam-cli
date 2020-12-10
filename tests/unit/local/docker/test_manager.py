@@ -241,7 +241,7 @@ class TestContainerManager_pull_image(TestCase):
         self.assertEqual(str(ex), msg)
 
     @patch("samcli.local.docker.manager.threading")
-    def test_must(self, mock_threading):
+    def test_multiple_image_pulls_must_use_locks(self, mock_threading):
         self.mock_docker_client.api.pull.return_value = [1, 2, 3]
 
         # mock general lock
