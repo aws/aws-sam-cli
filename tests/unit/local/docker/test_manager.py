@@ -5,7 +5,7 @@ Tests container manager
 import io
 import importlib
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock, ANY, call
 
 import requests
 from docker.errors import APIError, ImageNotFound
@@ -238,6 +238,31 @@ class TestContainerManager_pull_image(TestCase):
 
         ex = context.exception
         self.assertEqual(str(ex), msg)
+
+    @patch("samcli.local.docker.manager.threading")
+    def test_multiple_image_pulls_must_use_locks(self, mock_threading):
+        self.mock_docker_client.api.pull.return_value = [1, 2, 3]
+
+        # mock general lock
+        mock_lock = MagicMock()
+        self.manager._lock = mock_lock
+
+        # mock locks per image
+        mock_image1_lock = MagicMock()
+        mock_image2_lock = MagicMock()
+        mock_threading.Lock.side_effect = [mock_image1_lock, mock_image2_lock]
+
+        # pull 2 different images for multiple times
+        self.manager.pull_image("image1")
+        self.manager.pull_image("image1")
+        self.manager.pull_image("image2")
+
+        # assert that image1 lock have been used twice and image2 lock only used once
+        mock_image1_lock.assert_has_calls(2 * [call.__enter__(), call.__exit__(ANY, ANY, ANY)], any_order=True)
+        mock_image2_lock.assert_has_calls([call.__enter__(), call.__exit__(ANY, ANY, ANY)])
+
+        # assert that general lock have been used three times for all the image pulls
+        mock_lock.assert_has_calls(3 * [call.__enter__(), call.__exit__(ANY, ANY, ANY)], any_order=True)
 
 
 class TestContainerManager_is_docker_reachable(TestCase):
