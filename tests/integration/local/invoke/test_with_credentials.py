@@ -32,7 +32,6 @@ class TestWithCredentials(InvokeIntegBase):
         # first build application
         build_command_list = self.get_build_command_list(template_path=self.template_path, cached=True)
         stdout, _, returncode = self.run_command(build_command_list)
-        self.assertTrue(b"Build Succeeded" in stdout)
         self.assertEqual(returncode, 0)
 
         # then invoke using temp credentials
