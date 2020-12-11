@@ -9,6 +9,7 @@ from .invoke.cli import cli as invoke_cli
 from .start_api.cli import cli as start_api_cli
 from .generate_event.cli import cli as generate_event_cli
 from .start_lambda.cli import cli as start_lambda_cli
+from .start_graphql_api.cli import cli as start_graphql_api_cli
 
 
 @click.group()
@@ -23,3 +24,4 @@ cli.add_command(invoke_cli)
 cli.add_command(start_api_cli)
 cli.add_command(generate_event_cli)
 cli.add_command(start_lambda_cli)
+cli.add_command(start_graphql_api_cli)

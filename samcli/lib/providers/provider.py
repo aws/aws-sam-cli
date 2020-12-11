@@ -256,6 +256,11 @@ class Api:
     def binary_media_types(self):
         return list(self.binary_media_types_set)
 
+class GraphQLApi:
+    def __init__(self, resolvers=None):
+        if resolvers is None:
+            resolvers = {}
+        self.resolvers = resolvers
 
 _CorsTuple = namedtuple("Cors", ["allow_origin", "allow_methods", "allow_headers", "allow_credentials", "max_age"])
 
