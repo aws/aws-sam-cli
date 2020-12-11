@@ -111,10 +111,11 @@ class TestImageRepositoriesCallBack(TestCase):
 
     def test_image_repositories_callback_None(self):
         mock_params = MagicMock()
-        self.assertIsNone(
+        self.assertEqual(
             image_repositories_callback(
                 ctx=MockContext(info_name="test", parent=None, params=mock_params), param=MagicMock(), provided_value=()
-            )
+            ),
+            {},
         )
 
 
