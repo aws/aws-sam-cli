@@ -1,6 +1,6 @@
 """Test sam package command"""
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock, call, ANY
 import tempfile
 
 
@@ -92,3 +92,21 @@ class TestPackageCommand(TestCase):
                 profile=None,
             )
             package_command_context.run()
+
+    @patch.object(Template, "export", MagicMock(return_value={}))
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    @patch("samcli.commands.package.package_context.get_boto_config_with_user_agent")
+    def test_boto_clients_created_with_config(self, patched_get_config, patched_boto_client, patched_boto_session):
+        with self.assertRaises(PackageFailedError):
+            self.package_command_context.run()
+
+        patched_boto_client.assert_has_calls([call("s3", config=ANY)])
+        patched_boto_client.assert_has_calls([call("ecr", config=ANY)])
+        patched_boto_client.assert_has_calls([call("signer", config=ANY)])
+
+        patched_get_config.assert_has_calls(
+            [call(region_name=ANY, signature_version=ANY), call(region_name=ANY), call(region_name=ANY)]
+        )
+
+        print("hello")
