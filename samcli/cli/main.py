@@ -69,6 +69,7 @@ TELEMETRY_PROMPT = """
 \tLearn More: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-telemetry.html
 """  # noqa
 
+
 @click.command(cls=BaseCommand)
 @common_options
 @click.version_option(version=__version__, prog_name="SAM CLI")

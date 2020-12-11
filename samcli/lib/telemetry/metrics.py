@@ -74,7 +74,7 @@ def track_template_warnings(warning_names):
                     metric.add_data("debugFlagProvided", bool(ctx.debug))
                     metric.add_data("region", ctx.region or "")
                     metric.add_data("warningName", warning_name)
-                    metric.add_data("warningCount", 1 if warning_message else 0) # 1-True or 0-False
+                    metric.add_data("warningCount", 1 if warning_message else 0)  # 1-True or 0-False
                     telemetry.emit(metric)
 
                 if warning_message:
@@ -143,7 +143,7 @@ def track_command(func):
         metric.add_data("awsProfileProvided", bool(ctx.profile))
         metric.add_data("debugFlagProvided", bool(ctx.debug))
         metric.add_data("region", ctx.region or "")
-        metric.add_data("commandName", ctx.command_path) # Full command path. ex: sam local start-api
+        metric.add_data("commandName", ctx.command_path)  # Full command path. ex: sam local start-api
         # Metric about command's execution characteristics
         metric.add_data("duration", duration_fn())
         metric.add_data("exitReason", exit_reason)
@@ -191,10 +191,12 @@ def _telemetry_enabled():
     gc = GlobalConfig()
     return bool(gc.telemetry_enabled)
 
+
 def _parse_attr(obj, name):
     return reduce(getattr, name.split("."), obj)
 
-def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_identifier = None, as_list = False):
+
+def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_identifier=None, as_list=False):
     def wrap(func):
         @wraps(func)
         def wrapped_func(*args, **kwargs):
@@ -219,6 +221,7 @@ def capture_parameter(metric_name, key, parameter_identifier, parameter_nested_i
 
     return wrap
 
+
 def capture_return_value(metric_name, key, as_list=False):
     def wrap(func):
         @wraps(func)
@@ -229,14 +232,19 @@ def capture_return_value(metric_name, key, as_list=False):
             else:
                 add_metric_data(metric_name, key, return_value)
             return return_value
+
         return wrapped_func
+
     return wrap
+
 
 def add_metric_data(metric_name, key, value):
     get_metric(metric_name).add_data(key, value)
 
+
 def add_metric_list_data(metric_name, key, value):
     get_metric(metric_name).add_list_data(key, value)
+
 
 def get_metric(metric_name):
     if metric_name not in _METRICS:
@@ -256,6 +264,7 @@ def emit_all_metrics():
     for key in list(_METRICS):
         emit_metric(key)
 
+
 class Metric:
     def __init__(self, metric_name):
         self._data = dict()
@@ -271,7 +280,7 @@ class Metric:
             self._data[key] = list()
 
         if not isinstance(self._data[key], list):
-            #raise MetricDataNotList()
+            # raise MetricDataNotList()
             return
 
         self._data[key].append(value)
@@ -320,6 +329,7 @@ class Metric:
             Name of the environment where SAM CLI is executed in.
         """
         return "CLI"
+
 
 class MetricDataNotList(Exception):
     pass
