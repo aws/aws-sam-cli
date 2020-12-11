@@ -13,15 +13,19 @@ from samcli import __version__ as samcli_version
 from samcli.cli.context import Context
 from samcli.cli.global_config import GlobalConfig
 from samcli.lib.warnings.sam_cli_warning import TemplateWarningsChecker
-from samcli.cli.context import Context
 from samcli.commands.exceptions import UserException
-from samcli.cli.global_config import GlobalConfig
 from .telemetry import Telemetry
 
 LOG = logging.getLogger(__name__)
 
 WARNING_ANNOUNCEMENT = "WARNING: {}"
 
+"""
+Global variables are evil but this is a justified usage.
+This creates a versitile telemetry tracking no matter where in the code. Something like a Logger.
+No side effect will result in this as it is write-only for code outside of telemetry.
+Decorators should be used to minimize logic involving telemetry.
+"""
 _METRICS = dict()
 
 
@@ -259,7 +263,7 @@ class Metric:
         self._gc = GlobalConfig()
         self._session_id = self._default_session_id()
         if not self._session_id:
-            raise RuntimeError("Unable to retrieve session_id from Click Context")
+            self._session_id = ""
         self._add_common_metric_attributes()
 
     def add_list_data(self, key, value):
@@ -293,11 +297,14 @@ class Metric:
         """
         Get the default SessionId from Click Context.
         """
-        ctx = Context.get_current_context()
-        if ctx:
-            return ctx.session_id
-
-        return None
+        try:
+            ctx = Context.get_current_context()
+            if ctx:
+                return ctx.session_id
+            return None
+        except RuntimeError:
+            LOG.debug("Unable to find Click Context for getting session_id.")
+            return None
 
     def _get_execution_environment(self):
         """
