@@ -3,6 +3,7 @@ from PyInstaller.utils import hooks
 hiddenimports = [
     "cookiecutter.extensions",
     "jinja2_time",
+    "text_unidecode",
     "samtranslator",
     "samcli.commands.init",
     "samcli.commands.validate.validate",
@@ -20,4 +21,5 @@ hiddenimports = [
 datas = (
     hooks.collect_data_files("samcli")
     + hooks.collect_data_files("samtranslator")
+    + hooks.collect_data_files("text_unidecode")
 )
