@@ -16,7 +16,7 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 from tests.testing_utils import CommandResult, run_command, run_command_with_input
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary.
+# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
 SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 CFN_SLEEP = 3
 TIMEOUT = 300
@@ -35,7 +35,9 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
     def tearDown(self):
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "build"), ignore_errors=True)
         for stack_name in self.stack_names:
-            self.cf_client.delete_stack(StackName=stack_name)
+            # because of the termination protection, do not delete aws-sam-cli-managed-default stack
+            if stack_name != SAM_CLI_STACK_NAME:
+                self.cf_client.delete_stack(StackName=stack_name)
         super().tearDown()
 
     @parameterized.expand(["aws-serverless-function.yaml"])
@@ -101,6 +103,33 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
             capabilities="CAPABILITY_IAM",
             s3_prefix="integ_deploy",
             s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process_execute = run_command(deploy_command_list)
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    def test_no_package_and_deploy_with_s3_bucket_all_args_image(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix="integ_deploy",
+            s3_bucket=self.s3_bucket.name,
+            image_repository=self.ecr_repo_name,
             force_upload=True,
             notification_arns=self.sns_arn,
             parameter_overrides="Parameter=Clarity",
@@ -447,7 +476,7 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
-    def test_deploy_guided(self, template_file):
+    def test_deploy_guided_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -458,6 +487,26 @@ class TestDeploy(PackageIntegBase, DeployIntegBase):
 
         deploy_process_execute = run_command_with_input(
             deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode()
+        )
+
+        # Deploy should succeed with a managed stack
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.stack_names.append(SAM_CLI_STACK_NAME)
+        # Remove samconfig.toml
+        os.remove(self.test_data_path.joinpath(DEFAULT_CONFIG_FILE_NAME))
+
+    @parameterized.expand(["aws-serverless-function-image.yaml"])
+    def test_deploy_guided_image(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stack_names.append(stack_name)
+
+        # Package and Deploy in one go without confirming change set.
+        deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
+
+        deploy_process_execute = run_command_with_input(
+            deploy_command_list, f"{stack_name}\n\n{self.ecr_repo_name}\n\n\ny\n\n\n\n\n\n".encode()
         )
 
         # Deploy should succeed with a managed stack

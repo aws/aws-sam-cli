@@ -50,7 +50,7 @@ setup(
     extras_require={"dev": read_requirements("dev.txt")},
     include_package_data=True,
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Environment :: Other Environment",
         "Intended Audience :: Developers",

@@ -8,11 +8,12 @@ from json import JSONDecodeError
 
 import click
 
+from samcli.lib.package.ecr_utils import is_ecr_url
+
 PARAM_AND_METADATA_KEY_REGEX = """([A-Za-z0-9\\"\']+)"""
 
 
 def _generate_match_regex(match_pattern, delim):
-
     """
     Creates a regex string based on a match pattern (also a regex) that is to be
     run on a string (which may contain escaped quotes) that is separated by delimiters.
@@ -272,3 +273,120 @@ class CfnTags(click.ParamType):
                 return False, None
             tags_dict = {**tags_dict, **parsed_tag}
         return True, tags_dict
+
+
+class SigningProfilesOptionType(click.ParamType):
+    """
+    Custom parameter type to parse Signing Profile options
+    Example options could be;
+    - MyFunctionOrLayerToBeSigned=MySigningProfile
+    - MyFunctionOrLayerToBeSigned=MySigningProfile:MyProfileOwner
+
+    See convert function docs for details
+    """
+
+    pattern = r"(?:(?: )([A-Za-z0-9\"]+)=(\"(?:\\.|[^\"\\]+)*\"|(?:\\.|[^ \"\\]+)+))"
+
+    # Note: this is required, otherwise it is failing when running help
+    name = ""
+
+    def convert(self, value, param, ctx):
+        """
+        Converts given Signing Profile options to a dictionary where Function or Layer name would be key,
+        and signing profile details would be the value.
+
+        Since this method is also been used when we are reading the config details from samconfig.toml,
+        If value is already a dictionary, don't need to do anything, just return it.
+        If value is an array, then each value will correspond to a function or layer config, and here it is parsed
+        and converted into a dictionary
+        """
+        result = {}
+
+        # Empty tuple
+        if value == ("",):
+            return result
+
+        value = (value,) if isinstance(value, str) else value
+        for val in value:
+            val.strip()
+            # Add empty string to start of the string to help match `_pattern2`
+            val = " " + val
+
+            signing_profiles = re.findall(self.pattern, val)
+
+            # if no signing profiles found by regex, then fail
+            if not signing_profiles:
+                return self.fail(
+                    f"{value} is not a valid code sign config, it should look like this 'MyFunction=SigningProfile'",
+                    param,
+                    ctx,
+                )
+
+            for function_name, param_value in signing_profiles:
+                (signer_profile_name, signer_profile_owner) = self._split_signer_profile_name_owner(
+                    _unquote_wrapped_quotes(param_value)
+                )
+
+                # code signing requires profile name, if it is not present then fail
+                if not signer_profile_name:
+                    return self.fail(
+                        "Signer profile option has invalid format, it should look like this "
+                        "MyFunction=MySigningProfile or MyFunction=MySigningProfile:MySigningProfileOwner",
+                        param,
+                        ctx,
+                    )
+
+                result[_unquote_wrapped_quotes(function_name)] = {
+                    "profile_name": signer_profile_name,
+                    "profile_owner": signer_profile_owner,
+                }
+
+        return result
+
+    @staticmethod
+    def _split_signer_profile_name_owner(signing_profile):
+        equals_count = signing_profile.count(":")
+
+        if equals_count > 1:
+            return None, None
+        if equals_count == 1:
+            return signing_profile.split(":")
+        return signing_profile, ""
+
+
+class ImageRepositoryType(click.ParamType):
+    """
+    Custom Parameter Type for Image Repository option.
+    """
+
+    class Transformer:
+        """
+        Class takes in a converter (native click type) and a transformer.
+        transformer is a function callback where additional transformation happens before
+        conversion to a native click type.
+        """
+
+        def __init__(self, converter, transformation):
+            """
+
+            :param converter: native click Type
+            :param transformation: callback function for transformation prior to conversion.
+            """
+            self.converter = converter
+            self.transformer = transformation
+
+        def transform(self, *args, **kwargs):
+            return self.transformer(self.converter.convert(*args, **kwargs))
+
+    # Transformation callback function checks if the received option value is a valid ECR url.
+    transformer = Transformer(converter=click.STRING, transformation=is_ecr_url)
+    name = ""
+
+    def convert(self, value, param, ctx):
+        """
+        Attempt a conversion given the stipulations of allowed transformations.
+        """
+        result = self.transformer.transform(value, param, ctx)
+        if not result:
+            raise click.BadParameter(f"{param.opts[0]} needs to be a valid ECR URI")
+        return value

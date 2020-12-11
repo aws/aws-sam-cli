@@ -10,8 +10,9 @@ import click
 from click.types import FuncParamType
 
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException
-from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags
+from samcli.cli.types import CfnParameterOverridesType, CfnMetadataType, CfnTags, SigningProfilesOptionType
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
+from samcli.commands._utils.template import get_template_artifacts_format
 
 _TEMPLATE_OPTION_DEFAULT_VALUE = "template.[yaml|yml]"
 DEFAULT_STACK_NAME = "sam-app"
@@ -91,6 +92,76 @@ def guided_deploy_stack_name(ctx, param, provided_value):
         )
 
     return provided_value if provided_value else DEFAULT_STACK_NAME
+
+
+def artifact_callback(ctx, param, provided_value, artifact):
+    """
+    Provide an error if there are zip/image artifact based resources, and an destination export destination is not specified.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, it would be the value provided by the user.
+    :param artifact: artifact format that is to be compared against, eg: zip, image.
+    :return: Actual value to be used in the CLI
+    """
+
+    template_file = (
+        ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
+    )
+
+    required = any(
+        [
+            _template_artifact == artifact
+            for _template_artifact in get_template_artifacts_format(template_file=template_file)
+        ]
+    )
+    # NOTE(sriram-mv): Explicit check for param name being s3_bucket
+    # If that is the case, check for another option called resolve_s3 to be defined.
+    # resolve_s3 option resolves for the s3 bucket automatically.
+    # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
+    # passed in directly or through configuration file.
+    # If passed in through configuration file, default_map is loaded with those values.
+    if param.name == "s3_bucket" and (ctx.params.get("resolve_s3", False) or ctx.default_map.get("resolve_s3", False)):
+        pass
+    elif required and not provided_value:
+        raise click.BadOptionUsage(option_name=param.name, ctx=ctx, message=f"Missing option '{param.opts[0]}'")
+
+    return provided_value
+
+
+def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_set):
+    """
+    S3 Bucket is only required if there are artifacts that are all zip based.
+    :param ctx: Click Context
+    :param param: Param name
+    :param provided_value: Value provided by Click, it would be the value provided by the user.
+    :param artifact: artifact format that is to be compared against, eg: zip, image.
+    :param exc_set: Exception to be thrown if both `--resolve-s3` and `--s3-bucket` are set.
+    :param exc_not_set: Exception to be thrown if either `--resolve-s3` and `--s3-bucket` are not set
+    and are required because the template contains zip based artifacts.
+    :return: Actual value to be used in the CLI
+    """
+
+    template_file = (
+        ctx.params.get("t", False) or ctx.params.get("template_file", False) or ctx.params.get("template", False)
+    )
+
+    required = any(
+        [
+            _template_artifact == artifact
+            for _template_artifact in get_template_artifacts_format(template_file=template_file)
+        ]
+    )
+    # NOTE(sriram-mv): Explicit check for s3_bucket being explicitly passed in along with `--resolve-s3`.
+    # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
+    # passed in directly or through configuration file.
+    # If passed in through configuration file, default_map is loaded with those values.
+    s3_bucket_provided = ctx.params.get("s3_bucket", False) or ctx.default_map.get("s3_bucket", False)
+    if provided_value and s3_bucket_provided:
+        raise exc_set()
+    if required and not provided_value and not s3_bucket_provided:
+        raise exc_not_set()
+
+    return provided_value
 
 
 def template_common_option(f):
@@ -187,6 +258,23 @@ def no_progressbar_click_option():
 
 def no_progressbar_option(f):
     return no_progressbar_click_option()(f)
+
+
+def signing_profiles_click_option():
+    return click.option(
+        "--signing-profiles",
+        cls=OptionNargs,
+        type=SigningProfilesOptionType(),
+        default={},
+        help="Optional. A string that contains Code Sign configuration parameters as "
+        "FunctionOrLayerNameToSign=SigningProfileName:SigningProfileOwner "
+        "Since signing profile owner is optional, it could also be written as "
+        "FunctionOrLayerNameToSign=SigningProfileName",
+    )
+
+
+def signing_profiles_option(f):
+    return signing_profiles_click_option()(f)
 
 
 def metadata_click_option():
