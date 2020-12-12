@@ -11,7 +11,11 @@ from samcli.lib.providers.provider import Function
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.local.docker.container import ContainerResponseException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, InvalidIntermediateImageError
+from samcli.commands.local.lib.exceptions import (
+    OverridesNotWellDefinedError,
+    NoPrivilegeException,
+    InvalidIntermediateImageError,
+)
 
 
 class TestLocalLambda_get_aws_creds(TestCase):
@@ -58,6 +62,11 @@ class TestLocalLambda_get_aws_creds(TestCase):
         self.assertEqual(expected, actual)
 
         boto3_mock.session.Session.assert_called_with(profile_name=self.aws_profile, region_name=self.aws_region)
+
+        actual = self.local_lambda.get_aws_creds()
+        self.assertEqual(expected, actual)
+        # assert no more calls to Session, and use the cached one
+        self.assertEqual(boto3_mock.session.Session.call_count, 1)
 
     @patch("samcli.commands.local.lib.local_lambda.boto3")
     def test_must_work_with_no_region_name(self, boto3_mock):
@@ -380,7 +389,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         config = "someconfig"
         FunctionConfigMock.return_value = config
-        actual = self.local_lambda._get_invoke_config(function)
+        actual = self.local_lambda.get_invoke_config(function)
         self.assertEqual(actual, config)
 
         FunctionConfigMock.assert_called_with(
@@ -434,7 +443,7 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         config = "someconfig"
         FunctionConfigMock.return_value = config
-        actual = self.local_lambda._get_invoke_config(function)
+        actual = self.local_lambda.get_invoke_config(function)
         self.assertEqual(actual, config)
 
         FunctionConfigMock.assert_called_with(
@@ -482,8 +491,8 @@ class TestLocalLambda_invoke(TestCase):
         invoke_config = "config"
 
         self.function_provider_mock.get_all.return_value = [function]
-        self.local_lambda._get_invoke_config = Mock()
-        self.local_lambda._get_invoke_config.return_value = invoke_config
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)
 
@@ -500,14 +509,48 @@ class TestLocalLambda_invoke(TestCase):
         invoke_config = "config"
 
         self.function_provider_mock.get.return_value = function
-        self.local_lambda._get_invoke_config = Mock()
-        self.local_lambda._get_invoke_config.return_value = invoke_config
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
 
         self.local_lambda.invoke(name, event, stdout, stderr)
 
         self.runtime_mock.invoke.assert_called_with(
             invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr
         )
+
+    def test_must_raise_if_no_privilege(self):
+        function = Mock()
+        function.name = "name"
+        function.functionname = "FunctionLogicalId"
+        invoke_config = "config"
+
+        self.function_provider_mock.get_all.return_value = [function]
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
+
+        os_error = OSError()
+        os_error.winerror = 1314
+        self.runtime_mock.invoke.side_effect = os_error
+
+        with self.assertRaises(NoPrivilegeException):
+            self.local_lambda.invoke("name", "event")
+
+    def test_must_raise_os_error(self):
+        function = Mock()
+        function.name = "name"
+        function.functionname = "FunctionLogicalId"
+        invoke_config = "config"
+
+        self.function_provider_mock.get_all.return_value = [function]
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
+
+        os_error = OSError()
+        os_error.winerror = 1315
+        self.runtime_mock.invoke.side_effect = os_error
+
+        with self.assertRaises(OSError):
+            self.local_lambda.invoke("name", "event")
 
     def test_must_raise_if_function_not_found(self):
         function = Mock()
@@ -526,8 +569,8 @@ class TestLocalLambda_invoke(TestCase):
         invoke_config = "invoke_config"
 
         self.function_provider_mock.get.return_value = function
-        self.local_lambda._get_invoke_config = Mock()
-        self.local_lambda._get_invoke_config.return_value = invoke_config
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
         self.runtime_mock.invoke = Mock(side_effect=ContainerResponseException)
         # No exception raised back
         self.local_lambda.invoke("name", "event")
@@ -541,8 +584,8 @@ class TestLocalLambda_invoke(TestCase):
         invoke_config = "config"
 
         self.function_provider_mock.get.return_value = function
-        self.local_lambda._get_invoke_config = Mock()
-        self.local_lambda._get_invoke_config.return_value = invoke_config
+        self.local_lambda.get_invoke_config = Mock()
+        self.local_lambda.get_invoke_config.return_value = invoke_config
         self.local_lambda.invoke(name, event, stdout, stderr)
         self.runtime_mock.invoke.assert_called_with(
             invoke_config, event, debug_context=None, stdout=stdout, stderr=stderr

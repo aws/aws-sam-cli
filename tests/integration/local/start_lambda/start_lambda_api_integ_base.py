@@ -1,3 +1,4 @@
+import signal
 from unittest import TestCase, skipIf
 import threading
 from subprocess import Popen
@@ -13,6 +14,8 @@ from tests.testing_utils import SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
 class StartLambdaIntegBaseClass(TestCase):
     template = None
+    container_mode = None
+    parameter_overrides = None
     binary_data_file = None
     integration_dir = str(Path(__file__).resolve().parents[2])
 
@@ -29,22 +32,43 @@ class StartLambdaIntegBaseClass(TestCase):
         cls.thread.start()
 
     @classmethod
-    def start_lambda(cls):
+    def start_lambda(cls, wait_time=5):
         command = "sam"
         if os.getenv("SAM_CLI_DEV"):
             command = "samdev"
 
-        cls.start_lambda_process = Popen(
-            [command, "local", "start-lambda", "-t", cls.template, "-p", cls.port, "--env-vars", cls.env_var_path]
-        )
+        command_list = [
+            command,
+            "local",
+            "start-lambda",
+            "-t",
+            cls.template,
+            "-p",
+            cls.port,
+            "--env-vars",
+            cls.env_var_path,
+        ]
+        if cls.container_mode:
+            command_list += ["--warm-containers", cls.container_mode]
 
+        if cls.parameter_overrides:
+            command_list += ["--parameter-overrides", cls._make_parameter_override_arg(cls.parameter_overrides)]
+
+        cls.start_lambda_process = Popen(command_list)
         # we need to wait some time for start-lambda to start, hence the sleep
-        time.sleep(5)
+        time.sleep(wait_time)
+
+    @classmethod
+    def _make_parameter_override_arg(self, overrides):
+        return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
 
     @classmethod
     def tearDownClass(cls):
-        # After all the tests run, we need to kill the start-lambda process.
-        cls.start_lambda_process.kill()
+        # After all the tests run, we need to kill the start_lambda process.
+        if hasattr(signal, "CTRL_C_EVENT"):
+            cls.start_lambda_process.send_signal(signal.CTRL_C_EVENT)
+        else:
+            cls.start_lambda_process.send_signal(signal.SIGINT)
 
     @staticmethod
     def random_port():

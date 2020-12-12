@@ -104,7 +104,7 @@ class LocalLambdaRunner:
                     f"ImageUri not provided for Function: {function_name} of PackageType: {function.packagetype}"
                 )
             LOG.info("Invoking Container created from %s", function.imageuri)
-        config = self._get_invoke_config(function)
+        config = self.get_invoke_config(function)
 
         # Invoke the function
         try:
@@ -135,7 +135,7 @@ class LocalLambdaRunner:
         """
         return bool(self.debug_context)
 
-    def _get_invoke_config(self, function):
+    def get_invoke_config(self, function):
         """
         Returns invoke configuration to pass to Lambda Runtime to invoke the given function
 

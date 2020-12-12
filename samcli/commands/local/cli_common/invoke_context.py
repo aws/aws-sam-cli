@@ -1,23 +1,38 @@
 """
 Reads CLI arguments and performs necessary preparation to be able to run the function
 """
-
 import errno
 import json
+import logging
 import os
+from enum import Enum
 from pathlib import Path
 
 import samcli.lib.utils.osutils as osutils
+from samcli.lib.utils.async_utils import AsyncContext
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
 from samcli.commands.local.lib.debug_context import DebugContext
-from samcli.local.lambdafn.runtime import LambdaRuntime
+from samcli.local.lambdafn.runtime import LambdaRuntime, WarmLambdaRuntime
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.commands._utils.template import get_template_data, TemplateNotFoundException, TemplateFailedParsingException
 from samcli.local.layers.layer_downloader import LayerDownloader
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from .user_exceptions import InvokeContextException, DebugContextException
+from ...exceptions import ContainersInitializationException
+
+LOG = logging.getLogger(__name__)
+
+
+class ContainersInitializationMode(Enum):
+    EAGER = "EAGER"
+    LAZY = "LAZY"
+
+
+class ContainersMode(Enum):
+    WARM = "WARM"
+    COLD = "COLD"
 
 
 class InvokeContext:
@@ -54,6 +69,8 @@ class InvokeContext:
         force_image_build=None,
         aws_region=None,
         aws_profile=None,
+        warm_container_initialization_mode=None,
+        debug_function=None,
     ):
         """
         Initialize the context
@@ -91,6 +108,14 @@ class InvokeContext:
             Whether or not to force build the image
         aws_region str
             AWS region to use
+        warm_container_initialization_mode str
+            Specifies how SAM cli manages the containers when using start-api or start_lambda.
+            Two modes are available:
+            "EAGER": Containers for every function are loaded at startup and persist between invocations.
+            "LAZY": Containers are only loaded when the function is first invoked and persist for additional invocations
+        debug_function str
+            The Lambda function logicalId that will have the debugging options enabled in case of warm containers
+            option is enabled
         """
         self._template_file = template_file
         self._function_identifier = function_identifier
@@ -109,6 +134,15 @@ class InvokeContext:
         self._aws_region = aws_region
         self._aws_profile = aws_profile
 
+        self._containers_mode = ContainersMode.COLD
+        self._containers_initializing_mode = ContainersInitializationMode.LAZY
+
+        if warm_container_initialization_mode:
+            self._containers_mode = ContainersMode.WARM
+            self._containers_initializing_mode = ContainersInitializationMode(warm_container_initialization_mode)
+
+        self._debug_function = debug_function
+
         self._template_dict = None
         self._function_provider = None
         self._env_vars_value = None
@@ -117,6 +151,9 @@ class InvokeContext:
         self._debug_context = None
         self._layers_downloader = None
         self._container_manager = None
+        self._lambda_runtimes = None
+
+        self._local_lambda_runner = None
 
     def __enter__(self):
         """
@@ -133,8 +170,27 @@ class InvokeContext:
         self._container_env_vars_value = self._get_env_vars_value(self._container_env_vars_file)
         self._log_file_handle = self._setup_log_file(self._log_file)
 
+        # in case of warm containers && debugging is enabled && if debug-function property is not provided, so
+        # if the provided template only contains one lambda function, so debug-function will be set to this function
+        # if the template contains multiple functions, a warning message "that the debugging option will be ignored"
+        # will be printed
+        if self._containers_mode == ContainersMode.WARM and self._debug_ports and not self._debug_function:
+            if len(self._function_provider.functions) == 1:
+                self._debug_function = list(self._function_provider.functions.keys())[0]
+            else:
+                LOG.info(
+                    "Warning: you supplied debugging options but you did not specify the --debug-function option."
+                    " To specify which function you want to debug, please use the --debug-function <function-name>"
+                )
+                # skipp the debugging
+                self._debug_ports = None
+
         self._debug_context = self._get_debug_context(
-            self._debug_ports, self._debug_args, self._debugger_path, self._container_env_vars_value
+            self._debug_ports,
+            self._debug_args,
+            self._debugger_path,
+            self._container_env_vars_value,
+            self._debug_function,
         )
 
         self._container_manager = self._get_container_manager(self._docker_network, self._skip_pull_image)
@@ -144,16 +200,55 @@ class InvokeContext:
                 "Running AWS SAM projects locally requires Docker. Have you got it installed and running?"
             )
 
+        # initialize all lambda function containers upfront
+        if self._containers_initializing_mode == ContainersInitializationMode.EAGER:
+            self._initialize_all_functions_containers()
+
         return self
 
     def __exit__(self, *args):
         """
-        Cleanup any necessary opened files
+        Cleanup any necessary opened resources
         """
 
         if self._log_file_handle:
             self._log_file_handle.close()
             self._log_file_handle = None
+
+        if self._containers_mode == ContainersMode.WARM:
+            self._clean_running_containers_and_related_resources()
+
+    def _initialize_all_functions_containers(self):
+        """
+        Create and run a container for each available lambda function
+        """
+        LOG.info("Initializing the lambda functions containers.")
+
+        def initialize_function_container(function):
+            function_config = self.local_lambda_runner.get_invoke_config(function)
+            self.lambda_runtime.run(None, function_config, self._debug_context, None)
+
+        try:
+            async_context = AsyncContext()
+            for function in self._function_provider.get_all():
+                async_context.add_async_task(initialize_function_container, function)
+
+            async_context.run_async(default_executor=False)
+            LOG.info("Containers Initialization is done.")
+        except KeyboardInterrupt:
+            LOG.debug("Ctrl+C was pressed. Aborting containers initialization")
+            self._clean_running_containers_and_related_resources()
+            raise
+        except Exception as ex:
+            LOG.error("Lambda functions containers initialization failed because of %s", ex)
+            self._clean_running_containers_and_related_resources()
+            raise ContainersInitializationException("Lambda functions containers initialization failed") from ex
+
+    def _clean_running_containers_and_related_resources(self):
+        """
+        Clean the running containers and any other related open resources
+        """
+        self.lambda_runtime.clean_running_containers_and_related_resources()
 
     @property
     def function_name(self):
@@ -184,6 +279,18 @@ class InvokeContext:
         )
 
     @property
+    def lambda_runtime(self):
+        if not self._lambda_runtimes:
+            layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
+            image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
+            self._lambda_runtimes = {
+                ContainersMode.WARM: WarmLambdaRuntime(self._container_manager, image_builder),
+                ContainersMode.COLD: LambdaRuntime(self._container_manager, image_builder),
+            }
+
+        return self._lambda_runtimes[self._containers_mode]
+
+    @property
     def local_lambda_runner(self):
         """
         Returns an instance of the runner capable of running Lambda functions locally
@@ -191,13 +298,11 @@ class InvokeContext:
         :return samcli.commands.local.lib.local_lambda.LocalLambdaRunner: Runner configured to run Lambda functions
             locally
         """
+        if self._local_lambda_runner:
+            return self._local_lambda_runner
 
-        layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd())
-        image_builder = LambdaImage(layer_downloader, self._skip_pull_image, self._force_image_build)
-
-        lambda_runtime = LambdaRuntime(self._container_manager, image_builder)
-        return LocalLambdaRunner(
-            local_runtime=lambda_runtime,
+        self._local_lambda_runner = LocalLambdaRunner(
+            local_runtime=self.lambda_runtime,
             function_provider=self._function_provider,
             cwd=self.get_cwd(),
             aws_profile=self._aws_profile,
@@ -205,6 +310,7 @@ class InvokeContext:
             env_vars_values=self._env_vars_value,
             debug_context=self._debug_context,
         )
+        return self._local_lambda_runner
 
     @property
     def stdout(self):
@@ -322,7 +428,7 @@ class InvokeContext:
         return open(log_file, "wb")
 
     @staticmethod
-    def _get_debug_context(debug_ports, debug_args, debugger_path, container_env_vars):
+    def _get_debug_context(debug_ports, debug_args, debugger_path, container_env_vars, debug_function=None):
         """
         Creates a DebugContext if the InvokeContext is in a debugging mode
 
@@ -336,6 +442,9 @@ class InvokeContext:
             Path to the directory of the debugger to mount on Docker
         container_env_vars dict
             Dictionary containing debugging based environmental variables.
+        debug_function str
+            The Lambda function logicalId that will have the debugging options enabled in case of warm containers
+            option is enabled
 
         Returns
         -------
@@ -364,6 +473,7 @@ class InvokeContext:
             debug_ports=debug_ports,
             debug_args=debug_args,
             debugger_path=debugger_path,
+            debug_function=debug_function,
             container_env_vars=container_env_vars,
         )
 

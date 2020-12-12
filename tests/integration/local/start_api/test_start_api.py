@@ -1,9 +1,15 @@
+import os
+import threading
+import uuid
+
+import docker
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 
 import pytest
 
+from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from samcli.local.apigw.local_apigw_service import Route
 from .start_api_integ_base import StartApiIntegBaseClass
 
@@ -1092,7 +1098,6 @@ class TestStartApiWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
 
 
 class TestPayloadVersionWithStageAndSwaggerWithHttpApi(StartApiIntegBaseClass):
-
     template_path = "/testdata/start_api/swagger-template-http-api.yaml"
 
     def setUp(self):
@@ -1629,3 +1634,99 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
         self.assertEqual(response_data.get("version", {}), "2.0")
         self.assertIsNone(response_data.get("multiValueHeaders"))
         self.assertIsNotNone(response_data.get("cookies"))
+
+
+class TestWarmContainersBaseClass(StartApiIntegBaseClass):
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.docker_client = docker.from_env()
+
+    def count_running_containers(self):
+        running_containers = 0
+        for container in self.docker_client.containers.list():
+            _, output = container.exec_run(["bash", "-c", "'printenv'"])
+            if f"MODE={self.mode_env_variable}" in str(output):
+                running_containers += 1
+        return running_containers
+
+
+class TestWarmContainers(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        response = requests.post(self.url + "/id", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestWarmContainersInitialization(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_all_containers_are_initialized_before_any_invoke(self):
+        initiated_containers = self.count_running_containers()
+        # validate that there a container initialized for each lambda function
+        self.assertEqual(initiated_containers, 2)
+
+
+class TestWarmContainersMultipleInvoke(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_no_new_created_containers_after_lambda_function_invoke(self):
+        initiated_containers_before_invoking_any_function = self.count_running_containers()
+        requests.post(self.url + "/id", timeout=300)
+        initiated_containers = self.count_running_containers()
+
+        # validate that no new containers got created
+        self.assertEqual(initiated_containers, initiated_containers_before_invoking_any_function)
+
+
+class TestLazyContainers(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_can_invoke_lambda_function_successfully(self):
+        response = requests.post(self.url + "/id", timeout=300)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"hello": "world"})
+
+
+class TestLazyContainersInitialization(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_no_container_is_initialized_before_any_invoke(self):
+        initiated_containers = self.count_running_containers()
+
+        # no container is initialized
+        self.assertEqual(initiated_containers, 0)
+
+
+class TestLazyContainersMultipleInvoke(TestWarmContainersBaseClass):
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_only_one_new_created_containers_after_lambda_function_invoke(self):
+        initiated_containers_before_any_invoke = self.count_running_containers()
+        requests.post(self.url + "/id", timeout=300)
+        initiated_containers = self.count_running_containers()
+
+        # only one container is initialized
+        self.assertEqual(initiated_containers, initiated_containers_before_any_invoke + 1)
