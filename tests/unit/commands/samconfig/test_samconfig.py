@@ -258,6 +258,8 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value", "Key2": "Value2"},
+                None,
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -313,6 +315,8 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 True,
                 {"Key": "Value"},
+                None,
+                None,
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation.get_template_function_resource_ids")
@@ -754,6 +758,8 @@ class TestSamConfigWithOverrides(TestCase):
                 True,
                 True,
                 {"A": "123", "C": "D", "E": "F12!", "G": "H"},
+                None,
+                None,
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -841,6 +847,8 @@ class TestSamConfigWithOverrides(TestCase):
                 False,
                 True,
                 {"A": "123", "C": "D", "E": "F12!", "G": "H"},
+                None,
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

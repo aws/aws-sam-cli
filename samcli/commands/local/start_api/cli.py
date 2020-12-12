@@ -6,7 +6,11 @@ import logging
 import click
 
 from samcli.cli.main import pass_context, common_options as cli_framework_options, aws_creds_options
-from samcli.commands.local.cli_common.options import invoke_common_options, service_common_options
+from samcli.commands.local.cli_common.options import (
+    invoke_common_options,
+    service_common_options,
+    warm_containers_common_options,
+)
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.telemetry.metrics import track_command
 from samcli.cli.cli_config_file import configuration_option, TomlProvider
@@ -42,6 +46,7 @@ and point SAM to the directory or file containing build artifacts.
     help="Any static assets (e.g. CSS/Javascript/HTML) files located in this directory " "will be presented at /",
 )
 @invoke_common_options
+@warm_containers_common_options
 @cli_framework_options
 @aws_creds_options  # pylint: disable=R0914
 @pass_context
@@ -68,6 +73,8 @@ def cli(
     parameter_overrides,
     config_file,
     config_env,
+    warm_containers,
+    debug_function,
 ):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
@@ -89,6 +96,8 @@ def cli(
         skip_pull_image,
         force_image_build,
         parameter_overrides,
+        warm_containers,
+        debug_function,
     )  # pragma: no cover
 
 
@@ -110,6 +119,8 @@ def do_cli(  # pylint: disable=R0914
     skip_pull_image,
     force_image_build,
     parameter_overrides,
+    warm_containers,
+    debug_function,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -147,6 +158,8 @@ def do_cli(  # pylint: disable=R0914
             force_image_build=force_image_build,
             aws_region=ctx.region,
             aws_profile=ctx.profile,
+            warm_container_initialization_mode=warm_containers,
+            debug_function=debug_function,
         ) as invoke_context:
 
             service = LocalApiService(lambda_invoke_context=invoke_context, port=port, host=host, static_dir=static_dir)

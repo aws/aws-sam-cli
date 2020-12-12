@@ -9,6 +9,7 @@ import threading
 import docker
 import requests
 
+from docker.errors import NotFound as DockerNetworkNotFound
 from samcli.lib.utils.retry import retry
 from .exceptions import ContainerNotStartableException
 
@@ -80,6 +81,7 @@ class Container:
         self._network_id = None
         self._container_opts = container_opts
         self._additional_volumes = additional_volumes
+        self._logs_thread = None
 
         # Use the given Docker client or create new one
         self.docker_client = docker_client or docker.from_env()
@@ -165,9 +167,16 @@ class Container:
         real_container = self.docker_client.containers.create(self._image, **kwargs)
         self.id = real_container.id
 
+        self._logs_thread = None
+
         if self.network_id and self.network_id != "host":
-            network = self.docker_client.networks.get(self.network_id)
-            network.connect(self.id)
+            try:
+                network = self.docker_client.networks.get(self.network_id)
+                network.connect(self.id)
+            except DockerNetworkNotFound:
+                # stop and delete the created container before raising the exception
+                real_container.remove(force=True)
+                raise
 
         return self.id
 
@@ -235,8 +244,12 @@ class Container:
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
         # will be written to stdout.
-        logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
-        logs_thread.start()
+
+        # the log thread will not be closed until the container itself got deleted,
+        # so as long as the container is still there, no need to start a new log thread
+        if not self._logs_thread or not self._logs_thread.is_alive():
+            self._logs_thread = threading.Thread(target=self.wait_for_logs, args=(stderr, stderr), daemon=True)
+            self._logs_thread.start()
 
         self.wait_for_http_response(name, event, stdout)
 
@@ -326,8 +339,32 @@ class Container:
 
     def is_created(self):
         """
-        Checks if a container exists?
+        Checks if the real container exists?
 
-        :return bool: True if the container was created
+        Returns
+        -------
+        bool
+            True if the container is created
         """
-        return self.id is not None
+        if self.id:
+            try:
+                self.docker_client.containers.get(self.id)
+                return True
+            except docker.errors.NotFound:
+                return False
+        return False
+
+    def is_running(self):
+        """
+        Checks if the real container status is running
+
+        Returns
+        -------
+        bool
+            True if the container is running
+        """
+        try:
+            real_container = self.docker_client.containers.get(self.id)
+            return real_container.status == "running"
+        except docker.errors.NotFound:
+            return False
