@@ -33,12 +33,12 @@ class LocalAppsyncService(BaseLocalService):
 
     def __init__(self, api, lambda_runner, static_dir=None, port=None, host=None, stderr=None):
         """
-        Creates an ApiGatewayService
+        Creates an AppSyncService
 
         Parameters
         ----------
         api: GraphQLApi
-           an Api object that contains the list of resolvers and schema
+           an Api object that contains the list of resolvers and schema path
         lambda_runner samcli.commands.local.lib.local_lambda.LocalLambdaRunner
             The Lambda runner class capable of invoking the function
         static_dir str
@@ -82,7 +82,13 @@ class LocalAppsyncService(BaseLocalService):
         query = ObjectType("Query")
         mutation = ObjectType("Mutation")
 
+        LOG.info("Resolvers %s", self.api.resolvers)
 
+        for field_name, _ in self.api.resolvers["Query"].items():
+            query.set_field(field_name, self._resolve)
+        
+        for field_name, _ in self.api.resolvers["Mutation"].items():
+            mutation.set_field(field_name, self._resolve)
 
         self.executable_schema = make_executable_schema(type_defs, query)
 
@@ -93,6 +99,35 @@ class LocalAppsyncService(BaseLocalService):
             methods=["GET", "POST"],
             provide_automatic_options=False,
         )
+
+    def _resolve(self, _, info, **arguments):
+        LOG.info("Resolving field name %s, field nodes %s", info.field_name, info.field_nodes[0])
+
+        LOG.info("Parent type is %s", info.parent_type.name)
+        LOG.info("Function logical id = %s", self.api.resolvers[info.parent_type.name][info.field_name])
+        
+        LOG.info("Resolving")
+        
+        LOG.info("Creating event %s", self._direct_lambda_resolver_event(arguments, info))
+
+        return {"Hello": "world"}
+
+    def _direct_lambda_resolver_event(self, arguments, info):
+        return {
+            "arguments": arguments,
+            "source": {},
+            "identity": {}, # @todo fill with JWT token contents
+            "request": {
+                "headers": dict(request.headers)
+            },
+            "info": {
+                "fieldName": info.field_name,
+                "parentTypeName": info.parent_type.name,
+                "variables": info.variable_values,
+                "selectionSetList": ["string"],
+                "selectionSetGraphQL": request.get_json()["query"],
+            }
+        }
 
     def _graphql_playground(self):
         # On GET request serve GraphQL Playground
