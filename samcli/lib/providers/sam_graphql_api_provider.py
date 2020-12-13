@@ -5,6 +5,7 @@ import logging
 from samcli.lib.providers.cfn_base_api_provider import CfnBaseApiProvider
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.local.apigw.local_apigw_service import Route
+import os 
 
 LOG = logging.getLogger(__name__)
 
@@ -13,7 +14,8 @@ class SamGraphQLApiProvider:
     SERVERLESS_FUNCTION = "AWS::Serverless::Function"
     APPSYNC_RESOLVER = "AWS::AppSync::Resolver"
     APPSYNC_DATA_SOURCE = "AWS::AppSync::DataSource"
-    TYPES = [SERVERLESS_FUNCTION, APPSYNC_RESOLVER, APPSYNC_DATA_SOURCE]
+    APPSYNC_SCHEMA = "AWS::AppSync::GraphQLSchema"
+    TYPES = [SERVERLESS_FUNCTION, APPSYNC_RESOLVER, APPSYNC_DATA_SOURCE, APPSYNC_SCHEMA]
 
     _DATA_SOURCE_TYPE = "Type"
     _DATA_SOURCE_TYPE_AWS_LAMBDA = "AWS_LAMBDA"
@@ -22,6 +24,7 @@ class SamGraphQLApiProvider:
     _RESOLVER_FIELD_NAME = "FieldName"
     _RESOLVER_TYPE = "TypeName"
     _RESOLVER_DATA_SOURCE = "DataSourceName"
+    _SCHEMA_LOCATION = "DefinitionS3Location"
 
     def extract_resources(self, resources, collector, cwd=None):
         """
@@ -51,6 +54,8 @@ class SamGraphQLApiProvider:
                 self._extract_from_resolver(logical_id, resource, collector)
             if resource_type == SamGraphQLApiProvider.APPSYNC_DATA_SOURCE:
                 self._extract_from_data_source(logical_id, resource, collector)
+            if resource_type == SamGraphQLApiProvider.APPSYNC_SCHEMA:
+                self._extract_from_schema(logical_id, resource, collector, cwd)
 
     def _extract_from_resolver(self, logical_id, resolver_resource, collector, cwd=None):
         resource_properties = resolver_resource.get("Properties", {})
@@ -82,4 +87,11 @@ class SamGraphQLApiProvider:
     
     def _extract_from_serverless_function(self, logical_id, function_resource, collector, cwd=None):
         collector.add_function(logical_id)
+    
+    def _extract_from_schema(self, logical_id, schema_resource, collector, cwd=None):
+        resource_properties = schema_resource.get("Properties", {})
+        if self._SCHEMA_LOCATION in resource_properties:
+            schema_path = resource_properties[self._SCHEMA_LOCATION]
+            schema_full_path = os.path.join(cwd, schema_path)
             
+            collector.add_schema(schema_full_path)

@@ -6,7 +6,7 @@ import logging
 import os
 
 from samcli.commands.local.lib.exceptions import NoApisDefined
-from samcli.local.apigw.local_apigw_service import LocalApigwService
+from samcli.local.appsync.local_appsync_service import LocalAppsyncService
 from samcli.lib.providers.graphql_api_provider import GraphQLApiProvider
 
 LOG = logging.getLogger(__name__)
@@ -49,9 +49,9 @@ class LocalGraphQLApiService:
         NOTE: This is a blocking call that will not return until the thread is interrupted with SIGINT/SIGTERM
         """
 
-        LOG.info("This is starting GraphQL magic")
+        LOG.info("This is starting GraphQL magic %s", self.api_provider.api.resolvers)
 
-        if not self.api_provider.api.routes:
+        if not self.api_provider.api.resolvers:
             raise NoApisDefined("No APIs available in template")
 
         static_dir_path = self._make_static_dir_path(self.cwd, self.static_dir)
@@ -60,7 +60,7 @@ class LocalGraphQLApiService:
         # contains the response to the API which is sent out as HTTP response. Only stderr needs to be printed
         # to the console or a log file. stderr from Docker container contains runtime logs and output of print
         # statements from the Lambda function
-        service = LocalApigwService(
+        service = LocalAppsyncService(
             api=self.api_provider.api,
             lambda_runner=self.lambda_runner,
             static_dir=static_dir_path,
@@ -72,7 +72,7 @@ class LocalGraphQLApiService:
         service.create()
 
         # Print out the list of routes that will be mounted
-        self._print_routes(self.api_provider.api.routes, self.host, self.port)
+        self._print_resolvers(self.api_provider.api.resolvers, self.host, self.port)
         LOG.info(
             "You can now browse to the above endpoints to invoke your functions. "
             "You do not need to restart/reload SAM CLI while working on your functions, "
@@ -83,15 +83,15 @@ class LocalGraphQLApiService:
         service.run()
 
     @staticmethod
-    def _print_routes(routes, host, port):
+    def _print_resolvers(resolvers, host, port):
         """
         Helper method to print the APIs that will be mounted. This method is purely for printing purposes.
         This method takes in a list of Route Configurations and prints out the Routes grouped by path.
         Grouping routes by Function Name + Path is the bulk of the logic.
 
         Example output:
-            Mounting Product at http://127.0.0.1:3000/path1/bar [GET, POST, DELETE]
-            Mounting Product at http://127.0.0.1:3000/path2/bar [HEAD]
+            Mounting GraphQL endpoint at http://127.0.0.1:3000/graphql [POST]
+            Mounting GraphQL playground at http://127.0.0.1:3000/graphql [GET]
 
         :param list(Route) routes:
             List of routes grouped by the same function_name and path
@@ -104,12 +104,15 @@ class LocalGraphQLApiService:
         """
 
         print_lines = []
-        for route in routes:
-            methods_str = "[{}]".format(", ".join(route.methods))
-            output = "Mounting {} at http://{}:{}{} {}".format(route.function_name, host, port, route.path, methods_str)
-            print_lines.append(output)
+        output = "Mounting GraphQL endpoint at http://{}:{}/graphql [POST]".format(host, port)
+        output = "Mounting GraphQL playground at http://{}:{}/graphql [GET]".format(host, port)
+        print_lines.append(output)
 
-            LOG.info(output)
+        LOG.info(output)
+
+        # for resolver in resolvers:
+        #     output = "Resolving {}.{} via local Lambda {}".format(resolver.resolver_type)
+        #     print_lines.append(output)
 
         return print_lines
 

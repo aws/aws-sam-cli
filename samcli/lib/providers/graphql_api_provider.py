@@ -42,8 +42,8 @@ class GraphQLApiProvider(AbstractApiProvider):
         # Store a set of apis
         self.cwd = cwd
         self.api = self._extract_api(self.resources)
-        self.routes = self.api.routes
-        LOG.debug("%d APIs found in the template", len(self.routes))
+        self.resolvers = self.api.resolvers
+        LOG.debug("%d APIs found in the template", len(self.resolvers))
 
     def get_all(self):
         """
