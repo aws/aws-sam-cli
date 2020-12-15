@@ -78,8 +78,8 @@ install:
 test_script:
     # Reactivate virtualenv before running tests
     - ps: "
-        If ((Test-Path variable:BY_CANARY) -And (Test-Path variable:DOCKER_USER) -And (Test-Path variable:DOCKER_PASS)){
-          echo Logging in Docker Hub; echo $DOCKER_PASS | docker login --username $DOCKER_USER --password-stdin;
+        If ((Test-Path env:BY_CANARY) -And (Test-Path env:DOCKER_USER) -And (Test-Path env:DOCKER_PASS)){
+          echo Logging in Docker Hub; echo $env:DOCKER_PASS | docker login --username $env:DOCKER_USER --password-stdin;
         }"
     - "git --version"
     - "venv\\Scripts\\activate"
