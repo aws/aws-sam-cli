@@ -222,7 +222,6 @@ class TestLambdaService(StartLambdaIntegBaseClass):
 
 
 class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
-
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
         self.docker_client = docker.from_env()
