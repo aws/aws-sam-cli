@@ -18,14 +18,13 @@ class TestTelemetry(TestCase):
         self.metric_mock.get_metric_name.return_value = "metric_name"
         self.metric_mock.get_data.return_value = {"a": "1", "b": "2"}
 
-
     def tearDown(self):
         pass
 
     @patch("samcli.lib.telemetry.telemetry.requests")
     def test_must_add_metric_with_attributes_to_registry(self, requests_mock):
         telemetry = Telemetry(url=self.url)
-        
+
         metric_name = "mymetric"
         attrs = {"a": 1, "b": 2}
 
@@ -35,16 +34,7 @@ class TestTelemetry(TestCase):
 
         telemetry.emit(metric_mock)
 
-        expected = {
-            "metrics": [
-                {
-                    metric_name: {
-                        "a": 1,
-                        "b": 2
-                    }
-                }
-            ]
-        }
+        expected = {"metrics": [{metric_name: {"a": 1, "b": 2}}]}
         requests_mock.post.assert_called_once_with(ANY, json=expected, timeout=ANY)
 
     @patch("samcli.lib.telemetry.telemetry.requests")

@@ -28,8 +28,10 @@ class TestSendInstalledMetric(TestCase):
         send_installed_metric()
         args, _ = telemetry_mock.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "installed")
-        self.assertGreaterEqual(metric.get_data().items(), {"osPlatform": platform.system(), "telemetryEnabled": False}.items())
+        assert metric.get_metric_name() == "installed"
+        self.assertGreaterEqual(
+            metric.get_data().items(), {"osPlatform": platform.system(), "telemetryEnabled": False}.items()
+        )
 
 
 class TestTrackWarning(TestCase):
@@ -80,7 +82,7 @@ class TestTrackWarning(TestCase):
         }
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "templateWarning")
+        assert metric.get_metric_name() == "templateWarning"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
         secho_mock.assert_called_with("WARNING: DummyWarningMessage", fg="yellow")
 
@@ -106,7 +108,7 @@ class TestTrackWarning(TestCase):
         }
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "templateWarning")
+        assert metric.get_metric_name() == "templateWarning"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
         secho_mock.assert_not_called()
 
@@ -166,10 +168,8 @@ class TestTrackCommand(TestCase):
 
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
-        self.assertEqual(
-            self.telemetry_instance.emit.mock_calls, [call(ANY)], "The one command metric must be sent"
-        )
+        assert metric.get_metric_name() == "commandRun"
+        self.assertEqual(self.telemetry_instance.emit.mock_calls, [call(ANY)], "The one command metric must be sent")
 
     @patch("samcli.lib.telemetry.metric.Context")
     def test_must_emit_command_run_metric(self, ContextMock):
@@ -191,7 +191,7 @@ class TestTrackCommand(TestCase):
         }
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
+        assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metric.Context")
@@ -207,7 +207,7 @@ class TestTrackCommand(TestCase):
         expected_attrs = _ignore_common_attributes({"awsProfileProvided": True})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
+        assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metric.Context")
@@ -224,7 +224,7 @@ class TestTrackCommand(TestCase):
         # And grab the second argument passed to this call, which are the attributes
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
+        assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(
             metric.get_data()["duration"],
             sleep_duration,
@@ -251,7 +251,7 @@ class TestTrackCommand(TestCase):
         expected_attrs = _ignore_common_attributes({"exitReason": "UserException", "exitCode": 1235})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
+        assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metric.Context")
@@ -274,7 +274,7 @@ class TestTrackCommand(TestCase):
         expected_attrs = _ignore_common_attributes({"exitReason": "CustomException", "exitCode": 1235})
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
+        assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metric.Context")
@@ -298,7 +298,7 @@ class TestTrackCommand(TestCase):
         )
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
+        assert metric.get_metric_name() == "commandRun"
         self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metric.Context")
@@ -332,7 +332,7 @@ class TestTrackCommand(TestCase):
 
         args, _ = self.telemetry_instance.emit.call_args_list[0]
         metric = args[0]
-        assert(metric.get_metric_name() == "commandRun")
+        assert metric.get_metric_name() == "commandRun"
         self.assertEqual(
             self.telemetry_instance.emit.mock_calls,
             [call(ANY)],
@@ -371,22 +371,16 @@ class TestMetric(TestCase):
         metric = Metric("metric_name")
         print(metric.get_data())
 
-        assert(metric.get_data()["requestId"] == request_id)
-        assert(metric.get_data()["installationId"] == installation_id)
-        assert(metric.get_data()["sessionId"] == session_id)
-        assert(metric.get_data()["executionEnvironment"] == "CLI")
-        assert(metric.get_data()["pyversion"] == python_version)
-        assert(metric.get_data()["samcliVersion"] == samcli.__version__)
+        assert metric.get_data()["requestId"] == request_id
+        assert metric.get_data()["installationId"] == installation_id
+        assert metric.get_data()["sessionId"] == session_id
+        assert metric.get_data()["executionEnvironment"] == "CLI"
+        assert metric.get_data()["pyversion"] == python_version
+        assert metric.get_data()["samcliVersion"] == samcli.__version__
+
 
 def _ignore_common_attributes(data):
-    common_attrs = [
-        "requestId",
-        "installationId",
-        "sessionId",
-        "executionEnvironment",
-        "pyversion",
-        "samcliVersion"
-    ]
+    common_attrs = ["requestId", "installationId", "sessionId", "executionEnvironment", "pyversion", "samcliVersion"]
     for a in common_attrs:
         if a not in data:
             data[a] = ANY
