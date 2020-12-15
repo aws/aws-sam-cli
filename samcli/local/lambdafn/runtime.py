@@ -11,9 +11,8 @@ import threading
 
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.lib.utils.file_observer import FileObserver
-from .zip import unzip
-
 from samcli.lib.telemetry.metric import capture_parameter
+from .zip import unzip
 
 LOG = logging.getLogger(__name__)
 
