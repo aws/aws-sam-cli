@@ -23,10 +23,10 @@ class TestSendInstalledMetric(TestCase):
 
         self.gc_mock.return_value.telemetry_enabled = False
         send_installed_metric()
-
-        telemetry_mock.emit.assert_called_with(
-            "installed", {"osPlatform": platform.system(), "telemetryEnabled": False}
-        )
+        args, _ = telemetry_mock.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "installed")
+        self.assertGreaterEqual(metric.get_data().items(), {"osPlatform": platform.system(), "telemetryEnabled": False}.items())
 
 
 class TestTrackWarning(TestCase):
@@ -75,7 +75,10 @@ class TestTrackWarning(TestCase):
             "warningName": "DummyWarningName",
             "warningCount": 1,
         }
-        self.telemetry_instance.emit.assert_has_calls([call("templateWarning", expected_attrs)])
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "templateWarning")
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
         secho_mock.assert_called_with("WARNING: DummyWarningMessage", fg="yellow")
 
     @patch("samcli.lib.telemetry.metrics.Context")
@@ -98,7 +101,10 @@ class TestTrackWarning(TestCase):
             "warningName": "DummyWarningName",
             "warningCount": 0,
         }
-        self.telemetry_instance.emit.assert_has_calls([call("templateWarning", expected_attrs)])
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "templateWarning")
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
         secho_mock.assert_not_called()
 
     @patch("samcli.lib.telemetry.metrics.Context")
@@ -162,8 +168,11 @@ class TestTrackCommand(TestCase):
 
         track_command(real_fn)()
 
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
         self.assertEqual(
-            self.telemetry_instance.emit.mock_calls, [call("commandRun", ANY)], "The one command metric must be sent"
+            self.telemetry_instance.emit.mock_calls, [call(ANY)], "The one command metric must be sent"
         )
 
     @patch("samcli.lib.telemetry.metrics.Context")
@@ -184,7 +193,10 @@ class TestTrackCommand(TestCase):
             "exitReason": "success",
             "exitCode": 0,
         }
-        self.telemetry_instance.emit.assert_has_calls([call("commandRun", expected_attrs)])
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_emit_command_run_metric_with_sanitized_profile_value(self, ContextMock):
@@ -197,7 +209,10 @@ class TestTrackCommand(TestCase):
         track_command(real_fn)()
 
         expected_attrs = _cmd_run_attrs({"awsProfileProvided": True})
-        self.telemetry_instance.emit.assert_has_calls([call("commandRun", expected_attrs)])
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_record_function_duration(self, ContextMock):
@@ -211,11 +226,11 @@ class TestTrackCommand(TestCase):
 
         # commandRun metric should be the only call to emit.
         # And grab the second argument passed to this call, which are the attributes
-        args, kwargs = self.telemetry_instance.emit.call_args_list[0]
-        metric_name, actual_attrs = args
-        self.assertEqual("commandRun", metric_name)
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
         self.assertGreaterEqual(
-            actual_attrs["duration"],
+            metric.get_data()["duration"],
             sleep_duration,
             "Measured duration must be in milliseconds and " "greater than equal to  the sleep duration",
         )
@@ -238,7 +253,10 @@ class TestTrackCommand(TestCase):
             )
 
         expected_attrs = _cmd_run_attrs({"exitReason": "UserException", "exitCode": 1235})
-        self.telemetry_instance.emit.assert_has_calls([call("commandRun", expected_attrs)])
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_record_wrapped_user_exception(self, ContextMock):
@@ -258,7 +276,10 @@ class TestTrackCommand(TestCase):
             )
 
         expected_attrs = _cmd_run_attrs({"exitReason": "CustomException", "exitCode": 1235})
-        self.telemetry_instance.emit.assert_has_calls([call("commandRun", expected_attrs)])
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_record_any_exceptions(self, ContextMock):
@@ -279,7 +300,10 @@ class TestTrackCommand(TestCase):
         expected_attrs = _cmd_run_attrs(
             {"exitReason": "KeyError", "exitCode": 255}  # Unhandled exceptions always use exit code 255
         )
-        self.telemetry_instance.emit.assert_has_calls([call("commandRun", expected_attrs)])
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
+        self.assertGreaterEqual(metric.get_data().items(), expected_attrs.items())
 
     @patch("samcli.lib.telemetry.metrics.Context")
     def test_must_return_value_from_decorated_function(self, ContextMock):
@@ -310,9 +334,12 @@ class TestTrackCommand(TestCase):
         actual = real_fn("hello", b="world")
         self.assertEqual(actual, "hello world")
 
+        args, _ = self.telemetry_instance.emit.call_args_list[0]
+        metric = args[0]
+        assert(metric.get_metric_name() == "commandRun")
         self.assertEqual(
             self.telemetry_instance.emit.mock_calls,
-            [call("commandRun", ANY)],
+            [call(ANY)],
             "The command metrics be emitted when used as a decorator",
         )
 

@@ -266,14 +266,15 @@ def emit_all_metrics():
 
 
 class Metric:
-    def __init__(self, metric_name):
+    def __init__(self, metric_name, should_add_common_attributes=True):
         self._data = dict()
         self._metric_name = metric_name
         self._gc = GlobalConfig()
         self._session_id = self._default_session_id()
         if not self._session_id:
             self._session_id = ""
-        self._add_common_metric_attributes()
+        if should_add_common_attributes:
+            self._add_common_metric_attributes()
 
     def add_list_data(self, key, value):
         if key not in self._data:
