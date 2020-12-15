@@ -87,9 +87,6 @@ for:
         - image: Ubuntu
 
     install:
-      - sh: "echo $AWS_ACCESS_KEY_ID"
-      - sh: "echo AWS_SECRET_ACCESS_KEY"
-      - sh: "echo AWS_SESSION_TOKEN"
       - sh: "gvm use go1.13"
       - sh: "echo $PATH"
       - sh: "ls /usr/"
