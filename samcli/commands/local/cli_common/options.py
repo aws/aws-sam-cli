@@ -153,13 +153,25 @@ def warm_containers_common_options(f):
     warm_containers_options = [
         click.option(
             "--warm-containers",
-            help="Optional. Specifies how AWS SAM CLI manages containers for each function.",
+            help="""
+            \b
+            Optional. Specifies how AWS SAM CLI manages 
+            containers for each function.
+            Two modes are available:
+            EAGER: Containers for all functions are 
+            loaded at startup and persist between 
+            invocations.
+            LAZY:  Containers are only loaded when each 
+            function is first invoked. Those containers 
+            persist for additional invocations.
+            """,
             type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),
         ),
         click.option(
             "--debug-function",
             help="Optional. Specifies the Lambda Function logicalId to apply debug options to when"
-            " --warm-containers is specified ",
+            " --warm-containers is specified.  This parameter applies to --debug-port, --debugger-path,"
+            " and --debug-args.",
             type=click.STRING,
             multiple=False,
         ),
