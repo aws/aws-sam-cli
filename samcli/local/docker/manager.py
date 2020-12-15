@@ -51,20 +51,20 @@ class ContainerManager:
         """
         return utils.is_docker_reachable(self.docker_client)
 
-    def run(self, container, input_data=None, warm=False):
+    def create(self, container):
         """
-        Create and run a Docker container based on the given configuration.
+        Create a container based on the given configuration.
 
-        :param samcli.local.docker.container.Container container: Container to create and run
-        :param input_data: Optional. Input data sent to the container through container's stdin.
-        :param bool warm: Indicates if an existing container can be reused. Defaults False ie. a new container will
-            be created for every request.
-        :raises DockerImagePullFailedException: If the Docker image was not available in the server
+        Parameters
+        ----------
+        container samcli.local.docker.container.Container:
+            Container to be created
+
+        Raises
+        ------
+        DockerImagePullFailedException
+            If the Docker image was not available in the server
         """
-
-        if warm:
-            raise ValueError("The facility to invoke warm container does not exist")
-
         image_name = container.image
 
         is_image_local = self.has_image(image_name)
@@ -88,11 +88,28 @@ class ContainerManager:
 
                 LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
 
+        container.network_id = self.docker_network_id
+        container.create()
+
+    def run(self, container, input_data=None):
+        """
+        Run a Docker container based on the given configuration.
+        If the container is not created, it will call Create method to create.
+
+        Parameters
+        ----------
+        container: samcli.local.docker.container.Container
+            Container to create and run
+        input_data: str, optional
+            Input data sent to the container through container's stdin.
+
+        Raises
+        ------
+        DockerImagePullFailedException
+            If the Docker image was not available in the server
+        """
         if not container.is_created():
-            # Create the container first before running.
-            # Create the container in appropriate Docker network
-            container.network_id = self.docker_network_id
-            container.create()
+            self.create(container)
 
         container.start(input_data=input_data)
 
